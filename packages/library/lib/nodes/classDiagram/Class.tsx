@@ -112,9 +112,11 @@ export function Class({
   // Calculate the widest text accurately. Width must consider the
   // *display* name (post-format) so ER/UML toggles re-fit the node.
   const maxTextWidth = useMemo(() => {
+    // The header renders bold (HeaderSection).
+    const boldFont = font.replace(/^\d+/, "700")
     const headerTextWidths = [
-      stereotype ? measureTextWidth(`«${stereotype}»`, font) : 0,
-      measureTextWidth(name, font),
+      stereotype ? measureTextWidth(`«${stereotype}»`, boldFont) : 0,
+      measureTextWidth(name, boldFont),
     ]
     const attributesTextWidths = displayAttributes.map((attr) =>
       measureTextWidth(attr.name, font)

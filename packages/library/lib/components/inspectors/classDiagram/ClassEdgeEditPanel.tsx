@@ -8,7 +8,7 @@ import {
   TextField as MuiTextField,
   Tooltip,
 } from "@mui/material"
-import React from "react"
+import React, { useState } from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { useSettingsStore } from "@/store/settingsStore"
@@ -126,6 +126,11 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const classNotation = useSettingsStore((s) => s.classNotation)
   const showAssociationNames = useSettingsStore((s) => s.showAssociationNames)
   const { t } = useTranslation()
+  // Invalid multiplicity text stays here (shown with its error) and never
+  // reaches the model, so the canvas keeps the last valid value.
+  const [multiplicityDrafts, setMultiplicityDrafts] = useState<
+    Record<string, string>
+  >({})
 
   const edge = edges.find((e) => e.id === elementId)
   if (!edge) return null
@@ -173,6 +178,37 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       )
     )
   }
+
+  type MultiplicityKey = "sourceMultiplicity" | "targetMultiplicity"
+  const draftKey = (key: MultiplicityKey) => `${elementId}:${key}`
+  const multiplicityValue = (key: MultiplicityKey): string =>
+    multiplicityDrafts[draftKey(key)] ?? data[key] ?? ""
+  const setMultiplicityDraft = (key: MultiplicityKey, value?: string) =>
+    setMultiplicityDrafts((drafts) => {
+      const next = { ...drafts }
+      if (value === undefined) delete next[draftKey(key)]
+      else next[draftKey(key)] = value
+      return next
+    })
+  const onMultiplicityChange = (key: MultiplicityKey, value: string) => {
+    if (isValidMultiplicity(value)) {
+      setMultiplicityDraft(key)
+      updateData({ [key]: value })
+    } else {
+      setMultiplicityDraft(key, value)
+    }
+  }
+  const onMultiplicityBlur = (key: MultiplicityKey, value: string) => {
+    if (isValidMultiplicity(value)) updateData({ [key]: erCardinalityToUML(value) })
+  }
+
+  // The heading names the edge's own kind (develop: "Generalization", …).
+  const edgeTypeKey = normalizeAssociationType(edge.type) ?? edge.type ?? ""
+  const edgeTypeLabel = t(
+    `packages.ClassDiagram.${edgeTypeKey}`,
+    EDGE_TYPE_OPTIONS.find((o) => o.value === edgeTypeKey)?.label ??
+      t("popup.association", "Association")
+  )
 
   const handleEdgeTypeChange = (newType: string) => {
     setEdges((all) =>
@@ -294,7 +330,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label={t("popup.association", "Association")}
+        label={edgeTypeLabel}
         sideElements={[
           <Tooltip
             key="flip"
@@ -371,21 +407,19 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               fullWidth
               autoFocus
               placeholder={multiplicityPlaceholder}
-              value={data.sourceMultiplicity ?? ""}
-              error={!isValidMultiplicity(data.sourceMultiplicity)}
+              value={multiplicityValue("sourceMultiplicity")}
+              error={!isValidMultiplicity(multiplicityValue("sourceMultiplicity"))}
               helperText={
-                isValidMultiplicity(data.sourceMultiplicity)
+                isValidMultiplicity(multiplicityValue("sourceMultiplicity"))
                   ? undefined
                   : multiplicityError
               }
               inputProps={{ "data-testid": "source-multiplicity" }}
               onChange={(e) =>
-                updateData({ sourceMultiplicity: e.target.value })
+                onMultiplicityChange("sourceMultiplicity", e.target.value)
               }
               onBlur={(e) =>
-                updateData({
-                  sourceMultiplicity: erCardinalityToUML(e.target.value),
-                })
+                onMultiplicityBlur("sourceMultiplicity", e.target.value)
               }
             />
           </Stack>
@@ -418,21 +452,19 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               variant="outlined"
               fullWidth
               placeholder={multiplicityPlaceholder}
-              value={data.targetMultiplicity ?? ""}
-              error={!isValidMultiplicity(data.targetMultiplicity)}
+              value={multiplicityValue("targetMultiplicity")}
+              error={!isValidMultiplicity(multiplicityValue("targetMultiplicity"))}
               helperText={
-                isValidMultiplicity(data.targetMultiplicity)
+                isValidMultiplicity(multiplicityValue("targetMultiplicity"))
                   ? undefined
                   : multiplicityError
               }
               inputProps={{ "data-testid": "target-multiplicity" }}
               onChange={(e) =>
-                updateData({ targetMultiplicity: e.target.value })
+                onMultiplicityChange("targetMultiplicity", e.target.value)
               }
               onBlur={(e) =>
-                updateData({
-                  targetMultiplicity: erCardinalityToUML(e.target.value),
-                })
+                onMultiplicityBlur("targetMultiplicity", e.target.value)
               }
             />
           </Stack>

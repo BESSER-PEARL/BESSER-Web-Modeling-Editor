@@ -31,6 +31,9 @@ import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
  * connection handles are hidden (see `hiddenHandles` below), leaving nothing
  * but the resize controls to capture the pointer.
  */
+/** Room left for the pool's corner handle (8px + its 5px hit inset). */
+const POOL_CORNER_CLEARANCE = 13
+
 const SWIMLANE_PASSTHROUGH_STYLE_ID = "besser-bpmn-swimlane-passthrough"
 function ensureSwimlanePassthroughStyle(): void {
   if (typeof document === "undefined") return
@@ -94,7 +97,9 @@ export function BPMNSwimlane({
 
       {/* Only the bottom edge resizes a lane: its other edges coincide with
           the pool's, whose own resize handles must stay reachable (a lane
-          line over the pool's right edge made a laned pool unwidenable). */}
+          line over the pool's right edge made a laned pool unwidenable).
+          The line stops short of the right end so the pool's corner handle
+          there still resizes both ways. */}
       {isDiagramModifiable && parentId && (
         <NodeResizeControl
           position="bottom"
@@ -102,7 +107,10 @@ export function BPMNSwimlane({
           onResize={onLaneResize(parentId, id)}
           shouldResize={(_event, params) => params.direction[0] === 0}
           minHeight={SWIMLANE_MIN_HEIGHT}
-          style={{ pointerEvents: "all" }}
+          style={{
+            pointerEvents: "all",
+            width: `calc(100% - ${POOL_CORNER_CLEARANCE}px)`,
+          }}
         />
       )}
       {/* The header strip (lane name) takes the pointer, so a click selects

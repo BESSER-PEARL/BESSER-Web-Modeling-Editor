@@ -399,7 +399,6 @@ export const isParentNodeType = (nodeType?: string) => {
     nodeType === DiagramNodeTypeRecord.bpmnGroup ||
     nodeType === DiagramNodeTypeRecord.bpmnSubprocess ||
     nodeType === DiagramNodeTypeRecord.bpmnTransaction ||
-    nodeType === DiagramNodeTypeRecord.bpmnCallActivity ||
     // BESSER-registered parent shapes (NN, State,
     // Agent diagrams) live outside the default node-type registry —
     // they're added at runtime via `registerNodeTypes`. Compare by

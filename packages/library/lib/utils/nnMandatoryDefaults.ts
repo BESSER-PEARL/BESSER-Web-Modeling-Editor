@@ -9,9 +9,9 @@ import {
 } from "@/nodes/nnDiagram/nnValidationDefaults"
 
 /**
- * Fills an NN layer's missing mandatory attributes with their defaults, as
- * the inspector's first-render auto-fill does (`NNComponentEditPanel`), so a
- * layer is valid as soon as it is created, not only once its panel opened.
+ * Fills an NN layer's missing mandatory attributes with their defaults. Used
+ * on palette drop and by the inspector's first-render auto-fill
+ * (`NNComponentEditPanel`), so a layer is valid as soon as it is created.
  * Returns `data` unchanged for non-layer types or when nothing is missing.
  */
 export const withMandatoryNNDefaults = (

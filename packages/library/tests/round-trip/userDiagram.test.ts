@@ -224,16 +224,15 @@ describe("UserModelAttribute attributeOperator synthesis from name", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("SA-FIX-User meta-model helpers", () => {
-  it("getUserMetaModelClasses lists the 4 default classes (and skips User)", () => {
+  it("getUserMetaModelClasses lists the default classes, User included", () => {
     const classes = getUserMetaModelClasses()
     const names = classes.map((c) => c.name)
     expect(names).toContain("Personal_Information")
     expect(names).toContain("Skill")
     expect(names).toContain("Education")
     expect(names).toContain("Disability")
-    // The placeholder root class is intentionally hidden — it isn't a
-    // draggable concept in the v3 sidebar either.
-    expect(names).not.toContain("User")
+    // develop's palette offered a class-bound `user_1` card.
+    expect(names).toContain("User")
   })
 
   it("getUserMetaModelV4 returns a v4-shape {nodes, edges} blob with class nodes", () => {

@@ -374,7 +374,6 @@ describe("isParentNodeType", () => {
     "bpmnGroup",
     "bpmnSubprocess",
     "bpmnTransaction",
-    "bpmnCallActivity",
   ]
 
   it.each(parentTypes)("returns true for %s", (type) => {

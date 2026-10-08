@@ -410,7 +410,7 @@ describe("StateMergeNodeEditPanel width / height (v3 SizeInput)", () => {
 describe("UserDiagram palette gating", () => {
   const metaCards = () =>
     dropElementConfigs[UMLDiagramType.UserDiagram].filter(
-      (e) => e.defaultData?.classId
+      (e) => e.defaultData?.classId && e.defaultData?.className !== "User"
     )
 
   it("shows the per-metaclass cards only while instances are shown", () => {
@@ -418,8 +418,10 @@ describe("UserDiagram palette gating", () => {
     expect(metaCards().length).toBeGreaterThan(0)
     settingsService.updateSetting("showInstancedObjects", false)
     expect(metaCards()).toHaveLength(0)
-    // The static fallback card stays available.
-    expect(dropElementConfigs[UMLDiagramType.UserDiagram]).toHaveLength(1)
+    // The class-bound User card stays available.
+    const rest = dropElementConfigs[UMLDiagramType.UserDiagram]
+    expect(rest).toHaveLength(1)
+    expect(rest[0].defaultData?.className).toBe("User")
   })
 })
 
@@ -486,7 +488,7 @@ describe("ClassEditPanel 📝 Code quick-create", () => {
   it("names the method from the pending add-method input", () => {
     const stores = makeStores([classNode()], [], UMLDiagramType.ClassDiagram)
     renderWith(<ClassEditPanel elementId="class-1" />, stores)
-    fireEvent.change(screen.getByPlaceholderText("+ Add method (Enter)"), {
+    fireEvent.change(screen.getByPlaceholderText("+ method(param: str): str"), {
       target: { value: "greet" },
     })
     fireEvent.click(

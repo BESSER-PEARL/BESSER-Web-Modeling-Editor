@@ -334,6 +334,7 @@ export const parseAttributeInput = (raw: string): ParsedAttributeInput => {
 export interface ParsedMethodParameter {
   name: string
   parameterType?: string
+  defaultValue?: string
 }
 
 export interface ParsedMethodInput {
@@ -351,25 +352,34 @@ export interface ParsedMethodInput {
 }
 
 /**
- * Split a `(`-delimited parameter list (`"self, a: int, b"`) into
- * structured rows. `self` is dropped, mirroring the v3 def-line
- * extraction (`uml-classifier-method-update.tsx:268-276`).
+ * Split a `(`-delimited parameter list (`"self, a: int = 2, b"`) into
+ * structured rows, the way `splitLegacyMethodSignature` reads imported
+ * signatures: top-level commas only, `= default` stored apart from the
+ * type (quotes stripped). `keepSelf: false` drops `self`, mirroring the v3
+ * def-line extraction (`uml-classifier-method-update.tsx:268-276`).
  */
-const parseParameterList = (raw: string): ParsedMethodParameter[] =>
-  raw
-    .split(",")
+const parseParameterList = (
+  raw: string,
+  keepSelf: boolean
+): ParsedMethodParameter[] =>
+  splitTopLevel(raw, ",")
     .map((p) => p.trim())
-    .filter((p) => p.length > 0 && p !== "self")
+    .filter((p) => p.length > 0 && (keepSelf || p !== "self"))
     .map((p) => {
-      const colonIdx = p.indexOf(":")
-      if (colonIdx >= 0) {
-        const ptype = p.substring(colonIdx + 1).trim()
-        return {
-          name: sanitizeIdentifier(p.substring(0, colonIdx)),
-          ...(ptype && { parameterType: normalizeType(ptype) }),
-        }
+      const [head, ...defaultParts] = splitTopLevel(p, "=")
+      const defaultValue = defaultParts
+        .join("=")
+        .trim()
+        .replace(/^(['"])(.*)\1$/, "$2")
+      const colonIdx = head.indexOf(":")
+      const ptype = colonIdx >= 0 ? head.substring(colonIdx + 1).trim() : ""
+      return {
+        name: sanitizeIdentifier(
+          colonIdx >= 0 ? head.substring(0, colonIdx) : head
+        ),
+        ...(ptype && { parameterType: normalizeType(ptype) }),
+        ...(defaultValue && { defaultValue }),
       }
-      return { name: sanitizeIdentifier(p) }
     })
     .filter((p) => p.name.length > 0)
 
@@ -403,7 +413,8 @@ export const parseMethodInput = (raw: string): ParsedMethodInput => {
         name: sanitizeIdentifier(rest.substring(0, openParen)),
         ...(visibility && { visibility }),
         parameters: parseParameterList(
-          rest.substring(openParen + 1, lastParen)
+          rest.substring(openParen + 1, lastParen),
+          true
         ),
         ...(returnType !== undefined && { returnType }),
       }
@@ -455,7 +466,7 @@ export const extractMethodSignatureFromCode = (
   )
   return {
     name: methodMatch[1],
-    parameters: parseParameterList(methodMatch[2] ?? ""),
+    parameters: parseParameterList(methodMatch[2] ?? "", false),
     ...(returnTypeMatch && {
       returnType: normalizeType(returnTypeMatch[1].trim()),
     }),
@@ -504,6 +515,7 @@ export const mergeParameterIds = (
       ...(p.parameterType !== undefined && {
         parameterType: p.parameterType,
       }),
+      ...(p.defaultValue !== undefined && { defaultValue: p.defaultValue }),
     }
   })
 }

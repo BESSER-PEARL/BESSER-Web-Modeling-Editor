@@ -63,10 +63,7 @@ import {
 // remains importable from `@/components/svgs/nodes/agentDiagram` for
 // the inline canvas rendering of folded entity-slot rows.
 import { AgentStateSVG } from "@/components/svgs/nodes/agentDiagram"
-import {
-  UserModelStaticPreviewSVG,
-  getUserModelNamePaletteEntries,
-} from "@/components/svgs/nodes/userDiagram"
+import { getUserModelNamePaletteEntries } from "@/components/svgs/nodes/userDiagram"
 // Dynamic ObjectDiagram palette provider (v3 `composeObjectPreview`
 // parity). Function declaration import — invoked lazily per sidebar
 // render via the dynamic-provider registry at the bottom of this file.
@@ -976,7 +973,9 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       width: 150,
       height: 150,
       defaultData: {
-        name: "code",
+        // Empty on purpose: the backend reads the function name from the
+        // code's `def` line only when the block name is empty.
+        name: "",
         code: '# Sample code\nprint("Hello World")',
         language: "python",
       },
@@ -1391,23 +1390,6 @@ const getUserDiagramMetaClassEntries = (): ReadonlyArray<DropElementConfig> =>
     })
   ))
 
-/** Static "Alice" fallback drag-source (not class-bound). */
-let _userDiagramStaticEntry: DropElementConfig | null = null
-const userDiagramStaticEntry = (): DropElementConfig =>
-  (_userDiagramStaticEntry ??= {
-    type: "UserModelName" as never,
-    width: DROPS.DEFAULT_ELEMENT_WIDTH,
-    height: 100,
-    defaultData: {
-      name: "Alice",
-      className: "User",
-      attributes: [],
-      // Static fallback drag-source also defaults to icon view.
-      view: "icon" as const,
-    },
-    svg: UserModelStaticPreviewSVG,
-  })
-
 /**
  * UserDiagram palette, recomposed per sidebar render. v3 parity
  * (`user-model-preview.ts`): the per-metaclass instance cards only appear
@@ -1415,12 +1397,13 @@ const userDiagramStaticEntry = (): DropElementConfig =>
  * stays dropped — every UserModelName already renders in icon view.
  */
 export const getUserDiagramPaletteEntries =
-  (): ReadonlyArray<DropElementConfig> => [
-    ...(settingsService.shouldShowInstancedObjects()
+  (): ReadonlyArray<DropElementConfig> =>
+    settingsService.shouldShowInstancedObjects()
       ? getUserDiagramMetaClassEntries()
-      : []),
-    userDiagramStaticEntry(),
-  ]
+      : // The class-bound `user_1` card stays available either way.
+        getUserDiagramMetaClassEntries().filter(
+          (e) => e.defaultData?.className === "User"
+        )
 
 /**
  * Lightweight palette preview for the free-form Comment

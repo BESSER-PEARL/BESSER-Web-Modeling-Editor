@@ -1674,6 +1674,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         ...(p.parameterType !== undefined && {
           parameterType: p.parameterType,
         }),
+        ...(p.defaultValue !== undefined && { defaultValue: p.defaultValue }),
       })),
       implementationType: "none",
       ...overrides?.(methodName),
@@ -1878,15 +1879,14 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             <div className="bp-field bp-field--add">
               <InputBase
                 className="bp-field__name"
+                // Syntax hint (develop's wording); the header button is the
+                // one-click auto-named add.
                 placeholder={
                   isEnumeration
-                    ? t(
-                        "popup.class.addLiteralInputPlaceholder",
-                        "+ Add literal (Enter for auto-name)"
-                      )
+                    ? t("popup.classifier.newLiteralPlaceholder", "literal")
                     : t(
-                        "popup.class.addAttributeInputPlaceholder",
-                        "+ Add attribute (Enter for auto-name)"
+                        "popup.classifier.newAttributePlaceholder",
+                        "+ attribute: str"
                       )
                 }
                 value={newAttrName}
@@ -1967,8 +1967,8 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                   <InputBase
                     className="bp-field__name"
                     placeholder={t(
-                      "popup.class.addMethodInputPlaceholder",
-                      "+ Add method (Enter)"
+                      "popup.classifier.newMethodPlaceholder",
+                      "+ method(param: str): str"
                     )}
                     value={newMethodName}
                     inputRef={newMethodInputRef}

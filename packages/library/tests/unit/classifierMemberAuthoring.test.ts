@@ -103,10 +103,14 @@ describe("parseMethodInput", () => {
     })
   })
 
-  it("filters out 'self' and untyped parameter names stay bare", () => {
+  it("keeps 'self' (develop stored it) and untyped parameter names stay bare", () => {
     expect(parseMethodInput("foo(self, a: int, b)")).toEqual({
       name: "foo",
-      parameters: [{ name: "a", parameterType: "int" }, { name: "b" }],
+      parameters: [
+        { name: "self" },
+        { name: "a", parameterType: "int" },
+        { name: "b" },
+      ],
     })
   })
 

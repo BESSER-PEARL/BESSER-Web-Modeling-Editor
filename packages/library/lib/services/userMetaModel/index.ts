@@ -71,8 +71,7 @@ export interface UserMetaModelClass {
  * `Enumeration`) rows with their attributes folded in. Used by the
  * UserDiagram palette to dynamically generate one drag-source per
  * meta-model class — the v3 behaviour `composeUserModelPreview`
- * provided. We exclude `User` itself (it's the placeholder header that
- * the v3 sidebar also hid).
+ * provided, `User` included (develop's palette offered a linked `user_1`).
  */
 export function getUserMetaModelClasses(): UserMetaModelClass[] {
   const elements = json.elements ?? {}
@@ -80,7 +79,6 @@ export function getUserMetaModelClasses(): UserMetaModelClass[] {
   for (const id of Object.keys(elements)) {
     const el = elements[id]
     if (el?.type !== "Class") continue
-    if (el.name === "User") continue // skip the placeholder root
     const attrIds = Array.isArray(el.attributes) ? el.attributes : []
     const attrs = attrIds
       .map((aid) => elements[aid])

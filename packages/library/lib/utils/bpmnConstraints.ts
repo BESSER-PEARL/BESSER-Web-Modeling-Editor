@@ -227,12 +227,12 @@ export const canDropIntoParent = (
     )
   }
 
+  // A call activity is not a container (develop: CallActivity
+  // `droppable: false`).
+  if (parentType === "bpmnCallActivity") return false
+
   // BPMN Subprocess constraints
-  if (
-    parentType === "bpmnSubprocess" ||
-    parentType === "bpmnTransaction" ||
-    parentType === "bpmnCallActivity"
-  ) {
+  if (parentType === "bpmnSubprocess" || parentType === "bpmnTransaction") {
     // Subprocesses can contain most BPMN elements except pools
     return (
       childType === "bpmnTask" ||

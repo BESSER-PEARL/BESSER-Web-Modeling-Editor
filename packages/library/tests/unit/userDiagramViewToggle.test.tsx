@@ -98,7 +98,7 @@ const TABLE_HEIGHT =
 describe("UserModelName canvas node", () => {
   it("renders the icon by default, with the class name in the header", () => {
     const { container, store } = renderNode(userNode())
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).not.toBeNull()
+    expect(container.getElementsByTagName("image")[0] ?? null).not.toBeNull()
     expect(container.textContent).toContain("Personal_Information")
     expect(container.textContent).not.toContain("age < 18")
     expect(nodeOf(store).height).toBe(ICON_HEIGHT)
@@ -106,7 +106,7 @@ describe("UserModelName canvas node", () => {
 
   it("renders legacy rows correctly in the attribute table", () => {
     const { container } = renderNode(userNode({ view: "attributes" }))
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).toBeNull()
+    expect(container.getElementsByTagName("image")[0] ?? null).toBeNull()
     expect(container.textContent).toContain("age < 18")
     expect(container.textContent).toContain("lastName ==")
   })

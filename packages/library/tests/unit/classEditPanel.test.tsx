@@ -78,7 +78,7 @@ describe("ClassEditPanel — attribute shorthand authoring", () => {
   it("parses '- price: float' typed into the add-attribute input", () => {
     const { store } = renderPanel([classNode({})])
     const input = screen.getByPlaceholderText(
-      "+ Add attribute (Enter for auto-name)"
+      "+ attribute: str"
     )
     fireEvent.change(input, { target: { value: "- price: float" } })
     fireEvent.keyDown(input, { key: "Enter" })
@@ -96,7 +96,7 @@ describe("ClassEditPanel — attribute shorthand authoring", () => {
   it("keeps plain identifiers working unchanged on add", () => {
     const { store } = renderPanel([classNode({})])
     const input = screen.getByPlaceholderText(
-      "+ Add attribute (Enter for auto-name)"
+      "+ attribute: str"
     )
     fireEvent.change(input, { target: { value: "speed" } })
     fireEvent.keyDown(input, { key: "Enter" })
@@ -160,7 +160,7 @@ describe("ClassEditPanel — attribute shorthand authoring", () => {
 describe("ClassEditPanel — method signature authoring", () => {
   it("parses a full signature typed into the add-method input", () => {
     const { store } = renderPanel([classNode({})])
-    const input = screen.getByPlaceholderText("+ Add method (Enter)")
+    const input = screen.getByPlaceholderText("+ method(param: str): str")
     fireEvent.change(input, {
       target: { value: "+ notify(channel: str, urgent: bool): bool" },
     })

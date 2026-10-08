@@ -209,7 +209,7 @@ describe("Enter moves to the next row (develop onSubmitKeyUp)", () => {
     expect(document.activeElement).toBe(second)
     fireEvent.keyDown(second, { key: "Enter" })
     expect(document.activeElement).toBe(
-      screen.getByPlaceholderText("+ Add attribute (Enter for auto-name)")
+      screen.getByPlaceholderText("+ attribute: str")
     )
   })
 
@@ -225,7 +225,7 @@ describe("Enter moves to the next row (develop onSubmitKeyUp)", () => {
     row.focus()
     fireEvent.keyDown(row, { key: "Enter" })
     expect(document.activeElement).toBe(
-      screen.getByPlaceholderText("+ Add method (Enter)")
+      screen.getByPlaceholderText("+ method(param: str): str")
     )
   })
 })

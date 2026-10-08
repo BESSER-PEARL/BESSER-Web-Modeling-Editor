@@ -19,7 +19,7 @@ import React, {
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { ObjectNodeAttribute, ObjectNodeProps } from "@/types"
-import { DividerLine, NodeStyleEditor } from "@/components/ui"
+import { DividerLine, NodeStyleEditor, TextField } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
@@ -50,6 +50,8 @@ interface ObjectAttrRowProps {
   valueInputRef?: (el: HTMLInputElement | null) => void
   /** Fired when Enter is pressed inside the row's value input. */
   onEnter?: () => void
+  /** Slot names of a class-linked object come from the class. */
+  nameReadOnly?: boolean
 }
 
 /**
@@ -193,6 +195,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   onDelete,
   valueInputRef,
   onEnter,
+  nameReadOnly = false,
 }) => {
   const { t } = useTranslation()
   const [colorOpen, setColorOpen] = useState(false)
@@ -373,6 +376,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
             className="bp-field__name"
             placeholder={t("popup.object.slotNamePlaceholder", "name")}
             value={row.name}
+            readOnly={nameReadOnly}
             onChange={(e) =>
               onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
             }
@@ -689,7 +693,25 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <NodeStyleEditor
         nodeData={nodeData}
         handleDataFieldUpdate={handleDataFieldUpdate}
-        inputPlaceholder={placeholderName}
+        // Own name field: its label must say "name" so the properties
+        // panel focuses it, not the first slot's name.
+        showNameInputChange={false}
+        preElements={[
+          <TextField
+            key="object-name"
+            variant="outlined"
+            size="small"
+            sx={{ flex: 1 }}
+            value={nodeData.name ?? ""}
+            placeholder={placeholderName}
+            onChange={(e) => handleDataFieldUpdate("name", e.target.value)}
+            inputProps={{
+              "aria-label": t("popup.object.objectName", "Object name"),
+              autoComplete: "off",
+              spellCheck: false,
+            }}
+          />,
+        ]}
       />
       <DividerLine width="100%" />
 
@@ -761,6 +783,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           enumLiterals={enumLiterals}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
+          nameReadOnly={!!nodeData.classId}
           valueInputRef={(el) => {
             valueRefs.current[index] = el
           }}

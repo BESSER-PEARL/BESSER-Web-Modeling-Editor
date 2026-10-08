@@ -53,6 +53,11 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
       <NodeStyleEditor
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
+        // Leave empty to use the function name from the code's `def` line.
+        inputPlaceholder={t(
+          "popup.state.codeBlockName",
+          "Function name (empty = from def)"
+        )}
       />
       <DividerLine width="100%" />
 

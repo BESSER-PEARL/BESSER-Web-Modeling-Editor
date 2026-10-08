@@ -26,23 +26,26 @@ interface Props extends SVGComponentProps {
  * The class name resolves **live** from the diagram bridge (so a class
  * rename in the sibling ClassDiagram is reflected the next time the
  * object diagram renders), falling back to the cached `data.className`
- * when the bridge has no data for the linked id (e.g. standalone
- * diagrams imported without their ClassDiagram).
+ * only when the bridge has no class data at all (e.g. standalone diagrams
+ * imported without their ClassDiagram). A linked id missing from present
+ * class data means the class was deleted, and its name is dropped.
  */
 export function resolveObjectHeaderLabel(data: {
   name: string
   classId?: string
   className?: string
 }): string {
-  let className: string | undefined
+  let className: string | undefined = data.className
   if (data.classId) {
     try {
-      className = diagramBridge.getClassById(data.classId)?.name
+      // Class data present but the id gone = the class was deleted.
+      if (diagramBridge.hasClassDiagramData()) {
+        className = diagramBridge.getClassById(data.classId)?.name
+      }
     } catch {
-      className = undefined
+      // Keep the cached name.
     }
   }
-  className = className ?? data.className
   return className ? `${data.name} : ${className}` : data.name
 }
 

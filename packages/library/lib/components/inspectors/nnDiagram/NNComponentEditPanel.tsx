@@ -51,6 +51,7 @@ import {
   SubscriptDimension,
 } from "@/nodes/nnDiagram/nnAttributeValueFormats"
 import { computeNNPredecessors } from "@/utils/nnPredecessors"
+import { withMandatoryNNDefaults } from "@/utils/nnMandatoryDefaults"
 
 /**
  * Generic NN inspector: drives the 17 layer-kind panels from a single
@@ -356,13 +357,10 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
   // (`cross_entropy` → `crossentropy`, `zeros` → `valid`, …).
   React.useEffect(() => {
     if (!node || schema.length === 0) return
-    const patch: Record<string, unknown> = {}
+    const normalized: Record<string, unknown> = { ...attributes }
+    let changed = false
     for (const f of schema) {
-      const key = COLLIDING_SLUGS.has(f.slug)
-        ? qualifySlug(layerKind, f.slug)
-        : f.slug
       const stored = readAttribute(f.slug)
-
       if (
         f.widget === "dropdown" &&
         f.options &&
@@ -371,36 +369,20 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
         !(f.options as readonly string[]).includes(stored) &&
         f.defaultValue !== undefined
       ) {
-        patch[key] = f.defaultValue
-        continue
-      }
-
-      if (!f.mandatory) continue
-      if (stored !== undefined && stored !== null && stored !== "") continue
-      // `name` mirrors the node's own name (the backend reads
-      // `attributes.name`).
-      if (f.slug === "name") {
-        patch[key] = data.name ?? ""
-        continue
-      }
-      if (f.defaultValue !== undefined) {
-        patch[key] = f.defaultValue
-        continue
-      }
-      // List-shaped mandatory fields whose shape varies by layer kind
-      // (Conv `kernel_dim`, LayerNormalization `normalized_shape`).
-      const listExpectation = getListExpectation(layerKind, f.slug)
-      if (listExpectation.count !== null) {
-        patch[key] = listExpectation.example
-        continue
-      }
-      const fallback = NN_ATTRIBUTE_DEFAULTS[f.slug]
-      if (fallback !== undefined) {
-        patch[key] = fallback
+        const key = COLLIDING_SLUGS.has(f.slug)
+          ? qualifySlug(layerKind, f.slug)
+          : f.slug
+        normalized[key] = f.defaultValue
+        changed = true
       }
     }
-    if (Object.keys(patch).length > 0) {
-      updateAttributes({ ...attributes, ...patch })
+    // Same mandatory defaults as a palette drop (`withMandatoryNNDefaults`).
+    const filled = withMandatoryNNDefaults(layerKind, {
+      ...data,
+      attributes: normalized,
+    })
+    if (changed || filled.attributes !== normalized) {
+      updateAttributes(filled.attributes as Record<string, unknown>)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elementId])

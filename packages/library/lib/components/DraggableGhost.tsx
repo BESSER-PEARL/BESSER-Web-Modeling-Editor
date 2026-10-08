@@ -24,6 +24,39 @@ import { Locale } from "@/typings"
 import { createNewNodeDataWithNewIds } from "@/utils/copyPasteUtils"
 import { withNumberedPaletteName } from "@/utils/elementNaming"
 import { withMandatoryNNDefaults } from "@/utils/nnMandatoryDefaults"
+import { orderParentsFirst } from "@/utils/bpmnContainment"
+
+/**
+ * Wire a lane just appended to `nodes` into its pool. The pool's first lane
+ * adopts the pool's direct children (as BPMNPoolEditPopover's "add lane");
+ * the lanes are re-stacked, and the array is re-ordered parents-first: the
+ * lane comes after the children it adopted, and React Flow drops a child
+ * listed before its parent out of the container on the next interaction.
+ */
+export function insertLaneIntoPool(
+  nodes: Node[],
+  laneId: string,
+  poolId: string
+): Node[] {
+  const hadLanes = nodes.some(
+    (n) => n.parentId === poolId && n.type === "bpmnSwimlane" && n.id !== laneId
+  )
+  const adopted = hadLanes
+    ? nodes
+    : nodes.map((n) =>
+        n.parentId === poolId && n.id !== laneId
+          ? {
+              ...n,
+              parentId: laneId,
+              position: clampIntoLaneBody(
+                { x: n.position.x - POOL_HEADER_WIDTH, y: n.position.y },
+                "bpmnSwimlane"
+              ),
+            }
+          : n
+      )
+  return orderParentsFirst(stackPoolLanes(adopted, poolId))
+}
 
 /* ========================================================================
    Utility functions to manage page scrolling during dragging
@@ -349,26 +382,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       // Update nodes and resize parent nodes if necessary
       let updatedNodes = structuredClone([...nodes, newNode])
       if (isLaneIntoPool && parentId) {
-        // First lane of a pool: the pool's direct children move into it
-        // (as BPMNPoolEditPopover's "add lane"). Then re-stack the lanes.
-        const hadLanes = nodes.some(
-          (n) => n.parentId === parentId && n.type === "bpmnSwimlane"
-        )
-        if (!hadLanes) {
-          updatedNodes = updatedNodes.map((n) =>
-            n.parentId === parentId && n.id !== newNode.id
-              ? {
-                  ...n,
-                  parentId: newNode.id,
-                  position: clampIntoLaneBody(
-                    { x: n.position.x - POOL_HEADER_WIDTH, y: n.position.y },
-                    "bpmnSwimlane"
-                  ),
-                }
-              : n
-          )
-        }
-        updatedNodes = stackPoolLanes(updatedNodes, parentId)
+        updatedNodes = insertLaneIntoPool(updatedNodes, newNode.id, parentId)
       } else if (parentId) {
         resizeAllParents(newNode, updatedNodes)
       }

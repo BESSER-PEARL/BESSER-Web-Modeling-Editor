@@ -55,15 +55,11 @@ describe("canDropIntoParent – bpmnGroup", () => {
 })
 
 // ---------------------------------------------------------------------------
-// bpmnSubprocess / bpmnTransaction / bpmnCallActivity
+// bpmnSubprocess / bpmnTransaction (a call activity is not a container)
 // ---------------------------------------------------------------------------
 
-describe("canDropIntoParent – bpmnSubprocess/bpmnTransaction/bpmnCallActivity", () => {
-  const subprocessParents = [
-    "bpmnSubprocess",
-    "bpmnTransaction",
-    "bpmnCallActivity",
-  ]
+describe("canDropIntoParent – bpmnSubprocess/bpmnTransaction", () => {
+  const subprocessParents = ["bpmnSubprocess", "bpmnTransaction"]
   const validChildren = [
     "bpmnTask",
     "bpmnStartEvent",
