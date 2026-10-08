@@ -705,8 +705,8 @@ function warnOrphanedMergingGateways(model: UMLModel, warnings: ParseWarning[]):
   const unified = unifiedElementsById(model);
   const orphanIds = findOrphanedMergingGateways(unified);
   for (const id of orphanIds) {
-    const el = model.elements[id] as unknown as { name?: string };
-    const label = el?.name && el.name.length > 0 ? `"${el.name}"` : 'unnamed';
+    const name = model.elements[id]?.name;
+    const label = name ? `"${name}"` : 'unnamed';
     warnings.push({
       code: 'orphaned-merging-gateway',
       message: `Agentic merging gateway ${label} has no upstream diverging gateway; collaboration mode unknown.`,

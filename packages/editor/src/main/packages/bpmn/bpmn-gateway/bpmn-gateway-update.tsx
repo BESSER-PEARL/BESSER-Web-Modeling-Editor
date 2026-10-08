@@ -79,13 +79,12 @@ const enhance = compose<ComponentClass<OwnProps>>(
           const myId = ownProps.element.id;
           const outgoingDefaultFlowIds = Object.values(elements)
             .filter((e) => {
-              const f = e as unknown as Partial<BPMNFlow>;
-              if (f.flowType !== 'sequence' || f.isDefault !== true) return false;
-              const r = e as unknown as { source?: { element: string } };
-              return r.source?.element === myId;
+              if (e.type !== 'BPMNFlow') return false;
+              const flow = e as BPMNFlow;
+              return flow.flowType === 'sequence' && flow.isDefault === true && flow.source.element === myId;
             })
             .map((e) => e.id);
-          const elementsById = elements as unknown as Record<string, { id: string; type: string }>;
+          const elementsById: Record<string, { id: string; type: string }> = elements;
           const hasUpstreamDiverging = resolveUpstreamDivergingGateway(myId, elementsById) !== undefined;
           return { outgoingDefaultFlowIds, hasUpstreamDiverging, elementsById };
         },
