@@ -28,6 +28,11 @@ export interface PerspectiveDefinition {
   description: string;
   /** The diagrams to enable when this preset is selected. */
   diagrams: SupportedDiagramType[];
+  /**
+   * The diagram a project created with this preset opens on. Omitted → the
+   * first of `diagrams` in sidebar order (`resolveInitialDiagramType`).
+   */
+  entryDiagram?: SupportedDiagramType;
 }
 
 /**
@@ -69,6 +74,9 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     label: 'Multi-Agent',
     description: 'Agentic BPMN, agent, component, and deployment diagrams.',
     diagrams: AGENTIC_SWARM_DIAGRAMS,
+    // The swarm is modelled in BPMN first; agents, components and the
+    // deployment are derived from it.
+    entryDiagram: 'BPMN',
   },
   {
     key: 'fullApp',

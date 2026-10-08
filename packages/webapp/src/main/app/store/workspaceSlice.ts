@@ -179,16 +179,26 @@ export const createProjectThunk = createAsyncThunk(
     owner,
     perspectives,
     preferredInterface,
+    initialDiagramType,
   }: {
     name: string;
     description: string;
     owner: string;
     perspectives?: PerspectiveSettings;
     preferredInterface?: InterfaceMode;
+    /** Diagram to open on (a preset's entry diagram); see `resolveInitialDiagramType`. */
+    initialDiagramType?: SupportedDiagramType;
   }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives, preferredInterface);
+      project = ProjectStorageRepository.createNewProject(
+        name,
+        description,
+        owner,
+        perspectives,
+        preferredInterface,
+        initialDiagramType,
+      );
     });
     return project;
   },

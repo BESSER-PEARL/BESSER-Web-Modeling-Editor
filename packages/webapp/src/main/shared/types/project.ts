@@ -59,6 +59,39 @@ export const isPerspectiveVisible = (
   type: SupportedDiagramType,
 ): boolean => perspectives?.[type] !== false;
 
+/**
+ * Diagram types in the order the workspace sidebar lists them (the UML
+ * editors, then GUI and Quantum). Kept in sync with `UML_ITEMS` +
+ * `NON_UML_EDITOR_ITEMS` in `app/shell/workspace-navigation.tsx` by a unit test.
+ */
+export const SIDEBAR_DIAGRAM_ORDER: SupportedDiagramType[] = [
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+  'UserDiagram',
+  'NNDiagram',
+  'GUINoCodeDiagram',
+  'QuantumCircuitDiagram',
+];
+
+/**
+ * The diagram type a new project opens on: `preferred` when it is visible
+ * (a perspective preset's entry diagram), otherwise the first visible type in
+ * sidebar order — the Class diagram whenever it is shown, so a new project
+ * never opens on a type hidden from the sidebar.
+ */
+export const resolveInitialDiagramType = (
+  perspectives?: PerspectiveSettings,
+  preferred?: SupportedDiagramType,
+): SupportedDiagramType => {
+  if (preferred && isPerspectiveVisible(perspectives, preferred)) return preferred;
+  return SIDEBAR_DIAGRAM_ORDER.find((type) => isPerspectiveVisible(perspectives, type)) ?? 'ClassDiagram';
+};
+
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
   pages: any[];
@@ -441,6 +474,7 @@ export const createDefaultProject = (
   owner: string,
   perspectives?: PerspectiveSettings,
   preferredInterface?: InterfaceMode,
+  initialDiagramType?: SupportedDiagramType,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -452,7 +486,7 @@ export const createDefaultProject = (
     description,
     owner,
     createdAt: new Date().toISOString(),
-    currentDiagramType: 'ClassDiagram',
+    currentDiagramType: resolveInitialDiagramType(perspectives, initialDiagramType),
     currentDiagramIndices: defaultDiagramIndices(),
     diagrams: {
       ClassDiagram: [createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram)],

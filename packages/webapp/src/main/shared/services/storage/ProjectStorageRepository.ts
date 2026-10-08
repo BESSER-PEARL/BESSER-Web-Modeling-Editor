@@ -196,8 +196,9 @@ export class ProjectStorageRepository {
     owner: string,
     perspectives?: PerspectiveSettings,
     preferredInterface?: InterfaceMode,
+    initialDiagramType?: SupportedDiagramType,
   ): BesserProject {
-    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface);
+    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface, initialDiagramType);
     this.saveProject(project);
     return project;
   }
