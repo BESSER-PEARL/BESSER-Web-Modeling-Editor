@@ -71,6 +71,7 @@ describe('Multi-agent Bug Fixing template', () => {
     expect(second.id).not.toBe(first.id);
     expect(first.currentDiagramType).toBe('BPMN');
     expect(ProjectStorageRepository.loadProject(first.id)?.name).toBe('Multi-agent Bug Fixing');
+    expect(ProjectStorageRepository.loadProject(first.id)?.settings.perspectives).toEqual(project.settings.perspectives);
 
     for (const type of ['BPMN', 'AgentDiagram', 'ComponentDiagram', 'DeploymentDiagram'] as const) {
       expect(first.diagrams[type]).toEqual(project.diagrams[type]);
@@ -114,6 +115,12 @@ describe('Multi-agent Bug Fixing template', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Load Template' }));
     await waitFor(() => expect(store.getState().workspace.project?.name).toBe('Multi-agent Bug Fixing'));
     expect(store.getState().workspace.project?.diagrams.AgentDiagram).toHaveLength(2);
+    expect(store.getState().workspace.project?.settings.perspectives).toMatchObject({
+      BPMN: true,
+      AgentDiagram: true,
+      ComponentDiagram: true,
+      DeploymentDiagram: true,
+    });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

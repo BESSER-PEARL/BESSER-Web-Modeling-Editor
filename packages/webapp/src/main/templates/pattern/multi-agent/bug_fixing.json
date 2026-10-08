@@ -2,7 +2,7 @@
   "project": {
     "id": "project_1791445146650_qfte9ojo7",
     "type": "Project",
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "name": "Multi-agent Bug Fixing",
     "description": "A Reviewer coordinates two Coder replicas to investigate a bug, propose fixes, and apply a majority governance policy. Includes BPMN, Agent, Component, and Deployment diagrams. Configure your own LLM credentials before generating or running the agents.",
     "owner": "BESSER User",
