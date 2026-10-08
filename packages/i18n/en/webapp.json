@@ -861,6 +861,12 @@
       "stepPackaging": "Packaging output…",
       "stepGenerating": "Generating code…",
       "stepParsing": "Parsing diagram…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Invalid Governance DSL",
+      "invalidGovernance": "Check the governance policy on gateway “{{gateway}}”. See the browser console for details.",
+      "deploymentDiagramRequired": "No Deployment diagram content found — add at least one element before generating.",
+      "noLinkedAgents": "No agent is linked to an artifact yet. Derive the Deployment diagram from BPMN → Component to wire the agent contexts."
     }
   },
   "project": {

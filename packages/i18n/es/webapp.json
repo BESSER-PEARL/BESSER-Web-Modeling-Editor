@@ -861,6 +861,12 @@
       "stepPackaging": "Empaquetando la salida…",
       "stepGenerating": "Generando código…",
       "stepParsing": "Analizando el diagrama…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "DSL de gobernanza no válido",
+      "invalidGovernance": "Revise la política de gobernanza de la compuerta «{{gateway}}». Consulte la consola del navegador para más detalles.",
+      "deploymentDiagramRequired": "No se encontró contenido en el diagrama de despliegue: añada al menos un elemento antes de generar.",
+      "noLinkedAgents": "Todavía no hay ningún agente vinculado a un artefacto. Derive el diagrama de despliegue mediante BPMN → Componente para conectar los contextos de agente."
     }
   },
   "project": {

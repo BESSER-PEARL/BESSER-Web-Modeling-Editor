@@ -1,3 +1,15 @@
+import type { ReactNode } from 'react';
+
+export interface GenerationOptions {
+  /** False defers the download and returns the blob (assistant result card). */
+  autoDownload?: boolean;
+  /**
+   * Replaces the error toast for a backend error detail (400/422/500 with a
+   * string detail). Return null to show the detail itself.
+   */
+  describeError?: (status: number, detail: string) => ReactNode | null;
+}
+
 export type GenerationResult =
   | {
       ok: true;

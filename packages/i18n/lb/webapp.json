@@ -861,6 +861,12 @@
       "stepPackaging": "Ausgab gëtt verpaakt…",
       "stepGenerating": "Code gëtt generéiert…",
       "stepParsing": "Diagramm gëtt analyséiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ongëlteg Governance-DSL",
+      "invalidGovernance": "Kontrolléiert d'Governance-Politik um Gateway „{{gateway}}“. Detailer an der Browser-Konsol.",
+      "deploymentDiagramRequired": "Keen Inhalt am Deployment-Diagramm fonnt – setzt op d'mannst een Element derbäi, ier Dir generéiert.",
+      "noLinkedAgents": "Nach keen Agent ass mat engem Artefakt verlinkt. Leet d'Deployment-Diagramm iwwer BPMN → Komponent of, fir d'Agent-Kontexter ze verbannen."
     }
   },
   "project": {

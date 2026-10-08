@@ -21,11 +21,8 @@ import {
   normalizeAgentRuntimeConfig,
   type AgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
-import {
-  useGenerateComponentDiagram,
-  useGenerateDeploymentDiagram,
-  useGenerateDockerCompose,
-} from '../../features/inter-diagram';
+import { useGenerateComponentDiagram, useGenerateDeploymentDiagram } from '../../features/inter-diagram';
+import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';

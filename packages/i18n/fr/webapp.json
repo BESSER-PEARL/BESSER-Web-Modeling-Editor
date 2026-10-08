@@ -861,6 +861,12 @@
       "stepPackaging": "Empaquetage de la sortie…",
       "stepGenerating": "Génération du code…",
       "stepParsing": "Analyse du diagramme…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "DSL de gouvernance invalide",
+      "invalidGovernance": "Vérifiez la politique de gouvernance de la passerelle « {{gateway}} ». Voir la console du navigateur pour les détails.",
+      "deploymentDiagramRequired": "Aucun contenu dans le diagramme de déploiement — ajoutez au moins un élément avant de générer.",
+      "noLinkedAgents": "Aucun agent n'est encore lié à un artefact. Dérivez le diagramme de déploiement via BPMN → Composant pour relier les contextes d'agent."
     }
   },
   "project": {

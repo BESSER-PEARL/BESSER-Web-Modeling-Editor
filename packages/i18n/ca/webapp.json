@@ -861,6 +861,12 @@
       "stepPackaging": "S'està empaquetant la sortida…",
       "stepGenerating": "S'està generant el codi…",
       "stepParsing": "S'està analitzant el diagrama…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "DSL de governança no vàlid",
+      "invalidGovernance": "Reviseu la política de governança de la comporta «{{gateway}}». Vegeu la consola del navegador per als detalls.",
+      "deploymentDiagramRequired": "No s'ha trobat contingut al diagrama de desplegament: afegiu almenys un element abans de generar.",
+      "noLinkedAgents": "Encara no hi ha cap agent enllaçat a un artefacte. Deriveu el diagrama de desplegament mitjançant BPMN → Component per connectar els contextos d'agent."
     }
   },
   "project": {

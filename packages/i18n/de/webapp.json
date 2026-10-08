@@ -861,6 +861,12 @@
       "stepPackaging": "Ausgabe wird verpackt…",
       "stepGenerating": "Code wird generiert…",
       "stepParsing": "Diagramm wird analysiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ungültige Governance-DSL",
+      "invalidGovernance": "Prüfen Sie die Governance-Richtlinie am Gateway „{{gateway}}“. Details finden Sie in der Browser-Konsole.",
+      "deploymentDiagramRequired": "Kein Inhalt im Deployment-Diagramm gefunden – fügen Sie vor dem Generieren mindestens ein Element hinzu.",
+      "noLinkedAgents": "Noch ist kein Agent mit einem Artefakt verknüpft. Leiten Sie das Deployment-Diagramm über BPMN → Komponente ab, um die Agentenkontexte zu verbinden."
     }
   },
   "project": {
