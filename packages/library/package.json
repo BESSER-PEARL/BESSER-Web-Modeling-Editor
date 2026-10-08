@@ -49,7 +49,12 @@
     "dist"
   ],
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "./lib/nodes/**",
+    "./lib/edges/**",
+    "./lib/components/inspectors/**",
+    "./lib/components/popovers/PopoverManager.tsx",
+    "./lib/services/connectionRules/**"
   ],
   "scripts": {
     "dev": "vite",
