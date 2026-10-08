@@ -40,6 +40,8 @@ type SupportedDiagramType =
   | 'NNDiagram'
   | 'BPMN'
   | 'BPMNDiagram'
+  | 'ComponentDiagram'
+  | 'DeploymentDiagram'
   // Non-UML kinds — skipped at the caller, but listed for the param's union.
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram';

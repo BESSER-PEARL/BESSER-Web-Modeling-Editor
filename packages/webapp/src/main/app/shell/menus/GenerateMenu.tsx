@@ -36,8 +36,12 @@ interface GenerateMenuProps {
   mode: GeneratorMenuMode;
   isGenerating: boolean;
   primaryGenerateClass: string;
+  activeDiagramType?: SupportedDiagramType;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onSwitchDiagramType?: (type: SupportedDiagramType) => void;
+  onDeriveComponentDiagram?: () => void;
+  onDeriveDeploymentDiagram?: () => void;
+  onGenerateDockerCompose?: () => void;
 }
 
 /** Icons for top-level groups, keyed by the config's stable English label. */
@@ -97,8 +101,12 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   mode,
   isGenerating,
   primaryGenerateClass,
+  activeDiagramType,
   onGenerate,
   onSwitchDiagramType,
+  onDeriveComponentDiagram,
+  onDeriveDeploymentDiagram,
+  onGenerateDockerCompose,
 }) => {
   const { t } = useTranslation();
   const menuEntries = GENERATOR_MENU_CONFIG[mode];
@@ -134,6 +142,30 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
             <DropdownMenuItem onClick={() => onSwitchDiagramType('ClassDiagram')}>
               <ArrowRight className="mr-2 size-4" />
               {t('menu.generate.goToClassDiagram')}
+            </DropdownMenuItem>
+          </>
+        )}
+        {activeDiagramType === 'BPMN' && onDeriveComponentDiagram && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onDeriveComponentDiagram()}>
+              {t('menu.generate.deriveComponentDiagram')}
+            </DropdownMenuItem>
+          </>
+        )}
+        {activeDiagramType === 'ComponentDiagram' && onDeriveDeploymentDiagram && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDeriveDeploymentDiagram}>
+              {t('menu.generate.deriveDeploymentDiagram')}
+            </DropdownMenuItem>
+          </>
+        )}
+        {activeDiagramType === 'DeploymentDiagram' && onGenerateDockerCompose && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onGenerateDockerCompose}>
+              {t('menu.generate.generateDockerCompose')}
             </DropdownMenuItem>
           </>
         )}

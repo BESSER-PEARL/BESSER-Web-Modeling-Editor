@@ -6,6 +6,8 @@ export type SupportedDiagramType =
   | 'ObjectDiagram'
   | 'StateMachineDiagram'
   | 'AgentDiagram'
+  | 'ComponentDiagram'
+  | 'DeploymentDiagram'
   | 'UserDiagram'
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram'
@@ -13,7 +15,7 @@ export type SupportedDiagramType =
   | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 5;
+export const PROJECT_SCHEMA_VERSION = 6;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram',
@@ -25,6 +27,8 @@ export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'QuantumCircuitDiagram',
   'NNDiagram',
   'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -56,6 +60,39 @@ export const isPerspectiveVisible = (
   type: SupportedDiagramType,
 ): boolean => perspectives?.[type] !== false;
 
+/**
+ * Diagram types in the order the workspace sidebar lists them (the UML
+ * editors, then GUI and Quantum). Kept in sync with `UML_ITEMS` +
+ * `NON_UML_EDITOR_ITEMS` in `app/shell/workspace-navigation.tsx` by a unit test.
+ */
+export const SIDEBAR_DIAGRAM_ORDER: SupportedDiagramType[] = [
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+  'UserDiagram',
+  'NNDiagram',
+  'GUINoCodeDiagram',
+  'QuantumCircuitDiagram',
+];
+
+/**
+ * The diagram type a new project opens on: `preferred` when it is visible
+ * (a perspective preset's entry diagram), otherwise the first visible type in
+ * sidebar order — the Class diagram whenever it is shown, so a new project
+ * never opens on a type hidden from the sidebar.
+ */
+export const resolveInitialDiagramType = (
+  perspectives?: PerspectiveSettings,
+  preferred?: SupportedDiagramType,
+): SupportedDiagramType => {
+  if (preferred && isPerspectiveVisible(perspectives, preferred)) return preferred;
+  return SIDEBAR_DIAGRAM_ORDER.find((type) => isPerspectiveVisible(perspectives, type)) ?? 'ClassDiagram';
+};
+
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
   pages: any[];
@@ -74,6 +111,24 @@ export interface QuantumCircuitData {
   version?: string;
 }
 
+/**
+ * Diagram-level lineage recorded by the inter-diagram
+ * derivations (BPMN→Component, Component→Deployment). Sidecar shape
+ * without requiring editor-package storage changes.
+ */
+export interface DiagramLineage {
+  /** id of the source ProjectDiagram (same project). */
+  sourceDiagramId: string;
+  /** which diagram type the source is, so the UI doesn't have to look it up. */
+  sourceDiagramType: SupportedDiagramType;
+  /** which transform produced this diagram. */
+  derivationKind: 'bpmn-to-component' | 'component-to-deployment' | 'bpmn-to-agent';
+  /** ISO timestamp at derivation time. */
+  derivedAt: string;
+  /** djb2 hash of the source UMLModel at derivation time. */
+  sourceModelHash: string;
+}
+
 // Diagram structure within a project
 export interface ProjectDiagram {
   id: string;
@@ -88,7 +143,18 @@ export interface ProjectDiagram {
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;
+  /** Set by inter-diagram derivation hooks. Undefined on
+   *  user-imported diagrams and on the source side of any derivation. */
+  derivedFrom?: DiagramLineage;
 }
+
+/**
+ * Per-derived-diagram element mapping: derived element id →
+ * source element id. The source diagram is implied by the containing
+ * `ProjectDiagram.derivedFrom.sourceDiagramId`. Sidecar on
+ * `BesserProject` without requiring editor-package storage changes.
+ */
+export type ElementLineageMap = Record<string, string>;
 
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
 
@@ -108,6 +174,8 @@ export interface BesserProject {
     ObjectDiagram: ProjectDiagram[];
     StateMachineDiagram: ProjectDiagram[];
     AgentDiagram: ProjectDiagram[];
+    ComponentDiagram: ProjectDiagram[];
+    DeploymentDiagram: ProjectDiagram[];
     UserDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
@@ -126,6 +194,10 @@ export interface BesserProject {
      */
     preferredInterface?: InterfaceMode;
   };
+  /** derivedDiagramId → ElementLineageMap. Sidecar; populated
+   *  by the inter-diagram derivation hooks after the derived diagram
+   *  is added. Survives import/export. */
+  elementLineage?: Record<string, ElementLineageMap>;
 }
 
 /** The two ways into the editor, chosen on the first-run landing. */
@@ -174,6 +246,8 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   ObjectDiagram: 0,
   StateMachineDiagram: 0,
   AgentDiagram: 0,
+  ComponentDiagram: 0,
+  DeploymentDiagram: 0,
   UserDiagram: 0,
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
@@ -218,6 +292,10 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'StateMachineDiagram';
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
+    case UMLDiagramType.ComponentDiagram:
+      return 'ComponentDiagram';
+    case UMLDiagramType.DeploymentDiagram:
+      return 'DeploymentDiagram';
     case UMLDiagramType.NNDiagram:
       return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
@@ -240,6 +318,10 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.StateMachineDiagram;
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
+    case 'ComponentDiagram':
+      return UMLDiagramType.ComponentDiagram;
+    case 'DeploymentDiagram':
+      return UMLDiagramType.DeploymentDiagram;
     case 'NNDiagram':
       return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
@@ -404,6 +486,7 @@ export const createDefaultProject = (
   owner: string,
   perspectives?: PerspectiveSettings,
   preferredInterface?: InterfaceMode,
+  initialDiagramType?: SupportedDiagramType,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -415,13 +498,15 @@ export const createDefaultProject = (
     description,
     owner,
     createdAt: new Date().toISOString(),
-    currentDiagramType: 'ClassDiagram',
+    currentDiagramType: resolveInitialDiagramType(perspectives, initialDiagramType),
     currentDiagramIndices: defaultDiagramIndices(),
     diagrams: {
       ClassDiagram: [createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram)],
       ObjectDiagram: [createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram)],
       StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
+      ComponentDiagram: [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)],
+      DeploymentDiagram: [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)],
       UserDiagram: [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
@@ -506,6 +591,29 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     }
   }
 
+  // Add ComponentDiagram / DeploymentDiagram if missing
+  if (!obj.diagrams.ComponentDiagram) {
+    obj.diagrams.ComponentDiagram = [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)];
+  }
+  if (!obj.diagrams.DeploymentDiagram) {
+    obj.diagrams.DeploymentDiagram = [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)];
+  }
+  if (obj.currentDiagramIndices.ComponentDiagram === undefined) {
+    obj.currentDiagramIndices.ComponentDiagram = 0;
+  }
+  if (obj.currentDiagramIndices.DeploymentDiagram === undefined) {
+    obj.currentDiagramIndices.DeploymentDiagram = 0;
+  }
+
+  // Read before the v4 migration below creates a perspectives map.
+  // Schema 5 had two meanings (v4 model lift / Component-Deployment perspectives);
+  // only the latter writes these perspective keys.
+  const hadComponentDeploymentKeys =
+    obj.settings?.perspectives?.ComponentDiagram !== undefined ||
+    obj.settings?.perspectives?.DeploymentDiagram !== undefined;
+  const hideComponentDeployment =
+    !!obj.settings?.perspectives && ((obj.schemaVersion ?? 0) < 5 || !hadComponentDeploymentKeys);
+
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
   if (!obj.schemaVersion || obj.schemaVersion < 2) {
     obj = migrateProjectToV2(obj);
@@ -536,6 +644,11 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // dropping v3 snapshots from the variant dropdown. Un-gated: idempotent
   // and cheap on canonical v4 data.
   retrofitAgentVariantSnapshots(obj);
+
+  // Migrate v5 → v6: Component and Deployment diagrams became project types
+  if (!obj.schemaVersion || obj.schemaVersion < 6) {
+    obj = migrateComponentDeploymentPerspectives(obj, hideComponentDeployment);
+  }
 
   return obj;
 };
@@ -612,6 +725,24 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
   if (allSucceeded && !(project.schemaVersion >= 5)) {
     project.schemaVersion = 5;
   }
+  return project;
+};
+
+/**
+ * Migrate v5 → v6: ComponentDiagram and DeploymentDiagram became project
+ * diagram types. A project whose user already chose perspectives keeps its
+ * sidebar unchanged, so both new types start hidden there; they can be enabled
+ * in Project Settings (e.g. with the Multi-Agent preset).
+ */
+const migrateComponentDeploymentPerspectives = (project: BesserProject, hide: boolean): BesserProject => {
+  if (hide && project.settings.perspectives) {
+    project.settings.perspectives = {
+      ...project.settings.perspectives,
+      ComponentDiagram: false,
+      DeploymentDiagram: false,
+    };
+  }
+  project.schemaVersion = 6;
   return project;
 };
 
@@ -831,6 +962,14 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (isUMLModel(model)) {
     const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
+    // Agent resources (Skills, Tools, LLMs, RAGs, SQL databases) live outside the canvas.
+    const components = (model as { components?: Record<string, unknown> }).components;
+    const hasAgentComponents = model.type === UMLDiagramType.AgentDiagram &&
+      !!components && Object.keys(components).length > 0;
+    const sqlDatabases = (diagram.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
+    const hasSqlDatabases = model.type === UMLDiagramType.AgentDiagram &&
+      Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
+    if (hasAgentComponents || hasSqlDatabases) return true;
     if (!hasNodes && !hasEdges) return false;
     // A UserDiagram still carrying nothing but the untouched meta-model seed
     // template (`createEmptyDiagram`) has no user content, so treating it as

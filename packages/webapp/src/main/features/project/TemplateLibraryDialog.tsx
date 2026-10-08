@@ -102,6 +102,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.STATE_MACHINE,
   SoftwarePatternCategory.BPMN,
   SoftwarePatternCategory.AGENT,
+  SoftwarePatternCategory.MULTI_AGENT,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
   SoftwarePatternCategory.NN,
 ];
@@ -128,12 +129,14 @@ const summarizeFullProjectDiagrams = (template: SoftwarePatternTemplate, multiDi
     ['ClassDiagram', 'Class'],
     ['ObjectDiagram', 'Object'],
     ['StateMachineDiagram', 'State'],
+    ['BPMN', 'BPMN'],
     ['AgentDiagram', 'Agent'],
+    ['ComponentDiagram', 'Component'],
+    ['DeploymentDiagram', 'Deployment'],
     ['UserDiagram', 'User'],
     ['GUINoCodeDiagram', 'GUI'],
     ['QuantumCircuitDiagram', 'Quantum'],
     ['NNDiagram', 'NN'],
-    ['BPMN', 'BPMN'],
   ];
   for (const [key, label] of order) {
     const arr = diagrams[key];

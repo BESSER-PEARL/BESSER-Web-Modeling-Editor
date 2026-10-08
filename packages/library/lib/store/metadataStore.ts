@@ -22,6 +22,8 @@ export type MetadataStore = {
    * languages never dirties the diagram or the Yjs document.
    */
   locale: Locale
+  /** Shows the agentic BPMN controls (lanes, tasks, gateways) in the inspectors. */
+  agenticEnabled: boolean
   setMode: (mode: BesserMode) => void
   setLocale: (locale: Locale) => void
   setView: (view: BesserView) => void
@@ -35,6 +37,7 @@ export type MetadataStore = {
   updateMetaDataFromYjs: () => void
   reset: () => void
   setDebug: (debug: boolean) => void
+  setAgenticEnabled: (agenticEnabled: boolean) => void
 }
 
 type InitialMetadataState = {
@@ -48,6 +51,7 @@ type InitialMetadataState = {
   scrollLock: boolean
   scrollEnabled: boolean
   locale: Locale
+  agenticEnabled: boolean
 }
 const initialMetadataState: InitialMetadataState = {
   diagramTitle: "Untitled Diagram",
@@ -60,6 +64,7 @@ const initialMetadataState: InitialMetadataState = {
   scrollLock: false,
   scrollEnabled: false,
   locale: Locale.en,
+  agenticEnabled: false,
 }
 
 export const createMetadataStore = (
@@ -143,6 +148,10 @@ export const createMetadataStore = (
 
         setLocale: (locale) => {
           set({ locale }, undefined, "setLocale")
+        },
+
+        setAgenticEnabled: (agenticEnabled) => {
+          set({ agenticEnabled }, undefined, "setAgenticEnabled")
         },
 
         reset: () => {

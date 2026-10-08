@@ -11,6 +11,8 @@ export const DEFAULT_DIAGRAM_TITLES: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'Quantum Circuit',
   NNDiagram: 'NN Diagram',
   BPMN: 'BPMN Diagram',
+  ComponentDiagram: 'Component Diagram',
+  DeploymentDiagram: 'Deployment Diagram',
 };
 
 /**

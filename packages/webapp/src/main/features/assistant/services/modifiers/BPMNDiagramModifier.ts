@@ -14,6 +14,11 @@
  *     `target.stateName`, where the BPMN node kind is inferred from
  *     `changes.stateType`.
  *
+ * Pools and lanes are edited with `add_pool`, `add_swimlane`,
+ * `modify_swimlane`, `remove_swimlane` and `remove_pool`. Agentic task /
+ * gateway / lane fields live on `node.data` under their v3 names; a new node
+ * goes into the lane named by `changes.owner`.
+ *
  * Node references may be a node id (the agent emits stable ids) or a display
  * name; an id hit always wins over a name match. Tasks, gateways, events and
  * the activity containers (call activity, sub-process, transaction) are all
@@ -22,13 +27,15 @@
  *
  * New nodes are placed to the right of existing content (BPMN reads
  * left-to-right); flow geometry is placeholder that the editor's layouter
- * recomputes on load.
+ * recomputes on load. A flow between nodes of different pools is a message
+ * flow.
  */
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
-import { resolveBpmnEdgeType } from '@besser/wme';
+import { clampMultiplicity, clampTrustScore, migrateLegacyRole, resolveBpmnEdgeType } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import { bpmnGatewayAgenticData, bpmnLaneAgenticData, bpmnTaskAgenticData } from '../shared/v4Builders';
 
 const BPMN_NODE_TYPES = [
   'bpmnTask',
@@ -49,6 +56,9 @@ const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-base
 const TASK_W = 140;
 const TASK_H = 60;
 const EVENT_SIZE = 40;
+const POOL_HEADER_WIDTH = 40;
+const POOL_GAP = 40;
+const LANE_HEIGHT = 150;
 
 export class BPMNDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -65,6 +75,11 @@ export class BPMNDiagramModifier implements DiagramModifier {
       'modify_node',
       'remove_flow',
       'remove_element',
+      'add_pool',
+      'add_swimlane',
+      'modify_swimlane',
+      'remove_swimlane',
+      'remove_pool',
       // Generic state-machine-style vocabulary
       'add_state',
       'modify_state',
@@ -96,6 +111,16 @@ export class BPMNDiagramModifier implements DiagramModifier {
         return this.removeFlow(updated, modification);
       case 'remove_element':
         return this.removeElement(updated, modification);
+      case 'add_pool':
+        return this.addPool(updated, modification);
+      case 'add_swimlane':
+        return this.addSwimlane(updated, modification);
+      case 'modify_swimlane':
+        return this.modifySwimlane(updated, modification);
+      case 'remove_swimlane':
+        return this.removeSwimlane(updated, modification);
+      case 'remove_pool':
+        return this.removePool(updated, modification);
       default:
         throw new Error(`Unsupported action for BPMN: ${modification.action}`);
     }
@@ -189,26 +214,81 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return ModifierHelpers.generateUniqueId('bpmn');
   }
 
+  /**
+   * Build a flow node. Without a lane it is top-level, right of the existing
+   * content; inside a lane it goes right of the lane's children, and the lane,
+   * its sibling lanes and its pool widen to keep it inside.
+   */
   private buildNode(
     model: BESSERModel,
     type: string,
     name: string,
     data: Record<string, unknown>,
     proposedId?: string,
+    lane?: BesserNode,
   ): BesserNode {
-    const { x, y } = this.nextPosition(model);
     const isSmall = EVENT_NODE_TYPES.has(type) || type === 'bpmnGateway';
     const width = isSmall ? EVENT_SIZE : TASK_W;
     const height = isSmall ? EVENT_SIZE : TASK_H;
-    return {
+    const node: BesserNode = {
       id: this.newNodeId(model, proposedId),
       type: type as any,
-      position: { x, y },
+      position: this.nextPosition(model),
       width,
       height,
       measured: { width, height },
       data: { name, ...data },
     };
+    if (lane) {
+      const children = ModifierHelpers.nodes(model).filter((n) => n.parentId === lane.id);
+      const right = Math.max(0, ...children.map((n) => (n.position?.x || 0) + (n.width || 0)));
+      node.parentId = lane.id;
+      node.position = {
+        x: children.length ? right + 60 : 40,
+        y: Math.max(0, Math.round(((lane.height || 0) - height) / 2)),
+      };
+      this.widenLane(model, lane, node.position.x + width + 40);
+    }
+    return node;
+  }
+
+  private widenLane(model: BESSERModel, lane: BesserNode, minWidth: number): void {
+    const delta = minWidth - (lane.width || 0);
+    if (delta <= 0) return;
+    const pool = this.owningPool(model, lane);
+    const resized = pool
+      ? [pool, ...ModifierHelpers.nodes(model).filter((n) => n.type === 'bpmnSwimlane' && n.parentId === pool.id)]
+      : [lane];
+    for (const n of resized) {
+      n.width = (n.width || 0) + delta;
+      n.measured = { width: n.width, height: n.height };
+    }
+  }
+
+  /** The pool a node sits in (directly or through a lane), if any. */
+  private owningPool(model: BESSERModel, node: BesserNode): BesserNode | undefined {
+    let parent = node.parentId ? ModifierHelpers.findNodeById(model, node.parentId) : undefined;
+    for (let depth = 0; parent && depth < 64; depth++) {
+      if (parent.type === 'bpmnPool') return parent;
+      parent = parent.parentId ? ModifierHelpers.findNodeById(model, parent.parentId) : undefined;
+    }
+    return undefined;
+  }
+
+  private findPool(model: BESSERModel, ref?: string): BesserNode | undefined {
+    return ModifierHelpers.resolveNodeRef(model, ref, ['bpmnPool']);
+  }
+
+  private findLane(model: BESSERModel, ref?: string): BesserNode | undefined {
+    return ModifierHelpers.resolveNodeRef(model, ref, ['bpmnSwimlane']);
+  }
+
+  /** The lane a new node goes into; a named lane that does not exist is an error. */
+  private ownerLane(model: BESSERModel, ref?: string): BesserNode | undefined {
+    if (!ref) return undefined;
+    const lane = this.findLane(model, ref);
+    if (!lane) throw new Error(`Lane '${ref}' not found in the model.`);
+    return lane;
   }
 
   // ------------------------------------------------------------------
@@ -218,17 +298,20 @@ export class BPMNDiagramModifier implements DiagramModifier {
   private addTask(model: BESSERModel, m: ModelModification): BESSERModel {
     const taskType = TASK_TYPES.has(String(m.changes.taskType)) ? m.changes.taskType : 'default';
     const name = m.target.nodeName || m.changes.name || 'Task';
-    ModifierHelpers.addNode(
-      model,
-      this.buildNode(model, 'bpmnTask', name, { taskType, marker: 'none' }, m.target.nodeId),
-    );
+    const lane = this.ownerLane(model, m.changes.owner);
+    // A reviewer lane that does not resolve is dropped, not an error.
+    const reviewerLaneId = this.findLane(model, m.changes.reflectionReviewerLaneId)?.id;
+    const data = { taskType, marker: 'none', ...bpmnTaskAgenticData(m.changes, reviewerLaneId) };
+    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnTask', name, data, m.target.nodeId, lane));
     return model;
   }
 
   private addGateway(model: BESSERModel, m: ModelModification): BESSERModel {
     const gatewayType = GATEWAY_TYPES.has(String(m.changes.gatewayType)) ? m.changes.gatewayType : 'exclusive';
     const name = m.target.nodeName || m.changes.name || '';
-    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnGateway', name, { gatewayType }, m.target.nodeId));
+    const lane = this.ownerLane(model, m.changes.owner);
+    const data = { gatewayType, ...bpmnGatewayAgenticData(m.changes) };
+    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnGateway', name, data, m.target.nodeId, lane));
     return model;
   }
 
@@ -238,7 +321,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
       kind === 'start' ? 'bpmnStartEvent' : kind === 'intermediate' ? 'bpmnIntermediateEvent' : 'bpmnEndEvent';
     const eventType = typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
     const name = m.target.nodeName || m.changes.name || '';
-    ModifierHelpers.addNode(model, this.buildNode(model, type, name, { eventType }, m.target.nodeId));
+    const lane = this.ownerLane(model, m.changes.owner);
+    ModifierHelpers.addNode(model, this.buildNode(model, type, name, { eventType }, m.target.nodeId, lane));
     return model;
   }
 
@@ -286,6 +370,21 @@ export class BPMNDiagramModifier implements DiagramModifier {
       data.eventType = c.eventType;
     }
 
+    if (target.type === 'bpmnTask') {
+      if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
+      if (typeof c.reflectionMode === 'string') data.reflectionMode = c.reflectionMode;
+      if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+      if (typeof c.agentDiagramRef === 'string') data.agentDiagramRef = c.agentDiagramRef;
+      const reviewerLane = this.findLane(model, c.reflectionReviewerLaneId);
+      if (reviewerLane) data.reflectionReviewerLaneId = reviewerLane.id;
+    }
+    if (target.type === 'bpmnGateway') {
+      if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
+      if (typeof c.gatewayRole === 'string') data.gatewayRole = c.gatewayRole;
+      if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+      if (typeof c.governanceDsl === 'string') data.governanceDsl = c.governanceDsl;
+    }
+
     // Generic `changes.type` (state-machine vocabulary) — routed by node kind.
     if (c.type) {
       if (target.type === 'bpmnTask' && TASK_TYPES.has(c.type)) {
@@ -306,13 +405,20 @@ export class BPMNDiagramModifier implements DiagramModifier {
       throw new Error('Could not locate source or target node for the BPMN flow.');
     }
     const name = m.changes.label || m.changes.name || '';
+    // The agent never sends a flow kind: a flow across pools is a message flow.
+    const sourcePool = this.owningPool(model, source);
+    const targetPool = this.owningPool(model, target);
+    const crossPool = !!sourcePool && !!targetPool && sourcePool.id !== targetPool.id;
+    const downward = crossPool && (sourcePool.position?.y || 0) <= (targetPool.position?.y || 0);
     const edge: BesserEdge = {
       id: ModifierHelpers.generateUniqueId('flow'),
       source: source.id,
       target: target.id,
-      type: resolveBpmnEdgeType(source.type, target.type, 'BPMNSequenceFlow') as any,
-      sourceHandle: 'right',
-      targetHandle: 'left',
+      type: (crossPool
+        ? 'BPMNMessageFlow'
+        : resolveBpmnEdgeType(source.type, target.type, 'BPMNSequenceFlow')) as any,
+      sourceHandle: crossPool ? (downward ? 'bottom' : 'top') : 'right',
+      targetHandle: crossPool ? (downward ? 'top' : 'bottom') : 'left',
       data: {
         label: name,
         name,
@@ -359,5 +465,92 @@ export class BPMNDiagramModifier implements DiagramModifier {
       );
     }
     return ModifierHelpers.removeNodeWithChildren(model, target.id);
+  }
+
+  private addPool(model: BESSERModel, m: ModelModification): BESSERModel {
+    // Stack below the existing top-level content.
+    const topLevel = ModifierHelpers.nodes(model).filter((n) => !n.parentId);
+    const y = topLevel.length
+      ? Math.max(...topLevel.map((n) => (n.position?.y || 0) + (n.height || 0))) + POOL_GAP
+      : 0;
+    const width = 750;
+    const height = 200;
+    ModifierHelpers.addNode(model, {
+      id: ModifierHelpers.generateUniqueId('pool'),
+      type: 'bpmnPool' as any,
+      position: { x: 0, y },
+      width,
+      height,
+      measured: { width, height },
+      data: { name: m.target.nodeName || m.changes.name || 'Pool' },
+    });
+    return model;
+  }
+
+  private addSwimlane(model: BESSERModel, m: ModelModification): BESSERModel {
+    const pool = this.findPool(model, m.changes.poolName);
+    if (m.changes.poolName && !pool) {
+      throw new Error(`Pool '${m.changes.poolName}' not found in the model.`);
+    }
+    // Stack below the pool's existing lanes (positions are pool-relative).
+    let laneY = 0;
+    if (pool) {
+      for (const n of ModifierHelpers.nodes(model)) {
+        if (n.type === 'bpmnSwimlane' && n.parentId === pool.id) {
+          laneY = Math.max(laneY, (n.position?.y || 0) + (n.height || 0));
+        }
+      }
+    }
+    const width = (pool?.width ?? 750) - POOL_HEADER_WIDTH;
+    const lane: BesserNode = {
+      id: ModifierHelpers.generateUniqueId('lane'),
+      type: 'bpmnSwimlane' as any,
+      position: { x: POOL_HEADER_WIDTH, y: laneY },
+      width,
+      height: LANE_HEIGHT,
+      measured: { width, height: LANE_HEIGHT },
+      data: { name: m.target.nodeName || m.changes.name || 'Lane', ...bpmnLaneAgenticData(m.changes) },
+    };
+    if (pool) {
+      lane.parentId = pool.id;
+      pool.height = Math.max(pool.height || 0, laneY + LANE_HEIGHT);
+      pool.measured = { width: pool.width, height: pool.height };
+    }
+    ModifierHelpers.addNode(model, lane);
+    return model;
+  }
+
+  private requireLane(model: BESSERModel, m: ModelModification): BesserNode {
+    const lane = this.findLane(model, m.target.swimlaneName) ?? this.findLane(model, m.target.nodeName);
+    if (!lane) {
+      throw new Error(`Lane '${m.target.swimlaneName ?? m.target.nodeName ?? ''}' not found in the model.`);
+    }
+    return lane;
+  }
+
+  private modifySwimlane(model: BESSERModel, m: ModelModification): BESSERModel {
+    const data = this.requireLane(model, m).data as any;
+    const c = m.changes;
+    if (c.name) data.name = c.name;
+    if (c.role) data.role = migrateLegacyRole(c.role);
+    if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+    if (typeof c.multiplicity === 'number') data.multiplicity = clampMultiplicity(c.multiplicity);
+    if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
+    if (typeof c.agentDiagramRef === 'string') data.agentDiagramRef = c.agentDiagramRef.trim();
+    return model;
+  }
+
+  /** Removes the lane with everything it contains and every flow touching it. */
+  private removeSwimlane(model: BESSERModel, m: ModelModification): BESSERModel {
+    return ModifierHelpers.removeNodeWithChildren(model, this.requireLane(model, m).id);
+  }
+
+  /** Removes the pool with its lanes, their contents and every flow touching them. */
+  private removePool(model: BESSERModel, m: ModelModification): BESSERModel {
+    const pool = this.findPool(model, m.target.poolName) ?? this.findPool(model, m.target.nodeName);
+    if (!pool) {
+      throw new Error(`Pool '${m.target.poolName ?? m.target.nodeName ?? ''}' not found in the model.`);
+    }
+    return ModifierHelpers.removeNodeWithChildren(model, pool.id);
   }
 }

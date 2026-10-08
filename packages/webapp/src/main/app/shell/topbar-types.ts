@@ -53,6 +53,9 @@ export interface WorkspaceTopBarProps {
   onShowWelcomeGuide?: () => void;
   activeDiagramType: SupportedDiagramType;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
+  onDeriveComponentDiagram?: () => void;
+  onDeriveDeploymentDiagram?: () => void;
+  onGenerateDockerCompose?: () => void;
   projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;

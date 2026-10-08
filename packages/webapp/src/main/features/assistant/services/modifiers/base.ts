@@ -50,6 +50,11 @@ export interface ModificationTarget {
   nodeId?: string;
   nodeName?: string;
   flowId?: string;
+  // Component / Deployment elements and BPMN pools / lanes
+  elementId?: string;
+  elementName?: string;
+  poolName?: string;
+  swimlaneName?: string;
 }
 
 export interface ModificationChanges {
@@ -109,6 +114,23 @@ export interface ModificationChanges {
   gatewayType?: string;
   eventKind?: string;
   eventType?: string;
+  // Agentic BPMN task / gateway / lane fields
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  // reviewer lane (id or name) for reflectionMode 'cross'
+  reflectionReviewerLaneId?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
+  role?: string;
+  multiplicity?: number;
+  poolName?: string;
+  // Component / Deployment fields (`owner` names the containing Subsystem,
+  // Node or, for BPMN nodes, lane)
+  stereotype?: string;
+  dependencyStereotype?: string;
+  owner?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -161,7 +183,22 @@ export interface ModelModification {
     | 'add_event'
     | 'add_flow'
     | 'modify_node'
-    | 'remove_flow';
+    | 'remove_flow'
+    // BPMN pools / lanes
+    | 'add_pool'
+    | 'add_swimlane'
+    | 'modify_swimlane'
+    | 'remove_swimlane'
+    | 'remove_pool'
+    // Component diagram
+    | 'add_component'
+    | 'add_subsystem'
+    | 'add_dependency'
+    | 'modify_element'
+    | 'remove_dependency'
+    // Deployment diagram
+    | 'add_node'
+    | 'add_artifact';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;
@@ -316,6 +353,30 @@ export class ModifierHelpers {
       if (typeof data.name === 'string' && data.name.trim().toLowerCase() === normalizedName) return n;
     }
     return undefined;
+  }
+
+  /**
+   * Resolve a node reference that may be a node id or a display name, among
+   * nodes of the given types. An id hit wins over a name match.
+   */
+  static resolveNodeRef(model: BESSERModel, ref: string | undefined, types: string[]): BesserNode | undefined {
+    if (!ref) return undefined;
+    const byId = ModifierHelpers.findNodeById(model, ref);
+    if (byId && types.includes(byId.type)) return byId;
+    for (const type of types) {
+      const hit = ModifierHelpers.findNodeByName(model, ref, type);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+
+  /** Grow a child's parent node so the child, plus `padding`, stays inside it. */
+  static growParentToFit(model: BESSERModel, child: BesserNode, padding: number): void {
+    const parent = child.parentId ? ModifierHelpers.findNodeById(model, child.parentId) : undefined;
+    if (!parent) return;
+    parent.width = Math.max(parent.width || 0, child.position.x + (child.width || 0) + padding);
+    parent.height = Math.max(parent.height || 0, child.position.y + (child.height || 0) + padding);
+    parent.measured = { width: parent.width, height: parent.height };
   }
 
   /** Find all nodes whose `type` matches. */

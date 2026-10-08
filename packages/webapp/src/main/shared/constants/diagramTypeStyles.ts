@@ -10,6 +10,8 @@ export const PERSPECTIVE_LABELS: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
   NNDiagram: 'Neural Network Diagram',
   BPMN: 'BPMN Diagram',
+  ComponentDiagram: 'Component Diagram',
+  DeploymentDiagram: 'Deployment Diagram',
 };
 
 export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
@@ -22,6 +24,8 @@ export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'Quantum program specification.',
   NNDiagram: 'Neural network architecture (PyTorch / TensorFlow).',
   BPMN: 'Business process modeling (BPMN 2.0).',
+  ComponentDiagram: 'High-level architecture of collaborating services, agents, and their dependencies.',
+  DeploymentDiagram: 'Runtime topology showing where agent components are deployed and connected.',
 };
 
 export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
@@ -34,4 +38,6 @@ export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
   BPMN: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300',
+  ComponentDiagram: 'bg-cyan-100 text-cyan-900 dark:bg-cyan-900/30 dark:text-cyan-300',
+  DeploymentDiagram: 'bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-300',
 };

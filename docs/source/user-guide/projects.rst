@@ -59,8 +59,11 @@ Creating a New Project
     *   **Description**: (Optional) A brief summary of the project's purpose.
     *   **Owner**: The name of the project owner.
     *   **Modeling Perspective**: Choose Data Modeler, Agent Developer,
-        Full Web Application, Quantum, or Show All to select the diagrams
-        visible in the sidebar. You can change this later in Settings.
+        Multi-Agent, Full Web Application, Quantum, or Show All to select the
+        diagrams visible in the sidebar. Multi-Agent shows the BPMN, Agent,
+        Component, and Deployment diagrams and enables
+        :ref:`agentic BPMN <agentic-bpmn>`. You can change this later in
+        Settings.
 
 4.  Click **Create Project**.
 

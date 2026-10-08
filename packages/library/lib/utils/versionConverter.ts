@@ -26,10 +26,12 @@ import {
   ComponentSubsystemNodeProps,
   DeploymentNodeProps,
   DeploymentComponentProps,
+  DeploymentArtifactProps,
   PetriNetPlaceProps,
   BPMNTaskProps,
   BPMNGatewayProps,
   BPMNEventProps,
+  BPMNSwimlaneProps,
   ReachabilityGraphMarkingProps,
   ClassifierVisibility,
   ClassifierMethodImplementationType,
@@ -47,6 +49,11 @@ import type { UMLModelComponent } from "./agentComponents"
 import { resolveReplyType } from "./agentActions"
 import { canonicalizeAgentLLMProvider } from "../services/agentLlm"
 import { adoptBpmnContainment } from "./bpmnContainment"
+import {
+  BPMNGatewayRole,
+  BPMNReflectionMode,
+  migrateLegacyRole,
+} from "../types/bpmnAgentic"
 
 /**
  * smart-gen session-data-flow / GUI-reply fields of an AgentState body row
@@ -94,6 +101,30 @@ import {
   qualifySlug,
   v3AttributeTypeFor,
 } from "@/nodes/nnDiagram/nnAttributeWidgetConfig"
+
+// Agentic extension fields a BPMN flow may carry (the XML importer copies
+// the `<agentic:agentic>` attributes of a message flow onto the relationship).
+const BPMN_FLOW_AGENTIC_FIELDS = [
+  "isAgentic",
+  "role",
+  "reflectionMode",
+  "reflectionReviewerLaneId",
+  "gatewayRole",
+  "trustScore",
+  "multiplicity",
+  "agentDiagramRef",
+  "governanceDsl",
+] as const
+
+const pickBpmnFlowAgentic = (
+  relationship: Record<string, unknown>
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {}
+  for (const key of BPMN_FLOW_AGENTIC_FIELDS) {
+    if (relationship[key] !== undefined) out[key] = relationship[key]
+  }
+  return out
+}
 
 function normalizeImportedInterfaceGeometry(
   nodeType: string,
@@ -1083,17 +1114,33 @@ function convertV3NodeDataToV4(
     }
 
     case "Component": {
+      const e = element as V3UMLElement & {
+        realizes?: string[]
+        processModelRefs?: string[]
+        agentModelRef?: string
+      }
       const componentData: ComponentNodeProps = {
         ...baseData,
         isComponentHeaderShown: element.displayStereotype !== false,
+        ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
+        ...(e.realizes !== undefined && { realizes: e.realizes }),
+        ...(e.processModelRefs !== undefined && {
+          processModelRefs: e.processModelRefs,
+        }),
+        ...(e.agentModelRef !== undefined && {
+          agentModelRef: e.agentModelRef,
+        }),
       }
       return componentData
     }
 
-    case "ComponentSubsystem": {
+    case "Subsystem": {
       const subsystemData: ComponentSubsystemNodeProps = {
         ...baseData,
         isComponentSubsystemHeaderShown: element.displayStereotype !== false,
+        ...(element.stereotype !== undefined && {
+          stereotype: element.stereotype,
+        }),
       }
       return subsystemData
     }
@@ -1111,8 +1158,26 @@ function convertV3NodeDataToV4(
       const deploymentComponentData: DeploymentComponentProps = {
         ...baseData,
         isComponentHeaderShown: element.displayStereotype !== false,
+        ...(element.stereotype !== undefined && {
+          stereotype: element.stereotype,
+        }),
       }
       return deploymentComponentData
+    }
+
+    case "DeploymentArtifact": {
+      const e = element as V3UMLElement & {
+        manifests?: string[]
+        agentModelRef?: string
+      }
+      const deploymentArtifactData: DeploymentArtifactProps = {
+        ...baseData,
+        ...(e.manifests !== undefined && { manifests: e.manifests }),
+        ...(e.agentModelRef !== undefined && {
+          agentModelRef: e.agentModelRef,
+        }),
+      }
+      return deploymentArtifactData
     }
 
     case "PetriNetPlace": {
@@ -1139,20 +1204,72 @@ function convertV3NodeDataToV4(
     }
 
     case "BPMNTask": {
+      const e = element as V3UMLElement & {
+        isAgentic?: boolean
+        reflectionMode?: BPMNReflectionMode
+        reflectionReviewerLaneId?: string
+        trustScore?: number
+        agentDiagramRef?: string | null
+      }
       const bpmnTaskData: BPMNTaskProps = {
         ...baseData,
         taskType: (element.taskType as any) || "default",
         marker: (element.marker as any) || "none",
+        ...(e.isAgentic !== undefined && { isAgentic: e.isAgentic }),
+        ...(e.reflectionMode !== undefined && {
+          reflectionMode: e.reflectionMode,
+        }),
+        ...(e.reflectionReviewerLaneId !== undefined && {
+          reflectionReviewerLaneId: e.reflectionReviewerLaneId,
+        }),
+        ...(e.trustScore !== undefined && { trustScore: e.trustScore }),
+        ...(e.agentDiagramRef !== undefined && {
+          agentDiagramRef: e.agentDiagramRef,
+        }),
       }
       return bpmnTaskData
     }
 
     case "BPMNGateway": {
+      const e = element as V3UMLElement & {
+        isAgentic?: boolean
+        gatewayRole?: BPMNGatewayRole
+        trustScore?: number
+        governanceDsl?: string
+      }
       const bpmnGatewayData: BPMNGatewayProps = {
         ...baseData,
         gatewayType: (element.gatewayType as any) || "exclusive",
+        ...(e.isAgentic !== undefined && { isAgentic: e.isAgentic }),
+        ...(e.gatewayRole !== undefined && { gatewayRole: e.gatewayRole }),
+        ...(e.trustScore !== undefined && { trustScore: e.trustScore }),
+        ...(e.governanceDsl !== undefined && {
+          governanceDsl: e.governanceDsl,
+        }),
       }
       return bpmnGatewayData
+    }
+
+    case "BPMNSwimlane": {
+      const e = element as V3UMLElement & {
+        isAgentic?: boolean
+        role?: string
+        trustScore?: number
+        multiplicity?: number
+        agentDiagramRef?: string | null
+      }
+      const bpmnSwimlaneData: BPMNSwimlaneProps = {
+        ...baseData,
+        ...(e.isAgentic !== undefined && { isAgentic: e.isAgentic }),
+        // Legacy worker / manager / supervisor roles map to the current tokens.
+        ...(e.role !== undefined && { role: migrateLegacyRole(e.role) }),
+        ...(e.trustScore !== undefined && { trustScore: e.trustScore }),
+        ...(e.multiplicity !== undefined && { multiplicity: e.multiplicity }),
+        ...(e.agentDiagramRef !== undefined && {
+          agentDiagramRef: e.agentDiagramRef,
+        }),
+      }
+      return bpmnSwimlaneData
     }
 
     case "BPMNStartEvent": {
@@ -1340,6 +1457,7 @@ function convertV3NodeDataToV4(
         stream_steps?: boolean
         system_prompt?: string
         fallback_message?: string
+        description?: string
       }
       const v3RowToV4 = (row: V3UMLElement) => {
         const r = row as V3UMLElement & {
@@ -1492,6 +1610,7 @@ function convertV3NodeDataToV4(
         ...(e.fallback_message !== undefined && {
           fallback_message: e.fallback_message,
         }),
+        ...(e.description !== undefined && { description: e.description }),
         ...(mainRows.length > 0 && { bodies: mainRows }),
         ...(fallbackRows.length > 0 && { fallbackBodies: fallbackRows }),
       }
@@ -1958,7 +2077,6 @@ function convertV3NodeDataToV4(
     }
 
     // For other BPMN elements that just need base data
-    case "BPMNSwimlane":
     case "BPMNAnnotation":
     case "BPMNDataObject":
     case "BPMNDataStore":
@@ -2378,6 +2496,7 @@ function convertV3RelationshipToV4Edge(
     params?: string | string[] | { [id: string]: string }
     guard?: string
     associationId?: string
+    stereotype?: string
   }
   let normalizedParams: string[] | undefined
   if (relationship.type === "StateTransition") {
@@ -2425,6 +2544,13 @@ function convertV3RelationshipToV4Edge(
         (relationship as { isDefault?: unknown }).isDefault === true && {
           isDefault: true,
         }),
+      ...(relationship.type === "BPMNFlow" &&
+        pickBpmnFlowAgentic(
+          relationship as unknown as Record<string, unknown>
+        )),
+      ...((relationship.type === "ComponentDependency" ||
+        relationship.type === "DeploymentAssociation") &&
+        r.stereotype !== undefined && { stereotype: r.stereotype }),
       // StateTransition-specific data — v3 parity: `name` + `params`
       // (ordered string array) + optional `guard`. No `code`, no
       // `eventName`.
@@ -3859,6 +3985,9 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           stateType,
           ...(data.fallbackBodyEnabled !== undefined && {
             fallbackBodyEnabled: !!data.fallbackBodyEnabled,
+          }),
+          ...(data.description !== undefined && {
+            description: data.description,
           }),
           ...(isReasoning && {
             llm_name: (data.llm_name as string) || "",

@@ -1,5 +1,20 @@
-import { UMLDiagramType } from '@besser/wme';
-import type { UMLModel, BesserNode, BesserEdge, DiagramNodeType, DiagramEdgeType } from '@besser/wme';
+import {
+  UMLDiagramType,
+  clampMultiplicity,
+  clampTrustScore,
+  findOrphanedMergingGateways,
+  migrateLegacyRole,
+} from '@besser/wme';
+import type {
+  UMLModel,
+  BesserNode,
+  BesserEdge,
+  DiagramNodeType,
+  DiagramEdgeType,
+  BPMNAgentRole,
+  BPMNGatewayRole,
+  BPMNReflectionMode,
+} from '@besser/wme';
 import { uuid } from '../../shared/utils/uuid';
 
 // BPMN 2.0 XML importer (v4 {nodes, edges} shape). Inverse of bpmn-xml-exporter.ts.
@@ -13,7 +28,8 @@ import { uuid } from '../../shared/utils/uuid';
 //   - every edge is a `BesserEdge` with one of four `type` strings
 //     (`BPMNSequenceFlow` / `BPMNMessageFlow` / `BPMNAssociationFlow` /
 //     `BPMNDataAssociationFlow`), name in both `data.name` and `data.label`,
-//     and `data.isDefault` for default sequence flows.
+//     and `data.isDefault` for default sequence flows;
+//   - `<agentic:agentic>` extension attributes land on `node.data` / `edge.data`.
 //
 // The XML parsing / element classification / lane+pool nesting reconstruction /
 // `default="…"` handling are faithful to develop; only the node/edge construction
@@ -147,6 +163,121 @@ function findFirstEventDefinitionChild(node: Element): Element | null {
   return null;
 }
 
+// Find the agentic extension block on a BPMN element. Looks for a
+// `*:extensionElements` child (any namespace prefix) and, inside it, a child
+// whose localName is 'agentic' (any prefix). Returns the agentic element or
+// null. Namespace-agnostic, matching the rest of this importer.
+function findAgenticExtension(parent: Element): Element | null {
+  const ext = childByLocalName(parent, 'extensionElements');
+  if (!ext) return null;
+  for (const c of Array.from(ext.children)) {
+    if (getLocalName(c) === 'agentic') return c;
+  }
+  return null;
+}
+
+// Read the governance DSL CDATA child from a construct's extensionElements.
+// Returns the trimmed text, or null if absent. Adjacent CDATA sections produced
+// by the exporter's `]]>` split are concatenated by the DOM parser, so the
+// original text comes back intact.
+function findGovernanceText(parent: Element): string | null {
+  const ext = childByLocalName(parent, 'extensionElements');
+  if (!ext) return null;
+  for (const c of Array.from(ext.children)) {
+    if (getLocalName(c) === 'governance') {
+      const t = c.textContent;
+      return t === null ? null : t.trim();
+    }
+  }
+  return null;
+}
+
+// Agentic fields read from the extension block; merged into `node.data` / `edge.data`.
+interface AgenticFields {
+  isAgentic: true;
+  role?: BPMNAgentRole;
+  reflectionMode?: BPMNReflectionMode;
+  gatewayRole?: BPMNGatewayRole;
+  trustScore?: number;
+  multiplicity?: number;
+  // Lane/task Agent diagram ref. Free-form UUID; never validated here because the
+  // target project may not even contain the diagram.
+  agentDiagramRef?: string;
+  // Reviewer lane UUID for cross-reflection.
+  reflectionReviewerLaneId?: string;
+  // Governance DSL CDATA child (merging gateways only). Opaque string.
+  governanceDsl?: string;
+}
+
+// Parse the agentic extension. Unknown enum values and bad numerics emit a
+// warning and the field is left unset (the editor default applies). Returns
+// null if no agentic extension is present.
+function parseAgenticExtension(parent: Element, warnings: ParseWarning[]): AgenticFields | null {
+  const a = findAgenticExtension(parent);
+  if (!a) return null;
+  const out: Record<string, unknown> = { isAgentic: true };
+  // Toast wording is kept short because hash IDs are not user-meaningful and the
+  // file is short enough to inspect directly.
+  const oneOf = <T extends string>(name: string, allowed: readonly T[]): T | undefined => {
+    const v = a.getAttribute(name);
+    if (v === null) return undefined;
+    if ((allowed as readonly string[]).includes(v)) return v as T;
+    warnings.push({
+      code: 'agentic-unknown-enum',
+      message: `Agentic ${name}="${v}" not recognised; ignored.`,
+    });
+    return undefined;
+  };
+  // Accept the four AgentCategory tokens and legacy worker/manager
+  // values (migrated), so older .bpmn files still import their lane role. Only emit
+  // when the attribute was actually present — absence keeps the model default.
+  const rawRole = a.getAttribute('role');
+  if (rawRole !== null) out.role = migrateLegacyRole(rawRole);
+  const reflectionMode = oneOf('reflectionMode', ['none', 'self', 'cross', 'human'] as const);
+  if (reflectionMode !== undefined) out.reflectionMode = reflectionMode;
+  const gatewayRole = oneOf('gatewayRole', ['diverging', 'merging'] as const);
+  if (gatewayRole !== undefined) out.gatewayRole = gatewayRole;
+  const tsRaw = a.getAttribute('trustScore');
+  if (tsRaw !== null) {
+    const n = Number.parseInt(tsRaw, 10);
+    if (Number.isFinite(n)) {
+      out.trustScore = clampTrustScore(n);
+    } else {
+      warnings.push({
+        code: 'agentic-bad-trust-score',
+        message: `Agentic trustScore="${tsRaw}" is not a number; ignored.`,
+      });
+    }
+  }
+  const mRaw = a.getAttribute('multiplicity');
+  if (mRaw !== null) {
+    const n = Number.parseInt(mRaw, 10);
+    if (Number.isFinite(n)) {
+      out.multiplicity = clampMultiplicity(n);
+    } else {
+      warnings.push({
+        code: 'agentic-bad-multiplicity',
+        message: `Agentic multiplicity="${mRaw}" is not a number; ignored.`,
+      });
+    }
+  }
+  // Opaque pass-through. Empty string ("") is treated as absent so
+  // a malformed export doesn't create an unresolvable dead ref.
+  const ref = a.getAttribute('agentDiagramRef');
+  if (ref !== null && ref !== '') {
+    out.agentDiagramRef = ref;
+  }
+  const reviewerRef = a.getAttribute('reflectionReviewerLaneId');
+  if (reviewerRef !== null && reviewerRef !== '') {
+    out.reflectionReviewerLaneId = reviewerRef;
+  }
+  // Governance DSL is a sibling CDATA child of <agentic:agentic>, not an
+  // attribute. Read it off the same extensionElements parent.
+  const gov = findGovernanceText(parent);
+  if (gov !== null && gov !== '') out.governanceDsl = gov;
+  return out as unknown as AgenticFields;
+}
+
 // ─── Internal work types (closed-over by the parser) ────────────────────────
 
 interface Bounds {
@@ -172,6 +303,7 @@ interface WorkEdge {
   name: string;
   flowKind: 'sequence' | 'message' | 'association' | 'data association';
   isDefault?: boolean;
+  agentic?: AgenticFields; // message flows only
   points: Array<{ x: number; y: number }>; // ABSOLUTE waypoints
 }
 
@@ -225,7 +357,10 @@ function parseDefinitions(root: Element, ctx: SemanticContext): void {
       }
     }
     for (const mf of childrenByLocalName(collab, 'messageFlow')) {
-      ctx.edges.push(makeEdge(mf, 'message'));
+      const edge = makeEdge(mf, 'message');
+      const mfExt = parseAgenticExtension(mf, ctx.warnings);
+      if (mfExt) edge.agentic = mfExt;
+      ctx.edges.push(edge);
     }
   }
 
@@ -248,7 +383,10 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
         ctx.warnings.push({ code: 'lane-without-pool', message: `Lane ${laneId} in pool-less process; ignored` });
         continue;
       }
-      ctx.nodes.push(makeNode(laneId, 'bpmnSwimlane', name, poolId));
+      const laneNode = makeNode(laneId, 'bpmnSwimlane', name, poolId);
+      const laneExt = parseAgenticExtension(lane, ctx.warnings);
+      if (laneExt) Object.assign(laneNode.data, laneExt);
+      ctx.nodes.push(laneNode);
       for (const ref of childrenByLocalName(lane, 'flowNodeRef')) {
         const id = (ref.textContent ?? '').trim();
         if (id) laneOf.set(id, laneId);
@@ -265,6 +403,8 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
     const owner = laneOf.get(id) ?? poolId ?? undefined;
     const node = createFlowNode(child, tag, id, name, owner);
     if (!node) continue;
+    const nodeExt = parseAgenticExtension(child, ctx.warnings);
+    if (nodeExt) Object.assign(node.data, nodeExt);
     ctx.nodes.push(node);
 
     const def = child.getAttribute('default');
@@ -585,6 +725,7 @@ export function bpmnXmlToModel(xml: string): ImportResult {
         label: e.name,
         name: e.name,
         ...(e.isDefault ? { isDefault: true } : {}),
+        ...e.agentic,
         points: e.points,
       },
     };
@@ -602,5 +743,22 @@ export function bpmnXmlToModel(xml: string): ImportResult {
     interactive: { elements: {}, relationships: {} },
   };
 
+  // A merging gateway with no upstream diverging gateway is a structural
+  // smell: warn about it.
+  warnOrphanedMergingGateways(model, ctx.warnings);
+
   return { model, warnings: ctx.warnings, skipped: ctx.skipped };
+}
+
+// Warn on agentic merging gateways with no upstream diverging gateway.
+function warnOrphanedMergingGateways(model: UMLModel, warnings: ParseWarning[]): void {
+  const nameById = new Map(model.nodes.map((n) => [n.id, n.data?.name]));
+  for (const id of findOrphanedMergingGateways(model)) {
+    const name = nameById.get(id);
+    const label = typeof name === 'string' && name ? `"${name}"` : 'unnamed';
+    warnings.push({
+      code: 'orphaned-merging-gateway',
+      message: `Agentic merging gateway ${label} has no upstream diverging gateway; collaboration mode unknown.`,
+    });
+  }
 }

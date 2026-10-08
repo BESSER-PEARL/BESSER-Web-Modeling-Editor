@@ -40,6 +40,11 @@ export type CustomEdgeProps = {
    * types never set this.
    */
   isDefault?: boolean
+  /**
+   * ComponentDependency / DeploymentAssociation only: edge stereotype
+   * (agentic edge kind such as `delegates` or `supervises`).
+   */
+  stereotype?: string
 }
 
 export type ExtendedEdgeProps = EdgeProps<Edge<CustomEdgeProps>> & {

@@ -12,7 +12,8 @@
  *     `lib/nodes/wrappers/DefaultNodeWrapper.tsx` (`'left'`, `'right'`, …).
  */
 
-import type { BesserNode } from '@besser/wme';
+import type { BesserEdge, BesserNode } from '@besser/wme';
+import { clampMultiplicity, clampTrustScore, migrateLegacyRole } from '@besser/wme';
 
 /** All v4 class-like node types live under `node.type === 'class'`. */
 export const CLASS_NODE_TYPE = 'class';
@@ -69,6 +70,54 @@ export function recalculateClassNodeHeight(node: BesserNode): void {
   const h = classNodeHeight(attrCount, methodCount);
   node.height = h;
   node.measured = { width: node.width, height: h };
+}
+
+/** Build a v4 node; `position` is relative to `parentId` when one is given. */
+export function buildV4Node(
+  id: string,
+  type: string,
+  position: { x: number; y: number },
+  size: { width: number; height: number },
+  data: Record<string, unknown>,
+  parentId?: string,
+): BesserNode {
+  return {
+    id,
+    type: type as any,
+    position,
+    width: size.width,
+    height: size.height,
+    measured: { ...size },
+    data: data as any,
+    ...(parentId ? { parentId } : {}),
+  };
+}
+
+/** Build a v4 edge; its points are a placeholder the editor re-routes on load. */
+export function buildV4Edge(
+  id: string,
+  type: string,
+  source: string,
+  target: string,
+  handles: { source: string; target: string },
+  data: Record<string, unknown>,
+): BesserEdge {
+  return {
+    id,
+    source,
+    target,
+    type: type as any,
+    sourceHandle: handles.source,
+    targetHandle: handles.target,
+    data: {
+      isManuallyLayouted: false,
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      ...data,
+    } as any,
+  };
 }
 
 /** Build a v4 class node (`type: 'class'`, stereotype-discriminated). */
@@ -134,4 +183,58 @@ export function directionToHandle(direction: string | undefined, fallback: strin
   };
   if (!direction) return map[fallback] ?? fallback.toLowerCase();
   return map[direction] ?? direction.toLowerCase();
+}
+
+/** Agentic fields an assistant spec may carry for a BPMN lane, task or gateway. */
+export interface BpmnAgenticSpec {
+  isAgentic?: boolean;
+  role?: string;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string | null;
+  reflectionMode?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
+}
+
+const trustScoreOf = (spec: BpmnAgenticSpec) =>
+  clampTrustScore(typeof spec.trustScore === 'number' ? spec.trustScore : 0);
+
+const agentDiagramRefOf = (spec: BpmnAgenticSpec) => {
+  const ref = typeof spec.agentDiagramRef === 'string' ? spec.agentDiagramRef.trim() : '';
+  return ref ? { agentDiagramRef: ref } : {};
+};
+
+/** `bpmnSwimlane` agentic data, with legacy roles migrated and numbers clamped. */
+export function bpmnLaneAgenticData(spec: BpmnAgenticSpec): Record<string, unknown> {
+  return {
+    isAgentic: spec.isAgentic === true,
+    role: migrateLegacyRole(spec.role),
+    trustScore: trustScoreOf(spec),
+    multiplicity: clampMultiplicity(typeof spec.multiplicity === 'number' ? spec.multiplicity : 1),
+    ...agentDiagramRefOf(spec),
+  };
+}
+
+/** `bpmnTask` agentic data; `reviewerLaneId` is the resolved cross-reflection lane node id. */
+export function bpmnTaskAgenticData(spec: BpmnAgenticSpec, reviewerLaneId?: string): Record<string, unknown> {
+  return {
+    isAgentic: spec.isAgentic === true,
+    reflectionMode: typeof spec.reflectionMode === 'string' ? spec.reflectionMode : 'none',
+    trustScore: trustScoreOf(spec),
+    ...agentDiagramRefOf(spec),
+    ...(reviewerLaneId ? { reflectionReviewerLaneId: reviewerLaneId } : {}),
+  };
+}
+
+/** `bpmnGateway` agentic data. */
+export function bpmnGatewayAgenticData(spec: BpmnAgenticSpec): Record<string, unknown> {
+  return {
+    isAgentic: spec.isAgentic === true,
+    gatewayRole: typeof spec.gatewayRole === 'string' ? spec.gatewayRole : 'diverging',
+    trustScore: trustScoreOf(spec),
+    ...(typeof spec.governanceDsl === 'string' && spec.governanceDsl.trim()
+      ? { governanceDsl: spec.governanceDsl }
+      : {}),
+  };
 }

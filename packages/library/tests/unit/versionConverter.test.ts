@@ -1005,17 +1005,16 @@ describe("convertV3ToV4", () => {
     expect(result.edges).toHaveLength(0)
   })
 
-  it("converts ComponentSubsystem (mapped from Subsystem V3 type name)", () => {
+  it("converts the v3 Subsystem type to componentSubsystem", () => {
     const el = makeV3Element({
       id: "cs1",
-      type: "ComponentSubsystem",
-      displayStereotype: true,
+      type: "Subsystem",
+      displayStereotype: false,
     })
-    // Note: In the type map, "Subsystem" → "componentSubsystem", but the
-    // switch in convertV3NodeDataToV4 matches "ComponentSubsystem"
     const data = makeV3Wrapped({ elements: { cs1: el } })
     const result = convertV3ToV4(data)
-    expect(result.nodes[0].data.isComponentSubsystemHeaderShown).toBe(true)
+    expect(result.nodes[0].type).toBe("componentSubsystem")
+    expect(result.nodes[0].data.isComponentSubsystemHeaderShown).toBe(false)
   })
 
   it("converts DeploymentComponent with displayStereotype", () => {

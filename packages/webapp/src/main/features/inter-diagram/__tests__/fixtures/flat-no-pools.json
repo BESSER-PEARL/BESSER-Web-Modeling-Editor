@@ -1,0 +1,39 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 800, "height": 600 },
+  "elements": {
+    "task-a": {
+      "id": "task-a",
+      "name": "A",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 100, "y": 100, "width": 160, "height": 60 }
+    },
+    "task-b": {
+      "id": "task-b",
+      "name": "B",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 300, "y": 100, "width": 160, "height": 60 }
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "flow-1": {
+      "id": "flow-1",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 260, "y": 130, "width": 40, "height": 1 },
+      "path": [
+        { "x": 260, "y": 130 },
+        { "x": 300, "y": 130 }
+      ],
+      "source": { "element": "task-a", "direction": "Right" },
+      "target": { "element": "task-b", "direction": "Left" }
+    }
+  },
+  "assessments": {}
+}

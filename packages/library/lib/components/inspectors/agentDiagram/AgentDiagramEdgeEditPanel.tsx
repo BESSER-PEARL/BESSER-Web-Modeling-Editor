@@ -20,6 +20,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { useTranslation } from "@/i18n"
 import { InspectorSectionHeader, AddRowButton, useCodeMirrorTheme } from "../_shared"
 import { getAgentComponentLists } from "./agentComponentLists"
+import { NEW_TRANSITION_PREDEFINED_TYPE } from "@/utils/agentActions"
 
 /**
  * Inspector body for the `AgentStateTransition` edge.
@@ -59,9 +60,6 @@ type EdgeData = CustomEdgeProps & {
   legacyShape?: 1 | 2 | 3 | 4 | 5
   legacy?: Record<string, unknown>
 }
-
-/** smart-gen NEW_TRANSITION_PREDEFINED_TYPE. */
-const NEW_TRANSITION_PREDEFINED_TYPE = "auto"
 
 const PREDEFINED_TRANSITIONS = [
   {

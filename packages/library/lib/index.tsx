@@ -15,6 +15,7 @@ export {
   ACTION_TYPE_TO_REPLY_TYPE,
   resolveReplyType,
   withActionType,
+  NEW_TRANSITION_PREDEFINED_TYPE,
 } from "./utils/agentActions"
 // Off-canvas agent components (v4 `model.components`): type names, entry
 // type and the legacy-location migrator (canvas nodes / agentComponents →
@@ -79,6 +80,32 @@ export type {
   BPMNFlowValidationCode,
   BPMNFlowValidationWarning,
 } from "./services/bpmnFlowValidation"
+
+// Agentic BPMN: lane / task / gateway attribute vocabulary, XML extension
+// namespace, collaboration-block walkers and the Governance DSL generator.
+export * from "./types/bpmnAgentic"
+export {
+  resolveUpstreamDivergingGateway,
+  findDownstreamAgenticConstructs,
+  findOrphanedMergingGateways,
+  generateGovernanceDsl,
+  GOV_POLICY_TYPES,
+} from "./services/bpmnCollaborationBlocks"
+export type { GovPolicyType } from "./services/bpmnCollaborationBlocks"
+
+// Agentic Component-diagram stereotype vocabulary (mirrors BESSER
+// `uml_component/agentic.py`).
+export * from "./utils/agenticTokens"
+
+// Host providers registered through the BesserEditor setters
+// (setLineageProvider / setElementPickerProvider / setAgentDiagramLinker).
+export type {
+  LineageProvider,
+  ResolvedSource,
+  ElementPickerProvider,
+  PickableElement,
+  AgentDiagramLinker,
+} from "./components/hostProviders/contexts"
 
 // settingsService + ClassNotation (used by ProjectSettingsPanel.tsx).
 export {

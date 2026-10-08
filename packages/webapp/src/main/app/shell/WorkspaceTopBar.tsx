@@ -55,6 +55,9 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onShowWelcomeGuide,
   activeDiagramType,
   onSwitchDiagramType,
+  onDeriveComponentDiagram,
+  onDeriveDeploymentDiagram,
+  onGenerateDockerCompose,
   projectNameDraft,
   onProjectNameDraftChange,
   onProjectRename,
@@ -131,8 +134,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             mode={generatorMode}
             isGenerating={isGenerating}
             primaryGenerateClass={primaryGenerateClass}
+            activeDiagramType={activeDiagramType}
             onGenerate={onGenerate}
             onSwitchDiagramType={onSwitchDiagramType}
+            onDeriveComponentDiagram={onDeriveComponentDiagram}
+            onDeriveDeploymentDiagram={onDeriveDeploymentDiagram}
+            onGenerateDockerCompose={onGenerateDockerCompose}
           />
           {/* Below sm these fold into the More menu */}
           <div className="hidden sm:contents">

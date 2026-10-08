@@ -53,6 +53,15 @@ import {
   emitBesserError,
   type BesserError,
 } from "@/services/errors"
+import { HostProviderSlot } from "@/components/hostProviders/hostProvider"
+import {
+  agentDiagramLinkerContext,
+  elementPickerContext,
+  lineageContext,
+  type AgentDiagramLinker,
+  type ElementPickerProvider,
+  type LineageProvider,
+} from "@/components/hostProviders/contexts"
 
 // Re-export the warning channel from the editor
 // barrel so external consumers can `import { BesserError, emitBesserError }`
@@ -100,6 +109,15 @@ export class BesserEditor {
   private dropPendingViewportAction?: () => void
   /** The host element the canvas renders into (`fitViewInto` measures it). */
   private readonly container: HTMLElement
+  // Host-supplied providers read by the inspectors; a setter call updates the
+  // mounted provider root without rebuilding the editor tree.
+  private readonly lineageSlot = new HostProviderSlot<LineageProvider>(
+    lineageContext
+  )
+  private readonly elementPickerSlot =
+    new HostProviderSlot<ElementPickerProvider>(elementPickerContext)
+  private readonly agentDiagramLinkerSlot =
+    new HostProviderSlot<AgentDiagramLinker>(agentDiagramLinkerContext)
   constructor(element: HTMLElement, options?: Besser.BesserOptions) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("Element is required to initialize BesserEditor")
@@ -191,6 +209,9 @@ export class BesserEditor {
     if (options?.locale !== undefined) {
       this.metadataStore.getState().setLocale(options.locale)
     }
+    if (options?.agenticEnabled !== undefined) {
+      this.metadataStore.getState().setAgenticEnabled(options.agenticEnabled)
+    }
     // v3 `getScaleFactor()` parity: the configured `options.scale`.
     this.scaleFactor = options?.scale || 1
 
@@ -211,9 +232,15 @@ export class BesserEditor {
               <AlignmentGuidesStoreContext.Provider
                 value={this.alignmentGuidesStore}
               >
-                <AppWithProvider
-                  onReactFlowInit={this.setReactFlowInstance.bind(this)}
-                />
+                {this.elementPickerSlot.wrap(
+                  this.lineageSlot.wrap(
+                    this.agentDiagramLinkerSlot.wrap(
+                      <AppWithProvider
+                        onReactFlowInit={this.setReactFlowInstance.bind(this)}
+                      />
+                    )
+                  )
+                )}
               </AlignmentGuidesStoreContext.Provider>
             </AssessmentSelectionStoreContext.Provider>
           </PopoverStoreContext.Provider>
@@ -965,6 +992,42 @@ export class BesserEditor {
    */
   set locale(locale: Besser.Locale) {
     this.metadataStore.getState().setLocale(locale)
+  }
+
+  /**
+   * Shows or hides the agentic BPMN controls (the Agentic switches on lanes,
+   * tasks and gateways). Updates in place; the model is untouched.
+   */
+  set agenticEnabled(enabled: boolean) {
+    this.metadataStore.getState().setAgenticEnabled(enabled)
+  }
+
+  /**
+   * Register a lineage provider so derived elements can link back to their
+   * source element. Pass `null` to clear. Safe before or after mount.
+   */
+  public setLineageProvider(provider: LineageProvider | null): void {
+    this.lineageSlot.set(provider)
+  }
+
+  /**
+   * Register an element-picker provider so cross-diagram pickers
+   * (`realizes`, `manifests`) can list elements of other diagrams. Pass
+   * `null` to clear. Safe before or after mount.
+   */
+  public setElementPickerProvider(
+    provider: ElementPickerProvider | null
+  ): void {
+    this.elementPickerSlot.set(provider)
+  }
+
+  /**
+   * Register an agent-diagram linker so an agentic BPMN lane or task can
+   * define or open its Agent diagram. Pass `null` to clear. Safe before or
+   * after mount.
+   */
+  public setAgentDiagramLinker(linker: AgentDiagramLinker | null): void {
+    this.agentDiagramLinkerSlot.set(linker)
   }
 
   /**

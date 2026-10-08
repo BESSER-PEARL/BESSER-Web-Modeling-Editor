@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { validateAllBpmnFlows } from '@besser/wme';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram } from '../../shared/types/project';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { bpmnXmlToModel, ImportResult } from './bpmn-xml-importer';
 
 /** Max warning lines shown in the import toast — the console keeps the full detail. */
@@ -47,9 +48,35 @@ export const useImportBpmnXml = () => {
         );
       }
 
-      // Self-contained warn toast: summarise the actual messages (parse + flow),
-      // capped so the toast stays compact.
-      const allWarnings = [...result.warnings.map((w) => w.message), ...flowWarnings.map((w) => w.message)];
+      // A task or lane may link an Agent diagram that is not in this project
+      // (deleted, or a file from another project). Keep the ref (the popup then
+      // offers "Define" again) but warn about it.
+      const refWarnings: string[] = [];
+      const currentProject = ProjectStorageRepository.getCurrentProject();
+      if (currentProject) {
+        const liveAgentIds = new Set(currentProject.diagrams.AgentDiagram.map((d) => d.id));
+        for (const node of result.model.nodes) {
+          const ref = node.data?.agentDiagramRef;
+          if (
+            (node.type === 'bpmnTask' || node.type === 'bpmnSwimlane') &&
+            typeof ref === 'string' &&
+            !liveAgentIds.has(ref)
+          ) {
+            const name = typeof node.data.name === 'string' ? node.data.name : '';
+            refWarnings.push(
+              t('import.warnings.danglingAgentRef', { name: name || t('import.warnings.unnamedElement') }),
+            );
+          }
+        }
+      }
+
+      // Self-contained warn toast: summarise the actual messages (parse + flow +
+      // dangling refs), capped so the toast stays compact.
+      const allWarnings = [
+        ...result.warnings.map((w) => w.message),
+        ...flowWarnings.map((w) => w.message),
+        ...refWarnings,
+      ];
       if (allWarnings.length) {
         const shown = allWarnings.slice(0, MAX_WARNINGS_SHOWN);
         const summary =

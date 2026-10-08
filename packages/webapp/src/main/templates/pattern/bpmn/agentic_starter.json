@@ -1,0 +1,570 @@
+{
+  "version": "4.0.0",
+  "id": "converted-diagram-1791464027633",
+  "title": "Agentic Bug-fixing Process",
+  "type": "BPMNDiagram",
+  "nodes": [
+    {
+      "id": "pool-repo",
+      "type": "bpmnPool",
+      "position": {
+        "x": -1020,
+        "y": -375
+      },
+      "width": 1580,
+      "height": 620,
+      "measured": {
+        "width": 1580,
+        "height": 620
+      },
+      "data": {
+        "name": "Project Repository"
+      }
+    },
+    {
+      "id": "lane-coder",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 0
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
+        "width": 1540,
+        "height": 150
+      },
+      "data": {
+        "name": "AgentCoder",
+        "isAgentic": true,
+        "role": "solution",
+        "trustScore": 82,
+        "multiplicity": 2
+      },
+      "parentId": "pool-repo"
+    },
+    {
+      "id": "task-coder-fix",
+      "type": "bpmnTask",
+      "position": {
+        "x": 790,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Reproduce and fix bug",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-coder"
+    },
+    {
+      "id": "lane-reviewer",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 150
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
+        "width": 1540,
+        "height": 150
+      },
+      "data": {
+        "name": "AgentReviewer",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 93,
+        "multiplicity": 1
+      },
+      "parentId": "pool-repo"
+    },
+    {
+      "id": "task-label",
+      "type": "bpmnTask",
+      "position": {
+        "x": 350,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Label report",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
+    },
+    {
+      "id": "task-checkvalid",
+      "type": "bpmnTask",
+      "position": {
+        "x": 540,
+        "y": 45
+      },
+      "width": 160,
+      "height": 67,
+      "measured": {
+        "width": 160,
+        "height": 67
+      },
+      "data": {
+        "name": "Check bug validity",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "self",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
+    },
+    {
+      "id": "gw-diverge",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 730,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel",
+        "isAgentic": true,
+        "gatewayRole": "diverging",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
+    },
+    {
+      "id": "gw-merge",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 980,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel",
+        "isAgentic": true,
+        "gatewayRole": "merging",
+        "trustScore": 0,
+        "governanceDsl": "// Generated from agentic merging gateway \"\"\n// policyType=MajorityPolicy, trustScore=0\nScopes:\n    Tasks:\n        MergeDecision_gw-merge\nParticipants:\n    Individuals :\n        (Agent) AgentReviewer { confidence : 0.93 },\n        (Agent) AgentCoder { confidence : 0.82 }\nMajorityPolicy MergeDecision_gw-mergePolicy {\n    Scope: MergeDecision_gw-merge\n    DecisionType as BooleanDecision\n    Participant list : AgentReviewer, AgentCoder\n    Parameters:\n        ratio : 0.5\n}"
+      },
+      "parentId": "lane-reviewer"
+    },
+    {
+      "id": "lane-maintainer",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 300
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
+        "width": 1540,
+        "height": 150
+      },
+      "data": {
+        "name": "Maintainer",
+        "isAgentic": false,
+        "role": "solution",
+        "trustScore": 0,
+        "multiplicity": 1
+      },
+      "parentId": "pool-repo"
+    },
+    {
+      "id": "task-validate",
+      "type": "bpmnTask",
+      "position": {
+        "x": 1130,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Validate solution",
+        "taskType": "user",
+        "marker": "none",
+        "isAgentic": false,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-maintainer"
+    },
+    {
+      "id": "evt-end-resolved",
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 1360,
+        "y": 55
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Bug resolved as resolved",
+        "eventType": "default"
+      },
+      "parentId": "lane-maintainer"
+    },
+    {
+      "id": "lane-user",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 450
+      },
+      "width": 1540,
+      "height": 170,
+      "measured": {
+        "width": 1540,
+        "height": 170
+      },
+      "data": {
+        "name": "User",
+        "isAgentic": false,
+        "role": "solution",
+        "trustScore": 0,
+        "multiplicity": 1
+      },
+      "parentId": "pool-repo"
+    },
+    {
+      "id": "evt-start",
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 80,
+        "y": 55
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Bug discovered",
+        "eventType": "default"
+      },
+      "parentId": "lane-user"
+    },
+    {
+      "id": "task-submit",
+      "type": "bpmnTask",
+      "position": {
+        "x": 140,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Submit bug report",
+        "taskType": "user",
+        "marker": "none",
+        "isAgentic": false,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-user"
+    }
+  ],
+  "edges": [
+    {
+      "id": "flow-01",
+      "source": "evt-start",
+      "target": "task-submit",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -860,
+            "y": 150
+          },
+          {
+            "x": -840,
+            "y": 150
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-02",
+      "source": "task-submit",
+      "target": "task-label",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -680,
+            "y": 150
+          },
+          {
+            "x": -640,
+            "y": 150
+          },
+          {
+            "x": -640,
+            "y": 0
+          },
+          {
+            "x": -670,
+            "y": 0
+          },
+          {
+            "x": -670,
+            "y": -150
+          },
+          {
+            "x": -630,
+            "y": -150
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-03",
+      "source": "task-label",
+      "target": "task-checkvalid",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -470,
+            "y": -150
+          },
+          {
+            "x": -440,
+            "y": -150
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-09",
+      "source": "gw-diverge",
+      "target": "task-coder-fix",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "top",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -230,
+            "y": -175
+          },
+          {
+            "x": -230,
+            "y": -300
+          },
+          {
+            "x": -190,
+            "y": -300
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-11",
+      "source": "task-coder-fix",
+      "target": "gw-merge",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -30,
+            "y": -300
+          },
+          {
+            "x": 20,
+            "y": -300
+          },
+          {
+            "x": 20,
+            "y": -175
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-12",
+      "source": "gw-merge",
+      "target": "task-validate",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 40,
+            "y": -155
+          },
+          {
+            "x": 95,
+            "y": -155
+          },
+          {
+            "x": 95,
+            "y": 0
+          },
+          {
+            "x": 150,
+            "y": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow-13",
+      "source": "task-validate",
+      "target": "evt-end-resolved",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 310,
+            "y": 0
+          },
+          {
+            "x": 380,
+            "y": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "d436c42f-bdc4-471e-821c-2a6ac8bfd952",
+      "source": "task-checkvalid",
+      "target": "gw-diverge",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left-bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -280,
+            "y": -155
+          },
+          {
+            "x": -250,
+            "y": -155
+          }
+        ]
+      }
+    }
+  ],
+  "assessments": {}
+}

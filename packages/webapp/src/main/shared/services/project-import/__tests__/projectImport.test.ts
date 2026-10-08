@@ -1,6 +1,6 @@
 import { importProjectFromBUML, importProjectFromJson } from '../projectImport';
 import { LocalStorageRepository } from '../../storage/local-storage-repository';
-import { createDefaultProject, ensureProjectMigrated, isUMLModel } from '../../../types/project';
+import { PROJECT_SCHEMA_VERSION, createDefaultProject, ensureProjectMigrated, isUMLModel } from '../../../types/project';
 import {
   localStorageActiveAgentConfiguration,
   localStorageAgentBaseModels,
@@ -255,10 +255,10 @@ describe('importProjectFromJson legacy format migration', () => {
     toastInfo.mockClear();
   });
 
-  it('migrates v3 models in old-webapp exports to v4 before stamping schemaVersion 5', async () => {
+  it('migrates v3 models in old-webapp exports to v4 before stamping the current schema version', async () => {
     const project = await importProjectFromJson(envelopeFile(oldWebappEnvelope(v3ClassModel())));
 
-    expect(project.schemaVersion).toBe(5);
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(Array.isArray(project.diagrams.ClassDiagram)).toBe(true);
     expect(project.diagrams.ClassDiagram).toHaveLength(1);
 
@@ -285,7 +285,7 @@ describe('importProjectFromJson legacy format migration', () => {
 
     const project = await importProjectFromJson(envelopeFile(bare));
 
-    expect(project.schemaVersion).toBe(5);
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(Array.isArray(project.diagrams.ClassDiagram)).toBe(true);
     const model = project.diagrams.ClassDiagram[0].model as AnyModel;
     expect(isUMLModel(model)).toBe(true);
@@ -302,7 +302,7 @@ describe('importProjectFromJson legacy format migration', () => {
 
     const project = await importProjectFromJson(envelopeFile(bare));
 
-    expect(project.schemaVersion).toBe(5);
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(project.diagrams.ClassDiagram[0].model).toEqual(v4ClassModel());
     expect(toastInfo).not.toHaveBeenCalled();
   });
@@ -336,14 +336,14 @@ describe('importProjectFromJson legacy format migration', () => {
     const envelope = { project, exportedAt: new Date().toISOString(), version: '2.0.0' };
     const imported = await importProjectFromJson(envelopeFile(envelope));
 
-    // Regression guard: the import must NOT stamp schemaVersion 5 here —
+    // Regression guard: the import must NOT stamp the current schema version here —
     // the file's own version is preserved so `ensureProjectMigrated`
     // migrates on load.
     const raw = JSON.parse(localStorage.getItem(`${localStorageProjectPrefix}${imported.id}`)!);
     expect(raw.schemaVersion).toBe(2);
 
     const migrated = ensureProjectMigrated(imported);
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(isUMLModel(migrated.diagrams.ClassDiagram[0].model)).toBe(true);
   });
 });

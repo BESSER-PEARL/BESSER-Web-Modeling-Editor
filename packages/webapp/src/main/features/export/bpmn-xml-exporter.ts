@@ -1,3 +1,4 @@
+import { AGENTIC_NS_PREFIX, AGENTIC_NS_URI } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
 
 // BPMN 2.0 XML exporter (v4 {nodes, edges} shape).
@@ -10,6 +11,8 @@ import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
 //   - edges carry one of four `type` strings (`BPMNSequenceFlow` / `BPMNMessageFlow`
 //     / `BPMNAssociationFlow` / `BPMNDataAssociationFlow`) instead of a single
 //     `BPMNFlow` + `flowType`, plus `data.isDefault` for default sequence flows.
+//   - agentic attributes (`isAgentic`, `role`, `trustScore`, …) live on `node.data`
+//     / `edge.data` and are written as an `<agentic:agentic>` extension block.
 //
 // Produces a BPMN 2.0 Collaboration + Process XML with BPMN DI (layout round-trip).
 // Node bounds in the DI section are ABSOLUTE — reconstructed by summing each node's
@@ -257,6 +260,7 @@ export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = 
       'xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" ' +
       'xmlns:di="http://www.omg.org/spec/DD/20100524/DI" ' +
       'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+      `xmlns:${AGENTIC_NS_PREFIX}="${AGENTIC_NS_URI}" ` +
       `id="Definitions_1" targetNamespace="${escapeAttr(targetNs)}">`,
   );
 
@@ -285,10 +289,17 @@ export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = 
       );
     }
     for (const mf of messageFlows) {
-      lines.push(
+      const open =
         `    <bpmn:messageFlow id="${xid(mf.id)}" name="${escapeAttr(edgeName(mf))}" ` +
-          `sourceRef="${xid(mf.source)}" targetRef="${xid(mf.target)}" />`,
-      );
+        `sourceRef="${xid(mf.source)}" targetRef="${xid(mf.target)}"`;
+      const agentic = agenticOf(mf.data);
+      if (!agentic.isAgentic) {
+        lines.push(`${open} />`);
+      } else {
+        lines.push(`${open}>`);
+        emitAgenticExtension(lines, agentic, '      ');
+        lines.push(`    </bpmn:messageFlow>`);
+      }
     }
     lines.push(`  </bpmn:collaboration>`);
   }
@@ -314,6 +325,7 @@ export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = 
       lines.push(`    <bpmn:laneSet id="LaneSet_${xid(poolId!)}">`);
       for (const lane of lanes) {
         lines.push(`      <bpmn:lane id="${xid(lane.id)}" name="${escapeAttr(nodeName(lane))}">`);
+        emitAgenticExtension(lines, agenticOf(lane.data), '        ');
         for (const node of flowNodes) {
           if (laneOwnerId(node) === lane.id) {
             lines.push(`        <bpmn:flowNodeRef>${xid(node.id)}</bpmn:flowNodeRef>`);
@@ -431,6 +443,79 @@ function groupByProcess(
 
 // ─── Emit helpers ────────────────────────────────────────────────────────────
 
+// Agentic fields carried on the `data` of bpmnSwimlane / bpmnTask / bpmnGateway
+// nodes and BPMNMessageFlow edges. `agentDiagramRef` links the construct to a
+// BESSER Agent diagram: new links sit on the task, older diagrams put it on the lane.
+interface AnyAgentic {
+  isAgentic?: boolean;
+  role?: string;
+  reflectionMode?: string;
+  gatewayRole?: string;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string;
+  // Reviewer lane UUID for cross-reflection.
+  reflectionReviewerLaneId?: string;
+  governanceDsl?: string;
+}
+
+// Pick the agentic fields off a node / edge `data` bag, dropping values of the wrong type.
+function agenticOf(data: Record<string, unknown> | undefined): AnyAgentic {
+  const d = data ?? {};
+  const optStr = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  const optNum = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  return {
+    isAgentic: d.isAgentic === true,
+    role: optStr(d.role),
+    reflectionMode: optStr(d.reflectionMode),
+    gatewayRole: optStr(d.gatewayRole),
+    trustScore: optNum(d.trustScore),
+    multiplicity: optNum(d.multiplicity),
+    agentDiagramRef: optStr(d.agentDiagramRef),
+    reflectionReviewerLaneId: optStr(d.reflectionReviewerLaneId),
+    governanceDsl: optStr(d.governanceDsl),
+  };
+}
+
+// Emit the agentic extensionElements
+// block as flat attributes. `indent` is the leading whitespace each
+// caller wants on the opening <extensionElements> line; inner lines inherit
+// that indent + 2 spaces.
+function emitAgenticExtension(lines: string[], el: AnyAgentic, indent: string): void {
+  if (!el.isAgentic) return;
+  const attrs: string[] = [];
+  if (el.role !== undefined) attrs.push(`role="${escapeAttr(el.role)}"`);
+  if (el.reflectionMode !== undefined) attrs.push(`reflectionMode="${escapeAttr(el.reflectionMode)}"`);
+  if (el.gatewayRole !== undefined) attrs.push(`gatewayRole="${escapeAttr(el.gatewayRole)}"`);
+  if (el.trustScore !== undefined) attrs.push(`trustScore="${el.trustScore}"`);
+  // Emit multiplicity only when > 1; absence means the
+  // default 1, keeping the XML clean for the common single-agent lane.
+  if (el.multiplicity !== undefined && el.multiplicity > 1) {
+    attrs.push(`multiplicity="${el.multiplicity}"`);
+  }
+  // agentDiagramRef rides the agentic extension block of whatever
+  // construct carries it: the agentic task for new links, or a lane for older diagrams.
+  // Emitted only when set, so non-linked constructs add nothing.
+  if (el.agentDiagramRef !== undefined) {
+    attrs.push(`agentDiagramRef="${escapeAttr(el.agentDiagramRef)}"`);
+  }
+  if (el.reflectionReviewerLaneId !== undefined && el.reflectionReviewerLaneId !== '') {
+    attrs.push(`reflectionReviewerLaneId="${escapeAttr(el.reflectionReviewerLaneId)}"`);
+  }
+  lines.push(`${indent}<bpmn:extensionElements>`);
+  lines.push(`${indent}  <agentic:agentic ${attrs.join(' ')}/>`);
+  // Governance DSL is multi-line free text, so export it as a CDATA child instead of an
+  // attribute. Split any literal `]]>` so the CDATA stays well-formed (the
+  // parser re-joins adjacent CDATA sections on import, so no un-escape needed).
+  if (el.governanceDsl !== undefined && el.governanceDsl.trim() !== '') {
+    const safe = el.governanceDsl.replace(/]]>/g, ']]]]><![CDATA[>');
+    lines.push(`${indent}  <agentic:governance><![CDATA[`);
+    lines.push(safe);
+    lines.push(`${indent}  ]]></agentic:governance>`);
+  }
+  lines.push(`${indent}</bpmn:extensionElements>`);
+}
+
 function emitFlowNode(
   lines: string[],
   node: BesserNode,
@@ -446,11 +531,13 @@ function emitFlowNode(
   if (node.type === 'bpmnTask') {
     const tag = taskElementName(str(node.data?.taskType) || 'default');
     const loop = taskLoopCharacteristics(str(node.data?.marker) || 'none');
-    const hasChildren = loop !== null || dataAssociations.length > 0;
+    const agentic = agenticOf(node.data);
+    const hasChildren = loop !== null || dataAssociations.length > 0 || agentic.isAgentic;
     if (!hasChildren) {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     } else {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
+      emitAgenticExtension(lines, agentic, '      ');
       if (loop) lines.push(`      ${loop}`);
       emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:${tag}>`);
@@ -516,7 +603,14 @@ function emitFlowNode(
 
   if (node.type === 'bpmnGateway') {
     const tag = gatewayElementName(str(node.data?.gatewayType) || 'exclusive');
-    lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
+    const agentic = agenticOf(node.data);
+    if (!agentic.isAgentic) {
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
+    } else {
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
+      emitAgenticExtension(lines, agentic, '      ');
+      lines.push(`    </bpmn:${tag}>`);
+    }
     return;
   }
 }

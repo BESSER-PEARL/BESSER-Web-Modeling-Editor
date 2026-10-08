@@ -1,4 +1,9 @@
 import type { AgentLLMProviderType } from "../../services/agentLlm"
+import type {
+  BPMNAgentRole,
+  BPMNGatewayRole,
+  BPMNReflectionMode,
+} from "../bpmnAgentic"
 
 export type DefaultNodeProps = {
   name: string
@@ -216,10 +221,19 @@ export type CommunicationObjectNodeProps = {
 
 export type ComponentNodeProps = {
   isComponentHeaderShown: boolean
+  /** Free-form stereotype; agent components use an AgentCategory token. */
+  stereotype?: string
+  /** Cross-diagram ids of the classes this component realizes. */
+  realizes?: string[]
+  /** Ids of the BPMN diagrams whose process this agent component joins. */
+  processModelRefs?: string[]
+  /** Id of the agent diagram that defines this component. */
+  agentModelRef?: string
 } & DefaultNodeProps
 
 export type ComponentSubsystemNodeProps = {
   isComponentSubsystemHeaderShown: boolean
+  stereotype?: string
 } & DefaultNodeProps
 
 export type DeploymentNodeProps = {
@@ -229,6 +243,14 @@ export type DeploymentNodeProps = {
 
 export type DeploymentComponentProps = {
   isComponentHeaderShown: boolean
+  stereotype?: string
+} & DefaultNodeProps
+
+export type DeploymentArtifactProps = {
+  /** Cross-diagram ids of the components this artifact manifests. */
+  manifests?: string[]
+  /** Id of the agent diagram this artifact deploys. */
+  agentModelRef?: string
 } & DefaultNodeProps
 
 export type PetriNetPlaceProps = {
@@ -255,6 +277,13 @@ export type BPMNMarkerType =
 export type BPMNTaskProps = DefaultNodeProps & {
   taskType: BPMNTaskType
   marker: BPMNMarkerType
+  isAgentic?: boolean
+  reflectionMode?: BPMNReflectionMode
+  /** Reviewer lane id for cross-reflection. */
+  reflectionReviewerLaneId?: string
+  /** 0-100 percentage. */
+  trustScore?: number
+  agentDiagramRef?: string | null
 }
 
 export type BPMNStartEventType =
@@ -307,6 +336,12 @@ export type BPMNGatewayType =
 
 export type BPMNGatewayProps = DefaultNodeProps & {
   gatewayType: BPMNGatewayType
+  isAgentic?: boolean
+  gatewayRole?: BPMNGatewayRole
+  /** 0-100 percentage. */
+  trustScore?: number
+  /** Merge policy of a merging agentic gateway. */
+  governanceDsl?: string
 }
 
 export type BPMNSubprocessProps = DefaultNodeProps & { isExpanded: boolean }
@@ -317,8 +352,16 @@ export type BPMNDataObjectProps = DefaultNodeProps
 export type BPMNDataStoreProps = DefaultNodeProps
 export type BPMNPoolProps = DefaultNodeProps
 export type BPMNGroupProps = DefaultNodeProps
-// Swimlane carries no extra fields beyond name/bounds (a pool subdivision).
-export type BPMNSwimlaneProps = DefaultNodeProps
+// A pool subdivision; an agentic lane also carries an agent profile.
+export type BPMNSwimlaneProps = DefaultNodeProps & {
+  isAgentic?: boolean
+  role?: BPMNAgentRole
+  /** 0-100 percentage. */
+  trustScore?: number
+  /** Swarm size: identical copies of this agent (integer >= 1). */
+  multiplicity?: number
+  agentDiagramRef?: string | null
+}
 
 export type ReachabilityGraphMarkingProps = DefaultNodeProps & {
   isInitialMarking: boolean
@@ -598,6 +641,8 @@ export type AgentStateNodeProps = Omit<StateNodeProps, "bodies" | "fallbackBodie
   system_prompt?: string
   /** Reasoning: message returned if the reasoning loop fails. */
   fallback_message?: string
+  /** Free text; `a2a:out;...` lines tag outgoing agent-to-agent messages. */
+  description?: string
 }
 
 /**

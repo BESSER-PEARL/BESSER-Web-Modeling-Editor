@@ -61,3 +61,7 @@ export const withActionType = <
     actionType: REPLY_TYPE_TO_ACTION_TYPE[replyType] ?? replyType,
   }
 }
+
+/** Predefined type of a newly created agent transition, so model generators
+ *  emit the same transition the editor creates. */
+export const NEW_TRANSITION_PREDEFINED_TYPE = "auto"

@@ -28,6 +28,7 @@ import {
 import { BesserEditorContext } from '../uml/besser-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
+import { DiagramLineageBanner } from './DiagramLineageBanner';
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -519,6 +520,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
           </button>
         )}
       </div>
+
+      <DiagramLineageBanner activeDiagram={activeDiagram} />
 
       {/* Linked Diagrams reference section (below tabs) */}
       {hasReferences && !refsCollapsed && (

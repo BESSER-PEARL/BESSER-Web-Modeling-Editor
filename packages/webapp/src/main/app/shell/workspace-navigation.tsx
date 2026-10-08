@@ -4,9 +4,11 @@ import {
   Atom,
   Blocks,
   Bot,
+  Component,
   Brain,
   Layers3,
   Network,
+  PackageOpen,
   PanelsTopLeft,
   PanelLeftClose,
   PanelLeftOpen,
@@ -37,6 +39,14 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
   AgentDiagram: {
     generators: ['agent'],
     label: '1 generator',
+  },
+  ComponentDiagram: {
+    generators: [],
+    label: 'No generators yet',
+  },
+  DeploymentDiagram: {
+    generators: [],
+    label: 'No generators yet',
   },
   UserDiagram: {
     generators: ['jsonobject'],
@@ -83,6 +93,8 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; labelKey: s
   { type: UMLDiagramType.StateMachineDiagram, label: 'State', labelKey: 'nav.diagram.state', icon: <Repeat2 className="size-4" /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent', labelKey: 'nav.diagram.agent', icon: <Bot className="size-4" /> },
   { type: UMLDiagramType.BPMN, label: 'BPMN', labelKey: 'nav.diagram.bpmn', icon: <Workflow className="size-4" /> },
+  { type: UMLDiagramType.ComponentDiagram, label: 'Component', labelKey: 'nav.diagram.component', icon: <Component className="size-4" /> },
+  { type: UMLDiagramType.DeploymentDiagram, label: 'Deployment', labelKey: 'nav.diagram.deployment', icon: <PackageOpen className="size-4" /> },
   { type: UMLDiagramType.UserDiagram, label: 'User', labelKey: 'nav.diagram.user', icon: <User className="size-4" /> },
   { type: UMLDiagramType.NNDiagram, label: 'Neural Net', labelKey: 'nav.diagram.neuralNet', icon: <Brain className="size-4" /> },
 ];

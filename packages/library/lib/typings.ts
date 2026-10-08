@@ -130,6 +130,8 @@ export type BesserOptions = {
   debug?: boolean
   collaborationEnabled?: boolean
   scrollLock?: boolean
+  /** Shows the agentic BPMN controls in the inspectors. */
+  agenticEnabled?: boolean
 }
 
 export type FeedbackCorrectionStatus = {

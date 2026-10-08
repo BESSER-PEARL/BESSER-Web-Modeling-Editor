@@ -12,6 +12,8 @@ import { QuantumCircuitModifier } from './QuantumCircuitModifier';
 import { GUIDiagramModifier } from './GUIDiagramModifier';
 import { UserDiagramModifier } from './UserDiagramModifier';
 import { BPMNDiagramModifier } from './BPMNDiagramModifier';
+import { ComponentDiagramModifier } from './ComponentDiagramModifier';
+import { DeploymentDiagramModifier } from './DeploymentDiagramModifier';
 
 export class ModifierFactory {
   private static modifiers: Map<DiagramType, DiagramModifier> = new Map();
@@ -26,6 +28,8 @@ export class ModifierFactory {
       this.modifiers.set('GUINoCodeDiagram', new GUIDiagramModifier());
       this.modifiers.set('UserDiagram', new UserDiagramModifier());
       this.modifiers.set('BPMN', new BPMNDiagramModifier());
+      this.modifiers.set('ComponentDiagram', new ComponentDiagramModifier());
+      this.modifiers.set('DeploymentDiagram', new DeploymentDiagramModifier());
     }
   }
 

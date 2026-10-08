@@ -14,6 +14,8 @@
  *   - flows are one of the four v4 edge-type strings; the label is written to
  *     BOTH `edge.data.name` AND `edge.data.label`; cross-pool flows become
  *     message flows; `edge.data.isDefault` carries the default-flow marker,
+ *   - agentic lane / task / gateway fields go into `node.data` under their v3
+ *     names when the spec supplies them; agentic semantics are never inferred,
  *   - the finished layout is shifted so its bounding box is centred on the
  *     origin (0,0) — the same convention develop's converter used so the
  *     viewport-recentering heuristics in `useModelInjection` see a stable,
@@ -26,10 +28,17 @@
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { UMLDiagramType, resolveBpmnEdgeType } from '@besser/wme';
-import { DiagramConverter, generateUniqueId } from './base';
-import { createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+import { DiagramConverter, centerNodesOnOrigin, generateUniqueId } from './base';
+import {
+  BpmnAgenticSpec,
+  bpmnGatewayAgenticData,
+  bpmnLaneAgenticData,
+  bpmnTaskAgenticData,
+  createEmptyV4Model,
+  directionToHandle,
+} from '../shared/v4Builders';
 
-interface SpecNode {
+interface SpecNode extends BpmnAgenticSpec {
   id?: string;
   name?: string;
   type?: string; // startEvent | endEvent | intermediateEvent | task | gateway | subprocess | …
@@ -38,6 +47,8 @@ interface SpecNode {
   eventType?: string;
   poolId?: string; // optional: id of the pool (participant) this node belongs to
   laneId?: string; // optional: id of the lane (role) within poolId
+  // reviewer lane for reflectionMode 'cross', as a spec lane id or lane name
+  reflectionReviewerLaneId?: string;
 }
 
 interface SpecFlow {
@@ -47,7 +58,7 @@ interface SpecFlow {
   isDefault?: boolean; // default sequence flow marker
 }
 
-interface SpecLane {
+interface SpecLane extends BpmnAgenticSpec {
   id?: string;
   name?: string;
 }
@@ -59,7 +70,7 @@ interface SpecPool {
 }
 
 type StableNode = SpecNode & { id: string };
-type Pool = { id: string; name: string; lanes: { id: string; name: string }[] };
+type Pool = { id: string; name: string; lanes: Array<SpecLane & { id: string; name: string }> };
 
 const COL_GAP = 220; // horizontal distance between layers
 const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/band
@@ -153,7 +164,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
         name: typeof p.name === 'string' ? p.name : '',
         lanes: (Array.isArray(p.lanes) ? p.lanes : [])
           .filter((l): l is SpecLane & { id: string } => typeof l.id === 'string' && l.id.trim().length > 0)
-          .map((l) => ({ id: l.id.trim(), name: typeof l.name === 'string' ? l.name : '' })),
+          .map((l) => ({ ...l, id: l.id.trim(), name: typeof l.name === 'string' ? l.name : '' })),
       }));
 
     const layerOf = this.computeLayers(nodes, flows);
@@ -164,7 +175,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       this.layoutWithPools(nodes, flows, pools, layerOf, model);
     }
 
-    this.centerOnOrigin(model);
+    centerNodesOnOrigin(model);
     return model;
   }
 
@@ -276,6 +287,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     // Parent node + absolute origin for every band, so contained nodes can be
     // positioned RELATIVE to their React-Flow parent.
     const bandParent: Record<string, { id: string; absX: number; absY: number }> = {};
+    const laneIdMap: Record<string, string> = {}; // `${poolId}::${laneId}` -> lane node id
 
     let cursorY = 0;
     pools.forEach((pool) => {
@@ -314,9 +326,11 @@ export class BPMNDiagramConverter implements DiagramConverter {
               poolWidth - POOL_HEADER_WIDTH,
               laneHeight,
               poolNodeId,
+              bpmnLaneAgenticData(lane),
             ),
           );
           bandParent[band.key] = { id: laneNodeId, absX: POOL_HEADER_WIDTH, absY: laneAbsY };
+          laneIdMap[band.key] = laneNodeId;
         });
       } else {
         // Pool with no lanes: its single band is parented directly to the pool.
@@ -331,6 +345,23 @@ export class BPMNDiagramConverter implements DiagramConverter {
       bandParent[orphanBand.key] = { id: '', absX: 0, absY: cursorY };
     }
 
+    // A spec lane reference (lane id, preferring the node's own pool, else a
+    // lane name) -> the emitted lane node id; undefined when nothing matches.
+    const resolveLaneRef = (ref: string | undefined, poolId?: string): string | undefined => {
+      const key = typeof ref === 'string' ? ref.trim() : '';
+      if (!key) return undefined;
+      if (poolId && laneIdMap[`${poolId}::${key}`]) return laneIdMap[`${poolId}::${key}`];
+      for (const pool of pools) {
+        if (laneIdMap[`${pool.id}::${key}`]) return laneIdMap[`${pool.id}::${key}`];
+      }
+      const lower = key.toLowerCase();
+      for (const pool of pools) {
+        const lane = pool.lanes.find((l) => l.name.trim().toLowerCase() === lower);
+        if (lane) return laneIdMap[`${pool.id}::${lane.id}`];
+      }
+      return undefined;
+    };
+
     // Emit node elements.
     nodes.forEach((n) => {
       const layer = layerOf[n.id] ?? 0;
@@ -342,14 +373,23 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const nodeId = generateUniqueId('bpmn');
       idMap[n.id] = nodeId;
       typeMap[n.id] = type;
+      const reviewerLaneId = resolveLaneRef(n.reflectionReviewerLaneId, n.poolId);
 
       if (parent && parent.id) {
         // Position RELATIVE to the parent lane/pool.
-        const node = this.buildNode(nodeId, type, n.name ?? '', absX - parent.absX, absY - parent.absY, n);
+        const node = this.buildNode(
+          nodeId,
+          type,
+          n.name ?? '',
+          absX - parent.absX,
+          absY - parent.absY,
+          n,
+          reviewerLaneId,
+        );
         node.parentId = parent.id;
         model.nodes.push(node);
       } else {
-        model.nodes.push(this.buildNode(nodeId, type, n.name ?? '', absX, absY, n));
+        model.nodes.push(this.buildNode(nodeId, type, n.name ?? '', absX, absY, n, reviewerLaneId));
       }
     });
 
@@ -373,15 +413,18 @@ export class BPMNDiagramConverter implements DiagramConverter {
     x: number,
     y: number,
     spec: SpecNode,
+    reviewerLaneId?: string,
   ): BesserNode {
     const { width, height } = sizeForType(type);
-    const data: Record<string, unknown> = { name: typeof name === 'string' ? name : '' };
+    let data: Record<string, unknown> = { name: typeof name === 'string' ? name : '' };
 
     if (type === 'bpmnTask') {
       data.taskType = TASK_TYPES.has(String(spec.taskType)) ? spec.taskType : 'default';
       data.marker = 'none';
+      data = { ...data, ...bpmnTaskAgenticData(spec, reviewerLaneId) };
     } else if (type === 'bpmnGateway') {
       data.gatewayType = GATEWAY_TYPES.has(String(spec.gatewayType)) ? spec.gatewayType : 'exclusive';
+      data = { ...data, ...bpmnGatewayAgenticData(spec) };
     } else if (type === 'bpmnStartEvent' || type === 'bpmnIntermediateEvent' || type === 'bpmnEndEvent') {
       data.eventType = typeof spec.eventType === 'string' && spec.eventType ? spec.eventType : 'default';
     } else if (type === 'bpmnSubprocess' || type === 'bpmnTransaction') {
@@ -411,6 +454,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     width: number,
     height: number,
     parentId?: string,
+    extraData: Record<string, unknown> = {},
   ): BesserNode {
     const node: BesserNode = {
       id,
@@ -419,7 +463,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       width,
       height,
       measured: { width, height },
-      data: { name: typeof name === 'string' ? name : '' },
+      data: { name: typeof name === 'string' ? name : '', ...extraData },
     };
     if (parentId) node.parentId = parentId;
     return node;
@@ -476,46 +520,6 @@ export class BPMNDiagramConverter implements DiagramConverter {
       },
     };
     model.edges.push(edge);
-  }
-
-  /**
-   * Shift the content so its bounding box is centred on the origin. Only
-   * top-level nodes move — children (lanes in a pool, flow nodes in a lane)
-   * are positioned relative to their parent and follow automatically. Flow
-   * geometry is placeholder (the editor re-routes on load), so edges need no
-   * adjustment.
-   */
-  private centerOnOrigin(model: Record<string, any>): void {
-    const nodes: BesserNode[] = Array.isArray(model.nodes) ? model.nodes : [];
-    if (!nodes.length) return;
-
-    const byId = new Map<string, BesserNode>(nodes.map((n) => [n.id, n]));
-    const absoluteOrigin = (node: BesserNode, depth = 0): { x: number; y: number } => {
-      const parent = node.parentId ? byId.get(node.parentId) : undefined;
-      if (!parent || depth > 64) return { x: node.position.x, y: node.position.y };
-      const p = absoluteOrigin(parent, depth + 1);
-      return { x: p.x + node.position.x, y: p.y + node.position.y };
-    };
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    nodes.forEach((n) => {
-      const { x, y } = absoluteOrigin(n);
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + (n.width ?? 0));
-      maxY = Math.max(maxY, y + (n.height ?? 0));
-    });
-    if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
-
-    const offsetX = -(minX + maxX) / 2;
-    const offsetY = -(minY + maxY) / 2;
-    nodes.forEach((n) => {
-      if (n.parentId) return;
-      n.position = { x: n.position.x + offsetX, y: n.position.y + offsetY };
-    });
   }
 
   // ------------------------------------------------------------------
