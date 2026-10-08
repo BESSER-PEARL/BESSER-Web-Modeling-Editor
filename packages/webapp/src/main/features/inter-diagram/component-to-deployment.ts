@@ -1,13 +1,25 @@
-import type { UMLModel, UMLElement, UMLRelationship } from '@besser/wme';
-import { UMLDiagramType } from '@besser/wme';
+import type {
+  UMLComponentComponent,
+  UMLComponentSubsystem,
+  UMLDeploymentArtifact,
+  UMLDeploymentAssociation,
+  UMLDeploymentComponent,
+  UMLDeploymentNode,
+  UMLElement,
+  UMLModel,
+  UMLRelationship,
+} from '@besser/wme';
+import { Direction, UMLDiagramType } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
+import { uuid } from '../../shared/utils/uuid';
 import type { DeploymentDerivationResult, DeploymentDerivationWarning } from './types';
 
 /**
  * Component → Deployment derivation.
  *
- * - One DeploymentNode per *unique* Subsystem in the source, sibling
- *   under the diagram root (nested Subsystems flatten).
+ * - One DeploymentNode per *unique* Subsystem in the source that holds an
+ *   agent Component or is itself a dependency endpoint (an external black-box
+ *   Subsystem), sibling under the diagram root (nested Subsystems flatten).
  * - One synthetic `Default Host` Node iff any orphan Component exists.
  * - For each source Component (UML 2.5 deployment notation):
  *     • a DeploymentComponent *above* the Node (owner=null)
@@ -53,8 +65,8 @@ export function componentModelToDeploymentModel(
   // Group each agent Component under its immediate Subsystem parent or the
   // orphan bucket, and mark every ancestor Subsystem "alive" so a Subsystem whose
   // only direct children are nested Subsystems is not skipped.
-  const componentsBySubsystemId = new Map<string, UMLElement[]>();
-  const orphanComponents: UMLElement[] = [];
+  const componentsBySubsystemId = new Map<string, UMLComponentComponent[]>();
+  const orphanComponents: UMLComponentComponent[] = [];
   const aliveSubsystemIds = new Set<string>();
   for (const c of components) {
     const parentSub = immediateSubsystemParent(component, c);
@@ -62,12 +74,12 @@ export function componentModelToDeploymentModel(
       const arr = componentsBySubsystemId.get(parentSub.id) ?? [];
       arr.push(c);
       componentsBySubsystemId.set(parentSub.id, arr);
-      let ownerId: string | null = (c as unknown as { owner?: string | null }).owner ?? null;
+      let ownerId = c.owner;
       while (ownerId) {
-        const ownerEl = component.elements[ownerId];
+        const ownerEl: UMLElement | undefined = component.elements[ownerId];
         if (!ownerEl) break;
         if (ownerEl.type === 'Subsystem') aliveSubsystemIds.add(ownerId);
-        ownerId = (ownerEl as unknown as { owner?: string | null }).owner ?? null;
+        ownerId = ownerEl.owner;
       }
     } else {
       orphanComponents.push(c);
@@ -86,11 +98,21 @@ export function componentModelToDeploymentModel(
   let cursorX = -320;
   const originY = -200;
 
+  // A Subsystem that is itself a dependency endpoint (an external black-box
+  // pool from the BPMN derivation) needs a node for its CommunicationPath.
+  const endpointSubsystemIds = new Set<string>();
+  for (const rel of Object.values(component.relationships)) {
+    if (rel.type !== 'ComponentDependency') continue;
+    for (const endpoint of [rel.source.element, rel.target.element]) {
+      if (component.elements[endpoint]?.type === 'Subsystem') endpointSubsystemIds.add(endpoint);
+    }
+  }
+
   // Per-Subsystem subtree.
   for (const sub of subsystems) {
     const subComps = componentsBySubsystemId.get(sub.id) ?? [];
     // Skip Subsystems whose entire subtree held only capability Components.
-    if (subComps.length === 0 && !aliveSubsystemIds.has(sub.id)) continue;
+    if (subComps.length === 0 && !aliveSubsystemIds.has(sub.id) && !endpointSubsystemIds.has(sub.id)) continue;
     const { outerNodeId, bounds, execEnvByCompId } = emitGroupSubtree(
       out,
       sub.name,
@@ -167,8 +189,7 @@ export function componentModelToDeploymentModel(
       minY = Infinity,
       maxX = -Infinity,
       maxY = -Infinity;
-    for (const e of placed) {
-      const b = (e as unknown as { bounds: { x: number; y: number; width: number; height: number } }).bounds;
+    for (const { bounds: b } of placed) {
       minX = Math.min(minX, b.x);
       minY = Math.min(minY, b.y);
       maxX = Math.max(maxX, b.x + b.width);
@@ -176,20 +197,17 @@ export function componentModelToDeploymentModel(
     }
     const dx = -(minX + maxX) / 2;
     const dy = -(minY + maxY) / 2;
-    for (const e of placed) {
-      const b = (e as unknown as { bounds: { x: number; y: number } }).bounds;
+    for (const { bounds: b } of placed) {
       b.x += dx;
       b.y += dy;
     }
-    for (const r of Object.values(out.relationships)) {
-      const rel = r as unknown as { bounds: { x: number; y: number }; path?: Array<{ x: number; y: number }> };
+    for (const rel of Object.values(out.relationships)) {
       rel.bounds.x += dx;
       rel.bounds.y += dy;
-      if (rel.path)
-        for (const p of rel.path) {
-          p.x += dx;
-          p.y += dy;
-        }
+      for (const p of rel.path) {
+        p.x += dx;
+        p.y += dy;
+      }
     }
   }
 
@@ -204,16 +222,17 @@ export function componentModelToDeploymentModel(
  *  CAPABILITY_TOKENS in agentic-tokens.ts. */
 const CAPABILITY_STEREOTYPES = new Set(['skill', 'tool', 'llm', 'db', 'rag']);
 
-function collectComponents(model: UMLModel): UMLElement[] {
-  return Object.values(model.elements).filter((e) => {
-    if (e.type !== 'Component') return false;
-    const stereo = ((e as unknown as { stereotype?: string }).stereotype ?? '').toLowerCase().trim();
-    return !CAPABILITY_STEREOTYPES.has(stereo);
-  });
+const isComponent = (e: UMLElement): e is UMLComponentComponent => e.type === 'Component';
+const isSubsystem = (e: UMLElement): e is UMLComponentSubsystem => e.type === 'Subsystem';
+
+function collectComponents(model: UMLModel): UMLComponentComponent[] {
+  return Object.values(model.elements)
+    .filter(isComponent)
+    .filter((e) => !CAPABILITY_STEREOTYPES.has((e.stereotype ?? '').toLowerCase().trim()));
 }
 
-function collectSubsystems(model: UMLModel): UMLElement[] {
-  return Object.values(model.elements).filter((e) => e.type === 'Subsystem');
+function collectSubsystems(model: UMLModel): UMLComponentSubsystem[] {
+  return Object.values(model.elements).filter(isSubsystem);
 }
 
 /**
@@ -328,8 +347,6 @@ function emptyDeploymentModel(size: { width: number; height: number }): UMLModel
   };
 }
 
-const newId = (): string => 'gen-' + Math.random().toString(36).slice(2, 11);
-
 // Swarm multiplicity. Stamp the deployment **Artifact** name with the
 // UML `[N]` multiplicity suffix when the source agent-lane's swarm size > 1.
 // N==1 (the default) emits no suffix — absence means "single instance".
@@ -362,8 +379,8 @@ interface Bounds {
 function emitGroupSubtree(
   out: UMLModel,
   outerName: string,
-  outerSource: UMLElement | null,
-  agents: UMLElement[],
+  outerSource: UMLComponentSubsystem | null,
+  agents: UMLComponentComponent[],
   multiplicityByComponentId: Record<string, number>,
   originX: number,
   originY: number,
@@ -373,18 +390,17 @@ function emitGroupSubtree(
   // descendant child Subsystem has no agents of its own — emit a bare node.
   if (agents.length === 0) {
     const bounds: Bounds = { x: originX, y: originY, width: EMPTY_NODE_WIDTH, height: EMPTY_NODE_HEIGHT };
-    const id = newId();
-    out.elements[id] = {
+    const id = uuid();
+    const node: UMLDeploymentNode = {
       id,
       name: outerName,
       type: 'DeploymentNode',
       owner: null,
       bounds,
       stereotype: 'node',
-      displayStereotype: outerSource
-        ? ((outerSource as unknown as { displayStereotype?: boolean }).displayStereotype ?? true)
-        : true,
-    } as unknown as UMLElement;
+      displayStereotype: outerSource?.displayStereotype ?? true,
+    };
+    out.elements[id] = node;
     return { outerNodeId: id, bounds, execEnvByCompId: new Map() };
   }
 
@@ -404,8 +420,8 @@ function emitGroupSubtree(
     const subWidth = SUB_PAD_X * 2 + hostWidth;
     const subHeight = SUB_HEADER + hostHeight + SUB_PAD_BOTTOM;
     outerBounds = { x: originX, y: originY, width: subWidth, height: subHeight };
-    outerNodeId = newId();
-    out.elements[outerNodeId] = {
+    outerNodeId = uuid();
+    const outerNode: UMLDeploymentNode = {
       id: outerNodeId,
       name: outerName,
       type: 'DeploymentNode',
@@ -413,8 +429,9 @@ function emitGroupSubtree(
       bounds: outerBounds,
       // Kept Subsystem nodes always render «node».
       stereotype: 'node',
-      displayStereotype: (outerSource as unknown as { displayStereotype?: boolean }).displayStereotype ?? true,
-    } as unknown as UMLElement;
+      displayStereotype: outerSource.displayStereotype ?? true,
+    };
+    out.elements[outerNodeId] = outerNode;
     hostX = originX + SUB_PAD_X;
     hostY = originY + SUB_HEADER;
     hostOwner = outerNodeId;
@@ -428,8 +445,8 @@ function emitGroupSubtree(
   }
 
   // ── Docker Host node ──
-  const hostId = newId();
-  out.elements[hostId] = {
+  const hostId = uuid();
+  const host: UMLDeploymentNode = {
     id: hostId,
     name: 'Docker Host',
     type: 'DeploymentNode',
@@ -437,7 +454,8 @@ function emitGroupSubtree(
     bounds: { x: hostX, y: hostY, width: hostWidth, height: hostHeight },
     stereotype: 'docker host',
     displayStereotype: true,
-  } as unknown as UMLElement;
+  };
+  out.elements[hostId] = host;
   if (!outerSource) outerNodeId = hostId;
 
   // ── One ExecutionEnvironment (+ Artifact + Component + manifest edge) per agent ──
@@ -451,8 +469,8 @@ function emitGroupSubtree(
     const eeX = hostX + HOST_PAD_X + i * (EXECENV_WIDTH + EXECENV_GAP);
     const eeY = hostY + HOST_HEADER;
 
-    const eeId = newId();
-    out.elements[eeId] = {
+    const eeId = uuid();
+    const executionEnvironment: UMLDeploymentNode = {
       id: eeId,
       name,
       type: 'DeploymentNode',
@@ -460,11 +478,12 @@ function emitGroupSubtree(
       bounds: { x: eeX, y: eeY, width: EXECENV_WIDTH, height: EXECENV_HEIGHT },
       stereotype: 'executionEnvironment',
       displayStereotype: true,
-    } as unknown as UMLElement;
+    };
+    out.elements[eeId] = executionEnvironment;
     execEnvByCompId.set(comp.id, eeId); // Source Component → its ExecEnv node
 
     // Artifact INSIDE the ExecutionEnvironment (owner = ExecEnv).
-    const artifactId = newId();
+    const artifactId = uuid();
     const artifactBounds: Bounds = {
       x: eeX + EXECENV_PAD_X,
       y: eeY + EXECENV_HEADER,
@@ -474,8 +493,7 @@ function emitGroupSubtree(
     // Carry the agent-diagram UUID onto the Artifact so BESSER's
     // deployment generator can resolve Artifact → Agent diagram by exact id.
     // Absent when the source Component was never linked.
-    const sourceAgentModelRef = (comp as unknown as { agentModelRef?: string }).agentModelRef;
-    out.elements[artifactId] = {
+    const artifact: UMLDeploymentArtifact = {
       id: artifactId,
       name: appendMultiplicity(name, multiplicity), // Artifact carries [N]; ExecEnv and Component names stay plain.
       type: 'DeploymentArtifact',
@@ -484,27 +502,29 @@ function emitGroupSubtree(
       // Artifact.manifests (UML 2.5 § 19.4): the cross-diagram id of the
       // source Component this artifact manifests.
       manifests: [comp.id],
-      ...(sourceAgentModelRef ? { agentModelRef: sourceAgentModelRef } : {}),
-    } as unknown as UMLElement;
+      ...(comp.agentModelRef ? { agentModelRef: comp.agentModelRef } : {}),
+    };
+    out.elements[artifactId] = artifact;
 
     // Logical DeploymentComponent BELOW the outer node (owner=null), aligned under
     // this ExecutionEnvironment's column.
-    const componentId = newId();
+    const componentId = uuid();
     const componentBounds: Bounds = {
       x: eeX + (EXECENV_WIDTH - COMPONENT_WIDTH) / 2,
       y: outerBounds.y + outerBounds.height + COMPONENT_ROW_GAP,
       width: COMPONENT_WIDTH,
       height: COMPONENT_HEIGHT,
     };
-    out.elements[componentId] = {
+    const deploymentComponent: UMLDeploymentComponent = {
       id: componentId,
       name,
       type: 'DeploymentComponent',
       owner: null,
       bounds: componentBounds,
-      stereotype: (comp as unknown as { stereotype?: string }).stereotype ?? 'component',
-      displayStereotype: (comp as unknown as { displayStereotype?: boolean }).displayStereotype ?? true,
-    } as unknown as UMLElement;
+      stereotype: comp.stereotype ?? 'component',
+      displayStereotype: comp.displayStereotype ?? true,
+    };
+    out.elements[componentId] = deploymentComponent;
     elementMapping[componentId] = comp.id; // logical projection ← source Component
 
     // Dashed manifest edge: Artifact (source) → Component (target). (Reuses the
@@ -522,7 +542,7 @@ function emitManifestDependency(
   componentId: string,
   componentBounds: { x: number; y: number; width: number; height: number },
 ): void {
-  const id = newId();
+  const id = uuid();
   // Emit as DeploymentDependency so the renderer paints it
   // dashed (strokeDasharray=7) with an arrow at the target end
   // (markerEnd). Source = Artifact, target = Component → arrow lands
@@ -542,7 +562,7 @@ function emitManifestDependency(
   const artifactBottomY = artifactBounds.y + artifactBounds.height;
   const componentTopCx = componentBounds.x + componentBounds.width / 2;
   const componentTopY = componentBounds.y;
-  out.relationships[id] = {
+  const manifest: UMLRelationship = {
     id,
     name: '',
     type: 'DeploymentDependency',
@@ -557,24 +577,17 @@ function emitManifestDependency(
       { x: artifactBottomCx, y: artifactBottomY },
       { x: componentTopCx, y: componentTopY },
     ],
-    source: { element: artifactId, direction: 'Down' },
-    target: { element: componentId, direction: 'Up' },
-  } as unknown as UMLRelationship;
+    source: { element: artifactId, direction: Direction.Down },
+    target: { element: componentId, direction: Direction.Up },
+  };
+  out.relationships[id] = manifest;
 }
 
 function emitDeploymentAssociation(out: UMLModel, srcNodeId: string, tgtNodeId: string): string {
-  const id = newId();
-  const src = (
-    out.elements[srcNodeId] as unknown as {
-      bounds: { x: number; y: number; width: number; height: number };
-    }
-  ).bounds;
-  const tgt = (
-    out.elements[tgtNodeId] as unknown as {
-      bounds: { x: number; y: number; width: number; height: number };
-    }
-  ).bounds;
-  out.relationships[id] = {
+  const id = uuid();
+  const src = out.elements[srcNodeId].bounds;
+  const tgt = out.elements[tgtNodeId].bounds;
+  const association: UMLDeploymentAssociation = {
     id,
     name: '',
     type: 'DeploymentAssociation',
@@ -589,10 +602,10 @@ function emitDeploymentAssociation(out: UMLModel, srcNodeId: string, tgtNodeId: 
       { x: src.x + src.width / 2, y: src.y + src.height / 2 },
       { x: tgt.x + tgt.width / 2, y: tgt.y + tgt.height / 2 },
     ],
-    source: { element: srcNodeId, direction: 'Right' },
-    target: { element: tgtNodeId, direction: 'Left' },
-    // Agentic edge stereotypes are NOT carried over.
-    // Leave `stereotype` undefined.
-  } as unknown as UMLRelationship;
+    source: { element: srcNodeId, direction: Direction.Right },
+    target: { element: tgtNodeId, direction: Direction.Left },
+    // Agentic edge stereotypes are not carried over.
+  };
+  out.relationships[id] = association;
   return id;
 }
