@@ -20,13 +20,16 @@ export type DerivationResult =
 
 export type DerivationRefusalReason = 'no-pools' | 'no-lanes-in-any-pool' | 'not-a-bpmn-diagram';
 
+// Every warning carries the names of the elements it is about, so the UI can
+// show it without the source model (`derivation-warnings.ts` turns each kind
+// into a translated sentence); the ids stay for the console and the tests.
 export type DerivationWarning =
-  | { kind: 'dropped-task-in-non-agentic-lane'; taskId: string }
+  | { kind: 'dropped-task-in-non-agentic-lane'; taskId: string; taskName: string; laneName: string }
   // An agentic lane resolves to more than CAPABILITY_WARN_THRESHOLD distinct
   // capabilities; its has/uses edges fan out and the grouped diagram gets
   // busy. Advisory only — every capability is still emitted. `count` is the
   // deduped total.
-  | { kind: 'capability-heavy-agent'; laneId: string; count: number }
+  | { kind: 'capability-heavy-agent'; laneId: string; laneName: string; count: number }
   // Per-zone: a single grouped zone (Skills or Tools) holds more than
   // CAPABILITY_ZONE_WARN_THRESHOLD unique capability boxes; the zone is
   // crowded even if no single agent is heavy. Advisory only.
@@ -86,12 +89,13 @@ export type AgentDerivationRefusalReason =
 
 // Cross-lane I/O boundary states. A crossing flow whose in-lane endpoint
 // can't be resolved to a specific task is still acknowledged, attached to the
-// entry state, and surfaced here (never silently dropped).
+// entry state, and surfaced here (never silently dropped). `direction` is the
+// flow's direction relative to the lane; `peerName` names its other end.
 export type AgentDerivationWarning =
-  | { kind: 'io-attached-to-entry'; flowId: string }
+  | { kind: 'io-attached-to-entry'; flowId: string; direction: 'in' | 'out'; peerName: string }
   // A governed merging gateway owned by this lane has no in-lane
   // producing task feeding it (resp. no in-lane successor). The merge state is
   // STILL emitted (BESSER must bind governance to it), but it lacks a guarded
   // inbound (resp. an outbound) — surfaced so the user can wire it manually.
-  | { kind: 'merge-no-producers'; gatewayId: string }
-  | { kind: 'merge-no-successors'; gatewayId: string };
+  | { kind: 'merge-no-producers'; gatewayId: string; gatewayName: string }
+  | { kind: 'merge-no-successors'; gatewayId: string; gatewayName: string };

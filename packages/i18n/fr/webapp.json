@@ -3167,8 +3167,8 @@
       "openFailed": "Le diagramme d'agent a été créé, mais n'a pas pu être ouvert. Ouvrez-le depuis les onglets des diagrammes d'agent.",
       "openExistingFailed": "Impossible d'ouvrir le diagramme d'agent.",
       "populateFailed": "Le diagramme d'agent a été créé, mais son remplissage à partir du couloir a échoué.",
-      "derivedWithWarnings_one": "Diagramme d'agent créé avec {{count}} avertissement — voir la console du navigateur.",
-      "derivedWithWarnings_other": "Diagramme d'agent créé avec {{count}} avertissements — voir la console du navigateur.",
+      "derivedWithWarnings_one": "Diagramme d'agent créé avec {{count}} avertissement :",
+      "derivedWithWarnings_other": "Diagramme d'agent créé avec {{count}} avertissements :",
       "emptyAgent": {
         "noTasksInLane": "Le couloir n'a pas encore de tâches ; le diagramme d'agent commence donc vide.",
         "laneNotAgentic": "Le couloir n'est pas agentique ; le diagramme d'agent commence donc vide.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "Cette action ne fonctionne que sur un diagramme BPMN.",
         "limitReached": "le projet contient déjà le nombre maximal de diagrammes de composants. Supprimez-en un avant d'en générer un nouveau.",
         "done": "Diagramme de composants généré.",
-        "doneWithWarnings_one": "Diagramme de composants généré avec {{count}} avertissement — voir la console du navigateur.",
-        "doneWithWarnings_other": "Diagramme de composants généré avec {{count}} avertissements — voir la console du navigateur."
+        "doneWithWarnings_one": "Diagramme de composants généré avec {{count}} avertissement :",
+        "doneWithWarnings_other": "Diagramme de composants généré avec {{count}} avertissements :"
       },
       "deployment": {
         "failed": "Impossible de dériver le diagramme de déploiement : {{reason}}",
         "noComponents": "Ajoutez d'abord au moins un composant à ce diagramme de composants.",
         "notComponentDiagram": "Cette action ne fonctionne que sur un diagramme de composants.",
         "limitReached": "le projet contient déjà le nombre maximal de diagrammes de déploiement. Supprimez-en un avant d'en générer un nouveau.",
-        "flatScaffold": "Un nœud « Default Host » a été créé comme espace réservé — ajoutez des sous-systèmes au diagramme de composants pour une disposition plus riche.",
-        "done": "Diagramme de déploiement généré."
+        "done": "Diagramme de déploiement généré.",
+        "doneWithWarnings_one": "Diagramme de déploiement généré avec {{count}} avertissement :",
+        "doneWithWarnings_other": "Diagramme de déploiement généré avec {{count}} avertissements :"
       }
+    },
+    "warnings": {
+      "more": "…et {{count}} de plus",
+      "unnamed": "(sans nom)",
+      "droppedTask": "La tâche « {{task}} » se trouve dans le couloir non agentique « {{lane}} » ; elle n'apparaît donc pas dans le diagramme de composants.",
+      "capabilityHeavyAgent": "L'agent « {{lane}} » utilise {{count}} outils, compétences et ressources ; sa partie du diagramme peut donc être chargée.",
+      "capabilityHeavyZone": "Le groupe « {{zone}} » contient {{count}} éléments et peut être chargé.",
+      "danglingAgentRef": "« {{name}} » est lié à un diagramme d'agent qui n'est plus dans ce projet ; ses outils et compétences ont été ignorés.",
+      "flatScaffold": "Le diagramme de composants n'a pas de sous-systèmes ; tous les composants ont donc été placés sur un seul Docker Host. Ajoutez des sous-systèmes pour une disposition plus riche.",
+      "ioUnresolvedIn": "Le flux provenant de « {{peer}} » n'atteint aucune tâche de ce couloir ; aucun état ne le reçoit.",
+      "ioUnresolvedOut": "Le flux vers « {{peer}} » ne part d'aucune tâche de ce couloir ; aucun état ne l'envoie.",
+      "mergeNoProducers": "La passerelle de fusion gouvernée « {{gateway}} » n'a aucun flux entrant ; son état de décision n'a donc pas de transition entrante. Ajoutez-en une manuellement.",
+      "mergeNoSuccessors": "La passerelle de fusion gouvernée « {{gateway}} » ne mène à aucune tâche de ce couloir ; son état de décision n'a donc pas de transition sortante. Ajoutez-en une manuellement."
     }
   }
 }

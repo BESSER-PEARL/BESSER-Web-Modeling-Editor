@@ -3167,8 +3167,8 @@
       "openFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net opgemaach ginn. Maacht et iwwer d'Tabs vun den Agent-Diagrammer op.",
       "openExistingFailed": "D'Agent-Diagramm konnt net opgemaach ginn.",
       "populateFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net aus der Bunn gefëllt ginn.",
-      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt – kuckt d'Browser-Konsol.",
-      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt – kuckt d'Browser-Konsol.",
+      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt:",
+      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt:",
       "emptyAgent": {
         "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
         "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "Dës Aktioun funktionéiert nëmmen an engem BPMN-Diagramm.",
         "limitReached": "de Projet huet schonn déi maximal Zuel u Komponentendiagrammer. Läscht eent, ier Dir en neit generéiert.",
         "done": "Komponentendiagramm generéiert.",
-        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert – kuckt d'Browser-Konsol.",
-        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert – kuckt d'Browser-Konsol."
+        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert:"
       },
       "deployment": {
         "failed": "D'Deploymentdiagramm kann net ofgeleet ginn: {{reason}}",
         "noComponents": "Setzt als éischt op d'mannst ee Komponent an dëst Komponentendiagramm.",
         "notComponentDiagram": "Dës Aktioun funktionéiert nëmmen an engem Komponentendiagramm.",
         "limitReached": "de Projet huet schonn déi maximal Zuel un Deploymentdiagrammer. Läscht eent, ier Dir en neit generéiert.",
-        "flatScaffold": "E Knued „Default Host“ gouf als Plazhalter erstallt – setzt Subsystemer an d'Komponentendiagramm fir e méi räicht Layout.",
-        "done": "Deploymentdiagramm generéiert."
+        "done": "Deploymentdiagramm generéiert.",
+        "doneWithWarnings_one": "Deploymentdiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Deploymentdiagramm mat {{count}} Warnungen generéiert:"
       }
+    },
+    "warnings": {
+      "more": "…an nach {{count}}",
+      "unnamed": "(ouni Numm)",
+      "droppedTask": "D'Aufgab „{{task}}“ läit an der net-agentescher Bunn „{{lane}}“ a gëtt dofir net am Komponentendiagramm gewisen.",
+      "capabilityHeavyAgent": "Den Agent „{{lane}}“ benotzt {{count}} Tools, Fäegkeeten a Ressourcen; säin Deel vum Diagramm ka dofir iwwerlueden ausgesinn.",
+      "capabilityHeavyZone": "D'Grupp „{{zone}}“ huet {{count}} Elementer a ka iwwerlueden ausgesinn.",
+      "danglingAgentRef": "„{{name}}“ verweist op en Agent-Diagramm, dat net méi an dësem Projet ass; seng Tools a Fäegkeete goufen iwwersprong.",
+      "flatScaffold": "D'Komponentendiagramm huet keng Subsystemer, dofir goufen all d'Komponenten op een eenzegen Docker Host gesat. Setzt Subsystemer derbäi fir e méi räicht Layout.",
+      "ioUnresolvedIn": "De Floss vu „{{peer}}“ erreecht keng Aufgab vun dëser Bunn, dofir kritt keen Zoustand en.",
+      "ioUnresolvedOut": "De Floss op „{{peer}}“ fänkt bei kenger Aufgab vun dëser Bunn un, dofir schéckt keen Zoustand en.",
+      "mergeNoProducers": "De gesteierte Fusiouns-Gateway „{{gateway}}“ huet keen erakommende Floss, dofir huet säin Decisiounszoustand keen erakommenden Iwwergang. Setzt en mat der Hand derbäi.",
+      "mergeNoSuccessors": "De gesteierte Fusiouns-Gateway „{{gateway}}“ féiert op keng Aufgab vun dëser Bunn, dofir huet säin Decisiounszoustand keen erausgoenden Iwwergang. Setzt en mat der Hand derbäi."
     }
   }
 }

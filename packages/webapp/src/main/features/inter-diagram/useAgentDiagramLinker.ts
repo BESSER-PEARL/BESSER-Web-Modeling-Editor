@@ -18,6 +18,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { MAX_DIAGRAMS_PER_TYPE, isUMLModel } from '../../shared/types/project';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
+import { reportDerivationWarnings } from './derivation-warnings';
 import { laneToAgentModel } from './lane-to-agent';
 import type { AgentDerivationRefusalReason } from './types';
 
@@ -193,10 +194,12 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
           toast.error(t('interDiagram.linker.populateFailed'));
           return newDiagramId;
         }
-        if (derivation.warnings.length > 0) {
-          console.info('[agent-diagram-linker] derivation warnings:', derivation.warnings);
-          toast.warning(t('interDiagram.linker.derivedWithWarnings', { count: derivation.warnings.length }));
-        }
+        reportDerivationWarnings(
+          '[agent-diagram-linker]',
+          t('interDiagram.linker.derivedWithWarnings', { count: derivation.warnings.length }),
+          derivation.warnings,
+          t,
+        );
       }
 
       return newDiagramId;

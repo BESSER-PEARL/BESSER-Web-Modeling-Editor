@@ -21,7 +21,11 @@ import {
   normalizeAgentRuntimeConfig,
   type AgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
-import { useGenerateComponentDiagram, useGenerateDeploymentDiagram } from '../../features/inter-diagram';
+import {
+  reportDerivationWarnings,
+  useGenerateComponentDiagram,
+  useGenerateDeploymentDiagram,
+} from '../../features/inter-diagram';
 import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
@@ -632,8 +636,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         return;
       }
       if (r.warnings.length > 0) {
-        console.info('[inter-diagram] derivation warnings:', r.warnings);
-        toast.warning(t('interDiagram.derive.component.doneWithWarnings', { count: r.warnings.length }));
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.component.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
       } else {
         toast.success(t('interDiagram.derive.component.done'));
       }
@@ -660,10 +668,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         return;
       }
       if (r.warnings.length > 0) {
-        // The only warning kind is `flat-scaffold`: no Subsystems, so one
-        // placeholder host was created.
-        console.info('[inter-diagram] deployment derivation warnings:', r.warnings);
-        toast.warning(t('interDiagram.derive.deployment.flatScaffold'));
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.deployment.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
       } else {
         toast.success(t('interDiagram.derive.deployment.done'));
       }

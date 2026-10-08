@@ -3167,8 +3167,8 @@
       "openFailed": "Se creó el diagrama de agente, pero no se pudo abrir. Ábralo desde las pestañas de diagramas de agente.",
       "openExistingFailed": "No se pudo abrir el diagrama de agente.",
       "populateFailed": "Se creó el diagrama de agente, pero no se pudo rellenar a partir del carril.",
-      "derivedWithWarnings_one": "Diagrama de agente creado con {{count}} advertencia: consulte la consola del navegador.",
-      "derivedWithWarnings_other": "Diagrama de agente creado con {{count}} advertencias: consulte la consola del navegador.",
+      "derivedWithWarnings_one": "Diagrama de agente creado con {{count}} advertencia:",
+      "derivedWithWarnings_other": "Diagrama de agente creado con {{count}} advertencias:",
       "emptyAgent": {
         "noTasksInLane": "El carril aún no tiene tareas, así que el diagrama de agente empieza vacío.",
         "laneNotAgentic": "El carril no es agéntico, así que el diagrama de agente empieza vacío.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "Esta acción solo funciona en un diagrama BPMN.",
         "limitReached": "el proyecto ya tiene el número máximo de diagramas de componentes. Elimine uno antes de generar otro.",
         "done": "Diagrama de componentes generado.",
-        "doneWithWarnings_one": "Diagrama de componentes generado con {{count}} advertencia: consulte la consola del navegador.",
-        "doneWithWarnings_other": "Diagrama de componentes generado con {{count}} advertencias: consulte la consola del navegador."
+        "doneWithWarnings_one": "Diagrama de componentes generado con {{count}} advertencia:",
+        "doneWithWarnings_other": "Diagrama de componentes generado con {{count}} advertencias:"
       },
       "deployment": {
         "failed": "No se puede derivar el diagrama de despliegue: {{reason}}",
         "noComponents": "Añada primero al menos un componente a este diagrama de componentes.",
         "notComponentDiagram": "Esta acción solo funciona en un diagrama de componentes.",
         "limitReached": "el proyecto ya tiene el número máximo de diagramas de despliegue. Elimine uno antes de generar otro.",
-        "flatScaffold": "Se creó un nodo «Default Host» como marcador de posición: añada subsistemas al diagrama de componentes para un diseño más completo.",
-        "done": "Diagrama de despliegue generado."
+        "done": "Diagrama de despliegue generado.",
+        "doneWithWarnings_one": "Diagrama de despliegue generado con {{count}} advertencia:",
+        "doneWithWarnings_other": "Diagrama de despliegue generado con {{count}} advertencias:"
       }
+    },
+    "warnings": {
+      "more": "…y {{count}} más",
+      "unnamed": "(sin nombre)",
+      "droppedTask": "La tarea «{{task}}» está en el carril no agéntico «{{lane}}», por lo que no aparece en el diagrama de componentes.",
+      "capabilityHeavyAgent": "El agente «{{lane}}» usa {{count}} herramientas, habilidades y recursos, por lo que su parte del diagrama puede quedar recargada.",
+      "capabilityHeavyZone": "El grupo «{{zone}}» contiene {{count}} elementos y puede quedar recargado.",
+      "danglingAgentRef": "«{{name}}» enlaza un diagrama de agente que ya no está en este proyecto, por lo que se omitieron sus herramientas y habilidades.",
+      "flatScaffold": "El diagrama de componentes no tiene subsistemas, por lo que todos los componentes se colocaron en un único Docker Host. Añada subsistemas para un diseño más completo.",
+      "ioUnresolvedIn": "El flujo desde «{{peer}}» no llega a ninguna tarea de este carril, por lo que ningún estado lo recibe.",
+      "ioUnresolvedOut": "El flujo hacia «{{peer}}» no sale de ninguna tarea de este carril, por lo que ningún estado lo envía.",
+      "mergeNoProducers": "La compuerta de unión gobernada «{{gateway}}» no tiene ningún flujo de entrada, por lo que su estado de decisión no tiene transición de entrada. Añádala a mano.",
+      "mergeNoSuccessors": "La compuerta de unión gobernada «{{gateway}}» no lleva a ninguna tarea de este carril, por lo que su estado de decisión no tiene transición de salida. Añádala a mano."
     }
   }
 }

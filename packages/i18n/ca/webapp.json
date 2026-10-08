@@ -3167,8 +3167,8 @@
       "openFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut obrir. Obriu-lo des de les pestanyes dels diagrames d'agent.",
       "openExistingFailed": "No s'ha pogut obrir el diagrama d'agent.",
       "populateFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut omplir a partir del carril.",
-      "derivedWithWarnings_one": "Diagrama d'agent creat amb {{count}} avís: vegeu la consola del navegador.",
-      "derivedWithWarnings_other": "Diagrama d'agent creat amb {{count}} avisos: vegeu la consola del navegador.",
+      "derivedWithWarnings_one": "Diagrama d'agent creat amb {{count}} avís:",
+      "derivedWithWarnings_other": "Diagrama d'agent creat amb {{count}} avisos:",
       "emptyAgent": {
         "noTasksInLane": "El carril encara no té tasques, de manera que el diagrama d'agent comença buit.",
         "laneNotAgentic": "El carril no és agèntic, de manera que el diagrama d'agent comença buit.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "Aquesta acció només funciona en un diagrama BPMN.",
         "limitReached": "el projecte ja té el nombre màxim de diagrames de components. Suprimiu-ne un abans de generar-ne un de nou.",
         "done": "S'ha generat el diagrama de components.",
-        "doneWithWarnings_one": "S'ha generat el diagrama de components amb {{count}} avís: vegeu la consola del navegador.",
-        "doneWithWarnings_other": "S'ha generat el diagrama de components amb {{count}} avisos: vegeu la consola del navegador."
+        "doneWithWarnings_one": "S'ha generat el diagrama de components amb {{count}} avís:",
+        "doneWithWarnings_other": "S'ha generat el diagrama de components amb {{count}} avisos:"
       },
       "deployment": {
         "failed": "No es pot derivar el diagrama de desplegament: {{reason}}",
         "noComponents": "Afegiu primer almenys un component a aquest diagrama de components.",
         "notComponentDiagram": "Aquesta acció només funciona en un diagrama de components.",
         "limitReached": "el projecte ja té el nombre màxim de diagrames de desplegament. Suprimiu-ne un abans de generar-ne un de nou.",
-        "flatScaffold": "S'ha creat un node «Default Host» com a marcador de posició: afegiu subsistemes al diagrama de components per a una disposició més completa.",
-        "done": "S'ha generat el diagrama de desplegament."
+        "done": "S'ha generat el diagrama de desplegament.",
+        "doneWithWarnings_one": "S'ha generat el diagrama de desplegament amb {{count}} avís:",
+        "doneWithWarnings_other": "S'ha generat el diagrama de desplegament amb {{count}} avisos:"
       }
+    },
+    "warnings": {
+      "more": "…i {{count}} més",
+      "unnamed": "(sense nom)",
+      "droppedTask": "La tasca «{{task}}» és al carril no agèntic «{{lane}}», per això no es mostra al diagrama de components.",
+      "capabilityHeavyAgent": "L'agent «{{lane}}» utilitza {{count}} eines, habilitats i recursos, per això la seva part del diagrama pot quedar atapeïda.",
+      "capabilityHeavyZone": "El grup «{{zone}}» conté {{count}} elements i pot quedar atapeït.",
+      "danglingAgentRef": "«{{name}}» enllaça un diagrama d'agent que ja no és en aquest projecte, per això s'han omès les seves eines i habilitats.",
+      "flatScaffold": "El diagrama de components no té subsistemes, per això tots els components s'han col·locat en un sol Docker Host. Afegiu subsistemes per a una disposició més completa.",
+      "ioUnresolvedIn": "El flux des de «{{peer}}» no arriba a cap tasca d'aquest carril, per això cap estat el rep.",
+      "ioUnresolvedOut": "El flux cap a «{{peer}}» no surt de cap tasca d'aquest carril, per això cap estat l'envia.",
+      "mergeNoProducers": "La porta d'unió governada «{{gateway}}» no té cap flux d'entrada, per això el seu estat de decisió no té cap transició d'entrada. Afegiu-ne una manualment.",
+      "mergeNoSuccessors": "La porta d'unió governada «{{gateway}}» no porta a cap tasca d'aquest carril, per això el seu estat de decisió no té cap transició de sortida. Afegiu-ne una manualment."
     }
   }
 }

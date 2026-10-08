@@ -3167,8 +3167,8 @@
       "openFailed": "The Agent diagram was created, but it could not be opened. Open it from the Agent diagram tabs.",
       "openExistingFailed": "Could not open the Agent diagram.",
       "populateFailed": "The Agent diagram was created, but filling it from the lane failed.",
-      "derivedWithWarnings_one": "Agent diagram created with {{count}} warning — see the browser console.",
-      "derivedWithWarnings_other": "Agent diagram created with {{count}} warnings — see the browser console.",
+      "derivedWithWarnings_one": "Agent diagram created with {{count}} warning:",
+      "derivedWithWarnings_other": "Agent diagram created with {{count}} warnings:",
       "emptyAgent": {
         "noTasksInLane": "The lane has no tasks yet, so the Agent diagram starts empty.",
         "laneNotAgentic": "The lane is not agentic, so the Agent diagram starts empty.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "This action only works on a BPMN diagram.",
         "limitReached": "the project already has the maximum number of Component diagrams. Delete one before generating a new one.",
         "done": "Component diagram generated.",
-        "doneWithWarnings_one": "Component diagram generated with {{count}} warning — see the browser console.",
-        "doneWithWarnings_other": "Component diagram generated with {{count}} warnings — see the browser console."
+        "doneWithWarnings_one": "Component diagram generated with {{count}} warning:",
+        "doneWithWarnings_other": "Component diagram generated with {{count}} warnings:"
       },
       "deployment": {
         "failed": "Cannot derive the Deployment diagram: {{reason}}",
         "noComponents": "Add at least one Component to this Component diagram first.",
         "notComponentDiagram": "This action only works on a Component diagram.",
         "limitReached": "the project already has the maximum number of Deployment diagrams. Delete one before generating a new one.",
-        "flatScaffold": "A Default Host node was created as a placeholder — add Subsystems to the Component diagram for a richer layout.",
-        "done": "Deployment diagram generated."
+        "done": "Deployment diagram generated.",
+        "doneWithWarnings_one": "Deployment diagram generated with {{count}} warning:",
+        "doneWithWarnings_other": "Deployment diagram generated with {{count}} warnings:"
       }
+    },
+    "warnings": {
+      "more": "…and {{count}} more",
+      "unnamed": "(unnamed)",
+      "droppedTask": "Task “{{task}}” is in the non-agentic lane “{{lane}}”, so it is not shown in the Component diagram.",
+      "capabilityHeavyAgent": "Agent “{{lane}}” uses {{count}} tools, skills and resources, so its part of the diagram may be crowded.",
+      "capabilityHeavyZone": "The “{{zone}}” group holds {{count}} items and may be crowded.",
+      "danglingAgentRef": "“{{name}}” links an Agent diagram that is no longer in this project, so its tools and skills were skipped.",
+      "flatScaffold": "The Component diagram has no Subsystems, so every component was placed on one Docker Host. Add Subsystems for a richer layout.",
+      "ioUnresolvedIn": "The flow from “{{peer}}” does not reach a task in this lane, so no state receives it.",
+      "ioUnresolvedOut": "The flow to “{{peer}}” does not start at a task in this lane, so no state sends it.",
+      "mergeNoProducers": "The governed merge gateway “{{gateway}}” has no incoming flow, so its decision state has no inbound transition. Add one by hand.",
+      "mergeNoSuccessors": "The governed merge gateway “{{gateway}}” leads to no task in this lane, so its decision state has no outgoing transition. Add one by hand."
     }
   }
 }

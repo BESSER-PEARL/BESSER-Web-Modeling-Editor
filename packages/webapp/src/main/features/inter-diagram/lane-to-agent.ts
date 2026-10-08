@@ -500,7 +500,7 @@ function appendCrossLaneIO(
       const peerName = externalName(bpmn, f.source.element);
       const consuming = inLaneTasks(bpmn, laneId, taskIds, f.target.element, 'forward');
       if (consuming.length === 0) {
-        warnings.push({ kind: 'io-attached-to-entry', flowId: f.id });
+        warnings.push({ kind: 'io-attached-to-entry', flowId: f.id, direction: 'in', peerName });
         continue; // unresolved agentic input: the cold start covers the entry
       }
       const kind = resolveEdgeKind(peerLane, lane);
@@ -527,12 +527,12 @@ function appendCrossLaneIO(
       const producing = inLaneTasks(bpmn, laneId, taskIds, f.source.element, 'backward');
       // A self-reflective task sends from its <task>_reflect state.
       const states = producing.map((t) => outboundCarrierStateIdByTask.get(t) || stateIdByTask.get(t)!);
-      if (states.length === 0) {
-        warnings.push({ kind: 'io-attached-to-entry', flowId: f.id });
-        continue;
-      }
       const peerLane = externalLaneElement(bpmn, f.target.element);
       const peerName = externalName(bpmn, f.target.element);
+      if (states.length === 0) {
+        warnings.push({ kind: 'io-attached-to-entry', flowId: f.id, direction: 'out', peerName });
+        continue;
+      }
       // A non-agentic sink is a plain channel without a kind.
       const kind = peerLane && peerLane.isAgentic === true ? resolveEdgeKind(lane, peerLane) : undefined;
       for (const sId of states) {
@@ -683,7 +683,7 @@ function appendGovernedMergeStates(
       producerCount++;
       boundViaA2aIn = true;
     }
-    if (producerCount === 0) warnings.push({ kind: 'merge-no-producers', gatewayId: g.id });
+    if (producerCount === 0) warnings.push({ kind: 'merge-no-producers', gatewayId: g.id, gatewayName: g.name ?? '' });
 
     if (!boundViaA2aIn) {
       const selfPeer = lane.name || 'self';
@@ -706,7 +706,9 @@ function appendGovernedMergeStates(
         successorCount++;
       }
     }
-    if (successorCount === 0) warnings.push({ kind: 'merge-no-successors', gatewayId: g.id });
+    if (successorCount === 0) {
+      warnings.push({ kind: 'merge-no-successors', gatewayId: g.id, gatewayName: g.name ?? '' });
+    }
   });
 }
 

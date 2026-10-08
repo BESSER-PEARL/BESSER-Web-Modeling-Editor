@@ -3167,8 +3167,8 @@
       "openFailed": "Das Agent-Diagramm wurde erstellt, konnte aber nicht geöffnet werden. Öffnen Sie es über die Tabs der Agent-Diagramme.",
       "openExistingFailed": "Das Agent-Diagramm konnte nicht geöffnet werden.",
       "populateFailed": "Das Agent-Diagramm wurde erstellt, aber das Befüllen aus der Bahn ist fehlgeschlagen.",
-      "derivedWithWarnings_one": "Agent-Diagramm mit {{count}} Warnung erstellt – siehe Browser-Konsole.",
-      "derivedWithWarnings_other": "Agent-Diagramm mit {{count}} Warnungen erstellt – siehe Browser-Konsole.",
+      "derivedWithWarnings_one": "Agent-Diagramm mit {{count}} Warnung erstellt:",
+      "derivedWithWarnings_other": "Agent-Diagramm mit {{count}} Warnungen erstellt:",
       "emptyAgent": {
         "noTasksInLane": "Die Bahn hat noch keine Aufgaben, daher beginnt das Agent-Diagramm leer.",
         "laneNotAgentic": "Die Bahn ist nicht agentisch, daher beginnt das Agent-Diagramm leer.",
@@ -3183,17 +3183,31 @@
         "notBpmn": "Diese Aktion funktioniert nur in einem BPMN-Diagramm.",
         "limitReached": "Das Projekt hat bereits die maximale Anzahl an Komponentendiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
         "done": "Komponentendiagramm generiert.",
-        "doneWithWarnings_one": "Komponentendiagramm mit {{count}} Warnung generiert – siehe Browser-Konsole.",
-        "doneWithWarnings_other": "Komponentendiagramm mit {{count}} Warnungen generiert – siehe Browser-Konsole."
+        "doneWithWarnings_one": "Komponentendiagramm mit {{count}} Warnung generiert:",
+        "doneWithWarnings_other": "Komponentendiagramm mit {{count}} Warnungen generiert:"
       },
       "deployment": {
         "failed": "Das Bereitstellungsdiagramm kann nicht abgeleitet werden: {{reason}}",
         "noComponents": "Fügen Sie diesem Komponentendiagramm zuerst mindestens eine Komponente hinzu.",
         "notComponentDiagram": "Diese Aktion funktioniert nur in einem Komponentendiagramm.",
         "limitReached": "Das Projekt hat bereits die maximale Anzahl an Bereitstellungsdiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
-        "flatScaffold": "Ein Knoten „Default Host“ wurde als Platzhalter erstellt – fügen Sie dem Komponentendiagramm Subsysteme für ein detaillierteres Layout hinzu.",
-        "done": "Bereitstellungsdiagramm generiert."
+        "done": "Bereitstellungsdiagramm generiert.",
+        "doneWithWarnings_one": "Bereitstellungsdiagramm mit {{count}} Warnung generiert:",
+        "doneWithWarnings_other": "Bereitstellungsdiagramm mit {{count}} Warnungen generiert:"
       }
+    },
+    "warnings": {
+      "more": "…und {{count}} weitere",
+      "unnamed": "(unbenannt)",
+      "droppedTask": "Die Aufgabe „{{task}}“ liegt in der nicht agentischen Bahn „{{lane}}“ und erscheint daher nicht im Komponentendiagramm.",
+      "capabilityHeavyAgent": "Der Agent „{{lane}}“ nutzt {{count}} Werkzeuge, Fähigkeiten und Ressourcen; sein Teil des Diagramms kann daher unübersichtlich werden.",
+      "capabilityHeavyZone": "Die Gruppe „{{zone}}“ enthält {{count}} Elemente und kann unübersichtlich werden.",
+      "danglingAgentRef": "„{{name}}“ verweist auf ein Agent-Diagramm, das nicht mehr in diesem Projekt ist; seine Werkzeuge und Fähigkeiten wurden übersprungen.",
+      "flatScaffold": "Das Komponentendiagramm hat keine Subsysteme, daher liegen alle Komponenten auf einem Docker Host. Fügen Sie Subsysteme für ein detaillierteres Layout hinzu.",
+      "ioUnresolvedIn": "Der Fluss von „{{peer}}“ erreicht keine Aufgabe dieser Bahn, daher empfängt ihn kein Zustand.",
+      "ioUnresolvedOut": "Der Fluss zu „{{peer}}“ beginnt bei keiner Aufgabe dieser Bahn, daher sendet ihn kein Zustand.",
+      "mergeNoProducers": "Das gesteuerte Zusammenführungs-Gateway „{{gateway}}“ hat keinen eingehenden Fluss, daher hat sein Entscheidungszustand keinen eingehenden Übergang. Fügen Sie ihn von Hand hinzu.",
+      "mergeNoSuccessors": "Das gesteuerte Zusammenführungs-Gateway „{{gateway}}“ führt zu keiner Aufgabe dieser Bahn, daher hat sein Entscheidungszustand keinen ausgehenden Übergang. Fügen Sie ihn von Hand hinzu."
     }
   }
 }

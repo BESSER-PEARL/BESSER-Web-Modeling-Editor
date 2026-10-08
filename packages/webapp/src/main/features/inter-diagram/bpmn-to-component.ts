@@ -99,7 +99,12 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
     for (const lane of lanes) {
       if (lane.isAgentic === true) continue;
       for (const t of tasksInLane(bpmn, lane.id)) {
-        warnings.push({ kind: 'dropped-task-in-non-agentic-lane', taskId: t.id });
+        warnings.push({
+          kind: 'dropped-task-in-non-agentic-lane',
+          taskId: t.id,
+          taskName: t.name ?? '',
+          laneName: lane.name ?? '',
+        });
       }
     }
     // A pool with no agentic lane is not part of the swarm view — emit no
@@ -547,7 +552,7 @@ function collectLaneCapabilities(
     }
   }
   if (seen.size > CAPABILITY_WARN_THRESHOLD) {
-    warnings.push({ kind: 'capability-heavy-agent', laneId: lane.id, count: seen.size });
+    warnings.push({ kind: 'capability-heavy-agent', laneId: lane.id, laneName: lane.name ?? '', count: seen.size });
   }
 }
 
