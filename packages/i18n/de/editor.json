@@ -433,7 +433,8 @@
       "BPMNGovPolicyLeaderDriven": "Von einer Führungskraft geleitet",
       "BPMNGovPolicyConsensus": "Konsens",
       "BPMNGatewayRoleDiverging": "Verzweigend",
-      "BPMNGatewayRoleMerging": "Zusammenführend"
+      "BPMNGatewayRoleMerging": "Zusammenführend",
+      "BPMNDefaultAgentTitle": "Agent"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",

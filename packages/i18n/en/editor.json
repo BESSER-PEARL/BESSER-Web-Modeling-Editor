@@ -433,7 +433,8 @@
       "BPMNGovPolicyLeaderDriven": "Leader-driven",
       "BPMNGovPolicyConsensus": "Consensus",
       "BPMNGatewayRoleDiverging": "Diverging",
-      "BPMNGatewayRoleMerging": "Merging"
+      "BPMNGatewayRoleMerging": "Merging",
+      "BPMNDefaultAgentTitle": "Agent"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

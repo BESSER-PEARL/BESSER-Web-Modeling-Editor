@@ -3142,5 +3142,25 @@
     "network": {
       "unreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Impossible de définir un agent : le diagramme BPMN n'est pas actif.",
+      "noProject": "Aucun projet n'est ouvert.",
+      "limitReached": "Impossible d'ajouter d'autres diagrammes d'agent (max. {{max}} par projet). Supprimez d'abord un diagramme d'agent existant.",
+      "flushFailed": "Impossible d'enregistrer le diagramme BPMN avant de définir l'agent. Veuillez réessayer.",
+      "createFailed": "Échec de la création du diagramme d'agent. Veuillez réessayer.",
+      "linkNotSaved": "Le diagramme d'agent a été créé, mais le lien n'a pas pu être enregistré sur l'élément BPMN.",
+      "openFailed": "Le diagramme d'agent a été créé, mais n'a pas pu être ouvert. Ouvrez-le depuis les onglets des diagrammes d'agent.",
+      "openExistingFailed": "Impossible d'ouvrir le diagramme d'agent.",
+      "populateFailed": "Le diagramme d'agent a été créé, mais son remplissage à partir du couloir a échoué.",
+      "derivedWithWarnings_one": "Diagramme d'agent créé avec {{count}} avertissement — voir la console du navigateur.",
+      "derivedWithWarnings_other": "Diagramme d'agent créé avec {{count}} avertissements — voir la console du navigateur.",
+      "emptyAgent": {
+        "noTasksInLane": "Le couloir n'a pas encore de tâches ; le diagramme d'agent commence donc vide.",
+        "laneNotAgentic": "Le couloir n'est pas agentique ; le diagramme d'agent commence donc vide.",
+        "laneNotFound": "Le couloir n'a pas pu être lu ; le diagramme d'agent commence donc vide."
+      }
+    }
   }
 }

@@ -3144,5 +3144,25 @@
     "network": {
       "unreachable": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann nicht definiert werden: Das BPMN-Diagramm ist nicht aktiv.",
+      "noProject": "Es ist kein Projekt geöffnet.",
+      "limitReached": "Es können keine weiteren Agent-Diagramme hinzugefügt werden (max. {{max}} pro Projekt). Löschen Sie zuerst ein vorhandenes Agent-Diagramm.",
+      "flushFailed": "Das BPMN-Diagramm konnte vor dem Definieren des Agenten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "createFailed": "Das Agent-Diagramm konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "linkNotSaved": "Das Agent-Diagramm wurde erstellt, aber die Verknüpfung konnte nicht am BPMN-Element gespeichert werden.",
+      "openFailed": "Das Agent-Diagramm wurde erstellt, konnte aber nicht geöffnet werden. Öffnen Sie es über die Tabs der Agent-Diagramme.",
+      "openExistingFailed": "Das Agent-Diagramm konnte nicht geöffnet werden.",
+      "populateFailed": "Das Agent-Diagramm wurde erstellt, aber das Befüllen aus der Bahn ist fehlgeschlagen.",
+      "derivedWithWarnings_one": "Agent-Diagramm mit {{count}} Warnung erstellt – siehe Browser-Konsole.",
+      "derivedWithWarnings_other": "Agent-Diagramm mit {{count}} Warnungen erstellt – siehe Browser-Konsole.",
+      "emptyAgent": {
+        "noTasksInLane": "Die Bahn hat noch keine Aufgaben, daher beginnt das Agent-Diagramm leer.",
+        "laneNotAgentic": "Die Bahn ist nicht agentisch, daher beginnt das Agent-Diagramm leer.",
+        "laneNotFound": "Die Bahn konnte nicht gelesen werden, daher beginnt das Agent-Diagramm leer."
+      }
+    }
   }
 }

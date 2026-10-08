@@ -3142,5 +3142,25 @@
     "network": {
       "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann net definéiert ginn: D'BPMN-Diagramm ass net aktiv.",
+      "noProject": "Et ass kee Projet op.",
+      "limitReached": "Et kënne keng weider Agent-Diagrammer derbäigesat ginn (max. {{max}} pro Projet). Läscht als éischt en existent Agent-Diagramm.",
+      "flushFailed": "D'BPMN-Diagramm konnt net gespäichert ginn, ier den Agent definéiert gouf. Probéiert w.e.g. nach eng Kéier.",
+      "createFailed": "D'Agent-Diagramm konnt net erstallt ginn. Probéiert w.e.g. nach eng Kéier.",
+      "linkNotSaved": "D'Agent-Diagramm gouf erstallt, mee de Link konnt net um BPMN-Element gespäichert ginn.",
+      "openFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net opgemaach ginn. Maacht et iwwer d'Tabs vun den Agent-Diagrammer op.",
+      "openExistingFailed": "D'Agent-Diagramm konnt net opgemaach ginn.",
+      "populateFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net aus der Bunn gefëllt ginn.",
+      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt – kuckt d'Browser-Konsol.",
+      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt – kuckt d'Browser-Konsol.",
+      "emptyAgent": {
+        "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotFound": "D'Bunn konnt net gelies ginn, dofir fänkt d'Agent-Diagramm eidel un."
+      }
+    }
   }
 }

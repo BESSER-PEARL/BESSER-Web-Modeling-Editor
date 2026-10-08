@@ -3144,5 +3144,25 @@
     "network": {
       "unreachable": "Couldn’t reach the server. Check your connection and try again."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Cannot define an agent: the BPMN diagram is not active.",
+      "noProject": "No project is open.",
+      "limitReached": "Cannot add more Agent diagrams (max {{max}} per project). Delete an existing Agent diagram first.",
+      "flushFailed": "Could not save the BPMN diagram before defining the agent. Please try again.",
+      "createFailed": "Failed to create the Agent diagram. Please try again.",
+      "linkNotSaved": "The Agent diagram was created, but the link could not be saved on the BPMN element.",
+      "openFailed": "The Agent diagram was created, but it could not be opened. Open it from the Agent diagram tabs.",
+      "openExistingFailed": "Could not open the Agent diagram.",
+      "populateFailed": "The Agent diagram was created, but filling it from the lane failed.",
+      "derivedWithWarnings_one": "Agent diagram created with {{count}} warning — see the browser console.",
+      "derivedWithWarnings_other": "Agent diagram created with {{count}} warnings — see the browser console.",
+      "emptyAgent": {
+        "noTasksInLane": "The lane has no tasks yet, so the Agent diagram starts empty.",
+        "laneNotAgentic": "The lane is not agentic, so the Agent diagram starts empty.",
+        "laneNotFound": "The lane could not be read, so the Agent diagram starts empty."
+      }
+    }
   }
 }

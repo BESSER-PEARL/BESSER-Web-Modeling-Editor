@@ -3142,5 +3142,25 @@
     "network": {
       "unreachable": "No s’ha pogut connectar amb el servidor. Comprova la connexió i torna-ho a provar."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "No es pot definir un agent: el diagrama BPMN no està actiu.",
+      "noProject": "No hi ha cap projecte obert.",
+      "limitReached": "No es poden afegir més diagrames d'agent (màx. {{max}} per projecte). Suprimiu primer un diagrama d'agent existent.",
+      "flushFailed": "No s'ha pogut desar el diagrama BPMN abans de definir l'agent. Torneu-ho a provar.",
+      "createFailed": "No s'ha pogut crear el diagrama d'agent. Torneu-ho a provar.",
+      "linkNotSaved": "S'ha creat el diagrama d'agent, però no s'ha pogut desar l'enllaç a l'element BPMN.",
+      "openFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut obrir. Obriu-lo des de les pestanyes dels diagrames d'agent.",
+      "openExistingFailed": "No s'ha pogut obrir el diagrama d'agent.",
+      "populateFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut omplir a partir del carril.",
+      "derivedWithWarnings_one": "Diagrama d'agent creat amb {{count}} avís: vegeu la consola del navegador.",
+      "derivedWithWarnings_other": "Diagrama d'agent creat amb {{count}} avisos: vegeu la consola del navegador.",
+      "emptyAgent": {
+        "noTasksInLane": "El carril encara no té tasques, de manera que el diagrama d'agent comença buit.",
+        "laneNotAgentic": "El carril no és agèntic, de manera que el diagrama d'agent comença buit.",
+        "laneNotFound": "No s'ha pogut llegir el carril, de manera que el diagrama d'agent comença buit."
+      }
+    }
   }
 }

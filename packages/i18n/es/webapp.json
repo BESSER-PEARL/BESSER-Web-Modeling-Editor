@@ -3142,5 +3142,25 @@
     "network": {
       "unreachable": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo."
     }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "No se puede definir un agente: el diagrama BPMN no está activo.",
+      "noProject": "No hay ningún proyecto abierto.",
+      "limitReached": "No se pueden añadir más diagramas de agente (máx. {{max}} por proyecto). Elimine primero un diagrama de agente existente.",
+      "flushFailed": "No se pudo guardar el diagrama BPMN antes de definir el agente. Inténtelo de nuevo.",
+      "createFailed": "No se pudo crear el diagrama de agente. Inténtelo de nuevo.",
+      "linkNotSaved": "Se creó el diagrama de agente, pero no se pudo guardar el vínculo en el elemento BPMN.",
+      "openFailed": "Se creó el diagrama de agente, pero no se pudo abrir. Ábralo desde las pestañas de diagramas de agente.",
+      "openExistingFailed": "No se pudo abrir el diagrama de agente.",
+      "populateFailed": "Se creó el diagrama de agente, pero no se pudo rellenar a partir del carril.",
+      "derivedWithWarnings_one": "Diagrama de agente creado con {{count}} advertencia: consulte la consola del navegador.",
+      "derivedWithWarnings_other": "Diagrama de agente creado con {{count}} advertencias: consulte la consola del navegador.",
+      "emptyAgent": {
+        "noTasksInLane": "El carril aún no tiene tareas, así que el diagrama de agente empieza vacío.",
+        "laneNotAgentic": "El carril no es agéntico, así que el diagrama de agente empieza vacío.",
+        "laneNotFound": "No se pudo leer el carril, así que el diagrama de agente empieza vacío."
+      }
+    }
   }
 }
