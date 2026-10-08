@@ -46,7 +46,8 @@
         "slice": "Slice",
         "startPlaceholder": "Start",
         "stopPlaceholder": "Enn",
-        "stepPlaceholder": "Schrëtt"
+        "stepPlaceholder": "Schrëtt",
+        "reverted": "Op {{value}} zréckgesat."
       },
       "help": {
         "split_sizes": "Entweder eng ganz Zuel (Unzuel vu gläich groussen Deeler, z. B. 3) oder eng Lëscht (Gréisst pro Deel, z. B. [2,3,5])",
@@ -163,7 +164,9 @@
         "anyGuiInteraction": "Iergendeng GUI-Interaktioun",
         "event": "Evenement",
         "conditions": "Bedingungen",
-        "addCondition": "Bedingung dobäisetzen"
+        "addCondition": "Bedingung dobäisetzen",
+        "missingIntentTag": "feelt",
+        "missingIntent": "Den Intent \"{{name}}\" gëtt et net. Wielt en Intent oder setzt en op der Säit Komponenten derbäi."
       },
       "intent": {
         "name": "Intent-Numm",
@@ -237,7 +240,14 @@
       "paramTypePlaceholder": "Typ",
       "addParameterPlaceholder": "+ Parameter dobäisetzen (Numm: Typ, Enter)",
       "balBodyPlaceholder": "BAL-Methodekierper…",
-      "pythonBodyPlaceholder": "Python-Methodekierper…"
+      "pythonBodyPlaceholder": "Python-Methodekierper…",
+      "name": "Numm vun der Method",
+      "customReturnType": "Eegene Retourtyp",
+      "paramName": "Numm vum Parameter",
+      "paramType": "Typ vum Parameter",
+      "deleteParameter": "Parameter läschen",
+      "addParameter": "Parameter derbäisetzen",
+      "implementationType": "Implementatioun"
     },
     "classifier": {
       "createMethodWithCode": "Methode mat Code-Verhalen erstellen",
@@ -247,7 +257,8 @@
       "newLiteralPlaceholder": "Literal",
       "newAttributePlaceholder": "+ Attribut: str",
       "addAttributePlaceholder": "+ Attribut dobäisetzen",
-      "addMethodPlaceholder": "+ Method dobäisetzen"
+      "addMethodPlaceholder": "+ Method dobäisetzen",
+      "newMethodPlaceholder": "+ method(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "Literalnumm",
@@ -261,7 +272,12 @@
       "deleteAttribute": "Attribut läschen",
       "customTypePlaceholder": "personaliséierten Typ (fräien Text)",
       "defaultValue": "Standardwäert",
-      "defaultValueOptionalPlaceholder": "Standardwäert (optional)"
+      "defaultValueOptionalPlaceholder": "Standardwäert (optional)",
+      "visibility": "Visibilitéit",
+      "literalName": "Numm vum Literal",
+      "name": "Numm vum Attribut",
+      "customType": "Eegenen Typ",
+      "type": "Typ vum Attribut"
     },
     "associationNamePlaceholder": "Numm vun der Associatioun",
     "literals": "Literaler",
@@ -286,7 +302,11 @@
       "addMethod": "Method dobäisetzen",
       "addLiteralInputPlaceholder": "+ Literal dobäisetzen (Enter fir en automateschen Numm)",
       "addAttributeInputPlaceholder": "+ Attribut dobäisetzen (Enter fir en automateschen Numm)",
-      "addMethodInputPlaceholder": "+ Method dobäisetzen (Enter)"
+      "addMethodInputPlaceholder": "+ Method dobäisetzen (Enter)",
+      "icon": "Symbol",
+      "stereotype": "Stereotyp",
+      "enumerationRelationshipsWarning": "Eng Enumeratioun kann keng Bezéiungen hunn; aner Klassen benotzen se als Attributtyp. Beim Ëmwandelen ginn {{count}} Bezéiung(en) ewechgeholl.",
+      "enumerationConvertConfirm": "Ewechhuelen an ëmwandelen"
     },
     "object": {
       "colorResetHint": "{{label}} (Rietsklick fir zeréckzesetzen)",
@@ -299,7 +319,10 @@
       "addAttributePlaceholder": "+ Attribut dobäisetzen (Enter)",
       "noAssociationsHint": "Keng Associatiounen disponibel — verbannt als éischt d'Quell- / Zilobjeten mat Klassen.",
       "classLabel": "Klass",
-      "unlinked": "— Net verlinkt —"
+      "unlinked": "— Net verlinkt —",
+      "slotName": "Numm vum Attribut",
+      "objectName": "Numm vum Objet",
+      "addAttribute": "Attribut derbäisetzen"
     },
     "user": {
       "rowStyle": "Zeilestil",
@@ -310,7 +333,8 @@
       "metadata": "Metadaten",
       "operator": "Operator",
       "defaultValue": "Standardwäert",
-      "defaultValueQuoted": "Standardwäert (gëtt an Ufroungszeechen gesat: \"…\")"
+      "defaultValueQuoted": "Standardwäert (gëtt an Ufroungszeechen gesat: \"…\")",
+      "view": "Op der Aarbechtsfläch weise als"
     },
     "communication": {
       "direction": "Richtung: {{direction}}",
@@ -356,7 +380,8 @@
       "class": "Klass",
       "unlinked": "— Net verlinkt —",
       "eventHandlerPlaceholder": "Numm vun der Event-Handler-Funktioun",
-      "removeParameter": "Parameter {{index}} ewechhuelen"
+      "removeParameter": "Parameter {{index}} ewechhuelen",
+      "codeBlockName": "Funktiounsnumm (eidel = aus def)"
     },
     "useCase": {
       "optionalAssociationLabel": "Optional Bezeechnung fir d'Associatioun"
@@ -382,7 +407,10 @@
       "actions": "Aktiounen",
       "idPlaceholder": "ID",
       "addActionName": "+ Numm vun der Aktioun dobäisetzen"
-    }
+    },
+    "multiplicityInvalidER": "Benotzt (min,max), z. B. (0,1), (1,N) – oder 1, 0..1, 1..*",
+    "multiplicityInvalid": "Benotzt z. B. 1, 0..1, *, 1..* oder 2..5",
+    "associationNameHiddenHint": "Op der Aarbechtsfläch verstoppt. Aktivéiert „Associatiounsnimm weisen“ an den Astellungen."
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -934,7 +962,8 @@
     "label": "Bezeechnung",
     "value": "Wäert",
     "dragToReorder": "Zéien, fir d'Reiefolleg z'änneren",
-    "addLowercase": "dobäisetzen"
+    "addLowercase": "dobäisetzen",
+    "back": "Zréck"
   },
   "stylePane": {
     "enterUri": "URI aginn…",
@@ -1018,9 +1047,25 @@
   "zoomPane": {
     "zoomIn": "Vergréisseren",
     "zoomOut": "Verklengeren",
-    "autoLayout": "Automatesche Layout"
+    "autoLayout": "Automatesche Layout",
+    "fitView": "Usiicht upassen"
   },
   "sidebar": {
     "resize": "Palette upassen"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Enumeratioune kënnen net verbonne ginn; benotzt se amplaz als Attributtypen.",
+      "objectNoAssociation": "D'Klasse vun dësen Objeten hunn am Klassendiagramm keng Associatioun.",
+      "nnEndpoint": "Datesätz a Konfiguratioune ginn nëmme mat engem NN-Container verbonnen.",
+      "nnConfigurationTaken": "Dëse NN-Container huet schonn eng Konfiguratioun.",
+      "bpmnCrossPool": "Sequenzflëss kënne keng Poole kräizen, an dëst Element ka keng Noriichtenflëss schécken.",
+      "bpmnIllegalFlow": "BPMN erlaabt kee Floss tëscht dësen Elementer.",
+      "bpmnMessageSamePool": "Endevenementer kënne kee Floss ufänken a Startevenementer keen empfänken; Noriichtenflëss verbannen nëmmen ënnerschiddlech Poolen.",
+      "stateCodeBlock": "Codeblocke ginn net verbonnen; verweist mam Numm op si aus engem Zoustandskierper oder enger Transitioun.",
+      "stateFinalOutgoing": "En Endzoustand schléisst den Zoustandsautomat of; keng Transitioun verléisst en.",
+      "stateInitialIncoming": "Den Ufankszoustand start nëmmen den Zoustandsautomat; keng Transitioun féiert dran.",
+      "generic": "Dës Elementer kënnen net verbonne ginn."
+    }
   }
 }

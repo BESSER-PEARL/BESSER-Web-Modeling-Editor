@@ -839,7 +839,8 @@
       "springAppNameInvalid": "Application name must be a valid Java class name.",
       "springPackageNameInvalid": "Package name must be a valid Java package, e.g. com.example.",
       "openUmlBeforeDeploy": "Open a UML diagram before deploying.",
-      "noValidPersonalizationMappings": "No valid personalization mappings found. Create mappings and save personalized variants first."
+      "noValidPersonalizationMappings": "No valid personalization mappings found. Create mappings and save personalized variants first.",
+      "qualityCheckUnavailable": "Quality check is not available for this editor yet."
     },
     "context": {
       "djangoGeneration": "Django generation",
@@ -2061,6 +2062,10 @@
       "offlineMessage": "You are offline. Some features may not work.",
       "backOnline": "Back online.",
       "dismiss": "Dismiss offline warning"
+    },
+    "storage": {
+      "saveFailedFull": "Browser storage is full, so your changes could not be saved. Export your projects and delete the ones you no longer need.",
+      "nearlyFull": "Browser storage is {{percent}}% full. Export your projects and delete the ones you no longer need to avoid losing changes."
     }
   },
   "shell": {

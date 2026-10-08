@@ -46,7 +46,8 @@
         "slice": "slice",
         "startPlaceholder": "start",
         "stopPlaceholder": "stop",
-        "stepPlaceholder": "step"
+        "stepPlaceholder": "step",
+        "reverted": "Reverted to {{value}}."
       },
       "help": {
         "split_sizes": "Either int (number of equal chunks, e.g. 3) or list (size per chunk, e.g. [2,3,5])",
@@ -163,7 +164,9 @@
         "anyGuiInteraction": "Any GUI interaction",
         "event": "Event",
         "conditions": "Conditions",
-        "addCondition": "Add condition"
+        "addCondition": "Add condition",
+        "missingIntentTag": "missing",
+        "missingIntent": "Intent \"{{name}}\" does not exist. Pick an intent or add it on the Components page."
       },
       "intent": {
         "name": "Intent Name",
@@ -237,7 +240,14 @@
       "paramTypePlaceholder": "type",
       "addParameterPlaceholder": "+ add parameter (name: type, Enter)",
       "balBodyPlaceholder": "BAL method body…",
-      "pythonBodyPlaceholder": "Python method body…"
+      "pythonBodyPlaceholder": "Python method body…",
+      "name": "Method name",
+      "customReturnType": "Custom return type",
+      "paramName": "Parameter name",
+      "paramType": "Parameter type",
+      "deleteParameter": "Delete parameter",
+      "addParameter": "Add parameter",
+      "implementationType": "Implementation"
     },
     "classifier": {
       "createMethodWithCode": "Create method with code behaviour",
@@ -247,7 +257,8 @@
       "newLiteralPlaceholder": "literal",
       "newAttributePlaceholder": "+ attribute: str",
       "addAttributePlaceholder": "+ Add attribute",
-      "addMethodPlaceholder": "+ Add method"
+      "addMethodPlaceholder": "+ Add method",
+      "newMethodPlaceholder": "+ method(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "literal name",
@@ -261,7 +272,12 @@
       "deleteAttribute": "Delete attribute",
       "customTypePlaceholder": "custom type (free-text)",
       "defaultValue": "Default value",
-      "defaultValueOptionalPlaceholder": "default value (optional)"
+      "defaultValueOptionalPlaceholder": "default value (optional)",
+      "visibility": "Visibility",
+      "literalName": "Literal name",
+      "name": "Attribute name",
+      "customType": "Custom type",
+      "type": "Attribute type"
     },
     "associationNamePlaceholder": "Association name",
     "literals": "Literals",
@@ -286,7 +302,11 @@
       "addMethod": "add method",
       "addLiteralInputPlaceholder": "+ Add literal (Enter for auto-name)",
       "addAttributeInputPlaceholder": "+ Add attribute (Enter for auto-name)",
-      "addMethodInputPlaceholder": "+ Add method (Enter)"
+      "addMethodInputPlaceholder": "+ Add method (Enter)",
+      "icon": "Icon",
+      "stereotype": "Stereotype",
+      "enumerationRelationshipsWarning": "An enumeration cannot have relationships; other classes use it as an attribute type. Converting removes {{count}} relationship(s).",
+      "enumerationConvertConfirm": "Remove and convert"
     },
     "object": {
       "colorResetHint": "{{label}} (right-click to reset)",
@@ -299,7 +319,10 @@
       "addAttributePlaceholder": "+ Add attribute (Enter)",
       "noAssociationsHint": "No associations available — link source / target objects to classes first.",
       "classLabel": "class",
-      "unlinked": "— Unlinked —"
+      "unlinked": "— Unlinked —",
+      "slotName": "Attribute name",
+      "objectName": "Object name",
+      "addAttribute": "Add attribute"
     },
     "user": {
       "rowStyle": "Row style",
@@ -310,7 +333,8 @@
       "metadata": "Metadata",
       "operator": "operator",
       "defaultValue": "default value",
-      "defaultValueQuoted": "default value (will be quoted: \"…\")"
+      "defaultValueQuoted": "default value (will be quoted: \"…\")",
+      "view": "Show on canvas as"
     },
     "communication": {
       "direction": "Direction: {{direction}}",
@@ -356,7 +380,8 @@
       "class": "class",
       "unlinked": "— Unlinked —",
       "eventHandlerPlaceholder": "event handler function name",
-      "removeParameter": "Remove parameter {{index}}"
+      "removeParameter": "Remove parameter {{index}}",
+      "codeBlockName": "Function name (empty = from def)"
     },
     "useCase": {
       "optionalAssociationLabel": "Optional label for association"
@@ -382,7 +407,10 @@
       "actions": "Actions",
       "idPlaceholder": "ID",
       "addActionName": "+ Add action name"
-    }
+    },
+    "multiplicityInvalidER": "Use (min,max), e.g. (0,1), (1,N) — or 1, 0..1, 1..*",
+    "multiplicityInvalid": "Use e.g. 1, 0..1, *, 1..* or 2..5",
+    "associationNameHiddenHint": "Hidden on the canvas. Turn on “Show Association Names” in Settings."
   },
   "assessment": {
     "assessment": "Assessment for",
@@ -934,7 +962,8 @@
     "label": "Label",
     "value": "Value",
     "dragToReorder": "Drag to reorder",
-    "addLowercase": "add"
+    "addLowercase": "add",
+    "back": "Back"
   },
   "stylePane": {
     "enterUri": "Enter URI…",
@@ -1018,9 +1047,25 @@
   "zoomPane": {
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "autoLayout": "Auto-layout"
+    "autoLayout": "Auto-layout",
+    "fitView": "Fit view"
   },
   "sidebar": {
     "resize": "Resize palette"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Enumerations can't be connected; use them as attribute types instead.",
+      "objectNoAssociation": "These objects' classes have no association in the class diagram.",
+      "nnEndpoint": "Datasets and configurations connect only to an NN container.",
+      "nnConfigurationTaken": "This NN container already has a configuration.",
+      "bpmnCrossPool": "Sequence flows can't cross pools, and this element can't send message flows.",
+      "bpmnIllegalFlow": "BPMN doesn't allow a flow between these elements.",
+      "bpmnMessageSamePool": "End events can't start a flow and start events can't receive one; message flows only connect different pools.",
+      "stateCodeBlock": "Code blocks aren't connected; reference them by name from a state body or a transition.",
+      "stateFinalOutgoing": "A final state ends the state machine; no transition leaves it.",
+      "stateInitialIncoming": "The initial state only starts the state machine; no transition enters it.",
+      "generic": "These elements can't be connected."
+    }
   }
 }

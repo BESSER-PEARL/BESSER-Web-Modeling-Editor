@@ -839,7 +839,8 @@
       "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées.",
       "openBpmnEditor": "Ouvrez un diagramme BPMN avant d'exporter en BPMN 2.0 XML.",
       "bpmnNoModel": "Le diagramme BPMN actif n'a aucun modèle à exporter.",
-      "bpmnExportFailed": "Échec de l'export BPMN : {{error}}"
+      "bpmnExportFailed": "Échec de l'export BPMN : {{error}}",
+      "qualityCheckUnavailable": "La vérification de qualité n'est pas encore disponible pour cet éditeur."
     },
     "context": {
       "djangoGeneration": "Génération Django",
@@ -2061,6 +2062,10 @@
       "offlineMessage": "Vous êtes hors ligne. Certaines fonctionnalités peuvent ne pas fonctionner.",
       "backOnline": "De retour en ligne.",
       "dismiss": "Ignorer l'avertissement hors ligne"
+    },
+    "storage": {
+      "saveFailedFull": "Le stockage du navigateur est plein : vos modifications n'ont pas pu être enregistrées. Exportez vos projets et supprimez ceux dont vous n'avez plus besoin.",
+      "nearlyFull": "Le stockage du navigateur est plein à {{percent}} %. Exportez vos projets et supprimez ceux dont vous n'avez plus besoin pour ne pas perdre de modifications."
     }
   },
   "shell": {

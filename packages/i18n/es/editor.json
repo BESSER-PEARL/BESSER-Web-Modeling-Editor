@@ -46,7 +46,8 @@
         "slice": "segmento",
         "startPlaceholder": "inicio",
         "stopPlaceholder": "fin",
-        "stepPlaceholder": "paso"
+        "stepPlaceholder": "paso",
+        "reverted": "Restablecido a {{value}}."
       },
       "help": {
         "split_sizes": "Un entero (número de trozos iguales, p. ej. 3) o una lista (tamaño por trozo, p. ej. [2,3,5])",
@@ -163,7 +164,9 @@
         "anyGuiInteraction": "Cualquier interacción de GUI",
         "event": "Evento",
         "conditions": "Condiciones",
-        "addCondition": "Añadir condición"
+        "addCondition": "Añadir condición",
+        "missingIntentTag": "falta",
+        "missingIntent": "La intención \"{{name}}\" no existe. Elija una intención o añádala en la página Componentes."
       },
       "intent": {
         "name": "Nombre de la intención",
@@ -237,7 +240,14 @@
       "paramTypePlaceholder": "tipo",
       "addParameterPlaceholder": "+ añadir parámetro (nombre: tipo, Intro)",
       "balBodyPlaceholder": "Cuerpo del método BAL…",
-      "pythonBodyPlaceholder": "Cuerpo del método Python…"
+      "pythonBodyPlaceholder": "Cuerpo del método Python…",
+      "name": "Nombre del método",
+      "customReturnType": "Tipo de retorno personalizado",
+      "paramName": "Nombre del parámetro",
+      "paramType": "Tipo del parámetro",
+      "deleteParameter": "Eliminar parámetro",
+      "addParameter": "Añadir parámetro",
+      "implementationType": "Implementación"
     },
     "classifier": {
       "createMethodWithCode": "Crear método con comportamiento de código",
@@ -247,7 +257,8 @@
       "newLiteralPlaceholder": "literal",
       "newAttributePlaceholder": "+ atributo: str",
       "addAttributePlaceholder": "+ Añadir atributo",
-      "addMethodPlaceholder": "+ Añadir método"
+      "addMethodPlaceholder": "+ Añadir método",
+      "newMethodPlaceholder": "+ metodo(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "nombre del literal",
@@ -261,7 +272,12 @@
       "deleteAttribute": "Eliminar atributo",
       "customTypePlaceholder": "tipo personalizado (texto libre)",
       "defaultValue": "Valor predeterminado",
-      "defaultValueOptionalPlaceholder": "valor predeterminado (opcional)"
+      "defaultValueOptionalPlaceholder": "valor predeterminado (opcional)",
+      "visibility": "Visibilidad",
+      "literalName": "Nombre del literal",
+      "name": "Nombre del atributo",
+      "customType": "Tipo personalizado",
+      "type": "Tipo del atributo"
     },
     "associationNamePlaceholder": "Nombre de la asociación",
     "literals": "Literales",
@@ -286,7 +302,11 @@
       "addMethod": "añadir método",
       "addLiteralInputPlaceholder": "+ Añadir literal (Intro para nombre automático)",
       "addAttributeInputPlaceholder": "+ Añadir atributo (Intro para nombre automático)",
-      "addMethodInputPlaceholder": "+ Añadir método (Intro)"
+      "addMethodInputPlaceholder": "+ Añadir método (Intro)",
+      "icon": "Icono",
+      "stereotype": "Estereotipo",
+      "enumerationRelationshipsWarning": "Una enumeración no puede tener relaciones; otras clases la usan como tipo de atributo. Al convertir se eliminan {{count}} relación(es).",
+      "enumerationConvertConfirm": "Eliminar y convertir"
     },
     "object": {
       "colorResetHint": "{{label}} (clic derecho para restablecer)",
@@ -299,7 +319,10 @@
       "addAttributePlaceholder": "+ Añadir atributo (Intro)",
       "noAssociationsHint": "No hay asociaciones disponibles — vincule primero los objetos de origen / destino a clases.",
       "classLabel": "clase",
-      "unlinked": "— Sin vincular —"
+      "unlinked": "— Sin vincular —",
+      "slotName": "Nombre del atributo",
+      "objectName": "Nombre del objeto",
+      "addAttribute": "Añadir atributo"
     },
     "user": {
       "rowStyle": "Estilo de fila",
@@ -310,7 +333,8 @@
       "metadata": "Metadatos",
       "operator": "operador",
       "defaultValue": "valor predeterminado",
-      "defaultValueQuoted": "valor predeterminado (irá entre comillas: \"…\")"
+      "defaultValueQuoted": "valor predeterminado (irá entre comillas: \"…\")",
+      "view": "Mostrar en el lienzo como"
     },
     "communication": {
       "direction": "Dirección: {{direction}}",
@@ -356,7 +380,8 @@
       "class": "clase",
       "unlinked": "— Sin vincular —",
       "eventHandlerPlaceholder": "nombre de la función manejadora de eventos",
-      "removeParameter": "Eliminar el parámetro {{index}}"
+      "removeParameter": "Eliminar el parámetro {{index}}",
+      "codeBlockName": "Nombre de la función (vacío = desde def)"
     },
     "useCase": {
       "optionalAssociationLabel": "Etiqueta opcional para la asociación"
@@ -382,7 +407,10 @@
       "actions": "Acciones",
       "idPlaceholder": "ID",
       "addActionName": "+ Añadir nombre de acción"
-    }
+    },
+    "multiplicityInvalidER": "Use (mín,máx), p. ej. (0,1), (1,N) — o 1, 0..1, 1..*",
+    "multiplicityInvalid": "Use p. ej. 1, 0..1, *, 1..* o 2..5",
+    "associationNameHiddenHint": "Oculto en el lienzo. Active «Mostrar nombres de asociación» en Configuración."
   },
   "assessment": {
     "assessment": "Evaluación de",
@@ -934,7 +962,8 @@
     "label": "Etiqueta",
     "value": "Valor",
     "dragToReorder": "Arrastrar para reordenar",
-    "addLowercase": "añadir"
+    "addLowercase": "añadir",
+    "back": "Atrás"
   },
   "stylePane": {
     "enterUri": "Introduce el URI…",
@@ -1018,9 +1047,25 @@
   "zoomPane": {
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
-    "autoLayout": "Diseño automático"
+    "autoLayout": "Diseño automático",
+    "fitView": "Ajustar la vista"
   },
   "sidebar": {
     "resize": "Cambiar el tamaño de la paleta"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Las enumeraciones no se pueden conectar; úselas como tipos de atributo.",
+      "objectNoAssociation": "Las clases de estos objetos no tienen ninguna asociación en el diagrama de clases.",
+      "nnEndpoint": "Los conjuntos de datos y las configuraciones solo se conectan a un contenedor NN.",
+      "nnConfigurationTaken": "Este contenedor NN ya tiene una configuración.",
+      "bpmnCrossPool": "Los flujos de secuencia no pueden cruzar pools y este elemento no puede enviar flujos de mensajes.",
+      "bpmnIllegalFlow": "BPMN no permite un flujo entre estos elementos.",
+      "bpmnMessageSamePool": "Los eventos de fin no pueden iniciar un flujo y los de inicio no pueden recibirlo; los flujos de mensajes solo conectan pools distintos.",
+      "stateCodeBlock": "Los bloques de código no se conectan; haga referencia a ellos por su nombre desde el cuerpo de un estado o una transición.",
+      "stateFinalOutgoing": "Un estado final termina la máquina de estados; ninguna transición sale de él.",
+      "stateInitialIncoming": "El estado inicial solo inicia la máquina de estados; ninguna transición entra en él.",
+      "generic": "Estos elementos no se pueden conectar."
+    }
   }
 }

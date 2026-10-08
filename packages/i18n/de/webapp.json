@@ -839,7 +839,8 @@
       "noValidPersonalizationMappings": "Keine gültigen Personalisierungszuordnungen gefunden. Erstellen Sie Zuordnungen und speichern Sie zuerst personalisierte Varianten.",
       "openBpmnEditor": "Öffnen Sie ein BPMN-Diagramm, bevor Sie BPMN 2.0 XML exportieren.",
       "bpmnNoModel": "Das aktive BPMN-Diagramm enthält kein Modell zum Exportieren.",
-      "bpmnExportFailed": "BPMN-Export fehlgeschlagen: {{error}}"
+      "bpmnExportFailed": "BPMN-Export fehlgeschlagen: {{error}}",
+      "qualityCheckUnavailable": "Die Qualitätsprüfung ist für diesen Editor noch nicht verfügbar."
     },
     "context": {
       "djangoGeneration": "Django-Generierung",
@@ -2061,6 +2062,10 @@
       "offlineMessage": "Sie sind offline. Einige Funktionen könnten nicht verfügbar sein.",
       "backOnline": "Wieder online.",
       "dismiss": "Offline-Warnung schließen"
+    },
+    "storage": {
+      "saveFailedFull": "Der Browserspeicher ist voll, daher konnten Ihre Änderungen nicht gespeichert werden. Exportieren Sie Ihre Projekte und löschen Sie die, die Sie nicht mehr benötigen.",
+      "nearlyFull": "Der Browserspeicher ist zu {{percent}} % voll. Exportieren Sie Ihre Projekte und löschen Sie die, die Sie nicht mehr benötigen, damit keine Änderungen verloren gehen."
     }
   },
   "shell": {

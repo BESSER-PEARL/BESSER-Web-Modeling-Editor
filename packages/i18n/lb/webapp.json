@@ -839,7 +839,8 @@
       "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten.",
       "openBpmnEditor": "Maacht e BPMN-Diagramm op, ier Dir BPMN 2.0 XML exportéiert.",
       "bpmnNoModel": "Dat aktivt BPMN-Diagramm huet kee Modell fir ze exportéieren.",
-      "bpmnExportFailed": "BPMN-Export ass feelgeschloen: {{error}}"
+      "bpmnExportFailed": "BPMN-Export ass feelgeschloen: {{error}}",
+      "qualityCheckUnavailable": "D'Qualitéitskontroll ass fir dësen Editor nach net disponibel."
     },
     "context": {
       "djangoGeneration": "Django-Generéierung",
@@ -2061,6 +2062,10 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "storage": {
+      "saveFailedFull": "De Browserspäicher ass voll, dofir konnten Är Ännerungen net gespäichert ginn. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht.",
+      "nearlyFull": "De Browserspäicher ass zu {{percent}} % voll. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht, fir keng Ännerungen ze verléieren."
     }
   },
   "shell": {

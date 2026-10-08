@@ -839,7 +839,8 @@
       "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades.",
       "openBpmnEditor": "Obre un diagrama BPMN abans d'exportar a BPMN 2.0 XML.",
       "bpmnNoModel": "El diagrama BPMN actiu no té cap model per exportar.",
-      "bpmnExportFailed": "Error en exportar BPMN: {{error}}"
+      "bpmnExportFailed": "Error en exportar BPMN: {{error}}",
+      "qualityCheckUnavailable": "La comprovació de qualitat encara no està disponible per a aquest editor."
     },
     "context": {
       "djangoGeneration": "Generació de Django",
@@ -2061,6 +2062,10 @@
       "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
+    },
+    "storage": {
+      "saveFailedFull": "L'emmagatzematge del navegador és ple i no s'han pogut desar els canvis. Exporteu els projectes i elimineu els que ja no necessiteu.",
+      "nearlyFull": "L'emmagatzematge del navegador és ple al {{percent}} %. Exporteu els projectes i elimineu els que ja no necessiteu per no perdre canvis."
     }
   },
   "shell": {
