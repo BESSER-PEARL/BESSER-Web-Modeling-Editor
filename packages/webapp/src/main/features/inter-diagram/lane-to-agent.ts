@@ -12,6 +12,7 @@ import { Direction, NEW_TRANSITION_PREDEFINED_TYPE, UMLDiagramType } from '@bess
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
 import { recenterModelOnOrigin } from './recenter';
+import { ceilToGrid, estimateTextWidth } from './text-metrics';
 import type { AgentDerivationResult, AgentDerivationWarning } from './types';
 import { resolveEdgeKind, type AgenticEdgeKind } from './bpmn-to-component';
 
@@ -27,20 +28,37 @@ import { resolveEdgeKind, type AgenticEdgeKind } from './bpmn-to-component';
  * Pure `model → model`; structured refusals/warnings (never throws on user
  * content). `elementMapping[stateId] = taskId` feeds the lineage sidecar.
  */
-const STATE_W = 140;
+const STATE_W = 140; // minimum state width; longer names widen the state
 const STATE_H = 40;
 const INIT_SIZE = 45;
 const V_GAP = 70; // vertical gap between stacked states
+// Horizontal gap between state columns: room for a transition label such as
+// "No intent" on the edge between two side-by-side states.
+const COL_GAP = 100;
 // Scaffolded AgentIntent elements and the inbound-intent edges originate in a
 // column left of the greeting/init node.
 const INTENT_COL_X = -340;
-// Reflection scaffolds (self-eval / human approval) sit between the task
-// column (x 0..140) and the merge column.
-const REFLECT_COL_X = 160;
-// Governed merge-decision states sit right of the reflection column so
-// producer→merge edges run rightward. recenterAgentModel re-centres at the end,
-// so the absolute x only matters for relative layout.
-const MERGE_COL_X = 360;
+// Columns, left to right: tasks (and the greeting) at x = 0, then the
+// reflection scaffolds (self-eval / human approval), then the governed
+// merge-decision states, so producer→merge edges run rightward. Each column
+// starts COL_GAP right of the widest state placed before it (nextColumnX).
+// recenterModelOnOrigin re-centres at the end, so absolute x only matters for
+// relative layout.
+
+// AgentState.render (editor) widens a state to its bold name + 60 px, on a
+// 10 px grid, clamped to [80, 420], and never narrows it below the stored
+// width. Sizing the state here with an over-estimate of the name keeps the
+// rendered width equal to the derived one, so the columns cannot collide.
+const AGENT_STATE_NAME_PAD = 60;
+const AGENT_STATE_MAX_AUTO_WIDTH = 420;
+const agentStateWidth = (name: string): number =>
+  Math.max(STATE_W, Math.min(AGENT_STATE_MAX_AUTO_WIDTH, ceilToGrid(estimateTextWidth(name) + AGENT_STATE_NAME_PAD)));
+
+/** x of a new state column: COL_GAP right of every state placed so far. */
+const nextColumnX = (out: UMLModel): number =>
+  Object.values(out.elements)
+    .filter((e) => e.type === 'AgentState')
+    .reduce((right, e) => Math.max(right, e.bounds.x + e.bounds.width), 0) + COL_GAP;
 
 /**
  * BAF / the BESSER agent converter reject state names with spaces ("Name
@@ -85,18 +103,14 @@ const isFlow = (rel: UMLRelationship): rel is BPMNFlow => rel.type === 'BPMNFlow
 const sequenceFlows = (bpmn: UMLModel): BPMNFlow[] =>
   Object.values(bpmn.relationships).filter(isFlow).filter((f) => f.flowType === 'sequence');
 
-function addAgentState(
-  out: UMLModel,
-  name: string,
-  bounds: { x: number; y: number; width: number; height: number },
-): string {
+function addAgentState(out: UMLModel, name: string, position: { x: number; y: number }): string {
   const id = uuid();
   const state: AgentStateElement = {
     id,
     name,
     type: 'AgentState',
     owner: null,
-    bounds,
+    bounds: { ...position, width: agentStateWidth(name), height: STATE_H },
     bodies: [],
     fallbackBodies: [],
   };
@@ -130,8 +144,6 @@ export function laneToAgentModel(bpmn: UMLModel, laneId: string): AgentDerivatio
     const id = addAgentState(out, names.allocate(sanitizeStateName(t.name || 'State')), {
       x: 0,
       y: i * (STATE_H + V_GAP),
-      width: STATE_W,
-      height: STATE_H,
     });
     stateIdByTask.set(t.id, id);
     elementMapping[id] = t.id; // lineage: AgentState ← source task
@@ -187,8 +199,6 @@ export function laneToAgentModel(bpmn: UMLModel, laneId: string): AgentDerivatio
   const greetId = addAgentState(out, names.allocate(sanitizeStateName((lane.name || 'Agent') + '_greet')), {
     x: 0,
     y: greetY,
-    width: STATE_W,
-    height: STATE_H,
   });
   const initId = uuid();
   out.elements[initId] = {
@@ -329,12 +339,24 @@ function collapseGatewayEdges(
   return edges;
 }
 
+/** Centre of the side of `b` that a port with direction `dir` sits on. */
+function portPoint(b: UMLElement['bounds'], dir: Direction): { x: number; y: number } {
+  if (dir === Direction.Down) return { x: b.x + b.width / 2, y: b.y + b.height };
+  if (dir === Direction.Up) return { x: b.x + b.width / 2, y: b.y };
+  if (dir === Direction.Right) return { x: b.x + b.width, y: b.y + b.height / 2 };
+  return { x: b.x, y: b.y + b.height / 2 };
+}
+
 function emitTransition(
   out: UMLModel,
   srcId: string,
   tgtId: string,
   type: 'AgentStateTransition' | 'AgentStateTransitionInit',
-  orientation: 'vertical' | 'horizontal',
+  // vertical: bottom → top. horizontal: the facing sides of two side-by-side
+  // states. below: bottom → bottom, a loop under both states (a back edge
+  // between side-by-side states that would otherwise run on top of the
+  // forward edge).
+  orientation: 'vertical' | 'horizontal' | 'below',
   predefinedType?: string,
   opts?: {
     intentName?: string;
@@ -349,11 +371,17 @@ function emitTransition(
   const id = uuid();
   const sb = out.elements[srcId].bounds;
   const tb = out.elements[tgtId].bounds;
-  const p0 =
-    orientation === 'vertical'
-      ? { x: sb.x + sb.width / 2, y: sb.y + sb.height }
-      : { x: sb.x + sb.width, y: sb.y + sb.height / 2 };
-  const p1 = orientation === 'vertical' ? { x: tb.x + tb.width / 2, y: tb.y } : { x: tb.x, y: tb.y + tb.height / 2 };
+  // The editor re-routes the edge from these port directions on load (the
+  // path below only seeds the model); a horizontal edge whose ports faced away
+  // from each other would be routed around both states.
+  let srcDir: Direction;
+  let tgtDir: Direction;
+  if (orientation === 'vertical') [srcDir, tgtDir] = [Direction.Down, Direction.Up];
+  else if (orientation === 'below') [srcDir, tgtDir] = [Direction.Down, Direction.Down];
+  else if (sb.x + sb.width / 2 <= tb.x + tb.width / 2) [srcDir, tgtDir] = [Direction.Right, Direction.Left];
+  else [srcDir, tgtDir] = [Direction.Left, Direction.Right];
+  const p0 = portPoint(sb, srcDir);
+  const p1 = portPoint(tb, tgtDir);
 
   // A custom-condition guard takes precedence: it serializes as a `custom`
   // transition (transitionType 'custom' + custom.condition), not a predefined one.
@@ -410,8 +438,8 @@ function emitTransition(
       height: Math.max(1, Math.abs(p1.y - p0.y)),
     },
     path: [p0, p1],
-    source: { element: srcId, direction: orientation === 'vertical' ? Direction.Down : Direction.Right },
-    target: { element: tgtId, direction: orientation === 'vertical' ? Direction.Up : Direction.Left },
+    source: { element: srcId, direction: srcDir },
+    target: { element: tgtId, direction: tgtDir },
     isManuallyLayouted: false,
     ...typeFields,
   };
@@ -601,18 +629,15 @@ function appendGovernedMergeStates(
   const seqFlows = sequenceFlows(bpmn);
   const intentIdByName = new Map<string, string>(); // dedup scaffolded AgentIntents
   let intentRow = Object.values(out.elements).filter((e) => e.type === 'AgentIntent').length;
+  // One column right of the task and reflection columns.
+  const mergeColX = nextColumnX(out);
 
   governedMerges.forEach((g, idx) => {
     const baseName = 'Address_merge_decision';
     const name = names.allocate(
       multiple ? `${baseName}__${sanitizeStateName(g.name || g.id.slice(-6))}` : baseName,
     );
-    const mergeId = addAgentState(out, name, {
-      x: MERGE_COL_X,
-      y: idx * (STATE_H + V_GAP),
-      width: STATE_W,
-      height: STATE_H,
-    });
+    const mergeId = addAgentState(out, name, { x: mergeColX, y: idx * (STATE_H + V_GAP) });
     elementMapping[mergeId] = g.id; // lineage: merge state ← gateway
 
     const ensureIntent = (intent: string, peerName: string): string => {
@@ -889,6 +914,10 @@ function appendReflectionScaffolds(
     if (!intentIds.has(intent)) intentIds.set(intent, createIntentScaffold(out, intent, description, intentIds.size));
     return intent;
   };
+  // One column right of the task column (every task-state and the greeting
+  // exist by now), shared by all self/human scaffolds; each sits on its task's
+  // row.
+  const reflectColX = nextColumnX(out);
 
   for (const t of tasks) {
     const mode = t.reflectionMode ?? 'none';
@@ -911,23 +940,13 @@ function appendReflectionScaffolds(
     }
 
     if (mode === 'self') {
-      const reflectId = addAgentState(out, names.allocate(`${taskName}_reflect`), {
-        x: REFLECT_COL_X,
-        y: sb.y,
-        width: STATE_W,
-        height: STATE_H,
-      });
+      const reflectId = addAgentState(out, names.allocate(`${taskName}_reflect`), { x: reflectColX, y: sb.y });
       // Run one reflection pass before continuing or sending outbound A2A.
       outboundCarrierStateIdByTask.set(t.id, reflectId);
       emitTransition(out, sT, reflectId, 'AgentStateTransition', 'horizontal', 'auto');
       for (const n of nexts) emitTransition(out, reflectId, n, 'AgentStateTransition', 'vertical', 'auto');
     } else if (mode === 'human') {
-      const humanId = addAgentState(out, names.allocate(`${taskName}_human_review`), {
-        x: REFLECT_COL_X,
-        y: sb.y,
-        width: STATE_W,
-        height: STATE_H,
-      });
+      const humanId = addAgentState(out, names.allocate(`${taskName}_human_review`), { x: reflectColX, y: sb.y });
       emitTransition(out, sT, humanId, 'AgentStateTransition', 'horizontal', 'when_no_intent_matched');
       const approved = ensureIntent(
         sanitizeStateName(`${taskName}_approved`),
@@ -942,7 +961,8 @@ function appendReflectionScaffolds(
           intentName: approved,
         });
       }
-      emitTransition(out, humanId, sT, 'AgentStateTransition', 'horizontal', 'when_intent_matched', {
+      // Loop back under both states so it does not run on top of task → human.
+      emitTransition(out, humanId, sT, 'AgentStateTransition', 'below', 'when_intent_matched', {
         intentName: rejected,
       });
     } else if (mode === 'cross') {
