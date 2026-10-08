@@ -43,9 +43,9 @@ export * from './services/settings/settings-service';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 
-// Export BPMN common attribute types — including the Agentic BPMN attributes
-// (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) consumed by the
-// agentic vitest coverage and the extension serializer.
+// Export the BPMN common attribute types and helpers, including the agentic
+// BPMN attributes (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) and the
+// governance DSL generator.
 export * from './packages/bpmn/common/types';
 export * from './packages/bpmn/common/governance-dsl';
 

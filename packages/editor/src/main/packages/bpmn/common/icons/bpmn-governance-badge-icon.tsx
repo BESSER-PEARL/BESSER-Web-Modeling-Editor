@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 
-// Agentic BPMN governance badge (T1/P3′ — O4). Shown top-right of a merging
+// Agentic BPMN governance badge. Shown top-right of a merging
 // agentic gateway ONLY when a governance policy (`governanceDsl`) is attached.
 // The merge axis is defined in the governance DSL (level 3); this badge is the
 // at-a-glance "governed" signal — it does NOT name the policy type (the DSL is

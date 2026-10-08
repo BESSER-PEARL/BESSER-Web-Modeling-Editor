@@ -24,7 +24,7 @@ import { BPMNMarkerType, BPMNReflectionMode } from '../common/types';
 import { BpmnLoopMarkerIcon } from '../common/markers/bpmn-loop-marker-icon';
 import { BPMNParallelMarkerIcon } from '../common/markers/bpmn-parallel-marker-icon';
 
-// Agentic BPMN (04D): the reflection mode shows as a marker letter at the
+// Agentic BPMN: the reflection mode shows as a marker letter at the
 // bottom of the task; 'none' renders nothing.
 const REFLECTION_LETTER: Record<BPMNReflectionMode, string | null> = {
   none: null,
@@ -117,7 +117,7 @@ export const BPMNTaskComponent: FunctionComponent<Props> = ({ element, fillColor
       >
         {element.name}
       </Multiline>
-      {/* Agentic BPMN (04D): the agent marker replaces the task-type icon and
+      {/* Agentic BPMN: the agent marker replaces the task-type icon and
           the reflection marker replaces the multi-instance marker. The trust
           score is edited in the popup only — not drawn on the canvas. */}
       {element.isAgentic ? (

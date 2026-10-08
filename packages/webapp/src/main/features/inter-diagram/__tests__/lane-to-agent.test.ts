@@ -6,7 +6,7 @@ import divergeMerge from './fixtures/diverge-merge.json';
 function bpmn(): UMLModel {
   return {
     version: '3.0.0',
-    // UMLDiagramType.BPMN's wire value is 'BPMNDiagram' (04E divergence) — the
+    // UMLDiagramType.BPMN's wire value is 'BPMNDiagram' — the
     // transform guards on the enum, so the fixture must use the wire value.
     type: 'BPMNDiagram',
     size: { width: 800, height: 600 },
@@ -49,7 +49,7 @@ const seq = (id: string, s: string, t: string) => ({
   target: { element: t, direction: 'Left' },
 });
 
-describe('29 — laneToAgentModel', () => {
+describe('laneToAgentModel', () => {
   it('emits task→task transitions as Auto so the agent can move on', () => {
     const m = bpmn();
     Object.assign(m.elements, { L: lane('L'), t1: task('t1', 'Plan', 10), t2: task('t2', 'Code', 200) });
@@ -153,7 +153,7 @@ describe('29 — laneToAgentModel', () => {
     expect(Object.values(r.model.elements).filter((e) => e.type === 'StateInitialNode')).toHaveLength(1); // → greeting
   });
 
-  describe('30 → 45 — cross-lane I/O (boundary states removed; A2A tags + DQ-3 cold-start)', () => {
+  describe('cross-lane I/O (A2A tags and cold start)', () => {
     const laneB = (id: string, name: string) => ({
       id,
       name,
@@ -238,7 +238,7 @@ describe('29 — laneToAgentModel', () => {
       expect(boundaries).toHaveLength(0);
     });
 
-    // 45 replaces the boundary-state removal (IO-4): with no boundary states the entry always gets
+    // With no boundary states the entry always gets
     // the init via greeting — no double-start risk.
     it('non-agentic sources → 0 boundary states; 1 StateInitialNode (greeting)', () => {
       const m = bpmn();
@@ -261,7 +261,7 @@ describe('29 — laneToAgentModel', () => {
       expect(Object.values(res.model.elements).filter((e) => e.type === 'StateInitialNode')).toHaveLength(1);
     });
 
-    // 45 replaces the boundary-state removal (IO-6): non-agentic gateway-mediated cross-lane flow →
+    // A non-agentic gateway-mediated cross-lane flow →
     // no boundary state; greeting wires directly to the first entry task.
     it('non-agentic gateway-mediated input → 0 boundary states; greeting → first entry', () => {
       const m = bpmn();
@@ -522,7 +522,7 @@ describe('29 — laneToAgentModel', () => {
     });
   });
 
-  describe('39 — reflection scaffolds (4c)', () => {
+  describe('reflection scaffolds', () => {
     const rtask = (id: string, name: string, x: number, mode: 'none' | 'self' | 'cross' | 'human') => ({
       ...task(id, name, x),
       reflectionMode: mode,
@@ -848,7 +848,7 @@ describe('29 — laneToAgentModel', () => {
     });
   });
 
-  describe('45 — A2A cross-lane I/O', () => {
+  describe('A2A cross-lane I/O', () => {
     const agLane = (id: string, name: string, role: string) => ({
       id,
       name,

@@ -471,7 +471,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('06-v2 — element-mapping output', () => {
+  describe('element-mapping output', () => {
     it('maps DeploymentNode → source Subsystem, DeploymentComponent → source Component, DeploymentAssociation → source ComponentDependency', () => {
       const m = makeBaseModel();
       Object.assign(m.elements as Record<string, unknown>, {
@@ -551,7 +551,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('20 — Artifact.manifests auto-derive', () => {
+  describe('Artifact.manifests auto-derive', () => {
     const m = makeBaseModel();
     Object.assign(m.elements as Record<string, unknown>, {
       s1: el('s1', 'Subsystem', 'Order', null),
@@ -596,7 +596,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('33 (6b-1) — agentModelRef threading (Component→Deployment)', () => {
+  describe('agentModelRef threading (Component→Deployment)', () => {
     it('copies agentModelRef from the source Component onto its Artifact', () => {
       const m = makeBaseModel();
       Object.assign(m.elements as Record<string, unknown>, {

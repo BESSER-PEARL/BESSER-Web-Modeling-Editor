@@ -142,7 +142,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('diverge-then-merge — surfaces supervises + revises + delegates (guide 13/14)', () => {
+  describe('diverge-then-merge — surfaces supervises + revises + delegates', () => {
     const r = bpmnModelToComponentModel(divergeMerge as unknown as UMLModel);
 
     it('produces a ComponentDiagram with 1 Subsystem + 2 Components (non-agentic lane skipped)', () => {
@@ -181,7 +181,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('21 — processModelRefs auto-derive (agentic Component → BPMN diagram)', () => {
+  describe('processModelRefs auto-derive (agentic Component → BPMN diagram)', () => {
     it('T-P1 stamps processModelRefs on agentic Components when sourceDiagramId is passed', () => {
       const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel, {
         sourceDiagramId: 'bpmn-42',
@@ -224,7 +224,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('pool-connected message flows target the Subsystem (14-FU2 / M9a+c)', () => {
+  describe('pool-connected message flows target the Subsystem', () => {
     const r = bpmnModelToComponentModel(poolMessage as unknown as UMLModel);
 
     it('emits 3 Subsystems incl. a synthesised external for the laneless pool', () => {
@@ -298,7 +298,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('16 — tools/skills as capability Components (opt-in)', () => {
+  describe('tools/skills as capability Components (opt-in)', () => {
     // A self-contained BPMN: one agentic worker lane with a task linking
     // an Agent diagram. The derivation matches `type: 'AgentTool'` by
     // string, so this exercises the full path without the editor element.
@@ -429,7 +429,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('16-FU2 — grouped capability mode (Skills / Tools zones)', () => {
+  describe('grouped capability mode (Skills / Tools zones)', () => {
     // Single agentic lane → ad1 (tools WebSearch ×2 dup, skill Summarise).
     const makeBpmn = () =>
       ({
@@ -598,7 +598,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('16-FU3 — capability-heavy-agent warning (P2)', () => {
+  describe('capability-heavy-agent warning', () => {
     // One agentic worker lane → one task → an Agent diagram with `n` tools.
     const makeBpmn = () =>
       ({
@@ -799,7 +799,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('16-FU4 — dangling agentDiagramRef warning (P3)', () => {
+  describe('dangling agentDiagramRef warning', () => {
     // One agentic worker lane → one task. `taskRef` is the ref under test;
     // the agent map below only contains 'ad1', so any other ref dangles.
     const makeBpmn = (taskRef: string) =>
@@ -902,7 +902,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('06-v2 — element-mapping output', () => {
+  describe('element-mapping output', () => {
     it('maps derived Subsystem → source Pool, Component → source Lane, ComponentDependency → source BPMNFlow', () => {
       const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel);
       if (!r.ok) throw new Error('expected ok');
@@ -940,7 +940,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('32 — LLM/DB/RAG resources as capability Components', () => {
+  describe('LLM/DB/RAG resources as capability Components', () => {
     const makeBpmn = (taskRef = 'res1') =>
       ({
         version: '3.0.0',
@@ -1085,7 +1085,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
-  describe('33 (6b-1) — agentModelRef threading (BPMN→Component)', () => {
+  describe('agentModelRef threading (BPMN→Component)', () => {
     it('stamps agentModelRef on the lane-Component from lane.agentDiagramRef', () => {
       const bpmn = {
         version: '3.0.0',

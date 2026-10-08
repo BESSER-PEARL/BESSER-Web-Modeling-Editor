@@ -684,16 +684,15 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
     assessments: {},
   };
 
-  // T1/P3′: collaborationMode is deleted, so the F3 mode-derivation post-pass
-  // is gone. Keep only the orphaned-merging-gateway warning (a merging gateway
-  // with no upstream diverging gateway is still a structural smell).
+  // A merging gateway with no upstream diverging gateway is a structural
+  // smell: warn about it.
   warnOrphanedMergingGateways(model, ctx.warnings);
 
   return { model, warnings: ctx.warnings, skipped: ctx.skipped };
 }
 
 // Build the unified element + relationship map the validator helpers consume.
-// Same shape as `validateAllBpmnFlows`'s input after the 04C FB1 fix.
+// Same shape as `validateAllBpmnFlows`'s input.
 function unifiedElementsById(model: UMLModel): Record<string, { id: string; type: string; [k: string]: unknown }> {
   const out: Record<string, { id: string; type: string; [k: string]: unknown }> = {};
   for (const id of Object.keys(model.elements)) out[id] = model.elements[id] as never;
@@ -701,9 +700,7 @@ function unifiedElementsById(model: UMLModel): Record<string, { id: string; type
   return out;
 }
 
-// T1/P3′: warn on agentic merging gateways with no upstream diverging gateway.
-// (Was the F3 post-pass that also re-derived the now-deleted collaborationMode
-// and aligned gateway types — both removed with the SEAA'25 merge vocabulary.)
+// Warn on agentic merging gateways with no upstream diverging gateway.
 function warnOrphanedMergingGateways(model: UMLModel, warnings: ParseWarning[]): void {
   const unified = unifiedElementsById(model);
   const orphanIds = findOrphanedMergingGateways(unified);

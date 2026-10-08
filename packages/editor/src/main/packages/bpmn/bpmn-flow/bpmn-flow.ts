@@ -34,10 +34,7 @@ export class BPMNFlow extends UMLRelationshipCenteredDescription {
   }
 
   deserialize<T extends Apollon.UMLModelElement>(
-    values: T & {
-      flowType?: BPMNFlowType;
-      isDefault?: boolean;
-    },
+    values: T & { flowType?: BPMNFlowType; isDefault?: boolean },
     children?: Apollon.UMLModelElement[],
   ): void {
     super.deserialize(values, children);

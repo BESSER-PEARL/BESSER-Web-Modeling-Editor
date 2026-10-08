@@ -41,7 +41,7 @@ describe('agentic round-trip (04D2)', () => {
     const { model: parsed, warnings } = bpmnXmlToApollon(xml);
     // The fixture intentionally has a merging gateway with no sequence-flow
     // upstream (it's a self-contained shape-collection, not a paper-valid
-    // collaboration block). Post-04D2-followup-F3 flags it as orphaned — out
+    // collaboration block). The importer flags it as orphaned — out
     // of scope for this round-trip-fidelity test. Filter the warning out.
     const filtered = warnings.filter((w) => w.code !== 'orphaned-merging-gateway');
     expect(filtered).toEqual([]);
@@ -328,7 +328,7 @@ function buildFixtureAgenticModel(): UMLModel {
 // ─── 04D2-followup: collab-mode resolver + downstream walker (F1) ───────────
 //
 // The helpers operate on a *unified* `elementsById` map (elements + flows
-// merged) — same shape `validateAllBpmnFlows` consumes after the 04C FB1 fix.
+// merged) — same shape `validateAllBpmnFlows` consumes.
 // Build helpers below produce that shape directly.
 
 type AnyEl = { id: string; type: string; [k: string]: unknown };
@@ -557,7 +557,7 @@ describe('findDownstreamAgenticConstructs (04D2-followup F1)', () => {
     expect(result.mergingGatewayIds).toEqual([]);
   });
 
-  it('jumps past a nested block to reach the outer merging (O3 fix, forward)', () => {
+  it('jumps past a nested block to reach the outer merging (forward)', () => {
     // Gouter → A → Ginner → B → GinnerMerge → C → GouterMerge
     // Propagating from Gouter must collect GouterMerge but NOT B / GinnerMerge
     // (those belong to Ginner's block).
@@ -773,7 +773,7 @@ describe('governance DSL round-trip', () => {
   });
 });
 
-describe('generateGovernanceDsl policyType (T1c)', () => {
+describe('generateGovernanceDsl policyType', () => {
   const merging = {
     id: 'M',
     type: 'BPMNGateway',

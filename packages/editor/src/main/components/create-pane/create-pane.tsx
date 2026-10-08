@@ -339,14 +339,14 @@ class CreatePaneComponent extends Component<Props, State> {
       }
 
       // Collect the pool's non-lane children before create() mutates the store,
-      // so they can be re-parented into the new lane.
+      // so they can be re-parented into the new lane. (Guide 16.)
       const poolState = this.props.elements[resolvedOwner];
       const ownedIds =
         poolState && 'ownedElements' in poolState ? (poolState as { ownedElements: string[] }).ownedElements : [];
       const nonLaneChildIds = ownedIds.filter((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
       // Only re-parent when no lanes existed yet. For multi-lane pools the
       // new lane's y is hard to compute here, but tasks are already in the
-      // existing lanes so nonLaneChildIds would be empty anyway.
+      // existing lanes so nonLaneChildIds would be empty anyway. (Guide 16-FU1.)
       const poolHadNoLanes = ownedIds.every((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
 
       const elements = clone(preview, this.state.previews);
@@ -356,7 +356,7 @@ class CreatePaneComponent extends Component<Props, State> {
         // origin. Pre-position the lane to its layout-correct values so the
         // append reducer converts task coordinates from the right origin.
         // Pool bounds are unchanged at this point (pool hasn't been re-rendered
-        // yet).
+        // yet). (Guide 16-FU1.)
         const poolBounds = this.props.elements[resolvedOwner].bounds;
         this.props.update(elements[0].id, {
           bounds: {
@@ -369,10 +369,10 @@ class CreatePaneComponent extends Component<Props, State> {
         // Remove tasks from the pool's ownedElements before appending to the
         // lane. APPEND only adds to the new container — it never removes from
         // the old one — so without this step both pool and lane list the same
-        // element IDs and each element is rendered twice. 
+        // element IDs and each element is rendered twice. (Guide 16-FU2.)
         this.props.remove(nonLaneChildIds);
         // Move pool-level tasks/events into the new lane. The append reducer
-        // re-positions them relative to the pre-positioned lane.
+        // re-positions them relative to the pre-positioned lane. (Guide 16.)
         this.props.append(nonLaneChildIds, elements[0].id);
       }
       return;
