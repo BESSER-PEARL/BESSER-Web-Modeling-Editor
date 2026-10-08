@@ -89,21 +89,26 @@ const installHeadlessDomShims = (): void => {
 };
 
 export class ConversionService {
+  /** Renders run one at a time: they share the one jsdom document. */
+  private queue: Promise<unknown> = Promise.resolve();
+
   /**
    * @param model the UML model to render
    * @param autoLayout when true (default), runs ELK auto-layout on the model
    *   before rendering, so imported/headless models get a clean layout instead
    *   of whatever positions they arrived with.
    */
-  convertToSvg = async (model: UMLModel, autoLayout = true): Promise<SVG> => {
-    document.body.innerHTML = '<!doctype html><html lang="en"><body><div></div></body></html>';
+  convertToSvg = (model: UMLModel, autoLayout = true): Promise<SVG> => {
+    const run = this.queue.then(() => this.render(model, autoLayout));
+    this.queue = run.catch(() => undefined);
+    return run;
+  };
+
+  // No editor instance: the static export mounts its own off-screen root and
+  // always unmounts it and destroys its Y.Doc, so nothing outlives a request.
+  private render = async (model: UMLModel, autoLayout: boolean): Promise<SVG> => {
     installHeadlessDomShims();
     const layoutedModel = autoLayout ? await layoutModel(model) : model;
-    const container = document.querySelector('div')!;
-    const editor = new BesserEditor(container, {});
-    await editor.nextRender;
-    editor.model = layoutedModel;
-    await editor.nextRender;
-    return editor.exportAsSVG();
+    return BesserEditor.exportModelAsSvg(layoutedModel);
   };
 }

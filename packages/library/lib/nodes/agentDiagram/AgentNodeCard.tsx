@@ -77,6 +77,8 @@ export function AgentNodeCard({
 
   return (
     <div
+      // getSVG serializes this card into SVG shapes and text on export.
+      data-export-html=""
       style={{
         width,
         height,
@@ -126,8 +128,13 @@ export function AgentNodeCard({
             lineHeight: 1.25,
           }}
         >
+          {/* The initial pill shares the type-label line, so the name
+              keeps the full header width. */}
           <span
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: 0.7,
@@ -135,7 +142,25 @@ export function AgentNodeCard({
               textTransform: "uppercase",
             }}
           >
-            {typeLabel}
+            <span>{typeLabel}</span>
+            {initial ? (
+              <span
+                style={{
+                  fontSize: 8,
+                  fontWeight: 700,
+                  letterSpacing: 0.6,
+                  lineHeight: "11px",
+                  color: ink(accent),
+                  background: tint(accent, 12),
+                  border: `1px solid ${tint(ink(accent), 40)}`,
+                  borderRadius: 4,
+                  padding: "0 4px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("packages.AgentDiagram.card.initial", "initial")}
+              </span>
+            ) : null}
           </span>
           <span
             title={name}
@@ -153,7 +178,7 @@ export function AgentNodeCard({
             {name}
           </span>
         </div>
-        {initial || headerRight ? (
+        {headerRight ? (
           <div
             style={{
               marginLeft: "auto",
@@ -163,24 +188,6 @@ export function AgentNodeCard({
               gap: 5,
             }}
           >
-            {initial ? (
-              <span
-                style={{
-                  fontSize: 8.5,
-                  fontWeight: 700,
-                  letterSpacing: 0.6,
-                  textTransform: "uppercase",
-                  color: ink(accent),
-                  background: tint(accent, 12),
-                  border: `1px solid ${tint(ink(accent), 40)}`,
-                  borderRadius: 5,
-                  padding: "2px 6px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {t("packages.AgentDiagram.card.initial", "initial")}
-              </span>
-            ) : null}
             {headerRight}
           </div>
         ) : null}

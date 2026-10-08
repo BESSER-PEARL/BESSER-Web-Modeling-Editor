@@ -2,6 +2,7 @@ import ReactDOM from "react-dom/client"
 import { AppWithProvider, fitViewToModel, whenModelRendered } from "./App"
 import {
   ReactFlowInstance,
+  getViewportForBounds,
   type FitViewOptions,
   type Node,
   type Edge,
@@ -19,6 +20,7 @@ import { computeAutoLayout, type AutoLayoutOptions } from "./utils/autoLayout"
 import { normalizeAgentComponents } from "./utils/agentComponents"
 import { hardenImportedModel } from "./utils/importHardening"
 import { createOffscreenExportContainer } from "./utils/exportContainer"
+import { inlineSvgImages, snapshotLightPalette } from "./utils/exportUtils"
 import { UMLDiagramType } from "./types"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
 import { createMetadataStore, MetadataStore } from "@/store/metadataStore"
@@ -57,6 +59,9 @@ import {
 // from `@besser/wme` without reaching into `services/errors`.
 export { emitBesserError, type BesserError }
 
+/** A rectangle in client (page) coordinates, as `getBoundingClientRect` gives. */
+export type CanvasArea = { x: number; y: number; width: number; height: number }
+
 export class BesserEditor {
   private root: ReactDOM.Root
   private reactFlowInstance: ReactFlowInstance | null = null
@@ -91,10 +96,15 @@ export class BesserEditor {
   private cancelModelSettle?: () => void
   /** Viewport move to run once the model being loaded has rendered. */
   private pendingViewportAction?: () => void
+  /** Called when `pendingViewportAction` is replaced or dropped unrun. */
+  private dropPendingViewportAction?: () => void
+  /** The host element the canvas renders into (`fitViewInto` measures it). */
+  private readonly container: HTMLElement
   constructor(element: HTMLElement, options?: Besser.BesserOptions) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("Element is required to initialize BesserEditor")
     }
+    this.container = element
 
     // Prepare the `ready` promise before render. `setReactFlowInstance`
     // resolves it once `<AppWithProvider />` mounts and React Flow signals
@@ -273,7 +283,7 @@ export class BesserEditor {
       this.subscribers = {}
 
       this.cancelModelSettle?.()
-      this.pendingViewportAction = undefined
+      this.setPendingViewportAction(undefined)
       this.syncManager.stopSync()
       this.root.unmount()
       this.ydoc.destroy()
@@ -304,6 +314,10 @@ export class BesserEditor {
     // absolute 4000x4000 box grew the host page's scroll area while an
     // async export ran.
     const container = createOffscreenExportContainer()
+    // Exports are always light (develop parity), whatever the host theme.
+    for (const [cssVar, value] of Object.entries(snapshotLightPalette())) {
+      container.style.setProperty(cssVar, value)
+    }
 
     document.body.appendChild(container)
 
@@ -315,14 +329,6 @@ export class BesserEditor {
     const alignmentGuidesStore = createAlignmentGuidesStore()
     const diagramId = Math.random().toString(36).substring(2, 15)
 
-    let setReactFlowInstance: (instance: ReactFlowInstance) => void = () => {}
-
-    const reactFlowInstancePromise = new Promise<ReactFlowInstance>(
-      (resolve) => {
-        setReactFlowInstance = resolve
-      }
-    )
-
     const svgRoot = ReactDOM.createRoot(container, {
       identifierPrefix: `besser-exportAsSVG-${diagramId}`,
     })
@@ -331,42 +337,75 @@ export class BesserEditor {
     // (smart-gen 3d720bdd — exporting an agent diagram with an intent
     // crashed the old editor's SVG export).
     // Same contract-neutral load hardening as `set model`.
-    model = normalizeAgentComponents(hardenImportedModel(model))
+    model = normalizeAgentComponents(
+      normalizeV4Model(hardenImportedModel(model))
+    )
     diagramStore.getState().setNodesAndEdges(model.nodes, model.edges)
     diagramStore.getState().setAssessments(model.assessments)
+    metadataStore
+      .getState()
+      .updateMetaData(model.title, parseDiagramType(model.type))
 
-    // Render the component
-    svgRoot.render(
-      <DiagramStoreContext.Provider value={diagramStore}>
-        <MetadataStoreContext.Provider value={metadataStore}>
-          <PopoverStoreContext.Provider value={popoverStore}>
-            <AssessmentSelectionStoreContext.Provider
-              value={assessmentSelectionStore}
-            >
-              <AlignmentGuidesStoreContext.Provider
-                value={alignmentGuidesStore}
-              >
-                <AppWithProvider onReactFlowInit={setReactFlowInstance} />
-              </AlignmentGuidesStoreContext.Provider>
-            </AssessmentSelectionStoreContext.Provider>
-          </PopoverStoreContext.Provider>
-        </MetadataStoreContext.Provider>
-      </DiagramStoreContext.Provider>
+    try {
+      return await BesserEditor.renderExport(
+        svgRoot,
+        container,
+        diagramStore,
+        options,
+        (onInit) => (
+          <DiagramStoreContext.Provider value={diagramStore}>
+            <MetadataStoreContext.Provider value={metadataStore}>
+              <PopoverStoreContext.Provider value={popoverStore}>
+                <AssessmentSelectionStoreContext.Provider
+                  value={assessmentSelectionStore}
+                >
+                  <AlignmentGuidesStoreContext.Provider
+                    value={alignmentGuidesStore}
+                  >
+                    <AppWithProvider onReactFlowInit={onInit} />
+                  </AlignmentGuidesStoreContext.Provider>
+                </AssessmentSelectionStoreContext.Provider>
+              </PopoverStoreContext.Provider>
+            </MetadataStoreContext.Provider>
+          </DiagramStoreContext.Provider>
+        )
+      )
+    } finally {
+      svgRoot.unmount()
+      container.remove()
+      ydoc.destroy()
+    }
+  }
+
+  private static async renderExport(
+    svgRoot: ReactDOM.Root,
+    container: HTMLElement,
+    diagramStore: StoreApi<DiagramStore>,
+    options: Besser.ExportOptions | undefined,
+    app: (onInit: (instance: ReactFlowInstance) => void) => React.ReactNode
+  ): Promise<Besser.SVG> {
+    let setReactFlowInstance: (instance: ReactFlowInstance) => void = () => {}
+    const reactFlowInstancePromise = new Promise<ReactFlowInstance>(
+      (resolve) => {
+        setReactFlowInstance = resolve
+      }
     )
 
-    // Wait for React Flow to initialize
-    // Create a timeout promise that resolves to undefined after 3 seconds
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), 3000)
-    })
+    // Render the component
+    svgRoot.render(app(setReactFlowInstance))
 
+    // Wait for React Flow to initialize (3 s cap)
+    let initTimer: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<null>((resolve) => {
+      initTimer = setTimeout(() => resolve(null), 3000)
+    })
     const reactFlowInstance = await Promise.race([
       reactFlowInstancePromise,
       timeoutPromise,
     ])
+    clearTimeout(initTimer)
 
     if (!reactFlowInstance) {
-      document.body.removeChild(container)
       throw new Error("React Flow instance not initialized")
     }
 
@@ -378,38 +417,35 @@ export class BesserEditor {
       await document.fonts.ready.catch(() => {})
     }
 
-    // Wait for ReactFlow to fully lay out nodes and measure custom handle
-    // positions (especially for non-rectangular shapes like parallelograms).
-    // setTimeout lets ResizeObserver callbacks fire; double-rAF ensures paint.
+    // Wait until React Flow has measured every node (and so its handles),
+    // then one more frame so edges routed from those handles have painted.
     await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve())
-        })
-      }, 150)
+      whenModelRendered(
+        reactFlowInstance,
+        () => diagramStore.getState().nodes,
+        () => requestAnimationFrame(() => resolve())
+      )
     })
 
     filterRenderedElements(container, options)
 
     const bounds = getRenderedDiagramBounds(reactFlowInstance, container)
 
-    const margin = 60
+    // develop parity: `options.margin`, default 15 on every side.
+    const margin = options?.margin ?? 15
+    const m =
+      typeof margin === "number"
+        ? { top: margin, right: margin, bottom: margin, left: margin }
+        : { top: 0, right: 0, bottom: 0, left: 0, ...margin }
     const clip = {
-      x: bounds.x - margin,
-      y: bounds.y - margin,
-      width: bounds.width + margin * 2,
-      height: bounds.height + margin * 2,
+      x: bounds.x - m.left,
+      y: bounds.y - m.top,
+      width: bounds.width + m.left + m.right,
+      height: bounds.height + m.top + m.bottom,
     }
 
-    const svgString = getSVG(container, clip, options)
-
-    // Clean up
-    svgRoot.unmount()
-    document.body.removeChild(container)
-    ydoc.destroy()
-
     return {
-      svg: svgString,
+      svg: await inlineSvgImages(getSVG(container, clip, options)),
       clip,
     }
   }
@@ -682,9 +718,9 @@ export class BesserEditor {
       undoManager?.stopCapturing()
       return
     }
-    this.pendingViewportAction = wasEmpty
-      ? () => void fitViewToModel(instance)
-      : undefined
+    this.setPendingViewportAction(
+      wasEmpty ? () => void fitViewToModel(instance) : undefined
+    )
     // React Flow's measurement of new nodes joins the same step.
     this.cancelModelSettle = whenModelRendered(
       instance,
@@ -692,9 +728,7 @@ export class BesserEditor {
       () => {
         this.cancelModelSettle = undefined
         this.diagramStore.getState().undoManager?.stopCapturing()
-        const action = this.pendingViewportAction
-        this.pendingViewportAction = undefined
-        action?.()
+        this.runPendingViewportAction()
       }
     )
   }
@@ -709,37 +743,105 @@ export class BesserEditor {
     this.cancelModelSettle?.()
     const instance = this.reactFlowInstance
     if (!instance || typeof window === "undefined") return
-    this.pendingViewportAction = fit
-      ? () => void fitViewToModel(instance)
-      : undefined
+    this.setPendingViewportAction(
+      fit ? () => void fitViewToModel(instance) : undefined
+    )
     this.cancelModelSettle = whenModelRendered(
       instance,
       () => this.diagramStore.getState().nodes,
       () => {
         this.cancelModelSettle = undefined
         this.diagramStore.getState().undoManager?.clear()
-        const action = this.pendingViewportAction
-        this.pendingViewportAction = undefined
-        action?.()
+        this.runPendingViewportAction()
       }
     )
   }
 
-  /** Runs `move` now, or after the model being loaded has rendered. */
-  private moveViewport(move: () => void) {
-    if (this.cancelModelSettle) this.pendingViewportAction = move
+  /** Queue `action`; a queued action it replaces is dropped (its `drop` runs). */
+  private setPendingViewportAction(action?: () => void, drop?: () => void) {
+    const replaced = this.dropPendingViewportAction
+    this.pendingViewportAction = action
+    this.dropPendingViewportAction = drop
+    replaced?.()
+  }
+
+  private runPendingViewportAction() {
+    const action = this.pendingViewportAction
+    this.pendingViewportAction = undefined
+    this.dropPendingViewportAction = undefined
+    action?.()
+  }
+
+  /**
+   * Runs `move` now, or after the model being loaded has rendered. `drop`
+   * runs instead when a later load or viewport move replaces it.
+   */
+  private moveViewport(move: () => void, drop?: () => void) {
+    if (this.cancelModelSettle) this.setPendingViewportAction(move, drop)
     else move()
   }
 
   /**
    * Fit the viewport to the diagram (React Flow `fitView`). Resolves to
-   * `false` before the canvas has mounted or when there is nothing to fit.
+   * `false` before the canvas has mounted, when there is nothing to fit, or
+   * when a later load or viewport move replaces this one before it ran.
    */
   public fitView(options?: FitViewOptions): Promise<boolean> {
     const instance = this.reactFlowInstance
     if (!instance) return Promise.resolve(false)
     return new Promise((resolve) =>
-      this.moveViewport(() => void instance.fitView(options).then(resolve))
+      this.moveViewport(
+        () => void instance.fitView(options).then(resolve),
+        () => resolve(false)
+      )
+    )
+  }
+
+  /**
+   * Fit the diagram into part of the canvas, e.g. the strip an overlay
+   * (a chat panel, a palette strip) leaves visible. `area` is in client
+   * coordinates, or a function from the canvas's client rect to that area;
+   * it is clipped to the canvas. A plain `fitView` when the area is
+   * missing or too small to show a diagram in. Queued like `fitView`.
+   */
+  public fitViewInto(
+    area: CanvasArea | ((canvas: CanvasArea) => CanvasArea | null),
+    {
+      padding = 0.1,
+      minZoom = 0.1,
+      maxZoom = 1,
+      duration = 0,
+    }: { padding?: number; minZoom?: number; maxZoom?: number; duration?: number } = {}
+  ): Promise<boolean> {
+    const instance = this.reactFlowInstance
+    if (!instance) return Promise.resolve(false)
+    return new Promise((resolve) =>
+      this.moveViewport(() => {
+        const nodes = instance.getNodes().filter((node) => !node.hidden)
+        const pane = this.container.querySelector(".react-flow")
+        if (nodes.length === 0 || !pane) return resolve(false)
+        const { x, y, width, height } = pane.getBoundingClientRect()
+        const target = typeof area === "function" ? area({ x, y, width, height }) : area
+        const left = Math.max(x, target?.x ?? x)
+        const top = Math.max(y, target?.y ?? y)
+        const right = Math.min(x + width, target ? target.x + target.width : x + width)
+        const bottom = Math.min(y + height, target ? target.y + target.height : y + height)
+        if (!target || right - left < 120 || bottom - top < 80) {
+          void instance.fitView({ padding, minZoom, maxZoom, duration }).then(resolve)
+          return
+        }
+        const vp = getViewportForBounds(
+          instance.getNodesBounds(nodes),
+          right - left,
+          bottom - top,
+          minZoom,
+          maxZoom,
+          padding
+        )
+        void instance
+          .setViewport({ x: vp.x + left - x, y: vp.y + top - y, zoom: vp.zoom }, { duration })
+          .then(() => resolve(true))
+      }, () => resolve(false))
     )
   }
 
@@ -882,7 +984,7 @@ export class BesserEditor {
     const instance = this.reactFlowInstance
     if (instance && typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
-        void instance.fitView({ duration: 300, padding: 0.1 })
+        void instance.fitView({ duration: 300, padding: 0.1, maxZoom: 1 })
       })
     }
   }

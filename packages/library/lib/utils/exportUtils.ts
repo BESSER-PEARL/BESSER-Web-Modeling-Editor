@@ -52,18 +52,473 @@ const STANDALONE_PALETTE_VARS = [
   "--besser-sticky-text",
 ] as const
 
-function snapshotStandalonePalette(): string {
-  if (typeof document === "undefined" || !document.documentElement) return ""
-  const computed = getComputedStyle(document.documentElement)
+/** Vars read only while rendering (not referenced by the serialized SVG). */
+const RENDER_ONLY_PALETTE_VARS = ["--besser-accent-lift", "--besser-error"]
+
+/**
+ * The host's LIGHT palette, whatever theme is active: exports are always
+ * light (develop parity). In dark mode the root's theme flags are flipped
+ * and restored synchronously, so nothing repaints in between.
+ */
+export function snapshotLightPalette(
+  doc: Document = document
+): Record<string, string> {
+  const root = doc.documentElement
+  if (!root || typeof getComputedStyle === "undefined") return {}
+  const theme = root.getAttribute("data-theme")
+  const hadDarkClass = root.classList.contains("dark")
+  const isDark = theme === "dark" || hadDarkClass
+  if (isDark) {
+    root.setAttribute("data-theme", "light")
+    root.classList.remove("dark")
+  }
+  const palette: Record<string, string> = {}
+  try {
+    const computed = getComputedStyle(root)
+    for (const cssVar of [
+      ...STANDALONE_PALETTE_VARS,
+      ...RENDER_ONLY_PALETTE_VARS,
+    ]) {
+      const value = computed.getPropertyValue(cssVar).trim()
+      if (value) palette[cssVar] = value
+    }
+  } finally {
+    if (isDark) {
+      if (theme === null) root.removeAttribute("data-theme")
+      else root.setAttribute("data-theme", theme)
+      if (hadDarkClass) root.classList.add("dark")
+    }
+  }
+  if (isDark && palette["--besser-accent-lift"] === undefined) {
+    palette["--besser-accent-lift"] = "0%"
+  }
+  return palette
+}
+
+/** Reads the palette in effect on `scope` (the export mount carries the light palette). */
+function snapshotStandalonePalette(scope: Element): string {
+  if (typeof getComputedStyle === "undefined") return ""
+  const computed = getComputedStyle(scope)
+  // jsdom does not inherit custom properties; fall back to the root.
+  const rootComputed = getComputedStyle(scope.ownerDocument.documentElement)
   const declarations: string[] = []
   for (const cssVar of STANDALONE_PALETTE_VARS) {
-    const value = computed.getPropertyValue(cssVar).trim()
+    const value =
+      computed.getPropertyValue(cssVar).trim() ||
+      rootComputed.getPropertyValue(cssVar).trim()
     if (value) {
       declarations.push(`  ${cssVar}: ${value};`)
     }
   }
   if (declarations.length === 0) return ""
   return `:root {\n${declarations.join("\n")}\n}\n`
+}
+
+/** UI-only parts of a node that never belong in an export. */
+const NODE_UI_SELECTOR =
+  ".react-flow__handle, .besser-port-band, .besser-port-anchor, .react-flow__resize-control, [data-export-skip]"
+
+/**
+ * The node's body SVG. Not simply the first `<svg>`: shaped nodes render
+ * their PortBand (an `<svg>` inside a handle) before the body, and HTML
+ * nodes (agent cards) hold icon `<svg>`s that are not the body.
+ */
+function getNodeBodySvg(node: Element): SVGSVGElement | null {
+  for (const svg of Array.from(node.querySelectorAll("svg"))) {
+    if (svg.closest(`${NODE_UI_SELECTOR}, [data-export-html]`)) continue
+    return svg as SVGSVGElement
+  }
+  return null
+}
+
+const SVG_NS_URI = "http://www.w3.org/2000/svg"
+let exportClipCounter = 0
+
+/** Computed CSS color -> SVG paint; `null` when fully transparent. */
+function toSvgPaint(color: string | null | undefined): string | null {
+  const value = (color ?? "").trim()
+  if (!value || value === "transparent" || value === "none") return null
+  // color-mix() computes to `color(srgb r g b / a)`, unknown to most SVG tools.
+  const srgb = value.match(
+    /^color\(srgb\s+([\d.e-]+)\s+([\d.e-]+)\s+([\d.e-]+)(?:\s*\/\s*([\d.e-]+%?))?\)$/
+  )
+  if (srgb) {
+    const [r, g, b] = srgb.slice(1, 4).map((v) => Math.round(Number(v) * 255))
+    const a = srgb[4]
+      ? srgb[4].endsWith("%")
+        ? Number(srgb[4].slice(0, -1)) / 100
+        : Number(srgb[4])
+      : 1
+    if (a === 0) return null
+    return a === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${a})`
+  }
+  if (/^rgba\(.*,\s*0\)$/.test(value)) return null
+  return value
+}
+
+let measureCtx: CanvasRenderingContext2D | null | undefined
+function getMeasureContext(): CanvasRenderingContext2D | null {
+  if (measureCtx === undefined) {
+    try {
+      measureCtx = document.createElement("canvas").getContext("2d")
+    } catch {
+      measureCtx = null
+    }
+  }
+  return measureCtx
+}
+
+/** Frame mapping client (screen) px into the target SVG's user units. */
+type ExportFrame = { left: number; top: number; scale: number }
+
+function applyTextTransform(text: string, transform: string): string {
+  if (transform === "uppercase") return text.toUpperCase()
+  if (transform === "lowercase") return text.toLowerCase()
+  if (transform === "capitalize")
+    return text.replace(/\b\p{L}/gu, (c) => c.toUpperCase())
+  return text
+}
+
+/** Splits a text node into its rendered lines (one client rect each). */
+function getTextLines(
+  textNode: Text
+): { text: string; rect: DOMRect }[] {
+  const text = textNode.data
+  const range = document.createRange()
+  range.selectNodeContents(textNode)
+  const rects = Array.from(range.getClientRects()).filter(
+    (r) => r.width > 0 || r.height > 0
+  )
+  if (rects.length === 0) return []
+  if (rects.length === 1) return [{ text, rect: rects[0] }]
+  const lines: { text: string; rect: DOMRect }[] = []
+  let current: { start: number; top: number; rect: DOMRect } | null = null
+  for (let i = 0; i < text.length; i++) {
+    range.setStart(textNode, i)
+    range.setEnd(textNode, i + 1)
+    const r = range.getBoundingClientRect()
+    if (r.width === 0 && r.height === 0) continue
+    if (!current || Math.abs(r.top - current.top) > r.height / 2) {
+      if (current) {
+        lines.push({ text: text.slice(current.start, i), rect: current.rect })
+      }
+      current = { start: i, top: r.top, rect: r }
+    } else {
+      const left = Math.min(current.rect.left, r.left)
+      const right = Math.max(current.rect.right, r.right)
+      current.rect = new DOMRect(left, current.rect.top, right - left, current.rect.height)
+    }
+  }
+  if (current) lines.push({ text: text.slice(current.start), rect: current.rect })
+  return lines
+}
+
+/** Nearest ancestor (up to `stop`) that clips its overflow. */
+function getClippingAncestor(el: Element, stop: Element): Element | null {
+  let cur: Element | null = el
+  while (cur && cur !== stop.parentElement) {
+    if (getComputedStyle(cur).overflowX !== "visible") return cur
+    cur = cur.parentElement
+  }
+  return null
+}
+
+function emitTextNode(
+  textNode: Text,
+  parent: Element,
+  root: Element,
+  frame: ExportFrame,
+  out: Element
+): void {
+  const cs = getComputedStyle(parent)
+  const preserve = cs.whiteSpace.startsWith("pre")
+  if (!preserve && !textNode.data.trim()) return
+  const fill = toSvgPaint(cs.color) ?? STROKE_COLOR
+  const fontSize = parseFloat(cs.fontSize) || 16
+  const ctx = getMeasureContext()
+  const font = `${cs.fontStyle} ${cs.fontWeight} ${fontSize}px ${cs.fontFamily}`
+  let ascent = fontSize * 0.8
+  let descent = fontSize * 0.2
+  if (ctx) {
+    ctx.font = font
+    const m = ctx.measureText("Hg")
+    if (m.fontBoundingBoxAscent) {
+      ascent = m.fontBoundingBoxAscent
+      descent = m.fontBoundingBoxDescent
+    }
+  }
+  const clipEl = preserve ? null : getClippingAncestor(parent, root)
+  const clipRight = clipEl
+    ? clipEl.getBoundingClientRect().right -
+      parseFloat(getComputedStyle(clipEl).paddingRight || "0")
+    : Infinity
+
+  for (const line of getTextLines(textNode)) {
+    let content = applyTextTransform(
+      preserve ? line.text.replace(/\n$/, "") : line.text.trim(),
+      cs.textTransform
+    )
+    if (!content.trim() && !preserve) continue
+    // Clipped text gets an ellipsis, as on the canvas.
+    if (line.rect.right > clipRight + 0.5 && ctx) {
+      const availCss = (clipRight - line.rect.left) * frame.scale
+      while (
+        content.length > 1 &&
+        ctx.measureText(`${content}…`).width > availCss
+      ) {
+        content = content.slice(0, -1)
+      }
+      content = `${content.trimEnd()}…`
+    }
+    // The line rect spans the font's content area (ascent + descent).
+    const baseline =
+      line.rect.top + ascent * (line.rect.height / Math.max(ascent + descent, 1))
+    const t = document.createElementNS(SVG_NS_URI, "text")
+    t.setAttribute("x", `${(line.rect.left - frame.left) * frame.scale}`)
+    t.setAttribute("y", `${(baseline - frame.top) * frame.scale}`)
+    t.setAttribute("font-size", `${fontSize}px`)
+    // Inline style: the export's `text { font-family }` rule beats an attribute.
+    const fontFamily = `font-family: ${cs.fontFamily.replace(/"/g, "'")}`
+    t.setAttribute("font-weight", cs.fontWeight)
+    if (cs.fontStyle !== "normal") t.setAttribute("font-style", cs.fontStyle)
+    if (cs.textDecorationLine && cs.textDecorationLine !== "none") {
+      t.setAttribute("text-decoration", cs.textDecorationLine)
+    }
+    if (parseFloat(cs.letterSpacing)) {
+      t.setAttribute("letter-spacing", `${parseFloat(cs.letterSpacing)}`)
+    }
+    t.setAttribute("fill", fill)
+    t.setAttribute("style", preserve ? `${fontFamily}; white-space: pre` : fontFamily)
+    if (preserve) t.setAttribute("xml:space", "preserve")
+    t.textContent = content
+    out.appendChild(t)
+  }
+}
+
+/**
+ * Serializes laid-out HTML (an agent card, a foreignObject body) into plain
+ * SVG shapes and text, so the export needs no foreignObject: a foreignObject
+ * in the SVG taints the canvas and breaks PNG export.
+ */
+function serializeHtmlToSvg(
+  root: Element,
+  frame: ExportFrame,
+  out: Element
+): void {
+  const walk = (el: Element, target: Element) => {
+    if (el.matches(NODE_UI_SELECTOR)) return
+    if (el.namespaceURI === SVG_NS_URI) {
+      if (el.tagName.toLowerCase() !== "svg") return
+      const r = el.getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) return
+      const clone = el.cloneNode(true) as Element
+      clone.setAttribute("x", `${(r.left - frame.left) * frame.scale}`)
+      clone.setAttribute("y", `${(r.top - frame.top) * frame.scale}`)
+      clone.setAttribute("width", `${r.width * frame.scale}`)
+      clone.setAttribute("height", `${r.height * frame.scale}`)
+      clone.removeAttribute("class")
+      const color = toSvgPaint(getComputedStyle(el).color)
+      if (color) clone.setAttribute("color", color)
+      target.appendChild(clone)
+      return
+    }
+    const cs = getComputedStyle(el)
+    if (cs.display === "none" || cs.visibility === "hidden") return
+    const r = el.getBoundingClientRect()
+    const x = (r.left - frame.left) * frame.scale
+    const y = (r.top - frame.top) * frame.scale
+    const w = r.width * frame.scale
+    const h = r.height * frame.scale
+
+    const bg = toSvgPaint(cs.backgroundColor)
+    const borderWidth = parseFloat(cs.borderTopWidth) || 0
+    const borderPaint =
+      borderWidth > 0 && cs.borderTopStyle !== "none"
+        ? toSvgPaint(cs.borderTopColor)
+        : null
+    const radius = (parseFloat(cs.borderTopLeftRadius) || 0) * frame.scale
+    const uniformBorder =
+      cs.borderTopWidth === cs.borderBottomWidth &&
+      cs.borderTopWidth === cs.borderLeftWidth &&
+      cs.borderTopWidth === cs.borderRightWidth
+    if ((bg || (borderPaint && uniformBorder)) && w > 0 && h > 0) {
+      const rect = document.createElementNS(SVG_NS_URI, "rect")
+      const inset = borderPaint && uniformBorder ? (borderWidth * frame.scale) / 2 : 0
+      rect.setAttribute("x", `${x + inset}`)
+      rect.setAttribute("y", `${y + inset}`)
+      rect.setAttribute("width", `${Math.max(0, w - inset * 2)}`)
+      rect.setAttribute("height", `${Math.max(0, h - inset * 2)}`)
+      if (radius) {
+        rect.setAttribute("rx", `${radius}`)
+        rect.setAttribute("ry", `${radius}`)
+      }
+      rect.setAttribute("fill", bg ?? "none")
+      if (borderPaint && uniformBorder) {
+        rect.setAttribute("stroke", borderPaint)
+        rect.setAttribute("stroke-width", `${borderWidth * frame.scale}`)
+        if (cs.borderTopStyle === "dashed") {
+          rect.setAttribute("stroke-dasharray", `${4 * frame.scale} ${3 * frame.scale}`)
+        }
+      }
+      target.appendChild(rect)
+    }
+    // Single-side borders (dividers): draw them as lines.
+    if (!uniformBorder) {
+      ;(["Top", "Right", "Bottom", "Left"] as const).forEach((side) => {
+        const bw = parseFloat(cs.getPropertyValue(`border-${side.toLowerCase()}-width`)) || 0
+        const paint = toSvgPaint(cs.getPropertyValue(`border-${side.toLowerCase()}-color`))
+        if (!bw || !paint || cs.getPropertyValue(`border-${side.toLowerCase()}-style`) === "none") return
+        const half = (bw * frame.scale) / 2
+        const line = document.createElementNS(SVG_NS_URI, "line")
+        const [x1, y1, x2, y2] =
+          side === "Top" ? [x, y + half, x + w, y + half]
+          : side === "Bottom" ? [x, y + h - half, x + w, y + h - half]
+          : side === "Left" ? [x + half, y, x + half, y + h]
+          : [x + w - half, y, x + w - half, y + h]
+        line.setAttribute("x1", `${x1}`)
+        line.setAttribute("y1", `${y1}`)
+        line.setAttribute("x2", `${x2}`)
+        line.setAttribute("y2", `${y2}`)
+        line.setAttribute("stroke", paint)
+        line.setAttribute("stroke-width", `${bw * frame.scale}`)
+        target.appendChild(line)
+      })
+    }
+
+    // Clip children only where content actually overflows a clipping box.
+    let childTarget = target
+    const overflows =
+      cs.overflowX !== "visible" &&
+      ((el as HTMLElement).scrollHeight > (el as HTMLElement).clientHeight + 1 ||
+        (el as HTMLElement).scrollWidth > (el as HTMLElement).clientWidth + 1)
+    if (overflows && w > 0 && h > 0) {
+      const id = `besser-export-clip-${++exportClipCounter}`
+      const clipPath = document.createElementNS(SVG_NS_URI, "clipPath")
+      clipPath.setAttribute("id", id)
+      const clipRect = document.createElementNS(SVG_NS_URI, "rect")
+      clipRect.setAttribute("x", `${x}`)
+      clipRect.setAttribute("y", `${y}`)
+      clipRect.setAttribute("width", `${w}`)
+      clipRect.setAttribute("height", `${h}`)
+      if (radius) clipRect.setAttribute("rx", `${radius}`)
+      clipPath.appendChild(clipRect)
+      target.appendChild(clipPath)
+      const g = document.createElementNS(SVG_NS_URI, "g")
+      g.setAttribute("clip-path", `url(#${id})`)
+      target.appendChild(g)
+      childTarget = g
+    }
+
+    el.childNodes.forEach((child) => {
+      if (child.nodeType === 3) {
+        emitTextNode(child as Text, el, root, frame, childTarget)
+      } else if (child.nodeType === 1) {
+        walk(child as Element, childTarget)
+      }
+    })
+  }
+  walk(root, out)
+}
+
+/**
+ * No layout (headless jsdom): keep the text, stacked one leaf per line, so
+ * a server-side render still carries names and bodies.
+ */
+function serializeHtmlTextFallback(
+  root: Element,
+  width: number,
+  out: Element,
+  height = 0
+): void {
+  const lines: string[] = []
+  const collect = (el: Element) => {
+    if (el.matches(NODE_UI_SELECTOR) || el.namespaceURI === SVG_NS_URI) return
+    let own = ""
+    el.childNodes.forEach((child) => {
+      if (child.nodeType === 3) own += (child as Text).data
+      else if (child.nodeType === 1) {
+        if (own.trim()) lines.push(own.trim())
+        own = ""
+        collect(child as Element)
+      }
+    })
+    if (own.trim()) lines.push(own.trim())
+  }
+  collect(root)
+  if (width > 0) {
+    const frame = document.createElementNS(SVG_NS_URI, "rect")
+    frame.setAttribute("x", "0.5")
+    frame.setAttribute("y", "0.5")
+    frame.setAttribute("width", `${width - 1}`)
+    frame.setAttribute("height", `${Math.max(height - 1, lines.length * 16 + 12)}`)
+    frame.setAttribute("rx", "8")
+    frame.setAttribute("fill", "var(--besser-background, #ffffff)")
+    frame.setAttribute("stroke", "var(--besser-gray-variant, #495057)")
+    out.appendChild(frame)
+  }
+  lines.forEach((line, i) => {
+    const t = document.createElementNS(SVG_NS_URI, "text")
+    t.setAttribute("x", "8")
+    t.setAttribute("y", `${20 + i * 16}`)
+    t.setAttribute("font-size", "12px")
+    t.setAttribute("fill", "var(--besser-primary-contrast, #000000)")
+    t.textContent = line
+    out.appendChild(t)
+  })
+}
+
+/** HTML node content (an agent card) as SVG, placed in node-local units. */
+function serializeHtmlNode(
+  node: HTMLElement,
+  htmlRoot: Element,
+  out: Element
+): void {
+  const nodeRect = node.getBoundingClientRect()
+  if (!(nodeRect.width > 0) || !node.offsetWidth) {
+    serializeHtmlTextFallback(htmlRoot, node.offsetWidth, out, node.offsetHeight)
+    return
+  }
+  serializeHtmlToSvg(
+    htmlRoot,
+    {
+      left: nodeRect.left,
+      top: nodeRect.top,
+      scale: node.offsetWidth / nodeRect.width,
+    },
+    out
+  )
+}
+
+/**
+ * Replaces each foreignObject of `clone` (a copy of `live`) with SVG text
+ * and shapes measured from the live one.
+ */
+function replaceForeignObjects(live: Element, clone: Element): void {
+  // By tag, not selector: selector case handling for SVG names varies.
+  const liveFOs = Array.from(live.getElementsByTagNameNS(SVG_NS_URI, "foreignObject"))
+  const cloneFOs = Array.from(clone.getElementsByTagNameNS(SVG_NS_URI, "foreignObject"))
+  if (liveFOs.length !== cloneFOs.length) return
+  liveFOs.forEach((fo, i) => {
+    const g = document.createElementNS(SVG_NS_URI, "g")
+    const x = parseFloat(fo.getAttribute("x") ?? "0") || 0
+    const y = parseFloat(fo.getAttribute("y") ?? "0") || 0
+    const width = parseFloat(fo.getAttribute("width") ?? "0") || 0
+    g.setAttribute("transform", `translate(${x}, ${y})`)
+    const rect = fo.getBoundingClientRect()
+    const content = fo.firstElementChild
+    if (content) {
+      if (rect.width > 0 && width > 0) {
+        serializeHtmlToSvg(
+          content,
+          { left: rect.left, top: rect.top, scale: width / rect.width },
+          g
+        )
+      } else {
+        serializeHtmlTextFallback(content, 0, g)
+      }
+    }
+    cloneFOs[i].replaceWith(g)
+  })
 }
 
 type ExportFilterOptions = {
@@ -137,7 +592,7 @@ export const getSVG = (
   // Standalone mode prepends a snapshot of the current `--besser-*` palette so
   // the downloaded file resolves correctly when opened outside the host page.
   if (svgMode === "standalone") {
-    const paletteRule = snapshotStandalonePalette()
+    const paletteRule = snapshotStandalonePalette(container)
     styleEl.textContent = `${paletteRule}${svgFontStyles}`
   } else {
     styleEl.textContent = svgFontStyles
@@ -157,15 +612,19 @@ export const getSVG = (
   allNodes.forEach((node) => {
     const styles = extractStyles(node.getAttribute("style") ?? "")
     const newGTagForNode = document.createElementNS(SVG_NS, "g")
-    const svgElement = node.querySelector("svg")
+    const htmlRoot = node.querySelector("[data-export-html]")
+    const svgElement = htmlRoot ? null : getNodeBodySvg(node)
 
     newGTagForNode.setAttribute(
       "transform",
       `translate(${styles.transform.x}, ${styles.transform.y})`
     )
-    if (svgElement) {
+    if (htmlRoot) {
+      serializeHtmlNode(node as HTMLElement, htmlRoot, newGTagForNode)
+    } else if (svgElement) {
       // Clone the SVG to avoid removing it from the live DOM
       const clonedSvg = svgElement.cloneNode(true) as Element
+      replaceForeignObjects(svgElement, clonedSvg)
       // Remove handles from the clone (they're UI-only connection points)
       clonedSvg
         .querySelectorAll(".react-flow__handle")
@@ -283,6 +742,43 @@ export const getSVG = (
   }
 
   return mainSVG.outerHTML
+}
+
+/**
+ * Embeds `<image href>` files (NN layer icons) as data URIs: an SVG opened
+ * as a file or drawn to a PNG canvas never loads external images. Images
+ * that cannot be fetched (headless render) keep their href.
+ */
+export async function inlineSvgImages(svg: string): Promise<string> {
+  const hrefs = Array.from(
+    new Set(
+      Array.from(svg.matchAll(/<image\b[^>]*?\bhref="([^"]+)"/g), (m) => m[1])
+    )
+  ).filter((href) => !href.startsWith("data:"))
+  if (hrefs.length === 0 || typeof fetch === "undefined") return svg
+  const inlined = await Promise.all(
+    hrefs.map(async (href) => {
+      try {
+        const response = await fetch(new URL(href, document.baseURI).href)
+        if (!response.ok) return null
+        const blob = await response.blob()
+        return await new Promise<string | null>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(String(reader.result))
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return null
+      }
+    })
+  )
+  let result = svg
+  hrefs.forEach((href, i) => {
+    const dataUri = inlined[i]
+    if (dataUri) result = result.split(`href="${href}"`).join(`href="${dataUri}"`)
+  })
+  return result
 }
 
 /**
@@ -573,8 +1069,16 @@ function getNodeBoundsFromDOM(
   nodeElements.forEach((nodeEl) => {
     const styleStr = nodeEl.getAttribute("style") ?? ""
     const styles = extractStyles(styleStr)
-    const svgElement = nodeEl.querySelector("svg")
-    const renderedSvgRect = svgElement?.getBoundingClientRect()
+    const svgElement = nodeEl.querySelector("[data-export-html]")
+      ? null
+      : getNodeBodySvg(nodeEl)
+    const measuredEl = svgElement ?? nodeEl
+    // jsdom (the headless server render) has no layout: every rect is 0x0.
+    const measuredRect = measuredEl.getBoundingClientRect()
+    const renderedSvgRect =
+      measuredRect.width > 0 || measuredRect.height > 0
+        ? measuredRect
+        : undefined
     if (svgElement) {
       const viewBox = svgElement.getAttribute("viewBox")
       if (viewBox) {
@@ -612,11 +1116,13 @@ function getNodeBoundsFromDOM(
                 const bboxMaxY =
                   styles.transform.y + (bbox.y + bbox.height - vbY) * scaleY
 
+                // The node's own viewport box always counts: getBBox can
+                // under-report (jsdom shims it to 10x10).
                 foundNode = true
-                minX = Math.min(minX, bboxX)
-                minY = Math.min(minY, bboxY)
-                maxX = Math.max(maxX, bboxMaxX)
-                maxY = Math.max(maxY, bboxMaxY)
+                minX = Math.min(minX, bboxX, styles.transform.x)
+                minY = Math.min(minY, bboxY, styles.transform.y)
+                maxX = Math.max(maxX, bboxMaxX, styles.transform.x + svgWidth)
+                maxY = Math.max(maxY, bboxMaxY, styles.transform.y + svgHeight)
                 return
               }
             } catch {
@@ -791,7 +1297,7 @@ function getNodeOverflowBoundsFromDOM(
     const nodeX = styles.transform.x
     const nodeY = styles.transform.y
 
-    const svgEl = node.querySelector("svg")
+    const svgEl = getNodeBodySvg(node)
     if (!svgEl) return
 
     // Parse the viewBox to understand the local coordinate system
@@ -946,7 +1452,7 @@ function getTextBoundsFromDOM(
     const nodeX = styles.transform.x
     const nodeY = styles.transform.y
 
-    const svgEl = nodeEl.querySelector("svg")
+    const svgEl = getNodeBodySvg(nodeEl)
     if (!svgEl) return
 
     const viewBox = svgEl.getAttribute("viewBox")
