@@ -288,6 +288,14 @@ describe("fitViewToModel", () => {
     })
   })
 
+  it("goes below the desktop minimum on a phone-width canvas so the diagram fits", async () => {
+    const instance = onCanvas({ width: 2000, height: 600 }, 390, 700)
+    await fitViewToModel(instance)
+    const [{ x, zoom }] = instance.setViewport.mock.calls.at(-1)!
+    expect(zoom).toBeLessThan(LOADED_MODEL_MIN_ZOOM)
+    expect(x + 2000 * zoom).toBeLessThanOrEqual(390 - 40 + 0.01)
+  })
+
   it("resets an empty diagram to the origin", async () => {
     const instance = fakeInstance(() => [])
     await fitViewToModel(instance)

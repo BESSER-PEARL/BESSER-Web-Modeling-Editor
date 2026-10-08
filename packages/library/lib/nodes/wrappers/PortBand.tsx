@@ -29,8 +29,8 @@ const nearestOutlinePoint = (shape: NodeShape, box: LayoutRect, p: LayoutPoint) 
  * (a few px inside and outside) that starts a connection from wherever it is
  * grabbed, plus one connector dot that follows the pointer along the nearest
  * outline point while the node is hovered. The node body still drags the
- * node; on a selected node the corners and a thin line on the outline resize
- * (`portBand.css`), the rest of the band still connects.
+ * node; on a selected node the corners resize (`portBand.css`), the whole
+ * band still connects.
  *
  * Plain rectangles use four strips along the box. Other shapes (circles,
  * diamonds, rounded or inset outlines, `nodeShapes`) get an SVG band that

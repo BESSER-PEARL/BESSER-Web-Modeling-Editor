@@ -287,6 +287,18 @@ html.dark .besser-editor {
   outline-offset: 2px;
 }
 
+/* Keyboard focus on canvas nodes and edges (React Flow removes the outline). */
+.besser-editor .react-flow__node.selectable:focus-visible,
+.besser-editor .react-flow__edge.selectable:focus-visible {
+  outline: 2px solid var(--besser-accent, #35798c);
+  outline-offset: 3px;
+}
+.besser-editor .react-flow__edge.selectable:focus-visible .edge-overlay {
+  opacity: 0.3;
+  stroke: var(--besser-accent, #35798c);
+  stroke-width: 8px;
+}
+
 /* Palette items: a grabbable thumbnail with hover / press feedback. */
 .besser-palette-item {
   border-radius: 6px;
@@ -791,7 +803,8 @@ svg.react-flow__connectionline {
   --bp-accent: var(--besser-primary, #35798c);
   --bp-accent-fg: var(--besser-background, #ffffff);
   --bp-accent-soft: color-mix(in srgb, var(--bp-accent) 12%, transparent);
-  --bp-ring: color-mix(in srgb, var(--bp-accent) 55%, transparent);
+  /* Solid: a translucent ring fell below 3:1 on the light surface. */
+  --bp-ring: var(--bp-accent);
   --bp-danger: #dc2626;
   --bp-danger-soft: color-mix(in srgb, #dc2626 10%, transparent);
   --bp-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;

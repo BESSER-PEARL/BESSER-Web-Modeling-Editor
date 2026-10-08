@@ -148,6 +148,24 @@ export const isRefusedCrossPoolFlow = (
   return allowed.length === 1 && allowed[0] === "BPMNSequenceFlow"
 }
 
+/**
+ * BPMN pair only a message flow could join (end event -> task, task -> start
+ * event), but not across two pools: `resolveCrossPoolFlowType` drops it, so
+ * the drag must already show it as refused.
+ */
+export const isRefusedSamePoolMessageFlow = (
+  nodes: readonly MinimalNode[],
+  source: string | null | undefined,
+  target: string | null | undefined
+): boolean => {
+  if (!source || !target || crossesPools(nodes, source, target)) return false
+  const sourceType = nodes.find((n) => n.id === source)?.type
+  const targetType = nodes.find((n) => n.id === target)?.type
+  if (!sourceType?.startsWith("bpmn") || !targetType?.startsWith("bpmn")) return false
+  const allowed = getAllowedBpmnFlowEdgeTypes(sourceType, targetType)
+  return allowed.includes("BPMNMessageFlow") && !allowed.includes("BPMNSequenceFlow")
+}
+
 const classIdOf = (node: MinimalNode | undefined): string | undefined => {
   const raw = (node?.data as { classId?: unknown } | null | undefined)?.classId
   return typeof raw === "string" && raw ? raw : undefined
@@ -194,6 +212,9 @@ export type RefusalReason =
   | "bpmnCrossPool"
   | "bpmnIllegalFlow"
   | "bpmnMessageSamePool"
+  | "stateCodeBlock"
+  | "stateFinalOutgoing"
+  | "stateInitialIncoming"
   | "generic"
 
 const isNNSpecial = (t?: string) =>
@@ -224,15 +245,13 @@ export const refusalReason = (
   }
   if (s?.startsWith("bpmn") && t?.startsWith("bpmn")) {
     if (isRefusedCrossPoolFlow(nodes, source, target)) return "bpmnCrossPool"
-    const allowed = getAllowedBpmnFlowEdgeTypes(s, t)
-    // Only a message flow fits the pair (end event -> task, task -> start
-    // event), but both ends sit in the same pool.
-    return allowed.length === 1 &&
-      allowed[0] === "BPMNMessageFlow" &&
-      !crossesPools(nodes, source, target)
+    return isRefusedSamePoolMessageFlow(nodes, source, target)
       ? "bpmnMessageSamePool"
       : "bpmnIllegalFlow"
   }
+  if (s === "StateCodeBlock" || t === "StateCodeBlock") return "stateCodeBlock"
+  if (s === "StateFinalNode") return "stateFinalOutgoing"
+  if (t === "StateInitialNode") return "stateInitialIncoming"
   return "generic"
 }
 
@@ -249,5 +268,10 @@ export const REFUSAL_MESSAGES: Record<RefusalReason, string> = {
   bpmnIllegalFlow: "BPMN doesn't allow a flow between these elements.",
   bpmnMessageSamePool:
     "End events can't start a flow and start events can't receive one; message flows only connect different pools.",
+  stateCodeBlock:
+    "Code blocks aren't connected; reference them by name from a state body or a transition.",
+  stateFinalOutgoing: "A final state ends the state machine; no transition leaves it.",
+  stateInitialIncoming:
+    "The initial state only starts the state machine; no transition enters it.",
   generic: "These elements can't be connected.",
 }

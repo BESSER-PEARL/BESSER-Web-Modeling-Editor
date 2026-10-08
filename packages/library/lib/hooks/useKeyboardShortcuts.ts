@@ -59,18 +59,14 @@ export const useKeyboardShortcuts = () => {
   const pointerRef = useRef<XYPosition | null>(null)
   const lastPastePointerRef = useRef<XYPosition | null>(null)
 
-  const { undo, redo, canUndo, canRedo, undoManager, nodes, setNodes } =
-    useDiagramStore(
-      useShallow((state) => ({
-        undo: state.undo,
-        redo: state.redo,
-        canUndo: state.canUndo,
-        canRedo: state.canRedo,
-        undoManager: state.undoManager,
-        nodes: state.nodes,
-        setNodes: state.setNodes,
-      }))
-    )
+  const { undo, redo, undoManager, setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      undo: state.undo,
+      redo: state.redo,
+      undoManager: state.undoManager,
+      setNodes: state.setNodes,
+    }))
+  )
   const { popoverElementId, setPopOverElementId } = usePopoverStore(
     useShallow((state) => ({
       popoverElementId: state.popoverElementId,
@@ -89,12 +85,12 @@ export const useKeyboardShortcuts = () => {
   const canOpenPopover =
     isDiagramModifiable || (mode === BesserMode.Assessment && !readonly)
   const {
-    selectedElementIds,
     hasSelectedElements,
     selectAll,
     clearSelection,
     copySelectedElements,
     pasteElements,
+    duplicateSelectedElements,
     cutSelectedElements,
     deleteSelectedElements,
   } = useSelectionForCopyPaste()
@@ -152,9 +148,16 @@ export const useKeyboardShortcuts = () => {
           ?.focus({ preventScroll: true })
         return
       }
+      // A container around the canvas counts too (a focusable host <main>
+      // keeps focus after a pane click).
       const onCanvas =
-        target === document.body || (!!flowDom && flowDom.contains(target))
+        target === document.body ||
+        (!!flowDom && (flowDom.contains(target) || target.contains?.(flowDom)))
       if (!onCanvas || isTextEntryTarget(target) || isInPopup(target)) return
+      // React Flow's own Escape handler on a focused node / edge toggles its
+      // selection (and re-selects it after a clear); this handler owns Escape.
+      const onCanvasElement = !!target.matches?.(CANVAS_ELEMENT_SELECTOR)
+      if (onCanvasElement) event.stopPropagation()
       // First Escape closes the open inspector, the next clears the selection.
       if (popoverElementId) {
         event.preventDefault()
@@ -162,6 +165,7 @@ export const useKeyboardShortcuts = () => {
         return
       }
       clearSelection()
+      if (onCanvasElement) target.blur()
     }
 
     const handleKeyDown = async (event: KeyboardEvent) => {
@@ -251,6 +255,7 @@ export const useKeyboardShortcuts = () => {
           const dx =
             key === "ArrowLeft" ? -step : key === "ArrowRight" ? step : 0
           const dy = key === "ArrowUp" ? -step : key === "ArrowDown" ? step : 0
+          const { nodes, selectedElementIds } = diagramStoreApi.getState()
           const selected = new Set(selectedElementIds)
           setNodes(
             nodes.map((n) =>
@@ -271,6 +276,7 @@ export const useKeyboardShortcuts = () => {
         if (key === "Enter" && !event.shiftKey) {
           const fromCanvas =
             target === document.body || !!target.closest?.(".react-flow")
+          const { selectedElementIds } = diagramStoreApi.getState()
           if (fromCanvas && canOpenPopover && selectedElementIds.length === 1) {
             event.preventDefault()
             setPopOverElementId(selectedElementIds[0])
@@ -351,8 +357,7 @@ export const useKeyboardShortcuts = () => {
             event.preventDefault()
             if (hasSelectedElements()) {
               pasteCountRef.current = 1
-              copySelectedElements()
-              pasteElements(pasteCountRef.current)
+              void duplicateSelectedElements(pasteCountRef.current)
             }
           }
           break
@@ -374,22 +379,19 @@ export const useKeyboardShortcuts = () => {
   }, [
     undo,
     redo,
-    canUndo,
-    canRedo,
     undoManager,
-    selectedElementIds,
     hasSelectedElements,
     selectAll,
     clearSelection,
     copySelectedElements,
     cutSelectedElements,
     pasteElements,
+    duplicateSelectedElements,
     deleteSelectedElements,
     isDiagramModifiable,
     canOpenPopover,
     popoverElementId,
     setPopOverElementId,
-    nodes,
     setNodes,
     diagramStoreApi,
     flowStoreApi,

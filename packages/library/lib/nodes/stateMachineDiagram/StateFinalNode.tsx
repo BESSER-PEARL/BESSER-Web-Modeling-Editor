@@ -1,6 +1,6 @@
 import { NodeProps, type Node } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
-import { DefaultNodeWrapper, HandleId } from "../wrappers"
+import { DefaultNodeWrapper } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
@@ -35,16 +35,6 @@ export function StateFinalNode({
       width={width}
       height={height}
       elementId={id}
-      hiddenHandles={[
-        HandleId.TopLeft,
-        HandleId.TopRight,
-        HandleId.RightTop,
-        HandleId.RightBottom,
-        HandleId.BottomRight,
-        HandleId.BottomLeft,
-        HandleId.LeftBottom,
-        HandleId.LeftTop,
-      ]}
     >
       {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. */}

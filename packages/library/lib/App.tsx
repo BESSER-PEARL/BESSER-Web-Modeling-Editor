@@ -5,6 +5,7 @@ import {
   ReactFlow,
   SelectionMode,
   useStore,
+  useStoreApi,
   useReactFlow,
   type Edge,
   type Node,
@@ -15,6 +16,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
 } from "react"
 import {
   CustomBackground,
@@ -97,6 +99,21 @@ function useStableHandler<T extends (...args: any[]) => any>(fn: T): T {
 const LOADED_MODEL_PADDING = { top: 40, right: 40, bottom: 96, left: 40 }
 /** Lowest zoom a loaded diagram is shrunk to so that it fits. */
 export const LOADED_MODEL_MIN_ZOOM = 0.3
+/** Phone-width canvases go lower, or a typical diagram cannot fit at all. */
+export const NARROW_CANVAS_MIN_ZOOM = 0.15
+const NARROW_CANVAS_WIDTH = 480
+const NARROW_VIEWPORT_QUERY = `(max-width: ${NARROW_CANVAS_WIDTH - 1}px)`
+
+export const loadedModelMinZoom = (canvasWidth: number) =>
+  canvasWidth < NARROW_CANVAS_WIDTH ? NARROW_CANVAS_MIN_ZOOM : LOADED_MODEL_MIN_ZOOM
+
+const subscribeNarrowViewport = (onChange: () => void) => {
+  const query = window.matchMedia?.(NARROW_VIEWPORT_QUERY)
+  query?.addEventListener("change", onChange)
+  return () => query?.removeEventListener("change", onChange)
+}
+const isNarrowViewport = () =>
+  window.matchMedia?.(NARROW_VIEWPORT_QUERY).matches ?? false
 /** Upper bound (~2 s) on waiting for React Flow to render a loaded model. */
 const MAX_RENDER_WAIT_FRAMES = 120
 
@@ -140,7 +157,7 @@ export function whenModelRendered(
 /**
  * Viewport for a freshly loaded diagram: the whole diagram fits inside the
  * padded canvas (clear of the bottom toolbar), never zoomed in past 100%
- * and never below `LOADED_MODEL_MIN_ZOOM`; one still too large at that zoom
+ * and never below `loadedModelMinZoom`; one still too large at that zoom
  * is pinned to its top-left corner instead of being cut off on every side.
  * An empty diagram resets to the origin.
  */
@@ -162,7 +179,7 @@ export async function fitViewToModel(instance: ReactFlowInstance) {
   const zoom = Math.min(
     1,
     Math.max(
-      LOADED_MODEL_MIN_ZOOM,
+      loadedModelMinZoom(width),
       Math.min(availW / bounds.width, availH / bounds.height)
     )
   )
@@ -275,6 +292,11 @@ function useRevealEditedNode(enabled: boolean) {
 
 function App({ onReactFlowInit }: AppProps) {
   useKeyboardShortcuts()
+  const narrowViewport = useSyncExternalStore(
+    subscribeNarrowViewport,
+    isNarrowViewport,
+    () => false
+  )
 
   const { nodes, onNodesChange, edges, onEdgesChange, diagramId, addEdge } =
     useDiagramStore(
@@ -370,9 +392,20 @@ function App({ onReactFlowInit }: AppProps) {
     }))
   )
 
+  const flowStore = useStoreApi()
   const onNodeClick = useStableHandler(
-    (_event: React.MouseEvent, node: Node) => {
-      if (!pendingAssociationEdgeId) return
+    (event: React.MouseEvent, node: Node) => {
+      if (!pendingAssociationEdgeId) {
+        // A plain click inside a multi-selection keeps only the clicked node
+        // (React Flow leaves the whole selection); Shift / Ctrl / Meta toggle.
+        if (event.shiftKey || event.ctrlKey || event.metaKey) return
+        const { nodeLookup, edgeLookup, addSelectedNodes } = flowStore.getState()
+        const othersSelected =
+          [...nodeLookup.values()].some((n) => n.selected && n.id !== node.id) ||
+          [...edgeLookup.values()].some((e) => e.selected)
+        if (othersSelected) addSelectedNodes([node.id])
+        return
+      }
       // Stale-id guard: the pending association must still exist in
       // THIS diagram's edges (the linking store is module-level).
       const associationExists = edges.some(
@@ -396,14 +429,15 @@ function App({ onReactFlowInit }: AppProps) {
     }
   )
 
-  // Escape cancels a pending association-class link pick.
+  // Escape cancels a pending association-class link pick (capture: the
+  // canvas Escape handler stops the event on a focused node).
   useEffect(() => {
     if (!pendingAssociationEdgeId) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") cancelLinking()
     }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
+    window.addEventListener("keydown", onKeyDown, true)
+    return () => window.removeEventListener("keydown", onKeyDown, true)
   }, [pendingAssociationEdgeId, cancelLinking])
 
   const handlePaneClicked = useCallback(() => {
@@ -466,7 +500,10 @@ function App({ onReactFlowInit }: AppProps) {
           }
           handleReactFlowInit(instance)
         }}
-        minZoom={Math.min(CANVAS.MIN_SCALE_TO_ZOOM_OUT, LOADED_MODEL_MIN_ZOOM)}
+        minZoom={Math.min(
+          CANVAS.MIN_SCALE_TO_ZOOM_OUT,
+          narrowViewport ? NARROW_CANVAS_MIN_ZOOM : LOADED_MODEL_MIN_ZOOM
+        )}
         maxZoom={CANVAS.MAX_SCALE_TO_ZOOM_IN}
         snapToGrid
         snapGrid={[CANVAS.SNAP_TO_GRID_PX, CANVAS.SNAP_TO_GRID_PX]}

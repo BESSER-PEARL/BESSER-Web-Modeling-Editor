@@ -14,92 +14,124 @@ import {
 import { centerPastedOn, withUniqueCopyNames } from "@/utils/elementNaming"
 import { CANVAS } from "@/constants"
 
+/**
+ * Last copied / cut payload. Paste falls back to it when the system
+ * clipboard can't be read (no permission, insecure context), so copy and
+ * paste inside the editor never depend on clipboard-read access.
+ */
+let copiedPayload: ClipboardData | null = null
+
+const isClipboardData = (value: unknown): value is ClipboardData =>
+  !!value &&
+  Array.isArray((value as ClipboardData).nodes) &&
+  Array.isArray((value as ClipboardData).edges)
+
+const canUseClipboard = () => !!navigator.clipboard && window.isSecureContext
+
+const clipboardReadPermission = async (): Promise<PermissionState | null> => {
+  try {
+    const status = await navigator.permissions?.query({
+      name: "clipboard-read" as PermissionName,
+    })
+    return status?.state ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Puts `data` in the in-memory copy and, best effort, on the clipboard. */
+const storeCopy = async (data: ClipboardData): Promise<boolean> => {
+  copiedPayload = data
+  if (!canUseClipboard()) return true
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(data))
+  } catch (error) {
+    log.error("Failed to copy to clipboard:", error as Error)
+  }
+  return true
+}
+
+/**
+ * What a paste inserts: the clipboard when it holds a diagram payload (a copy
+ * from another tab), else the in-memory copy. Without read permission the
+ * clipboard is not asked at all, so no permission prompt interrupts a paste.
+ */
+const readPastePayload = async (): Promise<ClipboardData | null> => {
+  if (!canUseClipboard()) return copiedPayload
+  if (copiedPayload) {
+    const permission = await clipboardReadPermission()
+    if (permission === "denied" || permission === "prompt") return copiedPayload
+  }
+  try {
+    const parsed: unknown = JSON.parse(await navigator.clipboard.readText())
+    if (isClipboardData(parsed)) return parsed
+  } catch {
+    // Not readable or not a diagram payload.
+  }
+  return copiedPayload
+}
+
 export const useSelectionForCopyPaste = () => {
-  const {
-    nodes,
-    edges,
-    selectedElementIds,
-    setSelectedElementsId,
-    setNodes,
-    setEdges,
-  } = useDiagramStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      selectedElementIds: state.selectedElementIds,
-      setSelectedElementsId: state.setSelectedElementsId,
-      setNodes: state.setNodes,
-      setEdges: state.setEdges,
-    }))
-  )
+  const { selectedElementIds, setSelectedElementsId, setNodes, setEdges } =
+    useDiagramStore(
+      useShallow((state) => ({
+        selectedElementIds: state.selectedElementIds,
+        setSelectedElementsId: state.setSelectedElementsId,
+        setNodes: state.setNodes,
+        setEdges: state.setEdges,
+      }))
+    )
+  // Live state in the callbacks keeps them stable across drag frames.
   const storeApi = useDiagramStoreApi()
 
-  const hasSelectedElements = useCallback(() => {
-    return selectedElementIds.length > 0
-  }, [selectedElementIds])
+  const hasSelectedElements = useCallback(
+    () => storeApi.getState().selectedElementIds.length > 0,
+    [storeApi]
+  )
 
   const selectAll = useCallback(() => {
-    const allElementIds = [
+    const { nodes, edges } = storeApi.getState()
+    setSelectedElementsId([
       ...nodes.map((node) => node.id),
       ...edges.map((edge) => edge.id),
-    ]
-
-    setSelectedElementsId(allElementIds)
+    ])
     setNodes(nodes.map((node) => ({ ...node, selected: true })))
     setEdges(edges.map((edge) => ({ ...edge, selected: true })))
-  }, [nodes, edges, setSelectedElementsId, setNodes, setEdges])
+  }, [storeApi, setSelectedElementsId, setNodes, setEdges])
 
   const clearSelection = useCallback(() => {
+    const { nodes, edges } = storeApi.getState()
     setSelectedElementsId([])
     setNodes(nodes.map((node) => ({ ...node, selected: false })))
     setEdges(edges.map((edge) => ({ ...edge, selected: false })))
-  }, [nodes, edges, setSelectedElementsId, setNodes, setEdges])
+  }, [storeApi, setSelectedElementsId, setNodes, setEdges])
+
+  /** The current selection as a clipboard payload (null when empty). */
+  const selectionPayload = useCallback((): ClipboardData | null => {
+    const { selectedElementIds: ids, nodes, edges } = storeApi.getState()
+    return ids.length > 0 ? createClipboardData(ids, nodes, edges) : null
+  }, [storeApi])
 
   const copySelectedElements = useCallback(async () => {
-    if (selectedElementIds.length === 0) {
-      return false
-    }
-
-    const clipboardData = createClipboardData(selectedElementIds, nodes, edges)
-
-    try {
-      const jsonString = JSON.stringify(clipboardData)
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(jsonString)
-        return true
-      }
-    } catch (error) {
-      log.error("Failed to copy to clipboard:", error as Error)
-      return false
-    }
-
-    return false
-  }, [selectedElementIds, nodes, edges])
+    const data = selectionPayload()
+    return data ? storeCopy(data) : false
+  }, [selectionPayload])
 
   /**
-   * Pastes the clipboard. With `anchor` (flow coordinates) the copies are
-   * centred there, cascading 20 px per repeated paste; without it they land
-   * 20 px per paste down-right of the originals (duplicate).
+   * Pastes `payload`, or the clipboard / last copy without it. With `anchor`
+   * (flow coordinates) the copies are centred there, cascading 20 px per
+   * repeated paste; without it they land 20 px per paste down-right of the
+   * originals (duplicate).
    */
   const pasteElements = useCallback(
-    async (pasteCount: number = 1, anchor?: XYPosition) => {
+    async (
+      pasteCount: number = 1,
+      anchor?: XYPosition,
+      payload?: ClipboardData
+    ) => {
       try {
-        let text: string
-        if (navigator.clipboard && window.isSecureContext) {
-          text = await navigator.clipboard.readText()
-        } else {
-          return false
-        }
-
-        const clipboardData = JSON.parse(text) as ClipboardData
-
-        if (
-          !clipboardData ||
-          !Array.isArray(clipboardData.nodes) ||
-          !Array.isArray(clipboardData.edges)
-        ) {
-          return false
-        }
+        const clipboardData = payload ?? (await readPastePayload())
+        if (!isClipboardData(clipboardData)) return false
 
         let materialized = materializeClipboardData(clipboardData, pasteCount)
         if (anchor) {
@@ -168,64 +200,24 @@ export const useSelectionForCopyPaste = () => {
     [storeApi, setNodes, setEdges, setSelectedElementsId]
   )
 
-  const cutSelectedElements = useCallback(async () => {
-    if (selectedElementIds.length === 0) {
-      return false
-    }
-
-    const clipboardData = createClipboardData(selectedElementIds, nodes, edges)
-
-    try {
-      const jsonString = JSON.stringify(clipboardData)
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(jsonString)
-      } else {
-        return false
-      }
-    } catch (error) {
-      log.error("Failed to copy to clipboard:", error as Error)
-      return false
-    }
-
-    const allNodesToCut = getAllNodesToInclude(selectedElementIds, nodes)
-    const expandedNodeIds = allNodesToCut.map((node) => node.id)
-    const edgeIdsToRemove = getEdgesToRemove(
-      selectedElementIds,
-      expandedNodeIds,
-      edges
-    )
-
-    const remainingNodes = nodes.filter(
-      (node) => !expandedNodeIds.includes(node.id)
-    )
-    const remainingEdges = edges.filter((edge) => !edgeIdsToRemove.has(edge.id))
-
-    setNodes(remainingNodes)
-    setEdges(remainingEdges)
-    setSelectedElementsId([])
-
-    return true
-  }, [
-    selectedElementIds,
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    setSelectedElementsId,
-  ])
+  /** Ctrl+D: pastes a copy of the selection without touching the clipboard. */
+  const duplicateSelectedElements = useCallback(
+    async (pasteCount: number = 1) => {
+      const data = selectionPayload()
+      return data ? pasteElements(pasteCount, undefined, data) : false
+    },
+    [selectionPayload, pasteElements]
+  )
 
   const deleteSelectedElements = useCallback(() => {
-    if (selectedElementIds.length === 0) {
+    const { selectedElementIds: ids, nodes, edges } = storeApi.getState()
+    if (ids.length === 0) {
       return false
     }
 
-    const allNodesToDelete = getAllNodesToInclude(selectedElementIds, nodes)
+    const allNodesToDelete = getAllNodesToInclude(ids, nodes)
     const expandedNodeIds = allNodesToDelete.map((node) => node.id)
-    const edgeIdsToRemove = getEdgesToRemove(
-      selectedElementIds,
-      expandedNodeIds,
-      edges
-    )
+    const edgeIdsToRemove = getEdgesToRemove(ids, expandedNodeIds, edges)
 
     const remainingNodes = nodes.filter(
       (node) => !expandedNodeIds.includes(node.id)
@@ -237,14 +229,14 @@ export const useSelectionForCopyPaste = () => {
     setSelectedElementsId([])
 
     return true
-  }, [
-    selectedElementIds,
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    setSelectedElementsId,
-  ])
+  }, [storeApi, setNodes, setEdges, setSelectedElementsId])
+
+  const cutSelectedElements = useCallback(async () => {
+    const data = selectionPayload()
+    if (!data) return false
+    void storeCopy(data)
+    return deleteSelectedElements()
+  }, [selectionPayload, deleteSelectedElements])
 
   return {
     selectedElementIds,
@@ -253,6 +245,7 @@ export const useSelectionForCopyPaste = () => {
     clearSelection,
     copySelectedElements,
     pasteElements,
+    duplicateSelectedElements,
     cutSelectedElements,
     deleteSelectedElements,
   }

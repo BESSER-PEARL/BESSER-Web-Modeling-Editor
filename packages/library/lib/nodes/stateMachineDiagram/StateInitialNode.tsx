@@ -1,6 +1,6 @@
 import { NodeProps, type Node } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
-import { DefaultNodeWrapper, HandleId } from "../wrappers"
+import { DefaultNodeWrapper } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
@@ -9,9 +9,9 @@ import { useTranslation } from "@/i18n"
 
 /**
  * Filled circle marking the entry point of a state machine. v3 source:
- * `uml-state-initial-node-component.tsx`. Defaults to 45×45; the v3
- * fork hid corner / mid handles so transitions only attach to the four
- * cardinal sides — same here.
+ * `uml-state-initial-node-component.tsx`. Defaults to 45×45. Every
+ * handle id stays rendered (invisible anchors): migrated v3 transitions
+ * reference corner ids, and the floating edge picks the real attach point.
  *
  * The v3 visual was a SOLID BLACK disc. The shared
  * `getCustomColorsFromData` helper falls back to `var(--besser-background)`
@@ -40,16 +40,6 @@ export function StateInitialNode({
       width={width}
       height={height}
       elementId={id}
-      hiddenHandles={[
-        HandleId.TopLeft,
-        HandleId.TopRight,
-        HandleId.RightTop,
-        HandleId.RightBottom,
-        HandleId.BottomRight,
-        HandleId.BottomLeft,
-        HandleId.LeftBottom,
-        HandleId.LeftTop,
-      ]}
     >
       {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. Mirrors v3

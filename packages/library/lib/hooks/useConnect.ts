@@ -9,7 +9,7 @@ import {
   OnEdgesDelete,
   IsValidConnection,
 } from "@xyflow/react"
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import {
   applyOclContextAutofill,
   findClosestHandle,
@@ -34,6 +34,7 @@ import { setConnectStart } from "@/edges/FloatingConnectionLine"
 import {
   isInteriorPoint,
   isRefusedCrossPoolFlow,
+  isRefusedSamePoolMessageFlow,
   pickBodyDropHandle,
   preselectLinkAssociation,
   refusalReason,
@@ -41,6 +42,7 @@ import {
   REFUSAL_MESSAGES,
 } from "@/edges/connectRules"
 import {
+  clearConnectionNotice,
   markInvalidTarget,
   showConnectionNotice,
 } from "@/edges/connectionNotice"
@@ -89,7 +91,8 @@ const isConnectionAllowed = (
   target: string | null | undefined
 ): boolean =>
   canConnectEndpoints(nodes, source, target, (n) => n.id, edges) &&
-  !isRefusedCrossPoolFlow(nodes, source, target)
+  !isRefusedCrossPoolFlow(nodes, source, target) &&
+  !isRefusedSamePoolMessageFlow(nodes, source, target)
 
 const LINK_EDGE_TYPES = new Set(["ObjectLink", "UserModelLink"])
 
@@ -216,6 +219,7 @@ export const useConnect = () => {
     connectionStartParams.current = params
     leftSourceRef.current = false
     stopTrackingRef.current?.()
+    clearConnectionNotice()
     const sourceRect = params.nodeId ? rectOf(params.nodeId) : undefined
     if (!sourceRect) return
     // A self-loop needs the pointer to leave the node and come back, so a
@@ -244,12 +248,28 @@ export const useConnect = () => {
         leftSourceRef.current = true
       }
     }
+    // A cancelled pointer (touch interrupted, window lost) ends no connection.
+    const onCancel = () => {
+      stopTrackingRef.current?.()
+      stopTrackingRef.current = null
+    }
     document.addEventListener("pointermove", onMove, true)
+    document.addEventListener("pointercancel", onCancel, true)
     stopTrackingRef.current = () => {
       document.removeEventListener("pointermove", onMove, true)
+      document.removeEventListener("pointercancel", onCancel, true)
       markInvalidTarget(null)
     }
   }
+
+  // Unmounted mid-drag (diagram switch): drop the document listeners.
+  useEffect(
+    () => () => {
+      stopTrackingRef.current?.()
+      stopTrackingRef.current = null
+    },
+    []
+  )
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -350,6 +370,7 @@ export const useConnect = () => {
       }
 
       addEdge(newEdge)
+      clearConnectionNotice()
 
       // OCL context auto-fill (v3 parity): linking a
       // constraint to a class rewrites the constraint's context clause
@@ -551,6 +572,7 @@ export const useConnect = () => {
               ...(initialDataOnEnd ? { data: initialDataOnEnd } : {}),
             })
           )
+          clearConnectionNotice()
 
           // Same OCL context auto-fill as `onConnect`.
           if (resolvedTypeOnEnd === "ClassOCLLink") {

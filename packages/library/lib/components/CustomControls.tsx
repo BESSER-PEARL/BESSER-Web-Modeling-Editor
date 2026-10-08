@@ -32,6 +32,23 @@ const STRATEGY_LABELS: Record<AutoLayoutStrategy, { key: string; fallback: strin
   vertical: { key: "toolbar.autoLayoutStrategy.vertical", fallback: "Top to bottom" },
 }
 
+// React Flow's own control icons (not exported), so the bar looks unchanged.
+const ZoomInIcon = () => (
+  <svg viewBox="0 0 32 32" aria-hidden="true">
+    <path d="M32 18.133H18.133V32h-4.266V18.133H0v-4.266h13.867V0h4.266v13.867H32z" />
+  </svg>
+)
+const ZoomOutIcon = () => (
+  <svg viewBox="0 0 32 5" aria-hidden="true">
+    <path d="M0 0h32v4.2H0z" />
+  </svg>
+)
+const FitViewIcon = () => (
+  <svg viewBox="0 0 32 30" aria-hidden="true">
+    <path d="M3.692 4.63c0-.53.4-.938.939-.938h5.215V0H4.708C2.13 0 0 2.054 0 4.63v5.216h3.692V4.631zM27.354 0h-5.2v3.692h5.17c.53 0 .984.4.984.939v5.215H32V4.631A4.624 4.624 0 0027.354 0zm.954 24.83c0 .532-.4.94-.939.94h-5.215v3.768h5.215c2.577 0 4.631-2.13 4.631-4.707v-5.139h-3.692v5.139zm-23.677.94c-.531 0-.939-.4-.939-.94v-5.138H0v5.139c0 2.577 2.13 4.707 4.708 4.707h5.138V25.77H4.631z" />
+  </svg>
+)
+
 const CONTROLS_RIGHT_VAR = "--besser-canvas-controls-right"
 // The instance that last published the variable. On an editor swap the old
 // instance's cleanup runs after the new one published; it must not remove it.
@@ -41,8 +58,10 @@ export const CustomControls = () => {
   const { t } = useTranslation()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [minimapOpen, setMinimapOpen] = useState(false)
-  const { zoomTo, fitView } = useReactFlow()
+  const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow()
   const zoomLevel = useStore((state) => state.transform[2])
+  const minZoomReached = useStore((state) => state.transform[2] <= state.minZoom)
+  const maxZoomReached = useStore((state) => state.transform[2] >= state.maxZoom)
   const domNode = useStore((state) => state.domNode)
 
   // Publish where the bar ends so host overlays at the bottom (the webapp's
@@ -117,8 +136,50 @@ export const CustomControls = () => {
 
   return (
     <ThemeProvider theme={inspectorTheme}>
-      <Controls orientation="horizontal" showInteractive={false}>
-        {/* Undo / Redo history group (separated from the built-in zoom group) */}
+      <Controls
+        orientation="horizontal"
+        showZoom={false}
+        showFitView={false}
+        showInteractive={false}
+      >
+        {/* Zoom group: own buttons so the labels are translated. */}
+        <Tooltip title={t("zoomPane.zoomIn", "Zoom in")}>
+          <span>
+            <button
+              type="button"
+              className={`control-button ${maxZoomReached ? "disabled" : ""}`}
+              aria-label={t("zoomPane.zoomIn", "Zoom in")}
+              onClick={() => void zoomIn()}
+              disabled={maxZoomReached}
+            >
+              <ZoomInIcon />
+            </button>
+          </span>
+        </Tooltip>
+        <Tooltip title={t("zoomPane.zoomOut", "Zoom out")}>
+          <span>
+            <button
+              type="button"
+              className={`control-button ${minZoomReached ? "disabled" : ""}`}
+              aria-label={t("zoomPane.zoomOut", "Zoom out")}
+              onClick={() => void zoomOut()}
+              disabled={minZoomReached}
+            >
+              <ZoomOutIcon />
+            </button>
+          </span>
+        </Tooltip>
+        <Tooltip title={t("zoomPane.fitView", "Fit view")}>
+          <button
+            type="button"
+            className="control-button"
+            aria-label={t("zoomPane.fitView", "Fit view")}
+            onClick={() => void fitView({ padding: 0.1, duration: 200 })}
+          >
+            <FitViewIcon />
+          </button>
+        </Tooltip>
+        {/* Undo / Redo history group */}
         {undoManagerExist && (
           <>
             <span className="control-divider" aria-hidden="true" />

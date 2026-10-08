@@ -263,3 +263,34 @@
   stroke-width: 4px;
   stroke-linejoin: round;
 }
+
+/* ---- Refused connections (edges/connectionNotice.ts) ------------------ */
+
+.besser-connect-target--invalid {
+  outline: 2px dashed var(--besser-danger, #dc2626);
+  outline-offset: 3px;
+}
+
+.besser-connection-notice {
+  position: absolute;
+  max-width: 280px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--besser-background, #fff);
+  background: var(--besser-primary-contrast, #212529);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+.besser-connection-notice--visible {
+  opacity: 1;
+  transform: none;
+}
