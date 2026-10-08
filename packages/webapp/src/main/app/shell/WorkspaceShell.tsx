@@ -996,7 +996,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         headerBackgroundClass={headerBackgroundClass}
         outlineButtonClass={outlineButtonClass}
         primaryGenerateClass={primaryGenerateClass}
-        showQualityCheck={showQualityCheck}
+        showQualityCheck={
+          showQualityCheck && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram'
+        }
         generatorMode={generatorMode}
         isGenerating={isGenerating}
         isAuthenticated={isAuthenticated}

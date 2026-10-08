@@ -76,10 +76,10 @@ export function buildValidationResultToast(
   return { type, message: sections.join('\n\n'), autoClose };
 }
 
-function showValidationResultToast(result: ValidationResultLike, style: CSSProperties): void {
+function showValidationResultToast(result: ValidationResultLike, style: CSSProperties, onlyProblems = false): void {
   const toastId = replaceResultToast();
   const built = buildValidationResultToast(result);
-  if (!built) return;
+  if (!built || (onlyProblems && (built.type === 'success' || built.type === 'info'))) return;
   toast[built.type](built.message, {
     toastId,
     position: 'top-right',
@@ -91,7 +91,16 @@ function showValidationResultToast(result: ValidationResultLike, style: CSSPrope
   });
 }
 
-export async function validateDiagram(editor: BesserEditor | null | undefined, diagramTitle: string, modelData?: any) {
+/**
+ * `onlyProblems`: for validation run as a precondition (e.g. before Generate),
+ * whose caller reports its own success -- a passing run raises no result toast.
+ */
+export async function validateDiagram(
+  editor: BesserEditor | null | undefined,
+  diagramTitle: string,
+  modelData?: any,
+  { onlyProblems = false }: { onlyProblems?: boolean } = {},
+) {
   // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
   const suppressToasts = modelData && modelData._suppressToasts;
 
@@ -210,7 +219,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     }
 
     if (!suppressToasts) {
-      showValidationResultToast(result, longToastStyle);
+      showValidationResultToast(result, longToastStyle, onlyProblems);
     }
     
     return result;

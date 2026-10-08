@@ -18,7 +18,6 @@ import {
   selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
-import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 
 /**
@@ -325,19 +324,6 @@ export const BesserEditorComponent: React.FC = () => {
       });
 
       setEditor!(nextEditor);
-
-      // If the assistant just injected a freshly generated class diagram, let
-      // ELK arrange it now that this new editor instance has the model loaded.
-      // Guards bail if the editor was swapped/destroyed in the meantime.
-      if (consumeAutoLayoutRequest()) {
-        try {
-          if (runId === setupRunRef.current && editorRef.current === nextEditor) {
-            await nextEditor.autoLayout();
-          }
-        } catch (error) {
-          console.warn('[BesserEditorComponent] auto-layout failed:', error);
-        }
-      }
     };
 
     setupEditor().catch(notifyError('Editor setup'));

@@ -1,47 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import fs from 'node:fs';
-import { defineConfig, loadEnv, normalizePath, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
+import { conditionalAtAlias } from './atAlias';
 
-const libraryLib = path.resolve(__dirname, '../library/lib');
-const webappSrc = path.resolve(__dirname, './src');
-
-// SA-7b: dual-package `@/*` resolution. The library uses `@/*` → `lib/*`
-// internally; the webapp uses `@/*` → `src/*`. After flipping the
-// `@besser/wme` alias to point at library source, vite needs to pick the
-// right base depending on the importer.
-//
-// Note: Vite normalizes importer paths to forward slashes regardless of
-// platform (see vite/src/node/utils.ts). Match on `/packages/library/`
-// (literal) instead of `path.sep` so this works on Windows too.
-function resolveAtPath(source: string, importer?: string): string {
-  const normalized = importer ? importer.replace(/\\/g, '/') : '';
-  const inLibrary = normalized.includes('/packages/library/');
-  const base = inLibrary ? libraryLib : webappSrc;
-  const target = path.join(base, source);
-  if (fs.existsSync(target) && fs.statSync(target).isFile()) return target;
-  for (const ext of ['.ts', '.tsx', '.js', '.jsx']) {
-    if (fs.existsSync(target + ext)) return target + ext;
-  }
-  if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
-    for (const ext of ['ts', 'tsx', 'js', 'jsx']) {
-      const idx = path.join(target, `index.${ext}`);
-      if (fs.existsSync(idx)) return idx;
-    }
-  }
-  return target;
-}
-const conditionalAtAlias = {
-  find: /^@\/(.*)/,
-  replacement: '$1',
-  customResolver(source: string, importer?: string) {
-    // Forward slashes on Windows too: a backslash id makes Rollup bundle the same file twice
-    // (two zustand stores / React contexts, TDZ errors at load).
-    return normalizePath(resolveAtPath(source, importer));
-  },
-};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

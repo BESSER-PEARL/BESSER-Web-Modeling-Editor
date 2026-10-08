@@ -6,12 +6,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  fitEditorAroundAssistantPanel,
-  viewportForArea,
-  visibleStrip,
-  type Rect,
-} from '../panelAwareViewport';
+import { fitEditorAroundAssistantPanel, visibleStrip, type Rect } from '../panelAwareViewport';
 
 // Live editor geometry (1440x900 window, 380 px sidebar + palette).
 const PANE: Rect = { x: 380, y: 96, width: 1060, height: 804 };
@@ -49,62 +44,54 @@ describe('visibleStrip', () => {
   });
 });
 
-describe('viewportForArea', () => {
-  it('centres the diagram in the free strip, not in the pane', () => {
-    const bounds = { x: -400, y: -300, width: 800, height: 600 };
-    const area = { x: 0, y: 0, width: 476, height: 804 };
-    const vp = viewportForArea(bounds, area);
-    // The diagram's centre (0, 0) lands in the middle of the free strip.
-    expect(vp.x).toBeCloseTo(238);
-    expect(vp.y).toBeCloseTo(402);
-    // Its right edge stays left of the widget.
-    expect(bounds.x * vp.zoom + vp.x + bounds.width * vp.zoom).toBeLessThanOrEqual(476);
-    expect(vp.zoom).toBeLessThanOrEqual(1);
-  });
-});
-
 describe('fitEditorAroundAssistantPanel', () => {
-  const editorWithInstance = () => {
-    const instance = {
-      getNodes: vi.fn(() => [{ id: 'a' }]),
-      getNodesBounds: vi.fn(() => ({ x: 0, y: 0, width: 600, height: 300 })),
-      setViewport: vi.fn(() => Promise.resolve(true)),
-    };
-    const editor = { fitView: vi.fn(() => Promise.resolve(true)), reactFlowInstance: instance };
-    return { editor, instance };
+  // The editor's own fitViewInto measures its canvas and applies the viewport;
+  // this side only decides which part of the canvas is free.
+  const editorWithFitInto = () => {
+    const fitViewInto = vi.fn(
+      async (area: Rect | ((canvas: Rect) => Rect | null), _options?: unknown) =>
+        typeof area === 'function' ? area(PANE) : area,
+    );
+    return { fitViewInto, fitView: vi.fn(async () => true) };
   };
 
-  it('fits into the strip the open widget leaves free', async () => {
-    mount('pane', PANE, { class: 'react-flow' });
+  it('fits into the strip the open widget leaves free, capped at 100%', async () => {
     mount('assistant-widget-panel', WIDGET, { 'aria-hidden': 'false' });
-    const { editor, instance } = editorWithInstance();
+    const editor = editorWithFitInto();
 
     await fitEditorAroundAssistantPanel(editor);
 
-    expect(instance.setViewport).toHaveBeenCalledTimes(1);
-    const [vp] = instance.setViewport.mock.calls[0] as unknown as [{ x: number; y: number; zoom: number }];
-    const rightEdge = vp.x + 600 * vp.zoom;
-    expect(rightEdge).toBeLessThanOrEqual(WIDGET.x - PANE.x);
+    expect(editor.fitViewInto).toHaveBeenCalledTimes(1);
+    const area = await editor.fitViewInto.mock.results[0].value;
+    expect(area).toEqual({ x: PANE.x, y: PANE.y, width: WIDGET.x - PANE.x, height: PANE.height });
+    expect(editor.fitViewInto.mock.calls[0][1]).toEqual(expect.objectContaining({ maxZoom: 1 }));
+    expect(editor.fitView).not.toHaveBeenCalled();
   });
 
-  it('is a plain fitView when the panel is hidden', async () => {
-    mount('pane', PANE, { class: 'react-flow' });
+  it('fits the whole canvas when the panel is hidden', async () => {
     mount('assistant-widget-panel', WIDGET, { 'aria-hidden': 'true' });
-    const { editor, instance } = editorWithInstance();
+    const editor = editorWithFitInto();
 
     await fitEditorAroundAssistantPanel(editor);
 
-    expect(editor.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 300, maxZoom: 1 }));
-    expect(instance.setViewport).not.toHaveBeenCalled();
+    expect(await editor.fitViewInto.mock.results[0].value).toEqual(PANE);
   });
 
-  it('falls back to fitView on an editor without a reachable instance', async () => {
-    mount('pane', PANE, { class: 'react-flow' });
+  it('hands no area (a plain fit) when the panel covers the canvas', async () => {
+    mount('assistant-widget-panel', { x: 300, y: 50, width: 1200, height: 900 });
+    const editor = editorWithFitInto();
+
+    await fitEditorAroundAssistantPanel(editor);
+
+    expect(await editor.fitViewInto.mock.results[0].value).toBeNull();
+  });
+
+  it('falls back to fitView on an editor without fitViewInto', async () => {
     mount('assistant-widget-panel', WIDGET);
     const editor = { fitView: vi.fn(() => Promise.resolve(true)) };
 
     await fitEditorAroundAssistantPanel(editor);
 
-    expect(editor.fitView).toHaveBeenCalledTimes(1);
+    expect(editor.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 300, maxZoom: 1 }));
   });
 });

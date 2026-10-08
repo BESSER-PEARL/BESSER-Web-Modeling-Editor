@@ -5,6 +5,16 @@ import { useImportDiagramPictureFromImage } from '../../../features/import/useIm
 import { useImportDiagramFromKG } from '../../../features/import/useImportDiagramKG';
 import type { AssistantImportMode } from '../../../features/assistant/components/AssistantImportDialog';
 import type { BesserProject } from '../../../shared/types/project';
+import { readLlmKey, writeLlmKey } from '../../../shared/services/llmKeyStorage';
+
+/**
+ * The image and knowledge-graph endpoints call OpenAI only (no provider or
+ * base URL travels with the request), so only a shared OpenAI key applies.
+ */
+const sharedOpenAiKey = (): string => {
+  const key = readLlmKey();
+  return key?.provider === 'openai' ? key.apiKey : '';
+};
 
 interface UseAssistantImportOptions {
   currentProject: BesserProject | null;
@@ -35,7 +45,7 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
       return;
     }
     setAssistantImportMode(mode);
-    setAssistantApiKey('');
+    setAssistantApiKey(sharedOpenAiKey());
     setAssistantSelectedFile(null);
     setAssistantImportError('');
   }, [currentProject, t]);
@@ -82,6 +92,8 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
           ? await importDiagramPictureFromImage(assistantSelectedFile, assistantApiKey)
           : await importDiagramFromKG(assistantSelectedFile, assistantApiKey);
       toast.success(result.message);
+      // Becomes the app's one BYOK key (sessionStorage only) unless one is set.
+      if (!readLlmKey()) writeLlmKey('openai', assistantApiKey);
       resetAssistantImportDialog();
     } catch (error) {
       toast.error(t('assistant.import.errors.importFailed', {

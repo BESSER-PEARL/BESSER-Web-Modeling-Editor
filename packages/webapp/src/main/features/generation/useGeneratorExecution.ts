@@ -1082,7 +1082,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error(t('generation.toasts.comingSoon'));
+      toast.info(t('generation.toasts.qualityCheckUnavailable', 'Quality check is not available for this editor yet.'));
       return { executed: false, passed: false };
     }
 

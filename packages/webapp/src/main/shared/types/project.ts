@@ -1,4 +1,4 @@
-import { UMLDiagramType, UMLModel, getUserMetaModelClasses } from '@besser/wme';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { migrateUMLModelV3ToV4, normalizeUmlModelSnapshot } from '../services/storage/migrate-uml-v3-to-v4';
 // Supported diagram types in projects
 export type SupportedDiagramType =
@@ -269,124 +269,14 @@ const generateUUID = (): string => {
   );
 };
 
-/**
- * Seed for the UserDiagram template.
- *
- * The v3 editor surfaced a multi-class user-meta-model whenever the
- * UserDiagram tab was opened (`composeUserModelPreview`). After the
- * v4 cutover, opening the UserDiagram tab produced an empty canvas
- * with at most a single placeholder card. Restore the v3 baseline by
- * seeding the four standard meta-model classes (Personal_Information /
- * Skill / Education / Disability) — read directly from the meta-model
- * JSON via `getUserMetaModelClasses()` so the seed is in lock-step
- * with the source of truth.
- *
- * Type strategy (Fix #2): the meta-model JSON uses raw
- * enum class names (`GenderEnum`, `DegreeEnum`, `AspectsEnum`, …) for
- * enum-typed attributes. Those are NOT primitive types and the v4
- * inspector resolves them by linking to the meta-model class via
- * `attributeId`. Primitive types (`str`, `int`, `bool`, `float`,
- * `date`, `datetime`, `time`) pass through verbatim; non-primitive
- * types are converted to an empty `attributeType` plus an
- * `attributeId` link pointing at the meta-model attribute's UUID. The
- * inspector picks up the linked enum literals via the diagramBridge
- * (which is fed `getUserMetaModelV4()`).
- *
- * Seeded as v4 React-Flow nodes (`UserModelName`) with their attribute
- * rows already populated so the user lands on a usable template.
- */
-// The 4 default meta-model classes shown in v3's `composeUserModelPreview`.
-// Order matters — controls layout left-to-right.
+// The 4 meta-model classes of the retired UserDiagram seed template. Stored
+// projects can still carry that untouched template (see isUserDiagramSeedOnly).
 const DEFAULT_USER_META_CLASSES = [
   'Personal_Information',
   'Skill',
   'Education',
   'Disability',
 ] as const;
-
-const PRIMITIVE_ATTRIBUTE_TYPES = new Set([
-  'str',
-  'string',
-  'int',
-  'integer',
-  'float',
-  'double',
-  'bool',
-  'boolean',
-  'date',
-  'datetime',
-  'time',
-  'any',
-]);
-
-export const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
-  // Coordinates picked to lay out the 4 cards on a single row with a
-  // small gap. Each card is auto-sized by `UserModelName`'s effect; we
-  // pre-set sensible widths/heights so the initial paint is stable.
-  const HEADER = 40;
-  const ATTR = 30;
-  const PAD = 10;
-  const W = 220;
-  const GAP = 30;
-
-  // Pull the meta-model classes by name. If the JSON is unavailable for
-  // any reason we degrade to an empty seed rather than throwing.
-  const metaClassesByName: Record<string, ReturnType<typeof getUserMetaModelClasses>[number]> = {};
-  try {
-    for (const c of getUserMetaModelClasses()) {
-      metaClassesByName[c.name] = c;
-    }
-  } catch {
-    // Best-effort: if the helper is unavailable we still produce empty
-    // cards so the canvas isn't blank.
-  }
-
-  return DEFAULT_USER_META_CLASSES.map((className, idx) => {
-    const meta = metaClassesByName[className];
-    const attrs = (meta?.attributes ?? []).map((a) => {
-      const isPrimitive = PRIMITIVE_ATTRIBUTE_TYPES.has(a.attributeType.toLowerCase());
-      if (isPrimitive) {
-        return {
-          id: generateUUID(),
-          name: a.name,
-          attributeType: a.attributeType,
-          attributeOperator: '==',
-        };
-      }
-      // Non-primitive (enum / linked class): leave attributeType empty
-      // and link via attributeId so the inspector can resolve enum
-      // literals through the diagramBridge.
-      return {
-        id: generateUUID(),
-        name: a.name,
-        attributeType: '',
-        attributeId: a.id,
-        attributeOperator: '==',
-      };
-    });
-    const height = HEADER + Math.max(attrs.length, 0) * ATTR + PAD;
-    // `UserModelName` is a BESSER-registered node type (added at runtime
-    // via `registerNodeTypes`). The static `DiagramNodeType` union only
-    // tracks upstream defaults, so we cast through `unknown` at the
-    // boundary — same pattern other BESSER seed code uses.
-    return {
-      id: generateUUID(),
-      type: 'UserModelName',
-      position: { x: idx * (W + GAP), y: 0 },
-      width: W,
-      height,
-      measured: { width: W, height },
-      data: {
-        name: className,
-        // Cross-link to the meta-model class so other tooling can
-        // resolve which meta-model concept this user node instantiates.
-        classId: meta?.id,
-        className,
-        attributes: attrs,
-      },
-    } as unknown as UMLModel['nodes'][number];
-  });
-};
 
 // Default diagram factory
 export const createEmptyDiagram = (
@@ -453,11 +343,8 @@ export const createEmptyDiagram = (
     };
   }
 
-  // For UML diagrams (v4 shape)
-  // UserDiagram gets a default user-meta-model template
-  // so the tab is non-empty on first open. Other diagrams stay blank.
-  const seededNodes =
-    type === UMLDiagramType.UserDiagram ? buildUserDiagramSeedNodes() : [];
+  // For UML diagrams (v4 shape). Every new diagram starts blank, as in develop:
+  // a seeded UserDiagram template was exported as empty objects once edited.
   return {
     id: generateUUID(),
     title,
@@ -466,7 +353,7 @@ export const createEmptyDiagram = (
       id: generateUUID(),
       title,
       type,
-      nodes: seededNodes,
+      nodes: [],
       edges: [],
       interactive: { elements: {}, relationships: {} },
       assessments: {},

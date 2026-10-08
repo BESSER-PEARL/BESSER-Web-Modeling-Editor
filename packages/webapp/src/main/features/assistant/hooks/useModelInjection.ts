@@ -11,6 +11,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { layoutModel } from '@besser/wme';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
 import type { InjectionCommand, UMLModelingService, ClassSpec, ModelModification } from '../services';
@@ -37,7 +38,6 @@ export function describeCollateralRemoval(classNames: string[]): string {
   return `This change also removed ${classNames.join(', ')}, which you did not ask to delete. ` +
     'Check the diagram before continuing.';
 }
-import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
@@ -123,19 +123,36 @@ function getModelBounds(model: any): ModelBounds | null {
 /**
  * Bring the injected content into view once the editor has rendered it, in
  * the part of the canvas the open assistant panel leaves visible (see
- * `panelAwareViewport`). A freshly mounted editor (after an `editorRevision`
- * bump) already fits on init, so an editor build without `fitView` or a
- * not-yet-ready instance is a silent no-op.
+ * `panelAwareViewport`). After an `editorRevision` bump pass the editor being
+ * replaced as `staleEditor`: the fit waits (up to ~3 s) for its successor,
+ * whose own post-load fit it then replaces.
  *
  * The editor is resolved when the timer fires: the assistant handlers keep
  * the first render's `handleInjection`, whose captured editor is stale.
  */
-function centerEditorViewport(getEditor: () => any, delayMs = 200): void {
-  setTimeout(() => {
-    fitEditorAroundAssistantPanel(getEditor()).catch((error) => {
+function centerEditorViewport(getEditor: () => any, staleEditor?: unknown, delayMs = 200): void {
+  let waits = 0;
+  const fit = () => {
+    const editor = getEditor();
+    if (staleEditor && editor === staleEditor && ++waits < 15) {
+      setTimeout(fit, 200);
+      return;
+    }
+    fitEditorAroundAssistantPanel(editor).catch((error) => {
       console.warn('[useModelInjection] Could not re-center the editor viewport:', error);
     });
-  }, delayMs);
+  };
+  setTimeout(fit, delayMs);
+}
+
+/** ELK-arrange a freshly generated class diagram; the unarranged model if layout fails. */
+async function layoutGeneratedClassDiagram(model: any): Promise<any> {
+  try {
+    return await layoutModel(model);
+  } catch (error) {
+    console.warn('[useModelInjection] Auto-layout of the generated diagram failed:', error);
+    return model;
+  }
 }
 
 /** Diagram types the agent builds from the ACTIVE class tab (and that store a reference to one). */
@@ -283,6 +300,16 @@ export function useModelInjection({
     return diagrams.findIndex((d: ProjectDiagram) => d.id === diagramId);
   };
 
+  /** The live editor when it already shows the target diagram, else null. */
+  const mountedEditorFor = (diagramType: string, diagramId?: string): any => {
+    const live = editorRef.current;
+    if (typeof live?.applyModel !== 'function' || currentDiagramTypeRef.current !== diagramType) return null;
+    if (!diagramId) return live;
+    const project = currentProjectRef.current;
+    const index = project?.currentDiagramIndices?.[diagramType as SupportedDiagramType] ?? 0;
+    return findDiagramIndexById(diagramType, diagramId) === index ? live : null;
+  };
+
   const ensureTargetDiagramReady = async (targetType?: string, targetDiagramId?: string): Promise<boolean> => {
     // Step 1: switch diagram type if needed
     if (targetType && targetType !== currentDiagramTypeRef.current) {
@@ -411,10 +438,10 @@ export function useModelInjection({
           if (newModelForTab && targetDiagramType === 'GUINoCodeDiagram') {
             markTextEditable(newModelForTab);
           }
-          // Freshly generated class diagram in a new tab -> let ELK arrange it
-          // once the new editor instance has the model.
+          // Freshly generated class diagram in a new tab -> ELK-arrange it
+          // before it is stored, so the new editor loads (and fits) the result.
           if (targetDiagramType === 'ClassDiagram' && newModelForTab) {
-            requestAutoLayoutOnNextSetup();
+            newModelForTab = await layoutGeneratedClassDiagram(newModelForTab);
           }
 
           const created = await dispatch(
@@ -426,11 +453,16 @@ export function useModelInjection({
           createdTab = created ? { index: created.index, diagram: created.diagram } : null;
           applied = true;
           if (newModelForTab) appliedModel = newModelForTab;
+          if (targetIsUml && newModelForTab) centerEditorViewport(() => editorRef.current, editorRef.current);
         } catch (tabError) {
           console.error('[useModelInjection] New tab creation/injection failed:', tabError);
           throw tabError;
         }
       }
+
+      // Read before any tab switch: an edit to the diagram already on the
+      // canvas is applied in place, as one undoable step.
+      const liveEditor = !applied ? mountedEditorFor(targetDiagramType, command.diagramId) : null;
 
       if (!applied) {
         const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
@@ -447,6 +479,7 @@ export function useModelInjection({
         }
 
         let newModel: any = null;
+        let staleEditor: unknown;
 
         switch (command.action) {
           case 'inject_complete_system':
@@ -649,19 +682,31 @@ export function useModelInjection({
                   : 'Applied model modification',
             });
           } else {
-            await dispatch(updateDiagramModelThunk({ model: newModel }));
-            // A freshly generated complete class diagram should be ELK-arranged
-            // on the recreated editor. Incremental edits keep their positions.
+            // A freshly generated complete class diagram is ELK-arranged.
+            // Incremental edits keep their positions.
             if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
-              requestAutoLayoutOnNextSetup();
+              newModel = await layoutGeneratedClassDiagram(newModel);
             }
-            dispatch(bumpEditorRevision());
+            if (liveEditor && liveEditor === editorRef.current && modelingServiceRef.current) {
+              // The target is on the canvas: one undoable step (Ctrl+Z reverts it).
+              await modelingServiceRef.current.injectToEditor({
+                type: 'modification',
+                data: newModel,
+                message: typeof command.message === 'string' ? command.message : '',
+              });
+            } else {
+              // Another diagram (the tab was just switched): the editor is
+              // re-created from storage, which starts a fresh undo history.
+              staleEditor = editorRef.current;
+              await dispatch(updateDiagramModelThunk({ model: newModel }));
+              dispatch(bumpEditorRevision());
+            }
           }
           applied = true;
           appliedModel = newModel;
           // With the assistant panel open, any change may land behind it.
           if (shouldCenterViewportAfterInjection(command, currentModel, newModel) || isAssistantPanelOpen()) {
-            centerEditorViewport(() => editorRef.current);
+            centerEditorViewport(() => editorRef.current, staleEditor);
           }
         }
       }

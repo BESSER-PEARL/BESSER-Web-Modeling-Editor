@@ -6,7 +6,6 @@
  */
 
 export type Rect = { x: number; y: number; width: number; height: number };
-export type Viewport = { x: number; y: number; zoom: number };
 
 /** The assistant surfaces that float over the canvas (ids set in their components). */
 const PANEL_SELECTORS = ['#assistant-widget-panel', '#assistant-drawer-panel'];
@@ -25,20 +24,6 @@ export function openAssistantPanelRect(doc: Document = document): Rect | null {
     if (rect.width > 0 && rect.height > 0) return toRect(rect);
   }
   return null;
-}
-
-/** Client rect of the editor canvas (the largest React Flow pane on the page). */
-export function canvasRect(doc: Document = document): Rect | null {
-  let best: Rect | null = null;
-  let bestArea = 0;
-  for (const el of Array.from(doc.querySelectorAll<HTMLElement>('.react-flow'))) {
-    const rect = toRect(el.getBoundingClientRect());
-    if (rect.width * rect.height > bestArea) {
-      best = rect;
-      bestArea = rect.width * rect.height;
-    }
-  }
-  return best;
 }
 
 /**
@@ -63,47 +48,27 @@ export function visibleStrip(pane: Rect, cover: Rect): Rect | null {
   return strips.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a));
 }
 
-/** React Flow's fit math (`getViewportForBounds`), centred on `area` instead of the whole pane. */
-export function viewportForArea(
-  bounds: Rect,
-  area: Rect,
-  { padding = 0.1, minZoom = 0.1, maxZoom = 1 }: { padding?: number; minZoom?: number; maxZoom?: number } = {},
-): Viewport {
-  const zoomX = area.width / (Math.max(bounds.width, 1) * (1 + padding));
-  const zoomY = area.height / (Math.max(bounds.height, 1) * (1 + padding));
-  const zoom = Math.min(Math.max(Math.min(zoomX, zoomY), minZoom), maxZoom);
-  return {
-    x: area.x + area.width / 2 - (bounds.x + bounds.width / 2) * zoom,
-    y: area.y + area.height / 2 - (bounds.y + bounds.height / 2) * zoom,
-    zoom,
-  };
-}
-
-const FIT = { padding: 0.1, maxZoom: 1.0 };
+const FIT = { padding: 0.1, maxZoom: 1.0, duration: 300 };
 
 /**
  * Fit the editor's diagram into the canvas area the assistant panel leaves
- * free. `fitView` runs first: it takes over the editor's pending post-load fit
- * and resolves once the new model has rendered; the panel-aware viewport is
- * applied on top through the editor's React Flow instance. Without an open
- * panel, or an editor build without that instance, it is a plain `fitView`.
+ * free, through `BesserEditor.fitViewInto` (queued behind a model load like
+ * `fitView`, so it replaces the editor's own post-load fit). Without an open
+ * panel it fits the whole canvas; an editor build without `fitViewInto`
+ * gets a plain `fitView`.
  */
 export async function fitEditorAroundAssistantPanel(editor: any, doc: Document = document): Promise<void> {
-  if (!editor || typeof editor.fitView !== 'function') return;
-  const panel = openAssistantPanelRect(doc);
-  const instance = editor.reactFlowInstance;
-  const pane = panel ? canvasRect(doc) : null;
-  const area = panel && pane ? visibleStrip(pane, panel) : null;
-  const partlyCovered = !!area && !!pane && (area.width < pane.width || area.height < pane.height);
-  if (!partlyCovered || typeof instance?.setViewport !== 'function') {
-    await editor.fitView({ ...FIT, duration: 300 });
+  if (!editor) return;
+  if (typeof editor.fitViewInto !== 'function') {
+    if (typeof editor.fitView === 'function') await editor.fitView(FIT);
     return;
   }
-  await editor.fitView({ ...FIT, duration: 0 });
-  const nodes = instance.getNodes?.() ?? [];
-  if (nodes.length === 0) return;
-  const bounds: Rect = instance.getNodesBounds(nodes);
-  await instance.setViewport(viewportForArea(bounds, area!, FIT), { duration: 300 });
+  const panel = openAssistantPanelRect(doc);
+  await editor.fitViewInto((canvas: Rect) => {
+    if (!panel) return canvas;
+    const strip = visibleStrip(canvas, panel);
+    return strip && { ...strip, x: canvas.x + strip.x, y: canvas.y + strip.y };
+  }, FIT);
 }
 
 /** True while an assistant panel covers part of the page. */

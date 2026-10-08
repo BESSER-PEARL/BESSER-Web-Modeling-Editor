@@ -296,7 +296,7 @@ export const useGenerateCode = () => {
       // structurally during generation. The model actually being sent is
       // what gets validated.
       if (editor) {
-        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
+        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration, { onlyProblems: true });
         if (!validationResult.isValid) {
           toast.error(validationResult.message || t('generation.toasts.validationFailed'));
           return { ok: false, error: validationResult.message || 'Validation failed' };

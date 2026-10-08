@@ -295,42 +295,21 @@ describe('preset helpers', () => {
 /* SA-FIX-User: UserDiagram seed + retrofit                                   */
 /* -------------------------------------------------------------------------- */
 
-describe('SA-FIX-User UserDiagram seed', () => {
-  it('seeds a fresh UserDiagram with the 4 default meta-model classes', () => {
+describe('new UserDiagram', () => {
+  // Live report: new User diagrams came with 4 pre-placed instances
+  // (Personal_Information, Skill, Education, Disability) that were exported as
+  // empty objects once anything was edited, and failed their own Quality
+  // check; develop started empty (palette only).
+  it('starts empty, like every other UML diagram', () => {
     const project = createDefaultProject('Fresh', '', 'me');
-    const userDiagram = project.diagrams.UserDiagram[0];
-    const model = userDiagram.model as UMLModel;
-    const names = (model.nodes as any[]).map((n) => n.data?.name);
-    expect(names).toEqual(['Personal_Information', 'Skill', 'Education', 'Disability']);
+    const model = project.diagrams.UserDiagram[0].model as UMLModel;
+    expect(model.nodes).toEqual([]);
+    expect(model.edges).toEqual([]);
   });
 
-  it('emits primitive types verbatim and links non-primitives via attributeId', () => {
-    const project = createDefaultProject('Fresh', '', 'me');
-    const userDiagram = project.diagrams.UserDiagram[0];
-    const model = userDiagram.model as UMLModel;
-    const personal = (model.nodes as any[]).find((n) => n.data?.name === 'Personal_Information');
-    expect(personal).toBeDefined();
-    const attrs = personal.data.attributes as { name: string; attributeType: string; attributeId?: string }[];
-    // Primitive `age=int` passes through verbatim.
-    const age = attrs.find((a) => a.name === 'age');
-    expect(age?.attributeType).toBe('int');
-    expect(age?.attributeId).toBeUndefined();
-    // Enum `gender=GenderEnum` is non-primitive, so attributeType is empty
-    // and attributeId links to the meta-model attribute.
-    const gender = attrs.find((a) => a.name === 'gender');
-    expect(gender?.attributeType).toBe('');
-    expect(typeof gender?.attributeId).toBe('string');
-    expect(gender?.attributeId).not.toBe('');
-  });
-
-  it("does not contain the previous 'description' typo on Disability.name", () => {
-    const project = createDefaultProject('Fresh', '', 'me');
-    const userDiagram = project.diagrams.UserDiagram[0];
-    const model = userDiagram.model as UMLModel;
-    const disability = (model.nodes as any[]).find((n) => n.data?.name === 'Disability');
-    const nameRow = (disability?.data?.attributes as any[]).find((a) => a.name === 'name');
-    // Pre-fix value was the literal string 'description'; should now be 'str'.
-    expect(nameRow.attributeType).toBe('str');
+  it('starts empty when added as a new tab', () => {
+    const model = createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram).model as UMLModel;
+    expect(model.nodes).toEqual([]);
   });
 });
 
