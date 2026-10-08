@@ -14,6 +14,7 @@ import { Direction, UMLDiagramType, componentStereotypeForLaneRole, isSupervisor
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
 import { recenterModelOnOrigin } from './recenter';
+import { ceilToGrid, estimateTextWidth } from './text-metrics';
 import type { DerivationResult, DerivationWarning } from './types';
 
 type LaneCrossingFlow = {
@@ -202,8 +203,10 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
     dedup.add(srcTarget, tgtTarget, 'delegates', mf.id);
   }
 
+  const laneComponentIds = new Set(componentIdByLaneId.values());
   for (const e of dedup.entries()) {
-    const edgeId = emitComponentDependency(out, e.srcCompId, e.tgtCompId, e.kind);
+    const [srcDir, tgtDir] = laneEdgePorts(out, laneComponentIds, e.srcCompId, e.tgtCompId);
+    const edgeId = emitComponentDependency(out, e.srcCompId, e.tgtCompId, e.kind, srcDir, tgtDir);
     elementMapping[edgeId] = e.sourceFlowId; // ComponentDependency ← source BPMNFlow
   }
 
@@ -671,12 +674,22 @@ const SUBSYSTEM_MIN_WIDTH = 640;
 const SUBSYSTEM_MIN_HEIGHT = 400;
 const LANE_COMPONENT_W = 160;
 const LANE_COMPONENT_H = 80;
-const LANE_COMPONENT_GAP = 24;
+// Lane Components sit in one row, this far below the Subsystem's top edge so
+// the «subsystem» stereotype and the name stay readable above them.
+const LANE_CONTENT_TOP = 70;
+// Left/right padding between the Subsystem border and its lane Components.
+const LANE_SUBSYSTEM_PAD_X = 40;
+// Horizontal gap between neighbouring lane Components: the widest agentic
+// edge label («collaborates», drawn at 85 % of the bold font) plus margin, so
+// the label of an edge between neighbours fits between them.
+const LANE_COMPONENT_GAP = ceilToGrid(estimateTextWidth('«collaborates»', { scale: 0.85 }) + 40);
 
 interface LayoutCursor {
   subsystemX: number;
   subsystemY: number;
   laneInSubsystemX: number;
+  /** Right edge of the last lane Component in the current Subsystem. */
+  laneRowRight: number;
   externalRowY: number;
   externalX: number;
   /** Width of the widest pool Subsystem; capability zones sit right of it. */
@@ -693,6 +706,7 @@ function makeLayoutCursor(): LayoutCursor {
     subsystemX: -SUBSYSTEM_MIN_WIDTH / 2,
     subsystemY: -SUBSYSTEM_MIN_HEIGHT / 2,
     laneInSubsystemX: 0,
+    laneRowRight: 0,
     externalRowY: 0,
     externalX: -SUBSYSTEM_MIN_WIDTH / 2,
     columnWidth: SUBSYSTEM_MIN_WIDTH,
@@ -701,7 +715,7 @@ function makeLayoutCursor(): LayoutCursor {
       const bounds = this.currentSubsystemBounds;
       if (bounds) {
         // Grow the Subsystem so every lane Component fits inside it.
-        bounds.width = Math.max(bounds.width, this.laneInSubsystemX - bounds.x);
+        bounds.width = Math.max(bounds.width, this.laneRowRight + LANE_SUBSYSTEM_PAD_X - bounds.x);
         this.columnWidth = Math.max(this.columnWidth, bounds.width);
         this.subsystemY = bounds.y + bounds.height + 40;
         this.externalRowY = this.subsystemY;
@@ -733,7 +747,8 @@ function addSubsystem(
 function emitSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCursor): string {
   const bounds = { x: layout.subsystemX, y: layout.subsystemY, width: SUBSYSTEM_MIN_WIDTH, height: SUBSYSTEM_MIN_HEIGHT };
   layout.currentSubsystemBounds = bounds;
-  layout.laneInSubsystemX = bounds.x + LANE_COMPONENT_GAP;
+  layout.laneInSubsystemX = bounds.x + LANE_SUBSYSTEM_PAD_X;
+  layout.laneRowRight = bounds.x;
   return addSubsystem(out, pool.name || 'Swarm', bounds);
 }
 
@@ -749,10 +764,11 @@ function emitLaneComponent(
   const id = uuid();
   const bounds = {
     x: layout.laneInSubsystemX,
-    y: (layout.currentSubsystemBounds?.y ?? 0) + SUBSYSTEM_CONTENT_TOP,
+    y: (layout.currentSubsystemBounds?.y ?? 0) + LANE_CONTENT_TOP,
     width: LANE_COMPONENT_W,
     height: LANE_COMPONENT_H,
   };
+  layout.laneRowRight = bounds.x + bounds.width;
   layout.laneInSubsystemX += bounds.width + LANE_COMPONENT_GAP;
   const component: UMLComponentComponent = {
     id,
@@ -780,6 +796,39 @@ function emitExternalSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCu
   const bounds = { x: layout.externalX, y: layout.externalRowY, width: 320, height: 160 };
   layout.externalX += bounds.width + 24;
   return addSubsystem(out, pool.name || 'External swarm', bounds);
+}
+
+/**
+ * Port directions for an agent → agent dependency. The editor routes the edge
+ * from these on load and puts the «stereotype» label at the path midpoint.
+ *
+ * Lane Components of one Subsystem share a row. An edge from a Component to
+ * its right-hand neighbour runs straight across the gap between them (wide
+ * enough for the label). Any other edge in the row — backwards, or skipping a
+ * Component — loops underneath the row (bottom → bottom), so neither the line
+ * nor its label crosses a Component or the Subsystem header above the row.
+ * Other edges keep the default right → left.
+ */
+function laneEdgePorts(
+  out: UMLModel,
+  laneComponentIds: Set<string>,
+  srcId: string,
+  tgtId: string,
+): [Direction, Direction] {
+  const src = out.elements[srcId];
+  const tgt = out.elements[tgtId];
+  const sameRow =
+    laneComponentIds.has(srcId) &&
+    laneComponentIds.has(tgtId) &&
+    src.owner === tgt.owner &&
+    src.bounds.y === tgt.bounds.y;
+  if (!sameRow) return [Direction.Right, Direction.Left];
+  const between = [...laneComponentIds].some((id) => {
+    const b = out.elements[id];
+    return b.owner === src.owner && b.bounds.x > src.bounds.x && b.bounds.x < tgt.bounds.x;
+  });
+  if (src.bounds.x < tgt.bounds.x && !between) return [Direction.Right, Direction.Left];
+  return [Direction.Down, Direction.Down];
 }
 
 function emitComponentDependency(
