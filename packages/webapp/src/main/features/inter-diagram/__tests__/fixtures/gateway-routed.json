@@ -1,0 +1,124 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 800, "height": 600 },
+  "elements": {
+    "pool-1": {
+      "id": "pool-1",
+      "name": "Swarm",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 600, "height": 400 }
+    },
+    "lane-manager": {
+      "id": "lane-manager",
+      "name": "Manager",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 60, "width": 580, "height": 120 },
+      "isAgentic": true,
+      "role": "supervision",
+      "trustScore": 80
+    },
+    "lane-worker-a": {
+      "id": "lane-worker-a",
+      "name": "WorkerA",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 200, "width": 580, "height": 100 },
+      "isAgentic": true,
+      "role": "solution",
+      "trustScore": 60
+    },
+    "lane-worker-b": {
+      "id": "lane-worker-b",
+      "name": "WorkerB",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 320, "width": 580, "height": 100 },
+      "isAgentic": true,
+      "role": "solution",
+      "trustScore": 60
+    },
+    "task-mgr": {
+      "id": "task-mgr",
+      "name": "Decide",
+      "type": "BPMNTask",
+      "owner": "lane-manager",
+      "bounds": { "x": 120, "y": 100, "width": 160, "height": 60 },
+      "isAgentic": true
+    },
+    "gw-merging": {
+      "id": "gw-merging",
+      "name": "",
+      "type": "BPMNGateway",
+      "owner": "lane-manager",
+      "bounds": { "x": 320, "y": 110, "width": 40, "height": 40 },
+      "isAgentic": true,
+      "gatewayRole": "merging",
+      "mergingStrategy": "leader-driven"
+    },
+    "task-wkr-a": {
+      "id": "task-wkr-a",
+      "name": "DoA",
+      "type": "BPMNTask",
+      "owner": "lane-worker-a",
+      "bounds": { "x": 400, "y": 230, "width": 160, "height": 60 },
+      "isAgentic": true
+    },
+    "task-wkr-b": {
+      "id": "task-wkr-b",
+      "name": "DoB",
+      "type": "BPMNTask",
+      "owner": "lane-worker-b",
+      "bounds": { "x": 400, "y": 350, "width": 160, "height": 60 },
+      "isAgentic": true
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "flow-mgr-to-gw": {
+      "id": "flow-mgr-to-gw",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 280, "y": 130, "width": 40, "height": 1 },
+      "path": [
+        { "x": 280, "y": 130 },
+        { "x": 320, "y": 130 }
+      ],
+      "source": { "element": "task-mgr", "direction": "Right" },
+      "target": { "element": "gw-merging", "direction": "Left" }
+    },
+    "flow-gw-to-wkr-a": {
+      "id": "flow-gw-to-wkr-a",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 360, "y": 130, "width": 40, "height": 100 },
+      "path": [
+        { "x": 360, "y": 130 },
+        { "x": 400, "y": 230 }
+      ],
+      "source": { "element": "gw-merging", "direction": "Right" },
+      "target": { "element": "task-wkr-a", "direction": "Left" }
+    },
+    "flow-gw-to-wkr-b": {
+      "id": "flow-gw-to-wkr-b",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 360, "y": 130, "width": 40, "height": 220 },
+      "path": [
+        { "x": 360, "y": 130 },
+        { "x": 400, "y": 350 }
+      ],
+      "source": { "element": "gw-merging", "direction": "Right" },
+      "target": { "element": "task-wkr-b", "direction": "Left" }
+    }
+  },
+  "assessments": {}
+}

@@ -28,6 +28,11 @@ export interface PerspectiveDefinition {
   description: string;
   /** The diagrams to enable when this preset is selected. */
   diagrams: SupportedDiagramType[];
+  /**
+   * The diagram a project created with this preset opens on. Omitted → the
+   * first of `diagrams` in sidebar order (`resolveInitialDiagramType`).
+   */
+  entryDiagram?: SupportedDiagramType;
 }
 
 /**
@@ -43,6 +48,14 @@ export interface PerspectiveDefinition {
  *    pair a UI with an assistant.
  *  - "Show All" is the escape hatch back to the unfiltered workspace.
  */
+/** Diagram types of the Multi-Agent (agentic swarm) perspective. */
+export const AGENTIC_SWARM_DIAGRAMS: SupportedDiagramType[] = [
+  'BPMN',
+  'AgentDiagram',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+];
+
 export const PERSPECTIVES: PerspectiveDefinition[] = [
   {
     key: 'data',
@@ -55,6 +68,15 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     label: 'Agent Developer',
     description: 'Agent and user diagrams for conversational agents.',
     diagrams: ['AgentDiagram', 'UserDiagram'],
+  },
+  {
+    key: 'agenticSwarm',
+    label: 'Multi-Agent',
+    description: 'Agentic BPMN, agent, component, and deployment diagrams.',
+    diagrams: AGENTIC_SWARM_DIAGRAMS,
+    // The swarm is modelled in BPMN first; agents, components and the
+    // deployment are derived from it.
+    entryDiagram: 'BPMN',
   },
   {
     key: 'fullApp',
@@ -89,6 +111,15 @@ export function isPresetActive(
   );
   if (enabled.size !== preset.diagrams.length) return false;
   return preset.diagrams.every((t) => enabled.has(t));
+}
+
+/**
+ * True when every diagram type of the Multi-Agent perspective is shown (the
+ * Multi-Agent or Show All preset, or the same per-type switches). Turns on the
+ * agentic BPMN controls in the editor.
+ */
+export function isAgenticModeEnabled(perspectives: PerspectiveSettings | undefined): boolean {
+  return AGENTIC_SWARM_DIAGRAMS.every((type) => isPerspectiveVisible(perspectives, type));
 }
 
 /** Build a `PerspectiveSettings` map enabling exactly the diagrams in `types`. */

@@ -91,6 +91,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.STATE_MACHINE,
   SoftwarePatternCategory.BPMN,
   SoftwarePatternCategory.AGENT,
+  SoftwarePatternCategory.MULTI_AGENT,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
   SoftwarePatternCategory.NN,
 ];
@@ -120,7 +121,10 @@ const summarizeFullProjectDiagrams = (
     ['ClassDiagram', 'Class'],
     ['ObjectDiagram', 'Object'],
     ['StateMachineDiagram', 'State'],
+    ['BPMN', 'BPMN'],
     ['AgentDiagram', 'Agent'],
+    ['ComponentDiagram', 'Component'],
+    ['DeploymentDiagram', 'Deployment'],
     ['UserDiagram', 'User'],
     ['GUINoCodeDiagram', 'GUI'],
     ['QuantumCircuitDiagram', 'Quantum'],

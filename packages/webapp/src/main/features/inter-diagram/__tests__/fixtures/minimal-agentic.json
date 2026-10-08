@@ -1,0 +1,68 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 800, "height": 600 },
+  "elements": {
+    "pool-1": {
+      "id": "pool-1",
+      "name": "Swarm",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 600, "height": 300 }
+    },
+    "lane-manager": {
+      "id": "lane-manager",
+      "name": "Manager",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 60, "width": 580, "height": 120 },
+      "isAgentic": true,
+      "role": "supervision",
+      "trustScore": 80
+    },
+    "lane-worker": {
+      "id": "lane-worker",
+      "name": "Worker",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 200, "width": 580, "height": 120 },
+      "isAgentic": true,
+      "role": "solution",
+      "trustScore": 60
+    },
+    "task-mgr": {
+      "id": "task-mgr",
+      "name": "Plan",
+      "type": "BPMNTask",
+      "owner": "lane-manager",
+      "bounds": { "x": 120, "y": 100, "width": 160, "height": 60 },
+      "isAgentic": true
+    },
+    "task-wkr": {
+      "id": "task-wkr",
+      "name": "Execute",
+      "type": "BPMNTask",
+      "owner": "lane-worker",
+      "bounds": { "x": 120, "y": 230, "width": 160, "height": 60 },
+      "isAgentic": true
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "flow-1": {
+      "id": "flow-1",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 200, "y": 160, "width": 1, "height": 70 },
+      "path": [
+        { "x": 200, "y": 160 },
+        { "x": 200, "y": 230 }
+      ],
+      "source": { "element": "task-mgr", "direction": "Down" },
+      "target": { "element": "task-wkr", "direction": "Up" }
+    }
+  },
+  "assessments": {}
+}

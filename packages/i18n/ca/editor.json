@@ -231,7 +231,17 @@
       "namePlaceholder": "nom de l'atribut"
     },
     "associationNamePlaceholder": "Nom de l'associació",
-    "literals": "Literals"
+    "literals": "Literals",
+    "preset": "Predefinit",
+    "presetPlaceholder": "Trieu un predefinit…",
+    "stereotype": "Estereotip",
+    "label": "Etiqueta",
+    "unnamed": "(sense nom)",
+    "missingElement": "(no trobat)",
+    "addTarget": "Afegeix una destinació…",
+    "lineage": "Procedència",
+    "lineageSource": "Origen:",
+    "lineageDerivedFrom": "Derivat de"
   },
   "assessment": {
     "assessment": "Avaluació de",
@@ -301,7 +311,11 @@
       "ComponentInterface": "Interfície",
       "ComponentInterfaceProvided": "Interfície proporcionada",
       "ComponentInterfaceRequired": "Interfície requerida",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "ComponentStereotypePlaceholder": "p. ex. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "p. ex. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "p. ex. subsystem, solution",
+      "Realizes": "Realitza"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Interfície requerida",
       "DeploymentAssociation": "Associació de desplegament",
       "DeploymentDependency": "Dependència de desplegament",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "DeploymentNodeStereotypePlaceholder": "p. ex. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "p. ex. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "p. ex. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Lloc",
@@ -405,7 +422,36 @@
       "BPMNSwimlanes": "Carrils",
       "BPMNGroup": "Grup",
       "BPMNExpand": "Expandir",
-      "BPMNCollapse": "Contraure"
+      "BPMNCollapse": "Contraure",
+      "BPMNAgentic": "Agèntic",
+      "BPMNTrustScore": "Nivell de confiança (0-100)",
+      "BPMNMultiplicity": "Còpies (≥1)",
+      "BPMNAgentRoleSolution": "Solució",
+      "BPMNAgentRoleSupervision": "Supervisor",
+      "BPMNDefineAgentDiagram": "Defineix el comportament de l'agent",
+      "BPMNOpenAgentDiagram": "Obre el comportament de l'agent",
+      "BPMNReflectionNone": "Sense reflexió",
+      "BPMNReflectionSelf": "Autoreflexió",
+      "BPMNReflectionCross": "Reflexió creuada",
+      "BPMNReflectionHuman": "Reflexió humana",
+      "BPMNReflectionReviewerLabel": "Agent revisor",
+      "BPMNReflectionReviewerUnspecified": "(No especificat)",
+      "BPMNGovernanceLabel": "Política de governança (DSL)",
+      "BPMNGovernanceGenerate": "Genera",
+      "BPMNGovernanceRegenerate": "Torna a generar",
+      "BPMNGovernanceOverwriteConfirm": "Voleu substituir el DSL de governança actual per un generat de nou?",
+      "BPMNGovernanceReplace": "Substitueix",
+      "BPMNGovernanceCancel": "Cancel·la",
+      "BPMNGovernancePolicyTypeLabel": "Política de decisió",
+      "BPMNGovPolicyMajority": "Majoria",
+      "BPMNGovPolicyAbsoluteMajority": "Majoria absoluta",
+      "BPMNGovPolicyLeaderDriven": "Dirigida per un líder",
+      "BPMNGovPolicyConsensus": "Consens",
+      "BPMNGatewayRoleDiverging": "Divergent",
+      "BPMNGatewayRoleMerging": "Convergent",
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rol",
+      "BPMNAgentRolePlaceholder": "p. ex. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -726,7 +772,10 @@
         "file": "Fitxer",
         "submitted": "Enviat"
       },
-      "webCrawlNamePrefix": "Rastreig:"
+      "webCrawlNamePrefix": "Rastreig:",
+      "A2ASendTo": "Envia a",
+      "A2AReceiveFrom": "Rep de",
+      "A2APeer": "parell"
     },
     "UserDiagram": {
       "UserModelName": "Usuari",

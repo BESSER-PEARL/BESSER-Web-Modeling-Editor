@@ -8,7 +8,7 @@ import { DropdownItemProps, StyledDropdown, StyledDropdownItem } from './dropdow
 const defaultProps = Object.freeze({
   color: 'primary' as Color,
   outline: true as boolean,
-  placeholder: '',
+  placeholder: '' as string,
   size: 'sm' as Size,
 });
 

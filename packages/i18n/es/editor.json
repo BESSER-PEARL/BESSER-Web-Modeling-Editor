@@ -231,7 +231,17 @@
       "namePlaceholder": "nombre del atributo"
     },
     "associationNamePlaceholder": "Nombre de la asociación",
-    "literals": "Literales"
+    "literals": "Literales",
+    "preset": "Predefinido",
+    "presetPlaceholder": "Elegir un predefinido…",
+    "stereotype": "Estereotipo",
+    "label": "Etiqueta",
+    "unnamed": "(sin nombre)",
+    "missingElement": "(no encontrado)",
+    "addTarget": "Añadir un destino…",
+    "lineage": "Procedencia",
+    "lineageSource": "Origen:",
+    "lineageDerivedFrom": "Derivado de"
   },
   "assessment": {
     "assessment": "Evaluación de",
@@ -301,7 +311,11 @@
       "ComponentInterface": "Interfaz",
       "ComponentInterfaceProvided": "Interfaz proporcionada",
       "ComponentInterfaceRequired": "Interfaz requerida",
-      "Comments": "Comentarios"
+      "Comments": "Comentarios",
+      "ComponentStereotypePlaceholder": "p. ej. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "p. ej. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "p. ej. subsystem, solution",
+      "Realizes": "Realiza"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Nodo",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Interfaz requerida",
       "DeploymentAssociation": "Asociación de despliegue",
       "DeploymentDependency": "Dependencia de despliegue",
-      "Comments": "Comentarios"
+      "Comments": "Comentarios",
+      "DeploymentNodeStereotypePlaceholder": "p. ej. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "p. ej. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "p. ej. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Lugar",
@@ -405,7 +422,36 @@
       "BPMNSwimlanes": "Carriles",
       "BPMNGroup": "Grupo",
       "BPMNExpand": "Expandir",
-      "BPMNCollapse": "Contraer"
+      "BPMNCollapse": "Contraer",
+      "BPMNAgentic": "Agéntico",
+      "BPMNTrustScore": "Nivel de confianza (0-100)",
+      "BPMNMultiplicity": "Copias (≥1)",
+      "BPMNAgentRoleSolution": "Solución",
+      "BPMNAgentRoleSupervision": "Supervisión",
+      "BPMNDefineAgentDiagram": "Definir comportamiento del agente",
+      "BPMNOpenAgentDiagram": "Abrir comportamiento del agente",
+      "BPMNReflectionNone": "Sin reflexión",
+      "BPMNReflectionSelf": "Autorreflexión",
+      "BPMNReflectionCross": "Reflexión cruzada",
+      "BPMNReflectionHuman": "Reflexión humana",
+      "BPMNReflectionReviewerLabel": "Agente revisor",
+      "BPMNReflectionReviewerUnspecified": "(No especificado)",
+      "BPMNGovernanceLabel": "Política de gobernanza (DSL)",
+      "BPMNGovernanceGenerate": "Generar",
+      "BPMNGovernanceRegenerate": "Regenerar",
+      "BPMNGovernanceOverwriteConfirm": "¿Reemplazar el DSL de gobernanza actual por uno generado de nuevo?",
+      "BPMNGovernanceReplace": "Reemplazar",
+      "BPMNGovernanceCancel": "Cancelar",
+      "BPMNGovernancePolicyTypeLabel": "Política de decisión",
+      "BPMNGovPolicyMajority": "Mayoría",
+      "BPMNGovPolicyAbsoluteMajority": "Mayoría absoluta",
+      "BPMNGovPolicyLeaderDriven": "Dirigida por un líder",
+      "BPMNGovPolicyConsensus": "Consenso",
+      "BPMNGatewayRoleDiverging": "Divergente",
+      "BPMNGatewayRoleMerging": "Convergente",
+      "BPMNDefaultAgentTitle": "Agente",
+      "BPMNAgentRole": "Rol",
+      "BPMNAgentRolePlaceholder": "p. ej. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -726,7 +772,10 @@
         "file": "Archivo",
         "submitted": "Enviado"
       },
-      "webCrawlNamePrefix": "Rastreo:"
+      "webCrawlNamePrefix": "Rastreo:",
+      "A2ASendTo": "Enviar a",
+      "A2AReceiveFrom": "Recibir de",
+      "A2APeer": "par"
     },
     "UserDiagram": {
       "UserModelName": "Usuario",

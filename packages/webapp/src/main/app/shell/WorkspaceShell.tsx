@@ -21,6 +21,12 @@ import {
   normalizeAgentRuntimeConfig,
   type AgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
+import {
+  reportDerivationWarnings,
+  useGenerateComponentDiagram,
+  useGenerateDeploymentDiagram,
+} from '../../features/inter-diagram';
+import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
@@ -86,6 +92,19 @@ import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
+
+// addDiagramThunk's message when a project already holds the maximum number
+// of diagrams of a type.
+const DIAGRAM_LIMIT_REACHED = /limit of \d+ reached/i;
+
+/** Message of a rejected thunk: `.unwrap()` rethrows a SerializedError (a plain object), not an Error. */
+const thunkErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+    return err.message;
+  }
+  return String(err);
+};
 
 const sanitizeRepoName = (name: string): string => {
   return name
@@ -602,6 +621,75 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     switchDiagramType(type);
   });
 
+  const deriveComponentDiagram = useGenerateComponentDiagram();
+  const handleDeriveComponentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveComponentDiagram();
+      if (!r.ok) {
+        const reasonKey =
+          r.reason === 'no-pools'
+            ? 'interDiagram.derive.component.noPools'
+            : r.reason === 'no-lanes-in-any-pool'
+              ? 'interDiagram.derive.component.noLanes'
+              : 'interDiagram.derive.component.notBpmn';
+        toast.error(t('interDiagram.derive.component.failed', { reason: t(reasonKey) }));
+        return;
+      }
+      if (r.warnings.length > 0) {
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.component.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
+      } else {
+        toast.success(t('interDiagram.derive.component.done'));
+      }
+    } catch (err) {
+      // addDiagramThunk rejects at the per-type diagram limit; any other
+      // rejection is reported with its own message.
+      console.error('[inter-diagram] derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.component.limitReached') : message;
+      toast.error(t('interDiagram.derive.component.failed', { reason }));
+    }
+  }, [deriveComponentDiagram, t]);
+
+  const deriveDeploymentDiagram = useGenerateDeploymentDiagram();
+  const handleDeriveDeploymentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveDeploymentDiagram();
+      if (!r.ok) {
+        const reasonKey =
+          r.reason === 'no-components'
+            ? 'interDiagram.derive.deployment.noComponents'
+            : 'interDiagram.derive.deployment.notComponentDiagram';
+        toast.error(t('interDiagram.derive.deployment.failed', { reason: t(reasonKey) }));
+        return;
+      }
+      if (r.warnings.length > 0) {
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.deployment.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
+      } else {
+        toast.success(t('interDiagram.derive.deployment.done'));
+      }
+    } catch (err) {
+      console.error('[inter-diagram] deployment derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.deployment.limitReached') : message;
+      toast.error(t('interDiagram.derive.deployment.failed', { reason }));
+    }
+  }, [deriveDeploymentDiagram, t]);
+
+  const { generate: generateDockerCompose, isLoading: isDockerComposing } = useGenerateDockerCompose();
+  const handleGenerateDockerCompose = useCallback(async () => {
+    await generateDockerCompose();
+  }, [generateDockerCompose]);
+
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
     void handleSwitchUml(type);
@@ -1003,7 +1091,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
-        isGenerating={isGenerating}
+        isGenerating={isGenerating || isDockerComposing}
         isAuthenticated={isAuthenticated}
         username={username || undefined}
         githubLoading={githubLoading}
@@ -1039,6 +1127,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onShowWelcomeGuide={onboarding?.startTutorial}
         activeDiagramType={activeDiagramType}
         onSwitchDiagramType={handleSwitchDiagramType}
+        onDeriveComponentDiagram={
+          isPerspectiveVisible(perspectives, 'ComponentDiagram') ? handleDeriveComponentDiagram : undefined
+        }
+        onDeriveDeploymentDiagram={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleDeriveDeploymentDiagram : undefined
+        }
+        onGenerateDockerCompose={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleGenerateDockerCompose : undefined
+        }
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}

@@ -11,6 +11,9 @@ export class UMLComponentComponent extends UMLComponent {
     ComponentRelationshipType.ComponentInterfaceRequired,
   ];
   type = ComponentElementType.Component;
+  // Agent-diagram UUID this agent-Component is defined by
+  // (from the source lane's `agentDiagramRef`). Optional, single (1:1 link).
+  agentModelRef?: string;
 
   constructor(values?: DeepPartial<IUMLComponent>) {
     super();
@@ -21,7 +24,11 @@ export class UMLComponentComponent extends UMLComponent {
     return {
       ...super.serialize(),
       type: this.type as keyof typeof ComponentElementType,
+      stereotype: this.stereotype,
       displayStereotype: this.displayStereotype,
+      realizes: this.realizes,
+      processModelRefs: this.processModelRefs,
+      agentModelRef: this.agentModelRef,
     };
   }
 
@@ -33,6 +40,12 @@ export class UMLComponentComponent extends UMLComponent {
     }
 
     super.deserialize(values, children);
+    // Models saved before the stereotype was serialized carry no value; keep
+    // the class default instead of wiping it.
+    this.stereotype = values.stereotype ?? UMLComponent.DEFAULT_STEREOTYPE;
     this.displayStereotype = values.displayStereotype;
+    this.realizes = values.realizes ?? [];
+    this.processModelRefs = values.processModelRefs ?? [];
+    this.agentModelRef = values.agentModelRef;
   }
 }

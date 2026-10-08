@@ -38,6 +38,11 @@ export interface ModificationTarget {
   nodeId?: string;
   nodeName?: string;
   flowId?: string;
+  // Component / Deployment elements and BPMN pools / lanes
+  elementId?: string;
+  elementName?: string;
+  poolName?: string;
+  swimlaneName?: string;
 }
 
 export interface ModificationChanges {
@@ -93,6 +98,23 @@ export interface ModificationChanges {
   gatewayType?: string;
   eventKind?: string;
   eventType?: string;
+  // Agentic BPMN task / gateway / lane fields
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  // reviewer lane (id or name) for reflectionMode 'cross'
+  reflectionReviewerLaneId?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
+  role?: string;
+  multiplicity?: number;
+  poolName?: string;
+  // Component / Deployment fields (`owner` names the containing Subsystem,
+  // Node or, for BPMN nodes, lane)
+  stereotype?: string;
+  dependencyStereotype?: string;
+  owner?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -142,7 +164,22 @@ export interface ModelModification {
     | 'add_event'
     | 'add_flow'
     | 'modify_node'
-    | 'remove_flow';
+    | 'remove_flow'
+    // BPMN pools / lanes
+    | 'add_pool'
+    | 'add_swimlane'
+    | 'modify_swimlane'
+    | 'remove_swimlane'
+    | 'remove_pool'
+    // Component diagram
+    | 'add_component'
+    | 'add_subsystem'
+    | 'add_dependency'
+    | 'modify_element'
+    | 'remove_dependency'
+    // Deployment diagram
+    | 'add_node'
+    | 'add_artifact';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;
@@ -226,6 +263,20 @@ export class ModifierHelpers {
   }
 
   /**
+   * Resolve an element reference that may be an element id or a name, among
+   * elements of the given types. Returns null when nothing matches.
+   */
+  static resolveElementRef(model: BESSERModel, ref: string | undefined, types: string[]): string | null {
+    if (!ref) return null;
+    if (types.includes(model.elements[ref]?.type)) return ref;
+    for (const type of types) {
+      const id = ModifierHelpers.findElementByName(model, ref, type);
+      if (id) return id;
+    }
+    return null;
+  }
+
+  /**
    * Find elements by type
    */
   static findElementsByType(model: BESSERModel, type: string): Array<{ id: string; element: any }> {
@@ -242,27 +293,32 @@ export class ModifierHelpers {
    * Remove element and its children
    */
   static removeElementWithChildren(model: BESSERModel, elementId: string): BESSERModel {
-    const element = model.elements[elementId];
-    if (!element) return model;
+    if (!model.elements[elementId]) return model;
 
-    // Remove child elements (attributes, methods, bodies, etc.)
-    ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
-      const children = element[childProp];
-      if (Array.isArray(children)) {
-        children.forEach((childId: string) => {
-          delete model.elements[childId];
-        });
+    // Collect the element, its listed children (attributes, methods, bodies,
+    // ...) and, recursively, every element it owns (lanes of a pool, tasks of
+    // a lane, components of a subsystem, ...).
+    const removed = new Set<string>();
+    const collect = (id: string) => {
+      if (removed.has(id) || !model.elements[id]) return;
+      removed.add(id);
+      const element = model.elements[id];
+      ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
+        const children = element[childProp];
+        if (Array.isArray(children)) children.forEach(collect);
+      });
+      for (const [childId, child] of Object.entries(model.elements)) {
+        if (child.owner === id) collect(childId);
       }
-    });
+    };
+    collect(elementId);
+    removed.forEach((id) => delete model.elements[id]);
 
-    // Remove the element itself
-    delete model.elements[elementId];
-
-    // Remove related relationships
+    // Remove relationships that touch any removed element
     if (model.relationships) {
       Object.keys(model.relationships).forEach((relId) => {
         const rel = model.relationships[relId];
-        if (rel.source?.element === elementId || rel.target?.element === elementId) {
+        if (removed.has(rel.source?.element) || removed.has(rel.target?.element)) {
           delete model.relationships[relId];
         }
       });
