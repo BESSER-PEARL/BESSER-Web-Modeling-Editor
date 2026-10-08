@@ -9,7 +9,13 @@
  * `trustScore`); a node's lane is its `parentId`.
  */
 import type { BesserEdge, BesserNode, UMLModel } from "@/typings"
+import type { BPMNGatewayType } from "@/types"
 import { isSupervisorRole } from "@/types/bpmnAgentic"
+
+// SEAA'25 § 4.3: collaboration constructs attach only to AgenticOR (inclusive)
+// and AgenticAND (parallel) gateways.
+export const AGENTIC_ELIGIBLE_GATEWAY_TYPES: ReadonlySet<BPMNGatewayType> =
+  new Set<BPMNGatewayType>(["parallel", "inclusive"])
 
 type AgenticData = {
   name?: string

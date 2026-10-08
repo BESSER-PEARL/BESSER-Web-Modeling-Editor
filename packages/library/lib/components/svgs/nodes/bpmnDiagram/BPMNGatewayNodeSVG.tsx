@@ -6,6 +6,12 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { BPMNGatewayProps } from "@/types"
 import { CustomText } from "@/components"
 import { getCustomColorsFromData } from "@/utils"
+import {
+  AgenticBotIcon,
+  BPMNGovernanceBadgeIcon,
+  BPMNMergeMarkerIcon,
+} from "@/components/svgs/icons/agentic"
+import { AGENTIC_ELIGIBLE_GATEWAY_TYPES } from "@/services/bpmnCollaborationBlocks"
 
 type BPMNGatewayNodeSVGProps = SVGComponentProps & {
   data: BPMNGatewayProps
@@ -20,7 +26,7 @@ export const BPMNGatewayNodeSVG: React.FC<BPMNGatewayNodeSVGProps> = ({
   data,
   showAssessmentResults = false,
 }) => {
-  const { name, gatewayType = "exclusive" } = data
+  const { name, gatewayType = "exclusive", gatewayRole, governanceDsl } = data
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -39,6 +45,11 @@ export const BPMNGatewayNodeSVG: React.FC<BPMNGatewayNodeSVGProps> = ({
   ].join(" ")
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
+  // Bot icon on every agentic gateway; a merging one adds the merge marker
+  // and, once a governance policy is written, the governance badge.
+  const isAgentic =
+    data.isAgentic === true && AGENTIC_ELIGIBLE_GATEWAY_TYPES.has(gatewayType)
+  const isMerging = isAgentic && gatewayRole === "merging"
 
   return (
     <svg
@@ -182,6 +193,14 @@ export const BPMNGatewayNodeSVG: React.FC<BPMNGatewayNodeSVGProps> = ({
         >
           {name}
         </CustomText>
+      )}
+
+      {isAgentic && <AgenticBotIcon x={-4} y={-4} color={strokeColor} />}
+      {isMerging && (
+        <BPMNMergeMarkerIcon x={width - 12} y={height - 12} color={strokeColor} />
+      )}
+      {isMerging && governanceDsl !== undefined && governanceDsl.trim() !== "" && (
+        <BPMNGovernanceBadgeIcon x={width - 12} y={-6} color={strokeColor} />
       )}
 
       {showAssessmentResults && (
