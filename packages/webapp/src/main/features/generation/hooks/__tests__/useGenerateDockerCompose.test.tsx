@@ -56,7 +56,7 @@ describe('useGenerateDockerCompose', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       blob: vi.fn().mockResolvedValue(new Blob(['zip'])),
-      headers: { get: () => 'attachment; filename="my_project-docker-compose.zip"' },
+      headers: { get: () => 'attachment; filename="docker_compose.zip"' },
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -68,7 +68,7 @@ describe('useGenerateDockerCompose', () => {
     expect(body.name).toBe('My_Project');
     expect(body.settings).toMatchObject({ generator: 'docker_compose', config: {} });
     expect(mockDownloadFile).toHaveBeenCalledWith(
-      expect.objectContaining({ filename: 'my_project-docker-compose.zip' }),
+      expect.objectContaining({ filename: 'docker_compose.zip' }),
     );
     // The empty Deployment diagram links no agent.
     expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining('No agent is linked'));
