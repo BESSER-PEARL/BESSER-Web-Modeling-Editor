@@ -34,6 +34,7 @@ import {
   PORT_CLEARANCE,
 } from "@/utils/edgeDragging"
 import { useFloatingEndpointDrag } from "./useFloatingEndpointDrag"
+import { portFrame } from "@/utils/nodeShapes"
 
 interface UseStepPathEdgeProps {
   id: string
@@ -53,8 +54,8 @@ interface UseStepPathEdgeProps {
   enableReconnection?: boolean
   enableStraightPath?: boolean
   /**
-   * Continuous-port geometry (class diagrams): the route, ports and sides
-   * come from here instead of React Flow's handle positions.
+   * Continuous-port geometry: the route, ports and sides come from here
+   * instead of React Flow's handle positions.
    */
   floating?: FloatingEdgeLayout
 }
@@ -94,7 +95,8 @@ export const useStepPathEdge = ({
   const draggingIndexRef = useRef<number | null>(null)
   const dragOffsetRef = useRef<IPoint>({ x: 0, y: 0 })
   const pathRef = useRef<SVGPathElement | null>(null)
-  const finalPointsRef = useRef<IPoint[]>([])
+  /** Route of the current midpoint drag; null until the pointer moves. */
+  const finalPointsRef = useRef<IPoint[] | null>(null)
   const dragPointsRef = useRef<IPoint[]>([])
 
   const isDiagramModifiable = useDiagramModifiable()
@@ -494,12 +496,14 @@ export const useStepPathEdge = ({
       const sourceInternal = getInternalNode(source)
       const targetInternal = getInternalNode(target)
       if (!sourceInternal || !targetInternal) return
-      const rectOf = (n: typeof sourceInternal) => ({
-        x: n.internals.positionAbsolute.x,
-        y: n.internals.positionAbsolute.y,
-        width: n.measured.width ?? n.width ?? 0,
-        height: n.measured.height ?? n.height ?? 0,
-      })
+      // Ports sit on the attachment box of each node's outline.
+      const rectOf = (n: typeof sourceInternal) =>
+        portFrame(n.type, {
+          x: n.internals.positionAbsolute.x,
+          y: n.internals.positionAbsolute.y,
+          width: n.measured.width ?? n.width ?? 0,
+          height: n.measured.height ?? n.height ?? 0,
+        }).box
       const ctx = {
         sourceRect: rectOf(sourceInternal),
         targetRect: rectOf(targetInternal),
@@ -597,6 +601,7 @@ export const useStepPathEdge = ({
         y: event.clientY - currentMidpoint.y,
       }
       dragPointsRef.current = [...activePoints]
+      finalPointsRef.current = null
 
       // Get DOM elements for direct manipulation (like React Flow does for nodes)
       const circleEl = event.target as SVGCircleElement
@@ -608,8 +613,17 @@ export const useStepPathEdge = ({
         ".edge-overlay"
       ) as SVGPathElement | null
 
+      const downX = event.clientX
+      const downY = event.clientY
       const handlePointerMove = (e: PointerEvent) => {
         if (draggingIndexRef.current === null) return
+        // Click jitter is not a drag.
+        if (
+          finalPointsRef.current === null &&
+          Math.hypot(e.clientX - downX, e.clientY - downY) < 3
+        ) {
+          return
+        }
 
         const idx = draggingIndexRef.current
         const newX = e.clientX - dragOffsetRef.current.x
@@ -648,15 +662,20 @@ export const useStepPathEdge = ({
       }
 
       const handlePointerUp = () => {
-        // Sync to React state only on release
-        setCustomPoints(finalPointsRef.current)
-        setEdges((eds) =>
-          eds.map((e) =>
-            e.id === id
-              ? { ...e, data: { ...e.data, points: finalPointsRef.current } }
-              : e
+        // Sync to React state only on release, and only after a real move:
+        // a plain click must not rewrite the route or add an undo step.
+        const finalPoints = finalPointsRef.current
+        finalPointsRef.current = null
+        if (finalPoints) {
+          setCustomPoints(finalPoints)
+          setEdges((eds) =>
+            eds.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, points: finalPoints } }
+                : e
+            )
           )
-        )
+        }
         draggingIndexRef.current = null
         document.removeEventListener("pointermove", handlePointerMove)
         document.removeEventListener("pointerup", handlePointerUp)

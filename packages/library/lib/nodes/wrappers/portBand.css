@@ -1,0 +1,21 @@
+/* Continuous-port nodes: connect vs resize.
+   Unselected, the whole outline band connects: no resize controls, no corner
+   squares on hover (they made a hovered node look selected). Selected, the
+   corners and a thin line exactly on the outline resize (resize cursors);
+   the rest of the band, inside and outside, still connects (crosshair). */
+
+.react-flow__node:not(.selected):has(.besser-port-band) .react-flow__resize-control {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.react-flow__node.selected:has(.besser-port-band) .react-flow__resize-control.line.left::after,
+.react-flow__node.selected:has(.besser-port-band) .react-flow__resize-control.line.right::after {
+  left: -2px;
+  right: -2px;
+}
+.react-flow__node.selected:has(.besser-port-band) .react-flow__resize-control.line.top::after,
+.react-flow__node.selected:has(.besser-port-band) .react-flow__resize-control.line.bottom::after {
+  top: -2px;
+  bottom: -2px;
+}

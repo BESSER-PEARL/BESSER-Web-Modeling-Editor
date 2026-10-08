@@ -29,7 +29,22 @@ import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { FLOATING_PORT_DIAGRAMS } from "@/utils/floatingEdges"
 import { facingHandleIds } from "@/utils/edgePorts"
+import { NO_PORT_NODE_TYPES } from "@/utils/nodeShapes"
 import { setConnectStart } from "@/edges/FloatingConnectionLine"
+import {
+  isInteriorPoint,
+  isRefusedCrossPoolFlow,
+  pickBodyDropHandle,
+  preselectLinkAssociation,
+  refusalReason,
+  resolveCrossPoolFlowType,
+  REFUSAL_MESSAGES,
+} from "@/edges/connectRules"
+import {
+  markInvalidTarget,
+  showConnectionNotice,
+} from "@/edges/connectionNotice"
+import { useTranslation } from "@/i18n"
 
 /**
  * Edge-type predicate. When the user drops a connection
@@ -72,7 +87,35 @@ const isConnectionAllowed = (
   edges: Edge[],
   source: string | null | undefined,
   target: string | null | undefined
-): boolean => canConnectEndpoints(nodes, source, target, (n) => n.id, edges)
+): boolean =>
+  canConnectEndpoints(nodes, source, target, (n) => n.id, edges) &&
+  !isRefusedCrossPoolFlow(nodes, source, target)
+
+const LINK_EDGE_TYPES = new Set(["ObjectLink", "UserModelLink"])
+
+/**
+ * Last adjustments to a new edge: BPMN sequence flows across pools become
+ * message flows (null = refused) and object / user-model links preselect
+ * their only possible association.
+ */
+const finalizeNewEdge = (
+  nodes: Node[],
+  type: DiagramEdgeType,
+  source: string,
+  target: string
+): { type: DiagramEdgeType; data?: Record<string, unknown> } | null => {
+  const flowType = resolveCrossPoolFlowType(type, nodes, source, target)
+  if (flowType === null) return null
+  const data = getInitialEdgeData(flowType)
+  if (LINK_EDGE_TYPES.has(flowType)) {
+    const association = preselectLinkAssociation(
+      nodes.find((n) => n.id === source),
+      nodes.find((n) => n.id === target)
+    )
+    if (association) return { type: flowType, data: { ...data, ...association } }
+  }
+  return { type: flowType, ...(data ? { data } : {}) }
+}
 
 export const useConnect = () => {
   const connectionStartParams = useRef<OnConnectStartParams | null>(null)
@@ -92,6 +135,25 @@ export const useConnect = () => {
   )
 
   const diagramType = useMetadataStore(useShallow((state) => state.diagramType))
+  const { t } = useTranslation()
+
+  /** Tells the user why the connection they just dropped was refused. */
+  const noticeRefusal = useCallback(
+    (
+      event: MouseEvent | TouchEvent,
+      source: string | null | undefined,
+      target: string | null | undefined
+    ) => {
+      const reason = refusalReason(nodes, source, target)
+      const point = "changedTouches" in event ? event.changedTouches[0] : event
+      showConnectionNotice(
+        t(`connection.refused.${reason}`, REFUSAL_MESSAGES[reason]),
+        { x: point.clientX, y: point.clientY },
+        event.target
+      )
+    },
+    [nodes, t]
+  )
 
   const defaultEdgeType = getDefaultEdgeType(diagramType)
   const floatingPorts = FLOATING_PORT_DIAGRAMS.has(diagramType)
@@ -158,7 +220,19 @@ export const useConnect = () => {
     if (!sourceRect) return
     // A self-loop needs the pointer to leave the node and come back, so a
     // click or tiny drag on a port never creates one by accident.
+    const fromId = params.nodeId
     const onMove = (e: PointerEvent) => {
+      // Outline a node the edge can't attach to while hovering it.
+      const overEl = document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .map((el) => el.closest<HTMLElement>(".react-flow__node"))
+        .find((el) => el && el.dataset.id !== fromId)
+      const overId = overEl?.dataset.id ?? null
+      markInvalidTarget(
+        overId && !isConnectionAllowed(nodes, edges, fromId, overId)
+          ? overId
+          : null
+      )
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
       const pad = 12
       if (
@@ -171,8 +245,10 @@ export const useConnect = () => {
       }
     }
     document.addEventListener("pointermove", onMove, true)
-    stopTrackingRef.current = () =>
+    stopTrackingRef.current = () => {
       document.removeEventListener("pointermove", onMove, true)
+      markInvalidTarget(null)
+    }
   }
 
   const onConnect = useCallback(
@@ -249,7 +325,15 @@ export const useConnect = () => {
       } else {
         resolvedType = defaultEdgeType
       }
-      const initialData = getInitialEdgeData(resolvedType)
+      const finalized = finalizeNewEdge(
+        nodes,
+        resolvedType,
+        connection.source,
+        connection.target
+      )
+      if (!finalized) return
+      resolvedType = finalized.type
+      const initialData = finalized.data
       // NNComposition endpoint normalization — the NNContainer always
       // lands at the target end so the rhombus (markerEnd) sits on the
       // container, replacing develop's render-time path reversal.
@@ -300,12 +384,14 @@ export const useConnect = () => {
       setConnectStart(null)
       if (!connectionState.isValid) {
         const dropPosition = getDropPosition(event)
+        // Member rows (state bodies, user-model attributes) stand for their
+        // parent node, which the drop point is inside of as well.
         const intersectingNodes = getIntersectingNodes({
           x: dropPosition.x - 5,
           y: dropPosition.y - 5,
           width: 10,
           height: 10,
-        })
+        }).filter((n) => !NO_PORT_NODE_TYPES.has(n.type ?? ""))
 
         if (intersectingNodes.length === 0) return
 
@@ -329,18 +415,34 @@ export const useConnect = () => {
         const floatingHandles = floatingPorts
           ? facingHandles(sourceNodeId, nodeOnTop.id)
           : null
+        const targetRect = {
+          x: internalNodeData.internals.positionAbsolute.x,
+          y: internalNodeData.internals.positionAbsolute.y,
+          width: nodeOnTop.width,
+          height: nodeOnTop.height,
+        }
+        const sourceRect = rectOf(sourceNodeId)
+        // Fixed handles: a drop inside the body takes the side facing the
+        // source (the handle closest to the pointer wraps the route around
+        // the node); a drop on the border keeps the handle there.
         const targetHandle =
           floatingHandles?.targetHandle ??
-          findClosestHandle({
-            point: dropPosition,
-            rect: {
-              x: internalNodeData.internals.positionAbsolute.x,
-              y: internalNodeData.internals.positionAbsolute.y,
-              width: nodeOnTop.width,
-              height: nodeOnTop.height,
-            },
-            useFourHandles: isFourHandleNode(nodeOnTop.type),
-          })
+          (sourceRect &&
+          nodeOnTop.id !== sourceNodeId &&
+          isInteriorPoint(dropPosition, targetRect)
+            ? pickBodyDropHandle({
+                nodeId: nodeOnTop.id,
+                nodeType: nodeOnTop.type,
+                rect: targetRect,
+                sourceRect,
+                edges,
+                centreOnly: isFourHandleNode(nodeOnTop.type),
+              })
+            : findClosestHandle({
+                point: dropPosition,
+                rect: targetRect,
+                useFourHandles: isFourHandleNode(nodeOnTop.type),
+              }))
 
         if (!targetHandle) return
 
@@ -365,6 +467,7 @@ export const useConnect = () => {
           // Refuse to create a new edge whose
           // source or target is an Enumeration class node.
           if (!isConnectionAllowed(nodes, edges, sourceNodeId, nodeOnTop.id)) {
+            noticeRefusal(event, sourceNodeId, nodeOnTop.id)
             connectionStartParams.current = null
             return
           }
@@ -408,7 +511,19 @@ export const useConnect = () => {
           } else {
             resolvedTypeOnEnd = defaultEdgeType
           }
-          const initialDataOnEnd = getInitialEdgeData(resolvedTypeOnEnd)
+          const finalizedOnEnd = finalizeNewEdge(
+            nodes,
+            resolvedTypeOnEnd,
+            sourceNodeId,
+            nodeOnTop.id
+          )
+          if (!finalizedOnEnd) {
+            noticeRefusal(event, sourceNodeId, nodeOnTop.id)
+            connectionStartParams.current = null
+            return
+          }
+          resolvedTypeOnEnd = finalizedOnEnd.type
+          const initialDataOnEnd = finalizedOnEnd.data
           // Same NNComposition endpoint normalization as `onConnect`.
           const endpointsOnEnd =
             resolvedTypeOnEnd === "NNComposition"
@@ -459,6 +574,8 @@ export const useConnect = () => {
       getIntersectingNodes,
       isFourHandleNode,
       nodes,
+      noticeRefusal,
+      rectOf,
       setEdges,
       setNodes,
     ]

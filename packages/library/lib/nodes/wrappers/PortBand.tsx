@@ -1,7 +1,17 @@
 import { useEffect, useRef } from "react"
 import { Handle, Position, useReactFlow, useStoreApi } from "@xyflow/react"
 import { setConnectStart } from "@/edges/FloatingConnectionLine"
-import { nearestBorderPort, portPoint } from "@/utils/edgePorts"
+import {
+  attachmentRect,
+  isPlainRect,
+  nearestOutlinePort,
+  nodeShapeOf,
+  outlinePath,
+  portOutlinePoint,
+  type NodeShape,
+} from "@/utils/nodeShapes"
+import type { LayoutPoint, LayoutRect } from "@/utils/autoLayoutHandles"
+import "./portBand.css"
 
 /** Port band thickness inside / outside the node outline (px, flow units). */
 export const PORT_BAND_INSIDE = 7
@@ -10,19 +20,40 @@ export const PORT_BAND_OUTSIDE = 9
 /** Id of the single connection handle of a continuous-port node. */
 export const PORT_HANDLE_ID = "port"
 
+/** Nearest outline point of `p` (all in the same coordinates). */
+const nearestOutlinePoint = (shape: NodeShape, box: LayoutRect, p: LayoutPoint) =>
+  portOutlinePoint(shape, box, nearestOutlinePort(shape, box, p))
+
 /**
  * Continuous connection port of a node: an invisible band along the outline
  * (a few px inside and outside) that starts a connection from wherever it is
  * grabbed, plus one connector dot that follows the pointer along the nearest
- * border point while the node is hovered. The node body still drags the node;
- * on a selected node the resize controls sit above the band.
+ * outline point while the node is hovered. The node body still drags the
+ * node; on a selected node the corners and a thin line on the outline resize
+ * (`portBand.css`), the rest of the band still connects.
+ *
+ * Plain rectangles use four strips along the box. Other shapes (circles,
+ * diamonds, rounded or inset outlines, `nodeShapes`) get an SVG band that
+ * follows the drawn outline, and a matching outline highlight on hover.
  */
-export function PortBand({ elementId }: { elementId: string }) {
+export function PortBand({
+  elementId,
+  nodeType,
+  width,
+  height,
+}: {
+  elementId: string
+  nodeType?: string
+  width?: number
+  height?: number
+}) {
   const anchorRef = useRef<HTMLDivElement>(null)
   const dotRef = useRef<HTMLDivElement>(null)
   const downAt = useRef<{ x: number; y: number } | null>(null)
   const { getInternalNode } = useReactFlow()
   const rfStore = useStoreApi()
+  const shape = nodeShapeOf(nodeType)
+  const shaped = !isPlainRect(shape) && !!width && !!height
 
   useEffect(() => {
     const nodeEl = anchorRef.current?.closest<HTMLElement>(".react-flow__node")
@@ -40,13 +71,17 @@ export function PortBand({ elementId }: { elementId: string }) {
       }
     }
     const onMove = (e: PointerEvent) => {
-      if (rfStore.getState().connection.inProgress) {
+      // No connector dot over a resize control: there a drag resizes.
+      if (
+        rfStore.getState().connection.inProgress ||
+        (e.target as Element | null)?.closest?.(".react-flow__resize-control")
+      ) {
         dot.style.opacity = "0"
         return
       }
       const p = local(e)
-      const rect = { x: 0, y: 0, width: p.w, height: p.h }
-      const q = portPoint(rect, nearestBorderPort(rect, p))
+      const box = attachmentRect(shape, { x: 0, y: 0, width: p.w, height: p.h })
+      const q = nearestOutlinePoint(shape, box, p)
       const inBand = Math.hypot(p.x - q.x, p.y - q.y) <= Math.max(PORT_BAND_INSIDE, PORT_BAND_OUTSIDE)
       dot.style.transform = `translate(${q.x}px, ${q.y}px)`
       dot.style.opacity = "1"
@@ -61,7 +96,7 @@ export function PortBand({ elementId }: { elementId: string }) {
       nodeEl.removeEventListener("pointermove", onMove)
       nodeEl.removeEventListener("pointerleave", onLeave)
     }
-  }, [rfStore])
+  }, [rfStore, shape])
 
   /** Records where on the outline the connection starts (preview origin). */
   const onPointerDown = (e: React.PointerEvent) => {
@@ -81,7 +116,7 @@ export function PortBand({ elementId }: { elementId: string }) {
       x: rect.x + (e.clientX - r.left) / scale,
       y: rect.y + (e.clientY - r.top) / scale,
     }
-    setConnectStart({ nodeId: elementId, point: portPoint(rect, nearestBorderPort(rect, p)) })
+    setConnectStart({ nodeId: elementId, point: nearestOutlinePoint(shape, attachmentRect(shape, rect), p) })
   }
 
   /** A click (no drag) on the band selects the node like a click on its body. */
@@ -97,6 +132,9 @@ export function PortBand({ elementId }: { elementId: string }) {
     addSelectedNodes([elementId])
   }
 
+  // Shaped band: the outline path in node-local coordinates.
+  const outline = shaped ? outlinePath(shape, attachmentRect(shape, { x: 0, y: 0, width: width!, height: height! })) : ""
+
   return (
     <>
       <div ref={anchorRef} className="besser-port-anchor" aria-hidden="true" />
@@ -104,7 +142,7 @@ export function PortBand({ elementId }: { elementId: string }) {
         id={PORT_HANDLE_ID}
         type="source"
         position={Position.Top}
-        className="besser-port-band"
+        className={`besser-port-band${shaped ? " besser-port-band--shaped" : ""}`}
         isConnectableStart
         isConnectableEnd
         onPointerDown={onPointerDown}
@@ -119,12 +157,28 @@ export function PortBand({ elementId }: { elementId: string }) {
       >
         {/* `source`: React Flow reads the handle type off the element under
             the pointer when a connection starts. */}
-        {(["top", "right", "bottom", "left"] as const).map((side) => (
-          <div
-            key={side}
-            className={`besser-port-band__strip besser-port-band__strip--${side} source`}
-          />
-        ))}
+        {shaped ? (
+          <svg
+            className="besser-port-band__svg"
+            width={width}
+            height={height}
+            style={{ left: PORT_BAND_OUTSIDE, top: PORT_BAND_OUTSIDE }}
+          >
+            <path className="besser-port-outline" d={outline} />
+            <path
+              className="besser-port-band__ring source"
+              d={outline}
+              strokeWidth={PORT_BAND_INSIDE + PORT_BAND_OUTSIDE}
+            />
+          </svg>
+        ) : (
+          (["top", "right", "bottom", "left"] as const).map((side) => (
+            <div
+              key={side}
+              className={`besser-port-band__strip besser-port-band__strip--${side} source`}
+            />
+          ))
+        )}
       </Handle>
       <div ref={dotRef} className="besser-port-dot" aria-hidden="true" />
     </>

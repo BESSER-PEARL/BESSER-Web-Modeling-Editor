@@ -1,4 +1,4 @@
-import { BaseEdge, getBezierPath } from "@xyflow/react"
+import { BaseEdge } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
@@ -9,6 +9,7 @@ import { EdgeMiddleLabels } from "../labelTypes/EdgeMiddleLabels"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { DiagramEdgeType } from "@/edges"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
@@ -18,7 +19,10 @@ import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSele
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
+import { curveEnds, getCurvedPath } from "../curvedPath"
 import { useTranslation } from "@/i18n"
+import { getAgentComponentLists } from "@/components/inspectors/agentDiagram/agentComponentLists"
+import { isMissingIntent } from "@/utils/agentComponents"
 
 /**
  * `AgentStateTransition` edge — most complex edge in the migration.
@@ -101,6 +105,9 @@ export const AgentDiagramEdge = ({
     useShallow((state) => state.setPopOverElementId)
   )
 
+  // Continuous ports: anchors and route computed from the node outlines.
+  const floating = useFloatingEdgeLayout(id)
+
   const {
     pathRef,
     edgeData,
@@ -130,21 +137,37 @@ export const AgentDiagramEdge = ({
     allowMidpointDragging,
     enableReconnection: true,
     enableStraightPath: false,
+    floating,
   })
 
   const { t } = useTranslation()
+  // Boolean selector: re-renders only when the intent appears / disappears.
+  const intentMissing = useDiagramStore((state) => {
+    const predefined = (data as { predefined?: { predefinedType?: string; intentName?: string } } | undefined)
+      ?.predefined
+    if (predefined?.predefinedType !== "when_intent_matched") return false
+    return isMissingIntent(predefined.intentName, getAgentComponentLists(state.nodes).intents)
+  })
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   // Classic React Flow bézier stroke (the native "flow" edge) instead of the
   // shared UML step routing, so an agent flow reads as smooth connections.
-  // Reconnection endpoints + the label still come from the hook.
-  const [smoothPath] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  })
+  // Reconnection endpoints still come from the hook; the label and toolbar
+  // sit on the drawn curve, not on the hook's hidden orthogonal route.
+  // Floating: the curve runs between the ports on the node outlines (the
+  // reconnect preview between its live ends).
+  const { path: smoothPath, label: curveMiddle } = getCurvedPath(
+    floating
+      ? curveEnds(edgeData.activePoints, floating, source === target)
+      : {
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+          selfLoop: source === target,
+        }
+  )
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   // Canvas label + invalid highlight (smart-gen
@@ -210,7 +233,7 @@ export const AgentDiagramEdge = ({
   const isInvalid = (): boolean => {
     if (d.transitionType === "custom") return false
     const pt = d.predefined?.predefinedType
-    if (pt === "when_intent_matched") return !d.predefined?.intentName
+    if (pt === "when_intent_matched") return !d.predefined?.intentName || intentMissing
     if (pt === "when_variable_operation_matched") {
       return !(cv.variable && cv.operator && cv.targetValue)
     }
@@ -232,6 +255,9 @@ export const AgentDiagramEdge = ({
             id={id}
             path={smoothPath}
             pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
             style={{
               stroke: edgeStroke,
               strokeDasharray: isReconnectingRef.current
@@ -272,6 +298,7 @@ export const AgentDiagramEdge = ({
             selected={selected}
             diagramType="step"
             pathType="step"
+            showDots={!!floating}
             onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
             onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
           />
@@ -280,15 +307,17 @@ export const AgentDiagramEdge = ({
 
         <EdgeMiddleLabels
           label={label}
-          pathMiddlePosition={edgeData.pathMiddlePosition}
+          pathMiddlePosition={curveMiddle}
           isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          centered
           showRelationshipLabels={true}
           textColor={labelColor}
         />
 
         <CommonEdgeElements
           id={id}
-          pathMiddlePosition={edgeData.pathMiddlePosition}
+          // Toolbar just below the on-curve label so it doesn't cover it.
+          pathMiddlePosition={{ x: curveMiddle.x, y: curveMiddle.y + 14 }}
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}

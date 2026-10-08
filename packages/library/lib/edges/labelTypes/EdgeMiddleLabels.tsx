@@ -1,4 +1,10 @@
+import { useStore, type InternalNode } from "@xyflow/react"
 import { IPoint } from "../Connection"
+import {
+  estimateMiddleLabelWidth,
+  placeMiddleLabel,
+  type LabelRect,
+} from "./middleLabelPlacement"
 
 interface EdgeMiddleLabelsProps {
   label?: string | null
@@ -10,7 +16,29 @@ interface EdgeMiddleLabelsProps {
   isUseCasePath?: boolean
   isPetriNet?: boolean // New prop to identify PetriNet edges
   textColor: string
+  /** Route points: the label goes on a segment that can hold it, clear of nodes. */
+  points?: IPoint[]
+  /** Centre the label on `pathMiddlePosition` (curved edges). */
+  centered?: boolean
 }
+
+/** Labels longer than this are cut with an ellipsis; the full text is the tooltip. */
+export const MAX_MIDDLE_LABEL_CHARS = 32
+
+export const truncateLabel = (label: string, max = MAX_MIDDLE_LABEL_CHARS) =>
+  label.length > max ? `${label.slice(0, max - 1).trimEnd()}…` : label
+
+const nodeRects = (
+  lookup: ReadonlyMap<string, InternalNode>
+): LabelRect[] =>
+  [...lookup.values()]
+    .filter((n) => !n.hidden)
+    .map((n) => ({
+      x: n.internals.positionAbsolute.x,
+      y: n.internals.positionAbsolute.y,
+      width: n.measured?.width ?? n.width ?? 0,
+      height: n.measured?.height ?? n.height ?? 0,
+    }))
 
 export const EdgeMiddleLabels = ({
   label,
@@ -22,7 +50,11 @@ export const EdgeMiddleLabels = ({
   isUseCasePath = false,
   isPetriNet = false,
   textColor,
+  points,
+  centered = false,
 }: EdgeMiddleLabelsProps) => {
+  const nodeLookup = useStore((state) => state.nodeLookup)
+
   if (isPetriNet && label === "1") return null
 
   if (!label || !showRelationshipLabels) return null
@@ -31,6 +63,8 @@ export const EdgeMiddleLabels = ({
   let x: number
   let y: number
   let rotation = 0
+  let textAnchor: "start" | "middle" | "end" = "middle"
+  let dominantBaseline: "auto" | "middle" | "hanging" = "middle"
 
   if (isUseCasePath && sourcePoint && targetPoint) {
     const dx = targetPoint.x - sourcePoint.x
@@ -52,29 +86,36 @@ export const EdgeMiddleLabels = ({
       x = (sourcePoint.x + targetPoint.x) / 2
       y = (sourcePoint.y + targetPoint.y) / 2
     }
+  } else if (centered) {
+    // The halo keeps the text readable on top of the stroke.
+    x = pathMiddlePosition.x
+    y = pathMiddlePosition.y
   } else {
-    const LABEL_GAP = 8
-    if (isMiddlePathHorizontal) {
+    const placement =
+      points && points.length >= 2
+        ? placeMiddleLabel(
+            points,
+            estimateMiddleLabelWidth(truncateLabel(label)),
+            nodeRects(nodeLookup)
+          )
+        : null
+    const LABEL_GAP = 10
+    if (placement) {
+      ;({ x, y, textAnchor, dominantBaseline } = placement)
+    } else if (isMiddlePathHorizontal) {
       // Horizontal edge: place label above the line
       x = pathMiddlePosition.x
       y = pathMiddlePosition.y - LABEL_GAP
+      dominantBaseline = "auto"
     } else {
       // Vertical edge: place label to the left of the line with gap
       x = pathMiddlePosition.x - LABEL_GAP
       y = pathMiddlePosition.y
+      textAnchor = "end"
     }
   }
 
-  const textAnchor = isUseCasePath
-    ? "middle"
-    : isMiddlePathHorizontal
-      ? "middle"
-      : "end"
-  const dominantBaseline = isUseCasePath
-    ? "middle"
-    : isMiddlePathHorizontal
-      ? "auto"
-      : "middle"
+  const shown = truncateLabel(label)
 
   return (
     <text
@@ -87,12 +128,16 @@ export const EdgeMiddleLabels = ({
         fontWeight: 700,
         fill: textColor,
         userSelect: "none",
-        pointerEvents: "none",
+        // Clicks bubble to the React Flow edge: select / double-click to edit.
+        pointerEvents: "visiblePainted",
+        cursor: "pointer",
       }}
       transform={rotation !== 0 ? `rotate(${rotation} ${x} ${y})` : undefined}
-      className="nodrag nopan"
+      className="besser-edge-label besser-edge-middle-label nodrag nopan"
+      data-testid="edge-middle-label"
     >
-      {label}
+      {shown !== label && <title>{label}</title>}
+      {shown}
     </text>
   )
 }

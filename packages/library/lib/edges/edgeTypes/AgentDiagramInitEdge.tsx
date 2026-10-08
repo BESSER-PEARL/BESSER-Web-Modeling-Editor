@@ -1,4 +1,5 @@
 import { BaseEdge, getBezierPath } from "@xyflow/react"
+import { curveEnds, getCurvedPath } from "../curvedPath"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
@@ -8,6 +9,7 @@ import {
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { DiagramEdgeType } from "@/edges"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
@@ -61,6 +63,9 @@ export const AgentDiagramInitEdge = ({
     useShallow((state) => state.setPopOverElementId)
   )
 
+  // Continuous ports: anchors and route computed from the node outlines.
+  const floating = useFloatingEdgeLayout(id)
+
   const {
     pathRef,
     edgeData,
@@ -90,18 +95,21 @@ export const AgentDiagramInitEdge = ({
     allowMidpointDragging,
     enableReconnection: true,
     enableStraightPath: false,
+    floating,
   })
 
   const { strokeColor } = getCustomColorsFromDataForEdge(data)
   // Classic React Flow bézier stroke (native "flow" edge) — no UML right angles.
-  const [smoothPath] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  })
+  const [smoothPath] = floating
+    ? [getCurvedPath(curveEnds(edgeData.activePoints, floating, source === target)).path]
+    : getBezierPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+      })
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   return (
@@ -113,6 +121,9 @@ export const AgentDiagramInitEdge = ({
             id={id}
             path={smoothPath}
             pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
             style={{
               stroke: strokeColor,
               strokeDasharray: isReconnectingRef.current
@@ -151,6 +162,7 @@ export const AgentDiagramInitEdge = ({
             selected={selected}
             diagramType="step"
             pathType="step"
+            showDots={!!floating}
             onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
             onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
           />

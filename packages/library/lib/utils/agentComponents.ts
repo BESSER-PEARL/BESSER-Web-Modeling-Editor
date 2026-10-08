@@ -203,3 +203,13 @@ export function getAgentComponentsOfType(
 ): UMLModelComponent[] {
   return Object.values(components || {}).filter((c) => c?.type === type)
 }
+
+/**
+ * Whether a "when intent matched" transition names an intent the agent no
+ * longer defines (deleted or renamed). Unknown (false) when no intent list is
+ * available at all, e.g. the library used without the webapp's components.
+ */
+export const isMissingIntent = (
+  intentName: string | undefined,
+  intents: readonly { name: string }[]
+): boolean => !!intentName && intents.length > 0 && !intents.some((i) => i.name === intentName)

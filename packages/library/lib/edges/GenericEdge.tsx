@@ -8,6 +8,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { DiagramEdgeType } from "."
 import { Assessment } from "@/typings"
+import type { SegmentHandle } from "@/utils/edgeDragging"
 
 export interface BaseEdgeProps extends ExtendedEdgeProps {
   diagramType?: "class" | "usecase" | "activity" | "component" | "deployment"
@@ -242,3 +243,64 @@ export const CommonEdgeElements = ({
     </>
   )
 }
+
+/**
+ * Bend handles of an edge: on floating edges one grip per draggable segment
+ * (`segmentHandles`), otherwise the legacy midpoint circles.
+ */
+export const EdgeBendHandles = ({
+  id,
+  midpoints,
+  floating,
+  onPointerDown,
+}: {
+  id: string
+  midpoints: IPoint[]
+  floating: boolean
+  onPointerDown: (e: React.PointerEvent, index: number) => void
+}) => (
+  <>
+    {midpoints.map((point, midPointIndex) =>
+      floating && "index" in point ? (
+        // Segment handle: small visible grip + generous hit area.
+        <g
+          className="edge-segment-handle"
+          key={`${id}-segment-${(point as SegmentHandle).index}`}
+          style={{
+            cursor: (point as SegmentHandle).horizontal ? "ns-resize" : "ew-resize",
+          }}
+          onPointerDown={(e) => onPointerDown(e, (point as SegmentHandle).index)}
+        >
+          <circle
+            className="edge-segment-handle__hit"
+            cx={point.x}
+            cy={point.y}
+            r={9}
+            fill="transparent"
+            pointerEvents="all"
+          />
+          <circle
+            className="edge-segment-handle__dot"
+            cx={point.x}
+            cy={point.y}
+            r={3.5}
+            pointerEvents="none"
+          />
+        </g>
+      ) : (
+        <circle
+          className="edge-circle"
+          pointerEvents="all"
+          key={`${id}-midpoint-${midPointIndex}`}
+          cx={point.x}
+          cy={point.y}
+          r={10}
+          fill="var(--besser-gray-variant, #adb5bd)"
+          stroke="none"
+          style={{ cursor: "grab", zIndex: 9999 }}
+          onPointerDown={(e) => onPointerDown(e, midPointIndex)}
+        />
+      )
+    )}
+  </>
+)

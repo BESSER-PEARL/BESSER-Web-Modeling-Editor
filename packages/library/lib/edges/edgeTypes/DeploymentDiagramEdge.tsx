@@ -194,6 +194,7 @@ export const DeploymentDiagramEdge = ({
           label={data?.label}
           pathMiddlePosition={edgeData.pathMiddlePosition}
           isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          points={edgeData.activePoints}
           showRelationshipLabels={showRelationshipLabels}
           textColor={textColor}
         />

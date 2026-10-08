@@ -5,28 +5,31 @@
  */
 import type { Edge, Node } from "@xyflow/react"
 import type { LayoutRect } from "./autoLayoutHandles"
-import { computePortGeometry, type PortGeometry } from "./edgePorts"
+import { computePortGeometry, CURVED_EDGE_TYPES, FLOATING_EDGE_TYPES, type PortGeometry } from "./edgePorts"
+import {
+  attachmentRect,
+  isPlainRect,
+  nodeShapeOf,
+  ROUTE_TRANSPARENT_NODE_TYPES,
+  type NodeShape,
+} from "./nodeShapes"
 import { placeEdgeLabels, estimateLabelWidth, type EdgeLabelLayout } from "./edgeLabelPlacement"
 import { getEdgeMarkerStyles, endMarkerLength } from "./edgeUtils"
 import { getAssociationMarkers } from "./uml-association-navigability"
 import { toERCardinality } from "./multiplicity"
 
-/** Edge types drawn by `ClassDiagramEdge`, which renders floating ports. */
-export const FLOATING_EDGE_TYPES: ReadonlySet<string> = new Set([
-  "ClassAggregation",
-  "ClassInheritance",
-  "ClassRealization",
-  "ClassComposition",
-  "ClassBidirectional",
-  "ClassUnidirectional",
-  "ClassDependency",
-  "ClassOCLLink",
-  "ClassLinkRel",
-  "CommentLink",
-])
+export { FLOATING_EDGE_TYPES }
 
 /** Diagram types whose nodes use continuous ports instead of fixed handles. */
-export const FLOATING_PORT_DIAGRAMS: ReadonlySet<string> = new Set(["ClassDiagram"])
+export const FLOATING_PORT_DIAGRAMS: ReadonlySet<string> = new Set([
+  "ClassDiagram",
+  "ObjectDiagram",
+  "UserDiagram",
+  "StateMachineDiagram",
+  "AgentDiagram",
+  "BPMNDiagram",
+  "NNDiagram",
+])
 
 export interface FloatingEdgeLayout extends PortGeometry {
   labels: EdgeLabelLayout
@@ -76,22 +79,47 @@ const markerLengths = (edge: Edge, erNotation: boolean): [number, number] => {
 export const computeFloatingLayout = (
   nodes: readonly Node[],
   edges: readonly Edge[],
-  options: { measure?: (text: string) => number; erNotation?: boolean } = {}
+  options: {
+    measure?: (text: string) => number
+    erNotation?: boolean
+    /** The last layout of the same diagram: end labels keep their sides. */
+    previous?: ReadonlyMap<string, FloatingEdgeLayout>
+  } = {}
 ): Map<string, FloatingEdgeLayout> => {
   const rects = nodeRects(nodes)
   const floating = edges.filter(
     (e) => FLOATING_EDGE_TYPES.has(e.type ?? "") && rects.has(e.source) && rects.has(e.target)
   )
+  // Ends attach to each node's outline; routes avoid the full boxes of
+  // every node except the containers edges cross (pools, lanes, groups).
+  const ports = new Map<string, LayoutRect>()
+  const shapes = new Map<string, NodeShape>()
+  const obstacles: LayoutRect[] = []
+  for (const node of nodes) {
+    const rect = rects.get(node.id)
+    if (!rect) continue
+    const shape = nodeShapeOf(node.type)
+    if (isPlainRect(shape)) {
+      ports.set(node.id, rect)
+    } else {
+      ports.set(node.id, attachmentRect(shape, rect))
+      shapes.set(node.id, shape)
+    }
+    if (!ROUTE_TRANSPARENT_NODE_TYPES.has(node.type ?? "")) obstacles.push(rect)
+  }
   const geometry = computePortGeometry(
-    rects,
+    ports,
     floating.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,
       sourceHandle: e.sourceHandle,
       targetHandle: e.targetHandle,
+      curved: CURVED_EDGE_TYPES.has(e.type ?? ""),
       data: e.data as never,
-    }))
+    })),
+    obstacles,
+    shapes
   )
   const er = !!options.erNotation
   const mult = (v: unknown) => {
@@ -116,7 +144,8 @@ export const computeFloatingLayout = (
         }
       }),
     [...rects.values()],
-    options.measure ?? estimateLabelWidth
+    options.measure ?? estimateLabelWidth,
+    options.previous
   )
   const out = new Map<string, FloatingEdgeLayout>()
   for (const [id, g] of geometry) {

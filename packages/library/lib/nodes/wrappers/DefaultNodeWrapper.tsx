@@ -5,6 +5,7 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { Handle, Position, useReactFlow } from "@xyflow/react"
 import { useMetadataStore } from "@/store/context"
 import { FLOATING_PORT_DIAGRAMS } from "@/utils/floatingEdges"
+import { NO_PORT_NODE_TYPES } from "@/utils/nodeShapes"
 import { PortBand } from "./PortBand"
 
 // Define enum for handle IDs
@@ -63,15 +64,17 @@ interface Props {
 export function DefaultNodeWrapper({
   elementId,
   children,
+  width,
+  height,
   hiddenHandles = [],
   className,
 }: Props) {
   const { getNode } = useReactFlow()
   const nodeType = getNode(elementId)?.type
   const isDiagramModifiable = useDiagramModifiable()
-  // Class diagrams use continuous ports: one border band to connect from,
-  // the legacy handles stay only as (invisible) anchors React Flow resolves
-  // stored `sourceHandle` / `targetHandle` ids against.
+  // Continuous ports: one outline band to connect from, the legacy handles
+  // stay only as (invisible) anchors React Flow resolves stored
+  // `sourceHandle` / `targetHandle` ids against.
   const floatingPorts = useMetadataStore((s) =>
     FLOATING_PORT_DIAGRAMS.has(s.diagramType)
   )
@@ -272,9 +275,16 @@ export function DefaultNodeWrapper({
                 />
               )
             })}
-            {floatingPorts && isDiagramModifiable && (
-              <PortBand elementId={elementId} />
-            )}
+            {floatingPorts &&
+              isDiagramModifiable &&
+              !NO_PORT_NODE_TYPES.has(nodeType ?? "") && (
+                <PortBand
+                  elementId={elementId}
+                  nodeType={nodeType}
+                  width={width}
+                  height={height}
+                />
+              )}
           </>
         )}
 

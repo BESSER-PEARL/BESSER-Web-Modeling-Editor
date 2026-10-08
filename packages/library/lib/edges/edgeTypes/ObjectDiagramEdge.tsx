@@ -2,11 +2,13 @@ import { BaseEdge } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
+  EdgeBendHandles,
   EdgeEndpointMarkers,
   CommonEdgeElements,
 } from "../GenericEdge"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
@@ -51,6 +53,9 @@ export const ObjectDiagramEdge = ({
     useShallow((state) => state.setPopOverElementId)
   )
 
+  // Continuous ports: anchors and route computed from the node outlines.
+  const floating = useFloatingEdgeLayout(id)
+
   const {
     pathRef,
     edgeData,
@@ -84,6 +89,7 @@ export const ObjectDiagramEdge = ({
     allowMidpointDragging,
     enableReconnection: true,
     enableStraightPath: false,
+    floating,
   })
 
   const { strokeColor } = getCustomColorsFromDataForEdge(data)
@@ -98,6 +104,9 @@ export const ObjectDiagramEdge = ({
             id={id}
             path={currentPath}
             pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
             style={{
               stroke: strokeColor,
               strokeWidth: 2,
@@ -139,6 +148,7 @@ export const ObjectDiagramEdge = ({
             selected={selected}
             diagramType="step"
             pathType="step"
+            showDots={!!floating}
             onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
             onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
           />
@@ -146,20 +156,14 @@ export const ObjectDiagramEdge = ({
           {isDiagramModifiable &&
             !isReconnectingRef.current &&
             allowMidpointDragging &&
-            midpoints.map((point, midPointIndex) => (
-              <circle
-                className="edge-circle"
-                pointerEvents="all"
-                key={`${id}-midpoint-${midPointIndex}`}
-                cx={point.x}
-                cy={point.y}
-                r={10}
-                fill="var(--besser-gray-variant, #adb5bd)"
-                stroke="none"
-                style={{ cursor: "grab", zIndex: 9999 }}
-                onPointerDown={(e) => handlePointerDown(e, midPointIndex)}
+            (
+              <EdgeBendHandles
+                id={id}
+                midpoints={midpoints}
+                floating={!!floating}
+                onPointerDown={handlePointerDown}
               />
-            ))}
+            )}
         </g>
 
         <CommonEdgeElements

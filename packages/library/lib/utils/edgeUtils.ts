@@ -984,7 +984,13 @@ export function getAllowedBpmnFlowEdgeTypes(
   const s = sourceType ?? ""
   const t = targetType ?? ""
   const allowed: DiagramEdgeType[] = []
-  if (BPMN_FLOW_NODES.has(s) && BPMN_FLOW_NODES.has(t)) {
+  // A sequence flow never leaves an end event or enters a start event.
+  if (
+    BPMN_FLOW_NODES.has(s) &&
+    BPMN_FLOW_NODES.has(t) &&
+    s !== "bpmnEndEvent" &&
+    t !== "bpmnStartEvent"
+  ) {
     allowed.push("BPMNSequenceFlow")
   }
   if (
@@ -996,7 +1002,13 @@ export function getAllowedBpmnFlowEdgeTypes(
   if (BPMN_ARTIFACT_NODES.has(s) || BPMN_ARTIFACT_NODES.has(t)) {
     allowed.push("BPMNAssociationFlow")
   }
-  if (BPMN_MESSAGE_ELIGIBLE.has(s) && BPMN_MESSAGE_ELIGIBLE.has(t)) {
+  // Start events only catch messages and end events only throw them.
+  if (
+    BPMN_MESSAGE_ELIGIBLE.has(s) &&
+    BPMN_MESSAGE_ELIGIBLE.has(t) &&
+    s !== "bpmnStartEvent" &&
+    t !== "bpmnEndEvent"
+  ) {
     allowed.push("BPMNMessageFlow")
   }
   return allowed

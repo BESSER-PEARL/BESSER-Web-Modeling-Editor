@@ -1,7 +1,7 @@
 /* Connections: continuous ports, edge hover / selection, resize priority.
    Loaded after app.css (App.tsx) and overrides it where both apply. */
 
-/* ---- Continuous port band (class diagrams) ---------------------------- */
+/* ---- Continuous port band -------------------------------------------- */
 
 /* The band handle itself never takes the pointer (it covers the node body);
    only its four outline strips do — also while the node is not hovered, so
@@ -51,6 +51,34 @@
   bottom: 0;
   right: 0;
   width: var(--besser-port-band, 16px);
+}
+
+/* Shaped outlines (circles, diamonds, rounded / inset boxes): the band is a
+   wide transparent stroke along the drawn outline. */
+.besser-port-band__svg {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+.besser-port-band__ring {
+  fill: none;
+  stroke: transparent;
+  pointer-events: stroke;
+  cursor: crosshair;
+}
+.besser-port-outline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--besser-primary, #3e8acc) 60%, transparent);
+  stroke-width: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.react-flow__node:hover:not(.selected) .besser-port-outline {
+  opacity: 1;
+}
+.react-flow__node.react-flow__node:has(.besser-port-band--shaped):hover:not(.selected) {
+  box-shadow: none;
 }
 
 .besser-port-anchor {
@@ -105,6 +133,15 @@
   box-shadow:
     0 0 0 2px var(--besser-primary, #3e8acc),
     0 0 0 6px color-mix(in srgb, var(--besser-primary, #3e8acc) 18%, transparent);
+}
+.besser-container--connecting .react-flow__node.react-flow__node:has(.besser-port-band--shaped):hover {
+  box-shadow: none;
+}
+.besser-container--connecting .react-flow__node:hover .besser-port-outline {
+  opacity: 1;
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 2px;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--besser-primary, #3e8acc) 45%, transparent));
 }
 
 .besser-connection-preview .react-flow__connection-path {

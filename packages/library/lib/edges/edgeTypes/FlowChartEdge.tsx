@@ -166,6 +166,7 @@ export const FlowChartEdge = ({
           label={data?.label}
           pathMiddlePosition={edgeData.pathMiddlePosition}
           isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          points={edgeData.activePoints}
           showRelationshipLabels={true}
           textColor={textColor}
         />

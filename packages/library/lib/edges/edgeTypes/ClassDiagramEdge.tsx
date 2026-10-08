@@ -2,6 +2,7 @@ import { BaseEdge } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
+  EdgeBendHandles,
   EdgeEndpointMarkers,
   CommonEdgeElements,
 } from "../GenericEdge"
@@ -9,7 +10,6 @@ import { EdgeEndLabels } from "../labelTypes/EdgeEndLabels"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
-import type { SegmentHandle } from "@/utils/edgeDragging"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import type { DiagramStore } from "@/store/diagramStore"
 import { useShallow } from "zustand/shallow"
@@ -45,6 +45,12 @@ import {
 const ASSOCIATION_CLASS_RENDER_TYPES: ReadonlySet<string> = new Set([
   ...ASSOCIATION_CLASS_CAPABLE_TYPES,
   "ClassAggregation",
+])
+
+/** Edge kinds whose ends never show role / multiplicity labels. */
+const NO_END_LABEL_TYPES: ReadonlySet<string> = new Set([
+  "ClassInheritance",
+  "ClassRealization",
 ])
 
 /**
@@ -446,68 +452,35 @@ export const ClassDiagramEdge = ({
           {isDiagramModifiable &&
             !isReconnectingRef.current &&
             allowMidpointDragging &&
-            midpoints.map((point, midPointIndex) =>
-              floating && "index" in point ? (
-                // Segment handle: small visible grip + generous hit area.
-                <g
-                  className="edge-segment-handle"
-                  key={`${id}-segment-${(point as SegmentHandle).index}`}
-                  style={{
-                    cursor: (point as SegmentHandle).horizontal
-                      ? "ns-resize"
-                      : "ew-resize",
-                  }}
-                  onPointerDown={(e) =>
-                    handlePointerDown(e, (point as SegmentHandle).index)
-                  }
-                >
-                  <circle
-                    className="edge-segment-handle__hit"
-                    cx={point.x}
-                    cy={point.y}
-                    r={9}
-                    fill="transparent"
-                    pointerEvents="all"
-                  />
-                  <circle
-                    className="edge-segment-handle__dot"
-                    cx={point.x}
-                    cy={point.y}
-                    r={3.5}
-                    pointerEvents="none"
-                  />
-                </g>
-              ) : (
-                <circle
-                  className="edge-circle"
-                  pointerEvents="all"
-                  key={`${id}-midpoint-${midPointIndex}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r={10}
-                  fill="var(--besser-gray-variant, #adb5bd)"
-                  stroke="none"
-                  style={{ cursor: "grab", zIndex: 9999 }}
-                  onPointerDown={(e) => handlePointerDown(e, midPointIndex)}
-                />
-              )
+            (
+              <EdgeBendHandles
+                id={id}
+                midpoints={midpoints}
+                floating={!!floating}
+                onPointerDown={handlePointerDown}
+              />
             )}
         </g>
 
-        <EdgeEndLabels
-          data={data}
-          activePoints={edgeData.activePoints}
-          sourceX={sourceX}
-          sourceY={sourceY}
-          targetX={targetX}
-          targetY={targetY}
-          sourcePosition={sourcePosition}
-          targetPosition={targetPosition}
-          textColor={textColor}
-          sourceMarkerLength={sourceMarkerLength}
-          targetMarkerLength={targetMarkerLength}
-          layout={isReconnectingRef.current ? undefined : floating?.labels}
-        />
+        {/* Generalization / realization ends carry no roles or
+            multiplicities (develop never drew them), even when the edge
+            was switched from an association that had some. */}
+        {!NO_END_LABEL_TYPES.has(type as string) && (
+          <EdgeEndLabels
+            data={data}
+            activePoints={edgeData.activePoints}
+            sourceX={sourceX}
+            sourceY={sourceY}
+            targetX={targetX}
+            targetY={targetY}
+            sourcePosition={sourcePosition}
+            targetPosition={targetPosition}
+            textColor={textColor}
+            sourceMarkerLength={sourceMarkerLength}
+            targetMarkerLength={targetMarkerLength}
+            layout={isReconnectingRef.current ? undefined : floating?.labels}
+          />
+        )}
 
         {/* ER (Chen) diamond at the path midpoint, replacing the UML
             arrow/rhombus markers for the four binary association types.
