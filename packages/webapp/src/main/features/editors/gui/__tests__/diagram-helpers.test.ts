@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAgentOptions, getClassOptions, getEndsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAgentOptions, getClassOptions, getEndsByClassId, getInheritedEndsByClassId, getMethodsByClassId } from '../diagram-helpers';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { BesserProject, createDefaultProject, ProjectDiagram } from '../../../../shared/types/project';
 
@@ -285,5 +285,65 @@ describe('getClassOptions', () => {
     setCurrentProject(project);
 
     expect(getClassOptions().map((o) => o.label)).toEqual(['Plain', 'Shape', 'Legacy']);
+  });
+});
+
+// Methods are now stored as a bare name plus structured `parameters[]`
+// (imported v3 methods included); reading the name string alone gave the GUI
+// editor no parameters and never flagged instance methods.
+describe('getMethodsByClassId', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    ProjectStorageRepository.revision = 0;
+    (ProjectStorageRepository as any).changeListeners = [];
+    (ProjectStorageRepository as any).suppressDepth = 0;
+  });
+
+  const withMethods = (methods: any[]) => {
+    const project = createDefaultProject('Test', '', 'user');
+    project.diagrams.ClassDiagram[0].model = {
+      version: '4.0.0',
+      id: 'cd',
+      title: 'cd',
+      type: 'ClassDiagram',
+      nodes: [{ id: 'Book', type: 'class', position: { x: 0, y: 0 }, data: { name: 'Book', attributes: [], methods } }],
+      edges: [],
+    } as any;
+    setCurrentProject(project);
+    return getMethodsByClassId('Book');
+  };
+
+  it('reads structured parameters and detects a structured self as an instance method', () => {
+    const [method] = withMethods([
+      {
+        id: 'm1',
+        name: 'borrow',
+        returnType: 'bool',
+        parameters: [
+          { id: 'p0', name: 'self' },
+          { id: 'p1', name: 'days', parameterType: 'int', defaultValue: 14 },
+          { id: 'p2', name: 'member' },
+        ],
+      },
+    ]);
+    expect(method.name).toBe('borrow');
+    expect(method.isInstanceMethod).toBe(true);
+    expect(method.parameters).toEqual([
+      { name: 'days', type: 'int', hasDefault: true, defaultValue: 14 },
+      { name: 'member', type: 'str', hasDefault: false, defaultValue: undefined },
+    ]);
+  });
+
+  it('treats a structured method without self as a class-level method', () => {
+    const [method] = withMethods([{ id: 'm2', name: 'count', parameters: [{ id: 'p', name: 'x', parameterType: 'int' }] }]);
+    expect(method.isInstanceMethod).toBe(false);
+    expect(method.parameters.map((p) => p.name)).toEqual(['x']);
+  });
+
+  it('still parses older signature-in-name methods', () => {
+    const [method] = withMethods([{ id: 'm3', name: 'renew(self, weeks: int = 2)' }]);
+    expect(method.name).toBe('renew');
+    expect(method.isInstanceMethod).toBe(true);
+    expect(method.parameters).toEqual([{ name: 'weeks', type: 'int', hasDefault: true, defaultValue: '2' }]);
   });
 });

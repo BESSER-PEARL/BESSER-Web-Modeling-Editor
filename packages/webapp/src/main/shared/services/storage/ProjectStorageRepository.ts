@@ -9,6 +9,7 @@ import {
   ensureProjectMigrated,
   getActiveDiagram,
   isProject,
+  isV3UMLModel,
   MAX_DIAGRAMS_PER_TYPE,
   SupportedDiagramType,
   toUMLDiagramType,
@@ -149,6 +150,7 @@ export class ProjectStorageRepository {
         return null;
       }
 
+      this.backupPreMigrationProject(projectId, projectData, project);
       return ensureProjectMigrated(project);
     } catch (error) {
       console.error('Error loading project:', error);
@@ -156,6 +158,31 @@ export class ProjectStorageRepository {
     }
   }
   
+  /**
+   * Key of a project's pre-migration copy: the exact JSON the old (v3) editor
+   * stored, kept so a rollback to that editor can restore it. Restore
+   * procedure: docs/source/webapp/local-projects.rst ("Rolling back").
+   */
+  static v3BackupKey(projectId: string): string {
+    return `${localStorageProjectPrefix}${projectId}_v3backup`;
+  }
+
+  // Written once, the first time a project holding v3 models is loaded, and
+  // never overwritten (a later load may see an old editor's empty v3 save).
+  private static backupPreMigrationProject(projectId: string, raw: string, project: BesserProject): void {
+    const key = this.v3BackupKey(projectId);
+    if (localStorage.getItem(key) !== null) return;
+    const hasV3Model = Object.values(project.diagrams).some((entry) =>
+      (Array.isArray(entry) ? entry : [entry]).some((d) => !!d && isV3UMLModel(d.model)),
+    );
+    if (!hasV3Model) return;
+    try {
+      localStorage.setItem(key, raw);
+    } catch (error) {
+      console.warn(`[ProjectStorageRepository] Could not back up project ${projectId} before migration:`, error);
+    }
+  }
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
     const latestProjectId = localStorage.getItem(localStorageLatestProject);
@@ -388,6 +415,7 @@ export class ProjectStorageRepository {
       // Remove project data
       const projectKey = `${localStorageProjectPrefix}${projectId}`;
       localStorage.removeItem(projectKey);
+      localStorage.removeItem(this.v3BackupKey(projectId));
 
       // Update projects list
       const projectsList = this.getProjectsList();

@@ -43,6 +43,11 @@ export const isNumericType = (type?: string): boolean => (type ? NUMERIC_TYPES.h
 export interface Instance {
   /** Stable, deterministic local id used as a React key. */
   key: string;
+  /**
+   * Id of the canvas box backing this instance (set when parsed from, or first
+   * written to, the model), so later writes update that box in place.
+   */
+  nodeId?: string;
   className: string;
   classId?: string;
   icon?: string;

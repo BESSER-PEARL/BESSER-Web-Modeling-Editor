@@ -21,6 +21,75 @@ import { describeNetworkError, isNetworkError } from '../../utils/describeNetwor
  * @param modelData - Optional: Direct model data (used for quantum circuits that don't use the BESSER WME editor)
  */
 const VALIDATION_TOAST_ID = 'diagram-validation-loading';
+// A fresh id per run: react-toastify ignores a new toast whose id is still active,
+// and a dismiss is only applied on the next render.
+let resultToastSeq = 0;
+let resultToastId: string | null = null;
+const replaceResultToast = (): string => {
+  if (resultToastId) toast.dismiss(resultToastId);
+  resultToastId = `diagram-validation-result-${++resultToastSeq}`;
+  return resultToastId;
+};
+
+interface ValidationResultLike {
+  isValid?: boolean;
+  message?: string;
+  errors?: string[];
+  warnings?: string[];
+  valid_constraints?: string[];
+  invalid_constraints?: string[];
+  ocl_message?: string;
+}
+
+/**
+ * One toast per validation run (errors, warnings, OCL results and the success
+ * line merged), replacing the previous run's toast, auto-closing, and themed
+ * by the app. Returns null when there is nothing to report.
+ */
+export function buildValidationResultToast(
+  result: ValidationResultLike,
+): { type: 'error' | 'warning' | 'success' | 'info'; message: string; autoClose: number } | null {
+  const has = (list?: string[]) => Array.isArray(list) && list.length > 0;
+  const sections: string[] = [];
+  const section = (icon: string, labelKey: string, items: string[]) =>
+    [`${icon} ${i18n.t(labelKey)}`, ...items].join('\n\n');
+  if (has(result.errors)) sections.push(section('❌', 'validation.toasts.errorsLabel', result.errors!));
+  if (has(result.invalid_constraints)) {
+    sections.push(section('❌', 'validation.toasts.invalidConstraintsLabel', result.invalid_constraints!));
+  }
+  if (has(result.warnings)) sections.push(section('⚠️', 'validation.toasts.warningsLabel', result.warnings!));
+  if (has(result.valid_constraints)) {
+    sections.push(section('✅', 'validation.toasts.validConstraintsLabel', result.valid_constraints!));
+  } else if (result.ocl_message && !has(result.invalid_constraints)) {
+    sections.push(result.ocl_message);
+  }
+
+  const failed = has(result.errors) || has(result.invalid_constraints);
+  const warned = has(result.warnings);
+  if (result.isValid && !failed && !warned) {
+    sections.unshift(result.message || `✅ ${i18n.t('validation.toasts.diagramValid')}`);
+  }
+  if (sections.length === 0) return null;
+
+  const type = failed ? 'error' : warned ? 'warning' : result.isValid ? 'success' : 'info';
+  const autoClose = type === 'error' ? 12000 : type === 'warning' ? 8000 : 5000;
+  return { type, message: sections.join('\n\n'), autoClose };
+}
+
+function showValidationResultToast(result: ValidationResultLike, style: CSSProperties): void {
+  const toastId = replaceResultToast();
+  const built = buildValidationResultToast(result);
+  if (!built) return;
+  toast[built.type](built.message, {
+    toastId,
+    position: 'top-right',
+    autoClose: built.autoClose,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    style,
+  });
+}
 
 export async function validateDiagram(editor: BesserEditor | null | undefined, diagramTitle: string, modelData?: any) {
   // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
@@ -64,7 +133,6 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
         toast.info(i18n.t('validation.toasts.diagramEmpty'), {
           position: 'top-right',
           autoClose: 4000,
-          theme: 'dark',
         });
       }
       return { isValid: true, errors: [] };
@@ -75,7 +143,6 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       toast.loading(i18n.t('validation.toasts.validating'), {
         toastId: VALIDATION_TOAST_ID,
         position: "top-right",
-        theme: "dark",
         autoClose: false,
         closeOnClick: false,
         closeButton: false,
@@ -123,8 +190,9 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
         toast.dismiss(VALIDATION_TOAST_ID);
         const errorMessage = errorData.errors?.join('\n') || i18n.t('validation.toasts.validationFailed');
         toast.error(errorMessage, {
+          toastId: replaceResultToast(),
           position: "top-right",
-          autoClose: false,
+          autoClose: 12000,
           style: {
             ...longToastStyle
           }
@@ -141,103 +209,8 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       toast.dismiss(VALIDATION_TOAST_ID);
     }
 
-    // Show validation errors
-    if (!suppressToasts && result.errors && result.errors.length > 0) {
-      const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + result.errors.join("\n\n");
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: false,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        style: {
-          ...longToastStyle
-        }
-      });
-    }
-    
-    // Show warnings
-    if (!suppressToasts && result.warnings && result.warnings.length > 0) {
-      const warningMessage = `⚠️ ${i18n.t('validation.toasts.warningsLabel')}\n\n` + result.warnings.join("\n\n");
-      toast.warning(warningMessage, {
-        position: "top-right",
-        autoClose: false,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        style: {
-          ...longToastStyle
-        }
-      });
-    }
-    
-    // Show valid OCL constraints
-    if (!suppressToasts && result.valid_constraints && result.valid_constraints.length > 0) {
-      const validMessage = `✅ ${i18n.t('validation.toasts.validConstraintsLabel')}\n\n` + result.valid_constraints.join("\n\n");
-      toast.success(validMessage, {
-        position: "top-right",
-        autoClose: false,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        style: {
-          ...longToastStyle
-        }
-      });
-    }
-    
-    // Show invalid OCL constraints
-    if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
-      const invalidMessage = `❌ ${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.join("\n\n");
-      toast.error(invalidMessage, {
-        position: "top-right",
-        autoClose: false,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        style: {
-          ...longToastStyle
-        }
-      });
-    }
-    
-    // Show OCL message if available and no constraints
-    if (!suppressToasts && result.ocl_message &&
-        (!result.valid_constraints || result.valid_constraints.length === 0) &&
-        (!result.invalid_constraints || result.invalid_constraints.length === 0)) {
-      toast.info(result.ocl_message, {
-        position: "top-right",
-        autoClose: 5000,
-        theme: "dark"
-      });
-    }
-    
-    // Show success only if everything is valid and there are no warnings
-    const hasWarnings = result.warnings && result.warnings.length > 0;
-    const hasInvalidConstraints = result.invalid_constraints && result.invalid_constraints.length > 0;
-    if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0) && !hasWarnings && !hasInvalidConstraints) {
-      toast.success(result.message || `✅ ${i18n.t('validation.toasts.diagramValid')}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark"
-      });
+    if (!suppressToasts) {
+      showValidationResultToast(result, longToastStyle);
     }
     
     return result;
@@ -252,7 +225,6 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       toast.error(message, {
         position: "top-right",
         autoClose: 5000,
-        theme: "dark"
       });
     }
     return { 

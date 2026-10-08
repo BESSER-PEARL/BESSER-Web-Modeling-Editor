@@ -56,6 +56,13 @@
   --quantum-editor-tooltip-shadow: 0 12px 28px rgba(2, 6, 23, 0.18);
 }
 
+/* Neutral/info toast progress bars use the brand colour instead of react-toastify's rainbow/purple defaults. */
+html:root {
+  --toastify-color-progress-light: hsl(var(--brand));
+  --toastify-color-progress-dark: hsl(var(--brand));
+  --toastify-color-progress-info: hsl(var(--brand));
+}
+
 /* react-toastify's default (light) toasts follow the dark palette; html[] outranks its :root defaults. */
 html[data-theme='dark'] {
   --toastify-color-light: hsl(222 26% 11%);
@@ -343,6 +350,13 @@ select {
 /* ---- Toasts ---- */
 .Toastify__toast-container {
   width: min(420px, 90vw);
+}
+
+/* Top toasts start below the workspace top bar so they never cover its actions. */
+:root .Toastify__toast-container--top-right,
+:root .Toastify__toast-container--top-center,
+:root .Toastify__toast-container--top-left {
+  top: calc(var(--app-shell-topbar-height) + 8px);
 }
 
 .Toastify__toast {

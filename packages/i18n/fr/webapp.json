@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instances d'un diagramme de classes, utilisées pour les tests et la validation OCL.",
           "StateMachineDiagram": "Modélisation du comportement basée sur les états.",
           "AgentDiagram": "Spécification d'agent conversationnel / IA.",
-          "UserDiagram": "Acteurs et leurs interactions.",
+          "UserDiagram": "Profils utilisateur (données démographiques, accessibilité, compétences, culture) pour la personnalisation.",
           "GUINoCodeDiagram": "Conception d'interface utilisateur graphique (inspirée d'IFML).",
           "QuantumCircuitDiagram": "Spécification de programme quantique.",
           "BPMN": "Modèle et notation de processus métier.",
@@ -2078,13 +2078,13 @@
       "failed": "Échec de l'import : {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validez vos modèles avant de passer à la tâche suivante",
-      "description": "Ce modèle utilisateur n'a pas été validé après vos dernières modifications.",
-      "confirmLabel": "Valider les modèles",
-      "cancelLabel": "Ignorer"
+      "title": "Valider ce modèle utilisateur avant de le quitter ?",
+      "description": "Vous avez modifié ce modèle utilisateur depuis sa dernière validation.",
+      "confirmLabel": "Valider maintenant",
+      "cancelLabel": "Quitter sans valider"
     },
     "leaveWithIssues": {
-      "title": "Il y a des problèmes avec votre diagramme, voulez-vous quand même quitter ce modèle ?",
+      "title": "Ce modèle utilisateur contient des erreurs de validation. Le quitter quand même ?",
       "description": "Le contrôle qualité a détecté des erreurs. Vous pouvez rester pour les corriger ou quitter ce modèle quand même.",
       "confirmLabel": "Quitter le modèle",
       "cancelLabel": "Rester"

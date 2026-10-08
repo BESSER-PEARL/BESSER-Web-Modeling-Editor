@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instàncies d'un diagrama de classes, usades per a proves i validació OCL.",
           "StateMachineDiagram": "Modelatge de comportament basat en estats.",
           "AgentDiagram": "Especificació d'agent conversacional / d'IA.",
-          "UserDiagram": "Actors i les seves interaccions.",
+          "UserDiagram": "Perfils d'usuari (dades demogràfiques, accessibilitat, competències, cultura) per a la personalització.",
           "GUINoCodeDiagram": "Disseny d'interfície gràfica d'usuari (inspirat en IFML).",
           "QuantumCircuitDiagram": "Especificació de programa quàntic.",
           "BPMN": "Model i notació de procés de negoci.",
@@ -2078,13 +2078,13 @@
       "failed": "Ha fallat la importació: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Valida els teus models abans de passar a la tasca següent",
-      "description": "Aquest model d'usuari no s'ha validat després dels teus darrers canvis.",
-      "confirmLabel": "Validar models",
-      "cancelLabel": "Ignora"
+      "title": "Vols validar aquest model d'usuari abans de sortir?",
+      "description": "Has canviat aquest model d'usuari des de l'última validació.",
+      "confirmLabel": "Valida ara",
+      "cancelLabel": "Surt sense validar"
     },
     "leaveWithIssues": {
-      "title": "Hi ha problemes amb el teu diagrama, encara vols sortir d'aquest model?",
+      "title": "Aquest model d'usuari té errors de validació. Vols sortir igualment?",
       "description": "La comprovació de qualitat ha trobat errors. Pots quedar-te per corregir-los o sortir d'aquest model igualment.",
       "confirmLabel": "Surt del model",
       "cancelLabel": "Queda't"

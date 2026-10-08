@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instancias de un diagrama de clases, usadas para pruebas y validación OCL.",
           "StateMachineDiagram": "Modelado de comportamiento basado en estados.",
           "AgentDiagram": "Especificación de agente conversacional / de IA.",
-          "UserDiagram": "Actores y sus interacciones.",
+          "UserDiagram": "Perfiles de usuario (datos demográficos, accesibilidad, competencias, cultura) para la personalización.",
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
           "BPMN": "Notación de Modelo y Proceso de Negocio.",
@@ -2078,13 +2078,13 @@
       "failed": "Error al importar: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Valida tus modelos antes de pasar a la siguiente tarea",
-      "description": "Este modelo de usuario no se ha validado tras tus últimos cambios.",
-      "confirmLabel": "Validar modelos",
-      "cancelLabel": "Ignorar"
+      "title": "¿Validar este modelo de usuario antes de salir?",
+      "description": "Has cambiado este modelo de usuario desde la última validación.",
+      "confirmLabel": "Validar ahora",
+      "cancelLabel": "Salir sin validar"
     },
     "leaveWithIssues": {
-      "title": "Hay problemas con tu diagrama, ¿aun así quieres salir de este modelo?",
+      "title": "Este modelo de usuario tiene errores de validación. ¿Salir de todos modos?",
       "description": "La comprobación de calidad encontró errores. Puedes quedarte para corregirlos o salir de este modelo de todos modos.",
       "confirmLabel": "Salir del modelo",
       "cancelLabel": "Quedarse"

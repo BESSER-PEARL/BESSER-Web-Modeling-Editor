@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instances of a class diagram, used for tests and OCL validation.",
           "StateMachineDiagram": "State-based behavior modeling.",
           "AgentDiagram": "Conversational / AI agent model.",
-          "UserDiagram": "Actors and their interactions.",
+          "UserDiagram": "User profiles (demographics, accessibility, skills, culture) used for personalization.",
           "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
           "QuantumCircuitDiagram": "Quantum program model.",
           "BPMN": "Business Process Model and Notation.",
@@ -2078,13 +2078,13 @@
       "failed": "Import failed: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validate your models before going to the next task",
-      "description": "This User Model has not been validated after your latest changes.",
-      "confirmLabel": "Validate models",
-      "cancelLabel": "Ignore"
+      "title": "Validate this user model before leaving?",
+      "description": "You changed this user model since it was last validated.",
+      "confirmLabel": "Validate now",
+      "cancelLabel": "Leave without validating"
     },
     "leaveWithIssues": {
-      "title": "There are issues with your diagram, you still want to leave this model?",
+      "title": "This user model has validation errors. Leave anyway?",
       "description": "Quality check found errors. You can stay to fix them or leave this model anyway.",
       "confirmLabel": "Leave model",
       "cancelLabel": "Stay"

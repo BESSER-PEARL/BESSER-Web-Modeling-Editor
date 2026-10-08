@@ -470,7 +470,30 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
 
   return classNodeMethods(classNode)
     .map((method: any) => {
-      // Parse method signature to extract parameters
+      // Current shape: a bare name plus structured `parameters[]` (imported v3
+      // methods are normalised to it too). `self` / `session` are supplied by
+      // the runtime, not by the GUI.
+      if (Array.isArray(method.parameters) && method.parameters.length > 0) {
+        const structured: any[] = method.parameters;
+        return {
+          id: method.id,
+          name: String(method.name || '').replace(/\(.*$/, '').trim(),
+          isInstanceMethod: structured[0]?.name === 'self',
+          parameters: structured
+            .filter((p) => p?.name && p.name !== 'self' && p.name !== 'session')
+            .map((p) => {
+              const hasDefault = p.defaultValue !== undefined && p.defaultValue !== null && p.defaultValue !== '';
+              return {
+                name: String(p.name),
+                type: p.parameterType || 'str',
+                hasDefault,
+                defaultValue: hasDefault ? p.defaultValue : undefined,
+              };
+            }),
+        };
+      }
+
+      // Older data: the whole signature lives in the name, e.g. "renew(self, weeks: int = 2)".
       const methodName = method.name || '';
       const isInstanceMethod = methodName.includes('(self') || methodName.includes('(session');
       

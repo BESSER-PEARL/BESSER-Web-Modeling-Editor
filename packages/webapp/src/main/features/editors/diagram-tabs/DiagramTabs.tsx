@@ -23,6 +23,7 @@ import {
   selectDiagramsForActiveType,
   selectActiveDiagramType,
   selectClassDiagrams,
+  selectProject,
 } from '../../../app/store/workspaceSlice';
 import { BesserEditorContext } from '../uml/besser-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
@@ -131,6 +132,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   // not as a single diagram-level reference, so no dropdown is needed here.
 
   const classDiagrams = useAppSelector(selectClassDiagrams);
+  const activeClassIndex = useAppSelector(selectProject)?.currentDiagramIndices?.ClassDiagram ?? 0;
+  // Same fallback as getReferencedDiagram: the stored reference, else the active class diagram.
+  const activeClassDiagramId = classDiagrams[Math.min(activeClassIndex, classDiagrams.length - 1)]?.id ?? '';
 
   // Read the active diagram's persisted references (ID-based)
   // Clamp the index to prevent out-of-bounds access when diagrams array
@@ -138,13 +142,13 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const safeIndex = diagrams.length > 0 ? Math.min(currentIndex, diagrams.length - 1) : 0;
   const activeDiagram = diagrams[safeIndex];
   const [classRefId, setClassRefId] = useState<string>(
-    () => activeDiagram?.references?.ClassDiagram ?? classDiagrams[0]?.id ?? '',
+    () => activeDiagram?.references?.ClassDiagram ?? activeClassDiagramId,
   );
 
   // When the active diagram tab changes or its references update, restore persisted references
   useEffect(() => {
-    setClassRefId(activeDiagram?.references?.ClassDiagram ?? classDiagrams[0]?.id ?? '');
-  }, [activeDiagram?.id, activeDiagram?.references?.ClassDiagram, classDiagrams]);
+    setClassRefId(activeDiagram?.references?.ClassDiagram ?? activeClassDiagramId);
+  }, [activeDiagram?.id, activeDiagram?.references?.ClassDiagram, activeClassDiagramId]);
 
   // Sync the bridge when ClassDiagram reference changes (ObjectDiagram needs it)
   const prevClassRefIdRef = React.useRef<string | null>(null);
@@ -205,7 +209,10 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     // generated objects, then propagate to the BESSER WME editor canvas.
     await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
     await besserEditor.nextRender;
-    besserEditor.model = { ...nextModel } as any;
+    // One undoable step (the `model` setter is a load that wipes undo history).
+    const generated = { ...nextModel } as any;
+    if (typeof besserEditor.applyModel === 'function') besserEditor.applyModel(generated);
+    else besserEditor.model = generated;
     await besserEditor.nextRender;
 
     const linksFragment = links > 0 ? t('editors.diagramTabs.linksFragment', { count: links }) : '';

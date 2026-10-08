@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instanzen vun engem Klassendiagramm, benotzt fir Tester an OCL-Validéierung.",
           "StateMachineDiagram": "Zoustandsbaséiert Verhalensmodelléierung.",
           "AgentDiagram": "Konversatiouns- / KI-Agent-Spezifikatioun.",
-          "UserDiagram": "Akteuren an hir Interaktiounen.",
+          "UserDiagram": "Benotzerprofiler (Demografie, Barrièrefräiheet, Kompetenzen, Kultur) fir d'Personaliséierung.",
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
@@ -2078,13 +2078,13 @@
       "failed": "Import feelgeschloen: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validéiert Är Modeller ier Dir bei déi nächst Aufgab gitt",
-      "description": "Dëse User-Model gouf no Äre leschten Ännerungen net validéiert.",
-      "confirmLabel": "Modeller validéieren",
-      "cancelLabel": "Ignoréieren"
+      "title": "Dëse Benotzermodell validéieren, ier Dir en verloosst?",
+      "description": "Dir hutt dëse Benotzermodell zënter der leschter Validatioun geännert.",
+      "confirmLabel": "Elo validéieren",
+      "cancelLabel": "Ouni Validatioun verloossen"
     },
     "leaveWithIssues": {
-      "title": "Et gi Problemer mat Ärem Diagramm, wëllt Dir dëse Model trotzdeem verloossen?",
+      "title": "Dëse Benotzermodell huet Validatiounsfeeler. Trotzdeem verloossen?",
       "description": "De Qualitéitscheck huet Feeler fonnt. Dir kënnt bleiwen fir se ze fixen oder dëse Model trotzdeem verloossen.",
       "confirmLabel": "Model verloossen",
       "cancelLabel": "Bleiwen"

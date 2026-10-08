@@ -9,7 +9,8 @@ export const useExportPNG = () => {
     async (editor: BesserEditor, diagramTitle: string, setWhiteBackground: boolean) => {
       const besserSVG: SVG = await editor.exportAsSVG();
       const pngBlob: Blob = await convertRenderedSVGToPNG(besserSVG, setWhiteBackground);
-      const fileName = `${diagramTitle}.png`;
+      // Distinct names, so the white and the transparent export of one diagram don't overwrite each other.
+      const fileName = setWhiteBackground ? `${diagramTitle}.png` : `${diagramTitle}_transparent.png`;
 
       const fileToDownload = new File([pngBlob], fileName, { type: 'image/png' });
 

@@ -307,6 +307,87 @@ describe('user-profile-form serialization', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Form edits must not rewrite the rest of the canvas                 */
+/* ------------------------------------------------------------------ */
+
+// Live report: "Edit as form" rebuilt the whole diagram on every edit. Nodes not
+// reachable from the User root were deleted, every box was re-laid out, and
+// boxes were matched by className#ordinal (removing the first Disability moved
+// the second one into its place).
+describe('buildUserDiagramModel keeps the rest of the canvas', () => {
+  const canvas = (): UMLModel => {
+    const model = buildUserDiagramModel(buildSampleProfile(syntheticTree), syntheticTree) as any;
+    boxesOf(model).forEach((box: any, i: number) => {
+      box.position = { x: 1000 + i * 37, y: 500 + i * 11 };
+      box.data.name = `${box.data.name}_renamed`;
+    });
+    model.nodes.push(
+      // A box of a class outside the form's tree, and a free-floating second User box.
+      { id: 'note-1', type: USER_NODE_TYPE, position: { x: 7, y: 9 }, width: 200, height: 50, data: { name: 'x', className: 'Outside' } },
+      { id: 'user-2', type: USER_NODE_TYPE, position: { x: 70, y: 90 }, width: 200, height: 50, data: { name: 'other', className: 'User' } },
+    );
+    model.edges.push({ id: 'free-link', type: USER_LINK_TYPE, source: 'user-2', target: 'note-1', data: { points: [] } });
+    return model;
+  };
+
+  it('keeps nodes and links the form does not own, with their positions', () => {
+    const existing = canvas() as any;
+    const state = parseUserDiagramModel(existing, syntheticTree)!;
+    state.children.Personal_Information[0].attributes[0].value = '21';
+    const rebuilt = buildUserDiagramModel(state, syntheticTree, existing) as any;
+
+    expect(rebuilt.nodes.find((n: any) => n.id === 'note-1')?.position).toEqual({ x: 7, y: 9 });
+    expect(rebuilt.nodes.find((n: any) => n.id === 'user-2')?.position).toEqual({ x: 70, y: 90 });
+    expect(rebuilt.edges.some((e: any) => e.id === 'free-link')).toBe(true);
+  });
+
+  it('leaves every owned box where it was, under the same id and name', () => {
+    const existing = canvas() as any;
+    const state = parseUserDiagramModel(existing, syntheticTree)!;
+    state.children.Personal_Information[0].attributes[0].value = '21';
+    const rebuilt = buildUserDiagramModel(state, syntheticTree, existing) as any;
+
+    for (const before of boxesOf(existing)) {
+      const after = rebuilt.nodes.find((n: any) => n.id === before.id);
+      expect(after?.position).toEqual(before.position);
+      expect(after?.data.name).toBe(before.data.name);
+    }
+    expect(rebuilt.nodes).toHaveLength(existing.nodes.length);
+    expect(rebuilt.edges).toHaveLength(existing.edges.length);
+  });
+
+  it('matches boxes by id: removing the first Disability keeps the second one in place', () => {
+    const existing = canvas() as any;
+    const state = parseUserDiagramModel(existing, syntheticTree)!;
+    const acc = state.children.Accessibility[0];
+    const second = acc.children.Disability[1];
+    const secondBefore = existing.nodes.find((n: any) => n.id === second.nodeId);
+    acc.children.Disability = [second];
+
+    const rebuilt = buildUserDiagramModel(state, syntheticTree, existing) as any;
+    const disabilities = boxesOf(rebuilt).filter((b: any) => b.data.className === 'Disability');
+    expect(disabilities).toHaveLength(1);
+    expect(disabilities[0].id).toBe(secondBefore.id);
+    expect(disabilities[0].position).toEqual(secondBefore.position);
+  });
+
+  it('gives a newly added part the next free name and a spot that overlaps nothing', () => {
+    const existing = canvas() as any;
+    // disability_1 and disability_2 are on the canvas.
+    boxesOf(existing).forEach((box: any) => { box.data.name = box.data.name.replace('_renamed', ''); });
+    const state = parseUserDiagramModel(existing, syntheticTree)!;
+    state.children.Accessibility[0].children.Disability.push(createEmptyInstance(syntheticTree.byClassName.Disability));
+
+    const rebuilt = buildUserDiagramModel(state, syntheticTree, existing) as any;
+    const added = rebuilt.nodes.find((n: any) => !existing.nodes.some((e: any) => e.id === n.id));
+    expect(added.data.name).toBe('disability_3');
+    const overlaps = rebuilt.nodes.some((n: any) => n !== added
+      && Math.abs(n.position.x - added.position.x) < 200 && Math.abs(n.position.y - added.position.y) < 50);
+    expect(overlaps).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /*  Metamodel-tree derivation against the real shipped metamodel       */
 /* ------------------------------------------------------------------ */
 

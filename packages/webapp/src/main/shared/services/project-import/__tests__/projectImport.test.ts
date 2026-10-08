@@ -1,4 +1,4 @@
-import { importProjectFromJson } from '../projectImport';
+import { importProjectFromBUML, importProjectFromJson } from '../projectImport';
 import { LocalStorageRepository } from '../../storage/local-storage-repository';
 import { createDefaultProject, ensureProjectMigrated, isUMLModel } from '../../../types/project';
 import {
@@ -345,5 +345,56 @@ describe('importProjectFromJson legacy format migration', () => {
     const migrated = ensureProjectMigrated(imported);
     expect(migrated.schemaVersion).toBe(5);
     expect(isUMLModel(migrated.diagrams.ClassDiagram[0].model)).toBe(true);
+  });
+});
+
+// Live report: importing a .py project whose name already exists created a
+// second, indistinguishable project; and the backend's buml->json emitted v3
+// direction names ("Right", "Up") as v4 edge handles, so React Flow dropped
+// every edge of the imported diagrams.
+describe('importProjectFromBUML', () => {
+  const bumlFile = () => new File(['# buml'], 'library.py', { type: 'text/x-python' });
+  const backendProject = () => {
+    const project = createDefaultProject('Library', '', '') as any;
+    project.diagrams.ClassDiagram[0].model = {
+      ...project.diagrams.ClassDiagram[0].model,
+      nodes: [
+        { id: 'a', type: 'class', position: { x: 0, y: 0 }, width: 100, height: 60, measured: { width: 100, height: 60 }, data: { name: 'A' } },
+        { id: 'b', type: 'class', position: { x: 300, y: 0 }, width: 100, height: 60, measured: { width: 100, height: 60 }, data: { name: 'B' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'a', target: 'b', type: 'ClassBidirectional', sourceHandle: 'Right', targetHandle: 'Left', data: { points: [] } },
+        { id: 'e2', source: 'a', target: 'b', type: 'ClassBidirectional', sourceHandle: 'Up', targetHandle: 'Bottomleft', data: { points: [] } },
+        { id: 'e3', source: 'a', target: 'e1', type: 'ClassLinkRel', sourceHandle: 'Center', targetHandle: 'top-left', data: { points: [] } },
+      ],
+    };
+    return { project, exportedAt: new Date().toISOString(), version: '2.0.0' };
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => backendProject() })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('suffixes the name when a project with the same name already exists', async () => {
+    const first = await importProjectFromBUML(bumlFile());
+    const second = await importProjectFromBUML(bumlFile());
+    const third = await importProjectFromBUML(bumlFile());
+    expect(first.name).toBe('Library');
+    expect(second.name).toBe('Library (2)');
+    expect(third.name).toBe('Library (3)');
+    const stored = JSON.parse(localStorage.getItem(`${localStorageProjectPrefix}${second.id}`)!);
+    expect(stored.name).toBe('Library (2)');
+  });
+
+  it('normalises v3 direction handles on imported v4 edges, keeping valid ids', async () => {
+    const imported = await importProjectFromBUML(bumlFile());
+    const edges = (imported.diagrams.ClassDiagram[0].model as any).edges;
+    expect(edges.map((e: any) => [e.sourceHandle, e.targetHandle])).toEqual([
+      ['right', 'left'],
+      ['top', 'bottom-left'],
+      ['Center', 'top-left'],
+    ]);
   });
 });

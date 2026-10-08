@@ -60,6 +60,16 @@ describe('New project flow', () => {
     expect(screen.getByTestId('create-interface-agent').getAttribute('aria-checked')).toBe('true');
   });
 
+  // Live report: the agentic path hid the perspective picker but still showed
+  // "Tip: pick a modeling perspective".
+  it('shows the perspective tip only on the modeling path', () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
+    fireEvent.click(screen.getByText('Describe it'));
+    expect(screen.queryByText(/pick a modeling perspective/i)).toBeNull();
+    fireEvent.click(screen.getByTestId('create-interface-model'));
+    expect(screen.getByText(/pick a modeling perspective/i)).toBeTruthy();
+  });
+
   it('records the final interface when the project is created', async () => {
     render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
     fireEvent.click(screen.getByText('Model it'));

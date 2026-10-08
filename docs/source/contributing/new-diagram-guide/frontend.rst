@@ -50,25 +50,34 @@ a. The Node Component (``MyNewElement.tsx``)
 
 React Flow nodes are plain React components wrapped in ``DefaultNodeWrapper``
 (which provides the selection / drag handles). Render the visuals as SVG
-inside the wrapper.
+inside the wrapper. The component receives React Flow's ``NodeProps`` for
+your node data shape; give that type a name at the top of the file:
+
+.. code-block:: typescript
+
+    import type { Node, NodeProps } from '@xyflow/react';
+    import { MyNewElementNodeProps } from '@/types';
+
+    type MyNewElementProps = NodeProps<Node<MyNewElementNodeProps>>;
+
+The rest of the file renders the node:
 
 .. code-block:: tsx
 
-    import { NodeProps, NodeResizer, type Node } from '@xyflow/react';
+    import { NodeResizer } from '@xyflow/react';
     import { useRef } from 'react';
     import { DefaultNodeWrapper } from '../wrappers';
     import { useHandleOnResize } from '@/hooks';
     import { useDiagramModifiable } from '@/hooks/useDiagramModifiable';
     import { PopoverManager } from '@/components/popovers/PopoverManager';
     import { NodeToolbar } from '@/components/toolbars/NodeToolbar';
-    import { MyNewElementNodeProps } from '@/types';
     import { LAYOUT } from '@/constants';
     import { getCustomColorsFromData } from '@/utils/layoutUtils';
 
     export function MyNewElement({
       id, width, height, data, parentId,
-    }: NodeProps<Node<MyNewElementNodeProps>>) {
-      const wrapperRef = useRef<HTMLDivElement | null>(null);
+    }: MyNewElementProps) {
+      const wrapperRef = useRef<HTMLDivElement>(null);
       const { onResize } = useHandleOnResize(parentId);
       const isDiagramModifiable = useDiagramModifiable();
       if (!width || !height) return null;

@@ -21,7 +21,47 @@ import {
   StoredUserProfile,
 } from '../storage/local-storage-types';
 import { BACKEND_URL } from '../../constants/constant';
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { UMLDiagramType, UMLModel, convertV3HandleToV4 } from '@besser/wme';
+
+// The library's HandleId values (nodes/wrappers/DefaultNodeWrapper.tsx).
+const V4_HANDLE_IDS = new Set(
+  ['top', 'right', 'bottom', 'left'].flatMap((side) => {
+    const across = side === 'top' || side === 'bottom' ? ['left', 'right'] : ['top', 'bottom'];
+    return [side, ...across.flatMap((end) => [`${side}-${end}`, `${side}-mid-${end}`])];
+  }),
+);
+
+/**
+ * Backends before the handle fix emit v3 direction names ("Right", "Up") as
+ * v4 edge handles; React Flow drops an edge whose handle does not exist.
+ * Ids that are already valid, or have no v4 equivalent ("Center"), are kept.
+ */
+function normalizeEdgeHandles(project: BesserProject): void {
+  for (const type of ALL_DIAGRAM_TYPES) {
+    for (const diagram of project.diagrams[type] ?? []) {
+      const edges = (diagram?.model as { edges?: unknown } | undefined)?.edges;
+      if (!Array.isArray(edges)) continue;
+      for (const edge of edges) {
+        for (const key of ['sourceHandle', 'targetHandle'] as const) {
+          const handle = edge?.[key];
+          if (typeof handle !== 'string' || V4_HANDLE_IDS.has(handle)) continue;
+          const mapped = convertV3HandleToV4(handle);
+          if (V4_HANDLE_IDS.has(mapped)) edge[key] = mapped;
+        }
+      }
+    }
+  }
+}
+
+/** "Name", or "Name (2)", "Name (3)"... when a stored project already uses it. */
+function uniqueProjectName(name: string): string {
+  const taken = new Set(ProjectStorageRepository.getAllProjects().map((p) => (p.name ?? '').trim().toLowerCase()));
+  if (!taken.has(name.trim().toLowerCase())) return name;
+  const base = name.replace(/\s\(\d+\)$/, '');
+  let n = 2;
+  while (taken.has(`${base} (${n})`.toLowerCase())) n += 1;
+  return `${base} (${n})`;
+}
 
 // Interface for V2 JSON export format
 interface V2ExportData {
@@ -315,6 +355,9 @@ interface ImportedPersonalization {
 
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
+  project.name = uniqueProjectName(project.name);
+  normalizeEdgeHandles(project);
+
   // Check if the imported GUI model is empty
   const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
   const importedGUIModel = importedGUIDiagram?.model;

@@ -495,6 +495,26 @@ describe('DiagramTabs', () => {
     });
   });
 
+  // Live report: with no stored reference the tab bar fell back to
+  // classDiagrams[0], while getReferencedDiagram (validation, generation)
+  // used the active class diagram, so the two disagreed.
+  it('falls back to the active class diagram, like getReferencedDiagram, when no reference is stored', async () => {
+    const { diagramBridge } = await import('@besser/wme');
+    const { getReferencedDiagram } = await import('../../../../shared/types/project');
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram = [makeDiagram('cd1', 'Classes A'), makeDiagram('cd2', 'Classes B')];
+    project.currentDiagramIndices.ClassDiagram = 1;
+    const od = makeDiagram('od1', 'Object Diagram');
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(getReferencedDiagram(project, od, 'ClassDiagram')?.id).toBe('cd2');
+    await waitFor(() =>
+      expect(diagramBridge.setClassDiagramData).toHaveBeenLastCalledWith(project.diagrams.ClassDiagram[1].model),
+    );
+  });
+
   it('announces a broken class-diagram reference to assistive technology', () => {
     const project = createDefaultProject('Test', '', 'owner');
     const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };

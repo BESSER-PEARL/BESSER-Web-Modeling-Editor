@@ -1072,7 +1072,7 @@
           "ObjectDiagram": "Instanzen eines Klassendiagramms, verwendet für Tests und OCL-Validierung.",
           "StateMachineDiagram": "Zustandsbasierte Verhaltensmodellierung.",
           "AgentDiagram": "Modell von Konversations- und KI-Agenten.",
-          "UserDiagram": "Akteure und ihre Interaktionen.",
+          "UserDiagram": "Benutzerprofile (Demografie, Barrierefreiheit, Kompetenzen, Kultur) für die Personalisierung.",
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
           "QuantumCircuitDiagram": "Modell eines Quantenprogramms.",
           "BPMN": "Geschäftsprozessmodell- und Notationsdiagramm.",
@@ -2078,13 +2078,13 @@
       "failed": "Import fehlgeschlagen: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validieren Sie Ihre Modelle, bevor Sie zur nächsten Aufgabe wechseln",
-      "description": "Dieses Benutzermodell wurde nach Ihren letzten Änderungen nicht validiert.",
-      "confirmLabel": "Modelle validieren",
-      "cancelLabel": "Ignorieren"
+      "title": "Dieses Benutzermodell vor dem Verlassen validieren?",
+      "description": "Sie haben dieses Benutzermodell seit der letzten Validierung geändert.",
+      "confirmLabel": "Jetzt validieren",
+      "cancelLabel": "Ohne Validierung verlassen"
     },
     "leaveWithIssues": {
-      "title": "Es gibt Probleme mit Ihrem Diagramm. Möchten Sie dieses Modell trotzdem verlassen?",
+      "title": "Dieses Benutzermodell enthält Validierungsfehler. Trotzdem verlassen?",
       "description": "Die Qualitätsprüfung hat Fehler gefunden. Sie können bleiben, um sie zu beheben, oder dieses Modell trotzdem verlassen.",
       "confirmLabel": "Modell verlassen",
       "cancelLabel": "Bleiben"

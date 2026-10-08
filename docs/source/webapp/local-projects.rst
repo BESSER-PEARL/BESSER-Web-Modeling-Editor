@@ -40,6 +40,42 @@ handles read/write operations:
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
 
+Pre-migration backups and rolling back
+--------------------------------------
+
+The React Flow editor stores diagrams in the v4 model shape (``nodes`` /
+``edges``). Projects saved by the previous editor hold v3 models
+(``elements`` / ``relationships``) and are converted the first time they are
+loaded. The previous editor cannot read v4 models: it shows a converted
+project as empty, and its autosave then overwrites it with an empty v3 model.
+
+To make a rollback safe, ``ProjectStorageRepository.loadProject`` copies the
+stored JSON of any project that still contains v3 models to
+``besser_project_<id>_v3backup`` **before** converting it. The copy is written
+once and never overwritten, so it always holds the project exactly as the
+previous editor last saved it. It is not listed as a project, and it is removed
+when the project is deleted. If the browser storage quota is full the backup
+is skipped (a console warning is logged) and the project still opens.
+
+To restore after rolling back to the previous editor, close every editor tab
+except one, open the browser developer console on the editor's origin and run:
+
+.. code-block:: javascript
+
+   // One project (the id is the part after "besser_project_")
+   const id = '<project id>';
+   const backup = localStorage.getItem(`besser_project_${id}_v3backup`);
+   if (backup) localStorage.setItem(`besser_project_${id}`, backup);
+
+   // Or every project that has a backup
+   Object.keys(localStorage)
+     .filter((key) => key.startsWith('besser_project_') && key.endsWith('_v3backup'))
+     .forEach((key) => localStorage.setItem(key.slice(0, -'_v3backup'.length), localStorage.getItem(key)));
+
+Then reload the page. Changes made in the React Flow editor after the
+conversion are not part of the backup. Opening a restored project in the React
+Flow editor again converts it again and leaves the existing backup untouched.
+
 Redux slice
 -----------
 

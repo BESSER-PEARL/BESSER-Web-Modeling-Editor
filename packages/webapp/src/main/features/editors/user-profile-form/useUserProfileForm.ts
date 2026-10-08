@@ -8,7 +8,7 @@
  * call `editor.model = …`, so simply opening the form can never reload or
  * mutate the canvas.
  *
- *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.model
+ *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.applyModel
  *   canvas edit    -> subscribeToModelChange -> reparse -> setState (no write-back)
  *
  * `suppressSyncRef` prevents our own model-change listener from reacting to the
@@ -72,7 +72,9 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
         try {
           await dispatch(updateDiagramModelThunk({ model })).unwrap();
           await editor.ready;
-          editor.model = { ...model };
+          // One undoable step; the `model` setter is a load that wipes undo history.
+          if (typeof editor.applyModel === 'function') editor.applyModel({ ...model });
+          else editor.model = { ...model };
         } catch {
           // Swallow: a transient write failure shouldn't break the form.
         } finally {

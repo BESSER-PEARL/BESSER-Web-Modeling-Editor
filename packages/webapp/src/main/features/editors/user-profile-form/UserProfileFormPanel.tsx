@@ -353,7 +353,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
   return ReactDOM.createPortal(
     <div
       ref={panelRef}
-      className="pointer-events-auto fixed inset-y-0 right-0 z-[1000] flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card/95 shadow-2xl backdrop-blur-sm"
+      className="pointer-events-auto fixed inset-y-0 right-0 z-[1000] flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card shadow-2xl"
     >
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-brand/12 px-3 py-2">

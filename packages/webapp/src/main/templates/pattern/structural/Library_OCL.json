@@ -22,15 +22,23 @@
         "methods": [
           {
             "id": "method_rb01uirsh_mjikkmod",
-            "name": "+ decrease_stock(qty: int)",
+            "name": "decrease_stock",
             "visibility": "public",
-            "attributeType": "int): any",
+            "attributeType": "",
             "code": "",
             "implementationType": "none",
             "isOptional": false,
             "isDerived": false,
             "isId": false,
-            "isExternalId": false
+            "isExternalId": false,
+            "returnType": "",
+            "parameters": [
+              {
+                "name": "qty",
+                "parameterType": "int",
+                "id": "method_rb01uirsh_mjikkmod-param-0"
+              }
+            ]
           }
         ],
         "attributes": [
@@ -127,7 +135,7 @@
         "methods": [
           {
             "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
-            "name": "+ cheapest_book_by(author:Author): str",
+            "name": "cheapest_book_by",
             "visibility": "public",
             "attributeType": "str",
             "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
@@ -135,7 +143,15 @@
             "isOptional": false,
             "isDerived": false,
             "isId": false,
-            "isExternalId": false
+            "isExternalId": false,
+            "returnType": "str",
+            "parameters": [
+              {
+                "name": "author",
+                "parameterType": "Author",
+                "id": "35ef5329-889b-40f0-89ce-9836936fd8a9-param-0"
+              }
+            ]
           }
         ],
         "attributes": [

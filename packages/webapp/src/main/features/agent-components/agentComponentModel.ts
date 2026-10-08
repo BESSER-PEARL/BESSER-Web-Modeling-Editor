@@ -94,6 +94,35 @@ export function removeIntentBody(components: AgentComponents, intentId: string, 
 }
 
 /**
+ * Transitions reference their intent by name (`predefined.intentName`), so
+ * renaming an intent renames it in every `when_intent_matched` transition.
+ */
+export function renameIntentInTransitions<M extends { edges?: unknown[] }>(model: M, oldName: string, newName: string): M {
+  if (!oldName || oldName === newName || !Array.isArray(model.edges)) return model;
+  let changed = false;
+  const edges = model.edges.map((edge) => {
+    const e = edge as { type?: string; data?: Record<string, any> };
+    if (e?.type !== 'AgentStateTransition' || !e.data) return edge;
+    const predefined = e.data.predefined;
+    if (predefined?.predefinedType === 'when_intent_matched' && predefined.intentName === oldName) {
+      changed = true;
+      return { ...e, data: { ...e.data, predefined: { ...predefined, intentName: newName } } };
+    }
+    // Legacy flat shapes, lifted by the editor on its next load.
+    if (e.data.intentName === oldName) {
+      changed = true;
+      return { ...e, data: { ...e.data, intentName: newName } };
+    }
+    if (e.data.condition === 'when_intent_matched' && e.data.conditionValue === oldName) {
+      changed = true;
+      return { ...e, data: { ...e.data, conditionValue: newName } };
+    }
+    return edge;
+  });
+  return changed ? { ...model, edges } : model;
+}
+
+/**
  * The default LLM (`config.default_llm_name`) after an LLM is renamed.
  *
  * - Renaming the current default keeps it the default (the link is by name).

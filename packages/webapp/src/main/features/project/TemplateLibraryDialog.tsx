@@ -162,6 +162,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
   const categoryListRef = useRef<HTMLDivElement>(null);
+  const newTabButtonRef = useRef<HTMLButtonElement>(null);
 
   // When dialog opens, jump to the category matching the active diagram type
   React.useEffect(() => {
@@ -451,7 +452,13 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       </DialogContent>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            newTabButtonRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" />
@@ -472,13 +479,18 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="destructive" onClick={() => doLoadTemplate('replace')} className="sm:mr-auto">
+            {/* The safe choice (a new tab) is primary and focused; replacing stays a quiet secondary action. */}
+            <Button
+              variant="ghost"
+              onClick={() => doLoadTemplate('replace')}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
+            >
               {t('project.templates.confirm.replace')}
             </Button>
             <Button variant="outline" onClick={() => setShowConfirm(false)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={() => doLoadTemplate('new_tab')}>
+            <Button ref={newTabButtonRef} onClick={() => doLoadTemplate('new_tab')}>
               <Layers className="size-4" />
               {t('project.templates.confirm.newTab')}
             </Button>

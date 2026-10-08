@@ -1886,42 +1886,43 @@
                   "attributes": [
                     {
                       "id": "b4ecabb3-552e-47a3-9f12-5f34cd7737b2",
-                      "name": "age < 18",
+                      "name": "age",
                       "attributeType": "str",
                       "attributeOperator": "<",
-                      "attributeId": "8f52769c-e1f5-42c6-9f54-4072b2a4ff8a"
+                      "attributeId": "8f52769c-e1f5-42c6-9f54-4072b2a4ff8a",
+                      "value": "18"
                     },
                     {
                       "id": "4377e8bc-3ba6-4b32-bb33-085db4871029",
-                      "name": "lastName = ",
+                      "name": "lastName",
                       "attributeType": "str",
                       "attributeOperator": "==",
                       "attributeId": "199a7c8e-f49f-4b6a-bd16-849ab546ae8b"
                     },
                     {
                       "id": "9d85759c-def2-4e25-9a61-37d59c3aafc4",
-                      "name": "firstName = ",
+                      "name": "firstName",
                       "attributeType": "str",
                       "attributeOperator": "==",
                       "attributeId": "6e156ae9-ca13-42f2-a3c8-bfae46ab38c4"
                     },
                     {
                       "id": "361bd580-2082-4248-9876-30ce806c0aa9",
-                      "name": "nationality_iso3166 = ",
+                      "name": "nationality_iso3166",
                       "attributeType": "str",
                       "attributeOperator": "==",
                       "attributeId": "e21d4af5-77da-46b6-8059-8f0fc152ee8e"
                     },
                     {
                       "id": "ee5c35bc-53df-4a4a-927b-0820161fb1cb",
-                      "name": "address = ",
+                      "name": "address",
                       "attributeType": "str",
                       "attributeOperator": "==",
                       "attributeId": "adffe2ad-db08-4804-9a9e-28f75812efdc"
                     },
                     {
                       "id": "faf495f9-a9e3-40d3-8767-b205a6682e76",
-                      "name": "gender = ",
+                      "name": "gender",
                       "attributeType": "str",
                       "attributeOperator": "==",
                       "attributeId": "5acf56a9-041c-41c9-8841-01d1885ddb12"
@@ -2050,24 +2051,27 @@
                   "attributes": [
                     {
                       "id": "01d21950-b905-4a6e-a998-3b11e41f134c",
-                      "name": "name == Paraplegia",
+                      "name": "name",
                       "attributeType": "str",
                       "attributeOperator": "==",
-                      "attributeId": "cb96a3aa-f446-4b1a-b5e9-c494668d5df1"
+                      "attributeId": "cb96a3aa-f446-4b1a-b5e9-c494668d5df1",
+                      "value": "Paraplegia"
                     },
                     {
                       "id": "de95a359-aa2c-4ddb-9bc9-21816c6bc510",
-                      "name": "description == cannot use lower body",
+                      "name": "description",
                       "attributeType": "str",
                       "attributeOperator": "==",
-                      "attributeId": "9eb4de82-d6a9-46f6-94bc-1532d8774103"
+                      "attributeId": "9eb4de82-d6a9-46f6-94bc-1532d8774103",
+                      "value": "cannot use lower body"
                     },
                     {
                       "id": "4bde7832-5113-4458-9ab2-b4f7c8804dfb",
-                      "name": "affects == Mobility",
+                      "name": "affects",
                       "attributeType": "str",
                       "attributeOperator": "==",
-                      "attributeId": "82c62904-19ae-45a0-b62a-60791bd696ee"
+                      "attributeId": "82c62904-19ae-45a0-b62a-60791bd696ee",
+                      "value": "Mobility"
                     }
                   ],
                   "classId": "b099bc5c-c80c-4143-bf86-b75a060d4d93",
