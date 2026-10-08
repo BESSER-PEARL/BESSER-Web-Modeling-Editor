@@ -19,7 +19,6 @@ import {
 import {
   CustomBackground,
   CustomControls,
-  CustomMiniMap,
   Sidebar,
   AssessmentSelectionDebug,
   ScrollOverlay,
@@ -35,6 +34,7 @@ import {
 } from "./store/context"
 import { useShallow } from "zustand/shallow"
 import { CANVAS } from "./constants"
+import { useCodeMirrorTheme as useDocumentTheme } from "@/components/inspectors/_shared"
 import { diagramEdgeTypes } from "./edges"
 import {
   useNodeDragStop,
@@ -304,6 +304,7 @@ function App({ onReactFlowInit }: AppProps) {
   // surface. Toggling `usePropertiesPanel` in `settingsService` flips this
   // reactively without remounting the editor (replaces v3 `editorRevision++`).
   const showPropertiesPanel = useUsePropertiesPanel()
+  const colorMode = useDocumentTheme()
   useRevealEditedNode(showPropertiesPanel && mode !== BesserMode.Exporting)
 
   const connectionLineType = getConnectionLineType(diagramType)
@@ -492,9 +493,12 @@ function App({ onReactFlowInit }: AppProps) {
         // Develop (Apollon) toggled multi-select with Shift+click; React Flow
         // defaults to Meta/Control only — accept all three for parity.
         multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+        // Follows <html data-theme>; the canvas colours themselves come from
+        // the --besser-* tokens (app.css pins the --xy-* ones that matter).
+        colorMode={colorMode}
       >
         <CustomBackground />
-        <CustomMiniMap />
+        {/* The minimap is toggled from (and mounted by) the controls bar. */}
         <CustomControls />
         <AlignmentGuides />
         <AssessmentSelectionDebug />

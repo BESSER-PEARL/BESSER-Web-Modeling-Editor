@@ -66,20 +66,23 @@ const renderToolbar = () => {
 }
 
 describe("NodeToolbar pointer handling", () => {
-  it("makes the toolbar box pointer-transparent and re-enables only the icons (#791)", () => {
+  it("makes the toolbar box pointer-transparent and re-enables only the buttons (#791)", () => {
     const { getByTestId, container } = renderToolbar()
     expect(getByTestId("rf-node-toolbar").style.pointerEvents).toBe("none")
-    const icons = Array.from(container.querySelectorAll("svg"))
-    // delete + edit + (+) add-associated-object (kept).
-    expect(icons).toHaveLength(3)
-    icons.forEach((icon) => expect(icon.style.pointerEvents).toBe("auto"))
+    const buttons = Array.from(
+      container.querySelectorAll("button, [data-testid=add-button]")
+    ) as HTMLElement[]
+    // edit + (+) add-associated-object (kept) + delete.
+    expect(buttons).toHaveLength(3)
+    buttons.forEach((button) => expect(button.style.pointerEvents).toBe("auto"))
   })
 
   it("marks the content nodrag/nopan and keeps presses from reaching the canvas (#708)", () => {
     const { container, paneDown } = renderToolbar()
     const box = container.querySelector(".nodrag.nopan")
     expect(box).not.toBeNull()
-    const [deleteIcon, editIcon] = Array.from(container.querySelectorAll("svg"))
+    const deleteIcon = container.querySelector('[aria-label="Delete"] svg')!
+    const editIcon = container.querySelector('[aria-label="Edit"] svg')!
     fireEvent.pointerDown(deleteIcon)
     fireEvent.mouseDown(editIcon)
     expect(paneDown).not.toHaveBeenCalled()
@@ -87,7 +90,8 @@ describe("NodeToolbar pointer handling", () => {
 
   it("still runs the buttons' actions", () => {
     const { container } = renderToolbar()
-    const [deleteIcon, editIcon] = Array.from(container.querySelectorAll("svg"))
+    const deleteIcon = container.querySelector('[aria-label="Delete"] svg')!
+    const editIcon = container.querySelector('[aria-label="Edit"] svg')!
     fireEvent.click(deleteIcon)
     fireEvent.click(editIcon)
     expect(handleDelete).toHaveBeenCalled()

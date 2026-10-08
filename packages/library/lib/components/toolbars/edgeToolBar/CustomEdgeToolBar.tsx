@@ -3,10 +3,9 @@ import { ZINDEX } from "@/constants"
 import { IPoint } from "@/edges"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
-import { Box } from "@mui/material"
 import { useMemo } from "react"
 import { useTranslation } from "@/i18n"
-import { keyboardButtonProps } from "../keyboardActivation"
+import { ToolbarButton } from "../ToolbarButton"
 
 /**
  * Tiny class-rect glyph for the "Attach association class" toolbar
@@ -35,10 +34,8 @@ interface CustomEdgeToolbarProps {
   onDeleteClick: (event: React.MouseEvent<HTMLElement>) => void
   anchorRef: React.Ref<SVGForeignObjectElement>
   /**
-   * When the right-side properties panel is the
-   * active inspector surface, callers pass `showEdit={false}` to hide
-   * the pencil — the panel auto-shows on selection so the floating
-   * affordance is duplicate UI.
+   * Callers pass `showEdit={false}` while the inspector already shows this
+   * edge — the pencil would be duplicate UI.
    */
   showEdit?: boolean
   /**
@@ -67,121 +64,82 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
     return selected && isDiagramModifiable
   }, [selected, isDiagramModifiable])
 
-  const toolbarPosition = useMemo(() => {
-    return {
-      x: position.x - 16,
-      y: position.y - 28,
-    }
-  }, [position.x, position.y, edgeId])
-
-  // 16px icon + 8px gap per action inside 8px padding —
-  // 2 actions ⇒ 56 (historic size), 3 actions ⇒ 80.
+  // 28px buttons, 2px gaps, 3px padding + 1px border on each side.
   const actionCount =
     1 + (showEdit ? 1 : 0) + (onAttachAssociationClass ? 1 : 0)
-  const toolbarHeight = 24 * actionCount + 8
+  const toolbarWidth = 28 * actionCount + 2 * (actionCount - 1) + 8
+  const toolbarHeight = 36
+
+  // Below-right of the midpoint: clear of the line whichever way it runs,
+  // of the middle label (above a horizontal line, left of a vertical one)
+  // and of a centred marker such as the association diamond.
+  const toolbarPosition = useMemo(
+    () => ({ x: position.x + 16, y: position.y + 16 }),
+    [position.x, position.y]
+  )
 
   return (
     <foreignObject
       ref={anchorRef}
-      width={32}
+      width={toolbarWidth}
       height={toolbarHeight}
-      x={toolbarPosition.x + 20}
-      y={toolbarPosition.y + 20}
+      x={toolbarPosition.x}
+      y={toolbarPosition.y}
       // The foreignObject is ALWAYS present (it anchors the popover) and sits
       // offset from the edge line, so if it captured the pointer it would
       // select the edge -- or swallow a click meant for a node -- from an
       // empty region well away from the visible line (upstream Apollon
       // #801). Keep the box transparent to the pointer; the toolbar buttons
       // re-enable themselves below. Anchoring is geometric, so unaffected.
-      style={{ pointerEvents: "none" }}
+      // Visible overflow so the toolbar's shadow is not clipped.
+      style={{ pointerEvents: "none", overflow: "visible" }}
     >
       {showToolbar && (
-        <Box
-          className="besser-edge-toolbar"
-          sx={{
+        <div
+          className="besser-canvas-toolbar besser-edge-toolbar"
+          style={{
             // Only the buttons capture, not the box body.
             pointerEvents: "none",
-            "& > *": { pointerEvents: "auto" },
-            backgroundColor: "var(--besser-background, white)",
-            boxShadow: "0 0 4px 0 var(--besser-background-variant, #f8f9fa)",
-            borderRadius: "8px",
-            padding: "8px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            cursor: "pointer",
-            gap: "8px",
             width: "100%",
             height: "100%",
-            boxSizing: "border-box",
-            WebkitTransform: "translateZ(0)",
             transform: "translateZ(0)",
             position: "relative",
             zIndex: ZINDEX.TOOLTIP,
           }}
         >
-          <Box
-            {...keyboardButtonProps(t("actions.delete", "Delete"))}
-            sx={{
-              width: "16px",
-              height: "16px",
-              backgroundColor: "var(--besser-background, white)",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onDeleteClick(e)
-            }}
-          >
-            <DeleteIcon style={{ width: 16, height: 16 }} />
-          </Box>
           {showEdit && (
-            <Box
-              {...keyboardButtonProps(t("actions.edit", "Edit"))}
-              sx={{
-                width: "16px",
-                height: "16px",
-                backgroundColor: "var(--besser-background, white)",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+            <ToolbarButton
+              label={t("actions.edit", "Edit")}
               onClick={(e) => {
                 e.stopPropagation()
                 onEditClick(e)
               }}
             >
-              <EditIcon style={{ width: 16, height: 16 }} />
-            </Box>
+              <EditIcon />
+            </ToolbarButton>
           )}
           {onAttachAssociationClass && (
-            <Box
-              title={t("toolbar.attachAssociationClass", "Attach association class")}
-              {...keyboardButtonProps(
-                t("toolbar.attachAssociationClass", "Attach association class")
-              )}
-              sx={{
-                width: "16px",
-                height: "16px",
-                backgroundColor: "var(--besser-background, white)",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+            <ToolbarButton
+              label={t("toolbar.attachAssociationClass", "Attach association class")}
               onClick={(e) => {
                 e.stopPropagation()
                 onAttachAssociationClass()
               }}
             >
               <AssociationClassGlyph />
-            </Box>
+            </ToolbarButton>
           )}
-        </Box>
+          <ToolbarButton
+            label={t("actions.delete", "Delete")}
+            danger
+            onClick={(e) => {
+              e.stopPropagation()
+              onDeleteClick(e)
+            }}
+          >
+            <DeleteIcon />
+          </ToolbarButton>
+        </div>
       )}
     </foreignObject>
   )

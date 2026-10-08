@@ -119,7 +119,7 @@ export const CANVAS = Object.freeze({
 /* -------------------------------------------------------------------------- */
 export const CSS_VARIABLE_FALLBACKS: Readonly<Record<string, string>> =
   Object.freeze({
-    "--besser-primary": "#3e8acc",
+    "--besser-primary": "#35798c",
     "--besser-primary-contrast": "#000000",
     "--besser-secondary": "#6c757d",
     "--besser-alert-warning-yellow": "#ffc107",

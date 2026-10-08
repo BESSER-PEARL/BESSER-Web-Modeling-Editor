@@ -16,6 +16,7 @@
   --besser-sticky-fill: #fff8c4;
   --besser-sticky-stroke: #bda21f;
   --besser-sticky-text: #3a2e00;
+  --besser-accent-lift: 0%;
 }
 
 /* Dark-mode fallbacks — webapp toggles `dark` on documentElement. */
@@ -28,6 +29,29 @@ html.dark,
   --besser-sticky-fill: #3f3a20;
   --besser-sticky-stroke: #bda21f;
   --besser-sticky-text: #fef3c7;
+  /* Saturated node accents (agent cards) mix this much white as text/ink. */
+  --besser-accent-lift: 35%;
+}
+
+/* Shared canvas-chrome tokens: one accent, one floating surface recipe
+   (controls bar, toolbars, minimap), one easing. */
+.besser-editor {
+  --besser-accent: var(--besser-primary, #35798c);
+  --besser-accent-soft: color-mix(in srgb, var(--besser-accent) 14%, transparent);
+  --besser-chrome-fg: var(--besser-primary-contrast, #111827);
+  --besser-chrome-muted: color-mix(in srgb, var(--besser-chrome-fg) 62%, transparent);
+  --besser-chrome-hover: color-mix(in srgb, var(--besser-chrome-fg) 8%, transparent);
+  --besser-chrome-press: color-mix(in srgb, var(--besser-chrome-fg) 14%, transparent);
+  --besser-chrome-border: var(--besser-gray, #e9ecef);
+  --besser-chrome-shadow:
+    0 4px 14px color-mix(in srgb, var(--besser-chrome-fg) 14%, transparent),
+    0 1px 3px color-mix(in srgb, var(--besser-chrome-fg) 10%, transparent);
+  --besser-danger: #dc2626;
+  --besser-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+:root[data-theme="dark"] .besser-editor,
+html.dark .besser-editor {
+  --besser-danger: #f87171;
 }
 
 .react-flow {
@@ -36,16 +60,31 @@ html.dark,
   --text: var(--besser-primary-contrast, #000000);
   --xy-edge-stroke: var(--besser-primary-contrast, #000000);
   --xy-edge-stroke-width: 2px;
-  --xy-minimap-mask-background-color-props: #00000020;
   --xy-controls-button-background-color: var(--besser-background, #ffffff);
+  /* colorMode="dark" must not repaint the canvas: the editor owns it. */
+  --xy-background-color: transparent;
+  --xy-edge-label-background-color: var(--besser-background, #ffffff);
+  --xy-edge-label-color: var(--besser-primary-contrast, #000000);
+  /* Resize handles and the marquee box in the accent family. */
+  --xy-resize-background-color: var(--besser-accent);
+  --xy-selection-background-color: color-mix(in srgb, var(--besser-accent) 8%, transparent);
+  --xy-selection-border: 1px solid color-mix(in srgb, var(--besser-accent) 60%, transparent);
+  /* Minimap: viewport window is the clear area, the rest is dimmed. */
+  --xy-minimap-background-color: var(--besser-background, #ffffff);
+  --xy-minimap-mask-background-color-props: color-mix(
+    in srgb,
+    var(--besser-primary-contrast, #000000) 7%,
+    transparent
+  );
+  --xy-minimap-mask-stroke-color: color-mix(in srgb, var(--besser-accent) 70%, transparent);
+  --xy-minimap-mask-stroke-width: 1.5;
 }
 
 .besser-editor {
   background-color: var(--besser-background, #ffffff);
   color: var(--besser-primary-contrast, #000000);
 }
-.react-flow__panel,
-.react-flow__node-toolbar {
+.react-flow__panel {
   background-color: var(--panel-background);
   box-shadow: var(--panel-shadow);
   border-radius: 8px;
@@ -56,9 +95,86 @@ html.dark,
   display: block;
 }
 
+/* The toolbar wrapper is a transparent positioner; the visible surface is
+   .besser-canvas-toolbar inside it. */
 .react-flow__node-toolbar {
   display: flex;
-  gap: 8px;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Floating node / edge toolbar: same surface as the controls bar, 28px icon
+   buttons. The box itself is pointer-transparent (upstream Apollon #791);
+   only the buttons take the pointer.
+--------------------------------------------------------------------------- */
+.besser-canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--besser-chrome-border);
+  border-radius: 10px;
+  background-color: var(--besser-background, #ffffff);
+  box-shadow: var(--besser-chrome-shadow);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.besser-toolbar-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--besser-chrome-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out);
+}
+.besser-toolbar-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+@media (hover: hover) and (pointer: fine) {
+  .besser-toolbar-button:hover {
+    background-color: var(--besser-chrome-hover);
+    color: var(--besser-chrome-fg);
+  }
+  .besser-toolbar-button--danger:hover {
+    background-color: color-mix(in srgb, var(--besser-danger) 12%, transparent);
+    color: var(--besser-danger);
+  }
+}
+.besser-toolbar-button:active {
+  transform: scale(0.97);
+  background-color: var(--besser-chrome-press);
+}
+.besser-toolbar-button--danger:active {
+  background-color: color-mix(in srgb, var(--besser-danger) 18%, transparent);
+  color: var(--besser-danger);
+}
+.besser-toolbar-button:focus-visible {
+  outline: 2px solid var(--besser-accent);
+  outline-offset: 1px;
+}
+@media (pointer: coarse) {
+  .besser-toolbar-button {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -101,9 +217,11 @@ html.dark,
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+  touch-action: manipulation;
   transition:
-    background-color 0.15s ease,
-    transform 0.05s ease;
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
 }
 
 .react-flow__controls-button > svg,
@@ -115,23 +233,39 @@ html.dark,
   fill: var(--besser-primary-contrast, #111827);
 }
 
-.react-flow__controls-button:hover:not(:disabled),
-.control-button:hover:not(.disabled):not(:disabled) {
-  background-color: color-mix(
-    in srgb,
-    var(--besser-primary-contrast, #111827) 8%,
-    transparent
-  );
+@media (hover: hover) and (pointer: fine) {
+  .react-flow__controls-button:hover:not(:disabled),
+  .control-button:hover:not(.disabled):not(:disabled),
+  .control-zoom-readout:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--besser-primary-contrast, #111827) 8%,
+      transparent
+    );
+  }
+  .control-zoom-readout:hover {
+    color: var(--besser-primary-contrast, #111827);
+  }
 }
 
 .react-flow__controls-button:active:not(:disabled),
-.control-button:active:not(.disabled):not(:disabled) {
+.control-button:active:not(.disabled):not(:disabled),
+.control-zoom-readout:active {
   background-color: color-mix(
     in srgb,
-    var(--besser-primary-contrast, #111827) 15%,
+    var(--besser-primary-contrast, #111827) 14%,
     transparent
   );
-  transform: translateY(0.5px);
+  transform: scale(0.97);
+}
+
+/* Toggle buttons in the bar (minimap): accent tint while on. */
+.control-button[aria-pressed="true"] {
+  background-color: var(--besser-accent-soft);
+  color: var(--besser-accent);
+}
+.control-button[aria-pressed="true"] > svg {
+  fill: var(--besser-accent);
 }
 
 .react-flow__controls-button:disabled,
@@ -149,20 +283,146 @@ html.dark,
 .besser-palette-item:focus-visible,
 .besser-color-swatch:focus-visible,
 .besser-canvas-button:focus-visible {
-  outline: 2px solid var(--besser-primary, #3e8acc);
+  outline: 2px solid var(--besser-primary, #35798c);
   outline-offset: 2px;
 }
 
+/* Palette items: a grabbable thumbnail with hover / press feedback. */
 .besser-palette-item {
-  border-radius: 4px;
+  border-radius: 6px;
   outline: none;
+  cursor: grab;
+  transition:
+    background-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .besser-palette-item:hover {
+    box-shadow:
+      0 0 0 3px var(--besser-background, #ffffff),
+      0 0 0 4px color-mix(in srgb, var(--besser-primary, #35798c) 55%, transparent);
+  }
+}
+.besser-palette-item:active {
+  cursor: grabbing;
+  transform: scale(0.97);
+}
+
+/* ---- Palette column ---------------------------------------------------- */
+.besser-sidebar__palette {
+  box-sizing: border-box;
+  border-right: 1px solid var(--besser-gray, #e9ecef);
+}
+/* Wide previews (NN container, pools) shrink to the column instead of
+   overflowing it; the viewBox keeps their proportions. */
+.besser-palette-item {
+  max-width: 100%;
+}
+.besser-palette-item > div {
+  max-width: 100%;
+}
+.besser-palette-item > div > svg {
+  max-width: 100%;
+  height: auto;
+}
+.besser-sidebar__section-title {
+  width: 100%;
+  padding: 0 2px;
+  box-sizing: border-box;
+  /* One notch stronger than the pane's 58% mix: >= 4.5:1 on the column. */
+  color: var(--besser-gray-variant, #64748b);
+}
+.besser-sidebar__resize-handle {
+  position: relative;
+}
+.besser-sidebar__resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: transparent;
+  transition: background-color 150ms ease-out;
+}
+.besser-sidebar__resize-handle:hover::after {
+  background: color-mix(in srgb, var(--besser-primary, #35798c) 55%, transparent);
+}
+
+/* Settings row with a pane-style switch (object "Icon Mode"). */
+.besser-sidebar__switch-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-fg);
+  cursor: pointer;
+  user-select: none;
+}
+.besser-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--bp-border-strong);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.besser-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  transition: transform 150ms var(--besser-ease-out, ease-out);
+}
+.besser-switch:checked {
+  background: var(--besser-primary, #35798c);
+}
+.besser-switch:checked::after {
+  transform: translateX(12px);
+}
+.besser-switch:focus-visible {
+  outline: 2px solid var(--besser-primary, #35798c);
+  outline-offset: 2px;
+}
+
+/* Phone widths: a narrow thumbnail strip so the canvas stays usable. */
+@media (max-width: 480px) {
+  .besser-sidebar__palette {
+    width: 92px !important;
+    padding: 8px 6px !important;
+    gap: 10px !important;
+  }
+  .besser-sidebar__palette .besser-palette-item {
+    zoom: 0.5;
+  }
+  .besser-sidebar__section-title {
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .besser-sidebar__resize-handle {
+    display: none;
+  }
 }
 
 /* Selected swatch: an accent ring with a background gap, visible on any colour. */
 .besser-color-swatch[aria-pressed="true"] {
   box-shadow:
     0 0 0 2px var(--besser-background, #ffffff),
-    0 0 0 4px var(--besser-primary, #3e8acc);
+    0 0 0 4px var(--besser-primary, #35798c);
 }
 
 /* Thin divider between logical control groups (zoom | history | layout | %). */
@@ -192,18 +452,56 @@ html.dark,
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--besser-gray-variant, #64748b);
+  touch-action: manipulation;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
 }
 
-.control-zoom-readout:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--besser-primary-contrast, #111827) 8%,
-    transparent
-  );
-  color: var(--besser-primary-contrast, #111827);
+/* Minimap: opens above the controls bar, same floating surface. */
+.react-flow__panel.react-flow__minimap.besser-minimap {
+  padding: 0;
+  margin-bottom: 64px;
+  overflow: hidden;
+  border: 1px solid var(--besser-chrome-border, #e9ecef);
+  border-radius: 12px;
+  background-color: var(--besser-background, #ffffff);
+  box-shadow: var(--besser-chrome-shadow);
+}
+.react-flow__panel.react-flow__minimap.besser-minimap > svg {
+  border-radius: 11px;
+  cursor: pointer;
+}
+/* Viewport outline at a constant on-screen width, whatever the map scale. */
+.besser-minimap .react-flow__minimap-mask {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Phone widths: compact bar so it fits beside the narrow palette. */
+@media (max-width: 480px) {
+  .react-flow__panel.react-flow__controls {
+    margin: 10px;
+    padding: 3px;
+    gap: 0;
+  }
+  .react-flow__controls-button,
+  .control-button {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+  .control-divider {
+    margin: 4px 2px;
+  }
+  .control-zoom-readout {
+    height: 28px;
+    min-width: 40px;
+    padding: 0 4px;
+  }
+  .react-flow__panel.react-flow__minimap.besser-minimap {
+    margin: 0 10px 54px;
+  }
 }
 
 .react-flow__handle {
@@ -214,7 +512,7 @@ html.dark,
 .react-flow__handle.besser-arc-handle::before {
   content: "";
   position: absolute;
-  background-color: var(--besser-primary, #3e8acc);
+  background-color: var(--besser-primary, #35798c);
   opacity: 0.4;
   box-sizing: border-box;
 
@@ -336,56 +634,61 @@ html.dark,
 
 .edge-circle {
   opacity: 0;
-  background-color: var(--besser-primary, #3e8acc);
+  background-color: var(--besser-primary, #35798c);
 }
 
 .react-flow__edge:hover .edge-circle {
   opacity: 0.4;
   padding: 4px;
-  fill: var(--besser-primary, #3e8acc);
+  fill: var(--besser-primary, #35798c);
 }
 .react-flow__edge.selected .edge-circle {
   opacity: 0.4;
   padding: 4px;
-  fill: var(--besser-primary, #3e8acc);
+  fill: var(--besser-primary, #35798c);
 }
 
 .react-flow__edge:hover .edge-overlay {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 15px;
 }
 .react-flow__edge:hover .edge-marker-highlight {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 15px;
 }
 
 .react-flow__edge.selected .edge-overlay {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 15px;
 }
 .react-flow__edge.selected .edge-marker-highlight {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 15px;
 }
 
-.react-flow__node:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 0 2px var(--besser-primary, #3e8acc);
+/* Hover: a hairline accent outline. Selected: a 1.5px ring plus a soft
+   halo. No opacity fade: a selected node keeps full contrast. */
+.react-flow__node {
   border-radius: 4px;
+  transition: box-shadow 150ms ease-out;
+}
+.react-flow__node:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--besser-primary, #35798c) 60%, transparent);
 }
 
-.react-flow__node.selected {
-  opacity: 0.9;
-  box-shadow: 0 0 0 2px var(--besser-primary, #3e8acc);
-  border-radius: 4px;
+.react-flow__node.selected,
+.react-flow__node.selected:hover {
+  box-shadow:
+    0 0 0 1.5px var(--besser-primary, #35798c),
+    0 0 0 5px color-mix(in srgb, var(--besser-primary, #35798c) 16%, transparent);
 }
 
 .besser-interactive-selection {
@@ -431,10 +734,6 @@ svg.react-flow__connectionline {
   opacity: 0.5;
 }
 
-.react-flow__minimap-mask {
-  fill: "#f2f2f2";
-  opacity: 0.6;
-}
 
 .prevent-select {
   -webkit-user-select: none; /* Safari */
@@ -489,7 +788,7 @@ svg.react-flow__connectionline {
   --bp-border-strong: color-mix(in srgb, var(--bp-fg) 22%, transparent);
   --bp-hover: color-mix(in srgb, var(--bp-fg) 6%, transparent);
   --bp-subtle: color-mix(in srgb, var(--bp-fg) 3%, var(--bp-surface));
-  --bp-accent: var(--besser-primary, #3e8acc);
+  --bp-accent: var(--besser-primary, #35798c);
   --bp-accent-fg: var(--besser-background, #ffffff);
   --bp-accent-soft: color-mix(in srgb, var(--bp-accent) 12%, transparent);
   --bp-ring: color-mix(in srgb, var(--bp-accent) 55%, transparent);
@@ -1259,6 +1558,20 @@ svg.react-flow__connectionline {
   }
 }
 
+/* Canvas chrome under reduced motion: colour feedback stays, movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__controls-button:active,
+  .control-button:active,
+  .control-zoom-readout:active,
+  .besser-toolbar-button:active,
+  .besser-palette-item:active {
+    transform: none !important;
+  }
+  .alignment-guide-line {
+    animation: none;
+  }
+}
+
 .scroll-overlay {
   position: absolute;
   top: 0;
@@ -1286,7 +1599,7 @@ svg.react-flow__connectionline {
 
 .scroll-overlay-hint-content {
   background-color: var(--besser-background, #ffffff);
-  border: 2px solid var(--besser-primary, #3e8acc);
+  border: 2px solid var(--besser-primary, #35798c);
   border-radius: 8px;
   padding: 16px 24px;
   box-shadow: 0 4px 12px var(--besser-grid, rgba(36, 39, 36, 0.1));
@@ -1297,7 +1610,7 @@ svg.react-flow__connectionline {
 
 .scroll-overlay-hint-text {
   margin: 0;
-  color: var(--besser-primary, #3e8acc);
+  color: var(--besser-primary, #35798c);
   font-weight: 600;
   font-size: 14px;
   text-align: center;

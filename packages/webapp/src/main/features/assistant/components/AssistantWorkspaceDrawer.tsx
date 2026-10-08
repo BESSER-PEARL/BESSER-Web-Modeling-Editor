@@ -650,9 +650,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes.
           First in DOM order so Tab goes pill → sheet; z-index keeps it on top. */}
-      {/* Centered, but shifted right just enough to clear the canvas controls bar (published by the engine). */}
+      {/* Centered, but shifted right just enough to clear the canvas controls bar (published by the engine);
+          18px from the bottom puts its centre on the controls bar's centre line. */}
       <div
-        className={cn('pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center', !showTrigger && !open && 'hidden')}
+        className={cn('pointer-events-none absolute inset-x-0 bottom-[18px] z-[45] flex justify-center', !showTrigger && !open && 'hidden')}
         style={{ paddingLeft: 'max(0px, calc(2 * (var(--besser-canvas-controls-right, 0px) + 100px) - 100%))' }}
       >
         <div
@@ -961,8 +962,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="flex-[1_1_8%] min-h-4" />
               {/* Study-mode notice (regular sessions render nothing) */}
               <PilotSessionNotice className="pb-1.5" />
-              <p key={`entrance-hint-${entranceKey}`} className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={entrance(5)}>
-                {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
+              <p key={`entrance-hint-${entranceKey}`} className="animate-fade-up pb-4 text-center text-[11px] text-muted-foreground" style={entrance(5)}>
+                {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[4px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">Esc</kbd> {t('assistant.welcome.pressEscPost')}
               </p>
             </div>
           ) : (

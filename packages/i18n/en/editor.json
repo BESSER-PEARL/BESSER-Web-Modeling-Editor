@@ -1002,6 +1002,7 @@
       "vertical": "Top to bottom"
     },
     "resetZoom": "Reset zoom to 100%",
+    "minimap": "Minimap",
     "attachAssociationClass": "Attach association class"
   },
   "comment": {

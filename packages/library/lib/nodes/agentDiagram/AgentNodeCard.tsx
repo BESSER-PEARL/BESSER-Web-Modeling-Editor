@@ -24,6 +24,11 @@ export const AGENT_CARD_HEADER_HEIGHT = 44
 const tint = (accent: string, pct: number) =>
   `color-mix(in srgb, ${accent} ${pct}%, transparent)`
 
+/** Accent as foreground ink: lifted toward white in dark mode
+ * (`--besser-accent-lift`, app.css) so it reads on the dark card. */
+const ink = (accent: string) =>
+  `color-mix(in srgb, ${accent}, white var(--besser-accent-lift, 0%))`
+
 /** Neutral hairline that adapts to light/dark (primary-contrast flips). */
 const HAIRLINE =
   "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 10%, transparent)"
@@ -106,7 +111,7 @@ export function AgentNodeCard({
             height: 28,
             borderRadius: 8,
             background: tint(accent, 12),
-            color: accent,
+            color: ink(accent),
             display: "grid",
             placeItems: "center",
           }}
@@ -165,9 +170,9 @@ export function AgentNodeCard({
                   fontWeight: 700,
                   letterSpacing: 0.6,
                   textTransform: "uppercase",
-                  color: accent,
+                  color: ink(accent),
                   background: tint(accent, 12),
-                  border: `1px solid ${tint(accent, 40)}`,
+                  border: `1px solid ${tint(ink(accent), 40)}`,
                   borderRadius: 5,
                   padding: "2px 6px",
                   whiteSpace: "nowrap",

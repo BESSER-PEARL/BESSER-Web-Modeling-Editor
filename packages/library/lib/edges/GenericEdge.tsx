@@ -9,6 +9,7 @@ import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { DiagramEdgeType } from "."
 import { Assessment } from "@/typings"
 import type { SegmentHandle } from "@/utils/edgeDragging"
+import { usePopoverStore } from "@/store/context"
 
 export interface BaseEdgeProps extends ExtendedEdgeProps {
   diagramType?: "class" | "usecase" | "activity" | "component" | "deployment"
@@ -214,6 +215,8 @@ export const CommonEdgeElements = ({
   onAttachAssociationClass?: () => void
 }) => {
   const nodeScore = assessments[id]?.score
+  // No pencil while the inspector already shows this edge.
+  const inspectingThis = usePopoverStore((state) => state.popoverElementId === id)
 
   return (
     <>
@@ -221,7 +224,7 @@ export const CommonEdgeElements = ({
         edgeId={id}
         anchorRef={anchorRef}
         position={pathMiddlePosition}
-        showEdit={true}
+        showEdit={!inspectingThis}
         onEditClick={() => setPopOverElementId(id)}
         onDeleteClick={handleDelete}
         onAttachAssociationClass={onAttachAssociationClass}

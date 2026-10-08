@@ -8,7 +8,7 @@ export type Size = "sm" | "md" | "lg"
 // TODO: These values are not used yet, but they are defined in the theme as reference
 const besserTheme = {
   color: {
-    primary: "var(--besser-primary, #2a8fbd)",
+    primary: "var(--besser-primary, #35798c)",
     secondary: "var(--besser-secondary, #6c757d)",
     warningYellow: "var(--besser-warning-yellow, #ffc800)",
     background: "var(--besser-background, #ffffff)",

@@ -106,6 +106,7 @@ export const Sidebar = () => {
 
   return (
     <div
+      className="besser-sidebar"
       style={{
         display: "flex",
         flexDirection: "row",
@@ -115,6 +116,7 @@ export const Sidebar = () => {
     >
       <aside
         ref={asideRef}
+        className="besser-sidebar__palette"
         style={{
           width: `${width}px`,
           height: "100%",
@@ -132,53 +134,20 @@ export const Sidebar = () => {
         }}
       >
         {showInteractiveSelectionView && (
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
+          <div className="bp-segmented" style={{ width: "100%" }}>
             <button
               type="button"
+              className="bp-toggle"
+              aria-pressed={view === BesserView.Modelling}
               onClick={() => setView(BesserView.Modelling)}
-              style={{
-                borderRadius: "8px",
-                border: "1px solid var(--besser-primary-contrast, #000000)",
-                background:
-                  view === BesserView.Modelling
-                    ? "var(--besser-primary, #3e8acc)"
-                    : "transparent",
-                color:
-                  view === BesserView.Modelling
-                    ? "var(--besser-background, #ffffff)"
-                    : "var(--besser-primary-contrast, #000000)",
-                padding: "8px 10px",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
             >
               {t("views.model", "Model")}
             </button>
             <button
               type="button"
+              className="bp-toggle"
+              aria-pressed={view === BesserView.Highlight}
               onClick={() => setView(BesserView.Highlight)}
-              style={{
-                borderRadius: "8px",
-                border: "1px solid var(--besser-primary-contrast, #000000)",
-                background:
-                  view === BesserView.Highlight
-                    ? "var(--besser-primary, #3e8acc)"
-                    : "transparent",
-                color:
-                  view === BesserView.Highlight
-                    ? "var(--besser-background, #ffffff)"
-                    : "var(--besser-primary-contrast, #000000)",
-                padding: "8px 10px",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
             >
               {t("views.selectElements", "Select Elements")}
             </button>
@@ -191,7 +160,7 @@ export const Sidebar = () => {
               width: "100%",
               fontSize: "12px",
               lineHeight: 1.4,
-              color: "var(--besser-primary-contrast, #000000)",
+              color: "var(--bp-muted)",
             }}
           >
             {t(
@@ -202,22 +171,12 @@ export const Sidebar = () => {
         )}
 
         {view === BesserView.Modelling && showIconModeToggle && (
-          <label
-            htmlFor="besser-toggle-icon-mode"
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "6px",
-              fontSize: "12px",
-              lineHeight: 1.3,
-              cursor: "pointer",
-              color: "var(--besser-primary-contrast, #000000)",
-            }}
-          >
+          <label htmlFor="besser-toggle-icon-mode" className="besser-sidebar__switch-row">
             <input
               id="besser-toggle-icon-mode"
               type="checkbox"
+              role="switch"
+              className="besser-switch"
               checked={showIconView}
               onChange={(event) =>
                 updateSetting("showIconView", event.target.checked)
@@ -254,20 +213,13 @@ export const Sidebar = () => {
                       marginTop: index === 0 ? 0 : 4,
                     }}
                   >
-                    {index !== 0 && <DividerLine style={{ margin: "3px 0" }} />}
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        color:
-                          "var(--besser-primary-contrast, rgba(0,0,0,0.6))",
-                        opacity: 0.7,
-                        textAlign: "center",
-                        width: "100%",
-                      }}
-                    >
+                    {index !== 0 && (
+                      <DividerLine
+                        backgroundColor="var(--besser-gray, #e9ecef)"
+                        style={{ margin: "3px 0" }}
+                      />
+                    )}
+                    <div className="bp-section-title besser-sidebar__section-title">
                       {config.sectionLabelKey
                         ? t(config.sectionLabelKey, config.sectionLabel)
                         : config.sectionLabel}
@@ -309,7 +261,10 @@ export const Sidebar = () => {
         */}
         {view === BesserView.Modelling && (
           <>
-            <DividerLine style={{ margin: "3px 0" }} />
+            <DividerLine
+              backgroundColor="var(--besser-gray, #e9ecef)"
+              style={{ margin: "3px 0" }}
+            />
             <DraggableGhost dropElementConfig={CommentConfig}>
               <div
                 className="prevent-select"

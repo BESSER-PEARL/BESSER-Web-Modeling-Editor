@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { MiniMap, MiniMapNodeProps, Panel, useReactFlow } from "@xyflow/react"
+import { MiniMap, MiniMapNodeProps, useReactFlow } from "@xyflow/react"
 import {
   ClassSVG,
   PackageSVG,
@@ -50,8 +49,6 @@ import {
 } from "./svgs"
 import { DiagramNodeType } from "@/typings"
 import { ZINDEX } from "@/constants"
-import { MapIcon } from "./Icon/MapIcon"
-import { SouthEastArrowIcon } from "./Icon/SouthEastArrowIcon"
 import {
   BPMNEventProps,
   BPMNGatewayProps,
@@ -71,52 +68,23 @@ import {
   SfcTransitionBranchNodeProps,
 } from "@/types/nodes/NodeProps"
 
-export const CustomMiniMap = () => {
-  const [minimapCollapsed, setMinimapCollapsed] = useState(true)
-
-  if (minimapCollapsed) {
-    return (
-      <Panel position="bottom-right" onClick={() => setMinimapCollapsed(false)}>
-        <MapIcon fill="var(--besser-primary-contrast, #000000)" />
-      </Panel>
-    )
-  }
-
-  return (
-    <Panel
-      position="bottom-right"
-      onClick={() => setMinimapCollapsed(true)}
-      style={{ boxShadow: "none", backgroundColor: "transparent" }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          right: 0,
-          display: "flex",
-          zIndex: ZINDEX.PANEL,
-          padding: 8,
-          backgroundColor: "var(--besser-background, white)",
-          borderRadius: "4px",
-          justifyContent: "center",
-          alignItems: "center",
-          cursor: "pointer",
-          boxShadow: "0 0 4px 0 rgb(0 0 0 / 0.2)",
-        }}
-      >
-        <SouthEastArrowIcon fill="var(--besser-primary-contrast, #000000)" />
-      </div>
-
-      <MiniMap
-        zoomable
-        onClick={() => setMinimapCollapsed(true)}
-        nodeComponent={MiniMapNode}
-        offsetScale={20}
-        style={{ zIndex: ZINDEX.MINIMAP }}
-      />
-    </Panel>
-  )
-}
+/**
+ * The open minimap. Its toggle lives in the controls bar (CustomControls),
+ * which mounts this above the bar so the bottom-right corner stays free for
+ * host overlays (the webapp's assistant button). Theming: app.css
+ * (`.besser-minimap`, `--xy-minimap-*`).
+ */
+export const CustomMiniMap = ({ onClose }: { onClose: () => void }) => (
+  <MiniMap
+    className="besser-minimap"
+    position="bottom-left"
+    zoomable
+    onClick={onClose}
+    nodeComponent={MiniMapNode}
+    offsetScale={20}
+    style={{ zIndex: ZINDEX.MINIMAP }}
+  />
+)
 
 function MiniMapNode({ id, x, y }: MiniMapNodeProps) {
   const { getNode } = useReactFlow()
@@ -633,6 +601,16 @@ function MiniMapNode({ id, x, y }: MiniMapNodeProps) {
       )
 
     default:
-      return <rect x={x} y={y} width={100} height={100} fill="gray" />
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={100}
+          height={100}
+          rx={8}
+          fill="var(--besser-gray-variant, #64748b)"
+          fillOpacity={0.45}
+        />
+      )
   }
 }

@@ -75,6 +75,16 @@ describe("NodeToolbar keyboard access", () => {
     expect(diagram.getState().nodes.map((n) => n.id)).toEqual(["B"])
   })
 
+  it("hides Edit while the inspector shows this node, keeps Delete", () => {
+    const { popover } = mount()
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy()
+    act(() => popover.getState().setPopOverElementId("A"))
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy()
+    act(() => popover.getState().setPopOverElementId("B"))
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy()
+  })
+
   it("does not re-render when another node is dragged", () => {
     const { diagram, onRender } = mount()
     onRender.mockClear()

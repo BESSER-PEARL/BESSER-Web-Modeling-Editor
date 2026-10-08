@@ -9,7 +9,12 @@ import { useShallow } from "zustand/shallow"
 import { UndoIcon } from "./Icon/UndoIcon"
 import { RedoIcon } from "./Icon/RedoIcon"
 import { AutoLayoutIcon } from "./Icon/AutoLayoutIcon"
+import { MapIcon } from "./Icon/MapIcon"
+import { CustomMiniMap } from "./CustomMiniMap"
 import { ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material"
+import { ThemeProvider } from "@mui/material/styles"
+import { Check } from "lucide-react"
+import { inspectorTheme } from "@/styles/inspector-theme"
 import {
   computeAutoLayout,
   getAutoLayoutStrategies,
@@ -35,6 +40,7 @@ let controlsRightOwner: symbol | null = null
 export const CustomControls = () => {
   const { t } = useTranslation()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const [minimapOpen, setMinimapOpen] = useState(false)
   const { zoomTo, fitView } = useReactFlow()
   const zoomLevel = useStore((state) => state.transform[2])
   const domNode = useStore((state) => state.domNode)
@@ -110,146 +116,164 @@ export const CustomControls = () => {
   }
 
   return (
-    <Controls orientation="horizontal" showInteractive={false}>
-      {/* Undo / Redo history group (separated from the built-in zoom group) */}
-      {undoManagerExist && (
-        <>
-          <span className="control-divider" aria-hidden="true" />
-          <Tooltip title={t("toolbar.undo", "Undo (Ctrl+Z)")}>
-            <span>
-              <button
-                className={`control-button ${!canUndo ? "disabled" : ""}`}
-                aria-label={t("toolbar.undo", "Undo (Ctrl+Z)")}
-                onClick={handleUndo}
-                disabled={!canUndo}
-              >
-                <UndoIcon
-                  width={16}
-                  height={16}
-                  fill={
-                    canUndo
-                      ? "var(--besser-primary-contrast, #000000)"
-                      : "var(--besser-secondary, #6c757d)"
-                  }
-                />
-              </button>
-            </span>
-          </Tooltip>
-          <Tooltip title={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}>
-            <span>
-              <button
-                className={`control-button ${!canRedo ? "disabled" : ""}`}
-                aria-label={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}
-                onClick={handleRedo}
-                disabled={!canRedo}
-              >
-                <RedoIcon
-                  width={16}
-                  height={16}
-                  fill={
-                    canRedo
-                      ? "var(--besser-primary-contrast, #000000)"
-                      : "var(--besser-secondary, #6c757d)"
-                  }
-                />
-              </button>
-            </span>
-          </Tooltip>
-        </>
-      )}
-      {/* Auto-layout group */}
-      <span className="control-divider" aria-hidden="true" />
-      <Tooltip
-        title={
-          strategies.length > 1
-            ? `${t("toolbar.autoLayout", "Auto-layout diagram")} (${t(
-                STRATEGY_LABELS[currentStrategy].key,
-                STRATEGY_LABELS[currentStrategy].fallback
-              )})`
-            : t("toolbar.autoLayout", "Auto-layout diagram")
-        }
-      >
-        <span>
-          <button
-            className={`control-button ${isLayouting || !hasNodes ? "disabled" : ""}`}
-            aria-label={t("toolbar.autoLayout", "Auto-layout diagram")}
-            onClick={() => void handleAutoLayout()}
-            disabled={isLayouting || !hasNodes}
-          >
-            <AutoLayoutIcon
-              width={16}
-              height={16}
-              fill={
-                !isLayouting && hasNodes
-                  ? "var(--besser-primary-contrast, #000000)"
-                  : "var(--besser-secondary, #6c757d)"
-              }
-            />
-          </button>
-        </span>
-      </Tooltip>
-      {strategies.length > 1 && (
-        <>
-          <Tooltip title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
-            <span>
-              <button
-                className={`control-button control-button--caret ${isLayouting || !hasNodes ? "disabled" : ""}`}
-                aria-haspopup="menu"
-                aria-label={t("toolbar.autoLayoutOptions", "Auto-layout options")}
-                onClick={(e: MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget)}
-                disabled={isLayouting || !hasNodes}
-                style={{ width: 16, minWidth: 16 }}
-              >
-                <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden="true">
-                  <path
-                    d="M1.5 3.5 5 7l3.5-3.5"
-                    fill="none"
-                    stroke="var(--besser-primary-contrast, #000000)"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+    <ThemeProvider theme={inspectorTheme}>
+      <Controls orientation="horizontal" showInteractive={false}>
+        {/* Undo / Redo history group (separated from the built-in zoom group) */}
+        {undoManagerExist && (
+          <>
+            <span className="control-divider" aria-hidden="true" />
+            <Tooltip title={t("toolbar.undo", "Undo (Ctrl+Z)")}>
+              <span>
+                <button
+                  className={`control-button ${!canUndo ? "disabled" : ""}`}
+                  aria-label={t("toolbar.undo", "Undo (Ctrl+Z)")}
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                >
+                  <UndoIcon
+                    width={16}
+                    height={16}
+                    fill={
+                      canUndo
+                        ? "var(--besser-primary-contrast, #000000)"
+                        : "var(--besser-secondary, #6c757d)"
+                    }
                   />
-                </svg>
-              </button>
-            </span>
-          </Tooltip>
-          <Menu
-            anchorEl={menuAnchor}
-            open={menuAnchor !== null}
-            onClose={() => setMenuAnchor(null)}
-            anchorOrigin={{ vertical: "top", horizontal: "left" }}
-            transformOrigin={{ vertical: "bottom", horizontal: "left" }}
-          >
-            {strategies.map((strategy) => (
-              <MenuItem
-                key={strategy}
-                selected={strategy === currentStrategy}
-                onClick={() => {
-                  setMenuAnchor(null)
-                  void handleAutoLayout(strategy)
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 24 }}>{strategy === currentStrategy ? "✓" : ""}</ListItemIcon>
-                <ListItemText>
-                  {t(STRATEGY_LABELS[strategy].key, STRATEGY_LABELS[strategy].fallback)}
-                </ListItemText>
-              </MenuItem>
-            ))}
-          </Menu>
-        </>
-      )}
-      {/* Zoom-percentage readout — click to reset to 100% */}
-      <span className="control-divider" aria-hidden="true" />
-      <Tooltip title={t("toolbar.resetZoom", "Reset zoom to 100%")}>
-        <button
-          type="button"
-          className="control-zoom-readout"
-          aria-label={t("toolbar.resetZoom", "Reset zoom to 100%")}
-          onClick={() => zoomTo(1)}
+                </button>
+              </span>
+            </Tooltip>
+            <Tooltip title={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}>
+              <span>
+                <button
+                  className={`control-button ${!canRedo ? "disabled" : ""}`}
+                  aria-label={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                >
+                  <RedoIcon
+                    width={16}
+                    height={16}
+                    fill={
+                      canRedo
+                        ? "var(--besser-primary-contrast, #000000)"
+                        : "var(--besser-secondary, #6c757d)"
+                    }
+                  />
+                </button>
+              </span>
+            </Tooltip>
+          </>
+        )}
+        {/* Auto-layout group */}
+        <span className="control-divider" aria-hidden="true" />
+        <Tooltip
+          title={
+            strategies.length > 1
+              ? `${t("toolbar.autoLayout", "Auto-layout diagram")} (${t(
+                  STRATEGY_LABELS[currentStrategy].key,
+                  STRATEGY_LABELS[currentStrategy].fallback
+                )})`
+              : t("toolbar.autoLayout", "Auto-layout diagram")
+          }
         >
-          {zoomLevelPercent}%
-        </button>
-      </Tooltip>
-    </Controls>
+          <span>
+            <button
+              className={`control-button ${isLayouting || !hasNodes ? "disabled" : ""}`}
+              aria-label={t("toolbar.autoLayout", "Auto-layout diagram")}
+              onClick={() => void handleAutoLayout()}
+              disabled={isLayouting || !hasNodes}
+            >
+              <AutoLayoutIcon
+                width={16}
+                height={16}
+                fill={
+                  !isLayouting && hasNodes
+                    ? "var(--besser-primary-contrast, #000000)"
+                    : "var(--besser-secondary, #6c757d)"
+                }
+              />
+            </button>
+          </span>
+        </Tooltip>
+        {strategies.length > 1 && (
+          <>
+            <Tooltip title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
+              <span>
+                <button
+                  className={`control-button control-button--caret ${isLayouting || !hasNodes ? "disabled" : ""}`}
+                  aria-haspopup="menu"
+                  aria-label={t("toolbar.autoLayoutOptions", "Auto-layout options")}
+                  onClick={(e: MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget)}
+                  disabled={isLayouting || !hasNodes}
+                  style={{ width: 16, minWidth: 16 }}
+                >
+                  <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden="true">
+                    <path
+                      d="M1.5 3.5 5 7l3.5-3.5"
+                      fill="none"
+                      stroke="var(--besser-primary-contrast, #000000)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </span>
+            </Tooltip>
+            <Menu
+              anchorEl={menuAnchor}
+              open={menuAnchor !== null}
+              onClose={() => setMenuAnchor(null)}
+              anchorOrigin={{ vertical: "top", horizontal: "left" }}
+              transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+            >
+              {strategies.map((strategy) => (
+                <MenuItem
+                  key={strategy}
+                  selected={strategy === currentStrategy}
+                  onClick={() => {
+                    setMenuAnchor(null)
+                    void handleAutoLayout(strategy)
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 24, color: "var(--besser-primary, #35798c)" }}>
+                    {strategy === currentStrategy ? <Check size={14} strokeWidth={2.25} aria-hidden="true" /> : null}
+                  </ListItemIcon>
+                  <ListItemText>
+                    {t(STRATEGY_LABELS[strategy].key, STRATEGY_LABELS[strategy].fallback)}
+                  </ListItemText>
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
+        )}
+        {/* Zoom-percentage readout — click to reset to 100% */}
+        <span className="control-divider" aria-hidden="true" />
+        <Tooltip title={t("toolbar.resetZoom", "Reset zoom to 100%")}>
+          <button
+            type="button"
+            className="control-zoom-readout"
+            aria-label={t("toolbar.resetZoom", "Reset zoom to 100%")}
+            onClick={() => zoomTo(1)}
+          >
+            {zoomLevelPercent}%
+          </button>
+        </Tooltip>
+        {/* Minimap toggle — the map opens above this bar. */}
+        <span className="control-divider" aria-hidden="true" />
+        <Tooltip title={t("toolbar.minimap", "Minimap")}>
+          <button
+            type="button"
+            className="control-button"
+            aria-label={t("toolbar.minimap", "Minimap")}
+            aria-pressed={minimapOpen}
+            onClick={() => setMinimapOpen((open) => !open)}
+          >
+            <MapIcon width={16} height={16} />
+          </button>
+        </Tooltip>
+      </Controls>
+      {minimapOpen && <CustomMiniMap onClose={() => setMinimapOpen(false)} />}
+    </ThemeProvider>
   )
 }

@@ -1,5 +1,7 @@
 import { FC, useState } from "react"
 import { Box, Button, Divider, Popover, Typography } from "@mui/material"
+import { ThemeProvider } from "@mui/material/styles"
+import { inspectorTheme } from "@/styles/inspector-theme"
 import {
   useDiagramStore,
   useDiagramStoreApi,
@@ -14,7 +16,7 @@ import {
   getAssociatedObjectTargets,
 } from "@/utils/associatedObject"
 import { AddIcon } from "../Icon"
-import { keyboardButtonProps } from "./keyboardActivation"
+import { ToolbarButton } from "./ToolbarButton"
 
 /**
  * (+) node-toolbar action + "Add and connect to new Object" popup for
@@ -65,75 +67,71 @@ export const AddAssociatedObjectButton: FC<{ elementId: string }> = ({
 
   return (
     <>
-      <AddIcon
-        {...keyboardButtonProps(title)}
+      <ToolbarButton
+        label={title}
         data-testid={`add-associated-object-${elementId}`}
         onClick={(event) => setAnchorEl(event.currentTarget)}
-        // The node toolbar is pointer-transparent (see NodeToolbar);
-        // re-enable the icon itself.
-        style={{
-          cursor: "pointer",
-          pointerEvents: "auto",
-          width: 16,
-          height: 16,
-        }}
-      />
-      <Popover
-        open={open}
-        anchorEl={anchorEl}
-        onClose={close}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
-        <Box
-          sx={{
-            minWidth: 260,
-            maxWidth: 400,
-            maxHeight: 400,
-            overflowY: "auto",
-            padding: 1.5,
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-          }}
+        <AddIcon />
+      </ToolbarButton>
+      <ThemeProvider theme={inspectorTheme}>
+        <Popover
+          open={open}
+          anchorEl={anchorEl}
+          onClose={close}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
         >
-          <Typography variant="subtitle2" component="div">
-            {title}
-          </Typography>
-          <Divider />
-          {targets.length === 0 ? (
-            <Typography
-              variant="body2"
-              sx={{ textAlign: "center", fontStyle: "italic", padding: 2 }}
-            >
-              {t(
-                "associationPopup.noTargets",
-                "No other objects available to connect to"
-              )}
+          <Box
+            sx={{
+              minWidth: 260,
+              maxWidth: 400,
+              maxHeight: 400,
+              overflowY: "auto",
+              padding: 1.5,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Typography variant="subtitle2" component="div">
+              {title}
             </Typography>
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {targets.map((target) => (
-                <Button
-                  key={target.id}
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleSelect(target.id)}
-                  sx={{ justifyContent: "flex-start", textTransform: "none" }}
-                >
-                  {target.name}
-                </Button>
-              ))}
+            <Divider />
+            {targets.length === 0 ? (
+              <Typography
+                variant="body2"
+                sx={{ textAlign: "center", fontStyle: "italic", padding: 2 }}
+              >
+                {t(
+                  "associationPopup.noTargets",
+                  "No other objects available to connect to"
+                )}
+              </Typography>
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {targets.map((target) => (
+                  <Button
+                    key={target.id}
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleSelect(target.id)}
+                    sx={{ justifyContent: "flex-start", textTransform: "none" }}
+                  >
+                    {target.name}
+                  </Button>
+                ))}
+              </Box>
+            )}
+            <Divider />
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button size="small" onClick={close}>
+                {t("associationPopup.cancel", "Cancel")}
+              </Button>
             </Box>
-          )}
-          <Divider />
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button size="small" onClick={close}>
-              {t("associationPopup.cancel", "Cancel")}
-            </Button>
           </Box>
-        </Box>
-      </Popover>
+        </Popover>
+      </ThemeProvider>
     </>
   )
 }

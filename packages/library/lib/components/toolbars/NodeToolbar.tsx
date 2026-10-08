@@ -2,13 +2,12 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { useHandleDelete } from "@/hooks/useHandleDelete"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
 import { usePopoverStore } from "@/store"
-import { Box } from "@mui/material"
 import { Position, NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react"
 import { FC, type SyntheticEvent } from "react"
 import { useShallow } from "zustand/shallow"
 import { DeleteIcon, EditIcon } from "../Icon"
 import { AddAssociatedObjectButton } from "./AddAssociatedObjectButton"
-import { keyboardButtonProps } from "./keyboardActivation"
+import { ToolbarButton } from "./ToolbarButton"
 import { useTranslation } from "@/i18n"
 
 // Keep a press on a toolbar icon away from React Flow (upstream Apollon
@@ -23,14 +22,6 @@ const stopToolbarPointer = (event: SyntheticEvent<HTMLElement>) => {
   }
 }
 
-const iconStyle = {
-  cursor: "pointer",
-  // The toolbar box itself is pointer-transparent; only the icons capture.
-  pointerEvents: "auto",
-  width: 16,
-  height: 16,
-} as const
-
 interface Props {
   elementId: string
   showEdit?: boolean
@@ -39,6 +30,10 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
   const { t } = useTranslation()
   const setPopOverElementId = usePopoverStore(
     useShallow((state) => state.setPopOverElementId)
+  )
+  // While the inspector already shows this element the pencil is redundant.
+  const inspectingThis = usePopoverStore(
+    (state) => state.popoverElementId === elementId
   )
   const handleDelete = useHandleDelete(elementId)
 
@@ -49,8 +44,8 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
   // works in both editing modes: in popover mode it opens the floating
   // popover, in properties-panel mode it opens the right-side panel (both
   // via `setPopOverElementId`). The panel no longer auto-opens on selection,
-  // so the pencil must stay visible.
-  const showEditButton = showEdit
+  // so the pencil stays visible until the inspector shows this element.
+  const showEditButton = showEdit && !inspectingThis
 
   return (
     <ReactFlowNodeToolbar
@@ -65,33 +60,31 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
       // the icons (upstream Apollon #791) -- matching the edge toolbar.
       style={{ pointerEvents: "none" }}
     >
-      <Box
-        className="nodrag nopan"
+      <div
+        className="besser-canvas-toolbar nodrag nopan"
         onPointerDownCapture={stopToolbarPointer}
         onMouseDownCapture={stopToolbarPointer}
         onTouchStartCapture={stopToolbarPointer}
-        sx={{ display: "flex", gap: 1, flexDirection: "column" }}
       >
-        <DeleteIcon
-          {...keyboardButtonProps(t("actions.delete", "Delete"))}
-          onClick={handleDelete}
-          style={iconStyle}
-        />
-
         {showEditButton && (
-          <EditIcon
-            {...keyboardButtonProps(t("actions.edit", "Edit"))}
+          <ToolbarButton
+            label={t("actions.edit", "Edit")}
             onClick={() => {
               setPopOverElementId(elementId)
             }}
-            style={iconStyle}
-          />
+          >
+            <EditIcon />
+          </ToolbarButton>
         )}
 
         {/* ObjectDiagram / UserDiagram only: (+) "Add and connect to new
             Object" (v3 updatable.tsx onAdd). Self-gating. */}
         <AddAssociatedObjectButton elementId={elementId} />
-      </Box>
+
+        <ToolbarButton label={t("actions.delete", "Delete")} danger onClick={handleDelete}>
+          <DeleteIcon />
+        </ToolbarButton>
+      </div>
     </ReactFlowNodeToolbar>
   )
 }

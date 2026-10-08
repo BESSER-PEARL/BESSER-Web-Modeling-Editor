@@ -274,14 +274,15 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      {/* Clear of the canvas zoom controls (right edge); in the GUI editor, left of the
-          GrapesJS side panel (15% of the editor width) and its save-status badge. */}
-      <div ref={containerRef} className={cn('fixed bottom-5', activeDiagramType === 'GUINoCodeDiagram' ? 'right-[calc(15vw+1rem)]' : 'right-16')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--besser-properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Bottom-right of the canvas, centred on the same line as the controls bar
+          (phones: above it); in the GUI editor, left of the GrapesJS side panel
+          (15% of the editor width) and its save-status badge. */}
+      <div ref={containerRef} className={cn('fixed bottom-[14px]', activeDiagramType === 'GUINoCodeDiagram' ? 'right-[calc(15vw+1rem)]' : 'right-[15px] max-sm:bottom-[58px] max-sm:right-[10px]')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--besser-properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
           id="assistant-widget-panel"
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[56px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
           aria-hidden={!isVisible}
@@ -291,7 +292,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
-                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
+                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain dark:invert" />
               </div>
               <div>
                 <p className="text-sm font-semibold leading-none tracking-tight text-foreground">{t('assistant.modelingAssistant')}</p>
@@ -481,22 +482,25 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           aria-expanded={isVisible}
           aria-controls="assistant-widget-panel"
           className={cn(
-            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            // Same surface as the "Describe your app" pill: one family of AI entry points.
+            'group relative size-11 rounded-full border text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_-10px_rgba(0,0,0,0.25)] backdrop-blur-md transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
+            'focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             isVisible
-              ? 'border-brand/20 ring-1 ring-brand/15'
-              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
+              ? 'border-brand/40 bg-background hover:bg-background'
+              : 'border-border/70 bg-background/85 hover:border-brand/40 hover:bg-background',
           )}
           onClick={() => setIsVisible((p) => !p)}
           title={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
           aria-label={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
         >
           {isVisible ? (
-            <X className="size-5 transition-transform duration-200 [@media(hover:hover)]:group-hover:rotate-90" />
+            <X className="size-4 transition-transform duration-150 ease-out [@media(hover:hover)]:group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 [@media(hover:hover)]:group-hover:scale-110" />
+              {/* Line-art on transparent: inverted in dark so it reads on the dark surface. */}
+              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-7 transition-transform duration-150 ease-out dark:invert [@media(hover:hover)]:group-hover:scale-105" />
               {connectionStatus === 'connected' && (
-                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
               )}
             </>
           )}

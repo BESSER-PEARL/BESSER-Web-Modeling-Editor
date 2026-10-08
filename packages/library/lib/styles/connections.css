@@ -68,7 +68,7 @@
 }
 .besser-port-outline {
   fill: none;
-  stroke: color-mix(in srgb, var(--besser-primary, #3e8acc) 60%, transparent);
+  stroke: color-mix(in srgb, var(--besser-primary, #35798c) 60%, transparent);
   stroke-width: 1px;
   opacity: 0;
   pointer-events: none;
@@ -104,7 +104,7 @@
   box-sizing: border-box;
   border-radius: 50%;
   background: var(--besser-background, #ffffff);
-  border: 1.5px solid var(--besser-primary, #3e8acc);
+  border: 1.5px solid var(--besser-primary, #35798c);
   opacity: 0;
   pointer-events: none;
   z-index: 6;
@@ -114,14 +114,14 @@
     box-shadow 120ms ease;
 }
 .besser-port-dot.besser-port-dot--hot {
-  background: var(--besser-primary, #3e8acc);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--besser-primary, #3e8acc) 22%, transparent);
+  background: var(--besser-primary, #35798c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--besser-primary, #35798c) 22%, transparent);
 }
 
 /* Subtle outline on hover instead of the heavy 2px ring. */
 .react-flow__node:has(.besser-port-band):hover:not(.selected) {
   opacity: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--besser-primary, #3e8acc) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--besser-primary, #35798c) 60%, transparent);
 }
 
 /* While connecting: the node under the pointer highlights as the target. */
@@ -131,28 +131,28 @@
 .besser-container--connecting .react-flow__node:hover {
   opacity: 1;
   box-shadow:
-    0 0 0 2px var(--besser-primary, #3e8acc),
-    0 0 0 6px color-mix(in srgb, var(--besser-primary, #3e8acc) 18%, transparent);
+    0 0 0 2px var(--besser-primary, #35798c),
+    0 0 0 6px color-mix(in srgb, var(--besser-primary, #35798c) 18%, transparent);
 }
 .besser-container--connecting .react-flow__node.react-flow__node:has(.besser-port-band--shaped):hover {
   box-shadow: none;
 }
 .besser-container--connecting .react-flow__node:hover .besser-port-outline {
   opacity: 1;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 2px;
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--besser-primary, #3e8acc) 45%, transparent));
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--besser-primary, #35798c) 45%, transparent));
 }
 
 .besser-connection-preview .react-flow__connection-path {
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 1.5px;
   stroke-dasharray: 5 4;
   opacity: 1;
 }
 .besser-connection-preview circle {
   fill: var(--besser-background, #ffffff);
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 1.5px;
 }
 
@@ -210,17 +210,17 @@
 .besser-editor .react-flow__edge:hover .edge-overlay,
 .besser-editor .react-flow__edge:hover .edge-marker-highlight {
   opacity: 0.14;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 10px;
 }
 .besser-editor .react-flow__edge.selected .edge-overlay,
 .besser-editor .react-flow__edge.selected .edge-marker-highlight {
   opacity: 0.2;
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 8px;
 }
 .besser-editor .react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--besser-primary, #3e8acc) !important;
+  stroke: var(--besser-primary, #35798c) !important;
   stroke-width: 1.75px;
 }
 .besser-editor .edge-container--dragging .edge-overlay {
@@ -229,7 +229,7 @@
 
 .besser-edge-endpoint-dot {
   fill: var(--besser-background, #ffffff);
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 1.5px;
 }
 .besser-edge-endpoint-grab {
@@ -238,7 +238,7 @@
 
 .edge-segment-handle__dot {
   fill: var(--besser-background, #ffffff);
-  stroke: var(--besser-primary, #3e8acc);
+  stroke: var(--besser-primary, #35798c);
   stroke-width: 1.5px;
   opacity: 0;
   transition: opacity 120ms ease;

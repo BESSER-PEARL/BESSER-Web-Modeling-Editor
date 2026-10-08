@@ -53,7 +53,7 @@ export const inspectorTheme: Theme = createTheme({
     // and the styleOverrides keep on resolving the live CSS variable for
     // dynamic theme switching.
     primary: {
-      main: "#2a8fbd",
+      main: "#35798c",
     },
     text: {
       primary: "#0f172a",
@@ -84,10 +84,10 @@ export const inspectorTheme: Theme = createTheme({
           // Tailwind: focus-visible:ring-2 ring-ring/20 — translate to a
           // subtle 2px primary-tinted glow plus a primary border.
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "var(--besser-primary, #2a8fbd)",
+            borderColor: "var(--besser-primary, #35798c)",
             borderWidth: "1px",
             boxShadow:
-              "0 0 0 3px color-mix(in srgb, var(--besser-primary, #2a8fbd) 12%, transparent)",
+              "0 0 0 3px color-mix(in srgb, var(--besser-primary, #35798c) 12%, transparent)",
           },
         },
         input: {
@@ -113,7 +113,7 @@ export const inspectorTheme: Theme = createTheme({
           fontSize: "0.8125rem",
           color: "var(--besser-gray-variant, #495057)",
           "&.Mui-focused": {
-            color: "var(--besser-primary, #2a8fbd)",
+            color: "var(--besser-primary, #35798c)",
           },
         },
         sizeSmall: { fontSize: "0.8125rem" },
@@ -150,11 +150,11 @@ export const inspectorTheme: Theme = createTheme({
           // Tailwind `focus:bg-accent` analogue — soft background on hover.
           "&:hover": {
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 8%, transparent)",
+              "color-mix(in srgb, var(--besser-primary, #35798c) 8%, transparent)",
           },
           "&.Mui-selected": {
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 14%, transparent)",
+              "color-mix(in srgb, var(--besser-primary, #35798c) 14%, transparent)",
           },
         },
       },
@@ -195,18 +195,18 @@ export const inspectorTheme: Theme = createTheme({
           },
         },
         containedPrimary: {
-          backgroundColor: "var(--besser-primary, #2a8fbd)",
+          backgroundColor: "var(--besser-primary, #35798c)",
           color: "var(--besser-background, #ffffff)",
           "&:hover": {
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 88%, var(--besser-primary-contrast, #0f172a))",
+              "color-mix(in srgb, var(--besser-primary, #35798c) 88%, var(--besser-primary-contrast, #0f172a))",
           },
         },
         textPrimary: {
-          color: "var(--besser-primary, #2a8fbd)",
+          color: "var(--besser-primary, #35798c)",
           "&:hover": {
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 8%, transparent)",
+              "color-mix(in srgb, var(--besser-primary, #35798c) 8%, transparent)",
           },
         },
         outlined: {
@@ -251,7 +251,7 @@ export const inspectorTheme: Theme = createTheme({
           "&.Mui-checked": {
             // Match Tailwind `accent-primary` — solid primary color, no
             // purple MUI default.
-            color: "var(--besser-primary, #2a8fbd)",
+            color: "var(--besser-primary, #35798c)",
           },
         },
       },
@@ -263,7 +263,7 @@ export const inspectorTheme: Theme = createTheme({
           padding: 4,
           color: "var(--besser-gray-variant, #6b7280)",
           "&.Mui-checked": {
-            color: "var(--besser-primary, #2a8fbd)",
+            color: "var(--besser-primary, #35798c)",
           },
         },
       },
@@ -322,6 +322,8 @@ export const inspectorTheme: Theme = createTheme({
         root: {
           backgroundImage: "none",
           backgroundColor: "var(--besser-background, #ffffff)",
+          // palette.text.primary is a fixed hex; follow the theme instead.
+          color: "var(--besser-primary-contrast, #0f172a)",
         },
       },
     },

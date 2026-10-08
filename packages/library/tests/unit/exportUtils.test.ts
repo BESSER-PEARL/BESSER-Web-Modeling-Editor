@@ -138,7 +138,7 @@ describe("resolveCSSVariable", () => {
   })
 
   it("resolves known CSS variable", () => {
-    expect(resolveCSSVariable("var(--besser-primary)")).toBe("#3e8acc")
+    expect(resolveCSSVariable("var(--besser-primary)")).toBe("#35798c")
   })
 
   it("resolves --besser-primary-contrast", () => {
@@ -174,7 +174,7 @@ describe("resolveCSSVariable", () => {
   it("preserves string around var() call", () => {
     // e.g. "1px solid var(--besser-primary)" should resolve the var part
     const result = resolveCSSVariable("1px solid var(--besser-primary)")
-    expect(result).toBe("1px solid #3e8acc")
+    expect(result).toBe("1px solid #35798c")
   })
 
   it("handles value with no var() calls", () => {
@@ -200,7 +200,7 @@ describe("replaceCSSVariables", () => {
     svg.appendChild(rect)
 
     replaceCSSVariables(svg)
-    expect(rect.getAttribute("fill")).toBe("#3e8acc")
+    expect(rect.getAttribute("fill")).toBe("#35798c")
   })
 
   it("resolves var() in stroke attribute", () => {
