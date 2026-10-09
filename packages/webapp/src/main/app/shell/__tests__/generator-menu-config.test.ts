@@ -35,4 +35,14 @@ describe('GENERATOR_MENU_CONFIG', () => {
       expect(generators).not.toContain('supabase');
     }
   });
+
+  it('gives every action in a group a unique label (the menu keys items by label)', () => {
+    for (const entries of Object.values(GENERATOR_MENU_CONFIG)) {
+      for (const entry of entries) {
+        if (entry.kind !== 'group') continue;
+        const labels = entry.actions.map((a) => a.label);
+        expect(new Set(labels).size).toBe(labels.length);
+      }
+    }
+  });
 });

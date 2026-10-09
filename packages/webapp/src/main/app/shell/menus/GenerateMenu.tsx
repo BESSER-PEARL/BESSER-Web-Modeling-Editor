@@ -71,7 +71,7 @@ const renderGeneratorMenuEntry = (
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent>
           {entry.actions.map((action) => (
-            <DropdownMenuItem key={action.generator} onClick={() => onGenerate(action.generator, action.config)}>
+            <DropdownMenuItem key={action.label} onClick={() => onGenerate(action.generator, action.config)}>
               {action.labelKey ? t(action.labelKey) : action.label}
             </DropdownMenuItem>
           ))}
