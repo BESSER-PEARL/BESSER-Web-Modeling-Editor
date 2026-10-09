@@ -583,12 +583,14 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
                     arm(true)
                     return
                   }
-                  // Pooling list fields seed the dimension-aware example.
+                  // Pooling and Conv list fields seed the dimension-aware example.
                   if (
-                    layerKind === "PoolingLayer" &&
-                    (field.slug === "kernel_dim" ||
-                      field.slug === "stride_dim" ||
-                      field.slug === "output_dim")
+                    (layerKind === "PoolingLayer" &&
+                      (field.slug === "kernel_dim" ||
+                        field.slug === "stride_dim" ||
+                        field.slug === "output_dim")) ||
+                    (/^Conv[123]DLayer$/.test(layerKind) &&
+                      (field.slug === "stride_dim" || field.slug === "dilation"))
                   ) {
                     updateAttribute(
                       field.slug,

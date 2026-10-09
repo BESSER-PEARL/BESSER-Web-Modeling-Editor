@@ -126,7 +126,7 @@ export function getListExpectation(
     }
   }
   if (layerKind === "LayerNormalizationLayer" && slug === "normalized_shape") {
-    return { count: 1, example: "[-1]" }
+    return { count: 1, example: "[]" }
   }
   if (layerKind === "TensorOp" && slug === "transpose_dim") {
     return { count: 2, example: "[0, 1]" }

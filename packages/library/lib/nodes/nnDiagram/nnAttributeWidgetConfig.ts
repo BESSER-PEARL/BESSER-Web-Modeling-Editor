@@ -460,17 +460,6 @@ const POOLING_FIELDS: AttributeWidgetConfig[] = [
   ...BASE_LAYER_VAR_FIELDS,
 ]
 
-/** RNN-family `actv_func` defaults to `tanh` in v3 (PyTorch's
- * `RNN`/`LSTM`/`GRU` activation default), distinct from the
- * convolutional `relu` baseline. */
-const RECURRENT_ACTV_FUNC_FIELD: AttributeWidgetConfig = {
-  slug: "actv_func",
-  widget: "dropdown",
-  options: ACTV_FUNC_OPTIONS,
-  defaultValue: "tanh",
-  label: "actv_func",
-}
-
 const RECURRENT_BASE_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
   {
@@ -480,20 +469,18 @@ const RECURRENT_BASE_FIELDS: AttributeWidgetConfig[] = [
     mandatory: true,
     valueType: "int",
   },
-  // V3 default = 'full' (not 'last').
   {
     slug: "return_type",
     widget: "dropdown",
     options: RETURN_OPTIONS,
-    defaultValue: "full",
+    defaultValue: "last",
     label: "return_type",
   },
   textField("input_size", "int"),
   boolField("bidirectional", "false"),
   textField("dropout", "float"),
-  // V3 default = 'true' (batch dimension leading).
-  boolField("batch_first", "true"),
-  RECURRENT_ACTV_FUNC_FIELD,
+  boolField("batch_first", "false"),
+  ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
   BIAS_FIELD,

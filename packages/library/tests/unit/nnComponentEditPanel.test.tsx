@@ -558,14 +558,15 @@ describe("mandatory list-shaped autofill on mount (#30)", () => {
     expect(getAttrs(store)["kernel_dim"]).toBe("[3, 3, 3]")
   })
 
-  it("seeds normalized_shape '[-1]' on a fresh LayerNormalizationLayer node", () => {
+  it("seeds normalized_shape '[]' on a fresh LayerNormalizationLayer node", () => {
     const { store } = renderPanel([
       nnNode("node-1", "LayerNormalizationLayer", {
         name: "LN1",
         attributes: {},
       }),
     ])
-    expect(getAttrs(store)["normalized_shape"]).toBe("[-1]")
+    // Develop's default; the backend rejects entries <= 0, so "[-1]" failed generation.
+    expect(getAttrs(store)["normalized_shape"]).toBe("[]")
   })
 
   it("does NOT auto-seed optional stride_dim on a fresh Conv1DLayer node", () => {
@@ -574,6 +575,38 @@ describe("mandatory list-shaped autofill on mount (#30)", () => {
     ])
     expect("stride_dim" in getAttrs(store)).toBe(false)
   })
+})
+
+/* ─────────────── ticking an optional row stores develop's default ─────── */
+
+describe("NNComponentEditPanel — ticked optional defaults match develop", () => {
+  const tick = (slug: string) => fireEvent.click(screen.getByLabelText(slug))
+
+  it("Conv2D stride_dim and dilation seed [1, 1]", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "Conv2DLayer", { name: "Conv", attributes: {} }),
+    ])
+    tick("stride_dim")
+    tick("dilation")
+    expect(getAttrs(store)["stride_dim"]).toBe("[1, 1]")
+    expect(getAttrs(store)["dilation"]).toBe("[1, 1]")
+  })
+
+  it.each(["RNNLayer", "LSTMLayer", "GRULayer"])(
+    "%s return_type, batch_first and actv_func seed last / false / relu",
+    (kind) => {
+      const { store } = renderPanel([
+        nnNode("node-1", kind, { name: "Rec", attributes: {} }),
+      ])
+      tick("return_type")
+      tick("batch_first")
+      tick("actv_func")
+      const attrs = getAttrs(store)
+      expect(attrs["return_type"]).toBe("last")
+      expect(String(attrs["batch_first"])).toBe("false")
+      expect(attrs["actv_func"]).toBe("relu")
+    }
+  )
 })
 
 /* ─────────────── tns_type-driven rows + validation (smart-gen) ─────── */
