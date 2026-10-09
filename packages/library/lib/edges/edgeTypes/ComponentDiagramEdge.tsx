@@ -16,10 +16,7 @@ import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { resolveRequiredInterfaceEdgeType } from "@/utils"
-import {
-  relationshipLabelDirection,
-  relationshipLabelLayout,
-} from "@/utils/relationshipMidpoint"
+import { EdgeMiddleLabels } from "../labelTypes/EdgeMiddleLabels"
 
 const COMPONENT_REQUIRED_INTERFACE_TYPES = [
   "ComponentRequiredInterface",
@@ -194,23 +191,12 @@ export const ComponentDiagramEdge = ({
             ))}
         </g>
 
-        {stereotype && (
-          <text
-            x={edgeData.pathMiddlePosition.x}
-            y={edgeData.pathMiddlePosition.y}
-            {...relationshipLabelLayout(
-              relationshipLabelDirection(edgeData.isMiddlePathHorizontal)
-            )}
-            fill={textColor}
-            fontSize={11}
-            fontWeight={600}
-            pointerEvents="none"
-            className="besser-edge-label"
-            data-testid="edge-stereotype-label"
-          >
-            {`«${stereotype}»`}
-          </text>
-        )}
+        <EdgeMiddleLabels
+          pathMiddlePosition={edgeData.pathMiddlePosition}
+          isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          textColor={textColor}
+          stereotype={stereotype}
+        />
 
         <CommonEdgeElements
           id={id}

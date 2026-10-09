@@ -1,4 +1,4 @@
-import { BaseEdge } from "@xyflow/react"
+import { BaseEdge, useStore } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
@@ -23,6 +23,7 @@ import { curveEnds, getCurvedPath, labelClearOfEnds } from "../curvedPath"
 import { estimateMiddleLabelWidth } from "../labelTypes/middleLabelPlacement"
 import { truncateLabel } from "../labelTypes/EdgeMiddleLabels"
 import { endMarkerLength } from "@/utils/edgeUtils"
+import { internalNodeRect } from "@/utils/nodeShapes"
 import { useTranslation } from "@/i18n"
 import { getAgentComponentLists } from "@/components/inspectors/agentDiagram/agentComponentLists"
 import { isMissingIntent } from "@/utils/agentComponents"
@@ -117,6 +118,8 @@ export const AgentDiagramEdge = ({
 
   // Continuous ports: anchors and route computed from the node outlines.
   const floating = useFloatingEdgeLayout(id)
+  // Mutable map: read at render time to keep a short edge's label off nodes.
+  const nodeLookup = useStore((state) => state.nodeLookup)
 
   const {
     pathRef,
@@ -259,7 +262,8 @@ export const AgentDiagramEdge = ({
     .join(" · ")
   const label =
     composedLabel || (parseA2ATag(d.label) ? "" : (d.label as string)) || ""
-  // Short edges: the label goes beside the line, clear of the arrowhead.
+  // Short edges: the label goes beside the line, clear of the arrowhead
+  // and of the nodes.
   const labelAnchor =
     source === target || !label
       ? curveMiddle
@@ -268,7 +272,8 @@ export const AgentDiagramEdge = ({
           sourcePoint,
           targetPoint,
           estimateMiddleLabelWidth(truncateLabel(label)),
-          endMarkerLength(markerEnd)
+          endMarkerLength(markerEnd),
+          [...nodeLookup.values()].filter((n) => !n.hidden).map(internalNodeRect)
         )
   const a2aBadge =
     a2aTag?.dir === "in" ? placeA2ABadge(curveMiddle, labelAnchor, label) : null

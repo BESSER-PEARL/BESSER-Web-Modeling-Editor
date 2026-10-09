@@ -1036,6 +1036,25 @@ export const resolveBpmnEdgeType = (
   return fallback
 }
 
+const PROVIDED_INTERFACE_EDGE: Record<string, DiagramEdgeType> = {
+  componentInterface: "ComponentProvidedInterface",
+  deploymentInterface: "DeploymentProvidedInterface",
+}
+
+/**
+ * Component / Deployment: an edge touching an interface is a provided
+ * interface, the first type both ends support (develop's
+ * `supportedRelationships`); anything else keeps the diagram default.
+ */
+export const resolveInterfaceEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType =>
+  PROVIDED_INTERFACE_EDGE[targetType ?? ""] ??
+  PROVIDED_INTERFACE_EDGE[sourceType ?? ""] ??
+  fallback
+
 /**
  * Normalize `NNComposition` endpoint order at creation time so the
  * NNContainer always sits at the **target** end — where the filled

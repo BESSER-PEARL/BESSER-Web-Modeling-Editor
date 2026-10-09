@@ -121,7 +121,7 @@ export const useNodeDragStop = () => {
         // Children of a BPMN lane stay out of its header strip.
         updatedNode.position = clampIntoLaneBody(
           updatedNode.position,
-          parentNode.type
+          parentNode
         )
         updatedNode.parentId = parentNode.id
 
@@ -138,12 +138,10 @@ export const useNodeDragStop = () => {
       }
 
       if (draggedNode.parentId) {
-        const currentParentType = nodes.find(
-          (n) => n.id === draggedNode.parentId
-        )?.type
+        const currentParent = nodes.find((n) => n.id === draggedNode.parentId)
         const movedNode = {
           ...draggedNode,
-          position: clampIntoLaneBody(draggedNode.position, currentParentType),
+          position: clampIntoLaneBody(draggedNode.position, currentParent),
         }
         const updatedNodes = structuredClone(nodes)
         const updatedNodesList = sortNodesTopologically(

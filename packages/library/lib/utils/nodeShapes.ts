@@ -20,6 +20,8 @@ export interface NodeShape {
   radius?: number
   /** Attachment box relative to the node's top-left; default: the whole node. */
   box?: (width: number, height: number) => LayoutRect
+  /** The node's frame connects too (the outline is drawn inside it). */
+  frameBand?: boolean
 }
 
 const RECT: NodeShape = { kind: "rect" }
@@ -36,10 +38,12 @@ const roundRect = (radius: number): NodeShape => ({ kind: "roundRect", radius })
 /**
  * NN layer card (`_NNLayerBase`): with an icon, edges attach to the icon
  * square above the name; without one (too small / no icon) to the card.
+ * The card frame (what the selection shows) connects as well.
  */
 const NN_ICON_CARD: NodeShape = {
   kind: "roundRect",
   radius: 6,
+  frameBand: true,
   box: (w, h) => {
     const size = Math.min(70, w - 12, Math.max(0, h - 22 - 12))
     return size >= 24 ? { x: (w - size) / 2, y: 6, width: size, height: size } : { x: 0, y: 0, width: w, height: h }

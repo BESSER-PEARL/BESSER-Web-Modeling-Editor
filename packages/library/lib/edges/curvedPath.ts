@@ -1,5 +1,6 @@
 import { Position } from "@xyflow/react"
 import type { IPoint } from "./Connection"
+import type { LabelRect } from "./labelTypes/middleLabelPlacement"
 import { bezierControl, type PortSide } from "@/utils/edgePorts"
 
 const NORMAL: Record<Position, IPoint> = {
@@ -92,17 +93,24 @@ export const getCurvedPath = ({
 const LABEL_HALF_HEIGHT = 8
 const LABEL_CLEARANCE = 6
 
+const overlapArea = (a: LabelRect, b: LabelRect) =>
+  Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) *
+  Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
+
 /**
  * Anchor of a centred label at `p` (on a curve from `s` to `t`) moved beside
  * the line when its box would reach the arrowhead (`markerLength` back from
  * `t`) or the source port: on a short edge the label sat on the arrow.
+ * Beside the line, the first spot clear of `obstacles` (node rects) wins:
+ * either side of the chord, then left / right, then above / below.
  */
 export const labelClearOfEnds = (
   p: IPoint,
   s: IPoint,
   t: IPoint,
   labelWidth: number,
-  markerLength: number
+  markerLength: number,
+  obstacles: readonly LabelRect[] = []
 ): IPoint => {
   const dx = t.x - s.x
   const dy = t.y - s.y
@@ -124,7 +132,28 @@ export const labelClearOfEnds = (
   }
   const acrossHalf = Math.abs(nx) * (labelWidth / 2) + Math.abs(ny) * LABEL_HALF_HEIGHT
   const d = acrossHalf + LABEL_CLEARANCE
-  return { x: p.x + nx * d, y: p.y + ny * d }
+  const sideX = labelWidth / 2 + LABEL_CLEARANCE
+  const sideY = 2 * LABEL_HALF_HEIGHT + LABEL_CLEARANCE
+  const candidates: IPoint[] = [
+    { x: p.x + nx * d, y: p.y + ny * d },
+    { x: p.x - nx * d, y: p.y - ny * d },
+    { x: p.x + sideX, y: p.y },
+    { x: p.x - sideX, y: p.y },
+    { x: p.x, y: p.y - sideY },
+    { x: p.x, y: p.y + sideY },
+  ]
+  let best = candidates[0]
+  let bestBlocked = Infinity
+  for (const c of candidates) {
+    const box = { x: c.x - labelWidth / 2, y: c.y - LABEL_HALF_HEIGHT, width: labelWidth, height: 2 * LABEL_HALF_HEIGHT }
+    const blocked = obstacles.reduce((sum, r) => sum + overlapArea(box, r), 0)
+    if (blocked === 0) return c
+    if (blocked < bestBlocked) {
+      best = c
+      bestBlocked = blocked
+    }
+  }
+  return best
 }
 
 /** Side a polyline leaves `p` through, towards `q` (its first segment). */

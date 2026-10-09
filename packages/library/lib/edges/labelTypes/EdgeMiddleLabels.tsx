@@ -6,6 +6,10 @@ import {
   type LabelRect,
 } from "./middleLabelPlacement"
 import { internalNodeRect } from "@/utils/nodeShapes"
+import {
+  relationshipLabelDirection,
+  relationshipLabelLayout,
+} from "@/utils/relationshipMidpoint"
 
 interface EdgeMiddleLabelsProps {
   label?: string | null
@@ -21,7 +25,12 @@ interface EdgeMiddleLabelsProps {
   points?: IPoint[]
   /** Centre the label on `pathMiddlePosition` (curved edges). */
   centered?: boolean
+  /** «stereotype» line: one line above the name, or above the midpoint without one. */
+  stereotype?: string | null
 }
+
+/** Baseline distance from the «stereotype» line to the name below it. */
+const STEREOTYPE_LINE_OFFSET = 14
 
 /** Labels longer than this are cut with an ellipsis; the full text is the tooltip. */
 export const MAX_MIDDLE_LABEL_CHARS = 32
@@ -46,12 +55,33 @@ export const EdgeMiddleLabels = ({
   textColor,
   points,
   centered = false,
+  stereotype,
 }: EdgeMiddleLabelsProps) => {
   const nodeLookup = useStore((state) => state.nodeLookup)
 
-  if (isPetriNet && label === "1") return null
+  const stereotypeText = stereotype ? `«${stereotype}»` : null
+  const stereotypeStyle = {
+    fill: textColor,
+    fontSize: 11,
+    fontWeight: 600,
+    pointerEvents: "none",
+    className: "besser-edge-label",
+    "data-testid": "edge-stereotype-label",
+  } as const
 
-  if (!label || !showRelationshipLabels) return null
+  if (!label || !showRelationshipLabels || (isPetriNet && label === "1")) {
+    if (!stereotypeText) return null
+    return (
+      <text
+        x={pathMiddlePosition.x}
+        y={pathMiddlePosition.y}
+        {...relationshipLabelLayout(relationshipLabelDirection(isMiddlePathHorizontal))}
+        {...stereotypeStyle}
+      >
+        {stereotypeText}
+      </text>
+    )
+  }
 
   // Calculate position and rotation for the label
   let x: number
@@ -112,26 +142,40 @@ export const EdgeMiddleLabels = ({
   const shown = truncateLabel(label)
 
   return (
-    <text
-      x={x}
-      y={y}
-      textAnchor={textAnchor}
-      dominantBaseline={dominantBaseline}
-      style={{
-        fontSize: "12px",
-        fontWeight: 700,
-        fill: textColor,
-        userSelect: "none",
-        // Clicks bubble to the React Flow edge: select / double-click to edit.
-        pointerEvents: "visiblePainted",
-        cursor: "pointer",
-      }}
-      transform={rotation !== 0 ? `rotate(${rotation} ${x} ${y})` : undefined}
-      className="besser-edge-label besser-edge-middle-label nodrag nopan"
-      data-testid="edge-middle-label"
-    >
-      {shown !== label && <title>{label}</title>}
-      {shown}
-    </text>
+    <>
+      {stereotypeText && (
+        <text
+          x={x}
+          y={y - STEREOTYPE_LINE_OFFSET}
+          textAnchor={textAnchor}
+          dominantBaseline={dominantBaseline}
+          transform={rotation !== 0 ? `rotate(${rotation} ${x} ${y})` : undefined}
+          {...stereotypeStyle}
+        >
+          {stereotypeText}
+        </text>
+      )}
+      <text
+        x={x}
+        y={y}
+        textAnchor={textAnchor}
+        dominantBaseline={dominantBaseline}
+        style={{
+          fontSize: "12px",
+          fontWeight: 700,
+          fill: textColor,
+          userSelect: "none",
+          // Clicks bubble to the React Flow edge: select / double-click to edit.
+          pointerEvents: "visiblePainted",
+          cursor: "pointer",
+        }}
+        transform={rotation !== 0 ? `rotate(${rotation} ${x} ${y})` : undefined}
+        className="besser-edge-label besser-edge-middle-label nodrag nopan"
+        data-testid="edge-middle-label"
+      >
+        {shown !== label && <title>{label}</title>}
+        {shown}
+      </text>
+    </>
   )
 }

@@ -894,13 +894,24 @@ export class BesserEditor {
    * can pass a stale id set without surprising behaviour.
    */
   public select(ids: string[]): void {
-    const { nodes, edges, setSelectedElementsId } = this.diagramStore.getState()
+    const { nodes, edges } = this.diagramStore.getState()
     const known = new Set<string>([
       ...nodes.map((n) => n.id),
       ...edges.map((e) => e.id),
     ])
     const filtered = ids.filter((id) => known.has(id))
-    setSelectedElementsId(filtered)
+    const wanted = new Set(filtered)
+    // `selected` is runtime-only state (not persisted), so set it directly
+    // like React Flow's own select changes do.
+    const flag = <T extends { id: string; selected?: boolean }>(item: T): T =>
+      !!item.selected === wanted.has(item.id)
+        ? item
+        : { ...item, selected: wanted.has(item.id) }
+    this.diagramStore.setState({
+      nodes: nodes.map(flag),
+      edges: edges.map(flag),
+      selectedElementIds: filtered,
+    })
   }
 
   /**

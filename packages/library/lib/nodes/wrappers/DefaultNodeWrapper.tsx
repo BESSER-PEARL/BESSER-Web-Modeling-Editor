@@ -234,13 +234,12 @@ export function DefaultNodeWrapper({
         {hiddenHandles !== true && (
           <>
             {handles.map((handle) => {
-              if (hiddenHandles.includes(handle.id)) {
-                return null
-              }
-
+              // A hidden id stays an invisible anchor at its side's midpoint:
+              // React Flow drops an edge whose stored handle id is missing.
+              const hidden = hiddenHandles.includes(handle.id)
               const isPrimaryHandle = visibleHandleIds.has(handle.id)
 
-              if (floatingPorts) {
+              if (floatingPorts || hidden) {
                 return (
                   <Handle
                     key={handle.id}
@@ -248,7 +247,11 @@ export function DefaultNodeWrapper({
                     className="besser-anchor-handle"
                     type="source"
                     position={handle.position}
-                    style={{ ...handle.style, opacity: 0, pointerEvents: "none" }}
+                    style={{
+                      ...(hidden ? baseHandleStyle : handle.style),
+                      opacity: 0,
+                      pointerEvents: "none",
+                    }}
                     isConnectable={false}
                   />
                 )

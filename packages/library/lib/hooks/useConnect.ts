@@ -20,6 +20,7 @@ import {
   resolveAgentEdgeType,
   resolveBpmnEdgeType,
   resolveCommentEdgeType,
+  resolveInterfaceEdgeType,
   resolveNNEdgeType,
 } from "@/utils"
 import { canConnectEndpoints } from "@/utils/bpmnConstraints"
@@ -342,6 +343,15 @@ export const useConnect = () => {
           targetType,
           defaultEdgeType
         )
+      } else if (
+        diagramType === "ComponentDiagram" ||
+        diagramType === "DeploymentDiagram"
+      ) {
+        resolvedType = resolveInterfaceEdgeType(
+          sourceType,
+          targetType,
+          defaultEdgeType
+        )
       } else {
         resolvedType = defaultEdgeType
       }
@@ -417,6 +427,16 @@ export const useConnect = () => {
         if (intersectingNodes.length === 0) return
 
         const fromNodeId = connectionState.fromNode?.id
+        // A press that never left the source is a click on its port, not a
+        // connection to the container (pool, lane, ...) around it.
+        if (
+          floatingPorts &&
+          !leftSourceRef.current &&
+          intersectingNodes.some((node) => node.id === fromNodeId)
+        ) {
+          connectionStartParams.current = null
+          return
+        }
         const nodeOnTop =
           intersectingNodes.findLast((node) => node.id !== fromNodeId) ??
           intersectingNodes[intersectingNodes.length - 1]
@@ -525,6 +545,15 @@ export const useConnect = () => {
             )
           } else if (diagramType === "BPMNDiagram") {
             resolvedTypeOnEnd = resolveBpmnEdgeType(
+              sourceTypeOnEnd,
+              targetTypeOnEnd,
+              defaultEdgeType
+            )
+          } else if (
+            diagramType === "ComponentDiagram" ||
+            diagramType === "DeploymentDiagram"
+          ) {
+            resolvedTypeOnEnd = resolveInterfaceEdgeType(
               sourceTypeOnEnd,
               targetTypeOnEnd,
               defaultEdgeType

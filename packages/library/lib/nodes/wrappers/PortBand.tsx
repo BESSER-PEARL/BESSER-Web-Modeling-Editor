@@ -34,7 +34,8 @@ const nearestOutlinePoint = (shape: NodeShape, box: LayoutRect, p: LayoutPoint) 
  *
  * Plain rectangles use four strips along the box. Other shapes (circles,
  * diamonds, rounded or inset outlines, `nodeShapes`) get an SVG band that
- * follows the drawn outline, and a matching outline highlight on hover.
+ * follows the drawn outline, and a matching outline highlight on hover;
+ * a `frameBand` shape keeps the strips along the node frame as well.
  */
 export function PortBand({
   elementId,
@@ -157,7 +158,7 @@ export function PortBand({
       >
         {/* `source`: React Flow reads the handle type off the element under
             the pointer when a connection starts. */}
-        {shaped ? (
+        {shaped && (
           <svg
             className="besser-port-band__svg"
             width={width}
@@ -171,14 +172,14 @@ export function PortBand({
               strokeWidth={PORT_BAND_INSIDE + PORT_BAND_OUTSIDE}
             />
           </svg>
-        ) : (
+        )}
+        {(!shaped || shape.frameBand) &&
           (["top", "right", "bottom", "left"] as const).map((side) => (
             <div
               key={side}
               className={`besser-port-band__strip besser-port-band__strip--${side} source`}
             />
-          ))
-        )}
+          ))}
       </Handle>
       <div ref={dotRef} className="besser-port-dot" aria-hidden="true" />
     </>

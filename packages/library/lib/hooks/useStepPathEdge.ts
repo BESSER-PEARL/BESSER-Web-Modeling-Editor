@@ -49,7 +49,7 @@ interface UseStepPathEdgeProps {
   targetPosition: Position
   sourceHandleId?: string | null
   targetHandleId?: string | null
-  data?: { points?: IPoint[] }
+  data?: { points?: IPoint[]; isManuallyLayouted?: boolean }
   allowMidpointDragging?: boolean
   enableReconnection?: boolean
   enableStraightPath?: boolean
@@ -115,12 +115,16 @@ export const useStepPathEdge = ({
     useState<boolean>(true)
   const [hasInitialCalculation, setHasInitialCalculation] = useState(false)
 
+  // A route flagged as not manually laid out (assistant placeholder, v3
+  // import) is re-routed, as `edgePorts` does for floating edges.
+  const storedPoints =
+    data?.isManuallyLayouted === false ? undefined : data?.points
   const {
     customPoints,
     setCustomPoints,
     tempReconnectPoints,
     setTempReconnectPoints,
-  } = useEdgeState(data?.points)
+  } = useEdgeState(storedPoints)
   const {
     isReconnectingRef,
     reconnectingEndRef,
@@ -265,7 +269,7 @@ export const useStepPathEdge = ({
     },
   })
 
-  const lastSeenPointsRef = useRef<IPoint[] | undefined>(data?.points)
+  const lastSeenPointsRef = useRef<IPoint[] | undefined>(storedPoints)
 
   // Reset custom points when nodes move. Compares ABSOLUTE (canvas)
   // positions: a node inside a container that moves (BPMN pool / lane,
@@ -303,9 +307,9 @@ export const useStepPathEdge = ({
       // The stored route was replaced in the same update as the node move
       // (auto-layout, undo/redo, remote sync): it already matches the new
       // geometry, so adopt it instead of shifting/clearing the old one.
-      if (data?.points !== lastSeenPointsRef.current) {
-        lastSeenPointsRef.current = data?.points
-        setCustomPoints(data?.points ?? [])
+      if (storedPoints !== lastSeenPointsRef.current) {
+        lastSeenPointsRef.current = storedPoints
+        setCustomPoints(storedPoints ?? [])
         return
       }
 
@@ -360,23 +364,23 @@ export const useStepPathEdge = ({
     id,
     setEdges,
     setCustomPoints,
-    data?.points,
+    storedPoints,
     isFloating,
   ])
 
   // Declared after the move effect on purpose: that effect compares against
   // the previous value to detect a route replaced together with a move.
   useEffect(() => {
-    lastSeenPointsRef.current = data?.points
-  }, [data?.points])
+    lastSeenPointsRef.current = storedPoints
+  }, [storedPoints])
 
   const activePoints = useMemo(() => {
     if (floating) return tempReconnectPoints ?? floating.points
     let points: IPoint[]
     if (tempReconnectPoints) {
       points = tempReconnectPoints
-    } else if (data?.points && data.points.length > 0) {
-      points = data.points
+    } else if (storedPoints && storedPoints.length > 0) {
+      points = storedPoints
     } else {
       points = customPoints.length ? customPoints : computedPoints
     }
@@ -417,7 +421,7 @@ export const useStepPathEdge = ({
     customPoints,
     computedPoints,
     tempReconnectPoints,
-    data?.points,
+    storedPoints,
     adjustedSourceCoordinates.sourceX,
     adjustedSourceCoordinates.sourceY,
     adjustedTargetCoordinates.targetX,
@@ -724,7 +728,10 @@ export const useStepPathEdge = ({
           setEdges((eds) =>
             eds.map((e) =>
               e.id === id
-                ? { ...e, data: { ...e.data, points: finalPoints } }
+                ? {
+                    ...e,
+                    data: { ...e.data, points: finalPoints, isManuallyLayouted: true },
+                  }
                 : e
             )
           )

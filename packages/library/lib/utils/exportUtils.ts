@@ -564,6 +564,22 @@ export function filterRenderedElements(
     })
 }
 
+/**
+ * The halo the canvas draws behind edge labels (`.besser-edge-label` in
+ * `connections.css`), inlined: an export carries no app stylesheet.
+ */
+function inlineEdgeLabelHalo(el: Element): void {
+  const labels = el.matches(".besser-edge-label")
+    ? [el]
+    : Array.from(el.querySelectorAll(".besser-edge-label"))
+  for (const label of labels) {
+    label.setAttribute("paint-order", "stroke")
+    label.setAttribute("stroke", "var(--besser-background, #ffffff)")
+    label.setAttribute("stroke-width", "4")
+    label.setAttribute("stroke-linejoin", "round")
+  }
+}
+
 export const getSVG = (
   container: HTMLElement,
   clip: Rect,
@@ -708,6 +724,7 @@ export const getSVG = (
       uiOnlyClasses.forEach((cls) => {
         cloned.querySelectorAll?.(`.${cls}`)?.forEach((el) => el.remove())
       })
+      inlineEdgeLabelHalo(cloned)
       MainEdgesGTag.appendChild(cloned)
     })
 
@@ -720,7 +737,9 @@ export const getSVG = (
       )
 
       if (!isInsideLabelGroup) {
-        MainEdgesGTag.appendChild(text.cloneNode(true))
+        const cloned = text.cloneNode(true) as Element
+        inlineEdgeLabelHalo(cloned)
+        MainEdgesGTag.appendChild(cloned)
       }
     })
   })
