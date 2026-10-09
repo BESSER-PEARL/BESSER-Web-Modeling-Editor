@@ -31,7 +31,7 @@ Key capabilities
 ----------------
 
 ``setClassDiagramData(data)``
-   Stores the raw ``UMLModel`` snapshot (elements + relationships) for later
+   Stores the raw ``UMLModel`` snapshot (nodes + edges) for later
    queries. Automatically persists to ``localStorage`` as a backup.
 
 ``getClassDiagramData()``

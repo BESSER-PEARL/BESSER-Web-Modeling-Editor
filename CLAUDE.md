@@ -76,13 +76,15 @@ Webapp (`packages/webapp/src/main/`):
 | `app/hooks/` | `useProject`, `useProjectBootstrap`, `useStorageSync` |
 | `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, rest → BesserEditor), `uml/`, `gui/`, `quantum/`, `diagram-tabs/` |
 | `features/assistant/` | AI assistant: WebSocket client, `services/converters/`, `services/modifiers/`, `services/shared/v4Builders.ts` |
+| `features/inter-diagram/` | Derivations BPMN → Component → Deployment and agentic lane → Agent diagram (v4-native), the agent-diagram linker and element picker the editor calls back into, derivation warnings |
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation}/` | One feature module each |
 | `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
 | `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
-| `shared/services/storage/migrate-uml-v3-to-v4.ts` | Lifts stored v3 diagram models to v4 on load |
+| `shared/services/storage/migrate-uml-v3-to-v4.ts` | Lifts stored v3 diagram models to v4 on load and on import |
 | `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
-| `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
+| `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION`, `ensureProjectMigrated` |
+| `shared/utils/lineageHash.ts` | Source-model hash on `derivedFrom`; a mismatch shows the "source changed" banner |
 | `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store |
 
 Library (`packages/library/lib/`):
@@ -99,7 +101,9 @@ packages/library/lib/
 │   ├── agentDiagram/           #   Agent states, intents, RAG, transitions
 │   ├── nnDiagram/              #   NN container, layers, references
 │   ├── userDiagram/            #   User-modelling nodes
-│   ├── bpmn/                   #   BPMN tasks, events, gateways
+│   ├── bpmn/                   #   BPMN tasks, events, gateways, pools, lanes
+│   ├── componentDiagram/       #   Components, subsystems, interfaces
+│   ├── deploymentDiagram/      #   Nodes, components, artifacts, interfaces
 │   ├── flowchart/              #   Flowchart shapes
 │   └── common/                 #   Shared node wrappers / handles
 ├── edges/                      # React Flow edge renderers
@@ -151,9 +155,13 @@ First-class part of the app, with two independent backends.
 - Incoming payloads are filtered by `KNOWN_ACTIONS`. `SIDE_EFFECT_ACTIONS` are honoured **only** as the whole
   structured reply, never scraped out of prose (prompt-injection guard; see
   `services/__tests__/AssistantClient.injection.test.ts`).
-- Converters (agent JSON → editor model) and modifiers (incremental edits) cover 8 types: Class, Object,
-  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent.** A new type
-  needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
+- Converters (agent JSON → editor model) and modifiers (incremental edits) cover 10 types: Class, Object,
+  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN, Component, Deployment. **`NNDiagram` is deliberately
+  absent.** A new type needs a converter **and** a modifier — a converter without a modifier silently falls back to
+  the ClassDiagram one.
+- Assistant edges carry no route points (`points: []`); the editor routes them. Agentic BPMN keys are written only
+  on elements the agent marks agentic, and a gateway `governanceDsl` that is a policy keyword (`consensus`,
+  `majority`, …) is expanded with the library's `generateGovernanceDsl`.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
 
 **Spec-Driven Agent — HTTP + SSE to the BESSER backend.**
@@ -260,11 +268,16 @@ For a new edge, mirror the steps under `packages/library/lib/edges/edgeTypes/` a
 Walkthrough: `docs/source/contributing/new-diagram-guide/`.
 
 ## Diagram Types
-- **Project types (9)**, max 5 of each per project: `ClassDiagram`, `ObjectDiagram`, `StateMachineDiagram`,
-  `AgentDiagram`, `UserDiagram`, `GUINoCodeDiagram`, `QuantumCircuitDiagram`, `NNDiagram`, `BPMN`
-  (`BPMN` maps to the wire value `'BPMNDiagram'`).
-- The library also carries Activity, UseCase, Communication, Component, Deployment, PetriNet,
-  ReachabilityGraph, SyntaxTree and Flowchart types; these are **not** reachable from the webapp UI.
+- **Project types (11)**, max 5 of each per project: `ClassDiagram`, `ObjectDiagram`, `StateMachineDiagram`,
+  `AgentDiagram`, `UserDiagram`, `GUINoCodeDiagram`, `QuantumCircuitDiagram`, `NNDiagram`, `BPMN`,
+  `ComponentDiagram`, `DeploymentDiagram` (`BPMN` maps to the wire value `'BPMNDiagram'`).
+- The agentic perspective (BPMN, Agent, Component, Deployment all visible) turns on the editor's agentic BPMN
+  controls (`agenticEnabled`); `shared/perspectives.ts`.
+- Project schema: `PROJECT_SCHEMA_VERSION` is 6. 5 lifted stored v3 models to v4 (`migrateProjectToV5`, which also
+  restamps lineage hashes); 6 made Component and Deployment project types (their perspectives start hidden in a
+  project that already chose perspectives). Imports are migrated before they are stored.
+- The library also carries Activity, UseCase, Communication, PetriNet, ReachabilityGraph, SyntaxTree and Flowchart
+  types; these are **not** reachable from the webapp UI.
 - `GUINoCodeDiagram` (GrapesJS) and `QuantumCircuitDiagram` (custom canvas) keep their own formats; they are not
   v4 UML models and the v3→v4 migrators skip them by diagram type.
 

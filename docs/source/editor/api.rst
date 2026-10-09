@@ -66,6 +66,11 @@ Constructor options
    Pre-loads an existing diagram. When not provided, the editor initialises an
    empty diagram of the requested type.
 
+``agenticEnabled`` (boolean, default ``false``)
+   Shows the agentic BPMN controls (the **Agentic** switches and fields on
+   lanes, tasks and gateways). The model is the same either way; the webapp
+   turns it on with the agentic perspective.
+
 Model management
 ----------------
 
@@ -75,14 +80,18 @@ Model management
 ``editor.model = umlModel`` (setter)
    Replaces the diagram with the provided model and resets interaction state.
 
-``editor.type = UMLDiagramType`` (setter)
+``editor.diagramType = UMLDiagramType`` (setter)
    Switches the active palette to another diagram type and clears the canvas.
 
 ``editor.locale = Locale`` (setter)
    Re-renders the UI with the requested translations.
 
-``editor.select(selection)`` (method)
-   Programmatically select/deselect elements by ID using the ``Selection`` type.
+``editor.agenticEnabled = boolean`` (setter)
+   Shows or hides the agentic BPMN controls in place, like the option above.
+
+``editor.select(ids: string[])`` (method)
+   Replaces the canvas selection with the given node and edge ids; unknown ids
+   are ignored and an empty array clears the selection.
 
 ``editor.setLineageProvider(provider)`` (method)
    Registers a lineage provider used by element popups to show **Derived
