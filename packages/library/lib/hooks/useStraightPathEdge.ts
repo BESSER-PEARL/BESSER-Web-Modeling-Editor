@@ -139,7 +139,6 @@ export const useStraightPathEdge = ({
     adjustedTargetCoordinates.targetX,
     adjustedTargetCoordinates.targetY,
     type,
-    targetPosition,
   ])
 
   const overlayPath = useMemo(() => {
@@ -156,7 +155,6 @@ export const useStraightPathEdge = ({
     adjustedTargetCoordinates.targetX,
     adjustedTargetCoordinates.targetY,
     type,
-    targetPosition,
   ])
 
   useEffect(() => {
@@ -216,6 +214,10 @@ export const useStraightPathEdge = ({
     adjustedSourceCoordinates.sourceY,
     adjustedTargetCoordinates.targetX,
     adjustedTargetCoordinates.targetY,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
   ])
 
   useEffect(() => {
@@ -241,14 +243,20 @@ export const useStraightPathEdge = ({
     adjustedTargetCoordinates.targetY,
   ])
 
-  const sourcePoint = {
-    x: adjustedSourceCoordinates.sourceX,
-    y: adjustedSourceCoordinates.sourceY,
-  }
-  const targetPoint = {
-    x: adjustedTargetCoordinates.targetX,
-    y: adjustedTargetCoordinates.targetY,
-  }
+  const sourcePoint = useMemo(
+    () => ({
+      x: adjustedSourceCoordinates.sourceX,
+      y: adjustedSourceCoordinates.sourceY,
+    }),
+    [adjustedSourceCoordinates.sourceX, adjustedSourceCoordinates.sourceY]
+  )
+  const targetPoint = useMemo(
+    () => ({
+      x: adjustedTargetCoordinates.targetX,
+      y: adjustedTargetCoordinates.targetY,
+    }),
+    [adjustedTargetCoordinates.targetX, adjustedTargetCoordinates.targetY]
+  )
 
   const handleEndpointPointerDown = useCallback(
     (e: React.PointerEvent, endType: "source" | "target") => {
@@ -340,6 +348,15 @@ export const useStraightPathEdge = ({
       isReconnectingRef,
       completeReconnection,
       findBestHandle,
+      screenToFlowPosition,
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      sourcePosition,
+      targetPosition,
+      padding,
+      type,
     ]
   )
 

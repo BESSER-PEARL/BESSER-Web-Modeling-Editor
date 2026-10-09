@@ -38,6 +38,9 @@ export const StateObjectNodeEditPanel: React.FC<PopoverProps> = ({
     } catch {
       return []
     }
+    // `nodes` invalidates the cached bridge read; the bridge itself is not
+    // reactive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes])
 
   if (!node) return null

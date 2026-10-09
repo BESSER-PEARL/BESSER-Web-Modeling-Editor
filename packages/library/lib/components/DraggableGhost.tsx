@@ -390,6 +390,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       selectOnly(diagramStoreApi.getState(), updatedNodes, newNode.id)
     },
     [
+      diagramId,
       screenToFlowPosition,
       getIntersectingNodes,
       diagramStoreApi,
@@ -506,21 +507,27 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   }
 
   // Update ghost position during dragging
-  const handlePointerMove = (event: PointerEvent) => {
-    if (!isDragging) return
-    setGhostPosition({
-      x: event.clientX - clickOffset.x * ghostScale,
-      y: event.clientY - clickOffset.y * ghostScale,
-    })
-  }
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
+      if (!isDragging) return
+      setGhostPosition({
+        x: event.clientX - clickOffset.x * ghostScale,
+        y: event.clientY - clickOffset.y * ghostScale,
+      })
+    },
+    [isDragging, clickOffset, ghostScale]
+  )
 
   // End dragging: re-enable scrolling, reset state, and trigger drop logic
-  const handlePointerUp = (event: PointerEvent) => {
-    enableScroll()
-    setIsDragging(false)
-    setGhostPosition({ x: 0, y: 0 })
-    onDrop(event)
-  }
+  const handlePointerUp = useCallback(
+    (event: PointerEvent) => {
+      enableScroll()
+      setIsDragging(false)
+      setGhostPosition({ x: 0, y: 0 })
+      onDrop(event)
+    },
+    [onDrop]
+  )
 
   /* ----------------------------------------------------------------------
      Attach global pointer event listeners when dragging
@@ -537,7 +544,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       document.removeEventListener("pointermove", handlePointerMove)
       document.removeEventListener("pointerup", handlePointerUp)
     }
-  }, [isDragging, clickOffset, ghostScale, onDrop])
+  }, [isDragging, handlePointerMove, handlePointerUp])
 
   const paletteName = resolvePaletteDefaultData(dropElementConfig, locale)?.name
   const paletteLabel =

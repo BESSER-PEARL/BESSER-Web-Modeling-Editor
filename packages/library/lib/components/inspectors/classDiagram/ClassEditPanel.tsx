@@ -1442,9 +1442,13 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     } catch {
       return []
     }
+    // `nodes` invalidates the cached bridge read; the bridge itself is not
+    // reactive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes])
 
   // Enumeration list for the attribute-type picker (P12).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const enumerationNames = useMemo(() => collectEnumerationNames(), [nodes])
 
   // Enumeration name → literal values, sourced from the *live* nodes of

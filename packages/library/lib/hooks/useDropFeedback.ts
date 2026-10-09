@@ -39,7 +39,7 @@ export const useDropFeedback = ({
         [elementId]: newAssessment,
       }))
     },
-    [elementId, elementType]
+    [elementId, elementType, setAssessments]
   )
 
   return handleDrop

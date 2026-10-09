@@ -13,6 +13,7 @@
  *  4. `convertV4ToV3User(v4)` is structurally invertible.
  */
 import { describe, it, expect } from "vitest"
+import type { Node } from "@xyflow/react"
 import {
   migrateUserDiagramV3ToV4,
   convertV4ToV3User,
@@ -241,14 +242,14 @@ describe("SA-FIX-User meta-model helpers", () => {
     expect(Array.isArray(v4.edges)).toBe(true)
     // Every node should be a v4 'class' node (or stereotyped Enumeration).
     const classNode = v4.nodes.find(
-      (n: any) => n?.data?.name === "Personal_Information"
+      (n: Node) => n?.data?.name === "Personal_Information"
     )
     expect(classNode).toBeDefined()
     expect(classNode!.type).toBe("class")
     // The Enumeration stereotype must round-trip so
     // `lookupEnumerationLiterals` in `UserModelNameEditPanel` can pick it up.
     const enumNode = v4.nodes.find(
-      (n: any) => n?.data?.name === "GenderEnum"
+      (n: Node) => n?.data?.name === "GenderEnum"
     )
     expect(enumNode).toBeDefined()
     expect(enumNode!.data.stereotype).toBe("Enumeration")

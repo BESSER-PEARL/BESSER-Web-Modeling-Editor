@@ -217,6 +217,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     // `agent-state-transition.tsx`); prior to this case they fell
     // through to `default` which omits any marker, so transitions
     // rendered as plain lines.
+    // falls through
     case "StateTransition":
     case "AgentStateTransition":
       return {
@@ -265,6 +266,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     // so comment tethers look like their v3 `Link` counterpart (drawn
     // dashed by the association component). Created via
     // `resolveCommentEdgeType`; styled via `CommentLinkEditPanel`.
+    // falls through
     case "CommentLink":
       return {
         markerPadding: EDGES.MARKER_PADDING,

@@ -10,8 +10,9 @@
  */
 // Route non-fatal warnings through the editor's
 // pub/sub so consumers attached via `subscribeToBesserErrors` see them.
-// The console.warn/error fall-backs below stay for dev-tools visibility.
+// Storage failures, which have no consumer-facing error, go to the logger.
 import { emitBesserError } from "@/services/errors"
+import { log } from "@/logger"
 
 /**
  * Interface for class diagram data structure (v4 wire shape).
@@ -169,7 +170,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
-      console.warn("Failed to persist class diagram data to localStorage:", error)
+      log.warn("Failed to persist class diagram data to localStorage:", error)
     }
   }
 
@@ -197,7 +198,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
         }
       }
     } catch (error) {
-      console.warn("Failed to load class diagram data from localStorage:", error)
+      log.warn("Failed to load class diagram data from localStorage:", error)
     }
 
     return null
@@ -272,7 +273,6 @@ export class DiagramBridgeService implements IDiagramBridgeService {
           }
         })
     } catch (error) {
-      console.error("Error extracting classes from diagram data:", error)
       emitBesserError({
         kind: "diagramBridge.extractClasses",
         message: "Malformed class-diagram payload — failed to extract classes",
@@ -414,7 +414,6 @@ export class DiagramBridgeService implements IDiagramBridgeService {
 
       return associations
     } catch (error) {
-      console.error("Error extracting associations from diagram data:", error)
       emitBesserError({
         kind: "diagramBridge.extractAssociations",
         message: "Malformed class-diagram payload — failed to extract associations",
@@ -480,7 +479,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     try {
       localStorage.removeItem(this.STORAGE_KEY)
     } catch (error) {
-      console.warn("Failed to clear class diagram data from localStorage:", error)
+      log.warn("Failed to clear class diagram data from localStorage:", error)
     }
   }
 

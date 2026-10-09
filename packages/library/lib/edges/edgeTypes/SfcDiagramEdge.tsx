@@ -141,11 +141,7 @@ export const SfcDiagramEdge = ({
         orientation: "horizontal" as const,
       }
     }
-  }, [
-    edgeData.isMiddlePathHorizontal,
-    edgeData.pathMiddlePosition,
-    crossbarLength,
-  ])
+  }, [edgeData.isMiddlePathHorizontal, edgeData.pathMiddlePosition])
 
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">

@@ -29,12 +29,24 @@ import type {
   AgentStateNodeProps,
   AgentIntentNodeProps,
 } from "@/types"
+import type { BesserEdge } from "@/typings"
+import type {
+  CustomBlock,
+  PredefinedBlock,
+} from "@/utils/normalizeAgentModel"
 import agentV3 from "../fixtures/v3/agentDiagram.json"
 import shape1 from "../fixtures/v3/agentTransitionShape1.json"
 import shape2 from "../fixtures/v3/agentTransitionShape2.json"
 import shape3 from "../fixtures/v3/agentTransitionShape3.json"
 import shape4 from "../fixtures/v3/agentTransitionShape4.json"
 import shape5 from "../fixtures/v3/agentTransitionShape5.json"
+
+/** The v4 `AgentStateTransition` edge data these assertions read. */
+type AgentTransitionData = BesserEdge["data"] & {
+  transitionType: "predefined" | "custom"
+  predefined: PredefinedBlock
+  custom: CustomBlock
+}
 
 describe("AgentDiagram v3 → v4 round-trip", () => {
   it("migrates the v3 fixture to v4 with structural fidelity", () => {
@@ -144,7 +156,7 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect((t3.data as { transitionType: string }).transitionType).toBe(
       "predefined"
     )
-    const t3pre = (t3.data as { predefined: any }).predefined
+    const t3pre = (t3.data as AgentTransitionData).predefined
     expect(t3pre.predefinedType).toBe("when_variable_operation_matched")
     expect(t3pre.conditionValue).toEqual({
       variable: "score",
@@ -314,7 +326,7 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
     name: string
     fixture: unknown
     expectedTransitionType: "predefined" | "custom"
-    verify: (data: any) => void
+    verify: (data: AgentTransitionData) => void
   }
 
   const cases: ShapeCase[] = [
@@ -377,20 +389,20 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
       const transition = v4.edges.find(
         (e) => e.type === "AgentStateTransition"
       )!
-      expect((transition.data as any).transitionType).toBe(
+      expect((transition.data as AgentTransitionData).transitionType).toBe(
         c.expectedTransitionType
       )
-      c.verify(transition.data)
+      c.verify(transition.data as AgentTransitionData)
 
       const v3Round = convertV4ToV3Agent(v4)
       const v4Again = migrateAgentDiagramV3ToV4(v3Round)
       const tAgain = v4Again.edges.find(
         (e) => e.type === "AgentStateTransition"
       )!
-      expect((tAgain.data as any).transitionType).toBe(
+      expect((tAgain.data as AgentTransitionData).transitionType).toBe(
         c.expectedTransitionType
       )
-      c.verify(tAgain.data)
+      c.verify(tAgain.data as AgentTransitionData)
     })
   })
 })

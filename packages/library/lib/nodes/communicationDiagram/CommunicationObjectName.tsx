@@ -118,6 +118,9 @@ export function CommunicationObjectName({
         })
       )
     }
+    // Grow only when the content (minWidth) changes; re-running on every
+    // `width` change would write to the store mid-resize.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, setNodes, minWidth])
 
   const finalWidth = Math.max(width ?? 0, minWidth)

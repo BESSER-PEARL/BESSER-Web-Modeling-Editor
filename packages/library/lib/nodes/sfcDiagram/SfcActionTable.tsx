@@ -26,10 +26,6 @@ export function SfcActionTable({
     }))
   )
 
-  if (!width || !height) {
-    return null
-  }
-
   const actionRows = data?.actionRows || []
 
   // Calculate minimum height based on rows (no header needed)
@@ -41,7 +37,7 @@ export function SfcActionTable({
 
   // Auto-expand height when content changes (like class diagram)
   useEffect(() => {
-    if (height && height < minHeight) {
+    if (width && height && height < minHeight) {
       setNodes((prev) =>
         prev.map((node) => {
           if (node.id === id) {
@@ -58,7 +54,11 @@ export function SfcActionTable({
         })
       )
     }
-  }, [minHeight, height, id, setNodes])
+  }, [minHeight, width, height, id, setNodes])
+
+  if (!width || !height) {
+    return null
+  }
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>

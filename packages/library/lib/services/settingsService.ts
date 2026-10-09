@@ -1,3 +1,5 @@
+import { log } from "@/logger"
+
 /**
  * Rendering flavor for class diagrams.
  * - 'UML' (default) — standard UML class notation
@@ -92,7 +94,7 @@ export class SettingsService implements ISettingsService {
         }
       }
     } catch (error) {
-      console.warn("Failed to load settings from localStorage:", error)
+      log.warn("Failed to load settings from localStorage:", error)
     }
     return { ...DEFAULT_SETTINGS }
   }
@@ -104,7 +106,7 @@ export class SettingsService implements ISettingsService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings))
     } catch (error) {
-      console.warn("Failed to save settings to localStorage:", error)
+      log.warn("Failed to save settings to localStorage:", error)
     }
   }
 
@@ -116,7 +118,7 @@ export class SettingsService implements ISettingsService {
       try {
         callback({ ...this.settings })
       } catch (error) {
-        console.error("Error in settings change listener:", error)
+        log.error("Error in settings change listener:", error)
       }
     })
   }

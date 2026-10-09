@@ -10,6 +10,7 @@ import {
   convertV3EdgeTypeToV4,
   convertV3ToV4,
 } from "@/utils/versionConverter"
+import type { V3UMLModel } from "@/utils/v3Typings"
 
 describe("v3 'Link' → v4 'CommentLink' mapping (sweep A11b)", () => {
   it("maps the generic Link edge type to CommentLink", () => {
@@ -63,7 +64,7 @@ describe("v3 'Link' → v4 'CommentLink' mapping (sweep A11b)", () => {
       assessments: {},
     }
 
-    const v4 = convertV3ToV4(v3Model as any)
+    const v4 = convertV3ToV4(v3Model as V3UMLModel)
 
     const tether = v4.edges.find((e) => e.id === "link-1")
     expect(tether).toBeDefined()

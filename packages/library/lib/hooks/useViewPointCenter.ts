@@ -26,5 +26,5 @@ export const useViewportCenter = (): XYPosition => {
     }
 
     return center
-  }, [viewPort])
+  }, [viewPort, diagramId])
 }

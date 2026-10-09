@@ -1036,7 +1036,6 @@ function convertV3NodeDataToV4(
           // are instances, not types. Drop the row on import (don't
           // surface it on the v4 node) and log a warning so legacy
           // fixtures with stray ObjectMethod elements are visible.
-          // eslint-disable-next-line no-console
           console.warn(
             `[versionConverter] Dropping legacy ObjectMethod ${childElement.id} ` +
               `under ObjectName ${element.id}; object instances do not carry methods.`

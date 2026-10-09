@@ -48,6 +48,7 @@ export const useResizable = (
     if (storeWidth !== width) {
       setWidth(storeWidth)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeWidth])
 
   return { width, onResizeStart }

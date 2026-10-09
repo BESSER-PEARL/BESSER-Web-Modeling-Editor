@@ -26,10 +26,6 @@ export function SfcJump({
     }))
   )
 
-  if (!width || !height) {
-    return null
-  }
-
   // Calculate minimum width based on text
   const minWidth = useMemo(() => {
     const textWidth = measureTextWidth(name || "", LAYOUT.DEFAULT_FONT) + 8
@@ -40,7 +36,7 @@ export function SfcJump({
 
   // Auto-expand/shrink width when text changes
   useEffect(() => {
-    if (width && width !== minWidth) {
+    if (width && height && width !== minWidth) {
       setNodes((prev) =>
         prev.map((node) => {
           if (node.id === id) {
@@ -59,7 +55,11 @@ export function SfcJump({
         })
       )
     }
-  }, [minWidth, width, id, setNodes])
+  }, [minWidth, width, height, id, setNodes])
+
+  if (!width || !height) {
+    return null
+  }
 
   const finalWidth = Math.max(width ?? 0, minWidth)
   const finalHeight = fixedHeight

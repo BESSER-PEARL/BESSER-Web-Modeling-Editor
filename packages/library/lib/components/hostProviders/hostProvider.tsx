@@ -63,15 +63,18 @@ export class HostProviderSlot<T> {
 
   /** Wraps `child` in this slot's provider root. */
   wrap(child: ReactElement): ReactElement {
-    return React.createElement(this.context.Root, {
-      initialValue: this.value,
-      // The root registers after its first render; push the latest value then,
-      // in case the host set it between creating the element and the mount.
-      register: (listener: Listener<T>) => {
-        this.listener = listener
-        listener(this.value)
+    return React.createElement(
+      this.context.Root,
+      {
+        initialValue: this.value,
+        // The root registers after its first render; push the latest value then,
+        // in case the host set it between creating the element and the mount.
+        register: (listener: Listener<T>) => {
+          this.listener = listener
+          listener(this.value)
+        },
       },
-      children: child,
-    })
+      child
+    )
   }
 }

@@ -11,6 +11,12 @@ import {
   materializeClipboardData,
 } from "@/utils/copyPasteUtils"
 import type { Node, Edge } from "@xyflow/react"
+import type { CustomEdgeProps } from "@/edges/EdgeProps"
+import type {
+  ClassNodeProps,
+  ClassOCLConstraintNodeProps,
+  NNContainerNodeProps,
+} from "@/types"
 
 // Mock generateUUID to return predictable values
 vi.mock("@/utils", () => {
@@ -449,8 +455,10 @@ describe("materializeClipboardData", () => {
 
     expect(assoc.source).toBe(newIds.get("a"))
     expect(assoc.target).toBe(newIds.get("b"))
-    expect((assoc.data as any).points).toEqual([{ x: 21, y: 22 }])
-    expect((assoc.data as any).messages[0].id).not.toBe("msg")
+    expect((assoc.data as CustomEdgeProps).points).toEqual([{ x: 21, y: 22 }])
+    expect((assoc.data as CustomEdgeProps).messages![0].id).not.toBe(
+      "msg"
+    )
     expect(link.source).toBe(assoc.id)
     expect(link.target).toBe(newIds.get("ac"))
     expect(result.newElementIds).toEqual(
@@ -476,9 +484,11 @@ describe("materializeClipboardData", () => {
       { nodes: [container, layer, cls, ocl], edges: [] },
       1
     )
-    expect((result.nodes[0].data as any).entryLayerId).toBe(result.nodes[1].id)
-    expect((result.nodes[3].data as any).targetMethodId).toBe(
-      (result.nodes[2].data as any).methods[0].id
-    )
+    expect(
+      (result.nodes[0].data as NNContainerNodeProps).entryLayerId
+    ).toBe(result.nodes[1].id)
+    expect(
+      (result.nodes[3].data as ClassOCLConstraintNodeProps).targetMethodId
+    ).toBe((result.nodes[2].data as ClassNodeProps).methods[0].id)
   })
 })

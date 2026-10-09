@@ -247,6 +247,7 @@ export const useFloatingEndpointDrag = ({
     },
     [
       floating,
+      id,
       source,
       target,
       getInternalNode,

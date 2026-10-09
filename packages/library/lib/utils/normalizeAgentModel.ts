@@ -35,7 +35,7 @@ const LEGACY_TRANSITION_KEYS: readonly string[] = [
   "guiEventGuiId",
 ]
 
-type PredefinedBlock = {
+export type PredefinedBlock = {
   predefinedType: string
   intentName?: string
   fileType?: string
@@ -45,7 +45,7 @@ type PredefinedBlock = {
     | { variable: string; operator: string; targetValue: string }
 }
 
-type CustomBlock = { event: string; condition: string[]; guiEventGuiId?: string }
+export type CustomBlock = { event: string; condition: string[]; guiEventGuiId?: string }
 
 type TransitionData = Record<string, unknown> & {
   transitionType?: unknown
@@ -186,7 +186,6 @@ export function normalizeAgentTransitionData(
     // `legacyShape` stamp are only meaningful for v3 round-trips; keep the
     // ones already on the edge, but don't mint new ones from data that is
     // being normalised in place.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { legacy: _legacy, legacyShape: _legacyShape, ...fromLifter } =
       liftAgentTransitionDataToV4({
         type: "AgentStateTransition",

@@ -354,11 +354,11 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         sx={{ flex: 1 }}
       >
         <MuiTypography component="span" sx={{ userSelect: "none" }}>
-          "
+          &quot;
         </MuiTypography>
         {textfield}
         <MuiTypography component="span" sx={{ userSelect: "none" }}>
-          "
+          &quot;
         </MuiTypography>
       </Stack>
     ) : (
@@ -463,6 +463,9 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     } catch {
       return []
     }
+    // `nodes` invalidates the cached bridge read; the bridge itself is not
+    // reactive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes])
 
   /**
@@ -500,6 +503,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       /* swallow — empty map is the safe fallback */
     }
     return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes])
 
   // Declared before the early return (Rules of Hooks).

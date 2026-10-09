@@ -10,6 +10,7 @@ import {
   convertV3ToV4,
   convertV4ToV3StateMachine,
 } from "@/utils/versionConverter"
+import type { V3UMLModel } from "@/utils/v3Typings"
 import type { StateNodeProps } from "@/types"
 
 const v3StateMachine = {
@@ -51,7 +52,7 @@ const v3StateMachine = {
 
 describe("StateBody row colors v3 → v4 → v3 (sweep A2a)", () => {
   it("preserves fillColor / textColor on the v4 inline rows", () => {
-    const v4 = convertV3ToV4(v3StateMachine as any)
+    const v4 = convertV3ToV4(v3StateMachine as V3UMLModel)
 
     const state = v4.nodes.find((n) => n.id === "state-1")!
     const data = state.data as StateNodeProps
@@ -71,7 +72,7 @@ describe("StateBody row colors v3 → v4 → v3 (sweep A2a)", () => {
   })
 
   it("re-emits the rows as v3 elements with colors on export", () => {
-    const v4 = convertV3ToV4(v3StateMachine as any)
+    const v4 = convertV3ToV4(v3StateMachine as V3UMLModel)
     const v3Again = convertV4ToV3StateMachine(v4)
 
     const body = v3Again.elements["body-1"] as Record<string, unknown>
@@ -98,8 +99,8 @@ describe("StateBody row colors v3 → v4 → v3 (sweep A2a)", () => {
   })
 
   it("is stable across a second v3 → v4 cycle (identity)", () => {
-    const v4a = convertV3ToV4(v3StateMachine as any)
-    const v4b = convertV3ToV4(convertV4ToV3StateMachine(v4a) as any)
+    const v4a = convertV3ToV4(v3StateMachine as V3UMLModel)
+    const v4b = convertV3ToV4(convertV4ToV3StateMachine(v4a))
 
     const a = v4a.nodes.find((n) => n.id === "state-1")!.data as StateNodeProps
     const b = v4b.nodes.find((n) => n.id === "state-1")!.data as StateNodeProps

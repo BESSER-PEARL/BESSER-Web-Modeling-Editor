@@ -239,11 +239,15 @@ export const useStepPathEdge = ({
     targetNode,
     sourcePosition,
     targetPosition,
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
     padding,
+    roundedSourceX,
+    roundedSourceY,
+    roundedTargetX,
+    roundedTargetY,
+    adjustedSourceCoordinates.sourceX,
+    adjustedSourceCoordinates.sourceY,
+    adjustedTargetCoordinates.targetX,
+    adjustedTargetCoordinates.targetY,
   ])
 
   const computedPoints = useMemo(() => {

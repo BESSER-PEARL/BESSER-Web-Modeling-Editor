@@ -48,7 +48,6 @@ export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
   }
   const handleDelete = () => {
     setAssessments((prev) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [elementId]: _, ...rest } = prev
       return rest
     })

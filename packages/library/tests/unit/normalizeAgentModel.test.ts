@@ -2,15 +2,27 @@ import { describe, expect, it } from "vitest"
 import {
   normalizeAgentModel,
   normalizeAgentTransitionData,
+  type PredefinedBlock,
 } from "../../lib/utils/normalizeAgentModel"
 import type { BesserEdge, BesserNode, UMLModel } from "../../lib/typings"
+import type {
+  V3UMLElement,
+  V3UMLModel,
+  V3UMLRelationship,
+} from "../../lib/utils/v3Typings"
 import { UMLDiagramType } from "../../lib/types"
 
-type AnyModel = Record<string, any>
+// v3 agent records carry flat keys (`condition`, `bodies`, ...) that the
+// shared v3 typings do not declare.
+type V3AgentElement = V3UMLElement & Record<string, unknown>
+type V3AgentRelationship = V3UMLRelationship & Record<string, unknown>
+type V3AgentModel = Omit<V3UMLModel, "relationships"> & {
+  relationships: Record<string, V3AgentRelationship>
+}
 
 // ─── v3 fixtures (develop-era flat shape) ───────────────────────────────────
 
-function flatTransition(id: string, condition: string, conditionValue: unknown): AnyModel {
+function flatTransition(id: string, condition: string, conditionValue: unknown): V3AgentRelationship {
   return {
     id,
     name: "",
@@ -26,7 +38,7 @@ function flatTransition(id: string, condition: string, conditionValue: unknown):
   }
 }
 
-function v3State(id: string): AnyModel {
+function v3State(id: string): V3AgentElement {
   return {
     id,
     name: id,
@@ -38,8 +50,10 @@ function v3State(id: string): AnyModel {
   }
 }
 
-function v3AgentModel(relationships: Record<string, AnyModel>): AnyModel {
-  const elements: Record<string, AnyModel> = {}
+function v3AgentModel(
+  relationships: Record<string, V3AgentRelationship>
+): V3AgentModel {
+  const elements: Record<string, V3AgentElement> = {}
   for (const rel of Object.values(relationships)) {
     elements[rel.source.element] = v3State(rel.source.element)
     elements[rel.target.element] = v3State(rel.target.element)
@@ -99,7 +113,7 @@ describe("normalizeAgentModel — v3 input", () => {
     expect(out.version).toBe("4.0.0")
     expect(Array.isArray(out.nodes)).toBe(true)
     expect(Array.isArray(out.edges)).toBe(true)
-    expect("relationships" in (out as AnyModel)).toBe(false)
+    expect("relationships" in out).toBe(false)
   })
 
   it("upgrades a flat when_intent_matched transition to the nested shape", () => {
@@ -108,8 +122,8 @@ describe("normalizeAgentModel — v3 input", () => {
     )
     const data = edgeById(out, "r1").data
     expect(data.transitionType).toBe("predefined")
-    expect((data.predefined as AnyModel).predefinedType).toBe("when_intent_matched")
-    expect((data.predefined as AnyModel).intentName).toBe("Greeting_intent")
+    expect((data.predefined as PredefinedBlock).predefinedType).toBe("when_intent_matched")
+    expect((data.predefined as PredefinedBlock).intentName).toBe("Greeting_intent")
     // Flat keys are gone.
     expect("condition" in data).toBe(false)
     expect("conditionValue" in data).toBe(false)
@@ -122,8 +136,8 @@ describe("normalizeAgentModel — v3 input", () => {
         b: flatTransition("b", "auto", ""),
       })
     )
-    expect((edgeById(out, "a").data.predefined as AnyModel).predefinedType).toBe("when_no_intent_matched")
-    expect((edgeById(out, "b").data.predefined as AnyModel).predefinedType).toBe("auto")
+    expect((edgeById(out, "a").data.predefined as PredefinedBlock).predefinedType).toBe("when_no_intent_matched")
+    expect((edgeById(out, "b").data.predefined as PredefinedBlock).predefinedType).toBe("auto")
   })
 
   it("maps an object conditionValue onto variable-operation fields", () => {
@@ -136,7 +150,7 @@ describe("normalizeAgentModel — v3 input", () => {
         }),
       })
     )
-    const predefined = edgeById(out, "v").data.predefined as AnyModel
+    const predefined = edgeById(out, "v").data.predefined as PredefinedBlock
     expect(predefined.predefinedType).toBe("when_variable_operation_matched")
     expect(predefined.conditionValue).toEqual({ variable: "count", operator: ">", targetValue: "3" })
   })
