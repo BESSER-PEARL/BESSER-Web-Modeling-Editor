@@ -148,12 +148,9 @@ describe("getPositionOnCanvas", () => {
 // ---------------------------------------------------------------------------
 
 describe("resizeAllParents", () => {
-  // SA-FINAL-3 Tier 5 #18: resizeAllParents now also shrinks the parent
-  // to the tight bounds of its remaining children (with a per-parent-type
-  // floor falling back to 80x60). The grow-only tests below were rewritten
-  // to verify both grow + shrink semantics. Each test passes a child big
-  // enough that the tight-bounds + padding exceed the floor.
-  it("shifts parent when child has negative x position and refits to children", () => {
+  // Containers only grow to fit their children, like develop's
+  // `UMLPackage.render` (bounding box of the container plus its children).
+  it("shifts parent when child has negative x position", () => {
     const parent = makeNode({
       id: "p",
       position: { x: 100, y: 100 },
@@ -167,19 +164,13 @@ describe("resizeAllParents", () => {
       width: 50,
       height: 50,
     })
-    const all = [parent, child]
-    resizeAllParents(child, all)
-    // parent shifts left by 20 to absorb the negative x
+    resizeAllParents(child, [parent, child])
     expect(parent.position.x).toBe(80)
-    // child is moved into the new frame
     expect(child.position.x).toBe(0)
-    // refit: tightMaxX = 0+50 = 50; floor.width default is 80 → parent.width
-    // shrinks down to the floor (since one small child doesn't justify 220).
-    expect(parent.width).toBeLessThanOrEqual(220)
-    expect(parent.width).toBeGreaterThanOrEqual(80)
+    expect(parent.width).toBe(220)
   })
 
-  it("shifts parent when child has negative y position and refits to children", () => {
+  it("shifts parent when child has negative y position", () => {
     const parent = makeNode({
       id: "p",
       position: { x: 0, y: 100 },
@@ -193,12 +184,10 @@ describe("resizeAllParents", () => {
       width: 50,
       height: 50,
     })
-    const all = [parent, child]
-    resizeAllParents(child, all)
+    resizeAllParents(child, [parent, child])
     expect(parent.position.y).toBe(70)
     expect(child.position.y).toBe(0)
-    expect(parent.height).toBeLessThanOrEqual(230)
-    expect(parent.height).toBeGreaterThanOrEqual(60)
+    expect(parent.height).toBe(230)
   })
 
   it("grows parent when child extends beyond right edge", () => {
@@ -215,14 +204,9 @@ describe("resizeAllParents", () => {
       width: 50,
       height: 20,
     })
-    const all = [parent, child]
-    resizeAllParents(child, all)
-    // After grow + refit: the child shifts to (10, 10) so the parent
-    // hugs the top-left corner. Parent.width = max(child.width + 2*PADDING,
-    // floor.width) = max(50+20, 80) = 80. Floor (default 80x60) caps the
-    // minimum size.
-    expect(parent.width).toBeGreaterThanOrEqual(70)
-    expect(child.position.x).toBe(10)
+    resizeAllParents(child, [parent, child])
+    expect(parent.width).toBe(130)
+    expect(child.position).toEqual({ x: 80, y: 10 })
   })
 
   it("grows parent when child extends beyond bottom edge", () => {
@@ -239,12 +223,36 @@ describe("resizeAllParents", () => {
       width: 20,
       height: 50,
     })
-    const all = [parent, child]
-    resizeAllParents(child, all)
-    // After grow + refit: child shifts to (10, 10); parent.height fits
-    // the child + padding (= 70) or the floor (60), whichever is larger.
-    expect(parent.height).toBeGreaterThanOrEqual(70)
-    expect(child.position.y).toBe(10)
+    resizeAllParents(child, [parent, child])
+    expect(parent.height).toBe(130)
+    expect(child.position).toEqual({ x: 10, y: 80 })
+  })
+
+  it("keeps a resized deployment node's size and the dropped child's position", () => {
+    // Live repro: a 375x295 node shrank to 180x120 around the first
+    // component dropped into it, and the component jumped to (10, 10).
+    const node = makeNode({
+      id: "n",
+      type: "deploymentNode",
+      position: { x: 100, y: 100 },
+      width: 375,
+      height: 295,
+    })
+    const component = makeNode({
+      id: "c",
+      type: "deploymentComponent",
+      position: { x: 105, y: 110 },
+      parentId: "n",
+      width: 160,
+      height: 100,
+    })
+    resizeAllParents(component, [node, component])
+    expect(node.position).toEqual({ x: 100, y: 100 })
+    expect({ width: node.width, height: node.height }).toEqual({
+      width: 375,
+      height: 295,
+    })
+    expect(component.position).toEqual({ x: 105, y: 110 })
   })
 
   it("returns the mutated allNodes array", () => {
@@ -262,16 +270,15 @@ describe("resizeAllParents", () => {
       height: 20,
     })
     const all = [parent, child]
-    const result = resizeAllParents(child, all)
-    expect(result).toBe(all)
+    expect(resizeAllParents(child, all)).toBe(all)
   })
 
   it("propagates resizing up multiple parent levels", () => {
     const gp = makeNode({
       id: "gp",
       position: { x: 0, y: 0 },
-      width: 300,
-      height: 300,
+      width: 100,
+      height: 100,
     })
     const parent = makeNode({
       id: "p",
@@ -287,13 +294,15 @@ describe("resizeAllParents", () => {
       width: 50,
       height: 50,
     })
-    const all = [gp, parent, child]
-    resizeAllParents(child, all)
-    // After grow + refit + propagation: parent + grandparent both refit
-    // to the union of (child tight bounds + padding, floor). Default
-    // floor is 80x60 — verify the refitted parent meets it.
-    expect(parent.width).toBeGreaterThanOrEqual(70)
-    expect(parent.height).toBeGreaterThanOrEqual(60)
+    resizeAllParents(child, [gp, parent, child])
+    expect({ width: parent.width, height: parent.height }).toEqual({
+      width: 130,
+      height: 130,
+    })
+    expect({ width: gp.width, height: gp.height }).toEqual({
+      width: 140,
+      height: 140,
+    })
   })
 })
 
