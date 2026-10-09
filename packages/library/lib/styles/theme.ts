@@ -5,7 +5,7 @@ export type withThemeProps = { theme: Styles }
 export type Color = "primary" | "secondary"
 export type Size = "sm" | "md" | "lg"
 
-// TODO: These values are not used yet, but they are defined in the theme as reference
+// Reference theme values; `Styles` types the editor's `theme` option.
 const besserTheme = {
   color: {
     primary: "var(--besser-primary, #35798c)",

@@ -108,6 +108,22 @@ const modify = (
   changes = {},
 ) => new BPMNDiagramModifier().applyModification(model, { action, target, changes });
 
+describe('assistant BPMN: lane children clear the lane header', () => {
+  it('keeps every lane child right of the plain (30) or agentic (60) header', () => {
+    const model = convert();
+    const lanes = new Map(
+      model.nodes.filter((n: any) => n.type === 'bpmnSwimlane').map((n: any) => [n.id, n]),
+    );
+    const children = model.nodes.filter((n: any) => lanes.has(n.parentId));
+    expect(children.length).toBeGreaterThan(0);
+    for (const child of children) {
+      const lane: any = lanes.get(child.parentId);
+      const header = lane.data?.isAgentic === true ? 60 : 30;
+      expect(child.position.x).toBeGreaterThanOrEqual(header);
+    }
+  });
+});
+
 describe('assistant BPMN: agentic keys only on agentic elements', () => {
   it('the converter writes no agentic key on a plain lane, task or gateway', () => {
     const model = convert();

@@ -28,7 +28,7 @@
  */
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
-import { UMLDiagramType, resolveBpmnEdgeType } from '@besser/wme';
+import { UMLDiagramType, clampIntoLaneBody, resolveBpmnEdgeType } from '@besser/wme';
 import type { UMLModel } from '@besser/wme';
 import { DiagramConverter, centerNodesOnOrigin, generateUniqueId } from './base';
 import {
@@ -293,7 +293,10 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     // Parent node + absolute origin for every band, so contained nodes can be
     // positioned RELATIVE to their React-Flow parent.
-    const bandParent: Record<string, { id: string; absX: number; absY: number }> = {};
+    const bandParent: Record<
+      string,
+      { id: string; absX: number; absY: number; lane?: { type: string; data: Record<string, unknown> } }
+    > = {};
     const laneIdMap: Record<string, string> = {}; // `${poolId}::${laneId}` -> lane node id
 
     let cursorY = 0;
@@ -336,7 +339,12 @@ export class BPMNDiagramConverter implements DiagramConverter {
               bpmnLaneAgenticData(lane),
             ),
           );
-          bandParent[band.key] = { id: laneNodeId, absX: POOL_HEADER_WIDTH, absY: laneAbsY };
+          bandParent[band.key] = {
+            id: laneNodeId,
+            absX: POOL_HEADER_WIDTH,
+            absY: laneAbsY,
+            lane: { type: 'bpmnSwimlane', data: bpmnLaneAgenticData(lane) },
+          };
           laneIdMap[band.key] = laneNodeId;
         });
       } else {
@@ -383,16 +391,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const reviewerLaneId = resolveLaneRef(n.reflectionReviewerLaneId, n.poolId);
 
       if (parent && parent.id) {
-        // Position RELATIVE to the parent lane/pool.
-        const node = this.buildNode(
-          nodeId,
-          type,
-          n.name ?? '',
-          absX - parent.absX,
-          absY - parent.absY,
-          n,
-          reviewerLaneId,
-        );
+        // Position RELATIVE to the parent lane/pool, clear of a lane's header.
+        const relative = clampIntoLaneBody({ x: absX - parent.absX, y: absY - parent.absY }, parent.lane);
+        const node = this.buildNode(nodeId, type, n.name ?? '', relative.x, relative.y, n, reviewerLaneId);
         node.parentId = parent.id;
         model.nodes.push(node);
       } else {
