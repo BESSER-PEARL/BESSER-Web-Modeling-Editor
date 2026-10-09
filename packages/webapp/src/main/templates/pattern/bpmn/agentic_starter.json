@@ -193,11 +193,7 @@
         "height": 150
       },
       "data": {
-        "name": "Maintainer",
-        "isAgentic": false,
-        "role": "solution",
-        "trustScore": 0,
-        "multiplicity": 1
+        "name": "Maintainer"
       },
       "parentId": "pool-repo"
     },
@@ -217,10 +213,7 @@
       "data": {
         "name": "Validate solution",
         "taskType": "user",
-        "marker": "none",
-        "isAgentic": false,
-        "reflectionMode": "none",
-        "trustScore": 0
+        "marker": "none"
       },
       "parentId": "lane-maintainer"
     },
@@ -257,11 +250,7 @@
         "height": 170
       },
       "data": {
-        "name": "User",
-        "isAgentic": false,
-        "role": "solution",
-        "trustScore": 0,
-        "multiplicity": 1
+        "name": "User"
       },
       "parentId": "pool-repo"
     },
@@ -300,10 +289,7 @@
       "data": {
         "name": "Submit bug report",
         "taskType": "user",
-        "marker": "none",
-        "isAgentic": false,
-        "reflectionMode": "none",
-        "trustScore": 0
+        "marker": "none"
       },
       "parentId": "lane-user"
     }

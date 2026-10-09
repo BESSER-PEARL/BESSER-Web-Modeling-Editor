@@ -93,7 +93,7 @@ describe('reflectionReviewerLaneId from the modeling agent', () => {
     const added = modifier.applyModification(base, {
       action: 'add_task',
       target: { nodeName: 'Check Facts' },
-      changes: { owner: 'Writer Agent', reflectionMode: 'cross', reflectionReviewerLaneId: reviewersLane.id },
+      changes: { owner: 'Writer Agent', isAgentic: true, reflectionMode: 'cross', reflectionReviewerLaneId: reviewersLane.id },
     });
     expect(byName(added, 'Check Facts')?.data.reflectionReviewerLaneId).toBe(reviewersLane.id);
   });

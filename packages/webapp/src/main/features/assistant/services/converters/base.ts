@@ -94,7 +94,7 @@ export const extractSpecPosition = (spec: any): DiagramPosition | undefined => {
  * Shift a v4 model so the bounding box of its nodes is centred on the origin,
  * which keeps the viewport-recentering in `useModelInjection` stable. Only
  * top-level nodes move: children are positioned relative to their parent.
- * Edge geometry is a placeholder the editor re-routes on load.
+ * Edges carry no route points; the editor routes them.
  */
 export const centerNodesOnOrigin = (model: { nodes?: BesserNode[] }): void => {
   const nodes = Array.isArray(model.nodes) ? model.nodes : [];

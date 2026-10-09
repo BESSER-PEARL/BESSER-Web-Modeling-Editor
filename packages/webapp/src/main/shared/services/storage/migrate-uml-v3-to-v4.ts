@@ -122,7 +122,7 @@ export function migrateUMLModelV3ToV4(
       migrated = migrateBpmnDiagramV3ToV4(model);
       break;
     default:
-      // The remaining v3 diagram types the old Apollon editor could emit
+      // The remaining v3 diagram types the v3 editor could emit
       // (ActivityDiagram, UseCaseDiagram, …) have no BESSER-specific
       // lifting; the generic converter handles them.
       if (typeof type === 'string' && GENERIC_V3_DIAGRAM_TYPES.has(type)) {
@@ -139,7 +139,7 @@ export function migrateUMLModelV3ToV4(
   return normalizeV4Model(migrated);
 }
 
-/** Generic Apollon v3 diagram types (no BESSER-specific migrator). */
+/** Generic v3 diagram types (no BESSER-specific migrator). */
 const GENERIC_V3_DIAGRAM_TYPES: ReadonlySet<string> = new Set([
   'ActivityDiagram',
   'UseCaseDiagram',

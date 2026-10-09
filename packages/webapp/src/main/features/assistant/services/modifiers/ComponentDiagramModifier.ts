@@ -16,7 +16,7 @@ import { buildV4Edge, buildV4Node } from '../shared/v4Builders';
 const COMPONENT_TYPES = ['component', 'componentSubsystem'];
 // Inner layout of a Subsystem (matches the converter).
 const SUBSYSTEM_PADDING = 30;
-const TOP_PADDING = 40;
+const TOP_PADDING = 70;
 const CHILD_GAP = 20;
 
 export class ComponentDiagramModifier implements DiagramModifier {
@@ -157,7 +157,7 @@ export class ComponentDiagramModifier implements DiagramModifier {
   }
 
   private modifyElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    const data = this.requireElement(model, m).data as any;
+    const data = this.requireElement(model, m).data;
     if (m.changes.name) data.name = m.changes.name;
     if (m.changes.stereotype) data.stereotype = m.changes.stereotype;
     return model;
@@ -178,7 +178,7 @@ export class ComponentDiagramModifier implements DiagramModifier {
     if (!edge) {
       throw new Error(`No dependency from '${m.changes.source ?? ''}' to '${m.changes.target ?? ''}' found.`);
     }
-    (model as any).edges = ModifierHelpers.edges(model).filter((e: BesserEdge) => e.id !== edge.id);
+    model.edges = ModifierHelpers.edges(model).filter((e: BesserEdge) => e.id !== edge.id);
     return model;
   }
 }

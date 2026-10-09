@@ -173,7 +173,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-agent",
             "derivedAt": "2026-10-05T08:24:17.117Z",
-            "sourceModelHash": "6ffe8755"
+            "sourceModelHash": "bfbc11a7"
           },
           "config": {
             "default_llm_name": "gpt-6-luna",
@@ -598,7 +598,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-agent",
             "derivedAt": "2026-10-05T08:24:21.994Z",
-            "sourceModelHash": "6ffe8755"
+            "sourceModelHash": "bfbc11a7"
           },
           "config": {
             "default_llm_name": "gpt-6-luna",
@@ -1151,7 +1151,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-component",
             "derivedAt": "2026-10-08T07:39:16.363Z",
-            "sourceModelHash": "6ffe8755"
+            "sourceModelHash": "bfbc11a7"
           }
         }
       ],
@@ -1639,11 +1639,7 @@
                   "height": 150
                 },
                 "data": {
-                  "name": "Maintainer",
-                  "isAgentic": false,
-                  "role": "solution",
-                  "trustScore": 0,
-                  "multiplicity": 1
+                  "name": "Maintainer"
                 },
                 "parentId": "pool-repo"
               },
@@ -1663,10 +1659,7 @@
                 "data": {
                   "name": "Validate solution",
                   "taskType": "user",
-                  "marker": "none",
-                  "isAgentic": false,
-                  "reflectionMode": "none",
-                  "trustScore": 0
+                  "marker": "none"
                 },
                 "parentId": "lane-maintainer"
               },
@@ -1703,11 +1696,7 @@
                   "height": 170
                 },
                 "data": {
-                  "name": "User",
-                  "isAgentic": false,
-                  "role": "solution",
-                  "trustScore": 0,
-                  "multiplicity": 1
+                  "name": "User"
                 },
                 "parentId": "pool-repo"
               },
@@ -1746,10 +1735,7 @@
                 "data": {
                   "name": "Submit bug report",
                   "taskType": "user",
-                  "marker": "none",
-                  "isAgentic": false,
-                  "reflectionMode": "none",
-                  "trustScore": 0
+                  "marker": "none"
                 },
                 "parentId": "lane-user"
               }

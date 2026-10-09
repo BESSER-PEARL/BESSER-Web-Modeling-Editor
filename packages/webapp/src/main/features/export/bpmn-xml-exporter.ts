@@ -500,7 +500,8 @@ function emitAgenticExtension(lines: string[], el: AnyAgentic, indent: string): 
     attrs.push(`agentDiagramRef="${escapeAttr(el.agentDiagramRef)}"`);
   }
   if (el.reflectionReviewerLaneId !== undefined && el.reflectionReviewerLaneId !== '') {
-    attrs.push(`reflectionReviewerLaneId="${escapeAttr(el.reflectionReviewerLaneId)}"`);
+    // A lane reference, so it goes through xid() like the lane's own id.
+    attrs.push(`reflectionReviewerLaneId="${xid(el.reflectionReviewerLaneId)}"`);
   }
   lines.push(`${indent}<bpmn:extensionElements>`);
   lines.push(`${indent}  <agentic:agentic ${attrs.join(' ')}/>`);

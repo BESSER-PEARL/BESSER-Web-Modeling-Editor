@@ -211,10 +211,7 @@ export class UserDiagramModifier implements DiagramModifier {
       data: {
         label: linkName,
         name: linkName,
-        points: [
-          { x: 100, y: 10 },
-          { x: 0, y: 10 },
-        ],
+        points: [],
         isManuallyLayouted: false,
       },
     };

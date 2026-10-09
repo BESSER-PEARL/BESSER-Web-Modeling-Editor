@@ -578,10 +578,7 @@ export class ClassDiagramModifier implements DiagramModifier {
         sourceRole: '',
         targetRole: relationshipName,
         isManuallyLayouted: false,
-        points: [
-          { x: 100, y: 10 },
-          { x: 0, y: 10 },
-        ],
+        points: [],
       },
     };
     // Type + explicit per-end navigability; ClassUnidirectional is never
@@ -1157,10 +1154,7 @@ export class ClassDiagramModifier implements DiagramModifier {
         sourceRole: '',
         targetRole: name,
         isManuallyLayouted: false,
-        points: [
-          { x: 100, y: 10 },
-          { x: 0, y: 10 },
-        ],
+        points: [],
       },
     };
     applyAssistantRelationshipType(edge, relationshipType);

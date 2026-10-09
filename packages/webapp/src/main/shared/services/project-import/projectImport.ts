@@ -8,6 +8,7 @@ import {
   SupportedDiagramType,
   createDefaultPerspectives,
   createEmptyDiagram,
+  ensureProjectMigrated,
   getActiveDiagram,
   isV3UMLModel,
   toSupportedDiagramType,
@@ -364,7 +365,14 @@ interface ImportedPersonalization {
 }
 
 // Store imported project using the project storage system
-function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
+/**
+ * Migrate an imported project to the current schema (v3 models lifted to v4)
+ * and store it; returns the stored project. Storing it migrated means it is
+ * never kept as v3, and no pre-migration backup is taken of a file the user
+ * still has.
+ */
+function storeImportedProject(imported: BesserProject, personalization?: ImportedPersonalization): BesserProject {
+  const project = ensureProjectMigrated(imported);
   project.name = uniqueProjectName(project.name);
   normalizeEdgeHandles(project);
 
@@ -397,6 +405,7 @@ function storeImportedProject(project: BesserProject, personalization?: Imported
   if (personalization) {
     LocalStorageRepository.mergeImportedPersonalization(personalization);
   }
+  return project;
 }
 
 function extractPersonalization(data: V2ExportData): ImportedPersonalization | undefined {
@@ -434,9 +443,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   const jsonData = await response.json();
 
   if (isOldWebappFormat(jsonData)) {
-    const project = migrateOldWebappProject(jsonData);
-    storeImportedProject(project);
-    return project;
+    return storeImportedProject(migrateOldWebappProject(jsonData));
   } else if (validateV2ExportData(jsonData)) {
     const project = fillMissingDiagrams({
       ...jsonData.project,
@@ -444,12 +451,9 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
     });
-    storeImportedProject(project, extractPersonalization(jsonData));
-    return project;
+    return storeImportedProject(project, extractPersonalization(jsonData));
   } else if (validateLegacyImportData(jsonData)) {
-    const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
-    storeImportedProject(convertedProject);
-    return convertedProject;
+    return storeImportedProject(fillMissingDiagrams(convertLegacyToProject(jsonData)));
   } else {
     throw new Error('Invalid BUML file structure');
   }
@@ -466,8 +470,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
         // Check for old webapp format (single diagrams, not arrays) before V2 check
         if (isOldWebappFormat(jsonData)) {
-          const importedProject = migrateOldWebappProject(jsonData);
-          storeImportedProject(importedProject);
+          const importedProject = storeImportedProject(migrateOldWebappProject(jsonData));
           console.log(`Project "${importedProject.name}" imported successfully (old webapp format migrated)`);
           resolve(importedProject);
         } else if (validateV2ExportData(jsonData)) {
@@ -476,22 +479,21 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
           // Generate new ID for the project to avoid conflicts
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const importedProject: BesserProject = fillMissingDiagrams({
-            ...project,
-            id: newProjectId,
-            name: `${project.name}`,
-            createdAt: new Date().toISOString(),
-          });
-
-          // Store using project storage
-          storeImportedProject(importedProject, extractPersonalization(jsonData));
+          const importedProject = storeImportedProject(
+            fillMissingDiagrams({
+              ...project,
+              id: newProjectId,
+              name: `${project.name}`,
+              createdAt: new Date().toISOString(),
+            }),
+            extractPersonalization(jsonData),
+          );
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
           resolve(importedProject);
         } else if (validateLegacyImportData(jsonData)) {
           // Legacy V1 format - convert to new format and store
-          const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
-          storeImportedProject(convertedProject);
+          const convertedProject = storeImportedProject(fillMissingDiagrams(convertLegacyToProject(jsonData)));
 
           console.log(`Project "${convertedProject.name}" imported successfully (Legacy format converted)`);
           resolve(convertedProject);
@@ -570,7 +572,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             }
           }
 
-          const importedProject: BesserProject = {
+          const rawProject: BesserProject = {
             id: newProjectId,
             type: 'Project',
             schemaVersion: PROJECT_SCHEMA_VERSION,
@@ -601,7 +603,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             },
           };
 
-          storeImportedProject(importedProject);
+          const importedProject = storeImportedProject(rawProject);
           console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
           resolve(importedProject);
         } else {

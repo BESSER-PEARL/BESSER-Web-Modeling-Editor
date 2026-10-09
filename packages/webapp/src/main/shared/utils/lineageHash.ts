@@ -51,6 +51,48 @@ function stripVolatile(model: UMLModel): unknown {
   return { type, version, nodes, edges };
 }
 
+type LegacyV3Model = {
+  type?: unknown;
+  version?: unknown;
+  elements?: Record<string, unknown>;
+  relationships?: Record<string, unknown>;
+};
+
+/**
+ * The hash the v3 editor stamped on `derivedFrom.sourceModelHash`, over the v3
+ * `elements` / `relationships` records (bounds rounded). Only used while
+ * lifting a stored v3 source to v4, to restamp derived diagrams that were in
+ * sync with it.
+ */
+export function hashLegacyV3Model(model: LegacyV3Model): string {
+  const { type, version, elements = {}, relationships = {} } = model;
+  const stripped = { type, version, elements: roundBounds(elements), relationships: roundBounds(relationships) };
+  return djb2(JSON.stringify(canonicalize(stripped)));
+}
+
+function roundBounds(map: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(map)) {
+    if (v && typeof v === 'object' && 'bounds' in v) {
+      const bounds = (v as { bounds?: { x: number; y: number; width: number; height: number } }).bounds;
+      out[k] = {
+        ...v,
+        bounds: bounds
+          ? {
+              x: Math.round(bounds.x),
+              y: Math.round(bounds.y),
+              width: Math.round(bounds.width),
+              height: Math.round(bounds.height),
+            }
+          : undefined,
+      };
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === 'object') {

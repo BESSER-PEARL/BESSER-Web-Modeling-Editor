@@ -15,7 +15,8 @@
  *     BOTH `edge.data.name` AND `edge.data.label`; cross-pool flows become
  *     message flows; `edge.data.isDefault` carries the default-flow marker,
  *   - agentic lane / task / gateway fields go into `node.data` under their v3
- *     names when the spec supplies them; agentic semantics are never inferred,
+ *     names, only on elements the spec marks agentic (never inferred); a
+ *     gateway's `governancePolicy` expands to a generated `governanceDsl`,
  *   - the finished layout is shifted so its bounding box is centred on the
  *     origin (0,0) — the same convention develop's converter used so the
  *     viewport-recentering heuristics in `useModelInjection` see a stable,
@@ -28,6 +29,7 @@
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { UMLDiagramType, resolveBpmnEdgeType } from '@besser/wme';
+import type { UMLModel } from '@besser/wme';
 import { DiagramConverter, centerNodesOnOrigin, generateUniqueId } from './base';
 import {
   BpmnAgenticSpec,
@@ -36,6 +38,7 @@ import {
   bpmnTaskAgenticData,
   createEmptyV4Model,
   directionToHandle,
+  resolveGovernanceDsl,
 } from '../shared/v4Builders';
 
 interface SpecNode extends BpmnAgenticSpec {
@@ -128,6 +131,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       pos.y,
       spec,
     );
+    this.expandGovernance({ nodes: [node], edges: [] });
     return { nodes: [node], edges: [] };
   }
 
@@ -174,6 +178,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
     } else {
       this.layoutWithPools(nodes, flows, pools, layerOf, model);
     }
+
+    // Expanded once every flow exists: the DSL lists the block's agent lanes.
+    this.expandGovernance(model as UMLModel);
 
     centerNodesOnOrigin(model);
     return model;
@@ -470,9 +477,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
   }
 
   /**
-   * Emit a v4 flow edge. Geometry is placeholder (the editor's layouter
-   * recomputes the path on load). Cross-pool flows become message flows; every
-   * other pair resolves its subtype via `resolveBpmnEdgeType`.
+   * Emit a v4 flow edge without route points (the editor routes it). Cross-pool
+   * flows become message flows; every other pair resolves its subtype via
+   * `resolveBpmnEdgeType`.
    */
   private emitFlow(
     f: SpecFlow,
@@ -513,13 +520,19 @@ export class BPMNDiagramConverter implements DiagramConverter {
         name,
         isDefault: !!f.isDefault,
         isManuallyLayouted: false,
-        points: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-        ],
+        points: [],
       },
     };
     model.edges.push(edge);
+  }
+
+  /** Replace each gateway's requested policy (held in `governanceDsl`) by the generated DSL. */
+  private expandGovernance(model: Pick<UMLModel, 'nodes' | 'edges'>): void {
+    for (const node of model.nodes) {
+      if (node.type === 'bpmnGateway' && typeof node.data.governanceDsl === 'string') {
+        node.data.governanceDsl = resolveGovernanceDsl(node.data.governanceDsl, node.id, model as UMLModel);
+      }
+    }
   }
 
   // ------------------------------------------------------------------

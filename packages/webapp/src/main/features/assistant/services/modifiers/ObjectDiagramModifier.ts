@@ -271,10 +271,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
       data: {
         name: linkName,
         label: linkName,
-        points: [
-          { x: 100, y: 10 },
-          { x: 0, y: 10 },
-        ],
+        points: [],
         isManuallyLayouted: false,
       },
     };

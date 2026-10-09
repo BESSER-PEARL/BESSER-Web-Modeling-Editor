@@ -184,6 +184,23 @@ describe('agentic round-trip', () => {
     expect(xml).not.toContain('<bpmn:extensionElements>');
   });
 
+  // Lane ids are written through xid(): one starting with a digit gets a `_`
+  // prefix, so the reviewer reference must get the same one.
+  it('keeps the cross-reflection reviewer lane when the lane id starts with a digit', () => {
+    const laneId = '3f0a1c2d-4e5b-4f6a-9012-3456789abcde';
+    const model = buildFixtureAgenticModel();
+    for (const n of model.nodes) {
+      if (n.id === 'Lane_1') n.id = laneId;
+      if (n.parentId === 'Lane_1') n.parentId = laneId;
+    }
+    nodeData(model, 'Task_1').reflectionReviewerLaneId = laneId;
+
+    const { model: parsed } = bpmnXmlToModel(bpmnModelToXml(model));
+    const lane = parsed.nodes.find((n) => n.data.name === 'AgentReviewer');
+    expect(lane).toBeDefined();
+    expect(dataByName(parsed, 'Review')?.reflectionReviewerLaneId).toBe(lane!.id);
+  });
+
   // lane carries agentDiagramRef → survives round-trip on the lane only.
   it('preserves agentDiagramRef on the agentic lane through round-trip', () => {
     const REF = '3f0a1c2d-4e5b-4f6a-9012-3456789abcde';

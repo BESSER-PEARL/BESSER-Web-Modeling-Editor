@@ -12,8 +12,14 @@
  *     `lib/nodes/wrappers/DefaultNodeWrapper.tsx` (`'left'`, `'right'`, …).
  */
 
-import type { BesserEdge, BesserNode } from '@besser/wme';
-import { clampMultiplicity, clampTrustScore, migrateLegacyRole } from '@besser/wme';
+import type { BesserEdge, BesserNode, DiagramEdgeType, DiagramNodeType, GovPolicyType, UMLModel } from '@besser/wme';
+import {
+  GOV_POLICY_TYPES,
+  clampMultiplicity,
+  clampTrustScore,
+  generateGovernanceDsl,
+  migrateLegacyRole,
+} from '@besser/wme';
 
 /** All v4 class-like node types live under `node.type === 'class'`. */
 export const CLASS_NODE_TYPE = 'class';
@@ -83,17 +89,17 @@ export function buildV4Node(
 ): BesserNode {
   return {
     id,
-    type: type as any,
+    type: type as DiagramNodeType,
     position,
     width: size.width,
     height: size.height,
     measured: { ...size },
-    data: data as any,
+    data,
     ...(parentId ? { parentId } : {}),
   };
 }
 
-/** Build a v4 edge; its points are a placeholder the editor re-routes on load. */
+/** Build a v4 edge without route points; the editor routes it on load. */
 export function buildV4Edge(
   id: string,
   type: string,
@@ -106,17 +112,14 @@ export function buildV4Edge(
     id,
     source,
     target,
-    type: type as any,
+    type: type as DiagramEdgeType,
     sourceHandle: handles.source,
     targetHandle: handles.target,
     data: {
       isManuallyLayouted: false,
-      points: [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
-      ],
+      points: [],
       ...data,
-    } as any,
+    },
   };
 }
 
@@ -194,6 +197,9 @@ export interface BpmnAgenticSpec {
   agentDiagramRef?: string | null;
   reflectionMode?: string;
   gatewayRole?: string;
+  /** One of `GOV_POLICY_TYPES`; expanded to a generated `governanceDsl`. */
+  governancePolicy?: string;
+  /** A full Governance-DSL text, kept as is (older agents). */
   governanceDsl?: string;
 }
 
@@ -205,10 +211,18 @@ const agentDiagramRefOf = (spec: BpmnAgenticSpec) => {
   return ref ? { agentDiagramRef: ref } : {};
 };
 
+/** Agentic keys per BPMN node type; a plain element carries none of them (`agentDiagramRef` is not one). */
+export const BPMN_AGENTIC_KEYS: Record<'bpmnTask' | 'bpmnGateway' | 'bpmnSwimlane', readonly string[]> = {
+  bpmnTask: ['isAgentic', 'reflectionMode', 'trustScore', 'reflectionReviewerLaneId'],
+  bpmnGateway: ['isAgentic', 'gatewayRole', 'trustScore', 'governanceDsl'],
+  bpmnSwimlane: ['isAgentic', 'role', 'trustScore', 'multiplicity'],
+};
+
 /** `bpmnSwimlane` agentic data, with legacy roles migrated and numbers clamped. */
 export function bpmnLaneAgenticData(spec: BpmnAgenticSpec): Record<string, unknown> {
+  if (spec.isAgentic !== true) return agentDiagramRefOf(spec);
   return {
-    isAgentic: spec.isAgentic === true,
+    isAgentic: true,
     role: migrateLegacyRole(spec.role),
     trustScore: trustScoreOf(spec),
     multiplicity: clampMultiplicity(typeof spec.multiplicity === 'number' ? spec.multiplicity : 1),
@@ -218,8 +232,9 @@ export function bpmnLaneAgenticData(spec: BpmnAgenticSpec): Record<string, unkno
 
 /** `bpmnTask` agentic data; `reviewerLaneId` is the resolved cross-reflection lane node id. */
 export function bpmnTaskAgenticData(spec: BpmnAgenticSpec, reviewerLaneId?: string): Record<string, unknown> {
+  if (spec.isAgentic !== true) return agentDiagramRefOf(spec);
   return {
-    isAgentic: spec.isAgentic === true,
+    isAgentic: true,
     reflectionMode: typeof spec.reflectionMode === 'string' ? spec.reflectionMode : 'none',
     trustScore: trustScoreOf(spec),
     ...agentDiagramRefOf(spec),
@@ -229,12 +244,44 @@ export function bpmnTaskAgenticData(spec: BpmnAgenticSpec, reviewerLaneId?: stri
 
 /** `bpmnGateway` agentic data. */
 export function bpmnGatewayAgenticData(spec: BpmnAgenticSpec): Record<string, unknown> {
+  if (spec.isAgentic !== true) return {};
   return {
-    isAgentic: spec.isAgentic === true,
+    isAgentic: true,
     gatewayRole: typeof spec.gatewayRole === 'string' ? spec.gatewayRole : 'diverging',
     trustScore: trustScoreOf(spec),
-    ...(typeof spec.governanceDsl === 'string' && spec.governanceDsl.trim()
-      ? { governanceDsl: spec.governanceDsl }
-      : {}),
+    ...(requestedGovernance(spec) ? { governanceDsl: requestedGovernance(spec) } : {}),
   };
+}
+
+const POLICY_BY_KEYWORD = new Map<string, GovPolicyType>(
+  GOV_POLICY_TYPES.map((policy) => [policy.replace(/Policy$/, '').toLowerCase(), policy]),
+);
+
+/**
+ * The governance policy a short keyword names ("consensus", "absolute majority",
+ * "leader-driven", "MajorityPolicy", "Policy: MajorityPolicy"), else undefined.
+ */
+export function governancePolicyOf(text: string): GovPolicyType | undefined {
+  const key = text
+    .toLowerCase()
+    .replace(/[^a-z]/g, '')
+    .replace(/^policy/, '')
+    .replace(/policy$/, '');
+  return POLICY_BY_KEYWORD.get(key);
+}
+
+/**
+ * The governance a spec asks for, before expansion: the `governancePolicy` name when
+ * it is a known policy, else a non-empty `governanceDsl` text.
+ */
+export function requestedGovernance(spec: { governancePolicy?: unknown; governanceDsl?: unknown }): string | undefined {
+  if (typeof spec.governancePolicy === 'string' && governancePolicyOf(spec.governancePolicy))
+    return spec.governancePolicy;
+  return typeof spec.governanceDsl === 'string' && spec.governanceDsl.trim() ? spec.governanceDsl : undefined;
+}
+
+/** A gateway's `governanceDsl`: a policy name or keyword expands to a generated DSL, any other text is kept. */
+export function resolveGovernanceDsl(text: string, gatewayId: string, model: UMLModel): string {
+  const policy = governancePolicyOf(text);
+  return policy ? generateGovernanceDsl(gatewayId, model, policy) : text;
 }

@@ -301,7 +301,7 @@ export const updateDiagramModelThunk = createAsyncThunk(
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
     let updatedUpdates = updates;
-    // For AgentDiagram: when Apollon fires a canvas model-change it only carries
+    // For AgentDiagram: when the editor fires a canvas model-change it only carries
     // canvas elements (no components). Preserve the existing model.components so
     // off-canvas components (intents, tools, RAGs …) are never wiped.
     if (activeDiagramType === 'AgentDiagram' && isUMLModel(updates.model) && isUMLModel(current.model)) {
@@ -381,11 +381,10 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
  * If the caller's mutation DOES alter the body of the currently-
  * active diagram's model (e.g. retrofitting nodes onto the live tab),
  * the caller MUST dispatch `bumpEditorRevision()` AFTER this thunk's
- * fulfilled action resolves. A runtime warning is emitted below when
- * we detect an active-diagram model identity change without a
- * follow-up bump in the same microtask, so the contract violation is
- * surfaced loudly in development instead of producing a silently
- * stale canvas.
+ * fulfilled action resolves. In development a warning is logged when the
+ * active diagram's model content changed and no bump followed by the next
+ * task, so the contract violation is surfaced instead of producing a
+ * silently stale canvas.
  *
  * Callers known to correctly pair a bump:
  *   - AgentConfigurationPanel: bumps after applying agent profiles
@@ -403,15 +402,46 @@ export const refreshProjectStateThunk = createAsyncThunk(
     if (!project) return null;
     const activeType = state.workspace.activeDiagramType;
     const activeIndex = state.workspace.activeDiagramIndex;
-    const previousActiveModelRef = state.workspace.activeDiagram?.model;
+    const loaded = ProjectStorageRepository.loadProject(project.id);
+    if (import.meta.env?.DEV && loaded) {
+      warnOnUnbumpedActiveModelChange(state.workspace, loaded, getState as () => { workspace: WorkspaceState });
+    }
     return {
-      project: ProjectStorageRepository.loadProject(project.id),
-      previousActiveModelRef,
+      project: loaded,
       activeType,
       activeIndex,
     };
   },
 );
+
+/**
+ * Development-only check of the bumpEditorRevision contract above: warns when
+ * the refresh rewrote the body of the diagram the editor shows and nothing
+ * bumped the revision by the next task. A freshly loaded project always has
+ * new object identities, so models are compared by content; a refresh that
+ * also changes which diagram is active (the Define-agent flow) is not one.
+ */
+const warnOnUnbumpedActiveModelChange = (
+  before: WorkspaceState,
+  loaded: BesserProject,
+  getState: () => { workspace: WorkspaceState },
+): void => {
+  const previous = before.activeDiagram;
+  const next = getActiveDiagram(loaded, loaded.currentDiagramType ?? before.activeDiagramType);
+  if (!previous || !next || previous.id !== next.id) return;
+  if (JSON.stringify(previous.model) === JSON.stringify(next.model)) return;
+  const revision = before.editorRevision;
+  setTimeout(() => {
+    if (getState().workspace.editorRevision !== revision) return;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[refreshProjectStateThunk] Active diagram model body changed but editorRevision was not bumped. ' +
+        "Callers that mutate the active diagram's model must dispatch bumpEditorRevision() " +
+        'after the refresh resolves; otherwise the canvas will keep rendering the stale model. ' +
+        'See refreshProjectStateThunk JSDoc.',
+    );
+  }, 0);
+};
 
 /**
  * Toggle a single modeling perspective (e.g. ClassDiagram, GUINoCodeDiagram)
@@ -1053,7 +1083,7 @@ const workspaceSlice = createSlice({
       // ── Refresh project from storage (no revision bump) ─────
       .addCase(refreshProjectStateThunk.fulfilled, (state, action) => {
         if (!action.payload || !action.payload.project) return;
-        const { project: p, previousActiveModelRef } = action.payload;
+        const { project: p } = action.payload;
         state.project = p;
 
         // Sync activeDiagramType if storage has a different value
@@ -1071,33 +1101,6 @@ const workspaceSlice = createSlice({
         // Keep active diagram in sync without triggering editor reinit
         const nextActive = getActiveDiagram(p, state.activeDiagramType);
         state.activeDiagram = nextActive ?? state.activeDiagram;
-
-        // Development-only contract warning.
-        // If the active diagram's model identity changed (i.e. the body
-        // of the currently-displayed diagram was rewritten by whatever
-        // triggered the refresh), the caller MUST dispatch
-        // `bumpEditorRevision()` after this thunk resolves — otherwise
-        // the canvas keeps showing the stale model. We can't enforce
-        // this from inside the reducer, but we can warn loudly.
-        if (
-          import.meta.env?.DEV &&
-          previousActiveModelRef !== undefined &&
-          nextActive?.model !== undefined &&
-          previousActiveModelRef !== nextActive.model
-        ) {
-          // Defer the warning so callers that bump in the same tick (or
-          // via `.then` on the dispatch promise) have a chance to do so
-          // before we complain.
-          queueMicrotask(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              '[refreshProjectStateThunk] Active diagram model body changed but editorRevision was not bumped. ' +
-              'Callers that mutate the active diagram\'s model must dispatch bumpEditorRevision() ' +
-              'after the refresh resolves; otherwise the canvas will keep rendering the stale model. ' +
-              'See refreshProjectStateThunk JSDoc.',
-            );
-          });
-        }
       })
       .addCase(refreshProjectStateThunk.rejected, (_state, action) => {
         console.error('refreshProjectStateThunk failed:', action.error.message);

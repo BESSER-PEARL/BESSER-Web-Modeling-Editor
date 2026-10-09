@@ -136,10 +136,7 @@ export class ClassDiagramConverter implements DiagramConverter {
             sourceRole: rel.sourceRole || '',
             targetRole: relationshipName,
             isManuallyLayouted: false,
-            points: [
-              { x: 100, y: 10 },
-              { x: 0, y: 10 },
-            ],
+            points: [],
           } as any,
         };
         // Type + explicit per-end navigability (data.sourceNavigable /

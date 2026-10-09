@@ -168,7 +168,7 @@ export class DeploymentDiagramModifier implements DiagramModifier {
   }
 
   private modifyElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    const data = this.requireElement(model, m).data as any;
+    const data = this.requireElement(model, m).data;
     if (m.changes.name) data.name = m.changes.name;
     if (m.changes.stereotype) data.stereotype = m.changes.stereotype;
     return model;
@@ -189,7 +189,7 @@ export class DeploymentDiagramModifier implements DiagramModifier {
     if (!edge) {
       throw new Error(`No dependency from '${m.changes.source ?? ''}' to '${m.changes.target ?? ''}' found.`);
     }
-    (model as any).edges = ModifierHelpers.edges(model).filter((e: BesserEdge) => e.id !== edge.id);
+    model.edges = ModifierHelpers.edges(model).filter((e: BesserEdge) => e.id !== edge.id);
     return model;
   }
 }

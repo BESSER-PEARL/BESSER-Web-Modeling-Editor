@@ -16,8 +16,10 @@
  *
  * Pools and lanes are edited with `add_pool`, `add_swimlane`,
  * `modify_swimlane`, `remove_swimlane` and `remove_pool`. Agentic task /
- * gateway / lane fields live on `node.data` under their v3 names; a new node
- * goes into the lane named by `changes.owner`.
+ * gateway / lane fields live on `node.data` under their v3 names and only on
+ * agentic elements; a gateway's `changes.governancePolicy` (or a policy keyword
+ * in `changes.governanceDsl`) is expanded to a generated DSL. A new node goes
+ * into the lane named by `changes.owner`.
  *
  * Node references may be a node id (the agent emits stable ids) or a display
  * name; an id hit always wins over a name match. Tasks, gateways, events and
@@ -26,16 +28,22 @@
  * the library's `resolveBpmnEdgeType`.
  *
  * New nodes are placed to the right of existing content (BPMN reads
- * left-to-right); flow geometry is placeholder that the editor's layouter
- * recomputes on load. A flow between nodes of different pools is a message
- * flow.
+ * left-to-right); flows carry no route points, the editor routes them. A
+ * flow between nodes of different pools is a message flow.
  */
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { clampMultiplicity, clampTrustScore, migrateLegacyRole, resolveBpmnEdgeType } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
-import { bpmnGatewayAgenticData, bpmnLaneAgenticData, bpmnTaskAgenticData } from '../shared/v4Builders';
+import {
+  BPMN_AGENTIC_KEYS,
+  bpmnGatewayAgenticData,
+  bpmnLaneAgenticData,
+  bpmnTaskAgenticData,
+  requestedGovernance,
+  resolveGovernanceDsl,
+} from '../shared/v4Builders';
 
 const BPMN_NODE_TYPES = [
   'bpmnTask',
@@ -355,7 +363,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const target = this.resolveTargetNode(model, m);
     if (!target) return model;
 
-    const data = target.data as any;
+    const data = target.data;
     const c = m.changes;
     if (c.name) data.name = c.name;
 
@@ -371,18 +379,19 @@ export class BPMNDiagramModifier implements DiagramModifier {
     }
 
     if (target.type === 'bpmnTask') {
-      if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
-      if (typeof c.reflectionMode === 'string') data.reflectionMode = c.reflectionMode;
-      if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+      if (this.applyAgenticSwitch(target, c.isAgentic)) {
+        if (typeof c.reflectionMode === 'string') data.reflectionMode = c.reflectionMode;
+        if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+        const reviewerLane = this.findLane(model, c.reflectionReviewerLaneId);
+        if (reviewerLane) data.reflectionReviewerLaneId = reviewerLane.id;
+      }
       if (typeof c.agentDiagramRef === 'string') data.agentDiagramRef = c.agentDiagramRef;
-      const reviewerLane = this.findLane(model, c.reflectionReviewerLaneId);
-      if (reviewerLane) data.reflectionReviewerLaneId = reviewerLane.id;
     }
-    if (target.type === 'bpmnGateway') {
-      if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
+    if (target.type === 'bpmnGateway' && this.applyAgenticSwitch(target, c.isAgentic)) {
       if (typeof c.gatewayRole === 'string') data.gatewayRole = c.gatewayRole;
       if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
-      if (typeof c.governanceDsl === 'string') data.governanceDsl = c.governanceDsl;
+      const governance = requestedGovernance(c);
+      if (governance) data.governanceDsl = resolveGovernanceDsl(governance, target.id, model);
     }
 
     // Generic `changes.type` (state-machine vocabulary) — routed by node kind.
@@ -414,9 +423,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
       id: ModifierHelpers.generateUniqueId('flow'),
       source: source.id,
       target: target.id,
-      type: (crossPool
-        ? 'BPMNMessageFlow'
-        : resolveBpmnEdgeType(source.type, target.type, 'BPMNSequenceFlow')) as any,
+      type: crossPool ? 'BPMNMessageFlow' : resolveBpmnEdgeType(source.type, target.type, 'BPMNSequenceFlow'),
       sourceHandle: crossPool ? (downward ? 'bottom' : 'top') : 'right',
       targetHandle: crossPool ? (downward ? 'top' : 'bottom') : 'left',
       data: {
@@ -424,10 +431,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
         name,
         isDefault: false,
         isManuallyLayouted: false,
-        points: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-        ],
+        points: [],
       },
     };
     ModifierHelpers.addEdge(model, edge);
@@ -477,7 +481,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const height = 200;
     ModifierHelpers.addNode(model, {
       id: ModifierHelpers.generateUniqueId('pool'),
-      type: 'bpmnPool' as any,
+      type: 'bpmnPool',
       position: { x: 0, y },
       width,
       height,
@@ -504,7 +508,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const width = (pool?.width ?? 750) - POOL_HEADER_WIDTH;
     const lane: BesserNode = {
       id: ModifierHelpers.generateUniqueId('lane'),
-      type: 'bpmnSwimlane' as any,
+      type: 'bpmnSwimlane',
       position: { x: POOL_HEADER_WIDTH, y: laneY },
       width,
       height: LANE_HEIGHT,
@@ -529,15 +533,41 @@ export class BPMNDiagramModifier implements DiagramModifier {
   }
 
   private modifySwimlane(model: BESSERModel, m: ModelModification): BESSERModel {
-    const data = this.requireLane(model, m).data as any;
+    const lane = this.requireLane(model, m);
+    const data = lane.data;
     const c = m.changes;
     if (c.name) data.name = c.name;
-    if (c.role) data.role = migrateLegacyRole(c.role);
-    if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
-    if (typeof c.multiplicity === 'number') data.multiplicity = clampMultiplicity(c.multiplicity);
-    if (typeof c.isAgentic === 'boolean') data.isAgentic = c.isAgentic;
+    if (this.applyAgenticSwitch(lane, c.isAgentic)) {
+      if (c.role) data.role = migrateLegacyRole(c.role);
+      if (typeof c.trustScore === 'number') data.trustScore = clampTrustScore(c.trustScore);
+      if (typeof c.multiplicity === 'number') data.multiplicity = clampMultiplicity(c.multiplicity);
+    }
     if (typeof c.agentDiagramRef === 'string') data.agentDiagramRef = c.agentDiagramRef.trim();
     return model;
+  }
+
+  /**
+   * Apply `changes.isAgentic` to a task, gateway or lane: switching on fills the
+   * editor's defaults, switching off drops every agentic key. Returns whether
+   * the element is agentic, i.e. whether its agentic fields may be set.
+   */
+  private applyAgenticSwitch(node: BesserNode, isAgentic: unknown): boolean {
+    const type = node.type as keyof typeof BPMN_AGENTIC_KEYS;
+    const agentic = typeof isAgentic === 'boolean' ? isAgentic : node.data.isAgentic === true;
+    if (!agentic) {
+      for (const key of BPMN_AGENTIC_KEYS[type]) delete node.data[key];
+      return false;
+    }
+    if (node.data.isAgentic !== true) {
+      const defaults =
+        type === 'bpmnTask'
+          ? bpmnTaskAgenticData({ isAgentic: true })
+          : type === 'bpmnGateway'
+            ? bpmnGatewayAgenticData({ isAgentic: true })
+            : bpmnLaneAgenticData({ isAgentic: true });
+      Object.assign(node.data, defaults);
+    }
+    return true;
   }
 
   /** Removes the lane with everything it contains and every flow touching it. */

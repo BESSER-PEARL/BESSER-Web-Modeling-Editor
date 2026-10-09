@@ -31,6 +31,23 @@ describe('placeDrawerPill', () => {
     expect(maxWidth).toBeLessThan(190);
   });
 
+  // 390 px phone: the controls bar ends 5 px from the edge, so the pill was
+  // squeezed to max-width 0 and its icon still overflowed to x = 421.
+  it('moves above the controls bar when it cannot fit beside it (phone, 390 px)', () => {
+    const row = rowAt(0, 390);
+    const robot = { left: 336, right: 380, top: 742, bottom: 786 };
+    const { left, maxWidth, lift } = placeDrawerPill({ row, pillWidth: 150, controlsRight: 385, obstacle: robot });
+    expect(lift).toBe(36 + 12);
+    expect(maxWidth).toBe(150);
+    expect(left).toBeGreaterThanOrEqual(12);
+    expect(left + maxWidth).toBeLessThanOrEqual(336 - 12);
+  });
+
+  it('stays on its row when a narrowed pill still fits', () => {
+    const row = rowAt(192, 960);
+    expect(placeDrawerPill({ row, pillWidth: 190, controlsRight: 740, obstacle: null }).lift).toBe(0);
+  });
+
   it('ignores the assistant button when it sits on another row (phones)', () => {
     const row = rowAt(0, 390);
     const robot = { left: 336, right: 380, top: 742, bottom: 786 };

@@ -7,6 +7,12 @@ import { useTranslation } from 'react-i18next';
 
 import { toEditorLocale } from '../../../shared/i18n/languages';
 import { BesserEditorContext } from './besser-editor-context';
+import { describeLineageSource } from './lineageSource';
+import {
+  clearPendingLineageSelection,
+  setPendingLineageSelection,
+  takePendingLineageSelection,
+} from './pendingLineageSelection';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel, SupportedDiagramType } from '../../../shared/types/project';
 import type { RootState } from '../../../app/store/store';
@@ -66,9 +72,6 @@ export const BesserEditorComponent: React.FC = () => {
   const agenticEnabledRef = useRef(agenticEnabled);
   agenticEnabledRef.current = agenticEnabled;
   const { setEditor } = useContext(BesserEditorContext);
-  // Element id to select after the next editor rebuild (set by
-  // the lineage provider's onShowSource; consumed by the setup effect).
-  const pendingSelectionRef = useRef<string | null>(null);
   const { t, i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
   localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
@@ -112,25 +115,23 @@ export const BesserEditorComponent: React.FC = () => {
       resolveSource: (derivedId: string) => {
         const srcElId = elementMapping[derivedId];
         if (!srcElId) return null;
-        const srcEl =
-          sourceModel?.nodes.find((n) => n.id === srcElId) ?? sourceModel?.edges.find((e) => e.id === srcElId);
-        const srcName = (srcEl?.data as { name?: unknown } | undefined)?.name;
+        const source = describeLineageSource(sourceModel, srcElId);
         return {
           sourceElementId: srcElId,
           sourceDiagramTitle: sourceDiagram.title,
           sourceDiagramType: lineage.sourceDiagramType,
-          sourceElementName: typeof srcName === 'string' ? srcName : undefined,
-          sourceElementType: srcEl?.type,
+          sourceElementName: source.name,
+          sourceElementType: source.type,
         };
       },
       onShowSource: async (resolved) => {
         // Selected by the setup effect once the source diagram's editor is mounted.
-        pendingSelectionRef.current = resolved.sourceElementId;
+        setPendingLineageSelection(sourceDiagram.id, resolved.sourceElementId);
         try {
           await dispatch(openDiagramThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex })).unwrap();
         } catch (err) {
           console.error('[lineage] opening the source diagram failed:', err);
-          pendingSelectionRef.current = null;
+          clearPendingLineageSelection();
           toast.error(t('editors.diagramTabs.lineage.openFailed'));
         }
       },
@@ -352,12 +353,8 @@ export const BesserEditorComponent: React.FC = () => {
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
         // A newer setup (two quick revision bumps) or the unmount already took
-        // this editor out of editorRef and destroys it; a second destroy would
-        // unobserve its Yjs maps twice.
-        if (editorRef.current === nextEditor) {
-          editorRef.current = null;
-          await destroyEditorDeferred(nextEditor);
-        }
+        // this editor out of editorRef and destroys it; destroying it here too
+        // would unobserve its Yjs maps twice.
         return;
       }
 
@@ -379,9 +376,8 @@ export const BesserEditorComponent: React.FC = () => {
       // If a lineage click-through requested a source-element
       // selection, apply it now that the new editor is mounted and the
       // model is loaded.
-      if (pendingSelectionRef.current) {
-        const elementId = pendingSelectionRef.current;
-        pendingSelectionRef.current = null;
+      const elementId = takePendingLineageSelection(currentDiagram?.id);
+      if (elementId) {
         // Small delay so the editor's internal model state has fully
         // settled after the model was applied.
         setTimeout(() => {
@@ -438,7 +434,6 @@ export const BesserEditorComponent: React.FC = () => {
   }, [
     editorRevision,
     cleanupEditor,
-    destroyEditorDeferred,
     dispatch,
     setEditor,
     store,

@@ -1,6 +1,7 @@
 import { importProjectFromBUML, importProjectFromJson } from '../projectImport';
 import { LocalStorageRepository } from '../../storage/local-storage-repository';
-import { PROJECT_SCHEMA_VERSION, createDefaultProject, ensureProjectMigrated, isUMLModel } from '../../../types/project';
+import { ProjectStorageRepository } from '../../storage/ProjectStorageRepository';
+import { PROJECT_SCHEMA_VERSION, createDefaultProject, isUMLModel } from '../../../types/project';
 import {
   localStorageActiveAgentConfiguration,
   localStorageAgentBaseModels,
@@ -321,7 +322,9 @@ describe('importProjectFromJson legacy format migration', () => {
     expect(localStorage.getItem(localStorageLatestProject)).toBeNull();
   });
 
-  it('preserves the file schemaVersion on V2 envelopes so load-time migration handles v3 models', async () => {
+  // An imported v3 project used to stay stored as v3 (and get a _v3backup on
+  // the next load) until its first edit.
+  it('stores a V2 envelope with v3 models migrated, without a pre-migration backup', async () => {
     const project = createDefaultProject('V2 Era', 'desc', 'owner');
     (project as AnyModel).schemaVersion = 2;
     project.diagrams.ClassDiagram = [
@@ -335,16 +338,16 @@ describe('importProjectFromJson legacy format migration', () => {
 
     const envelope = { project, exportedAt: new Date().toISOString(), version: '2.0.0' };
     const imported = await importProjectFromJson(envelopeFile(envelope));
+    expect(imported.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(isUMLModel(imported.diagrams.ClassDiagram[0].model)).toBe(true);
 
-    // Regression guard: the import must NOT stamp the current schema version here —
-    // the file's own version is preserved so `ensureProjectMigrated`
-    // migrates on load.
-    const raw = JSON.parse(localStorage.getItem(`${localStorageProjectPrefix}${imported.id}`)!);
-    expect(raw.schemaVersion).toBe(2);
+    const key = `${localStorageProjectPrefix}${imported.id}`;
+    const raw = JSON.parse(localStorage.getItem(key)!);
+    expect(raw.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(isUMLModel(raw.diagrams.ClassDiagram[0].model)).toBe(true);
 
-    const migrated = ensureProjectMigrated(imported);
-    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
-    expect(isUMLModel(migrated.diagrams.ClassDiagram[0].model)).toBe(true);
+    expect(ProjectStorageRepository.loadProject(imported.id)).not.toBeNull();
+    expect(localStorage.getItem(`${key}_v3backup`)).toBeNull();
   });
 });
 

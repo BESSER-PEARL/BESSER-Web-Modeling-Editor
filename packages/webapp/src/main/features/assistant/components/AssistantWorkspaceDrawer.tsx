@@ -20,7 +20,7 @@ import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
-import { placeDrawerPill } from '../hooks/drawerPillPlacement';
+import { placeDrawerPill, type PillPlacement } from '../hooks/drawerPillPlacement';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
@@ -620,7 +620,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // Re-measured when the row or pill resizes, the window resizes, or the
   // engine republishes the controls / properties-panel widths (CSS variables
   // on <html>); again once the assistant button's 0.2 s slide has finished.
-  const [pillPlacement, setPillPlacement] = useState<{ left: number; maxWidth: number } | null>(null);
+  const [pillPlacement, setPillPlacement] = useState<PillPlacement | null>(null);
   useLayoutEffect(() => {
     const row = pillRowRef.current;
     const pill = pillRef.current;
@@ -628,10 +628,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     const place = () => {
       const rowRect = row.getBoundingClientRect();
       if (rowRect.width === 0) return;
-      const maxWidth = pill.style.maxWidth;
+      // Measure the pill's natural size and row position.
+      const { maxWidth, marginBottom } = pill.style;
       pill.style.maxWidth = '';
+      pill.style.marginBottom = '';
       const pillRect = pill.getBoundingClientRect();
       pill.style.maxWidth = maxWidth;
+      pill.style.marginBottom = marginBottom;
       const controls = parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue('--besser-canvas-controls-right'),
       );
@@ -643,7 +646,12 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         obstacle: fab && fab.width > 0 ? fab : null,
       });
       setPillPlacement((prev) =>
-        prev && Math.abs(prev.left - next.left) < 0.5 && Math.abs(prev.maxWidth - next.maxWidth) < 0.5 ? prev : next,
+        prev &&
+        prev.lift === next.lift &&
+        Math.abs(prev.left - next.left) < 0.5 &&
+        Math.abs(prev.maxWidth - next.maxWidth) < 0.5
+          ? prev
+          : next,
       );
     };
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -702,7 +710,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes.
           First in DOM order so Tab goes pill → sheet; z-index keeps it on top. */}
-      {/* Centered, but kept clear of the canvas controls bar and the assistant button (see pillPlacement);
+      {/* Centered, but kept clear of the canvas controls bar and the assistant button, or lifted above the bar when too narrow (see pillPlacement);
           18px from the bottom puts its centre on the controls bar's centre line. */}
       <div
         ref={pillRowRef}
@@ -714,7 +722,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       >
         <div
           ref={pillRef}
-          style={pillPlacement ? { marginLeft: pillPlacement.left, maxWidth: pillPlacement.maxWidth } : undefined}
+          style={
+            pillPlacement
+              ? {
+                  marginLeft: pillPlacement.left,
+                  maxWidth: pillPlacement.maxWidth,
+                  marginBottom: pillPlacement.lift || undefined,
+                }
+              : undefined
+          }
           className={cn(
             'pointer-events-auto flex h-9 min-w-0 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',
             'shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_-10px_rgba(0,0,0,0.25)] backdrop-blur-md',

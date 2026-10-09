@@ -1,5 +1,6 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { migrateUMLModelV3ToV4, normalizeUmlModelSnapshot } from '../services/storage/migrate-uml-v3-to-v4';
+import { hashLegacyV3Model, hashUmlModel } from '../utils/lineageHash';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -686,14 +687,13 @@ const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
  * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
  * because their models are not UMLModels.
  *
- * Atomicity: `schemaVersion` is only stamped to 5
- * when EVERY diagram migration succeeds. If any diagram throws, the v3
- * model is left in place AND `schemaVersion` is left unchanged so the
- * next load retries — honouring the previous "next launch will retry"
- * promise that the unconditional bump was silently breaking.
+ * `schemaVersion` is only stamped to 5 when EVERY diagram migration
+ * succeeds. A diagram that throws keeps its v3 model, and the next load
+ * retries it: the lift is decided per model, not by `schemaVersion`. Failing
+ * diagrams are surfaced via `console.warn` with the title and error.
  *
- * Failing diagrams are surfaced via `console.warn` with the title and
- * error so operators can spot the bad data in the browser console.
+ * Derived diagrams that were in sync with a lifted source are restamped with
+ * the source's v4 hash, so the lift itself does not read as "source changed".
  */
 export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
   // No early return on `schemaVersion >= 5`: whether a diagram needs the
@@ -701,6 +701,8 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
   // `elements` table without a `nodes` array), so a project stamped 5+
   // that still holds v3 models gets repaired too.
   let allSucceeded = true;
+  // Lifted diagram id -> the hash the v3 editor computed over its v3 model.
+  const legacyHashes = new Map<string, string>();
 
   for (const type of ALL_DIAGRAM_TYPES) {
     if (type === 'GUINoCodeDiagram' || type === 'QuantumCircuitDiagram') continue;
@@ -708,7 +710,9 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
     for (const d of diagrams) {
       if (d.model && isV3UMLModel(d.model)) {
         try {
+          const legacyHash = hashLegacyV3Model(d.model);
           d.model = migrateUMLModelV3ToV4(d.model, type);
+          legacyHashes.set(d.id, legacyHash);
         } catch (err) {
           // Keep v3 model in place on failure.
           allSucceeded = false;
@@ -722,10 +726,23 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
     }
   }
 
+  if (legacyHashes.size > 0) restampLiftedLineage(project, legacyHashes);
+
   if (allSucceeded && !(project.schemaVersion >= 5)) {
     project.schemaVersion = 5;
   }
   return project;
+};
+
+const restampLiftedLineage = (project: BesserProject, legacyHashes: Map<string, string>): void => {
+  const all = ALL_DIAGRAM_TYPES.flatMap((type) => project.diagrams[type] ?? []);
+  const byId = new Map(all.map((d) => [d.id, d]));
+  for (const d of all) {
+    const lineage = d.derivedFrom;
+    const source = lineage && byId.get(lineage.sourceDiagramId);
+    if (!lineage || !source || lineage.sourceModelHash !== legacyHashes.get(source.id)) continue;
+    d.derivedFrom = { ...lineage, sourceModelHash: hashUmlModel(source.model as UMLModel) };
+  }
 };
 
 /**

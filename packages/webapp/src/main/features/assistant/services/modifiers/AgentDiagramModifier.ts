@@ -320,10 +320,7 @@ export class AgentDiagramModifier implements DiagramModifier {
     const transitionData: Record<string, unknown> = {
       name: changes.label || changes.name || '',
       params: {} as Record<string, string>,
-      points: [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
-      ],
+      points: [],
       isManuallyLayouted: false,
     };
 

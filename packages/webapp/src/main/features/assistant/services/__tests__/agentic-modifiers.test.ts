@@ -82,7 +82,8 @@ describe('BPMNDiagramModifier pools and lanes', () => {
 
   it('adds a plain lane unless the change asks for an agentic one', () => {
     const plain = modifier.applyModification(pooledBpmn(), mod('add_swimlane', { nodeName: 'Ops' }, { poolName: 'Shop' }));
-    expect(byName(plain, 'Ops')).toMatchObject({ type: 'bpmnSwimlane', parentId: 'pool', data: { isAgentic: false } });
+    expect(byName(plain, 'Ops')).toMatchObject({ type: 'bpmnSwimlane', parentId: 'pool' });
+    expect(byName(plain, 'Ops').data).not.toHaveProperty('isAgentic');
 
     const agentic = modifier.applyModification(
       pooledBpmn(),
@@ -94,13 +95,13 @@ describe('BPMNDiagramModifier pools and lanes', () => {
   it('migrates a legacy lane role and clamps lane numbers', () => {
     const added = modifier.applyModification(
       pooledBpmn(),
-      mod('add_swimlane', { nodeName: 'Boss' }, { poolName: 'Shop', role: 'manager', trustScore: 150, multiplicity: 0 }),
+      mod('add_swimlane', { nodeName: 'Boss' }, { poolName: 'Shop', isAgentic: true, role: 'manager', trustScore: 150, multiplicity: 0 }),
     );
     expect(byName(added, 'Boss').data).toMatchObject({ role: 'supervision', trustScore: 100, multiplicity: 1 });
 
     const modified = modifier.applyModification(
       pooledBpmn(),
-      mod('modify_swimlane', { swimlaneName: 'Sales' }, { role: 'worker', trustScore: -5, multiplicity: 3 }),
+      mod('modify_swimlane', { swimlaneName: 'Sales' }, { isAgentic: true, role: 'worker', trustScore: -5, multiplicity: 3 }),
     );
     expect(byName(modified, 'Sales').data).toMatchObject({ role: 'solution', trustScore: 0, multiplicity: 3 });
   });

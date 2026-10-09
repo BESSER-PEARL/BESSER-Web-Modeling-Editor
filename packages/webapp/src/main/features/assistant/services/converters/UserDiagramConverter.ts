@@ -111,10 +111,7 @@ export class UserDiagramConverter implements DiagramConverter {
           label: linkName,
           ...(linkName && { name: linkName }),
           isManuallyLayouted: false,
-          points: [
-            { x: 100, y: 10 },
-            { x: 0, y: 10 },
-          ],
+          points: [],
         },
       });
     });

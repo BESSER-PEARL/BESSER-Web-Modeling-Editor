@@ -205,7 +205,7 @@ export class StateMachineModifier implements DiagramModifier {
     const data: BesserEdge['data'] & Record<string, any> = {
       name: '',
       params: {},
-      points: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      points: [],
       isManuallyLayouted: false,
     };
     this.applyTransitionFields(data, changes);

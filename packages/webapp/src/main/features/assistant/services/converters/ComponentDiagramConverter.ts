@@ -20,7 +20,8 @@ const COMPONENT_H = 80;
 const COMPONENT_GAP = 20;
 const SUBSYSTEM_GAP_X = 60;
 const SUBSYSTEM_PADDING = 30;
-const TOP_PADDING = 40;
+// Children start below the subsystem's «subsystem» stereotype and name.
+const TOP_PADDING = 70;
 
 export class ComponentDiagramConverter implements DiagramConverter {
   getDiagramType() {

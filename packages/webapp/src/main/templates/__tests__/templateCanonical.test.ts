@@ -5,6 +5,7 @@ import {
   canonicalizeTemplateModel,
 } from '../../features/project/create-diagram-from-template-modal/template-factory';
 import { SoftwarePatternType } from '../../features/project/create-diagram-from-template-modal/software-pattern/software-pattern-types';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 // Every bundled template is regenerated from smart-generator's v3 source
 // through the real migrator (convert + normalizeV4Model). They must therefore
@@ -53,6 +54,27 @@ describe('bundled templates are canonical v4', () => {
     const states = allNodes(model).filter((n) => n.type === 'State');
     expect(states.length).toBeGreaterThan(0);
     expect(states.some((s) => Array.isArray(s.data.bodies) && s.data.bodies.length > 0)).toBe(true);
+  });
+
+  it('plain BPMN lanes, tasks and gateways carry no agentic keys', () => {
+    const agenticKeys = ['isAgentic', 'role', 'trustScore', 'multiplicity', 'reflectionMode', 'gatewayRole', 'governanceDsl'];
+    const leaks = umlModels().flatMap(([label, model]) =>
+      allNodes(model)
+        .filter((n) => ['bpmnSwimlane', 'bpmnTask', 'bpmnGateway'].includes(n.type) && n.data.isAgentic !== true)
+        .filter((n) => agenticKeys.some((k) => k in n.data))
+        .map((n) => `${label}: ${n.data.name}`),
+    );
+    expect(leaks).toEqual([]);
+  });
+
+  it('derived diagrams of project templates match their source hash (no stale banner)', () => {
+    for (const json of Object.values(templates)) {
+      const diagrams = Object.values(json?.project?.diagrams ?? {}).flat() as any[];
+      const byId = new Map(diagrams.map((d) => [d.id, d]));
+      for (const d of diagrams.filter((x) => x.derivedFrom)) {
+        expect(d.derivedFrom.sourceModelHash).toBe(hashUmlModel(byId.get(d.derivedFrom.sourceDiagramId).model));
+      }
+    }
   });
 
   it('dbagent keeps its DB action body inline on the state', () => {

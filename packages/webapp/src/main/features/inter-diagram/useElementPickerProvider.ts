@@ -6,10 +6,9 @@ import { BesserProject, isUMLModel } from '../../shared/types/project';
 
 /**
  * Pure enumerator: every node of the given `typeTokens` across all diagrams
- * of `project` except `excludeDiagramId`. The tokens are element type names
- * (`Class`, `Component`, ...) and match the node types they map to, so the
- * class tokens (`Class`, `AbstractClass`, `Interface`, `Enumeration`) all
- * match `class` nodes. Exported for unit tests.
+ * of `project` except `excludeDiagramId`. The tokens are v4 node types
+ * (`class`, `component`); a v3 element name (`Class`, `AbstractClass`, ...)
+ * is mapped to its node type. Exported for unit tests.
  */
 export function collectPickableElements(
   project: BesserProject | null,
