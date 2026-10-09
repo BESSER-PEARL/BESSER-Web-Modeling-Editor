@@ -484,7 +484,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
           <AttributeInputContainer>
             <AttributeLabel>{element.attributeName} = </AttributeLabel>
             {isTnsType ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'reshape'}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -497,7 +497,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isPaddingType ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={paddingValue}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -510,7 +510,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isPoolingType ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'max'}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -523,7 +523,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isDimension ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={dimensionValue}
                 onChange={element.type === NNElementType.DimensionAttributePooling
                   ? this.handleDimensionChange
@@ -538,7 +538,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isOptimizer ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'adam'}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -551,7 +551,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isLossFunction ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={lossFunctionValue}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -599,7 +599,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 )}
               </MultiSelectContainer>
             ) : isTaskType ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'multi_class'}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -612,7 +612,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isInputFormat ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'images'}
                 onChange={this.handleValueChange}
                 size="sm"
@@ -625,7 +625,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 ))}
               </Dropdown>
             ) : isActvFunc ? (
-              <Dropdown
+              <Dropdown fitWidestOption
                 value={element.value || 'relu'}
                 onChange={this.handleValueChange}
                 size="sm"

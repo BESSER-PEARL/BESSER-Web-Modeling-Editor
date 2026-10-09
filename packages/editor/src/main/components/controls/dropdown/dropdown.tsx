@@ -3,10 +3,13 @@ import { Color, Size } from '../../theme/styles';
 import { DropdownButton } from './dropdown-button';
 import { DropdownItem, Props as ItemProps } from './dropdown-item';
 import { DropdownMenu } from './dropdown-menu';
-import { DropdownItemProps, StyledDropdown, StyledDropdownItem } from './dropdown-styles';
+import { DropdownItemProps, DropdownSizer, StyledDropdown, StyledDropdownItem } from './dropdown-styles';
 
 const defaultProps = Object.freeze({
   color: 'primary' as Color,
+  // Reserve the width of the widest option instead of resizing with the selected
+  // value. Use it for short, fixed option lists that sit next to a label.
+  fitWidestOption: false as boolean,
   outline: true as boolean,
   placeholder: '' as string,
   size: 'sm' as Size,
@@ -52,14 +55,15 @@ export class Dropdown<T> extends Component<Props<T>, State> {
   }
 
   render() {
-    const { color, outline, size } = this.props;
+    const { color, fitWidestOption, outline, placeholder, size } = this.props;
     const { show, top, left, width } = this.state;
-    const selected: ReactElement<ItemProps<T>> | undefined = (
-      Children.toArray(this.props.children) as ReactElement<ItemProps<T>>[]
-    ).find((item: ReactElement<ItemProps<T>>) => item.props.value === this.props.value);
+    const items = Children.toArray(this.props.children) as ReactElement<ItemProps<T>>[];
+    const selected: ReactElement<ItemProps<T>> | undefined = items.find(
+      (item: ReactElement<ItemProps<T>>) => item.props.value === this.props.value,
+    );
 
     return (
-      <StyledDropdown>
+      <StyledDropdown $fitWidestOption={fitWidestOption}>
         <DropdownButton
           ref={this.activator}
           color={color}
@@ -70,8 +74,19 @@ export class Dropdown<T> extends Component<Props<T>, State> {
           aria-haspopup="listbox"
           aria-expanded={show}
         >
-          {selected ? selected.props.children : this.props.placeholder}
+          {selected ? selected.props.children : placeholder}
         </DropdownButton>
+        {/* After the button: a grid takes its baseline from its first item, and
+            rows that align on the label's baseline must line up with the button. */}
+        {fitWidestOption && (
+          <DropdownSizer aria-hidden="true">
+            {[placeholder, ...items.map((item) => item.props.children)].map((label, index) => (
+              <DropdownButton key={index} type="button" tabIndex={-1} color={color} outline={outline} size={size}>
+                {label}
+              </DropdownButton>
+            ))}
+          </DropdownSizer>
+        )}
         {show && (
           <DropdownMenu
             ref={this.menu}

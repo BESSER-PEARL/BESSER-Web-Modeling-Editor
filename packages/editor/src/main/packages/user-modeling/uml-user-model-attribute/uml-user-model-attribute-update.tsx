@@ -201,7 +201,7 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
               {labelText} {renderComparatorInput ? '' : '='}{' '}
             </AttributeNameLabel>
             {renderComparatorInput && (
-              <ComparatorDropdown
+              <ComparatorDropdown fitWidestOption
                 value={currentComparator}
                 onChange={(value) => handleComparatorChange(value as Comparator)}
                 size="sm"

@@ -251,7 +251,7 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
                     {/* Pick the governance policy to seed; Generate writes the skeleton. */}
                     <Flex>
                       <span>{this.props.translate('packages.BPMNDiagram.BPMNGovernancePolicyTypeLabel')}</span>
-                      <Dropdown value={this.state.govPolicyType} onChange={this.changeGovPolicyType}>
+                      <Dropdown fitWidestOption value={this.state.govPolicyType} onChange={this.changeGovPolicyType}>
                         {GOV_POLICY_TYPES.map((p) => (
                           <Dropdown.Item key={p} value={p}>
                             {this.props.translate(`packages.BPMNDiagram.${govPolicyKey(p)}`)}
