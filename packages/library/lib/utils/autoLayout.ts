@@ -686,6 +686,8 @@ const finaliseEdges = (
     const route = finalRoutes.get(edge.id)
     if (route && route.length >= 2) {
       data.points = route
+      // The step renderer re-routes edges flagged as not laid out.
+      if (data.isManuallyLayouted === false) delete data.isManuallyLayouted
     } else if (Array.isArray(data.points) && data.points.length > 0) {
       // Stale waypoints relative to the old geometry — drop them.
       data.points = []

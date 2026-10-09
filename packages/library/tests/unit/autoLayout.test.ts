@@ -60,6 +60,20 @@ describe("computeAutoLayout", () => {
     expect(x("end")).toBeGreaterThan(x("middle"))
   })
 
+  it("marks the step-edge routes it writes as laid out, so the renderer draws them", async () => {
+    const nodes = [
+      node("a", { type: "component" }),
+      node("b", { type: "component" }),
+    ]
+    const edges: Edge[] = [
+      { id: "d1", source: "a", target: "b", type: "ComponentDependency", data: { isManuallyLayouted: false, points: [{ x: 0, y: 0 }, { x: 100, y: 0 }] } },
+    ]
+    const { edges: out } = await computeAutoLayout(nodes, edges, UMLDiagramType.ComponentDiagram)
+    const data = out[0].data as { points?: unknown[]; isManuallyLayouted?: boolean }
+    expect(data.points?.length ?? 0).toBeGreaterThanOrEqual(2)
+    expect(data.isManuallyLayouted).not.toBe(false)
+  })
+
   it("keeps parentId children relative to their container and grows the container", async () => {
     const nodes = [
       node("container", { type: "NNContainer", measured: { width: 300, height: 200 } }),
