@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { UMLModel, BesserNode, BesserEdge, Assessment } from "../typings"
 import { UMLDiagramType } from "../types/DiagramType"
 import { ClassType } from "../types/nodes/enums"
@@ -227,10 +226,14 @@ export function convertV2ToV4(v2Data: V2DiagramFormat): UMLModel {
 /**
  * Check if data is in v2 format
  */
-export function isV2Format(data: any): data is V2DiagramFormat {
-  return (
+export function isV2Format(input: unknown): input is V2DiagramFormat {
+  const data = input as
+    | (Partial<V2DiagramFormat> & { model?: unknown })
+    | null
+    | undefined
+  return !!(
     data &&
-    data.version &&
+    typeof data.version === "string" &&
     data.version.startsWith("2.") &&
     data.size &&
     data.type &&
@@ -906,7 +909,7 @@ function collectV3ClassifierChildren(
 function convertV3NodeDataToV4(
   element: V3UMLElement,
   allElements: Record<string, V3UMLElement>
-): any {
+): BesserNode["data"] {
   const baseData = {
     name: element.name,
     ...(element.fillColor && { fillColor: element.fillColor }),
@@ -1036,7 +1039,7 @@ function convertV3NodeDataToV4(
           // are instances, not types. Drop the row on import (don't
           // surface it on the v4 node) and log a warning so legacy
           // fixtures with stray ObjectMethod elements are visible.
-          console.warn(
+          log.warn(
             `[versionConverter] Dropping legacy ObjectMethod ${childElement.id} ` +
               `under ObjectName ${element.id}; object instances do not carry methods.`
           )
@@ -1212,8 +1215,8 @@ function convertV3NodeDataToV4(
       }
       const bpmnTaskData: BPMNTaskProps = {
         ...baseData,
-        taskType: (element.taskType as any) || "default",
-        marker: (element.marker as any) || "none",
+        taskType: (element.taskType as BPMNTaskProps["taskType"]) || "default",
+        marker: (element.marker as BPMNTaskProps["marker"]) || "none",
         ...(e.isAgentic !== undefined && { isAgentic: e.isAgentic }),
         ...(e.reflectionMode !== undefined && {
           reflectionMode: e.reflectionMode,
@@ -1238,7 +1241,7 @@ function convertV3NodeDataToV4(
       }
       const bpmnGatewayData: BPMNGatewayProps = {
         ...baseData,
-        gatewayType: (element.gatewayType as any) || "exclusive",
+        gatewayType: (element.gatewayType as BPMNGatewayProps["gatewayType"]) || "exclusive",
         ...(e.isAgentic !== undefined && { isAgentic: e.isAgentic }),
         ...(e.gatewayRole !== undefined && { gatewayRole: e.gatewayRole }),
         ...(e.trustScore !== undefined && { trustScore: e.trustScore }),
@@ -1274,7 +1277,7 @@ function convertV3NodeDataToV4(
     case "BPMNStartEvent": {
       const bpmnStartEventData: BPMNEventProps = {
         ...baseData,
-        eventType: (element.eventType as any) || "default",
+        eventType: (element.eventType as BPMNEventProps["eventType"]) || "default",
       }
       return bpmnStartEventData
     }
@@ -1282,7 +1285,7 @@ function convertV3NodeDataToV4(
     case "BPMNIntermediateEvent": {
       const bpmnIntermediateEventData: BPMNEventProps = {
         ...baseData,
-        eventType: (element.eventType as any) || "default",
+        eventType: (element.eventType as BPMNEventProps["eventType"]) || "default",
       }
       return bpmnIntermediateEventData
     }
@@ -1290,7 +1293,7 @@ function convertV3NodeDataToV4(
     case "BPMNEndEvent": {
       const bpmnEndEventData: BPMNEventProps = {
         ...baseData,
-        eventType: (element.eventType as any) || "default",
+        eventType: (element.eventType as BPMNEventProps["eventType"]) || "default",
       }
       return bpmnEndEventData
     }
@@ -2141,7 +2144,7 @@ function convertV3ElementToV4Node(
 
   const baseNode: BesserNode = {
     id: element.id,
-    type: nodeType as any,
+    type: nodeType as BesserNode["type"],
     position: normalizedGeometry.position,
     width: normalizedGeometry.width,
     height: normalizedGeometry.height,
@@ -2283,7 +2286,7 @@ export function liftAgentTransitionDataToV4(
 
   if (isCustom) {
     // Resolve event + conditions from the various legacy locations.
-    let event: string =
+    const event: string =
       r.custom?.event ||
       r.event ||
       r.customEvent ||
@@ -2518,7 +2521,7 @@ function convertV3RelationshipToV4Edge(
     id: relationship.id,
     source: relationship.source.element,
     target: relationship.target.element,
-    type: edgeType as any,
+    type: edgeType as BesserEdge["type"],
     sourceHandle: convertV3HandleToV4(relationship.source.direction || ""),
     targetHandle: convertV3HandleToV4(relationship.target.direction || ""),
     data: {
@@ -2590,7 +2593,7 @@ function convertV3RelationshipToV4Edge(
 function convertV3AssessmentToV4(v3Assessment: V3Assessment): Assessment {
   return {
     modelElementId: v3Assessment.modelElementId,
-    elementType: v3Assessment.elementType as any, // This needs proper typing
+    elementType: v3Assessment.elementType,
     score: v3Assessment.score,
     ...(v3Assessment.feedback && { feedback: v3Assessment.feedback }),
     ...(v3Assessment.dropInfo && { dropInfo: v3Assessment.dropInfo }),
@@ -2866,7 +2869,9 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
 /**
  * Check if data is in v3 format
  */
-export function isV3Format(data: any): data is V3DiagramFormat {
+export function isV3Format(input: unknown): input is V3DiagramFormat {
+  type LooseV3 = { version?: unknown; elements?: unknown; relationships?: unknown }
+  const data = input as (LooseV3 & { model?: LooseV3 }) | null | undefined
   // Accept both wrapped ({ id, title, model: V3UMLModel }) and flat V3 model
   const wrapped =
     data &&
@@ -2895,10 +2900,11 @@ export function isV3Format(data: any): data is V3DiagramFormat {
 /**
  * Check if data is in v4 format
  */
-export function isV4Format(data: any): data is UMLModel {
-  return (
+export function isV4Format(input: unknown): input is UMLModel {
+  const data = input as Partial<UMLModel> | null | undefined
+  return !!(
     data &&
-    data.version &&
+    typeof data.version === "string" &&
     data.version.startsWith("4.") &&
     Array.isArray(data.nodes) &&
     Array.isArray(data.edges)
@@ -5452,7 +5458,10 @@ function normalizeStateBodyNodesInline(model: UMLModel): UMLModel {
   })
   if (bodyChildren.length === 0) return model
 
-  const parentOf: Record<string, { bodies: any[]; fallbackBodies: any[] }> = {}
+  const parentOf: Record<string, {
+    bodies: { id: string; name: string }[]
+    fallbackBodies: { id: string; name: string }[]
+  }> = {}
   for (const child of bodyChildren) {
     const pid = (child as { parentId?: string }).parentId
     if (!pid) continue
@@ -5552,7 +5561,7 @@ function normalizeAgentBodyKindToArrays(model: UMLModel): UMLModel {
 /**
  * Universal import function that handles v2, v3 and v4 formats
  */
-export function importDiagram(data: any | V3UMLModel): UMLModel {
+export function importDiagram(data: unknown): UMLModel {
   if (isV4Format(data)) {
     // Normalise v4 input on load.
     // Templates that ship `version: "4.0.0"` but the legacy
@@ -5574,9 +5583,10 @@ export function importDiagram(data: any | V3UMLModel): UMLModel {
     return normalizeV4Model(convertV2ToV4(data))
   }
 
-  if (data.model) {
+  const wrapper = data as { model?: unknown } | null | undefined
+  if (wrapper?.model) {
     //playground
-    return importDiagram(data.model)
+    return importDiagram(wrapper.model)
   }
 
   throw new Error(

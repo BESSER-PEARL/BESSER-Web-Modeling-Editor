@@ -14,6 +14,7 @@
  *  - PC-4: stereotype band, classId hierarchy hint, visibility leak.
  */
 import { describe, it, expect, vi } from "vitest"
+import { log } from "@/logger"
 import {
   migrateObjectDiagramV3ToV4,
   convertV4ToV3Class,
@@ -274,11 +275,8 @@ describe("ObjectDiagram v3 → v4 round-trip", () => {
       relationships: {},
     } as never
 
-    // Silence the expected warning — we surface it for visibility, not
-    // as a test failure signal.
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined)
+    // The migrator reports the drop through the library logger.
+    const warnSpy = vi.spyOn(log, "warn").mockImplementation(() => undefined)
 
     const v4 = migrateObjectDiagramV3ToV4(v3Fixture)
 
