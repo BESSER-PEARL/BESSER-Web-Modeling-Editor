@@ -52,6 +52,43 @@ export const clampTrustScore = (n: number): number =>
 export const clampMultiplicity = (n: number): number =>
   Math.max(1, Math.round(n))
 
+/**
+ * Parse a typed trust score as develop does: NaN -> 0, then clamp to 0-100,
+ * so a negative entry such as "-5" stores 0.
+ */
+export const parseTrustScore = (value: string): number => {
+  const parsed = Number.parseInt(value, 10)
+  return clampTrustScore(Number.isFinite(parsed) ? parsed : 0)
+}
+
+/** Parse typed lane copies as develop does: NaN -> 1, at least 1. */
+export const parseLaneCopies = (value: string): number => {
+  const parsed = Number.parseInt(value, 10)
+  return clampMultiplicity(Number.isFinite(parsed) ? parsed : 1)
+}
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  const n =
+    typeof value === "number" || typeof value === "string" ? Number(value) : Number.NaN
+  return Number.isFinite(n) ? n : undefined
+}
+
+/**
+ * Stored trust score as shown on the canvas and in the inspector: clamped to
+ * 0-100 like develop's deserialize, so an imported out-of-range value (e.g.
+ * 150) never shows raw. Missing or non-numeric -> 0.
+ */
+export const displayTrustScore = (value: unknown): number => {
+  const n = toFiniteNumber(value)
+  return n === undefined ? 0 : clampTrustScore(n)
+}
+
+/** Stored lane copies as shown: at least 1; missing or non-numeric -> 1. */
+export const displayLaneCopies = (value: unknown): number => {
+  const n = toFiniteNumber(value)
+  return n === undefined ? 1 : clampMultiplicity(n)
+}
+
 // Agentic BPMN — gateway role. The diverging-vs-merging split classifies an
 // agentic gateway and drives the governance section on the merging side.
 export type BPMNGatewayRole = "diverging" | "merging"

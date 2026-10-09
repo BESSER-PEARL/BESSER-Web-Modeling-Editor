@@ -48,10 +48,21 @@ const TYPE_ALIASES: Record<string, string> = {
   activityForkNodeHorizontal: "ActivityDiagram.ActivityForkNode",
   reachabilityGraphMarking: "ReachabilityGraph.ReachabilityGraphMarking",
   bpmnSwimlane: "BPMNDiagram.BPMNSwimlane",
+  bpmnDataStore: "BPMNDiagram.BPMNDataStore",
+  componentSubsystem: "ComponentDiagram.Subsystem",
 }
 
-export const formatTypeName = (type: string): string =>
-  type.replace(/([A-Z])/g, " $1").trim()
+/**
+ * English fallback: `bpmnDataStore` -> `Data Store`, `componentSubsystem`
+ * -> `Component Subsystem` (no lowercase lead word, no `bpmn` prefix).
+ */
+export const formatTypeName = (type: string): string => {
+  const words = type
+    .replace(/^bpmn(?=[A-Z])/, "")
+    .replace(/([A-Z])/g, " $1")
+    .trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
 
 /** `bpmnTask` → `BPMNTask`, `activityActionNode` → `ActivityActionNode`. */
 const toV3TypeName = (type: string): string => {

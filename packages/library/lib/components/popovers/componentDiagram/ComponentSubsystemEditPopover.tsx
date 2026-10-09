@@ -4,7 +4,6 @@ import { PopoverProps } from "../types"
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
 import { HeaderSwitchElement, TextField } from "@/components/ui"
-import { LineageSourceLink } from "@/components/inspectors/shared"
 import { DEFAULT_SUBSYSTEM_STEREOTYPE } from "@/nodes/componentDiagram/stereotypeDefaults"
 import { useTranslation } from "@/i18n"
 
@@ -64,7 +63,6 @@ export const ComponentSubsystemEditPopover: React.FC<PopoverProps> = ({
         fullWidth
         sx={{ mt: 1.5 }}
       />
-      <LineageSourceLink elementId={elementId} />
     </DefaultNodeEditPopover>
   )
 }

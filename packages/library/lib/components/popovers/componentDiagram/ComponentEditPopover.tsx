@@ -5,22 +5,13 @@ import { PopoverProps } from "../types"
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
 import { HeaderSwitchElement } from "@/components"
-import {
-  ElementPickerField,
-  LineageSourceLink,
-  PresetField,
-} from "@/components/inspectors/shared"
+import { ElementPickerField, PresetField } from "@/components/inspectors/shared"
 import { COMPONENT_STEREOTYPE_PRESETS } from "@/utils/agenticTokens"
 import { DEFAULT_COMPONENT_STEREOTYPE } from "@/nodes/componentDiagram/stereotypeDefaults"
 import { useTranslation } from "@/i18n"
 
-/** Class-like targets a component can realize (v3 element type tokens). */
-const REALIZES_TYPE_TOKENS = [
-  "Class",
-  "AbstractClass",
-  "Interface",
-  "Enumeration",
-]
+/** A component realizes classes (the v4 node type also covers interfaces and enumerations). */
+const REALIZES_TYPE_TOKENS = ["class"]
 
 export const ComponentEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -80,7 +71,6 @@ export const ComponentEditPopover: React.FC<PopoverProps> = ({
           onChange={(realizes) => update({ realizes })}
         />
       </Box>
-      <LineageSourceLink elementId={elementId} />
     </DefaultNodeEditPopover>
   )
 }

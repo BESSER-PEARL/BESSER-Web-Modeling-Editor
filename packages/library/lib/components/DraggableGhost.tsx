@@ -368,7 +368,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         type: dropData.type,
         // Children of a BPMN lane stay out of its header strip.
-        position: clampIntoLaneBody({ ...position }, parentNode?.type),
+        position: clampIntoLaneBody({ ...position }, parentNode),
         data: { ...defaultData, ...dropData.data },
         parentId: parentId,
         measured: {

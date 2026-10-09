@@ -93,6 +93,10 @@ import {
   NNReferenceSVG,
 } from "@/components/svgs/nodes/nnDiagram"
 import { DiagramNodeType } from "@/nodes"
+import {
+  DEFAULT_COMPONENT_STEREOTYPE,
+  DEFAULT_SUBSYSTEM_STEREOTYPE,
+} from "@/nodes/componentDiagram/stereotypeDefaults"
 import { ClassType, UMLDiagramType } from "@/types"
 import { settingsService } from "@/services/settingsService"
 import { v4 as uuidv4 } from "uuid"
@@ -219,7 +223,6 @@ export const EDGES = Object.freeze({
 /* -------------------------------------------------------------------------- */
 export const ZINDEX = Object.freeze({
   BASE: 0,
-  HEADER_SWITCH: 1,
   DRAGGABLE_GHOST: 2,
   MINIMAP: 5,
   PANEL: 10,
@@ -655,14 +658,22 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       type: "component",
       width: 180,
       height: 120,
-      defaultData: { name: "Component", isComponentHeaderShown: true },
+      defaultData: {
+        name: "Component",
+        isComponentHeaderShown: true,
+        stereotype: DEFAULT_COMPONENT_STEREOTYPE,
+      },
       svg: ComponentNodeSVG,
     },
     {
       type: "componentSubsystem",
       width: 180,
       height: 120,
-      defaultData: { name: "Subsystem", isComponentSubsystemHeaderShown: true },
+      defaultData: {
+        name: "Subsystem",
+        isComponentSubsystemHeaderShown: true,
+        stereotype: DEFAULT_SUBSYSTEM_STEREOTYPE,
+      },
       svg: ComponentSubsystemNodeSVG,
     },
     {
@@ -690,7 +701,11 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       type: "deploymentComponent",
       width: 160,
       height: 100,
-      defaultData: { name: "Deployment Component", isComponentHeaderShown: true },
+      defaultData: {
+        name: "Deployment Component",
+        isComponentHeaderShown: true,
+        stereotype: DEFAULT_COMPONENT_STEREOTYPE,
+      },
       svg: DeploymentComponentSVG,
     },
     {
@@ -1480,5 +1495,6 @@ export const CommentConfig: DropElementConfig = Object.freeze({
   width: 160,
   height: 60,
   defaultData: { name: "Comment" },
+  nameKey: "packages.Comment.placeholder",
   svg: CommentPaletteSVG,
 })

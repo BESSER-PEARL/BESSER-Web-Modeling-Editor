@@ -9,48 +9,56 @@ import {
   RowActionButton,
   TrashIcon,
 } from "@/components/inspectors/_shared"
-import { AGENTIC_LANE_HEADER_WIDTH } from "@/components/svgs/nodes/bpmnDiagram/BPMNSwimlaneNodeSVG"
+import { AGENTIC_LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
 import { useDiagramStore, useMetadataStore, usePopoverStore } from "@/store/context"
 import { BPMNSwimlaneProps } from "@/types"
 import {
   clampMultiplicity,
   clampTrustScore,
+  displayLaneCopies,
+  displayTrustScore,
   migrateLegacyRole,
+  parseLaneCopies,
+  parseTrustScore,
 } from "@/types/bpmnAgentic"
 import { useTranslation } from "@/i18n"
 import { PopoverProps } from "../types"
 import { lanesOf, removePoolLane, swapPoolLanes } from "./poolLanes"
-import { parseTrustScore } from "./BPMNTaskEditPopover"
+import { stashAgenticFields, stashedAgenticFields } from "./agenticStash"
+
+/** Lane keys that exist only while "Agentic" is on. */
+export const LANE_AGENTIC_KEYS = ["role", "trustScore", "multiplicity"] as const
 
 /**
  * Switch "Agentic" on or off for a lane. Off drops every agentic key except
  * `agentDiagramRef`, so a plain lane's JSON carries none (develop 52ae1c89).
- * On fills develop's defaults and moves children out of the wider agentic
+ * On restores `previous` (the values it had when switched off), otherwise
+ * fills develop's defaults, and moves children out of the wider agentic
  * header so its marker column stays readable.
  */
 export const setLaneAgentic = <N extends Node>(
   nodes: N[],
   laneId: string,
-  isAgentic: boolean
+  isAgentic: boolean,
+  previous: Partial<BPMNSwimlaneProps> = {}
 ): N[] =>
   nodes.map((n) => {
     if (n.id === laneId) {
       const data = { ...(n.data as BPMNSwimlaneProps) }
       if (!isAgentic) {
         delete data.isAgentic
-        delete data.role
-        delete data.trustScore
-        delete data.multiplicity
+        for (const key of LANE_AGENTIC_KEYS) delete data[key]
         return { ...n, data }
       }
+      const merged = { ...previous, ...data }
       return {
         ...n,
         data: {
-          ...data,
+          ...merged,
           isAgentic: true,
-          role: migrateLegacyRole(data.role),
-          trustScore: clampTrustScore(data.trustScore ?? 0),
-          multiplicity: clampMultiplicity(data.multiplicity ?? 1),
+          role: migrateLegacyRole(merged.role),
+          trustScore: clampTrustScore(merged.trustScore ?? 0),
+          multiplicity: clampMultiplicity(merged.multiplicity ?? 1),
         },
       }
     }
@@ -70,12 +78,6 @@ export const displayLaneRole = (role: unknown): string => {
   if (role.trim() === "") return role
   const migrated = migrateLegacyRole(role)
   return migrated === role.trim() ? role : migrated
-}
-
-/** Parse typed copies as develop does: NaN -> 1, at least 1. */
-export const parseMultiplicity = (value: string): number => {
-  const parsed = Number.parseInt(value, 10)
-  return clampMultiplicity(Number.isFinite(parsed) ? parsed : 1)
 }
 
 /**
@@ -155,9 +157,12 @@ export const BPMNSwimlaneEditPopover: React.FC<PopoverProps> = ({ elementId }) =
               <Switch
                 size="small"
                 checked={data.isAgentic === true}
-                onChange={(_, checked) =>
-                  setNodes((ns) => setLaneAgentic(ns, elementId, checked))
-                }
+                onChange={(_, checked) => {
+                  if (!checked) stashAgenticFields(elementId, data, LANE_AGENTIC_KEYS)
+                  setNodes((ns) =>
+                    setLaneAgentic(ns, elementId, checked, stashedAgenticFields(elementId))
+                  )
+                }}
               />
             }
             label={t("packages.BPMNDiagram.BPMNAgentic", "Agentic")}
@@ -187,7 +192,7 @@ export const BPMNSwimlaneEditPopover: React.FC<PopoverProps> = ({ elementId }) =
             size="small"
             fullWidth
             label={t("packages.BPMNDiagram.BPMNTrustScore", "Trust score (0-100)")}
-            value={String(data.trustScore ?? 0)}
+            value={String(displayTrustScore(data.trustScore))}
             onChange={(e) => setField({ trustScore: parseTrustScore(e.target.value) })}
             slotProps={{ htmlInput: { inputMode: "numeric" } }}
           />
@@ -195,8 +200,8 @@ export const BPMNSwimlaneEditPopover: React.FC<PopoverProps> = ({ elementId }) =
             size="small"
             fullWidth
             label={t("packages.BPMNDiagram.BPMNMultiplicity", "Copies (≥1)")}
-            value={String(data.multiplicity ?? 1)}
-            onChange={(e) => setField({ multiplicity: parseMultiplicity(e.target.value) })}
+            value={String(displayLaneCopies(data.multiplicity))}
+            onChange={(e) => setField({ multiplicity: parseLaneCopies(e.target.value) })}
             slotProps={{ htmlInput: { inputMode: "numeric" } }}
           />
           <AgentDiagramLinkSection

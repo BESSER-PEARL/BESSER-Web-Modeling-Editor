@@ -211,7 +211,7 @@ export function adoptBpmnContainment(model: UMLModel): UMLModel {
     const pRect = absRect(parent)
     const position = clampIntoLaneBody(
       { x: rect.x - pRect.x, y: rect.y - pRect.y },
-      parent.type as string
+      parent
     )
     return { ...node, parentId: parent.id, position }
   })

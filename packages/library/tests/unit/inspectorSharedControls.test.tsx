@@ -10,6 +10,7 @@ import {
   type LineageProvider,
 } from "@/components/hostProviders/contexts"
 import { HostProviderSlot, type HostProviderContext } from "@/components/hostProviders/hostProvider"
+import { log } from "@/logger"
 import {
   AgentDiagramLinkSection,
   ElementPickerField,
@@ -120,7 +121,7 @@ describe("AgentDiagramLinkSection", () => {
   })
 
   it("suggests the default title for an unnamed lane and survives a host failure", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    const error = vi.spyOn(log, "error").mockImplementation(() => {})
     const l = linker(false, async () => {
       throw new Error("boom")
     })

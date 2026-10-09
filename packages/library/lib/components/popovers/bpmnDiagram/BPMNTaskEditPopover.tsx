@@ -21,32 +21,46 @@ import {
   BPMNTaskProps,
   BPMNTaskType,
 } from "@/types"
-import { BPMNReflectionMode, clampTrustScore } from "@/types/bpmnAgentic"
+import {
+  BPMNReflectionMode,
+  clampTrustScore,
+  displayTrustScore,
+  parseTrustScore,
+} from "@/types/bpmnAgentic"
 import { supportsMultilineName } from "@/utils/nodeUtils"
 import { useTranslation } from "@/i18n"
+import { stashAgenticFields, stashedAgenticFields } from "./agenticStash"
+
+/** Task keys that exist only while "Agentic" is on. */
+export const TASK_AGENTIC_KEYS = [
+  "reflectionMode",
+  "trustScore",
+  "reflectionReviewerLaneId",
+] as const
 
 /**
  * Data of a task with "Agentic" switched on or off. Off drops every agentic
  * key except `agentDiagramRef`, so a plain task's JSON carries none (develop
- * 52ae1c89); on fills develop's defaults.
+ * 52ae1c89); on restores `previous` (the values it had when switched off)
+ * and otherwise fills develop's defaults.
  */
 export const withTaskAgentic = (
   data: BPMNTaskProps,
-  isAgentic: boolean
+  isAgentic: boolean,
+  previous: Partial<BPMNTaskProps> = {}
 ): BPMNTaskProps => {
   if (!isAgentic) {
     const rest: BPMNTaskProps = { ...data }
     delete rest.isAgentic
-    delete rest.reflectionMode
-    delete rest.trustScore
-    delete rest.reflectionReviewerLaneId
+    for (const key of TASK_AGENTIC_KEYS) delete rest[key]
     return rest
   }
+  const merged = { ...previous, ...data }
   return {
-    ...data,
+    ...merged,
     isAgentic: true,
-    reflectionMode: data.reflectionMode ?? "none",
-    trustScore: clampTrustScore(data.trustScore ?? 0),
+    reflectionMode: merged.reflectionMode ?? "none",
+    trustScore: clampTrustScore(merged.trustScore ?? 0),
   }
 }
 
@@ -72,12 +86,6 @@ export const patchTask = <N extends Node>(
       measured: { ...n.measured, height: minHeight },
     }
   })
-
-/** Parse a typed trust score as develop does: NaN -> 0, clamped to 0-100. */
-export const parseTrustScore = (value: string): number => {
-  const parsed = Number.parseInt(value, 10)
-  return clampTrustScore(Number.isFinite(parsed) ? parsed : 0)
-}
 
 const REFLECTION_MODES: { value: BPMNReflectionMode; key: string; fallback: string }[] = [
   { value: "none", key: "BPMNReflectionNone", fallback: "No reflection" },
@@ -190,9 +198,12 @@ export const BPMNTaskEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
               <Switch
                 size="small"
                 checked={data.isAgentic === true}
-                onChange={(_, checked) =>
-                  update((d) => withTaskAgentic(d, checked))
-                }
+                onChange={(_, checked) => {
+                  if (!checked) stashAgenticFields(elementId, data, TASK_AGENTIC_KEYS)
+                  update((d) =>
+                    withTaskAgentic(d, checked, stashedAgenticFields(elementId))
+                  )
+                }}
               />
             }
             label={t("packages.BPMNDiagram.BPMNAgentic", "Agentic")}
@@ -246,7 +257,7 @@ export const BPMNTaskEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
             size="small"
             fullWidth
             label={t("packages.BPMNDiagram.BPMNTrustScore", "Trust score (0-100)")}
-            value={String(data.trustScore ?? 0)}
+            value={String(displayTrustScore(data.trustScore))}
             onChange={(e) => setField({ trustScore: parseTrustScore(e.target.value) })}
             slotProps={{ htmlInput: { inputMode: "numeric" } }}
           />

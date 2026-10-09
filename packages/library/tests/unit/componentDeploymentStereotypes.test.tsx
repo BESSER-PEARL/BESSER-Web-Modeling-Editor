@@ -229,7 +229,7 @@ describe("component inspector", () => {
       withProviders(<ComponentEditPopover elementId="c1" />, picker, lineage),
       [componentNode({ realizes: ["cls-1"] })]
     )
-    expect(picker.listElements).toHaveBeenCalledWith(["Class", "AbstractClass", "Interface", "Enumeration"])
+    expect(picker.listElements).toHaveBeenCalledWith(["class"])
     expect(screen.getByText("Issue — Domain")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Remove Issue — Domain" }))
     expect(nodeData(diagram).realizes).toEqual([])

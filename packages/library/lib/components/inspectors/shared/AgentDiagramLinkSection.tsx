@@ -3,6 +3,7 @@ import { Button } from "@mui/material"
 import { DividerLine } from "@/components/ui"
 import { useAgentDiagramLinker } from "@/components/hostProviders/contexts"
 import { useTranslation } from "@/i18n"
+import { log } from "@/logger"
 
 export interface AgentDiagramLinkSectionProps {
   /** Id of the agentic BPMN lane or task. */
@@ -41,7 +42,7 @@ export const AgentDiagramLinkSection: React.FC<AgentDiagramLinkSectionProps> = (
         laneId
       )
     } catch (error) {
-      console.error("[agent-diagram-linker] defining the agent diagram failed:", error)
+      log.error("[agent-diagram-linker] defining the agent diagram failed:", error)
     } finally {
       setPending(false)
     }

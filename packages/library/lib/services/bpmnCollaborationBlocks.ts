@@ -8,7 +8,7 @@
  * agentic attributes live on `node.data` (`isAgentic`, `gatewayRole`, `role`,
  * `trustScore`); a node's lane is its `parentId`.
  */
-import type { BesserEdge, BesserNode, UMLModel } from "@/typings"
+import type { BesserNode } from "@/typings"
 import type { BPMNGatewayType } from "@/types"
 import { isSupervisorRole } from "@/types/bpmnAgentic"
 
@@ -25,17 +25,33 @@ type AgenticData = {
   trustScore?: number
 }
 
-const dataOf = (node: BesserNode | undefined): AgenticData =>
+/**
+ * What the walkers read: a stored model or the live React Flow graph (whose
+ * nodes have optional sizes), so the inspector passes its store as is.
+ */
+type FlowNode = {
+  id: string
+  type?: string
+  parentId?: string
+  data?: Record<string, unknown>
+}
+type FlowEdge = { source: string; target: string; type?: string }
+export type CollaborationGraph<N extends FlowNode = BesserNode> = {
+  nodes?: readonly N[]
+  edges?: readonly FlowEdge[]
+}
+
+const dataOf = (node: FlowNode | undefined): AgenticData =>
   (node?.data ?? {}) as AgenticData
 
-const isAgenticGateway = (node: BesserNode | undefined, role: string) =>
+const isAgenticGateway = (node: FlowNode | undefined, role: string) =>
   node?.type === "bpmnGateway" &&
   dataOf(node).isAgentic === true &&
   dataOf(node).gatewayRole === role
 
-const isSequenceFlow = (edge: BesserEdge) => edge.type === "BPMNSequenceFlow"
+const isSequenceFlow = (edge: FlowEdge) => edge.type === "BPMNSequenceFlow"
 
-const nodeIndex = (model: UMLModel): Map<string, BesserNode> =>
+const nodeIndex = <N extends FlowNode>(model: CollaborationGraph<N>): Map<string, N> =>
   new Map((model.nodes ?? []).map((n) => [n.id, n]))
 
 // Max BFS depth — guards against degenerate flow graphs. Typical BPMN
@@ -51,8 +67,8 @@ const MAX_COLLAB_WALK_DEPTH = 50
  */
 function findUpstreamDivergingGatewayId(
   elementId: string,
-  model: UMLModel,
-  nodes: Map<string, BesserNode>,
+  model: CollaborationGraph<FlowNode>,
+  nodes: Map<string, FlowNode>,
   visited: Set<string> = new Set()
 ): string | undefined {
   let frontier: string[] = [elementId]
@@ -98,8 +114,8 @@ function findUpstreamDivergingGatewayId(
  */
 function findPairedMergingGatewayId(
   divergingGatewayId: string,
-  model: UMLModel,
-  nodes: Map<string, BesserNode>,
+  model: CollaborationGraph<FlowNode>,
+  nodes: Map<string, FlowNode>,
   visited: Set<string> = new Set()
 ): string | undefined {
   let frontier: string[] = [divergingGatewayId]
@@ -137,10 +153,10 @@ function findPairedMergingGatewayId(
  * The nearest *enclosing* agentic diverging gateway of `elementId`, walking
  * back via incoming sequence flows; handles nested collaboration blocks.
  */
-export function resolveUpstreamDivergingGateway(
+export function resolveUpstreamDivergingGateway<N extends FlowNode>(
   elementId: string,
-  model: UMLModel
-): BesserNode | undefined {
+  model: CollaborationGraph<N>
+): N | undefined {
   const nodes = nodeIndex(model)
   const id = findUpstreamDivergingGatewayId(elementId, model, nodes)
   return id === undefined ? undefined : nodes.get(id)
@@ -154,7 +170,7 @@ export function resolveUpstreamDivergingGateway(
  */
 export function findDownstreamAgenticConstructs(
   divergingGatewayId: string,
-  model: UMLModel
+  model: CollaborationGraph<FlowNode>
 ): { taskIds: string[]; mergingGatewayIds: string[] } {
   const nodes = nodeIndex(model)
   const visited = new Set<string>([divergingGatewayId])
@@ -194,7 +210,9 @@ export function findDownstreamAgenticConstructs(
 }
 
 /** Ids of agentic merging gateways that have no upstream diverging gateway. */
-export function findOrphanedMergingGateways(model: UMLModel): string[] {
+export function findOrphanedMergingGateways(
+  model: CollaborationGraph<FlowNode>
+): string[] {
   return (model.nodes ?? [])
     .filter((node) => isAgenticGateway(node, "merging"))
     .filter((node) => resolveUpstreamDivergingGateway(node.id, model) === undefined)
@@ -247,7 +265,7 @@ const policyRatio = (policyType: GovPolicyType): number | undefined =>
  */
 export function generateGovernanceDsl(
   mergingGatewayId: string,
-  model: UMLModel,
+  model: CollaborationGraph<FlowNode>,
   policyType: GovPolicyType
 ): string {
   const nodes = nodeIndex(model)
@@ -265,8 +283,8 @@ export function generateGovernanceDsl(
 
   // Participants = the agentic lanes of the block. Lane-level isAgentic is
   // what counts: a plain task inside an agentic lane is a valid participant.
-  const lanes = new Map<string, BesserNode>()
-  const addLaneOf = (node: BesserNode | undefined) => {
+  const lanes = new Map<string, FlowNode>()
+  const addLaneOf = (node: FlowNode | undefined) => {
     const lane = node?.parentId ? nodes.get(node.parentId) : undefined
     if (lane && dataOf(lane).isAgentic) lanes.set(lane.id, lane)
   }

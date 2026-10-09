@@ -103,6 +103,7 @@ export const Sidebar = () => {
   // it's empty (the `dropElementConfigs[diagramType].map(...)` loop
   // naturally renders nothing in that case) and keep the Comment block.
   const diagramPaletteConfigs = dropElementConfigs[diagramType] ?? []
+  const commentPreviewData = resolvePaletteDefaultData(CommentConfig, locale)
 
   return (
     <div
@@ -280,8 +281,8 @@ export const Sidebar = () => {
                 {React.createElement(CommentConfig.svg, {
                   width: CommentConfig.width,
                   height: CommentConfig.height,
-                  ...CommentConfig.defaultData,
-                  data: CommentConfig.defaultData,
+                  ...commentPreviewData,
+                  data: commentPreviewData,
                   SIDEBAR_PREVIEW_SCALE: DROPS.SIDEBAR_PREVIEW_SCALE,
                   id: "sidebarElement_Comment",
                 })}

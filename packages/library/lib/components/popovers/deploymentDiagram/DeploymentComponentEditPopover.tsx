@@ -5,7 +5,7 @@ import { useShallow } from "zustand/shallow"
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
 import { PopoverProps } from "../types"
 import { HeaderSwitchElement } from "@/components"
-import { LineageSourceLink, PresetField } from "@/components/inspectors/shared"
+import { PresetField } from "@/components/inspectors/shared"
 import { COMPONENT_STEREOTYPE_PRESETS } from "@/utils/agenticTokens"
 import { DEFAULT_COMPONENT_STEREOTYPE } from "@/nodes/componentDiagram/stereotypeDefaults"
 import { useTranslation } from "@/i18n"
@@ -60,7 +60,6 @@ export const DeploymentComponentEditPopover: React.FC<PopoverProps> = ({
           )}
         />
       </Box>
-      <LineageSourceLink elementId={elementId} />
     </DefaultNodeEditPopover>
   )
 }

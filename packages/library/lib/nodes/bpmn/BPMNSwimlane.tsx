@@ -11,10 +11,9 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNSwimlaneProps } from "@/types"
 import { BPMNSwimlaneNodeSVG } from "@/components"
-import { AGENTIC_LANE_HEADER_WIDTH } from "@/components/svgs/nodes/bpmnDiagram/BPMNSwimlaneNodeSVG"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { useSwimlaneLayout, SWIMLANE_MIN_HEIGHT } from "@/hooks/useSwimlaneLayout"
-import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
+import { AGENTIC_LANE_HEADER_WIDTH, LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
 
 /**
  * A pool's swimlanes are React-Flow CHILD nodes of the pool, and React Flow

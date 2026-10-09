@@ -72,12 +72,12 @@ export const ObjectNameSVG = ({
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
 
   // Respect the global icon-view toggle (settingsService key
-  // `showIconView`). When enabled and the node has a stored icon body,
-  // we render an icon view (header + inline SVG) instead of the
-  // attributes table — mirrors v3 `uml-object-name.ts:146-204`.
-  const showIconView = useSettingsStore((s) => s.showIconView)
+  // `showIconView`). When enabled, the card shows its header and the stored
+  // icon (if any) instead of the attributes table — develop's icon view hid
+  // the rows even for objects whose class has no icon
+  // (`uml-object-name-component.tsx` renderIconView).
+  const iconViewActive = useSettingsStore((s) => s.showIconView)
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
-  const iconViewActive = showIconView && hasIcon
 
   // `showInstancedObjects` is a *palette composition*
   // toggle in v3 (`object-preview.ts` gates which cards the sidebar
@@ -146,6 +146,13 @@ export const ObjectNameSVG = ({
 
         {/* Icon view replaces attributes/methods sections. */}
         {iconViewActive && (
+          <SeparationLine
+            y={headerHeight}
+            width={width}
+            strokeColor={strokeColor}
+          />
+        )}
+        {iconViewActive && hasIcon && (
           <IconImage
             icon={icon as string}
             x={0}

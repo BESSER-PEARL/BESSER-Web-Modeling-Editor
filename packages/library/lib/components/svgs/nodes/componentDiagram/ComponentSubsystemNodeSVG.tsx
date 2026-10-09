@@ -15,6 +15,9 @@ interface Props extends SVGComponentProps {
 // Component-icon variant reserves ~32 px on the right for the icon; add the
 // usual left/right padding so the wrapped name doesn't crowd either side.
 const SUBSYSTEM_SIDE_RESERVE = 48
+// Develop's subsystem header line (y = 25) keeps the name above children
+// laid out from the top of the body.
+const SUBSYSTEM_HEADER_Y = 25
 
 export const ComponentSubsystemNodeSVG: React.FC<Props> = ({
   id,
@@ -77,6 +80,7 @@ export const ComponentSubsystemNodeSVG: React.FC<Props> = ({
           height={height}
           sideReserve={SUBSYSTEM_SIDE_RESERVE}
           verticalAnchor="top"
+          topAnchorY={SUBSYSTEM_HEADER_Y}
           fill={textColor}
         />
       </g>

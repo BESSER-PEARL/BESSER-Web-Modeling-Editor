@@ -53,6 +53,10 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
   ]
 
   const edgeData = edge.data as CustomEdgeProps | undefined
+  // Quarter / three-quarter sockets are render variants of a required interface.
+  const selectedEdgeType = edge.type?.startsWith("ComponentRequired")
+    ? "ComponentRequiredInterface"
+    : edge.type
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -81,7 +85,7 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
         <Select
           labelId="edge-type-label"
           id="edge-type-select"
-          value={edge.type}
+          value={selectedEdgeType}
           label={t("common.edgeType", "Edge Type")}
           onChange={(e) => handleEdgeTypeChange(e.target.value)}
         >

@@ -98,19 +98,28 @@ const NN_LAYER_KINDS_IN_CONTAINER: ReadonlySet<string> = new Set([
  */
 export const LANE_HEADER_WIDTH = 30
 
+/** Header width of an agentic lane: the name strip plus a marker column. */
+export const AGENTIC_LANE_HEADER_WIDTH = 60
+
+type LaneParent = { type?: string; data?: Record<string, unknown> }
+
 /**
  * Keep a child of a `bpmnSwimlane` out of the lane's header strip: returns
- * the (lane-relative) position with `x` clamped to the lane body. Any other
- * parent type returns the position unchanged (same reference).
+ * the (lane-relative) position with `x` clamped to the lane body. Pass the
+ * parent node so an agentic lane's wider header counts; a bare type string
+ * clamps to the plain header. Any other parent type returns the position
+ * unchanged (same reference).
  */
 export const clampIntoLaneBody = <P extends { x: number; y: number }>(
   position: P,
-  parentType: string | undefined
+  parent: string | LaneParent | undefined
 ): P => {
-  if (parentType !== "bpmnSwimlane" || position.x >= LANE_HEADER_WIDTH) {
-    return position
-  }
-  return { ...position, x: LANE_HEADER_WIDTH }
+  const lane = typeof parent === "string" ? { type: parent } : parent
+  if (lane?.type !== "bpmnSwimlane") return position
+  const headerWidth =
+    lane.data?.isAgentic === true ? AGENTIC_LANE_HEADER_WIDTH : LANE_HEADER_WIDTH
+  if (position.x >= headerWidth) return position
+  return { ...position, x: headerWidth }
 }
 
 /**

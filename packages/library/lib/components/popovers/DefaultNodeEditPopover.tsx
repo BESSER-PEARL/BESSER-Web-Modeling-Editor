@@ -3,6 +3,7 @@ import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { PopoverProps } from "./types"
 import { NodeStyleEditor } from "../ui"
+import { LineageSourceLink } from "@/components/inspectors/shared"
 import { rendersNameLabel, supportsMultilineName } from "@/utils/nodeUtils"
 
 export const DefaultNodeEditPopover: React.FC<PopoverProps> = ({
@@ -59,6 +60,7 @@ export const DefaultNodeEditPopover: React.FC<PopoverProps> = ({
       />
 
       {children}
+      <LineageSourceLink elementId={elementId} />
     </div>
   )
 }

@@ -4,7 +4,6 @@ import { useShallow } from "zustand/shallow"
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
 import { PopoverProps } from "../types"
 import { HeaderSwitchElement, TextField } from "@/components/ui"
-import { LineageSourceLink } from "@/components/inspectors/shared"
 import { useTranslation } from "@/i18n"
 
 export const DeploymentNodeEditPopover: React.FC<PopoverProps> = ({
@@ -57,7 +56,6 @@ export const DeploymentNodeEditPopover: React.FC<PopoverProps> = ({
         fullWidth
         sx={{ mt: 1.5 }}
       />
-      <LineageSourceLink elementId={elementId} />
     </DefaultNodeEditPopover>
   )
 }

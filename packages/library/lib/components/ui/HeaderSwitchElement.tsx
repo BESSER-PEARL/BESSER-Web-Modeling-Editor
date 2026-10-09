@@ -1,31 +1,28 @@
-import { ZINDEX } from "@/constants"
 import React from "react"
+import { useTranslation } from "@/i18n"
 
 interface Props {
   onClick: () => void
   isComponentHeaderShown: boolean
 }
+
+/** Toggle for the «stereotype» header line; pressed while it is shown. */
 export const HeaderSwitchElement: React.FC<Props> = ({
   onClick,
   isComponentHeaderShown,
 }) => {
+  const { t } = useTranslation()
+  const label = t("popup.showStereotype", "Show stereotype")
   return (
-    <div
+    <button
+      type="button"
+      className="bp-icon-btn"
       onClick={onClick}
-      style={{
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: ZINDEX.HEADER_SWITCH,
-        color: "var(--besser-primary-contrast, #000000)",
-        ...(isComponentHeaderShown && {
-          background:
-            "linear-gradient(to top right, transparent calc(50% - 1px), var(--besser-primary-contrast, #000000) 50%, transparent calc(50% + 1px))",
-        }),
-      }}
+      aria-pressed={isComponentHeaderShown}
+      aria-label={label}
+      title={label}
     >
       {"«»"}
-    </div>
+    </button>
   )
 }

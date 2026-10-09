@@ -28,6 +28,10 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
   }
 
   const edgeData = edge.data as CustomEdgeProps | undefined
+  // Quarter / three-quarter sockets are render variants of a required interface.
+  const selectedEdgeType = edge.type?.startsWith("DeploymentRequired")
+    ? "DeploymentRequiredInterface"
+    : edge.type
   const sourceName =
     (sourceNode?.data?.name as string) ?? t("common.source", "Source")
   const targetName =
@@ -91,7 +95,7 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
         <Select
           labelId="edge-type-label"
           id="edge-type-select"
-          value={edge.type}
+          value={selectedEdgeType}
           label={t("common.edgeType", "Edge Type")}
           onChange={(e) => handleEdgeTypeChange(e.target.value)}
         >

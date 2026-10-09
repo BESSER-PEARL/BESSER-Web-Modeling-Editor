@@ -13,8 +13,12 @@ import {
 import { useShallow } from "zustand/shallow"
 import { PopoverProps } from "../types"
 import { BPMNGatewayProps, BPMNGatewayType } from "@/types"
-import { BPMNGatewayRole, clampTrustScore } from "@/types/bpmnAgentic"
-import type { UMLModel } from "@/typings"
+import {
+  BPMNGatewayRole,
+  clampTrustScore,
+  displayTrustScore,
+  parseTrustScore,
+} from "@/types/bpmnAgentic"
 import { DividerLine, TextField } from "@/components/ui"
 import { InspectorSectionHeader } from "@/components/inspectors/_shared"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
@@ -26,30 +30,34 @@ import {
   generateGovernanceDsl,
   resolveUpstreamDivergingGateway,
 } from "@/services/bpmnCollaborationBlocks"
-import { parseTrustScore } from "./BPMNTaskEditPopover"
 import { BPMNGovernanceSection } from "./BPMNGovernanceSection"
+import { stashAgenticFields, stashedAgenticFields } from "./agenticStash"
+
+/** Gateway keys that exist only while "Agentic" is on. */
+export const GATEWAY_AGENTIC_KEYS = ["gatewayRole", "trustScore", "governanceDsl"] as const
 
 /**
  * Gateway data with "Agentic" switched on or off. Off drops every agentic key,
- * so a plain gateway's JSON carries none; on fills develop's defaults.
+ * so a plain gateway's JSON carries none; on restores `previous` (the values
+ * it had when switched off) and otherwise fills develop's defaults.
  */
 export const withGatewayAgentic = (
   data: BPMNGatewayProps,
-  isAgentic: boolean
+  isAgentic: boolean,
+  previous: Partial<BPMNGatewayProps> = {}
 ): BPMNGatewayProps => {
   if (!isAgentic) {
     const rest: BPMNGatewayProps = { ...data }
     delete rest.isAgentic
-    delete rest.gatewayRole
-    delete rest.trustScore
-    delete rest.governanceDsl
+    for (const key of GATEWAY_AGENTIC_KEYS) delete rest[key]
     return rest
   }
+  const merged = { ...previous, ...data }
   return {
-    ...data,
+    ...merged,
     isAgentic: true,
-    gatewayRole: data.gatewayRole ?? "diverging",
-    trustScore: clampTrustScore(data.trustScore ?? 0),
+    gatewayRole: merged.gatewayRole ?? "diverging",
+    trustScore: clampTrustScore(merged.trustScore ?? 0),
   }
 }
 
@@ -77,10 +85,7 @@ export const BPMNGatewayEditPopover: React.FC<PopoverProps> = ({
   const showAgentic =
     agenticEnabled && AGENTIC_ELIGIBLE_GATEWAY_TYPES.has(gatewayType)
   // The collaboration-block walkers read the live graph.
-  const model = useMemo(
-    () => ({ nodes, edges }) as unknown as UMLModel,
-    [nodes, edges]
-  )
+  const model = useMemo(() => ({ nodes, edges }), [nodes, edges])
   const hasUpstreamDiverging = useMemo(
     () =>
       showAgentic &&
@@ -114,6 +119,9 @@ export const BPMNGatewayEditPopover: React.FC<PopoverProps> = ({
         ? findDownstreamAgenticConstructs(elementId, model).mergingGatewayIds
         : []
     )
+    if (!eligible && data.isAgentic) {
+      stashAgenticFields(elementId, data, GATEWAY_AGENTIC_KEYS)
+    }
     setNodes((all) =>
       all.map((n) => {
         if (n.id === elementId) {
@@ -180,9 +188,12 @@ export const BPMNGatewayEditPopover: React.FC<PopoverProps> = ({
               <Switch
                 size="small"
                 checked={data.isAgentic === true}
-                onChange={(_, checked) =>
-                  update((d) => withGatewayAgentic(d, checked))
-                }
+                onChange={(_, checked) => {
+                  if (!checked) stashAgenticFields(elementId, data, GATEWAY_AGENTIC_KEYS)
+                  update((d) =>
+                    withGatewayAgentic(d, checked, stashedAgenticFields(elementId))
+                  )
+                }}
               />
             }
             label={tb("BPMNAgentic", "Agentic")}
@@ -239,7 +250,7 @@ export const BPMNGatewayEditPopover: React.FC<PopoverProps> = ({
             size="small"
             fullWidth
             label={tb("BPMNTrustScore", "Trust score (0-100)")}
-            value={String(data.trustScore ?? 0)}
+            value={String(displayTrustScore(data.trustScore))}
             onChange={(e) => setField({ trustScore: parseTrustScore(e.target.value) })}
             slotProps={{ htmlInput: { inputMode: "numeric" } }}
           />

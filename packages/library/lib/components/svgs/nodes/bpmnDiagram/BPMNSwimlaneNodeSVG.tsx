@@ -6,12 +6,13 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { BPMNSwimlaneProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils"
 import { LAYOUT } from "@/constants"
-import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
+import { AGENTIC_LANE_HEADER_WIDTH, LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
 import { AgenticBotIcon } from "@/components/svgs/icons/agentic"
-import { migrateLegacyRole } from "@/types/bpmnAgentic"
-
-/** Header width of an agentic lane: the name strip plus a marker column. */
-export const AGENTIC_LANE_HEADER_WIDTH = 60
+import {
+  displayLaneCopies,
+  displayTrustScore,
+  migrateLegacyRole,
+} from "@/types/bpmnAgentic"
 // The agentic markers stack centred in the column between the two widths.
 // Their text uses the name size: develop's 9-11px attributes were overridden
 // to 16px by its canvas stylesheet, which is what users saw.
@@ -46,7 +47,7 @@ export const BPMNSwimlaneNodeSVG: React.FC<BPMNSwimlaneNodeSVGProps> = ({
   showAssessmentResults = false,
 }) => {
   const { name, isAgentic } = data
-  const multiplicity = data.multiplicity ?? 1
+  const multiplicity = displayLaneCopies(data.multiplicity)
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -106,7 +107,7 @@ export const BPMNSwimlaneNodeSVG: React.FC<BPMNSwimlaneNodeSVGProps> = ({
             fontSize={LAYOUT.NAME_FONT_SIZE}
             fill={textColor}
           >
-            {data.trustScore ?? 0}
+            {displayTrustScore(data.trustScore)}
           </CustomText>
           {multiplicity > 1 && (
             <CustomText

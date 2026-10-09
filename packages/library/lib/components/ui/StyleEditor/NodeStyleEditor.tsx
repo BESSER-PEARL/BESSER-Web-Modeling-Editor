@@ -18,11 +18,10 @@ interface NodeStyleEditorProps {
   showNameInputChange?: boolean
   title?: string
   /**
-   * Whether the name input accepts newlines (Enter inserts a hard break).
-   * Default `false`. Set to `true` ONLY for node types whose SVG actually
-   * renders wrapped labels — otherwise typing a newline would save a
-   * character that never repaints. See `supportsMultilineName()` in
-   * `utils/nodeUtils.ts` for the canonical per-type list.
+   * Whether the name input wraps over several rows, for node types whose
+   * SVG wraps the label (see `supportsMultilineName()` in
+   * `utils/nodeUtils.ts`). Names stay single-line either way: Enter commits
+   * the field and pasted line breaks become spaces.
    */
   isMultilineName?: boolean
 }
@@ -97,8 +96,16 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
           <TextField
             variant="outlined"
             onChange={(event) =>
-              handleDataFieldUpdate("name", event.target.value)
+              handleDataFieldUpdate(
+                "name",
+                event.target.value.replace(/[\r\n]+/g, " ")
+              )
             }
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return
+              event.preventDefault()
+              ;(event.target as HTMLElement).blur()
+            }}
             sx={{ flex: 1 }}
             size="small"
             value={nodeData.name ?? ""}
@@ -112,9 +119,7 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
               autoComplete: "off",
               spellCheck: false,
             }}
-            // Only enable multiline — which lets Enter insert a hard line
-            // break — for node types whose SVG actually wraps the label.
-            // Single-line nodes keep their classic single-line <input>.
+            // Wrapping labels get a growing textarea; others a classic <input>.
             multiline={isMultilineName}
             minRows={isMultilineName ? 1 : undefined}
             maxRows={isMultilineName ? 6 : undefined}

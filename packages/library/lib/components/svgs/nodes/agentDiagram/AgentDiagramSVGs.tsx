@@ -13,6 +13,7 @@ import {
 } from "@/nodes/agentDiagram/AgentNodeCard"
 import { Bot, Map, RotateCw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { useTranslation } from "@/i18n"
 
 /**
  * AgentDiagram palette previews.
@@ -71,6 +72,7 @@ export const AgentStateSVG: React.FC<AgentStateSVGProps> = ({
   SIDEBAR_PREVIEW_SCALE,
   data,
 }) => {
+  const { t } = useTranslation()
   const bodies = data?.bodies ?? []
   const fallbackBodies = data?.fallbackBodies ?? []
   const hasFallbackDivider = fallbackBodies.length > 0 && bodies.length > 0
@@ -81,7 +83,7 @@ export const AgentStateSVG: React.FC<AgentStateSVGProps> = ({
       scale={SIDEBAR_PREVIEW_SCALE ?? 1}
       accent={AGENT_PRIMITIVE_COLORS.state.accent}
       Icon={AGENT_PRIMITIVE_COLORS.state.Icon}
-      typeLabel="state"
+      typeLabel={t("packages.AgentDiagram.card.state", "state")}
       name={data?.name ?? "AgentState"}
     >
       {bodies.length || fallbackBodies.length ? (
@@ -97,7 +99,11 @@ export const AgentStateSVG: React.FC<AgentStateSVGProps> = ({
               />
             )
           })}
-          {hasFallbackDivider ? <AgentSectionLabel>fallback</AgentSectionLabel> : null}
+          {hasFallbackDivider ? (
+            <AgentSectionLabel>
+              {t("packages.AgentDiagram.card.fallback", "fallback")}
+            </AgentSectionLabel>
+          ) : null}
           {fallbackBodies.map((b) => {
             const RIcon = replyTypeIcon(b.replyType)
             return (
@@ -149,6 +155,7 @@ export const AgentReasoningStateSVG: React.FC<PrimitiveSVGProps> = ({
   SIDEBAR_PREVIEW_SCALE,
   data,
 }) => {
+  const { t } = useTranslation()
   const accent = AGENT_PRIMITIVE_COLORS.reasoning.accent
   return (
     <ScaledAgentCard
@@ -157,18 +164,30 @@ export const AgentReasoningStateSVG: React.FC<PrimitiveSVGProps> = ({
       scale={SIDEBAR_PREVIEW_SCALE ?? 1}
       accent={accent}
       Icon={AGENT_PRIMITIVE_COLORS.reasoning.Icon}
-      typeLabel="reasoning"
+      typeLabel={t("packages.AgentDiagram.card.reasoning", "reasoning")}
       name={data?.name ?? "ReasoningState"}
       headerRight={
         <AgentBadge accent={accent}>
           <Bot size={11} />
-          {data?.llm_name ? data.llm_name : "default"}
+          {data?.llm_name
+            ? data.llm_name
+            : t("packages.AgentDiagram.card.defaultLlm", "default")}
         </AgentBadge>
       }
     >
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-        <AgentPill accent={accent} icon={<RotateCw size={12} />} label={`≤ ${data?.max_steps ?? 8} steps`} />
-        <AgentPill accent={accent} icon={<Map size={12} />} label="planning" />
+        <AgentPill
+          accent={accent}
+          icon={<RotateCw size={12} />}
+          label={t("packages.AgentDiagram.card.maxSteps", "≤ {{count}} steps", {
+            count: data?.max_steps ?? 8,
+          })}
+        />
+        <AgentPill
+          accent={accent}
+          icon={<Map size={12} />}
+          label={t("packages.AgentDiagram.card.planning", "planning")}
+        />
       </div>
     </ScaledAgentCard>
   )

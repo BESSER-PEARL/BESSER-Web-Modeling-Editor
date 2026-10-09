@@ -1,7 +1,8 @@
 /**
- * Stereotype shown when a node has no `data.stereotype` key (develop's class
- * defaults). Display and inspector only: never written into the model, and
- * an explicit empty string still means "no stereotype".
+ * Default stereotypes (develop's class defaults). New palette nodes are
+ * created with them written into `data.stereotype`; a node without the key
+ * (older data) still renders the default, and an explicit empty string
+ * means "no stereotype".
  */
 export const DEFAULT_COMPONENT_STEREOTYPE = "component"
 export const DEFAULT_SUBSYSTEM_STEREOTYPE = "subsystem"
