@@ -15,6 +15,7 @@ import { BPMNFlow } from '../bpmn-flow/bpmn-flow';
 import { findDownstreamAgenticConstructs, resolveUpstreamDivergingGateway } from '../bpmn-flow/bpmn-flow-validator';
 import { BPMNTask } from '../bpmn-task/bpmn-task';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
+import { StyledDropdownItem } from '../../../components/controls/dropdown/dropdown-styles';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { Switch } from '../../../components/controls/switch/switch';
@@ -106,6 +107,45 @@ const Flex = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+`;
+
+const GovPolicyRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const GovPolicyField = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
+  margin-left: auto;
+
+  > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+`;
+
+// Reserve space for the widest translated option, including its selected styling.
+const GovPolicySizer = styled.div`
+  display: grid;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  padding: 0 1px;
+
+  > button {
+    grid-area: 1 / 1;
+    width: max-content;
+    white-space: nowrap;
+  }
 `;
 
 // Governance DSL editor: the agent-diagram code editor, kept within the popup width.
@@ -249,16 +289,25 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
                       )}
                     </GovHeaderRow>
                     {/* Pick the governance policy to seed; Generate writes the skeleton. */}
-                    <Flex>
+                    <GovPolicyRow>
                       <span>{this.props.translate('packages.BPMNDiagram.BPMNGovernancePolicyTypeLabel')}</span>
-                      <Dropdown value={this.state.govPolicyType} onChange={this.changeGovPolicyType}>
-                        {GOV_POLICY_TYPES.map((p) => (
-                          <Dropdown.Item key={p} value={p}>
-                            {this.props.translate(`packages.BPMNDiagram.${govPolicyKey(p)}`)}
-                          </Dropdown.Item>
-                        ))}
-                      </Dropdown>
-                    </Flex>
+                      <GovPolicyField>
+                        <GovPolicySizer aria-hidden="true">
+                          {GOV_POLICY_TYPES.map((p) => (
+                            <StyledDropdownItem key={p} size="sm" aria-selected="true" tabIndex={-1}>
+                              {this.props.translate(`packages.BPMNDiagram.${govPolicyKey(p)}`)}
+                            </StyledDropdownItem>
+                          ))}
+                        </GovPolicySizer>
+                        <Dropdown value={this.state.govPolicyType} onChange={this.changeGovPolicyType}>
+                          {GOV_POLICY_TYPES.map((p) => (
+                            <Dropdown.Item key={p} value={p}>
+                              {this.props.translate(`packages.BPMNDiagram.${govPolicyKey(p)}`)}
+                            </Dropdown.Item>
+                          ))}
+                        </Dropdown>
+                      </GovPolicyField>
+                    </GovPolicyRow>
                     {this.state.confirmRegenerate && (
                       <GovHeaderRow>
                         <span>{this.props.translate('packages.BPMNDiagram.BPMNGovernanceOverwriteConfirm')}</span>
