@@ -62,8 +62,8 @@ type LinkStep = 'select' | 'configure';
 type SidebarState = 'synced' | 'pending' | 'error';
 
 const statusClass: Record<SidebarState, string> = {
-  synced: 'border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
-  pending: 'border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  synced: 'border border-success/30 bg-success/10 text-success',
+  pending: 'border border-warning/30 bg-warning/10 text-warning',
   error: 'border border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
@@ -767,7 +767,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
   const renderNoProject = () => (
     <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border/70 bg-muted/30 px-5 py-10 text-center">
-      <AlertTriangle className="mx-auto size-8 text-amber-600" />
+      <AlertTriangle className="mx-auto size-8 text-warning" />
       <p className="text-sm font-semibold">{t('github.noProject.title')}</p>
       <p className="text-xs text-muted-foreground">{t('github.noProject.subtitle')}</p>
     </div>
@@ -918,7 +918,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                       <div className="flex flex-col gap-1">
                         <p className="line-clamp-2 text-sm font-medium">
                           {index === 0 && (
-                            <Badge className="mr-2 bg-emerald-600 text-[10px] text-white hover:bg-emerald-600">{t('github.linked.latest')}</Badge>
+                            <Badge variant="soft" size="sm" className="mr-2">{t('github.linked.latest')}</Badge>
                           )}
                           {commit.message}
                         </p>
@@ -935,7 +935,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                           >
                             {commit.sha.substring(0, 7)}
                           </a>
-                          {canRestore && <span className="text-amber-700">{t('github.linked.clickToRestore')}</span>}
+                          {canRestore && <span className="text-warning">{t('github.linked.clickToRestore')}</span>}
                         </div>
                       </div>
                     </button>
@@ -1040,7 +1040,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         aria-modal="true"
         aria-label={t('github.sync')}
         className={cn(
-          'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-xl transition-[transform,opacity,visibility] duration-200 motion-reduce:transition-none',
+          'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-elevation-3 transition-[transform,opacity,visibility] duration-200 motion-reduce:transition-none',
           isOpen
             ? 'visible translate-x-0 opacity-100 pointer-events-auto'
             : 'invisible translate-x-full opacity-0 pointer-events-none',
@@ -1098,7 +1098,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <Github className="size-4" />
                           <span className="truncate">{repo.full_name}</span>
-                          {repo.private && <Badge variant="secondary" className="text-[10px]">{t('github.linkModal.private')}</Badge>}
+                          {repo.private && <Badge variant="secondary" size="sm">{t('github.linkModal.private')}</Badge>}
                         </div>
                         {repo.description && <p className="mt-1 text-xs text-muted-foreground">{repo.description}</p>}
                         <p className="mt-1 text-[11px] text-muted-foreground">{t('github.linkModal.updated', { date: formatDate(repo.updated_at) })}</p>
@@ -1201,7 +1201,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                 </Button>
 
                 {fileExists === true && (
-                  <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                  <div className="flex flex-col gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
                     <p>{t('github.linkModal.fileExistsPrompt')}</p>
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(notifyError(t('github.context.linkingRepository'))); }} className="gap-1">
@@ -1216,7 +1216,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                 )}
 
                 {fileExists === false && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
                     {t('github.linkModal.filePathAvailable')}
                   </div>
                 )}

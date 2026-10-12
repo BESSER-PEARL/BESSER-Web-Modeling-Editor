@@ -8,7 +8,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  dialogDisplayTitleClass,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import type { AgentSimulationCredentials } from '@/main/shared/api/agentSimulation';
 import {
@@ -80,7 +82,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 font-display text-xl tracking-tight">
+          <DialogTitle className={cn('flex items-center gap-2.5', dialogDisplayTitleClass)}>
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
               <FlaskConical className="size-4" />
             </div>

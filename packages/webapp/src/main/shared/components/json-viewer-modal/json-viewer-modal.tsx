@@ -6,6 +6,7 @@ import pythonLang from 'highlight.js/lib/languages/python';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import '@/components/chatbot-kit/ui/code-surface.css';
 import './json-viewer-modal.css';
 
 if (!hljs.getLanguage('json')) {
@@ -33,9 +34,8 @@ interface JsonViewerModalProps {
   onDownloadBuml?: () => void;
 }
 
-/** Muted, theme-aware code surface shared by the JSON tree and highlighted code. */
-const codeSurfaceClass =
-  'jvm-code m-0 overflow-auto rounded-xl border border-border/70 bg-muted/40 p-[18px] text-[13px] leading-[1.65] text-foreground';
+/** The app's shared navy code surface (code-surface.css), for the JSON tree and highlighted code. */
+const codeSurfaceClass = 'code-surface jvm-code m-0 overflow-auto rounded-xl p-[18px] font-mono text-xs leading-5';
 
 type SupportedLanguage = 'json' | 'python';
 type JsonPrimitive = string | number | boolean | null;
@@ -130,7 +130,7 @@ const CopyNodeButton: React.FC<{ path: string; value: JsonValue; copiedPath: str
   return (
     <button
       type="button"
-      className="jvm-copy-node-btn ml-1.5 rounded-sm border-none bg-transparent p-0 text-[11px] leading-none text-muted-foreground opacity-0 cursor-pointer transition-[color,opacity] duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="jvm-copy-node-btn code-surface-muted ml-1.5 rounded-sm border-none bg-transparent p-0 text-[11px] leading-none opacity-0 cursor-pointer transition-[color,opacity] duration-150 hover:text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       onClick={(event) => {
         event.stopPropagation();
         onCopyNode(path, value);
@@ -201,7 +201,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
           }
           className="border-none bg-transparent text-inherit m-0 p-0 font-[inherit] leading-[inherit] cursor-pointer inline-flex items-baseline min-w-0 rounded-sm text-left hover:opacity-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="inline-block w-3.5 mr-1 text-muted-foreground text-center" aria-hidden="true">
+          <span className="code-surface-muted inline-block w-3.5 mr-1 text-center" aria-hidden="true">
             {isCollapsed ? '>' : 'v'}
           </span>
           {renderJsonKey(propertyKey)}
@@ -209,7 +209,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
           {isCollapsed && (
             <>
               <span> </span>
-              <span className="text-muted-foreground">...</span>
+              <span className="code-surface-muted">...</span>
               <span> {closeToken}</span>
             </>
           )}

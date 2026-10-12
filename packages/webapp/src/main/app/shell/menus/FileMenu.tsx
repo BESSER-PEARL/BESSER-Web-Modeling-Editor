@@ -47,7 +47,11 @@ interface FileMenuProps {
   onOpenProjectPreview: () => void;
 }
 
-const groupLabelClass = 'px-2 pb-1 pt-1.5 text-xs font-medium text-muted-foreground';
+/** Section header inside top-bar menus (File > Import, Help > Community). */
+export const menuGroupLabelClass = 'px-2 pb-1 pt-1.5 text-xs font-medium text-muted-foreground';
+
+/** Pulls a submenu clear of its parent's padding and border so the two never overlap. */
+export const SUBMENU_OFFSETS = { sideOffset: 6, alignOffset: -5 } as const;
 
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
@@ -66,11 +70,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   const title = t('menu.file.title');
   return (
     <DropdownMenu>
-      <HeaderTooltip label={title} hideFrom="xl">
+      <HeaderTooltip label={title} hideFrom="lg">
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
             <FileText className="size-4" aria-hidden="true" />
-            <span className="hidden xl:inline">{title}</span>
+            <span className="hidden lg:inline">{title}</span>
             <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
@@ -89,9 +93,9 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             <Upload className="mr-2 size-4" />
             {t('menu.file.import')}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-60">
+          <DropdownMenuSubContent className="w-60" {...SUBMENU_OFFSETS}>
             <DropdownMenuGroup>
-              <DropdownMenuLabel className={groupLabelClass}>
+              <DropdownMenuLabel className={menuGroupLabelClass}>
                 {t('menu.file.importGroupProject', { defaultValue: 'Project' })}
               </DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onOpenProjectHub('import')}>
@@ -109,7 +113,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuLabel className={groupLabelClass}>
+              <DropdownMenuLabel className={menuGroupLabelClass}>
                 {t('menu.file.importGroupClassDiagram', { defaultValue: 'Class Diagram from' })}
               </DropdownMenuLabel>
               <DropdownMenuItem onClick={onOpenAssistantImportImage} disabled={!hasProject}>

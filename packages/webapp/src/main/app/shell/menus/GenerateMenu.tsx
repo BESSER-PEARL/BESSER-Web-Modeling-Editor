@@ -2,19 +2,30 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
+  AppWindow,
   ArrowRight,
+  Atom,
+  Bot,
   Boxes,
   Braces,
   Brain,
   ChevronDown,
   Code2,
+  Coffee,
+  Component,
+  Container,
   Database,
+  FileCode2,
   FileJson,
   FlaskConical,
   Globe,
   Info,
+  Layers,
   Loader2,
   type LucideIcon,
+  Network,
+  Server,
+  Workflow,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +42,7 @@ import { GENERATOR_MENU_CONFIG, GeneratorMenuEntry } from './generator-menu-conf
 import type { GeneratorMenuMode, GeneratorType } from '../workspace-types';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { HeaderTooltip } from './HeaderTooltip';
+import { SUBMENU_OFFSETS } from './FileMenu';
 
 interface GenerateMenuProps {
   mode: GeneratorMenuMode;
@@ -56,6 +68,29 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   TensorFlow: Brain,
 };
 
+/** Leaf icons, so generator items match File > Import's iconned leaves. */
+const GENERATOR_ICONS: Partial<Record<GeneratorType, LucideIcon>> = {
+  django: Server,
+  spring: Server,
+  backend: Server,
+  web_app: AppWindow,
+  sql: Database,
+  supabase: Database,
+  sqlalchemy: Database,
+  python: FileCode2,
+  java: Coffee,
+  test_case: FlaskConical,
+  pydantic: Braces,
+  jsonschema: FileJson,
+  smartdata: FileJson,
+  jsonobject: FileJson,
+  agent: Bot,
+  qiskit: Atom,
+  bpmn: Workflow,
+  pytorch: Layers,
+  tensorflow: Layers,
+};
+
 const renderGeneratorMenuEntry = (
   entry: GeneratorMenuEntry,
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void,
@@ -69,12 +104,19 @@ const renderGeneratorMenuEntry = (
           <GroupIcon className="mr-2 size-4" />
           {entry.labelKey ? t(entry.labelKey) : entry.label}
         </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          {entry.actions.map((action) => (
-            <DropdownMenuItem key={action.generator} onClick={() => onGenerate(action.generator, action.config)}>
-              {action.labelKey ? t(action.labelKey) : action.label}
-            </DropdownMenuItem>
-          ))}
+        <DropdownMenuSubContent {...SUBMENU_OFFSETS}>
+          {entry.actions.map((action) => {
+            const ActionIcon = GENERATOR_ICONS[action.generator] ?? Code2;
+            return (
+              <DropdownMenuItem
+                key={`${action.generator}-${action.label}`}
+                onClick={() => onGenerate(action.generator, action.config)}
+              >
+                <ActionIcon className="mr-2 size-4" />
+                {action.labelKey ? t(action.labelKey) : action.label}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuSubContent>
       </DropdownMenuSub>
     );
@@ -89,9 +131,10 @@ const renderGeneratorMenuEntry = (
     );
   }
 
+  const EntryIcon = GENERATOR_ICONS[entry.generator] ?? Code2;
   return (
     <DropdownMenuItem key={entry.generator} onClick={() => onGenerate(entry.generator, entry.config)}>
-      <Code2 className="mr-2 size-4" />
+      <EntryIcon className="mr-2 size-4" />
       {entry.labelKey ? t(entry.labelKey) : entry.label}
     </DropdownMenuItem>
   );
@@ -114,7 +157,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
 
   return (
     <DropdownMenu>
-      <HeaderTooltip label={label} hideFrom="xl">
+      <HeaderTooltip label={label} hideFrom="lg">
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -129,7 +172,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
             ) : (
               <Code2 className="size-4" aria-hidden="true" />
             )}
-            <span className="hidden xl:inline">{label}</span>
+            <span className="hidden lg:inline">{label}</span>
             <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
@@ -149,6 +192,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onDeriveComponentDiagram()}>
+              <Component className="mr-2 size-4" />
               {t('menu.generate.deriveComponentDiagram')}
             </DropdownMenuItem>
           </>
@@ -157,6 +201,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDeriveDeploymentDiagram}>
+              <Network className="mr-2 size-4" />
               {t('menu.generate.deriveDeploymentDiagram')}
             </DropdownMenuItem>
           </>
@@ -165,6 +210,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onGenerateDockerCompose}>
+              <Container className="mr-2 size-4" />
               {t('menu.generate.generateDockerCompose')}
             </DropdownMenuItem>
           </>

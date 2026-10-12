@@ -80,6 +80,9 @@ html[data-theme='dark'] {
   --accent-foreground: 196 55% 60%;
   --warning: 43 96% 58%;
   --warning-foreground: 222 30% 7%;
+  /* Light red: the light-theme value is ~3.9:1 as text on the dark card. */
+  --destructive: 4 86% 66%;
+  --destructive-foreground: 222 30% 7%;
   --success: 156 62% 52%;
   --success-foreground: 222 30% 7%;
   --info: 198 88% 62%;
@@ -191,51 +194,6 @@ select {
   border-color: rgba(148, 163, 184, 0.1);
 }
 
-/* ---- Static gradient border for the assistant input card ---- */
-.input-card-glow {
-  position: relative;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(24px) saturate(1.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-}
-
-.input-card-glow::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(
-    from 0deg,
-    hsl(var(--brand)) 0%,
-    hsl(var(--brand-light)) 25%,
-    hsl(var(--brand-dark)) 50%,
-    hsl(195 50% 58%) 75%,
-    hsl(var(--brand)) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0.5;
-  z-index: -1;
-}
-
-[data-theme='dark'] .input-card-glow {
-  background: rgba(15, 23, 42, 0.7);
-}
-
-[data-theme='dark'] .input-card-glow::before {
-  background: conic-gradient(
-    from 0deg,
-    hsl(var(--brand)) 0%,
-    hsl(var(--brand-light)) 25%,
-    hsl(var(--brand-dark)) 50%,
-    hsl(195 70% 80%) 75%,
-    hsl(var(--brand)) 100%
-  );
-  opacity: 0.6;
-}
-
 /* ---- Floating side cards ---- */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) rotate(var(--float-rotate, 0deg)); }
@@ -327,13 +285,45 @@ select {
 }
 
 /* ---- Toasts ---- */
+/* Callers pass theme 'light' or 'dark'; both render on the editor's card surface. */
+.Toastify {
+  --toastify-font-family: inherit;
+  --toastify-color-info: hsl(var(--info));
+  --toastify-color-success: hsl(var(--success));
+  --toastify-color-warning: hsl(var(--warning));
+  --toastify-color-error: hsl(var(--destructive));
+  --toastify-color-progress-light: hsl(var(--muted-foreground) / 0.5);
+  --toastify-color-progress-dark: hsl(var(--muted-foreground) / 0.5);
+  --toastify-spinner-color: hsl(var(--muted-foreground));
+  --toastify-spinner-color-empty-area: hsl(var(--border));
+}
+
 .Toastify__toast-container {
   width: min(420px, 90vw);
 }
 
+/* Clear the top bar so its Quality Check / theme / GitHub / language controls stay reachable. */
+.Toastify .Toastify__toast-container--top-left,
+.Toastify .Toastify__toast-container--top-center,
+.Toastify .Toastify__toast-container--top-right {
+  top: 4.25rem;
+}
+
 .Toastify__toast {
   border-radius: 12px;
-  backdrop-filter: blur(12px);
+}
+
+.Toastify .Toastify__toast-theme--light,
+.Toastify .Toastify__toast-theme--dark {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 12px 32px -8px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.1)),
+    0 4px 12px -4px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.06));
+}
+
+.Toastify .Toastify__close-button {
+  color: hsl(var(--muted-foreground));
 }
 
 /* ---- Improved focus rings ---- */
@@ -438,32 +428,27 @@ select {
    The library defaults to prefers-color-scheme media query for dark mode.
    These overrides tie it to the app's class-based dark/light toggle instead. */
 
-/* Light mode: force light variables (overrides any OS dark preference) */
+/* Both themes map onto the app tokens (which switch with the theme); the two
+   selectors only exist to beat the library's prefers-color-scheme defaults. */
+:root:not(.dark) .baf-chat,
+.dark .baf-chat {
+  --bg: hsl(var(--background));
+  --surface: hsl(var(--card));
+  --border: hsl(var(--border));
+  --code-bg: hsl(var(--muted));
+  --text-primary: hsl(var(--foreground));
+  --text-secondary: hsl(var(--muted-foreground));
+  --accent: hsl(var(--brand));
+  --accent-hover: hsl(var(--brand-dark));
+  --accent-bg: hsl(var(--brand) / 0.1);
+}
+
 :root:not(.dark) .baf-chat {
-  --bg: #f8f9fa;
-  --surface: #fff;
-  --border: #e2e8f0;
-  --code-bg: #f1f5f9;
-  --text-primary: #1a202c;
-  --text-secondary: #64748b;
-  --accent: #0e6e7e;
-  --accent-hover: #0a5a6b;
-  --accent-bg: #0e6e7e14;
   --error: #ef4444;
   --error-bg: #ef44441a;
 }
 
-/* Dark mode: force dark variables (overrides any OS light preference) */
 .dark .baf-chat {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --border: #334155;
-  --code-bg: #1a2535;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-bg: #3b82f61a;
   --error: #f87171;
   --error-bg: #f871711a;
 }
@@ -474,17 +459,9 @@ select {
   padding-right: 12px;
 }
 
-/* Brand gradient on the emphasised word of the assistant welcome headline */
-.gradient-text-model {
-  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-dark)) 30%, hsl(var(--brand-light)) 60%, hsl(var(--brand)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-[data-theme='dark'] .gradient-text-model {
-  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-light)) 30%, hsl(195 70% 80%) 60%, hsl(var(--brand)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* The one small uppercase label (kicker, section label). In the components layer so a colour utility can recolour it. */
+@layer components {
+  .ui-kicker {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground;
+  }
 }

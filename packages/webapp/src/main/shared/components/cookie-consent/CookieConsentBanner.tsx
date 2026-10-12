@@ -83,7 +83,7 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
       onClick={onToggle}
       className={cn(
         'relative h-6 w-11 rounded-full border transition-colors',
-        enabled ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 bg-slate-300 dark:border-slate-600 dark:bg-slate-700',
+        enabled ? 'border-success bg-success' : 'border-slate-300 bg-slate-300 dark:border-slate-600 dark:bg-slate-700',
         disabled && 'cursor-not-allowed opacity-60',
       )}
     >
@@ -164,7 +164,7 @@ const CookieSettingsContent: React.FC<{
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">{t('shared.cookie.settings.essentialTitle')}</p>
-              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+              <Badge variant="secondary" size="sm" className="uppercase tracking-wide">
                 {t('shared.cookie.settings.requiredBadge')}
               </Badge>
             </div>
@@ -288,7 +288,7 @@ export const CookieConsentBanner: React.FC = () => {
         !dialogOpen &&
         createPortal(
           <div className="pointer-events-none fixed inset-x-0 bottom-3 flex justify-center px-3" style={{ zIndex: Z_INDEX.OVERLAY }}>
-            <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-2xl backdrop-blur">
+            <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-elevation-3 backdrop-blur">
               <div className="flex flex-col gap-2.5 p-3.5">
                 <div className="flex items-start gap-2.5">
                   <span className="rounded-md bg-primary/10 p-1.5 text-primary">
@@ -343,7 +343,7 @@ export const CookieConsentBanner: React.FC = () => {
                     <ul className="flex flex-col gap-1.5">
                       {detailRows.map((row) => (
                         <li key={row} className="flex items-start gap-1.5">
-                          <Check className="mt-0.5 size-3 text-emerald-500" />
+                          <Check className="mt-0.5 size-3 text-success" />
                           <span>{row}</span>
                         </li>
                       ))}

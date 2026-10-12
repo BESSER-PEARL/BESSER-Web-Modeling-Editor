@@ -18,14 +18,18 @@ import typescript from "highlight.js/lib/languages/typescript"
 import xml from "highlight.js/lib/languages/xml"
 import yaml from "highlight.js/lib/languages/yaml"
 import { ChevronDown, Download, FileText, Folder, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import "./code-surface.css"
 import "./generated-files-dialog.css"
 
 const LANGUAGES = {
@@ -233,6 +237,7 @@ function FileTree({
 }
 
 function CodeView({ file }: { file: GeneratedFile }) {
+  const { t } = useTranslation()
   const lang = langOf(file.path)
   const html = useMemo(() => {
     if (file.text === null) return ""
@@ -247,36 +252,51 @@ function CodeView({ file }: { file: GeneratedFile }) {
   const lines = file.text === null ? 0 : file.text.split("\n").length
 
   return (
-    <div className="gfd-editor flex min-h-0 min-w-0 flex-col">
+    <div className="code-surface flex min-h-0 min-w-0 flex-col">
       <div className="gfd-tabs flex h-9 shrink-0 items-center gap-3 px-3.5 text-xs">
         <span className="gfd-tab flex h-full min-w-0 items-center gap-2 font-mono">
           <FileText className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{file.path}</span>
         </span>
-        <span className="gfd-meta ml-auto shrink-0 font-mono text-[11px]">
+        <span className="code-surface-muted ml-auto shrink-0 font-mono text-[11px]">
           {file.text === null
             ? formatSize(file.size)
-            : `${lines} lines · ${formatSize(file.size)} · ${lang ?? "text"}`}
+            : t("assistant.generatedFiles.fileMeta", {
+                lines,
+                size: formatSize(file.size),
+                language: lang ?? t("assistant.generatedFiles.plainText"),
+              })}
         </span>
       </div>
       {file.text === null ? (
-        <div className="gfd-empty grid flex-1 place-items-center p-6 text-center text-sm">
+        <div className="code-surface-muted grid flex-1 place-items-center p-6 text-center text-sm">
           {file.size > MAX_PREVIEW_BYTES
-            ? "This file is too large to preview. Download the project to open it."
-            : "Binary file, not previewable."}
+            ? t("assistant.generatedFiles.tooLarge")
+            : t("assistant.generatedFiles.binary")}
         </div>
       ) : (
-        <div className="gfd-code min-h-0 flex-1 overflow-auto font-mono text-[12.5px] leading-5">
+        <div className="gfd-code min-h-0 flex-1 overflow-auto font-mono text-xs leading-5">
           <div className="flex min-w-max py-2.5 pb-10">
-            <pre aria-hidden className="gfd-gutter m-0 select-none px-4 text-right font-[inherit]">
+            <pre aria-hidden className="gfd-gutter m-0 select-none px-4 text-right">
               {Array.from({ length: lines }, (_, i) => i + 1).join("\n")}
             </pre>
-            <pre className="m-0 whitespace-pre pr-10 font-[inherit]">
+            <pre className="m-0 whitespace-pre pr-10">
               <code dangerouslySetInnerHTML={{ __html: html }} />
             </pre>
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Mounted only on failure, so the server config is fetched only when needed. */
+function LoadFailedNote() {
+  const { t } = useTranslation()
+  const minutes = useDownloadTtlMinutes()
+  return (
+    <div className="grid flex-1 place-items-center p-6 text-center text-sm text-muted-foreground">
+      <p className="max-w-sm">{t("assistant.generatedFiles.loadFailed", { minutes })}</p>
     </div>
   )
 }
@@ -301,6 +321,7 @@ export default function GeneratedFilesDialog({
   meta?: string
   onDownload?: () => void
 }) {
+  const { t } = useTranslation()
   const [state, setState] = useState<
     | { kind: "loading" }
     | { kind: "error" }
@@ -349,23 +370,19 @@ export default function GeneratedFilesDialog({
       <DialogContent className="flex h-[min(86vh,860px)] max-w-[min(1200px,calc(100vw-2rem))] flex-col gap-0 overflow-hidden overflow-y-hidden p-0">
         <div className="flex shrink-0 items-center gap-3 border-b border-border/60 py-2.5 pl-4 pr-14">
           <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <DialogTitle className="shrink-0 font-mono text-[13px] font-medium tracking-normal">
+          <DialogTitle className="min-w-0 truncate font-mono text-[13px] font-medium tracking-normal">
             {title}
           </DialogTitle>
           <DialogDescription className="min-w-0 truncate text-xs">
             {state.kind === "ready"
-              ? [`${state.files.length} file${state.files.length === 1 ? "" : "s"}`, meta].filter(Boolean).join(" · ")
+              ? [t("assistant.generatedFiles.fileCount", { count: state.files.length }), meta].filter(Boolean).join(" · ")
               : meta}
           </DialogDescription>
           {onDownload ? (
-            <button
-              type="button"
-              onClick={onDownload}
-              className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download
-            </button>
+            <Button type="button" variant="outline" size="xs" onClick={onDownload} className="ml-auto">
+              <Download />
+              {t("assistant.generatedFiles.download")}
+            </Button>
           ) : null}
         </div>
 
@@ -373,20 +390,15 @@ export default function GeneratedFilesDialog({
           <div className="grid flex-1 place-items-center text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-brand" />
-              Opening the project…
+              {t("assistant.generatedFiles.opening")}
             </span>
           </div>
         ) : state.kind === "error" ? (
-          <div className="grid flex-1 place-items-center p-6 text-center text-sm text-muted-foreground">
-            <p className="max-w-sm">
-              The generated files could not be loaded. The server keeps them for
-              about 30 minutes after the run; after that, generate again to view them.
-            </p>
-          </div>
+          <LoadFailedNote />
         ) : (
           <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,10rem)_minmax(0,1fr)] sm:grid-cols-[264px_minmax(0,1fr)] sm:grid-rows-1">
             <nav
-              aria-label="Generated files"
+              aria-label={t("assistant.generatedFiles.treeLabel")}
               className="min-h-0 overflow-auto border-b border-border/60 bg-muted/30 px-1.5 py-2.5 text-[13px] sm:border-b-0 sm:border-r"
             >
               <FileTree
@@ -399,7 +411,7 @@ export default function GeneratedFilesDialog({
                 onSelect={setSelected}
               />
             </nav>
-            {file ? <CodeView key={file.path} file={file} /> : <div className="gfd-editor" />}
+            {file ? <CodeView key={file.path} file={file} /> : <div className="code-surface" />}
           </div>
         )}
       </DialogContent>

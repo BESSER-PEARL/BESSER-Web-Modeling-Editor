@@ -236,7 +236,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
               <p className="font-medium">
                 {result.owner}/{result.repo_name}
               </p>
@@ -286,7 +286,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
         <div className="flex flex-col gap-4">
           {isUpdateMode && linkedRepo ? (
             <>
-              <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+              <div className="flex items-center justify-between gap-3 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium" title={`${linkedRepo.owner}/${linkedRepo.repo}@${linkedRepo.branch || DEFAULT_BRANCH}`}>
                     {t('github.push.linkedTo')}{' '}
@@ -372,7 +372,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                     </Label>
                   </div>
                   {!isPrivate && (
-                    <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                    <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
                       {t('github.push.publicWarning')}
                     </p>
                   )}

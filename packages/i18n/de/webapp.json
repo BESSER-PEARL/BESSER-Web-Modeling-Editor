@@ -1086,7 +1086,9 @@
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
           "QuantumCircuitDiagram": "Modell eines Quantenprogramms.",
           "BPMN": "Geschäftsprozessmodell- und Notationsdiagramm.",
-          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow)."
+          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Softwarekomponenten und die Schnittstellen zwischen ihnen.",
+          "DeploymentDiagram": "Knoten, Artefakte und die Verteilung des Systems."
         }
       },
       "toasts": {
@@ -1368,6 +1370,19 @@
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Herunterladen",
+      "opening": "Projekt wird geöffnet…",
+      "loadFailed": "Die generierten Dateien konnten nicht geladen werden. Der Server bewahrt sie nach dem Lauf etwa {{minutes}} Minuten auf; danach erneut generieren, um sie anzusehen.",
+      "treeLabel": "Generierte Dateien",
+      "fileCount_one": "{{count}} Datei",
+      "fileCount_other": "{{count}} Dateien",
+      "fileMeta": "{{lines}} Zeilen · {{size}} · {{language}}",
+      "plainText": "Text",
+      "tooLarge": "Diese Datei ist zu groß für die Vorschau. Lade das Projekt herunter, um sie zu öffnen.",
+      "binary": "Binärdatei, keine Vorschau möglich."
+    },
+    "rateLimitTooltip": "Anfragen in der letzten Minute (Limit {{limit}})",
     "import": {
       "titleImage": "Klassendiagramm aus Bild importieren",
       "titleKg": "Klassendiagramm aus Knowledge Graph importieren",
@@ -1409,7 +1424,7 @@
       "subtitle": "Beschreiben Sie Ihr System in natürlicher Sprache. Erhalten Sie Modelle, Oberflächen und Code.",
       "pressEscPre": "Drücken Sie",
       "pressEscPost": "zum Schließen",
-      "freeTier": "Kostenlos mit unserem gehosteten Qwen-Modell.",
+      "freeTier": "Kostenlos mit unserem gehosteten Modell.",
       "changeModel": "Modell wechseln"
     },
     "composer": {
@@ -1651,8 +1666,9 @@
       "para1": "BESSER ist eine Low-Code-Plattform für die Modellierung intelligenter Software und die Codegenerierung. Sie bietet ein Python-basiertes Metamodell (B-UML) zur Beschreibung von Domänenmodellen, Zustandsautomaten, GUI-Designs, Agenten und mehr.",
       "para2": "Der <brand>Web Modeling Editor</brand> ist der visuelle Online-Editor zum Erstellen und Bearbeiten von BESSER-Modellen, zum Generieren von Code und zum Bereitstellen von Anwendungen.",
       "besserRepository": "BESSER-Repository",
-      "wmeRepository": "WME-Repository",
-      "libraryRepository": "Paket-Repository"
+      "wmeRepository": "Quellcode des Editors",
+      "libraryRepository": "Paket-Repository",
+      "version": "Version {{version}}"
     },
     "shortcuts": {
       "title": "Tastenkürzel",

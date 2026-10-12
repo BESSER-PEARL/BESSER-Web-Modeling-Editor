@@ -34,12 +34,12 @@ export function ItemRow({ name, badge, extraBadge, expanded, onToggle, onDelete,
             {name || <span className="text-muted-foreground italic">{t('agentComponents.unnamed')}</span>}
           </span>
           {badge && (
-            <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
+            <Badge variant="outline" size="sm" className="h-4 px-1 shrink-0">
               {badge}
             </Badge>
           )}
           {extraBadge && (
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+            <Badge variant="secondary" size="sm" className="h-4 px-1 shrink-0">
               {extraBadge}
             </Badge>
           )}

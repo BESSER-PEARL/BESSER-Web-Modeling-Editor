@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import i18n from '@/main/shared/i18n';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { Kbd } from '@/components/ui/kbd';
 import { Z_INDEX } from '../../constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -177,12 +178,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        <DialogOverlay className="dark:bg-black/60" style={{ zIndex: Z_INDEX.MODAL }} />
+        {/* Above the assistant widget (NOTIFICATION), which would otherwise cover the palette. */}
+        <DialogOverlay className="dark:bg-black/60" style={{ zIndex: Z_INDEX.OVERLAY }} />
 
         {/* Palette card */}
         <DialogPrimitive.Content
-          className="fixed left-1/2 top-[15vh] flex w-full max-w-[540px] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] focus:outline-none dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
-          style={{ zIndex: Z_INDEX.MODAL }}
+          className="fixed left-1/2 top-[15vh] flex w-full max-w-[540px] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-elevation-3 focus:outline-none"
+          style={{ zIndex: Z_INDEX.OVERLAY }}
           aria-modal="true"
           aria-describedby={undefined}
           onKeyDown={handleKeyDown}
@@ -214,9 +216,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
               autoComplete="off"
               spellCheck={false}
             />
-            <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
-              ESC
-            </kbd>
+            <Kbd className="hidden sm:inline-flex">ESC</Kbd>
           </div>
 
           {/* Results list */}
@@ -267,9 +267,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                           </span>
                           <span className="flex-1 truncate">{action.label}</span>
                           {action.shortcut && (
-                            <kbd className="ml-auto shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                              {action.shortcut}
-                            </kbd>
+                            <Kbd className="ml-auto shrink-0">{action.shortcut}</Kbd>
                           )}
                         </div>
                       );
@@ -284,18 +282,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
           {/* Footer hint */}
           <div className="flex items-center gap-4 border-t border-border px-4 py-2">
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
-                &uarr;
-              </kbd>
-              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
-                &darr;
-              </kbd>
+              <Kbd>&uarr;</Kbd>
+              <Kbd>&darr;</Kbd>
               {t('shared.commandPalette.navigate')}
             </span>
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
-                &crarr;
-              </kbd>
+              <Kbd>&crarr;</Kbd>
               {t('shared.commandPalette.select')}
             </span>
             <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
