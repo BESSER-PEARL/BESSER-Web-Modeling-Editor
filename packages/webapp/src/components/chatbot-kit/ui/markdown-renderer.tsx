@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/chatbot-kit/ui/copy-button"
+import "./code-surface.css"
 
 // Token shape returned by shiki's `codeToTokens` — typed loosely because
 // we only consume `content` and `htmlStyle` and don't want to pin a
@@ -76,6 +77,9 @@ const HighlightedPre = React.memo(
             lang: language as keyof typeof bundledLanguages,
             defaultColor: false,
             themes: { light: "github-light", dark: "github-dark" },
+            // github-dark's comment grey is ~3.7:1 on the navy surface; use
+            // the shared code-surface comment colour instead.
+            colorReplacements: { "github-dark": { "#6a737d": "#808c98" } },
           })
           if (!cancelled) setTokens(result.tokens as ShikiToken[][])
         } catch {
@@ -103,10 +107,12 @@ const HighlightedPre = React.memo(
                       ? undefined
                       : token.htmlStyle
 
+                  // The block sits on the navy code surface in both themes,
+                  // so tokens always take the dark palette.
                   return (
                     <span
                       key={tokenIndex}
-                      className="text-shiki-light bg-shiki-light-bg dark:text-shiki-dark dark:bg-shiki-dark-bg"
+                      className="text-shiki-dark"
                       style={style}
                     >
                       {token.content}
@@ -142,7 +148,7 @@ const CodeBlock = ({
       : childrenTakeAllStringContents(children)
 
   const preClass = cn(
-    "overflow-x-scroll rounded-md border border-border/60 bg-muted/30 p-4 font-mono text-sm [scrollbar-width:none]",
+    "code-surface overflow-x-scroll rounded-md p-4 font-mono text-xs leading-5 [scrollbar-width:none]",
     className
   )
 
@@ -197,7 +203,7 @@ const COMPONENTS = {
         <a
           href="#"
           role="button"
-          className="cursor-pointer font-medium text-primary underline underline-offset-2"
+          className="cursor-pointer font-medium text-primary underline underline-offset-2 group-data-[user]/message:text-inherit"
           // stopPropagation: this link lives inside the assistant drawer, a
           // drag-to-close bottom sheet. Without it the click/pointer bubbles to
           // the sheet's drag+close handlers, which closed the drawer (and reset
@@ -219,7 +225,7 @@ const COMPONENTS = {
     return (
       <a
         href={href}
-        className="text-primary underline underline-offset-2"
+        className="text-primary underline underline-offset-2 group-data-[user]/message:text-inherit"
         {...props}
       >
         {children}
@@ -236,7 +242,9 @@ const COMPONENTS = {
     ) : (
       <code
         className={cn(
-          "font-mono [:not(pre)>&]:rounded-md [:not(pre)>&]:bg-primary/[0.06] [:not(pre)>&]:px-1 [:not(pre)>&]:py-0.5 [:not(pre)>&]:text-foreground"
+          "font-mono [:not(pre)>&]:rounded-md [:not(pre)>&]:bg-primary/[0.06] [:not(pre)>&]:px-1 [:not(pre)>&]:py-0.5 [:not(pre)>&]:text-foreground",
+          // In the user's own (brand) bubble: tint with the bubble's text colour.
+          "group-data-[user]/message:bg-brand-foreground/15 group-data-[user]/message:text-inherit"
         )}
         {...rest}
       >

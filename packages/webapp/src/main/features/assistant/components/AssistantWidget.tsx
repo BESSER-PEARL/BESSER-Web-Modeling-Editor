@@ -295,11 +295,11 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
-                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
+                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain dark:invert" />
               </div>
               <div>
                 <p className="text-sm font-semibold leading-none tracking-tight text-foreground">{t('assistant.modelingAssistant')}</p>
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">{t('assistant.byBesser')}</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">{t('assistant.byBesser')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -309,7 +309,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 size="icon"
                 className={cn(
                   'relative size-7 rounded-lg transition-colors hover:bg-brand/5 hover:text-foreground',
-                  savedApiKey ? 'text-brand' : 'text-muted-foreground/60',
+                  savedApiKey ? 'text-brand' : 'text-muted-foreground',
                 )}
                 onClick={() => setByokOpen(true)}
                 title={
@@ -328,7 +328,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                className="size-7 rounded-lg text-muted-foreground transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => reportIssue()}
                 title="Report an issue — opens a pre-filled GitHub issue with this conversation's context"
                 aria-label="Report an issue"
@@ -339,14 +339,13 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                className="size-7 rounded-lg text-muted-foreground transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
                 title={t('assistant.privacy.iconLabel')}
                 aria-label={t('assistant.privacy.iconLabel')}
               >
                 <CircleHelp className="size-3.5" />
               </Button>
-              <span className={cn('size-2 rounded-full', getConnectionDotClass(connectionStatus))} />
             </div>
           </div>
 
@@ -356,7 +355,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
-                  <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-9 object-contain" />
+                  <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-9 object-contain dark:invert" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{t('assistant.welcome.greeting')}</p>
@@ -364,7 +363,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     {t('assistant.welcome.intro')}
                   </p>
                 </div>
-                <div className="flex flex-col gap-1.5 w-full max-w-xs">
+                {/* Same chip style as the drawer's starter prompts. */}
+                <div className="flex max-w-sm flex-wrap justify-center gap-2">
                   {[
                     t('assistant.welcome.suggestions.library'),
                     t('assistant.welcome.suggestions.payment'),
@@ -373,7 +373,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     <button
                       key={suggestion}
                       type="button"
-                      className="rounded-lg border border-border/50 bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand/5 hover:text-foreground"
+                      className="rounded-full border border-brand/15 bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-[color,background-color,border-color] duration-200 hover:border-brand/30 hover:bg-brand/5 hover:text-foreground"
                       onClick={() => handleQuickAction(suggestion)}
                     >
                       {suggestion}
@@ -448,15 +448,16 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           {/* Input + status */}
           <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md">
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                 <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
-                <span className="text-[10px] text-muted-foreground/30">|</span>
-                <span className="text-[10px] text-muted-foreground/50">{t('assistant.messageCount', { count: messages.length })}</span>
-              </div>
+              <span
+                className={cn('font-mono text-[11px] tracking-wide', rateLimitColor)}
+                title={t('assistant.rateLimitTooltip', { limit: 8 })}
+              >
+                {rateLimitStatus.requestsLastMinute}/8
+              </span>
             </div>
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
               {({ files, setFiles }) => (
@@ -485,10 +486,11 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           aria-expanded={isVisible}
           aria-controls="assistant-widget-panel"
           className={cn(
-            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            'group relative size-14 rounded-2xl border bg-card/70 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95',
             isVisible
               ? 'border-brand/20 ring-1 ring-brand/15'
-              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
+              // Phones: the drawer's "Describe your app" pill is the entry point; the FAB would sit on top of it.
+              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5 max-sm:hidden',
           )}
           onClick={() => setIsVisible((p) => !p)}
           title={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
@@ -498,9 +500,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             <X className="size-5 transition-transform duration-200 [@media(hover:hover)]:group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 [@media(hover:hover)]:group-hover:scale-110" />
+              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 dark:invert [@media(hover:hover)]:group-hover:scale-110" />
               {connectionStatus === 'connected' && (
-                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
               )}
             </>
           )}

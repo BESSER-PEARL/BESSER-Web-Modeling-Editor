@@ -1086,7 +1086,9 @@
           "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
           "QuantumCircuitDiagram": "Quantum program model.",
           "BPMN": "Business Process Model and Notation.",
-          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
+          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Software components and the interfaces between them.",
+          "DeploymentDiagram": "Nodes, artifacts and how the system is deployed."
         }
       },
       "toasts": {
@@ -1407,7 +1409,7 @@
       "headlineEmphasis": "create",
       "headlinePost": "today?",
       "subtitle": "Describe your app in natural language. Get specs, screens, and code.",
-      "freeTier": "Free to use with our hosted Qwen model.",
+      "freeTier": "Free to use with our hosted model.",
       "changeModel": "Change the model",
       "pressEscPre": "Press",
       "pressEscPost": "to close"
@@ -1438,7 +1440,7 @@
       "understand": "I Understand"
     },
     "pilotNotice": "Research study mode is on. This tab records your prompts, what the assistant did with them, generation-run results, and downloads or GitHub actions, for a research study. It is on only because you opened a study link. Close this tab to stop.",
-    "poweredWithBaf": "Powered with BAF",
+    "poweredWithBaf": "Powered by BAF",
     "capabilities": {
       "systemDesign": {
         "title": "System Design",
@@ -1481,6 +1483,19 @@
       "useOwnApiKey": "Use your own API key",
       "reportIssue": "Report issue",
       "addApiKey": "Add your API key"
+    },
+    "rateLimitTooltip": "Requests sent in the last minute (limit {{limit}})",
+    "generatedFiles": {
+      "download": "Download",
+      "opening": "Opening the project…",
+      "loadFailed": "The generated files could not be loaded. The server keeps them for about {{minutes}} minutes after the run; after that, generate again to view them.",
+      "treeLabel": "Generated files",
+      "fileCount_one": "{{count}} file",
+      "fileCount_other": "{{count}} files",
+      "fileMeta": "{{lines}} lines · {{size}} · {{language}}",
+      "plainText": "text",
+      "tooLarge": "This file is too large to preview. Download the project to open it.",
+      "binary": "Binary file, not previewable."
     },
     "drawer": {
       "labelClosed": "Describe your app",
@@ -1651,8 +1666,9 @@
       "para1": "BESSER is a low-code platform for smart software modeling and code generation. It provides a Python-based metamodel (B-UML) for describing domain models, state machines, GUI designs, agents, and more.",
       "para2": "The <brand>Web Modeling Editor</brand> is the online visual editor for creating and editing BESSER models, generating code, and deploying applications.",
       "besserRepository": "BESSER Repository",
-      "wmeRepository": "WME Repository",
-      "libraryRepository": "Package Repository"
+      "wmeRepository": "Editor source code",
+      "libraryRepository": "Package Repository",
+      "version": "Version {{version}}"
     },
     "shortcuts": {
       "title": "Keyboard Shortcuts",

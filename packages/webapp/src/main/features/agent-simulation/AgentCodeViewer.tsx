@@ -1,54 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Code2, Copy } from 'lucide-react';
+import hljs from 'highlight.js/lib/core';
+import pythonLang from 'highlight.js/lib/languages/python';
 import { Button } from '@/components/ui/button';
+import '@/components/chatbot-kit/ui/code-surface.css';
+
+if (!hljs.getLanguage('python')) {
+  hljs.registerLanguage('python', pythonLang);
+}
 
 interface AgentCodeViewerProps {
   code: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// Types for shiki token output
-// ---------------------------------------------------------------------------
-
-interface ShikiToken {
-  content: string;
-  htmlStyle?: string | Record<string, string>;
-}
-
-// ---------------------------------------------------------------------------
-// Hook: syntax-highlight Python code using shiki
-// ---------------------------------------------------------------------------
-
-function useHighlightedTokens(code: string | null) {
-  const [lines, setLines] = useState<ShikiToken[][] | null>(null);
-
-  useEffect(() => {
-    if (!code) {
-      setLines(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const { codeToTokens } = await import('shiki/bundle/web');
-        const { tokens } = await codeToTokens(code, {
-          lang: 'python',
-          defaultColor: false,
-          themes: { light: 'github-light', dark: 'github-dark' },
-        });
-        if (!cancelled) setLines(tokens as ShikiToken[][]);
-      } catch {
-        // fall through to plain-text fallback
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [code]);
-
-  return lines;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,40 +48,18 @@ function CopyCodeButton({ code }: { code: string }) {
 // ---------------------------------------------------------------------------
 
 function HighlightedCode({ code }: { code: string }) {
-  const lines = useHighlightedTokens(code);
-
-  if (!lines) {
-    return (
-      <pre className="min-w-max p-4 font-mono text-xs leading-relaxed text-foreground">
-        {code}
-      </pre>
-    );
-  }
+  // Same highlighter and palette as the app's other code viewers (code-surface.css).
+  const html = useMemo(() => {
+    try {
+      return hljs.highlight(code, { language: 'python' }).value;
+    } catch {
+      return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }, [code]);
 
   return (
-    <pre className="min-w-max p-4 font-mono text-xs leading-relaxed">
-      <code>
-        {lines.map((line, lineIndex) => (
-          <React.Fragment key={lineIndex}>
-            <span>
-              {line.map((token, tokenIndex) => {
-                const style =
-                  typeof token.htmlStyle === 'string' ? undefined : token.htmlStyle;
-                return (
-                  <span
-                    key={tokenIndex}
-                    className="text-shiki-light bg-shiki-light-bg dark:text-shiki-dark dark:bg-shiki-dark-bg"
-                    style={style}
-                  >
-                    {token.content}
-                  </span>
-                );
-              })}
-            </span>
-            {lineIndex !== lines.length - 1 && '\n'}
-          </React.Fragment>
-        ))}
-      </code>
+    <pre className="m-0 min-w-max p-4 font-mono text-xs leading-5">
+      <code dangerouslySetInnerHTML={{ __html: html }} />
     </pre>
   );
 }
@@ -151,7 +92,7 @@ export const AgentCodeViewer: React.FC<AgentCodeViewerProps> = ({ code }) => {
       </div>
 
       {/* Code */}
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="code-surface min-h-0 flex-1 overflow-auto">
         <HighlightedCode code={code} />
       </div>
     </div>

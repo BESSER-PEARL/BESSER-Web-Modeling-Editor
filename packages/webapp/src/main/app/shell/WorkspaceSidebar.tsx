@@ -90,11 +90,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
   const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
-  const agentContainerClass = showAgentSubItems
-    ? isDarkTheme
-      ? 'rounded-xl bg-white/[0.03] p-1'
-      : 'rounded-xl bg-foreground/[0.03] p-1'
-    : '';
+  const agentContainerClass = showAgentSubItems ? 'rounded-xl bg-foreground/[0.03] p-1 dark:bg-white/[0.03]' : '';
 
   // Pre-compute diagram count info for all diagram types
   const countMap = useMemo(() => {

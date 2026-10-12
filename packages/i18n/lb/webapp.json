@@ -1086,7 +1086,9 @@
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
-          "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow)."
+          "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Softwarekomponenten an d'Schnëttstellen tëscht hinnen.",
+          "DeploymentDiagram": "Kniet, Artefakter an d'Verdeelung vum System."
         }
       },
       "toasts": {
@@ -1368,6 +1370,19 @@
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Eroflueden",
+      "opening": "De Projet gëtt opgemaach…",
+      "loadFailed": "Déi generéiert Fichieren konnten net geluede ginn. De Server hält se ongeféier {{minutes}} Minutten nom Laf; duerno nach eng Kéier generéieren, fir se ze gesinn.",
+      "treeLabel": "Generéiert Fichieren",
+      "fileCount_one": "{{count}} Fichier",
+      "fileCount_other": "{{count}} Fichieren",
+      "fileMeta": "{{lines}} Zeilen · {{size}} · {{language}}",
+      "plainText": "Text",
+      "tooLarge": "Dëse Fichier ass ze grouss fir eng Virschau. Lued de Projet erof, fir en opzemaachen.",
+      "binary": "Binäre Fichier, keng Virschau méiglech."
+    },
+    "rateLimitTooltip": "Ufroen an der leschter Minutt (Limit {{limit}})",
     "import": {
       "titleImage": "Klassendiagramm aus engem Bild importéieren",
       "titleKg": "Klassendiagramm aus engem Knowledge Graph importéieren",
@@ -1409,7 +1424,7 @@
       "subtitle": "Beschreift Äre System a natierlecher Sprooch. Kritt Modeller, Interfaces a Code.",
       "pressEscPre": "Dréckt",
       "pressEscPost": "fir zouzemaachen",
-      "freeTier": "Gratis mat eisem gehoste Qwen-Modell.",
+      "freeTier": "Gratis mat eisem gehoste Modell.",
       "changeModel": "Modell wiesselen"
     },
     "composer": {
@@ -1651,8 +1666,9 @@
       "para1": "BESSER ass eng Low-Code-Plattform fir intelligent Softwaremodelléierung an Code-Generéierung. Et stellt e Python-baséierte Metamodell (B-UML) fir d'Beschreiwung vun Domänemodeller, Zoustandsmaschinnen, GUI-Designen, Agenten a méi zur Verfügung.",
       "para2": "De <brand>Web Modeling Editor</brand> ass den Online-Visuell-Editor fir BESSER-Modeller ze erstellen an ze änneren, Code ze generéieren an Applikatiounen ze deployéieren.",
       "besserRepository": "BESSER-Repository",
-      "wmeRepository": "WME-Repository",
-      "libraryRepository": "Paket-Repository"
+      "wmeRepository": "Quellcode vum Editor",
+      "libraryRepository": "Paket-Repository",
+      "version": "Versioun {{version}}"
     },
     "shortcuts": {
       "title": "Tastatur-Ofkierzungen",

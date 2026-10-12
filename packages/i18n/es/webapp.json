@@ -1086,7 +1086,9 @@
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
           "BPMN": "Notación de Modelo y Proceso de Negocio.",
-          "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow)."
+          "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Componentes de software y las interfaces entre ellos.",
+          "DeploymentDiagram": "Nodos, artefactos y despliegue del sistema."
         }
       },
       "toasts": {
@@ -1368,6 +1370,19 @@
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Descargar",
+      "opening": "Abriendo el proyecto…",
+      "loadFailed": "No se pudieron cargar los archivos generados. El servidor los conserva unos {{minutes}} minutos después de la ejecución; después, vuelve a generar para verlos.",
+      "treeLabel": "Archivos generados",
+      "fileCount_one": "{{count}} archivo",
+      "fileCount_other": "{{count}} archivos",
+      "fileMeta": "{{lines}} líneas · {{size}} · {{language}}",
+      "plainText": "texto",
+      "tooLarge": "Este archivo es demasiado grande para la vista previa. Descarga el proyecto para abrirlo.",
+      "binary": "Archivo binario, sin vista previa."
+    },
+    "rateLimitTooltip": "Solicitudes enviadas en el último minuto (límite {{limit}})",
     "import": {
       "titleImage": "Importar diagrama de clases desde imagen",
       "titleKg": "Importar diagrama de clases desde grafo de conocimiento",
@@ -1409,7 +1424,7 @@
       "subtitle": "Describe tu sistema en lenguaje natural. Obtén modelos, interfaces y código.",
       "pressEscPre": "Pulsa",
       "pressEscPost": "para cerrar",
-      "freeTier": "Gratis con nuestro modelo Qwen alojado.",
+      "freeTier": "Gratis con nuestro modelo alojado.",
       "changeModel": "Cambiar el modelo"
     },
     "composer": {
@@ -1438,7 +1453,7 @@
       "understand": "Entendido"
     },
     "pilotNotice": "El modo de estudio de investigación está activado. Esta pestaña registra, para un estudio de investigación, tus peticiones, lo que el asistente hizo con ellas, los resultados de las generaciones y las descargas o acciones de GitHub. Solo está activo porque abriste un enlace de estudio. Cierra esta pestaña para detenerlo.",
-    "poweredWithBaf": "Impulsado con BAF",
+    "poweredWithBaf": "Impulsado por BAF",
     "capabilities": {
       "systemDesign": {
         "title": "Diseño de sistemas",
@@ -1651,8 +1666,9 @@
       "para1": "BESSER es una plataforma low-code para el modelado de software inteligente y la generación de código. Proporciona un metamodelo basado en Python (B-UML) para describir modelos de dominio, máquinas de estados, diseños de interfaz gráfica, agentes y mucho más.",
       "para2": "El <brand>Web Modeling Editor</brand> es el editor visual en línea para crear y editar modelos de BESSER, generar código y desplegar aplicaciones.",
       "besserRepository": "Repositorio de BESSER",
-      "wmeRepository": "Repositorio de WME",
-      "libraryRepository": "Repositorio de paquetes"
+      "wmeRepository": "Código fuente del editor",
+      "libraryRepository": "Repositorio de paquetes",
+      "version": "Versión {{version}}"
     },
     "shortcuts": {
       "title": "Atajos de teclado",

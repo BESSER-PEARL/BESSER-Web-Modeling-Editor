@@ -5,7 +5,8 @@ import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { UMLModel } from '@besser/wme';
 import { useProject } from '../../app/hooks/useProject';
 import {
@@ -150,7 +151,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[86vh] overflow-y-auto overscroll-contain sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 font-display text-2xl tracking-tight">
+          <DialogTitle className={cn('flex items-center gap-2.5', dialogDisplayTitleClass)}>
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
               <Download className="size-4" />
             </div>

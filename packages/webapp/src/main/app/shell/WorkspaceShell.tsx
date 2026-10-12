@@ -454,26 +454,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     );
   }, [isAssistantWorkspaceOpen]);
 
-  // Theme classes
-  const shellBackgroundClass = isDarkTheme
-    ? 'bg-[radial-gradient(120%_120%_at_0%_0%,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(var(--background))_100%)] text-foreground'
-    : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,hsl(var(--background))_45%,#f7fafc_100%)] text-foreground';
-  const headerBackgroundClass = isDarkTheme
-    ? 'border-b border-border/70 bg-[linear-gradient(105deg,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(222_25%_14%)_100%)]'
-    : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
+  // Theme classes. The shell stays transparent so the body wash in styles.css shows through.
+  const shellBackgroundClass = 'text-foreground';
+  const headerBackgroundClass = 'border-b border-brand/10 bg-background/60 dark:border-border/70';
   // Header triggers use variant="ghost"; this keeps their quiet tint and shows the open state.
-  const outlineButtonClass = isDarkTheme
-    ? 'text-foreground/80 hover:bg-white/[0.06] hover:text-foreground data-[state=open]:bg-white/[0.08] data-[state=open]:text-foreground max-md:h-8 max-md:px-2'
-    : 'text-foreground/80 hover:bg-foreground/[0.05] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground max-md:h-8 max-md:px-2';
+  const outlineButtonClass =
+    'text-foreground/80 hover:bg-foreground/[0.05] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground dark:hover:bg-white/[0.06] dark:data-[state=open]:bg-white/[0.08] max-md:h-8 max-md:px-2';
   const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
-  const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 md:flex md:flex-col md:gap-0.5'
-    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 md:flex md:flex-col md:gap-0.5';
+  const sidebarBaseClass =
+    'hidden shrink-0 border-r border-border/50 bg-card p-2.5 md:flex md:flex-col md:gap-0.5 dark:border-border/70';
   const sidebarTitleClass = 'px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted-foreground';
   const sidebarDividerClass = 'my-2 border-t border-border/60';
-  const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50'
-    : 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50';
+  const sidebarToggleClass =
+    'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 dark:hover:bg-white/[0.06]';
   const sidebarToggleTextClass = 'truncate';
 
   // Mobile drawer sidebar: same item styles, always visible, fills the drawer panel.

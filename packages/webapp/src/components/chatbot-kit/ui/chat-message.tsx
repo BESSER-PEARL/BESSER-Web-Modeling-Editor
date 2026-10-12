@@ -23,6 +23,8 @@ import {
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
+import { badgeVariants } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
@@ -44,6 +46,7 @@ import {
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
+import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
 
@@ -509,7 +512,7 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
           </div>
         ) : null}
 
-        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+        <div data-user="" className={cn(chatBubbleVariants({ isUser, animation }))}>
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
 
@@ -741,11 +744,6 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
   )
 }
 
-const cardButton =
-  "inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
-const cardPrimaryButton =
-  "inline-flex items-center gap-1.5 rounded-md border border-primary bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-
 // Lazy: JSZip and the highlighter load only when someone opens the files.
 const GeneratedFilesDialog = React.lazy(
   () => import("@/components/chatbot-kit/ui/generated-files-dialog")
@@ -754,7 +752,7 @@ const GeneratedFilesDialog = React.lazy(
 function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["status"] }) {
   if (status === "running") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
         <Loader2 className="h-2.5 w-2.5 animate-spin" />
         Running
       </span>
@@ -762,14 +760,14 @@ function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["stat
   }
   if (status === "done") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
         <CheckCircle2 className="h-2.5 w-2.5" />
         Done
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 dark:text-red-400">
       <XCircle className="h-2.5 w-2.5" />
       Error
     </span>
@@ -798,10 +796,10 @@ function SpecDrivenPhaseRow({
   return (
     <li className="border-b border-border/40 last:border-b-0">
       <div className="flex items-baseline gap-2 px-3 py-1.5">
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
           {phase.phase}
         </span>
-        <span className="text-[13px] font-medium text-foreground">
+        <span className="text-xs font-medium text-foreground">
           {phase.label}
         </span>
         {phase.message && phase.message !== phase.label ? (
@@ -810,7 +808,7 @@ function SpecDrivenPhaseRow({
           </span>
         ) : null}
         {isActivePhase ? (
-          <Loader2 className="ml-1 h-3 w-3 animate-spin text-primary" />
+          <Loader2 className="ml-1 h-3 w-3 animate-spin text-muted-foreground" />
         ) : null}
         {isExpandable ? (
           <button
@@ -842,7 +840,7 @@ function SpecDrivenPhaseRow({
                 title={`${tc.tool} · turn ${tc.turn}${tc.detail ? ` · ${tc.detail}` : ""}`}
                 className="flex min-w-0 gap-2.5"
               >
-                <span className="w-12 shrink-0 font-medium text-brand">{verb}</span>
+                <span className="w-12 shrink-0 font-medium text-foreground">{verb}</span>
                 <span className="truncate text-muted-foreground">{target}</span>
               </li>
             )
@@ -953,17 +951,17 @@ function VerificationItemRow({
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span
           className={cn(
-            "rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+            "rounded px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider",
             styles.chip
           )}
         >
           {VERIFICATION_KIND_LABELS[item.kind]}
         </span>
         {item.id ? (
-          <span className="font-mono text-[10px] opacity-70">{item.id}</span>
+          <span className="font-mono text-[11px] opacity-70">{item.id}</span>
         ) : null}
       </div>
-      <p className="mt-1 whitespace-pre-wrap break-words text-[12px] font-medium leading-snug">
+      <p className="mt-1 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
         {item.what}
       </p>
       {item.why ? (
@@ -994,7 +992,7 @@ function VerificationCapNote({
 }) {
   if (total <= shown) return null
   return (
-    <p className={cn("px-3 py-1.5 text-[10px] opacity-80", className)}>
+    <p className={cn("px-3 py-1.5 text-[11px] opacity-80", className)}>
       Showing {shown} of {total}. The full list is in the run report inside the
       downloaded project.
     </p>
@@ -1050,7 +1048,7 @@ function VerificationSection({
         <span className="font-medium text-foreground">{label}</span>
         <span
           className={cn(
-            "rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+            "rounded-full px-1.5 py-0.5 font-mono text-[11px] font-semibold",
             isEmpty ? "bg-muted text-muted-foreground" : styles.chip
           )}
         >
@@ -1163,7 +1161,7 @@ function SpecDrivenVerificationPanel({
           <div className="flex items-start gap-2 px-3 py-2">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold leading-snug">
+              <p className="text-sm font-semibold leading-snug">
                 Delivered, but {unenforced}{" "}
                 {unenforced === 1
                   ? "rule you asked for is"
@@ -1225,7 +1223,7 @@ function SpecDrivenVerificationPanel({
         emptyNote="Nothing was confirmed working in this run."
       />
 
-      <p className="border-t border-border/40 px-3 py-1.5 text-[10px] text-muted-foreground">
+      <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
         Verified means we ran or re-checked it against the delivered code.
         Could not verify means there is no evidence either way — it is not a
         pass.
@@ -1268,7 +1266,7 @@ function renderRunCost(costUsd?: number) {
   if (typeof costUsd !== "number" || !Number.isFinite(costUsd)) return null
   if (costUsd <= 0) {
     return (
-      <div className="text-[10px] text-muted-foreground/80">
+      <div className="text-[11px] text-muted-foreground/80">
         No cost — this run used the free tier.
       </div>
     )
@@ -1277,10 +1275,25 @@ function renderRunCost(costUsd?: number) {
   const shown = costUsd < 0.01 ? costUsd.toFixed(4) : costUsd.toFixed(2)
   return (
     <div
-      className="text-[10px] text-muted-foreground/80"
+      className="text-[11px] text-muted-foreground/80"
       title="Estimated from token counts at list prices. Approximate — not a bill."
     >
       ~<span className="font-mono">${shown}</span> estimated cost
+    </div>
+  )
+}
+
+/** The artifact stays on the server for its (server-owned) TTL after a failed save. */
+function DownloadFailedNote() {
+  const minutes = useDownloadTtlMinutes()
+  return (
+    <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
+      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+      <span>
+        The download failed, but the generated file is still available on the
+        server for about {minutes} minutes. Use &ldquo;Download again&rdquo; to
+        retry.
+      </span>
     </div>
   )
 }
@@ -1503,7 +1516,7 @@ function SpecDrivenCard({
           ) : isIncomplete ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           ) : (
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
           <span className="text-sm font-medium text-foreground">
             {unenforcedCount > 0
@@ -1547,7 +1560,7 @@ function SpecDrivenCard({
               type="button"
               onClick={() => setShowSplit((v) => !v)}
               aria-expanded={showSplit}
-              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary hover:bg-primary/20"
+              className={cn(badgeVariants({ variant: "outline", size: "sm" }), "gap-1 border-border font-mono text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground")}
               title="File provenance for this run, not requirements coverage or correctness. Click for details."
             >
               {typeof detPct === "number" && detPct > 0
@@ -1560,7 +1573,7 @@ function SpecDrivenCard({
           ) : null}
           {deterministic ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary"
+              className={cn(badgeVariants({ variant: "soft", size: "sm" }), "gap-1 font-mono text-[11px]")}
               title="Built by BESSER's deterministic generator — no LLM, no tokens, exact output."
             >
               0 tokens
@@ -1571,7 +1584,7 @@ function SpecDrivenCard({
             // free tier, so it reads 5x the real work. Cached context is in the
             // breakdown, one click away.
             <span
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 font-mono text-[10px] font-medium text-muted-foreground"
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground"
               title="Fresh input + output — the tokens this run actually paid for. Re-sent context is counted separately in the breakdown."
             >
               {formatTokens(tokenUsage.input + tokenUsage.output)} tokens
@@ -1599,49 +1612,48 @@ function SpecDrivenCard({
               </span>
             ) : null}
             {canViewFiles ? (
-              <button
-                type="button"
-                onClick={openViewer}
-                className={cardPrimaryButton}
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
+              <Button type="button" size="xs" onClick={openViewer}>
+                <FolderOpen />
                 View files
-              </button>
+              </Button>
             ) : null}
             {canDetDownload ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant={!canViewFiles && !hasDownloaded ? "default" : "outline"}
                 onClick={handleDeterministicDownload}
-                className={!canViewFiles && !hasDownloaded ? cardPrimaryButton : cardButton}
               >
-                <Download className="h-3.5 w-3.5" />
+                <Download />
                 {hasDownloaded ? "Download again" : "Download"}
-              </button>
+              </Button>
             ) : null}
             {canRedownload ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant={!canViewFiles && isFirstSave ? "default" : "outline"}
                 onClick={() => void handleRedownload()}
                 disabled={redownloadState === "busy"}
-                className={!canViewFiles && isFirstSave ? cardPrimaryButton : cardButton}
               >
                 {redownloadState === "busy" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : (
-                  <Download className="h-3.5 w-3.5" />
+                  <Download />
                 )}
                 {isFirstSave ? "Download" : "Download again"}
-              </button>
+              </Button>
             ) : null}
             {canRedownload && onPushToGithub && runId ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant="outline"
                 onClick={() => onPushToGithub(runId)}
-                className={cardButton}
               >
-                <Github className="h-3.5 w-3.5" />
+                <Github />
                 Push to GitHub
-              </button>
+              </Button>
             ) : null}
           </span>
         </div>
@@ -1700,7 +1712,7 @@ function SpecDrivenCard({
                 </li>
               ) : null}
             </ul>
-            <p className="mt-1 text-[10px]">
+            <p className="mt-1 text-[11px]">
               File counts, not requirements coverage or correctness. Earlier-run edits may be included in the scaffold.
             </p>
             {/* Honest token accounting. Lead with ACTIVE = fresh input +
@@ -1722,7 +1734,7 @@ function SpecDrivenCard({
                   </span>
                 </div>
                 {tokenUsage.cacheRead > 0 ? (
-                  <div className="text-[10px] text-muted-foreground/80">
+                  <div className="text-[11px] text-muted-foreground/80">
                     {formatTokens(tokenUsage.cacheRead)} cached context (re-read,
                     not new work
                     {tokenUsage.input + tokenUsage.cacheRead > 0
@@ -1738,7 +1750,7 @@ function SpecDrivenCard({
                 {renderRunCost(costUsd)}
               </div>
             ) : (
-              <div className="mt-1 text-[10px] italic text-muted-foreground/80">
+              <div className="mt-1 text-[11px] italic text-muted-foreground/80">
                 File provenance does not measure token savings; unchanged files may still have been read by the agent.
               </div>
             )}
@@ -1772,16 +1784,7 @@ function SpecDrivenCard({
         <SpecDrivenNoticeList warnings={warnings} />
 
         {/* Download failed — artifact still retrievable from the server */}
-        {downloadFailed ? (
-          <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-            <span>
-              The download failed, but the generated file is still available on
-              the server for about 30 minutes. Use &ldquo;Download again&rdquo;
-              to retry.
-            </span>
-          </div>
-        ) : null}
+        {downloadFailed ? <DownloadFailedNote /> : null}
 
         {viewerUsed && canViewFiles ? (
           <React.Suspense fallback={null}>
@@ -1811,7 +1814,7 @@ function SpecDrivenCard({
     <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-medium text-foreground">Spec-Driven Agent</span>
         {runId ? (
           <span className="font-mono text-[11px] text-muted-foreground">
@@ -1859,7 +1862,7 @@ function SpecDrivenCard({
           (the stall watchdog then surfaces an error). */}
       {status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
           <span className="font-medium text-foreground">Working…</span>
           {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
             <span className="text-[11px] text-muted-foreground">
@@ -1888,16 +1891,7 @@ function SpecDrivenCard({
       ) : null}
 
       {/* Download failed — artifact still retrievable from the server */}
-      {downloadFailed ? (
-        <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-          <span>
-            The download failed, but the generated file is still available on
-            the server for about 30 minutes. Use &ldquo;Download again&rdquo;
-            to retry.
-          </span>
-        </div>
-      ) : null}
+      {downloadFailed ? <DownloadFailedNote /> : null}
 
       {/* Footer: live cost/runtime meter + run controls */}
       {showFooter ? (
@@ -1917,19 +1911,15 @@ function SpecDrivenCard({
               </span>
             ) : null}
             {canDetDownload ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant={hasDownloaded ? "outline" : "default"}
                 onClick={handleDeterministicDownload}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium",
-                  hasDownloaded
-                    ? "border border-border/60 bg-background text-foreground hover:bg-muted"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
               >
-                <Download className="h-3 w-3" />
+                <Download />
                 {hasDownloaded ? "Download again" : "Download"}
-              </button>
+              </Button>
             ) : null}
             {canRedownload ? (
               (() => {
@@ -1940,47 +1930,46 @@ function SpecDrivenCard({
                 // "Download again".
                 const isFirstSave = needsDownload === true && !hasDownloaded
                 return (
-                  <button
+                  <Button
                     type="button"
+                    size="xs"
+                    variant={isFirstSave ? "default" : "outline"}
                     onClick={() => void handleRedownload()}
                     disabled={redownloadState === "busy"}
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium disabled:opacity-50",
-                      isFirstSave
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "border border-border/60 bg-background text-foreground hover:bg-muted"
-                    )}
                   >
                     {redownloadState === "busy" ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
-                      <Download className="h-3 w-3" />
+                      <Download />
                     )}
                     {isFirstSave ? "Download" : "Download again"}
-                  </button>
+                  </Button>
                 )
               })()
             ) : null}
             {canRedownload && onPushToGithub && runId ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant="outline"
                 onClick={() => onPushToGithub(runId)}
-                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
               >
-                <Github className="h-3 w-3" />
+                <Github />
                 Push to GitHub
-              </button>
+              </Button>
             ) : null}
             {showStop ? (
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant="outline"
                 onClick={handleStop}
                 disabled={stopRequested}
-                className="inline-flex items-center gap-1 rounded border border-red-200 bg-background px-2 py-0.5 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800/40 dark:text-red-400 dark:hover:bg-red-950/30"
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800/40 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
               >
-                <Square className="h-3 w-3" />
+                <Square />
                 {stopRequested ? "Stopping…" : "Stop"}
-              </button>
+              </Button>
             ) : null}
           </span>
         </div>

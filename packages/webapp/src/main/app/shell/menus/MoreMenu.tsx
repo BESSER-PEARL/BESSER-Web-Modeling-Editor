@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LanguageRadioItems } from '../LanguageSelector';
 import { HeaderTooltip } from './HeaderTooltip';
+import { SUBMENU_OFFSETS } from './FileMenu';
 
 interface MoreMenuProps {
   outlineButtonClass: string;
@@ -63,6 +64,12 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
   const { t } = useTranslation();
   const label = t('topbar.more', { defaultValue: 'More' });
   const publishEnabled = isDeploymentAvailable && isAuthenticated;
+  // Same reason line as the desktop Deploy menu.
+  const publishHint = !isAuthenticated
+    ? t('menu.deploy.connectGitHubFirstHint', { defaultValue: 'Connect GitHub first' })
+    : !isDeploymentAvailable
+      ? t('deploy.toasts.availableFor')
+      : null;
 
   return (
     <DropdownMenu>
@@ -80,10 +87,19 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
             {githubLoading ? t('common.connecting') : t('menu.deploy.connectGitHub')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={publishEnabled ? onOpenDeployDialog : undefined} disabled={!publishEnabled}>
+        <DropdownMenuItem
+          onClick={publishEnabled ? onOpenDeployDialog : undefined}
+          disabled={!publishEnabled}
+          aria-describedby={publishHint ? 'more-publish-hint' : undefined}
+        >
           <Rocket className="mr-2 size-4" />
           {t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
+        {publishHint && (
+          <p id="more-publish-hint" className="-mt-1 pb-1.5 pl-8 pr-2 text-xs text-muted-foreground">
+            {publishHint}
+          </p>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onOpenHelpDialog}>
           <BookOpen className="mr-2 size-4" />
@@ -108,7 +124,7 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
             <Languages className="mr-2 size-4" />
             {t('topbar.language')}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="min-w-[180px]">
+          <DropdownMenuSubContent className="min-w-[180px]" {...SUBMENU_OFFSETS}>
             <LanguageRadioItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
