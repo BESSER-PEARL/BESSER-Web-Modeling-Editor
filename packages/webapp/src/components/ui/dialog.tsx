@@ -53,8 +53,16 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 );
 DialogFooter.displayName = 'DialogFooter';
 
+/** Serif title for hub-level dialogs (project hub, export, templates, feedback, credentials). */
+const dialogDisplayTitleClass = 'font-display text-2xl font-normal tracking-tight';
+
 const DialogTitle = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Title>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>>(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title ref={ref} className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />
+  <DialogPrimitive.Title
+    ref={ref}
+    // Instrument Serif is loaded at 400 only, so a display title never takes the semibold default.
+    className={cn('text-lg leading-none tracking-tight', className?.includes('font-display') ? 'font-normal' : 'font-semibold', className)}
+    {...props}
+  />
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
@@ -63,4 +71,4 @@ const DialogDescription = React.forwardRef<React.ElementRef<typeof DialogPrimiti
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
-export { dialogContentBaseClass, Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };
+export { dialogContentBaseClass, dialogDisplayTitleClass, Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };

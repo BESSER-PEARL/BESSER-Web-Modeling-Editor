@@ -708,8 +708,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               <p className="text-sm text-muted-foreground">
                 {t('generation.agent.translatedToAll')}
               </p>
-              <div className="text-sm text-amber-600 flex items-center gap-1">
-                <span role="img" aria-label={t('generation.agent.warningAriaLabel')}>⚠️</span>
+              <div className="text-sm text-warning flex items-center gap-1">
+                <AlertTriangle role="img" aria-label={t('generation.agent.warningAriaLabel')} className="size-4 shrink-0" />
                 <span>{t('generation.agent.moreLanguagesWarning')}</span>
               </div>
             </div>
@@ -1002,7 +1002,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               )}
 
               {/* Hint */}
-              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
                   {t('generation.webApp.referencesHint')}
@@ -1047,14 +1047,14 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
     textClass = 'text-destructive';
   } else if (exists && hasContent) {
     Icon = CheckCircle2;
-    iconClass = 'text-emerald-600 dark:text-emerald-400';
+    iconClass = 'text-success';
     status = t('generation.webApp.status.ready');
     textClass = 'text-foreground';
   } else if (exists && !hasContent && required) {
     Icon = AlertTriangle;
-    iconClass = 'text-amber-600 dark:text-amber-400';
+    iconClass = 'text-warning';
     status = t('generation.webApp.status.empty');
-    textClass = 'text-amber-600 dark:text-amber-400';
+    textClass = 'text-warning';
   } else {
     // Optional and empty or missing -- will be skipped
     Icon = Circle;
@@ -1085,7 +1085,7 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
         </div>
       )}
       {exists && !hasContent && required && (
-        <div className="ml-6 text-xs text-amber-600 dark:text-amber-400">
+        <div className="ml-6 text-xs text-warning">
           {t('generation.webApp.diagramEmpty')}
         </div>
       )}

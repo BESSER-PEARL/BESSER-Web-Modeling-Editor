@@ -16,7 +16,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -964,7 +964,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
+      <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', step === 'welcome' && 'sm:max-w-4xl', !canClose && '[&>button]:hidden')}>
         {step === 'welcome' && (
           <FirstRunLanding
             onChoose={handleChooseInterface}
@@ -978,7 +978,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3.5">
               {step === 'start' ? (
-                <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+                <>
+                  <img src="/images/logo-light.png" alt="BESSER" width={122} height={28} className="mt-1 h-7 w-auto shrink-0 dark:hidden" />
+                  <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 hidden h-7 w-auto shrink-0 dark:block" />
+                </>
               ) : (
                 <button
                   type="button"
@@ -990,7 +993,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 </button>
               )}
               <div className="min-w-0">
-                <DialogTitle className="font-display text-2xl tracking-tight">
+                {/* The step reads as a kicker above the title, which keeps the right-hand cluster to the language picker. */}
+                {currentStepInfo.badge && <p className="ui-kicker mb-1.5">{currentStepInfo.badge}</p>}
+                <DialogTitle className={dialogDisplayTitleClass}>
                   {currentStepInfo.title}
                 </DialogTitle>
                 <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
@@ -1002,11 +1007,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <TooltipProvider delayDuration={400}>
                   <LanguageSelector outlineButtonClass="h-9" />
                 </TooltipProvider>
-              )}
-              {currentStepInfo.badge && (
-                <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-                  {currentStepInfo.badge}
-                </Badge>
               )}
             </div>
           </div>
@@ -1070,12 +1070,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       >
                         <button
                           type="button"
-                          className="flex min-w-0 flex-1 items-center justify-between text-left"
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
                           onClick={() => void handleOpenProject(project.id)}
                           disabled={isBusy}
                         >
+                          <FolderOpen className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-brand" />
                           <span className="truncate text-sm font-medium">{project.name}</span>
-                          <FolderOpen className="size-3.5 text-muted-foreground transition-colors group-hover:text-brand" />
                         </button>
                         <Button
                           size="icon"

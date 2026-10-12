@@ -1,9 +1,4 @@
-/* "View files" code surface: a dark editor panel in both themes. */
-
-.gfd-editor {
-  background: #151718;
-  color: #d5dce2;
-}
+/* "View files" chrome around the shared code surface (code-surface.css). */
 
 .gfd-tabs {
   background: #1b1d1f;
@@ -17,83 +12,6 @@
   padding: 0 2px;
 }
 
-.gfd-meta,
-.gfd-empty {
-  color: #7d8892;
-}
-
 .gfd-gutter {
   color: #56606a;
-}
-
-.gfd-code code {
-  background: transparent;
-  color: inherit;
-}
-
-.gfd-code .hljs-comment,
-.gfd-code .hljs-quote {
-  color: #6e7a86;
-  font-style: italic;
-}
-
-.gfd-code .hljs-string,
-.gfd-code .hljs-regexp,
-.gfd-code .hljs-meta .hljs-string,
-.gfd-code .hljs-code {
-  color: #d9b97a;
-}
-
-.gfd-code .hljs-keyword,
-.gfd-code .hljs-literal,
-.gfd-code .hljs-selector-tag,
-.gfd-code .hljs-built_in {
-  color: #6fb6c8;
-}
-
-.gfd-code .hljs-number,
-.gfd-code .hljs-symbol,
-.gfd-code .hljs-bullet {
-  color: #e39b7b;
-}
-
-.gfd-code .hljs-type,
-.gfd-code .hljs-title.class_,
-.gfd-code .hljs-class .hljs-title {
-  color: #a9d7c4;
-}
-
-.gfd-code .hljs-title,
-.gfd-code .hljs-title.function_ {
-  color: #c9d3f2;
-}
-
-.gfd-code .hljs-meta,
-.gfd-code .hljs-decorator {
-  color: #d9b97a;
-}
-
-.gfd-code .hljs-tag,
-.gfd-code .hljs-name,
-.gfd-code .hljs-selector-class,
-.gfd-code .hljs-selector-id {
-  color: #7fc1d3;
-}
-
-.gfd-code .hljs-attr,
-.gfd-code .hljs-attribute,
-.gfd-code .hljs-property,
-.gfd-code .hljs-variable,
-.gfd-code .hljs-params {
-  color: #b8c6d2;
-}
-
-.gfd-code .hljs-section,
-.gfd-code .hljs-strong {
-  color: #e7ecee;
-  font-weight: 500;
-}
-
-.gfd-code .hljs-link {
-  color: #7fc1d3;
 }

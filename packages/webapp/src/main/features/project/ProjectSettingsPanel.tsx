@@ -7,6 +7,7 @@ import { useProject } from '../../app/hooks/useProject';
 import {
   ALL_DIAGRAM_TYPES,
   ProjectDiagram,
+  SIDEBAR_DIAGRAM_ORDER,
   SupportedDiagramType,
   diagramHasContent,
   isPerspectiveVisible,
@@ -449,7 +450,7 @@ export const ProjectSettingsPanel: React.FC = () => {
 
                 {/* Per-diagram toggles */}
                 <div className="flex flex-col gap-1">
-                  {ALL_DIAGRAM_TYPES.map((type, index) => {
+                  {SIDEBAR_DIAGRAM_ORDER.map((type, index) => {
                     const checked = isPerspectiveVisible(perspectives, type);
                     const isLastEnabled = checked && enabledPerspectiveCount === 1;
                     const labelId = `perspective-toggle-${type}`;

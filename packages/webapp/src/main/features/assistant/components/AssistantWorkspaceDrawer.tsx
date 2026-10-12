@@ -13,6 +13,7 @@ import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Kbd } from '@/components/ui/kbd';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
@@ -659,7 +660,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           ref={pillRef}
           className={cn(
             'pointer-events-auto flex h-9 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',
-            'shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_-10px_rgba(0,0,0,0.25)] backdrop-blur-md',
+            'shadow-elevation-2 backdrop-blur-md',
             'transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
             'outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             showOpenFace
@@ -716,7 +717,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         {/* Content area */}
         <div
           className={cn(
-            'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.25)] transition-opacity duration-300',
+            'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background shadow-[0_-12px_40px_-16px_hsl(var(--shadow-color)/calc(var(--shadow-strength)*0.2))] transition-opacity duration-300',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             !open && !isDragging && 'opacity-0',
           )}
@@ -831,16 +832,14 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
                 {/* Brand mark + AI badge */}
                 <div key={`entrance-logo-${entranceKey}`} className="animate-fade-up flex items-center justify-center gap-3" style={entrance(0)}>
-                  <img
-                    src="/images/logo.png"
-                    alt="BESSER"
-                    className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
-                  />
+                  {/* Real logo per theme: logo.png's white parts only read on dark. */}
+                  <img src="/images/logo-light.png" alt="BESSER" className="h-9 w-auto dark:hidden sm:h-10" />
+                  <img src="/images/logo.png" alt="BESSER" className="hidden h-9 w-auto dark:block sm:h-10" />
                   <a
                     href="https://besser-agentic-framework.readthedocs.io/latest/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-xs font-medium text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
+                    className="flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border transition-colors hover:bg-muted hover:text-foreground"
                   >
                     <Sparkles className="size-3" />
                     {t('assistant.poweredWithBaf')}
@@ -854,7 +853,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   style={entrance(1)}
                 >
                   {t('assistant.welcome.headlinePre')}{' '}
-                  <em className="gradient-text-model font-display not-italic">{t('assistant.welcome.headlineEmphasis')}</em> {t('assistant.welcome.headlinePost')}
+                  <em className="text-brand">{t('assistant.welcome.headlineEmphasis')}</em> {t('assistant.welcome.headlinePost')}
                 </h1>
 
                 {/* Subtitle + connection status */}
@@ -866,17 +865,17 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   {t('assistant.welcome.subtitle')}
                   <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
                     <span className={cn('inline-block size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
-                    <span className="text-muted-foreground/70">{t(getConnectionLabelKey(connectionStatus))}</span>
+                    <span className="text-muted-foreground">{t(getConnectionLabelKey(connectionStatus))}</span>
                   </span>
                 </p>
 
-                {/* Chat input — static gradient border, capped at max-w-2xl */}
+                {/* Chat input — one bordered field (no outer panel), capped at max-w-2xl */}
                 <div
                   ref={composerEntranceRef}
                   className="animate-fade-up mx-auto mt-9 max-w-2xl"
                   style={entrance(3)}
                 >
-                  <div className="input-card-glow rounded-2xl p-3 shadow-elevation-3 sm:p-4">
+                  <div className="rounded-xl shadow-elevation-2">
                     {renderComposer('w-full')}
                   </div>
                   {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
@@ -885,7 +884,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     <button
                       type="button"
                       onClick={() => setByokOpen(true)}
-                      className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                      className="font-medium text-foreground underline decoration-border underline-offset-2 transition-colors hover:decoration-foreground"
                     >
                       {t('assistant.welcome.changeModel')}
                     </button>
@@ -903,7 +902,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       key={prompt}
                       type="button"
                       onClick={() => setInputValue(prompt)}
-                      className="rounded-full border border-brand/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm [@media(hover:hover)]:hover:-translate-y-px dark:bg-slate-800/40 dark:hover:border-brand/25 dark:hover:bg-brand/8"
+                      className="rounded-full border border-brand/15 bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm [@media(hover:hover)]:hover:-translate-y-px"
                     >
                       {prompt}
                     </button>
@@ -960,8 +959,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="flex-[1_1_8%] min-h-4" />
               {/* Study-mode notice (regular sessions render nothing) */}
               <PilotSessionNotice className="pb-1.5" />
-              <p key={`entrance-hint-${entranceKey}`} className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={entrance(5)}>
-                {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
+              {/* Keyboard hint: hidden on touch screens, which have no Esc key. */}
+              <p key={`entrance-hint-${entranceKey}`} className="animate-fade-up pb-4 text-center text-[11px] text-muted-foreground [@media(pointer:coarse)]:hidden" style={entrance(5)}>
+                {t('assistant.welcome.pressEscPre')} <Kbd>Esc</Kbd> {t('assistant.welcome.pressEscPost')}
               </p>
             </div>
           ) : (
@@ -1028,12 +1028,12 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 pb-14 pt-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                       <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={cn('mr-1 font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <span className={cn('mr-1 font-mono text-[11px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
                       <Button
                         variant="outline"
                         size="sm"

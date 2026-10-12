@@ -167,7 +167,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
   const empty = classes.length === 0 && screens.length === 0;
 
   return (
-    <div className="absolute inset-y-0 right-0 z-20 flex w-[380px] max-w-[92vw] flex-col border-l border-border/50 bg-background/97 shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.18)] backdrop-blur-md animate-in slide-in-from-right-4 fade-in-0 duration-200">
+    <div className="absolute inset-y-0 right-0 z-20 flex w-[380px] max-w-[92vw] flex-col border-l border-border/50 bg-background/97 shadow-[-8px_0_24px_-12px_hsl(var(--shadow-color)/calc(var(--shadow-strength)*0.18))] backdrop-blur-md animate-in slide-in-from-right-4 fade-in-0 duration-200">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2">

@@ -17,13 +17,13 @@ import { SkeletonLine, SkeletonBlock, SkeletonCircle } from './SkeletonLoader';
  * sidebar navigation items.
  */
 const SidebarSkeleton: React.FC = () => (
-  <div className="hidden md:flex w-14 shrink-0 flex-col gap-3 border-r border-slate-200/70 dark:border-slate-700/70 bg-white/40 dark:bg-slate-900/40 p-2.5">
+  <div className="hidden md:flex w-14 shrink-0 flex-col gap-3 border-r border-border/70 bg-card/40 p-2.5">
     {/* Icon-style nav items */}
     {Array.from({ length: 7 }).map((_, i) => (
       <SkeletonCircle key={i} size={32} className="mx-auto" />
     ))}
     {/* Divider */}
-    <div className="my-2 border-t border-slate-200/60 dark:border-slate-700/50" />
+    <div className="my-2 border-t border-border/60" />
     <SkeletonCircle size={32} className="mx-auto" />
   </div>
 );
@@ -51,7 +51,7 @@ const CanvasSkeleton: React.FC = () => (
  * Properties panel skeleton — right column with labelled field placeholders.
  */
 const PropertiesSkeleton: React.FC = () => (
-  <div className="hidden lg:flex w-60 shrink-0 flex-col gap-4 border-l border-slate-200/70 dark:border-slate-700/70 bg-white/40 dark:bg-slate-900/40 p-4">
+  <div className="hidden lg:flex w-60 shrink-0 flex-col gap-4 border-l border-border/70 bg-card/40 p-4">
     {/* Section title */}
     <SkeletonLine width="50%" className="h-3" />
 
@@ -63,7 +63,7 @@ const PropertiesSkeleton: React.FC = () => (
       </div>
     ))}
 
-    <div className="my-1 border-t border-slate-200/60 dark:border-slate-700/50" />
+    <div className="my-1 border-t border-border/60" />
 
     {/* Additional lines */}
     <SkeletonLine width="60%" className="h-3" />

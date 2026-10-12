@@ -32,7 +32,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
   const [remember, setRemember] = useState(defaultRemember);
 
   return (
-    <div className="frl relative flex max-h-[92vh] flex-col overflow-y-auto bg-background">
+    <div className="frl relative flex max-h-[92vh] flex-col overflow-y-auto overflow-x-hidden bg-background">
       <style>{`
         .frl-rise{opacity:0;translate:0 12px;animation:frlRise .7s cubic-bezier(.2,.7,.2,1) forwards}
         .frl-d1{animation-delay:.04s}.frl-d2{animation-delay:.12s}.frl-d3{animation-delay:.22s}
@@ -103,7 +103,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
                 WebkitMaskImage: 'linear-gradient(180deg,#000,transparent 78%)',
               }}
             />
-            <span className="relative mb-auto font-mono text-[0.68rem] uppercase tracking-[0.2em] text-brand">
+            <span className="ui-kicker relative text-brand">
               Low-code · Visual
             </span>
             <div aria-hidden className="relative my-4 h-[120px]">
@@ -137,8 +137,8 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
             <p className="relative mt-2 max-w-[34ch] text-sm text-muted-foreground">
               Draw your system precisely — classes, relationships, screens. Deterministic output, exact every run.
             </p>
-            <div className="relative mt-5 flex items-center justify-end gap-3">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+            <div className="relative mt-auto flex items-center justify-end gap-3 pt-5">
+              <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-primary">
                 Start modelling
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
@@ -162,7 +162,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
                 WebkitMaskImage: 'radial-gradient(130% 90% at 90% 12%,#000,transparent 72%)',
               }}
             />
-            <span className="relative mb-auto font-mono text-[0.68rem] uppercase tracking-[0.2em] text-brand">
+            <span className="ui-kicker relative text-brand">
               Agentic · Natural language
             </span>
             <div aria-hidden className="relative my-4 flex h-[120px] flex-col justify-center gap-3.5">
@@ -184,11 +184,11 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
             <p className="relative mt-2 max-w-[34ch] text-sm text-muted-foreground">
               Say what you want in plain words. BESSER builds the model and the code — you refine by chatting.
             </p>
-            <div className="relative mt-5 flex items-center justify-between gap-3">
-              <span className="rounded-full border border-brand/20 bg-accent px-2.5 py-1 font-mono text-[0.68rem] tracking-wide text-primary">
-                Free · hosted Qwen
+            <div className="relative mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
+              <span className="whitespace-nowrap rounded-full border border-brand/20 bg-accent px-2.5 py-1 font-mono text-[0.68rem] tracking-wide text-primary">
+                Free · hosted model
               </span>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+              <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-primary">
                 Start describing
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>

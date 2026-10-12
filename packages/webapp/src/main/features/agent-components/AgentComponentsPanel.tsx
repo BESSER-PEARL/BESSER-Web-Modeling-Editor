@@ -79,7 +79,8 @@ export function AgentComponentsPanel() {
             {item.count > 0 && (
               <Badge
                 variant={activeSection === item.key ? 'default' : 'secondary'}
-                className="text-[10px] h-4 px-1.5"
+                size="sm"
+                className="h-4 px-1.5"
               >
                 {item.count}
               </Badge>
