@@ -270,7 +270,7 @@ export function applySpecDrivenEvent(
         ...last,
         toolCalls: [
           ...last.toolCalls,
-          { turn: event.turn, tool: event.tool, summary: event.summary },
+          { turn: event.turn, tool: event.tool, summary: event.summary, detail: event.detail },
         ],
       };
       return { ...card, phases };

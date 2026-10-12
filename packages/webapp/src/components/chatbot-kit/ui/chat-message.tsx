@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Code2,
   Download,
+  FolderOpen,
   Github,
   HelpCircle,
   Info,
@@ -17,7 +18,6 @@ import {
   Sparkles,
   Square,
   Terminal,
-  Wrench,
   XCircle,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -26,7 +26,10 @@ import { cn } from "@/lib/utils"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
-import { fetchAndSaveSpecDrivenArtifact } from "@/main/shared/utils/specDrivenDownload"
+import {
+  fetchAndSaveSpecDrivenArtifact,
+  fetchSpecDrivenArtifactBlob,
+} from "@/main/shared/utils/specDrivenDownload"
 import { emitDeliveryEvent } from "@/main/shared/services/telemetry/pilotTelemetry"
 import { downloadFile } from "@/main/shared/utils/download"
 import {
@@ -42,6 +45,7 @@ import {
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
+import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
 
 const chatBubbleVariants = cva(
   "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
@@ -155,6 +159,7 @@ export interface SpecDrivenToolCallView {
   turn: number
   tool: string
   summary?: string | null
+  detail?: string | null
 }
 
 export interface SpecDrivenPhaseView {
@@ -736,6 +741,16 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
   )
 }
 
+const cardButton =
+  "inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+const cardPrimaryButton =
+  "inline-flex items-center gap-1.5 rounded-md border border-primary bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+
+// Lazy: JSZip and the highlighter load only when someone opens the files.
+const GeneratedFilesDialog = React.lazy(
+  () => import("@/components/chatbot-kit/ui/generated-files-dialog")
+)
+
 function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["status"] }) {
   if (status === "running") {
     return (
@@ -818,20 +833,20 @@ function SpecDrivenPhaseRow({
         </div>
       ) : null}
       {expanded && hasTools ? (
-        <ul className="flex flex-col gap-0.5 px-3 pb-2 pl-6">
-          {phase.toolCalls.map((tc, j) => (
-            <li
-              key={`${tc.turn}-${tc.tool}-${j}`}
-              className="flex items-center gap-2 text-xs text-muted-foreground"
-            >
-              <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
-              <span className="font-mono text-foreground">{tc.tool}</span>
-              <span className="text-[10px] opacity-60">turn {tc.turn}</span>
-              {tc.summary ? (
-                <span className="truncate">— {tc.summary}</span>
-              ) : null}
-            </li>
-          ))}
+        <ul className="flex flex-col px-3 pb-2 pl-6 font-mono text-[11px] leading-[1.75]">
+          {phase.toolCalls.map((tc, j) => {
+            const { verb, target } = describeToolCall(tc.tool, tc.detail, tc.summary)
+            return (
+              <li
+                key={`${tc.turn}-${tc.tool}-${j}`}
+                title={`${tc.tool} · turn ${tc.turn}${tc.detail ? ` · ${tc.detail}` : ""}`}
+                className="flex min-w-0 gap-2.5"
+              >
+                <span className="w-12 shrink-0 font-medium text-brand">{verb}</span>
+                <span className="truncate text-muted-foreground">{target}</span>
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </li>
@@ -1376,6 +1391,14 @@ function SpecDrivenCard({
   // discoverable): clicking it toggles an inline breakdown of the
   // deterministic / AI-refined / AI-authored split plus the raw token count.
   const [showSplit, setShowSplit] = useState(false)
+  // "View files": mounted on first open, then kept so the unpacked project
+  // survives closing and reopening the dialog.
+  const [viewFiles, setViewFiles] = useState(false)
+  const [viewerUsed, setViewerUsed] = useState(false)
+  const openViewer = () => {
+    setViewerUsed(true)
+    setViewFiles(true)
+  }
 
   const handleStop = () => {
     if (!runId || stopRequested) return
@@ -1440,11 +1463,17 @@ function SpecDrivenCard({
     (status === "running" || status === "done") &&
     typeof elapsedSeconds === "number"
   const showStop = status === "running" && typeof runId === "string"
+  // The action in flight, named in the running card's activity strip.
+  const lastCall = phases[phases.length - 1]?.toolCalls.slice(-1)[0]
+  const lastAction = lastCall
+    ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
+    : null
   const canRedownload =
     status === "done" &&
     typeof runId === "string" &&
     typeof fileName === "string"
   const showFooter = showMeter || showStop || canRedownload
+  const canViewFiles = canRedownload || canDetDownload
 
   // Completed run: collapse the big phased card to a SMALL inline line with a
   // compact download button (the process timeline is no longer useful once the
@@ -1468,7 +1497,7 @@ function SpecDrivenCard({
     const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">
           {unenforcedCount > 0 ? (
             <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
           ) : isIncomplete ? (
@@ -1476,7 +1505,7 @@ function SpecDrivenCard({
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
           )}
-          <span className="text-[13px] font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground">
             {unenforcedCount > 0
               ? "Delivered — rules not enforced"
               : isIncomplete
@@ -1548,12 +1577,14 @@ function SpecDrivenCard({
               {formatTokens(tokenUsage.input + tokenUsage.output)} tokens
             </span>
           ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 pt-1 text-xs">
           {phases.length > 0 ? (
             <button
               type="button"
               onClick={() => setShowSteps((v) => !v)}
               aria-expanded={showSteps}
-              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <span>{showSteps ? "Hide steps" : "Show steps"}</span>
               <ChevronRight
@@ -1561,24 +1592,29 @@ function SpecDrivenCard({
               />
             </button>
           ) : null}
-          <span className="ml-auto flex items-center gap-2">
+          <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
             {redownloadState === "failed" ? (
               <span className="text-[11px] text-red-600 dark:text-red-400">
                 Retry failed
               </span>
             ) : null}
+            {canViewFiles ? (
+              <button
+                type="button"
+                onClick={openViewer}
+                className={cardPrimaryButton}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                View files
+              </button>
+            ) : null}
             {canDetDownload ? (
               <button
                 type="button"
                 onClick={handleDeterministicDownload}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium",
-                  hasDownloaded
-                    ? "border border-border/60 bg-background text-foreground hover:bg-muted"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
+                className={!canViewFiles && !hasDownloaded ? cardPrimaryButton : cardButton}
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-3.5 w-3.5" />
                 {hasDownloaded ? "Download again" : "Download"}
               </button>
             ) : null}
@@ -1587,17 +1623,12 @@ function SpecDrivenCard({
                 type="button"
                 onClick={() => void handleRedownload()}
                 disabled={redownloadState === "busy"}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium disabled:opacity-50",
-                  isFirstSave
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "border border-border/60 bg-background text-foreground hover:bg-muted"
-                )}
+                className={!canViewFiles && isFirstSave ? cardPrimaryButton : cardButton}
               >
                 {redownloadState === "busy" ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Download className="h-3 w-3" />
+                  <Download className="h-3.5 w-3.5" />
                 )}
                 {isFirstSave ? "Download" : "Download again"}
               </button>
@@ -1606,9 +1637,9 @@ function SpecDrivenCard({
               <button
                 type="button"
                 onClick={() => onPushToGithub(runId)}
-                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
+                className={cardButton}
               >
-                <Github className="h-3 w-3" />
+                <Github className="h-3.5 w-3.5" />
                 Push to GitHub
               </button>
             ) : null}
@@ -1629,24 +1660,43 @@ function SpecDrivenCard({
         {/* File-count provenance for this run, not a readiness/coverage score. */}
         {showSplit && !deterministic && typeof detPct === "number" ? (
           <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
-            <div className="mb-1 font-medium text-foreground">
+            <div className="mb-1.5 font-medium text-foreground">
               How this was built
             </div>
+            <div aria-hidden className="mb-2 flex h-2 overflow-hidden rounded-full bg-border/60">
+              <span className="bg-brand" style={{ width: `${detPct}%` }} />
+              {typeof refinedPct === "number" && refinedPct > 0 ? (
+                <span className="bg-brand-dark" style={{ width: `${refinedPct}%` }} />
+              ) : null}
+              {typeof aiPct === "number" && aiPct > 0 ? (
+                <span className="bg-foreground/30" style={{ width: `${aiPct}%` }} />
+              ) : null}
+            </div>
             <ul className="flex flex-col gap-0.5">
-              <li>
-                <span className="font-mono text-primary">{detPct}%</span>{" "}
-                scaffold files not edited in this run.
+              <li className="flex items-baseline gap-2">
+                <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-brand" />
+                <span>
+                  <span className="font-mono font-medium text-foreground">{detPct}%</span>{" "}
+                  scaffold files not edited in this run.
+                </span>
               </li>
               {typeof refinedPct === "number" && refinedPct > 0 ? (
-                <li>
-                  <span className="font-mono">{refinedPct}%</span> generated by
-                  BESSER, then edited in this run.
+                <li className="flex items-baseline gap-2">
+                  <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-brand-dark" />
+                  <span>
+                    <span className="font-mono font-medium text-foreground">{refinedPct}%</span>{" "}
+                    generated by BESSER, then edited in this run.
+                  </span>
                 </li>
               ) : null}
               {typeof aiPct === "number" && aiPct > 0 ? (
-                <li>
-                  <span className="font-mono">{aiPct}%</span> additional files
-                  outside the scaffold (including harness-created files).
+                <li className="flex items-baseline gap-2">
+                  <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-foreground/30" />
+                  <span>
+                    <span className="font-mono font-medium text-foreground">{aiPct}%</span>{" "}
+                    additional files outside the scaffold (including
+                    harness-created files).
+                  </span>
                 </li>
               ) : null}
             </ul>
@@ -1732,6 +1782,27 @@ function SpecDrivenCard({
             </span>
           </div>
         ) : null}
+
+        {viewerUsed && canViewFiles ? (
+          <React.Suspense fallback={null}>
+            <GeneratedFilesDialog
+              open={viewFiles}
+              onOpenChange={setViewFiles}
+              load={
+                canDetDownload
+                  ? async () => deterministicBlob ?? null
+                  : () => fetchSpecDrivenArtifactBlob(runId!)
+              }
+              fileName={fileName || "generated_code.zip"}
+              meta={generatorUsed}
+              onDownload={
+                canDetDownload
+                  ? handleDeterministicDownload
+                  : () => void handleRedownload()
+              }
+            />
+          </React.Suspense>
+        ) : null}
       </div>
     )
   }
@@ -1794,6 +1865,12 @@ function SpecDrivenCard({
             <span className="text-[11px] text-muted-foreground">
               Big steps can take a few minutes — the timer keeps moving while
               it's running.
+            </span>
+          ) : null}
+          {lastAction ? (
+            <span className="flex w-full min-w-0 gap-2 font-mono text-[11px] text-muted-foreground">
+              <span className="shrink-0 font-medium text-brand">{lastAction.verb}</span>
+              <span className="truncate">{lastAction.target}</span>
             </span>
           ) : null}
         </div>
