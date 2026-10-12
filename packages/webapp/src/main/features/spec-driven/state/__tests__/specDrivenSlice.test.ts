@@ -396,6 +396,19 @@ describe('specDrivenSlice — applySpecDrivenEvent (pure card reducer)', () => {
     ]);
   });
 
+  it('keeps the tool_call detail (the target the card names)', () => {
+    // The backend sends the target as `detail`; `summary` is never set, so
+    // dropping `detail` left the card with bare tool names.
+    const next = applySpecDrivenEvent(CARD, {
+      event: 'tool_call',
+      turn: 4,
+      tool: 'write_file',
+      status: 'executing',
+      detail: 'path=frontend/src/App.jsx',
+    });
+    expect(next.phases[0].toolCalls[0].detail).toBe('path=frontend/src/App.jsx');
+  });
+
   it('model_update swaps the header model and adds a visible step note', () => {
     const next = applySpecDrivenEvent(CARD, {
       event: 'model_update',

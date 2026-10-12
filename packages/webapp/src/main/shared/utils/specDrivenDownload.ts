@@ -71,3 +71,18 @@ export async function fetchAndSaveSpecDrivenArtifact(
   }
   return { ok: true, sizeBytes: blob.size };
 }
+
+/**
+ * Fetch the artifact for in-editor viewing ("View files"): no browser save
+ * and no download telemetry, since the user did not take the output with them.
+ * `null` on any failure, including the artifact having expired on the server.
+ */
+export async function fetchSpecDrivenArtifactBlob(runId: string): Promise<Blob | null> {
+  try {
+    const response = await fetch(specDrivenDownloadUrl(runId));
+    return response.ok ? await response.blob() : null;
+  } catch (err) {
+    console.error('[specDrivenDownload] view fetch failed', err);
+    return null;
+  }
+}
