@@ -117,6 +117,7 @@ export const Sidebar = () => {
     >
       <aside
         ref={asideRef}
+        aria-label={t("sidebar.palette", "Element palette")}
         className="besser-sidebar__palette"
         style={{
           width: `${width}px`,

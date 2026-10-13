@@ -63,7 +63,8 @@
       "agentPersonalization": "Agentenpersonalisierung",
       "agentMappings": "Agentenzuordnungen",
       "agentComponents": "Komponenten"
-    }
+    },
+    "workspace": "Arbeitsbereich"
   },
   "menu": {
     "file": {

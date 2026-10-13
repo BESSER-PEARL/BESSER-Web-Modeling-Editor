@@ -63,7 +63,8 @@
       "agentPersonalization": "Erweidert Agent-Personnalisatioun",
       "agentMappings": "Agent-Zuelongen",
       "agentComponents": "Komponenten"
-    }
+    },
+    "workspace": "Aarbechtsberäich"
   },
   "menu": {
     "file": {

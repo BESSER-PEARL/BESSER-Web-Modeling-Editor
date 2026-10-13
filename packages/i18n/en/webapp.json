@@ -63,7 +63,8 @@
       "agentPersonalization": "Agent Personalization",
       "agentMappings": "Agent Mappings",
       "agentComponents": "Components"
-    }
+    },
+    "workspace": "Workspace"
   },
   "menu": {
     "file": {

@@ -1105,7 +1105,8 @@
     "fitView": "Ansicht anpassen"
   },
   "sidebar": {
-    "resize": "Palette anpassen"
+    "resize": "Palette anpassen",
+    "palette": "Elementpalette"
   },
   "connection": {
     "refused": {

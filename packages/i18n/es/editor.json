@@ -1105,7 +1105,8 @@
     "fitView": "Ajustar la vista"
   },
   "sidebar": {
-    "resize": "Cambiar el tamaño de la paleta"
+    "resize": "Cambiar el tamaño de la paleta",
+    "palette": "Paleta de elementos"
   },
   "connection": {
     "refused": {

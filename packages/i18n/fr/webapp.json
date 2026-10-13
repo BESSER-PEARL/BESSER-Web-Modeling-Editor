@@ -63,7 +63,8 @@
       "agentPersonalization": "Personnalisation avancée de l'agent",
       "agentMappings": "Correspondances d'agent",
       "agentComponents": "Composants"
-    }
+    },
+    "workspace": "Espace de travail"
   },
   "menu": {
     "file": {

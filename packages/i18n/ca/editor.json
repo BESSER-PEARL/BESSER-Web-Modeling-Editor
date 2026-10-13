@@ -1105,7 +1105,8 @@
     "fitView": "Ajusta la vista"
   },
   "sidebar": {
-    "resize": "Canvia la mida de la paleta"
+    "resize": "Canvia la mida de la paleta",
+    "palette": "Paleta d'elements"
   },
   "connection": {
     "refused": {

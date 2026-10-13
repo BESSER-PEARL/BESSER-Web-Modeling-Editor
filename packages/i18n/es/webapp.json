@@ -63,7 +63,8 @@
       "agentPersonalization": "Personalización avanzada del agente",
       "agentMappings": "Asignaciones de agente",
       "agentComponents": "Componentes"
-    }
+    },
+    "workspace": "Espacio de trabajo"
   },
   "menu": {
     "file": {
