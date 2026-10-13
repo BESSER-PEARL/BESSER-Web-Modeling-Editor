@@ -781,6 +781,8 @@ export async function inlineSvgImages(svg: string): Promise<string> {
         const response = await fetch(new URL(href, document.baseURI).href)
         if (!response.ok) return null
         const blob = await response.blob()
+        // A dev / SPA server answers a missing file with index.html (200).
+        if (blob.type && !blob.type.startsWith("image/")) return null
         return await new Promise<string | null>((resolve) => {
           const reader = new FileReader()
           reader.onload = () => resolve(String(reader.result))

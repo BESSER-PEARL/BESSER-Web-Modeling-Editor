@@ -138,20 +138,37 @@ describe("export palette", () => {
 })
 
 describe("inlineSvgImages", () => {
+  // Stub fetch with a minimal Response whose blob() is jsdom's Blob. A real
+  // Node `Response` would hand back Node's Blob, which jsdom's FileReader
+  // rejects as "not of type 'Blob'" -- a test-realm mismatch, not app
+  // behaviour (in a browser fetch, Blob and FileReader share one realm).
+  const stubFetch = (body: string, type: string, ok = true) =>
+    vi.fn(async () => ({ ok, blob: async () => new Blob([body], { type }) }))
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it("embeds NN layer icons as data URIs (an SVG file or PNG canvas never loads them)", async () => {
-    const fetchMock = vi.fn(
-      async () => new Response(new Blob(["png"], { type: "image/png" }))
-    )
+    const fetchMock = stubFetch("png", "image/png")
     vi.stubGlobal("fetch", fetchMock)
-    try {
-      const svg = await inlineSvgImages(
-        '<svg><image href="/images/nn-layers/conv2d.png"/><image href="/images/nn-layers/conv2d.png"/></svg>'
-      )
-      expect(svg).not.toContain('href="/images/')
-      expect(svg.match(/href="data:/g)).toHaveLength(2)
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-    } finally {
-      vi.unstubAllGlobals()
-    }
+    const svg = await inlineSvgImages(
+      '<svg><image href="/images/nn-layers/conv2d.png"/><image href="/images/nn-layers/conv2d.png"/></svg>'
+    )
+    expect(svg).not.toContain('href="/images/')
+    expect(svg.match(/href="data:image\/png;base64,/g)).toHaveLength(2)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps the href when the image cannot be fetched", async () => {
+    vi.stubGlobal("fetch", stubFetch("", "image/png", false))
+    const svg = '<svg><image href="/images/nn-layers/missing.png"/></svg>'
+    expect(await inlineSvgImages(svg)).toBe(svg)
+  })
+
+  it("keeps the href when the server answers with a non-image (SPA fallback)", async () => {
+    vi.stubGlobal("fetch", stubFetch("<!doctype html>", "text/html"))
+    const svg = '<svg><image href="/images/nn-layers/missing.png"/></svg>'
+    expect(await inlineSvgImages(svg)).toBe(svg)
   })
 })
