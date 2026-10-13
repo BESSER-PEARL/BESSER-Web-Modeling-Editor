@@ -815,7 +815,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-medium">{displayName}</span>
           {isDefault && (
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" size="sm">
               {t('agentConfig.row.default')}
             </Badge>
           )}
@@ -2195,7 +2195,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     <div className="relative flex h-full flex-col overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-elevation-3">
             <div className="mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-border border-t-brand" />
             <h3 className="text-lg font-semibold">{t('agentConfig.loadingTitle')}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{loadingMessage}</p>

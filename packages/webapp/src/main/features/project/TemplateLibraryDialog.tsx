@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -331,7 +331,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         }}
       >
         <DialogHeader className="border-b border-border/70 px-6 pb-4 pt-6">
-          <DialogTitle className="flex items-center gap-2 text-xl">
+          <DialogTitle className={cn('flex items-center gap-2', dialogDisplayTitleClass)}>
             <Sparkles className="size-5 text-brand" />
             {t('project.templates.title')}
           </DialogTitle>

@@ -8,6 +8,10 @@ import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
 
+/** The toast's own icon carries the status; drop the emoji the backend prefixes ("✅ Diagram is valid"). */
+const stripStatusEmoji = (text: string): string =>
+  text.replace(/^\s*(?:✅|❌|⚠️?|ℹ️?)\s*/u, '');
+
 /**
  * Validate diagram using the unified backend validation endpoint.
  * This function sends the diagram to the backend which:
@@ -51,23 +55,24 @@ export function buildValidationResultToast(
 ): { type: 'error' | 'warning' | 'success' | 'info'; message: string; autoClose: number } | null {
   const has = (list?: string[]) => Array.isArray(list) && list.length > 0;
   const sections: string[] = [];
-  const section = (icon: string, labelKey: string, items: string[]) =>
-    [`${icon} ${i18n.t(labelKey)}`, ...items].join('\n\n');
-  if (has(result.errors)) sections.push(section('❌', 'validation.toasts.errorsLabel', result.errors!));
+  // The toast's own icon carries the status, so section labels and backend lines carry no emoji.
+  const section = (labelKey: string, items: string[]) =>
+    [i18n.t(labelKey), ...items.map(stripStatusEmoji)].join('\n\n');
+  if (has(result.errors)) sections.push(section('validation.toasts.errorsLabel', result.errors!));
   if (has(result.invalid_constraints)) {
-    sections.push(section('❌', 'validation.toasts.invalidConstraintsLabel', result.invalid_constraints!));
+    sections.push(section('validation.toasts.invalidConstraintsLabel', result.invalid_constraints!));
   }
-  if (has(result.warnings)) sections.push(section('⚠️', 'validation.toasts.warningsLabel', result.warnings!));
+  if (has(result.warnings)) sections.push(section('validation.toasts.warningsLabel', result.warnings!));
   if (has(result.valid_constraints)) {
-    sections.push(section('✅', 'validation.toasts.validConstraintsLabel', result.valid_constraints!));
+    sections.push(section('validation.toasts.validConstraintsLabel', result.valid_constraints!));
   } else if (result.ocl_message && !has(result.invalid_constraints)) {
-    sections.push(result.ocl_message);
+    sections.push(stripStatusEmoji(result.ocl_message));
   }
 
   const failed = has(result.errors) || has(result.invalid_constraints);
   const warned = has(result.warnings);
   if (result.isValid && !failed && !warned) {
-    sections.unshift(result.message || `✅ ${i18n.t('validation.toasts.diagramValid')}`);
+    sections.unshift(stripStatusEmoji(result.message || i18n.t('validation.toasts.diagramValid')));
   }
   if (sections.length === 0) return null;
 

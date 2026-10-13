@@ -767,7 +767,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               </p>
             )}
             {LOCAL_BACKEND_NOTE[provider] && (
-              <p className="text-xs text-amber-600">{LOCAL_BACKEND_NOTE[provider]}</p>
+              <p className="text-xs text-warning">{LOCAL_BACKEND_NOTE[provider]}</p>
             )}
           </div>
 
@@ -858,7 +858,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               </p>
             )}
             {!providerMismatch && formatLooksWrong && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-warning">
                 That doesn&rsquo;t look like a {selectedProvider.label} key, but the prefix is unusual enough
                 that we can&rsquo;t tell for sure. Save will still proceed.
               </p>

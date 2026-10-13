@@ -34,7 +34,7 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
   const resolvedMessage = message ?? t('common.loading');
   return (
   <div
-    className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 text-slate-500 dark:text-slate-400"
+    className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 text-muted-foreground"
     role="status"
     aria-live="polite"
   >
@@ -46,7 +46,7 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
     />
 
     {/* Animated progress bar */}
-    <div className="h-1 w-48 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+    <div className="h-1 w-48 overflow-hidden rounded-full bg-muted">
       <div className="h-full w-1/3 animate-[progress-slide_1.4s_ease-in-out_infinite] rounded-full bg-brand" />
     </div>
 

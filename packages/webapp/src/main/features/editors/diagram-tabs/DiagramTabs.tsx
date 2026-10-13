@@ -1,10 +1,10 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 import { diagramBridge } from '@besser/wme';
 import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
@@ -35,51 +35,21 @@ interface DiagramTabsProps {
   userModelValidationStatusById?: Record<string, QualityCheckState>;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Small inline tooltip used for info icons next to reference labels  */
-/*  Renders via portal to avoid being clipped by editor stacking ctx  */
-/* ------------------------------------------------------------------ */
-const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
-  const [visible, setVisible] = useState(false);
-  const iconRef = useRef<HTMLSpanElement>(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    if (visible && iconRef.current) {
-      const rect = iconRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.bottom + 6,
-        left: rect.left + rect.width / 2,
-      });
-    }
-  }, [visible]);
-
-  return (
-    <span
-      ref={iconRef}
-      className="relative inline-flex cursor-help"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onFocus={() => setVisible(true)}
-      onBlur={() => setVisible(false)}
-      tabIndex={0}
-      role="note"
-      aria-label={text}
-    >
-      <Info className="size-3 text-muted-foreground" />
-      {visible && ReactDOM.createPortal(
-        <span
-          role="tooltip"
-          className="pointer-events-none fixed z-[9999] w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
-          style={{ top: pos.top, left: pos.left }}
-        >
-          {text}
-        </span>,
-        document.body,
-      )}
-    </span>
-  );
-};
+/* Info icon next to reference labels; the shared Tooltip portals out of the editor's stacking context. */
+const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
+  <TooltipProvider delayDuration={200}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex cursor-help" tabIndex={0} aria-label={text}>
+          <Info className="size-3 text-muted-foreground" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="w-56 leading-snug">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 /* ------------------------------------------------------------------ */
 /*  Helper: detect whether a diagram's model is essentially empty      */
@@ -413,9 +383,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                   aria-selected={isActive}
                   aria-label={t('editors.diagramTabs.diagramTabLabel', { title: diagram.title })}
                   className={[
-                    'group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40',
+                    'group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40',
                     isActive
-                      ? 'border-b-2 border-brand bg-card text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)]'
+                      ? 'rounded-b-none border-b-2 border-brand bg-card text-brand-dark shadow-elevation-1 ring-1 ring-brand/10'
                       : 'text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
                   ].join(' ')}
                   onClick={() => {
@@ -426,7 +396,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                 >
                   {isRenaming ? (
                     <Input
-                      className="h-5 w-auto min-w-24 rounded-sm border-input bg-card px-1.5 py-0 text-[11px] shadow-inner focus-visible:ring-1 focus-visible:ring-ring"
+                      className="h-5 w-auto min-w-24 rounded-sm border-input bg-card px-1.5 py-0 text-xs shadow-inner focus-visible:ring-1 focus-visible:ring-ring"
                       value={renameValue}
                       size={Math.max(renameValue.length + 1, 12)}
                       onChange={(e) => setRenameValue(e.target.value)}
@@ -487,7 +457,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         {isUserDiagram && (
           <button
             className={[
-              'ml-auto mr-1.5 flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-colors',
+              'ml-auto mr-1.5 flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors',
               profileFormOpen
                 ? 'bg-brand-dark text-brand-foreground hover:bg-brand-dark/90'
                 : 'bg-brand text-brand-foreground hover:bg-brand-dark',
@@ -504,7 +474,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         {/* Collapse toggle for references (inline in tab bar, right-aligned) */}
         {hasReferences && (
           <button
-            className="ml-auto mr-1 flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="ml-auto mr-1 flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setRefsCollapsed((prev) => !prev)}
             aria-label={refsCollapsed ? t('editors.diagramTabs.expandLinkedDiagrams') : t('editors.diagramTabs.collapseLinkedDiagrams')}
             aria-expanded={!refsCollapsed}
@@ -579,7 +549,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                     {currentDiagramType === 'ObjectDiagram' && !classRefBroken && !classRefEmpty && (
                       <button
                         type="button"
-                        className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                        className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
                         onClick={() => void handleGenerateObjectsFromClasses()}
                         title={t('editors.diagramTabs.generateObjectsTooltip')}
                       >
@@ -589,7 +559,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                     )}
                   </>
                 ) : (
-                  <span className="rounded-md border border-dashed border-border bg-muted/30 px-2 py-0.5 text-[11px] italic text-muted-foreground">
+                  <span className="rounded-md border border-dashed border-border bg-muted/30 px-2 py-0.5 text-xs italic text-muted-foreground">
                     {t('editors.diagramTabs.noClassDiagramsAvailable')}
                   </span>
                 )}

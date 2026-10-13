@@ -124,6 +124,8 @@ export interface ToolCallEvent {
   tool: string;
   status: SpecDrivenToolCallStatus;
   summary?: string | null;
+  /** What the call targeted, as `key=value` pairs (`path=src/App.jsx`). Never file content. */
+  detail?: string | null;
 }
 
 export interface CostEvent {

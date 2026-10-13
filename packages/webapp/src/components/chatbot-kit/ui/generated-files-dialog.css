@@ -1,0 +1,17 @@
+/* "View files" chrome around the shared code surface (code-surface.css). */
+
+.gfd-tabs {
+  background: #1b1d1f;
+  border-bottom: 1px solid #2a2d30;
+  color: #aeb7bf;
+}
+
+.gfd-tab {
+  color: #e7ecee;
+  border-bottom: 2px solid #6fb6c8;
+  padding: 0 2px;
+}
+
+.gfd-gutter {
+  color: #56606a;
+}

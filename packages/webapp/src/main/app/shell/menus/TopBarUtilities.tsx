@@ -90,7 +90,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
     <>
       {showAgentVariantSelector && (
         <div className="hidden min-w-0 shrink items-center gap-1.5 xl:flex 2xl:gap-2">
-          <span className="hidden text-[11px] font-medium uppercase tracking-wide text-muted-foreground 2xl:inline">{t('topbar.variant')}</span>
+          <span className="ui-kicker hidden 2xl:inline">{t('topbar.variant')}</span>
           <Select
             value={activeAgentVariantId || BASE_AGENT_VARIANT}
             onValueChange={(value) => onAgentVariantChange?.(value === BASE_AGENT_VARIANT ? '' : value)}

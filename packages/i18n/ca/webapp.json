@@ -43,6 +43,7 @@
     "editors": "Editors",
     "collapseSidebar": "Replega la barra lateral",
     "expandSidebar": "Desplega la barra lateral",
+    "starOnGitHub": "Estrella a GH",
     "diagram": {
       "class": "Classe",
       "object": "Objecte",
@@ -1092,7 +1093,9 @@
           "GUINoCodeDiagram": "Disseny d'interfície gràfica d'usuari (inspirat en IFML).",
           "QuantumCircuitDiagram": "Especificació de programa quàntic.",
           "BPMN": "Model i notació de procés de negoci.",
-          "NNDiagram": "Arquitectura de xarxa neuronal (PyTorch / TensorFlow)."
+          "NNDiagram": "Arquitectura de xarxa neuronal (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Components de programari i les interfícies entre ells.",
+          "DeploymentDiagram": "Nodes, artefactes i desplegament del sistema."
         }
       },
       "toasts": {
@@ -1375,6 +1378,19 @@
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Baixa",
+      "opening": "S’està obrint el projecte…",
+      "loadFailed": "No s’han pogut carregar els fitxers generats. El servidor els conserva uns {{minutes}} minuts després de l’execució; després, torna a generar per veure’ls.",
+      "treeLabel": "Fitxers generats",
+      "fileCount_one": "{{count}} fitxer",
+      "fileCount_other": "{{count}} fitxers",
+      "fileMeta": "{{lines}} línies · {{size}} · {{language}}",
+      "plainText": "text",
+      "tooLarge": "Aquest fitxer és massa gran per a la previsualització. Baixa el projecte per obrir-lo.",
+      "binary": "Fitxer binari, sense previsualització."
+    },
+    "rateLimitTooltip": "Sol·licituds enviades l’últim minut (límit {{limit}})",
     "import": {
       "titleImage": "Importa un diagrama de classes des d'una imatge",
       "titleKg": "Importa un diagrama de classes des d'un graf de coneixement",
@@ -1416,7 +1432,7 @@
       "subtitle": "Descriu el teu sistema en llenguatge natural. Obtén models, interfícies i codi.",
       "pressEscPre": "Prem",
       "pressEscPost": "per tancar",
-      "freeTier": "Ús gratuït amb el nostre model Qwen allotjat.",
+      "freeTier": "Gratuït amb el nostre model allotjat.",
       "changeModel": "Canvia el model"
     },
     "composer": {
@@ -1683,8 +1699,9 @@
       "para1": "BESSER és una plataforma low-code per al modelatge de programari intel·ligent i la generació de codi. Proporciona un metamodel basat en Python (B-UML) per descriure models de domini, màquines d'estats, dissenys d'interfícies gràfiques, agents i molt més.",
       "para2": "El <brand>Web Modeling Editor</brand> és l'editor visual en línia per crear i editar models de BESSER, generar codi i desplegar aplicacions.",
       "besserRepository": "Repositori de BESSER",
-      "wmeRepository": "Repositori de WME",
-      "libraryRepository": "Repositori de paquets"
+      "wmeRepository": "Codi font de l'editor",
+      "libraryRepository": "Repositori de paquets",
+      "version": "Versió {{version}}"
     },
     "shortcuts": {
       "title": "Dreceres de teclat",

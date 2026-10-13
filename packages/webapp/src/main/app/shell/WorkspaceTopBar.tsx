@@ -96,7 +96,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               className={`h-8 w-auto sm:h-10 ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
             />
           </button>
-          <div className="hidden items-center gap-1.5 lg:flex">
+          <div className="hidden min-w-0 items-center gap-1.5 lg:flex">
             <FolderKanban className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <Input
               aria-label={t('topbar.projectName')}
@@ -110,7 +110,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
                   event.currentTarget.blur();
                 }
               }}
-              className="h-7 w-40 rounded-md border-none bg-transparent px-1.5 py-0 text-sm font-medium shadow-none transition-colors duration-150 hover:bg-foreground/[0.05] focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-0"
+              className="h-7 w-40 min-w-0 rounded-md border-none bg-transparent px-1.5 py-0 text-sm font-medium shadow-none transition-colors duration-150 hover:bg-foreground/[0.05] focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-0"
               placeholder={t('topbar.projectName')}
             />
           </div>

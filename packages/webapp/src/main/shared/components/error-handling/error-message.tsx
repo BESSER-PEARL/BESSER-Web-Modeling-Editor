@@ -15,7 +15,7 @@ export function ErrorMessage(props: Props) {
   const { headerText, bodyText } = props.error;
 
   return (
-    <Card className="w-full border-destructive/30 bg-destructive/5 text-destructive shadow-lg">
+    <Card className="w-full border-destructive/30 bg-destructive/5 text-destructive shadow-elevation-2">
       <div role="alert" className="flex items-start gap-3 p-3">
         <div className="mt-0.5 rounded-md bg-destructive/10 p-1 text-destructive">
           <AlertTriangle className="size-4" />

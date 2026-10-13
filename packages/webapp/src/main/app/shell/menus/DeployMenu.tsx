@@ -38,11 +38,11 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   const title = t('menu.deploy.title');
   return (
     <DropdownMenu>
-      <HeaderTooltip label={title} hideFrom="xl">
+      <HeaderTooltip label={title} hideFrom="lg">
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
             <Rocket className="size-4" aria-hidden="true" />
-            <span className="hidden xl:inline">{title}</span>
+            <span className="hidden lg:inline">{title}</span>
             <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>

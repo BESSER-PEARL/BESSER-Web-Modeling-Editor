@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
+import { menuGroupLabelClass } from './FileMenu';
 
 const COMMUNITY_URLS = {
   contribute: 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md',
@@ -71,11 +72,11 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
 
   return (
     <DropdownMenu>
-      <HeaderTooltip label={title} hideFrom="xl">
+      <HeaderTooltip label={title} hideFrom="lg">
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
             <HelpCircle className="size-4" aria-hidden="true" />
-            <span className="hidden xl:inline">{title}</span>
+            <span className="hidden lg:inline">{title}</span>
             <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
@@ -102,7 +103,7 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>{t('menu.community.title')}</DropdownMenuLabel>
+        <DropdownMenuLabel className={menuGroupLabelClass}>{t('menu.community.title')}</DropdownMenuLabel>
         <ExternalLinkItem href={COMMUNITY_URLS.contribute} icon={<GitPullRequest className="mr-2 size-4" />}>
           {t('menu.community.contribute')}
         </ExternalLinkItem>

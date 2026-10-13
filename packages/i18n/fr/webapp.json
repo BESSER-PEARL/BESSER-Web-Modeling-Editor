@@ -43,6 +43,7 @@
     "editors": "Éditeurs",
     "collapseSidebar": "Réduire la barre latérale",
     "expandSidebar": "Développer la barre latérale",
+    "starOnGitHub": "Étoile sur GH",
     "diagram": {
       "class": "Classe",
       "object": "Objet",
@@ -1092,7 +1093,9 @@
           "GUINoCodeDiagram": "Conception d'interface utilisateur graphique (inspirée d'IFML).",
           "QuantumCircuitDiagram": "Spécification de programme quantique.",
           "BPMN": "Modèle et notation de processus métier.",
-          "NNDiagram": "Architecture de réseau de neurones (PyTorch / TensorFlow)."
+          "NNDiagram": "Architecture de réseau de neurones (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Composants logiciels et interfaces qui les relient.",
+          "DeploymentDiagram": "Nœuds, artefacts et déploiement du système."
         }
       },
       "toasts": {
@@ -1375,6 +1378,19 @@
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Télécharger",
+      "opening": "Ouverture du projet…",
+      "loadFailed": "Impossible de charger les fichiers générés. Le serveur les conserve environ {{minutes}} minutes après l’exécution ; ensuite, relancez la génération pour les consulter.",
+      "treeLabel": "Fichiers générés",
+      "fileCount_one": "{{count}} fichier",
+      "fileCount_other": "{{count}} fichiers",
+      "fileMeta": "{{lines}} lignes · {{size}} · {{language}}",
+      "plainText": "texte",
+      "tooLarge": "Ce fichier est trop volumineux pour l’aperçu. Téléchargez le projet pour l’ouvrir.",
+      "binary": "Fichier binaire, aperçu impossible."
+    },
+    "rateLimitTooltip": "Requêtes envoyées dans la dernière minute (limite {{limit}})",
     "import": {
       "titleImage": "Importer un diagramme de classes depuis une image",
       "titleKg": "Importer un diagramme de classes depuis un graphe de connaissances",
@@ -1416,7 +1432,7 @@
       "subtitle": "Décrivez votre système en langage naturel. Obtenez des modèles, des interfaces et du code.",
       "pressEscPre": "Appuyez sur",
       "pressEscPost": "pour fermer",
-      "freeTier": "Gratuit avec notre modèle Qwen hébergé.",
+      "freeTier": "Gratuit avec notre modèle hébergé.",
       "changeModel": "Changer de modèle"
     },
     "composer": {
@@ -1683,8 +1699,9 @@
       "para1": "BESSER est une plateforme low-code pour la modélisation de logiciels intelligents et la génération de code. Elle fournit un métamodèle basé sur Python (B-UML) pour décrire des modèles de domaine, des machines à états, des conceptions d'interfaces graphiques, des agents, et plus encore.",
       "para2": "Le <brand>Web Modeling Editor</brand> est l'éditeur visuel en ligne permettant de créer et modifier des modèles BESSER, de générer du code et de déployer des applications.",
       "besserRepository": "Dépôt BESSER",
-      "wmeRepository": "Dépôt WME",
-      "libraryRepository": "Dépôt de paquets"
+      "wmeRepository": "Code source de l’éditeur",
+      "libraryRepository": "Dépôt de paquets",
+      "version": "Version {{version}}"
     },
     "shortcuts": {
       "title": "Raccourcis clavier",
