@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chooserHeading, createBlankProject, openCreateProjectForm, openFreshApp, projectHub, workspaceSidebar } from './helpers/project';
 
 /**
  * Project lifecycle tests — verify creating, saving (localStorage persistence),
@@ -7,34 +8,24 @@ import { test, expect } from '@playwright/test';
 test.describe('Project management', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test so previous state does not leak.
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
   });
 
   test('project hub dialog is shown when no project exists', async ({ page }) => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-    // The dialog should NOT be closeable when no project is active
-    // (the close button is hidden via `[&>button]:hidden`).
-    await expect(dialog.getByText('Welcome to the BESSER Web Modeling Editor')).toBeVisible();
+    // First run (no saved project) opens the low-code / agentic chooser.
+    await expect(chooserHeading(page)).toBeVisible();
   });
 
   test('can create a new project with custom metadata', async ({ page }) => {
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-    // Navigate to the Create step.
-    await dialog.getByText('Create Blank').click();
-    await expect(dialog.getByText('Create A Project')).toBeVisible();
+    // Navigate to the Create step (chooser → "Model it").
+    const dialog = await openCreateProjectForm(page);
+    await expect(dialog.getByRole('heading', { name: /create a project/i })).toBeVisible();
 
     // Fill in project details.
-    const nameInput = dialog.getByLabel(/name/i);
-    await nameInput.clear();
+    const nameInput = dialog.locator('#project-name');
     await nameInput.fill('My_Test_Project');
 
     const ownerInput = dialog.getByLabel(/owner/i);
@@ -59,7 +50,7 @@ test.describe('Project management', () => {
     await createBlankProject(page, 'Persistent_Project');
 
     // Verify the workspace is active.
-    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
+    await expect(workspaceSidebar(page)).toBeVisible({ timeout: 10_000 });
 
     // Reload the page — the project should be auto-loaded from localStorage.
     await page.reload();
@@ -80,16 +71,17 @@ test.describe('Project management', () => {
     const header = page.locator('header').first();
     await header.locator('img[alt="BESSER"]').click();
 
-    // The ProjectHubDialog should reappear.
-    const dialog = page.getByRole('dialog');
+    // The ProjectHubDialog should reappear on its returning-visit start screen.
+    const dialog = projectHub(page);
     await expect(dialog).toBeVisible({ timeout: 10_000 });
-    await expect(dialog.getByText('Welcome to the BESSER Web Modeling Editor')).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: /^projects$/i })).toBeVisible();
+    await expect(dialog.getByTestId('hub-start-new')).toBeVisible();
   });
 
   test('existing projects appear in the project hub list', async ({ page }) => {
     // Create a first project.
     await createBlankProject(page, 'First_Project');
-    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
+    await expect(workspaceSidebar(page)).toBeVisible({ timeout: 10_000 });
 
     // Open the project hub again.
     await page.locator('header img[alt="BESSER"]').click();
@@ -104,21 +96,14 @@ test.describe('Project management', () => {
   test('can switch between two projects', async ({ page }) => {
     // Create the first project.
     await createBlankProject(page, 'Project_Alpha');
-    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
+    await expect(workspaceSidebar(page)).toBeVisible({ timeout: 10_000 });
 
     // Open hub and create a second project.
     await page.locator('header img[alt="BESSER"]').click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
-    await dialog.getByText('Create Blank').click();
-    await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-    const nameInput = dialog.getByLabel(/name/i);
-    await nameInput.clear();
-    await nameInput.fill('Project_Beta');
-    await dialog.getByRole('button', { name: /create project/i }).click();
-    await expect(dialog).toBeHidden({ timeout: 10_000 });
+    await createBlankProject(page, 'Project_Beta');
 
     // Now "Project_Beta" should be active.
     await expect(page.locator('header input').first()).toHaveValue('Project_Beta');
@@ -138,7 +123,7 @@ test.describe('Project management', () => {
 
   test('can rename a project from the header', async ({ page }) => {
     await createBlankProject(page, 'Original_Name');
-    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
+    await expect(workspaceSidebar(page)).toBeVisible({ timeout: 10_000 });
 
     // The first input in the header is the project name.
     const projectNameInput = page.locator('header input').first();
@@ -154,8 +139,12 @@ test.describe('Project management', () => {
   });
 
   test('project hub shows import option', async ({ page }) => {
-    const dialog = page.getByRole('dialog');
+    const dialog = projectHub(page);
     await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+    // First run shows the chooser; "More options" leads to the start step.
+    await expect(chooserHeading(page)).toBeVisible();
+    await dialog.getByRole('button', { name: /more options/i }).click();
 
     // The "Import Project" card should be visible on the start step.
     await expect(dialog.getByText('Import Project')).toBeVisible();
@@ -165,38 +154,17 @@ test.describe('Project management', () => {
     await expect(dialog.getByText('Import A Project')).toBeVisible();
 
     // The import step should show a file upload area.
-    await expect(dialog.getByRole('button', { name: /choose file to import/i })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /drop a file or click to browse/i })).toBeVisible();
   });
 
   test('back button works in the project hub steps', async ({ page }) => {
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    // Go to the Create step (chooser → "Model it").
+    const dialog = await openCreateProjectForm(page);
+    await expect(dialog.getByRole('heading', { name: /create a project/i })).toBeVisible();
 
-    // Go to the Create step.
-    await dialog.getByText('Create Blank').click();
-    await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-    // Click Back.
-    await dialog.getByRole('button', { name: /back/i }).click();
-    await expect(dialog.getByText('Welcome to the BESSER Web Modeling Editor')).toBeVisible();
+    // Back returns to the chooser the step was entered from.
+    await dialog.getByRole('button', { name: /^back$/i }).click();
+    await expect(chooserHeading(page)).toBeVisible();
+    await expect(dialog.locator('#project-name')).toHaveCount(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}

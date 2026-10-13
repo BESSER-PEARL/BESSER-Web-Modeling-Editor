@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createBlankProject } from './helpers/project';
 
 /**
  * GitHub deploy contract — UI-driven e2e for the V2 ``projectExport`` envelope.
@@ -178,24 +179,3 @@ test.describe('GitHub deploy: projectExport envelope', () => {
     ).toBe(true);
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  // First run opens the low-code / agentic chooser; "Model it" advances to
-  // the create-project form.
-  await dialog.getByRole('button', { name: /model it/i }).click();
-
-  const nameInput = dialog.getByLabel(/name/i).first();
-  await expect(nameInput).toBeVisible();
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}
