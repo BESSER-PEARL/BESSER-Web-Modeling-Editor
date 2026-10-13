@@ -83,6 +83,8 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   diagramType?: string;
+  /** Quick-reply chips the agent attached to this message (assistant_message). */
+  suggestedActions?: unknown[];
 }
 
 export interface AgentResponse {

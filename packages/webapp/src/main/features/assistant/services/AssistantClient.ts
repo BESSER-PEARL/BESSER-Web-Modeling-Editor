@@ -980,8 +980,14 @@ export class AssistantClient {
             isUser: false,
             timestamp: new Date(),
             diagramType: typeof directAction.diagramType === 'string' ? directAction.diagramType : payload.diagramType,
+            // Carried on the message itself so the chips attach to THIS message,
+            // whenever it is appended (agent replies are appended in arrival
+            // order, behind any queued injection).
+            ...(Array.isArray(directAction.suggestedActions) && directAction.suggestedActions.length > 0
+              ? { suggestedActions: directAction.suggestedActions as unknown[] }
+              : {}),
           };
-          this.emitMessage(chatMessage);        
+          this.emitMessage(chatMessage);
         }
         return;
       }

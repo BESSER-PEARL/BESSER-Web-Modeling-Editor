@@ -204,3 +204,36 @@ describe('validateDiagram payload (ObjectDiagram pre-gate)', () => {
     expect(body.model._suppressToasts).toBeUndefined();
   });
 });
+
+describe('validateDiagram: a check that did not run', () => {
+  const classModel = () => ({ ...objectModel(), type: 'ClassDiagram', _suppressToasts: true });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it('flags an unreachable validator as checkFailed, not as a model error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    const result: any = await validateDiagram(null, 'Classes', classModel());
+
+    expect(result.isValid).toBe(false);
+    expect(result.checkFailed).toBe(true);
+  });
+
+  it('reports model errors from a reachable validator without checkFailed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ isValid: false, errors: ['Class name is empty'], warnings: [] }),
+      }),
+    );
+
+    const result: any = await validateDiagram(null, 'Classes', classModel());
+
+    expect(result.errors).toEqual(['Class name is empty']);
+    expect(result.checkFailed).toBeUndefined();
+  });
+});

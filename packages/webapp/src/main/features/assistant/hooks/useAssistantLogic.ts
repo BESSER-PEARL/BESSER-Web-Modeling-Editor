@@ -556,6 +556,16 @@ export function useAssistantLogic({
           ...info.model,
           _suppressToasts: true,
         });
+        if (result?.checkFailed) {
+          // The validator could not be reached (or timed out): its `errors`
+          // describe that failure, not the model. Fail open — never ask the
+          // agent to "fix" a network error.
+          if (autoFixRef.current.fixInFlight) {
+            autoFixRef.current.fixInFlight = false;
+            settleAutoFixProgress('Could not re-check the diagram — the validator is unavailable.');
+          }
+          return;
+        }
         const errors: string[] = Array.isArray(result?.errors) ? result.errors : [];
         const wasRepair = autoFixRef.current.fixInFlight;
         if (errors.length === 0) {
@@ -752,17 +762,9 @@ export function useAssistantLogic({
       return;
     }
 
-    // Extract suggestedActions from assistant_message payloads before returning.
+    // assistant_message is rendered by onMessage, which also attaches its
+    // suggestedActions (carried on the ChatMessage) to that very message.
     if (payload.action === 'assistant_message') {
-      if (Array.isArray(payload.suggestedActions) && (payload.suggestedActions as unknown[]).length > 0) {
-        setMessages((prev) => {
-          const lastAssistant = [...prev].reverse().find((m) => m.role === 'assistant');
-          if (lastAssistant) {
-            attachMetaFromPayload(lastAssistant.id, payload as Record<string, unknown>);
-          }
-          return prev;
-        });
-      }
       return;
     }
     if (
@@ -1132,10 +1134,11 @@ export function useAssistantLogic({
      * surfaces); wireConversationDispatchers attaches them to the shared client
      * exactly once. The generating/progress clear lives in the PER-SURFACE
      * handler below since that is local UI state owned per surface. */
-    const onMessage = (message: ChatMessage) => {
-      const responseTiming = stopTimer('response');
-      const totalTiming = stopTimer('total');
-
+    const appendIncomingMessage = (
+      message: ChatMessage,
+      responseTiming: string | null,
+      totalTiming: string | null,
+    ) => {
       const role = message.isUser ? 'user' : 'assistant';
 
       // Voice transcription echo: the backend transcribes the audio (whisper)
@@ -1195,6 +1198,21 @@ export function useAssistantLogic({
           [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
         }));
       }
+    };
+
+    const onMessage = (message: ChatMessage) => {
+      const responseTiming = stopTimer('response');
+      const totalTiming = stopTimer('total');
+      if (message.isUser) {
+        appendIncomingMessage(message, responseTiming, totalTiming);
+        return;
+      }
+      // An agent reply joins the same queue as injections and actions, so it
+      // is shown in arrival order. Appended directly, a message that follows an
+      // injection overtakes the injection's own message (which posts only after
+      // the model is converted, laid out and rendered), and its suggested
+      // actions land on a message that is no longer the last one — hidden.
+      enqueueAssistantTask(() => appendIncomingMessage(message, responseTiming, totalTiming));
     };
 
     const onInjection = (command: InjectionCommand) => {

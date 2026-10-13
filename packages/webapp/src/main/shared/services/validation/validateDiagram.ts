@@ -99,6 +99,11 @@ function showValidationResultToast(result: ValidationResultLike, style: CSSPrope
 /**
  * `onlyProblems`: for validation run as a precondition (e.g. before Generate),
  * whose caller reports its own success -- a passing run raises no result toast.
+ *
+ * A result with `checkFailed: true` means the check itself did not run (the
+ * validator was unreachable, the request failed or timed out): its `errors`
+ * describe that failure, not the model, so a caller acting on model errors
+ * must not treat them as such.
  */
 export async function validateDiagram(
   editor: BesserEditor | null | undefined,
@@ -188,7 +193,7 @@ export async function validateDiagram(
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
         toast.dismiss(VALIDATION_TOAST_ID);
         toast.error(i18n.t('validation.toasts.timedOut'));
-        return { isValid: false, errors: ['Validation timed out'] };
+        return { isValid: false, errors: ['Validation timed out'], checkFailed: true };
       }
       throw fetchError;
     } finally {
@@ -241,9 +246,10 @@ export async function validateDiagram(
         autoClose: 5000,
       });
     }
-    return { 
-      isValid: false, 
-      errors: [error instanceof Error ? error.message : 'Unknown error'] 
+    return {
+      isValid: false,
+      errors: [error instanceof Error ? error.message : 'Unknown error'],
+      checkFailed: true,
     };
   }
 }
