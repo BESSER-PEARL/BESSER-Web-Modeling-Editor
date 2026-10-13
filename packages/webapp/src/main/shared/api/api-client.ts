@@ -45,6 +45,10 @@ class ApiClient {
     const timeoutMs = timeoutOverride ?? this.timeout;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+    const callerSignal = fetchOptions.signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal?.aborted) abortFromCaller();
+    else callerSignal?.addEventListener('abort', abortFromCaller, { once: true });
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -64,6 +68,7 @@ class ApiClient {
       return response.json();
     } finally {
       clearTimeout(timeoutId);
+      callerSignal?.removeEventListener('abort', abortFromCaller);
     }
   }
 

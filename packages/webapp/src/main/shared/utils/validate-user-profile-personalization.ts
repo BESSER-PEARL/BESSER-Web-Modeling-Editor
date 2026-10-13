@@ -65,6 +65,22 @@ function extractLeafFields(spec: UserPersonalizationSpec): Map<FieldPath, Normal
       set('content.adaptContentToUserProfile', content.adaptContentToUserProfile);
   }
 
+  const guiPresentation = spec.gui?.presentation;
+  if (spec.gui?.modality?.readAloud !== undefined) set('gui.modality.readAloud', spec.gui.modality.readAloud);
+  if (spec.gui?.content?.adaptContentToUserProfile !== undefined) {
+    set('gui.content.adaptContentToUserProfile', spec.gui.content.adaptContentToUserProfile);
+  }
+  if (spec.gui?.content?.summarizeLongContent !== undefined) {
+    set('gui.content.summarizeLongContent', spec.gui.content.summarizeLongContent);
+  }
+  if (guiPresentation) {
+    for (const [field, value] of Object.entries(guiPresentation)) {
+      if (value !== undefined && value !== null && value !== '' && value !== 'original') {
+        set(`gui.presentation.${field}`, value);
+      }
+    }
+  }
+
   return fields;
 }
 
@@ -110,6 +126,11 @@ function collectSpecsFromProfile(subModel: UMLModel): SpecEntry[] {
 
 /** Make a field path human-readable in error messages. */
 function friendlyField(path: FieldPath): string {
+  if (path.startsWith('gui.modality.')) return `${path.slice('gui.modality.'.length)} (GUI modality)`;
+  if (path.startsWith('gui.content.')) return `${path.slice('gui.content.'.length)} (GUI content)`;
+  if (path.startsWith('gui.presentation.')) {
+    return `${path.slice('gui.presentation.'.length)} (GUI presentation)`;
+  }
   // e.g. "content.language" → "language (content)"
   const [dim, field] = path.split('.');
   return field ? `${field} (${dim})` : path;

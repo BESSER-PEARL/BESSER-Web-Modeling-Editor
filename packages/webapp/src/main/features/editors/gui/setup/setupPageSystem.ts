@@ -1,7 +1,18 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import { isReadAloudVariant, setupGuiReadAloudControls } from './guiReadAloudControls';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import {
+  aggregateGuiPresentation,
+  aggregateGuiContent,
+  guiReadAloudEnabled,
+  applyGuiPresentation,
+  captureGuiFontSizes,
+  guiProfileOptions,
+  type GuiProfileOption,
+} from '../../../../shared/utils/gui-personalization';
+import { mergeSingletonBoxes, reinjectHiddenContainers } from '../../../../shared/utils/user-profile-graph';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -144,7 +155,13 @@ const captureSnapshot = (editor: Editor, page: any): PageSnapshot => {
   const css = getLivePageRules(editor, page).map((rule: any) =>
     JSON.parse(JSON.stringify(rule.toJSON())),
   );
-  return { components, css };
+  const fontSizes: Record<string, number> = {};
+  collectLiveComponents(main).forEach((component: any) => {
+    const element = component.getEl?.();
+    const id = component.getId?.();
+    if (element && id) Object.assign(fontSizes, captureGuiFontSizes(element, id, component.get?.('type') === 'table'));
+  });
+  return { components, css, ...(Object.keys(fontSizes).length ? { fontSizes } : {}) };
 };
 
 const applySnapshot = (editor: Editor, page: any, snapshot: PageSnapshot) => {
@@ -220,7 +237,7 @@ const getPageRoute = (page: any): string => {
 
 const createUniquePageId = (baseName: string): string => `${slugify(baseName)}-${Date.now()}`;
 
-type ProfileOption = { id: string; name: string; model: any };
+type ProfileOption = GuiProfileOption;
 
 const getAvailableProfiles = (): ProfileOption[] => {
   try {
@@ -229,16 +246,8 @@ const getAvailableProfiles = (): ProfileOption[] => {
       return [];
     }
 
-    // Extract all User Diagram tabs as profiles (same approach as AgentConfigurationPanel)
     const userDiagrams = project.diagrams?.UserDiagram || [];
-    const profiles = userDiagrams.map((diagram: any) => ({
-      id: diagram.id,
-      name: diagram.title || 'Unnamed Profile',
-      // Full UML model of the UserDiagram — needed for LLM personalization.
-      model: diagram.model,
-    }));
-
-    return profiles;
+    return guiProfileOptions(userDiagrams as Parameters<typeof guiProfileOptions>[0]);
   } catch (err) {
     console.warn('[Personalization] Error fetching profiles:', err);
     return [];
@@ -293,14 +302,16 @@ const personalizeSnapshotWithAI = async (
   editor: Editor,
   page: any,
   profile: ProfileOption,
+  baseline: PageSnapshot = captureSnapshot(editor, page),
+  options?: { adaptFromProfile: boolean; guiPersonalization?: { presentation: ReturnType<typeof aggregateGuiPresentation>; content?: ReturnType<typeof aggregateGuiContent> } },
 ): Promise<PageSnapshot> => {
-  const baseline = captureSnapshot(editor, page);
   const response = await apiClient.post<{ guiPage?: PageSnapshot }>(
     '/personalize-gui-page',
     {
       guiPage: baseline,
       pageName: page?.getName?.() || 'page',
-      userProfileModel: profile.model,
+      userProfileModel: reinjectHiddenContainers(mergeSingletonBoxes(profile.model)),
+      ...options,
     },
     // LLM calls are slow; mirror the long timeout used by other transforms.
     { timeout: 600_000 },
@@ -330,7 +341,7 @@ const openProfilePickerModal = async (
     personalizeToggle?: boolean;
     onConfirm: (
       profile: ProfileOption,
-      choices: { personalize: boolean },
+      choices: { personalize: boolean; applyRules: boolean },
     ) => void | Promise<void>;
   },
 ) => {
@@ -348,13 +359,22 @@ const openProfilePickerModal = async (
   const modal = editor.Modal;
   const selectId = 'gjs-personalization-profile-select';
   const toggleId = 'gjs-personalization-ai-toggle';
+  const rulesToggleId = 'gjs-personalization-rules-toggle';
   const toggleHtml = options.personalizeToggle
     ? `
       <label style="display:flex; align-items:flex-start; gap:8px; margin-top:14px; cursor:pointer;">
         <input type="checkbox" id="${toggleId}" style="margin-top:3px;" />
         <span style="font-size:13px; color:#444; line-height:1.4;">
           <strong>✨ Auto-personalize with AI</strong><br/>
-          <span style="color:#777;">Use an LLM to adapt the page's content and style to this profile. Leave unchecked to copy the page as-is.</span>
+          <span style="color:#777;">Use an LLM to adapt the page's content and style to this profile.</span>
+        </span>
+      </label>
+      <label style="display:flex; align-items:flex-start; gap:8px; margin-top:12px; cursor:pointer;">
+        <input type="checkbox" id="${rulesToggleId}" style="margin-top:3px;" />
+        <span style="font-size:13px; color:#444; line-height:1.4;">
+          <strong>Apply defined GUI personalization rules</strong><br/>
+          <span style="color:#777;">Apply this profile's GUI content, text, and styling rules. Content adaptation and text changes use an LLM. Can be used alone or together with AI; defined rules take priority.</span>
+          <span id="gjs-personalization-rules-status" role="status" style="display:block; color:#777; margin-top:4px;"></span>
         </span>
       </label>`
     : '';
@@ -363,7 +383,7 @@ const openProfilePickerModal = async (
       <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
       <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">User profile</label>
       <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
-        ${profiles.map((profile) => `<option value="${profile.id}">${escapeHtml(profile.name)}</option>`).join('')}
+        ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.name)}</option>`).join('')}
       </select>
       ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
@@ -382,13 +402,33 @@ const openProfilePickerModal = async (
     const confirmBtn = document.getElementById('gjs-personalization-confirm-btn');
     const select = document.getElementById(selectId) as HTMLSelectElement | null;
     const toggle = document.getElementById(toggleId) as HTMLInputElement | null;
+    const rulesToggle = document.getElementById(rulesToggleId) as HTMLInputElement | null;
+    const rulesStatus = document.getElementById('gjs-personalization-rules-status');
+    let rulesAvailabilityInitialized = false;
+    const updateRulesAvailability = () => {
+      const profile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
+      const count = Object.keys(aggregateGuiPresentation(profile.model)).length + Object.keys(aggregateGuiContent(profile.model)).length + (guiReadAloudEnabled(profile.model) ? 1 : 0);
+      if (rulesToggle) {
+        const wasDisabled = rulesToggle.disabled;
+        rulesToggle.disabled = count === 0;
+        if (count === 0) rulesToggle.checked = false;
+        else if (!rulesAvailabilityInitialized || wasDisabled) rulesToggle.checked = true;
+      }
+      if (rulesStatus) rulesStatus.textContent = count > 0
+        ? `${count} GUI setting${count === 1 ? '' : 's'} defined for this profile.${guiReadAloudEnabled(profile.model) ? ' Read aloud adds Play controls below text blocks.' : ''}`
+        : 'No GUI rules defined. Add them under GUI → Presentation, Content, or Modality in the user profile.';
+      rulesAvailabilityInitialized = true;
+    };
+    updateRulesAvailability();
+    select?.addEventListener('change', updateRulesAvailability);
 
     cancelBtn?.addEventListener('click', () => modal.close());
     confirmBtn?.addEventListener('click', async () => {
       const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
       const personalize = !!toggle?.checked;
+      const applyRules = !!rulesToggle?.checked && !rulesToggle.disabled;
       modal.close();
-      await options.onConfirm(selectedProfile, { personalize });
+      await options.onConfirm(selectedProfile, { personalize, applyRules });
     });
   }, 50);
 };
@@ -461,6 +501,7 @@ export function setupPageSystem(editor: Editor) {
   setupPagesTabInSidebar(editor);
   setupPageCommands(editor);
   setupPageListeners(editor);
+  setupGuiReadAloudControls(editor);
   
   // Suppress harmless ResizeObserver warning in development
   if (import.meta.env.DEV) {
@@ -746,6 +787,7 @@ function updatePagesList(editor: Editor) {
             </svg>
           </button>
         </div>
+        ${isReadAloudVariant(page) ? '<div class="gjs-page-audio-hint">Read aloud enabled · Use Play in the canvas</div>' : ''}
       `;
       
       item.addEventListener('click', (e) => {
@@ -814,7 +856,7 @@ function updatePagesList(editor: Editor) {
           description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
           confirmLabel: 'Create variant',
           personalizeToggle: true,
-          onConfirm: async (profile, { personalize }) => {
+          onConfirm: async (profile, { personalize, applyRules }) => {
             // Persist any edits in the currently-active variant/base first.
             saveActiveLive(editor, page);
 
@@ -823,23 +865,51 @@ function updatePagesList(editor: Editor) {
               setBaseSnapshot(page, captureSnapshot(editor, page));
             }
             const baseSnapshot = getBaseSnapshot(page) ?? captureSnapshot(editor, page);
+            const presentation = aggregateGuiPresentation(profile.model);
+            const content = aggregateGuiContent(profile.model);
+            const simplifyText = applyRules && presentation.languageComplexity === 'simple';
+            const translateText = applyRules && !!presentation.language && presentation.language !== 'original';
+            const changeSentenceLength = applyRules && !!presentation.sentenceLength && presentation.sentenceLength !== 'original';
+            const adaptContent = applyRules && content.adaptContentToUserProfile === true;
+            const summarizeContent = applyRules && content.summarizeLongContent === true;
+            const personalizeText = simplifyText || translateText || changeSentenceLength || adaptContent || summarizeContent;
+            const finishSnapshot = (snapshot: PageSnapshot): PageSnapshot => {
+              const result = applyRules
+                ? applyGuiPresentation({ ...snapshot, fontSizes: snapshot.fontSizes ?? baseSnapshot.fontSizes }, presentation, page.getId())
+                : snapshot;
+              const readAloudRequested = applyRules && guiReadAloudEnabled(profile.model);
+              const marked = JSON.parse(JSON.stringify(result)) as PageSnapshot;
+              const languageTags: Record<string, string> = { english: 'en', french: 'fr', german: 'de', spanish: 'es', portuguese: 'pt', luxembourgish: 'lb', italian: 'it' };
+              const languageTag = presentation.language && languageTags[presentation.language];
+              const visit = (component: any) => {
+                if (!readAloudRequested && component.attributes) delete component.attributes['data-besser-read-aloud'];
+                if (readAloudRequested && (component.type === 'text' || ['p', 'blockquote', 'article'].includes(String(component.tagName).toLowerCase()))) {
+                  component.attributes = { ...component.attributes, 'data-besser-read-aloud': 'true', ...(languageTag ? { lang: languageTag } : {}) };
+                }
+                if (Array.isArray(component.components)) component.components.forEach(visit);
+              };
+              marked.components.forEach(visit);
+              return marked;
+            };
 
-            // Build the variant content: a plain copy of the current canvas, or —
-            // when AI is requested — an LLM-personalized version. Shows a loading
-            // bar during the call. On failure, asks whether to still create a
-            // plain copy. Returns null when the user declines (abort, no variant).
+            // Rules start from Base so another profile's styling cannot leak in.
+            // When combined with AI, apply explicit settings to the LLM output.
+            // On AI failure, offer a copy or rules-only fallback; declining aborts.
             const buildSnapshot = async (): Promise<PageSnapshot | null> => {
-              if (!personalize) return captureSnapshot(editor, page);
+              if (!personalize && !personalizeText) return finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page));
 
               const closeLoading = openLoadingModal(
                 editor,
-                'Personalizing page with AI',
+                !personalize ? translateText && !simplifyText && !changeSentenceLength && !adaptContent && !summarizeContent ? 'Translating page text' : 'Personalizing page text' : 'Personalizing page with AI',
                 `Adapting "${page.getName()}" for ${profile.name}…`,
               );
               let snap: PageSnapshot | null = null;
               let failure: string | null = null;
               try {
-                snap = await personalizeSnapshotWithAI(editor, page, profile);
+                snap = await personalizeSnapshotWithAI(
+                  editor, page, profile, applyRules ? baseSnapshot : captureSnapshot(editor, page),
+                  { adaptFromProfile: personalize, ...(applyRules ? { guiPersonalization: { presentation, ...(adaptContent || summarizeContent ? { content } : {}) } } : {}) },
+                );
               } catch (err) {
                 failure =
                   err instanceof ApiError
@@ -855,18 +925,20 @@ function updatePagesList(editor: Editor) {
 
               if (snap) {
                 notify(editor, 'success', `✓ Personalized "${page.getName()}" for ${profile.name}.`);
-                return snap;
+                return finishSnapshot(snap);
               }
 
               // Personalization failed — show the error and ask whether to fall
               // back to a manual copy.
               const makeCopy = await globalConfirm({
                 title: 'AI personalization failed',
-                description: `${failure ?? 'Something went wrong.'}\n\nDo you still want to create a copy to manually personalize?`,
-                confirmLabel: 'Create copy',
+                description: `${failure ?? 'Something went wrong.'}\n\n${applyRules
+                  ? personalizeText ? 'Continue with visual rules only? Text personalization failed, so the original wording will be kept.' : 'Continue by applying the defined GUI rules to the Base page?'
+                  : 'Do you still want to create a copy to manually personalize?'}`,
+                confirmLabel: personalizeText ? 'Apply visual rules' : applyRules ? 'Apply rules' : 'Create copy',
                 cancelLabel: 'Cancel',
               });
-              return makeCopy ? captureSnapshot(editor, page) : null;
+              return makeCopy ? finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page)) : null;
             };
 
             const variants = getPageVariants(page);
@@ -878,8 +950,8 @@ function updatePagesList(editor: Editor) {
                 title: 'Variant already exists',
                 description: personalize
                   ? `A variant for "${profile.name}" already exists. Continue to regenerate it with AI? This replaces its current content.`
-                  : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page. Continue?`,
-                confirmLabel: personalize ? 'Regenerate with AI' : 'Replace with Base',
+                  : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page${applyRules ? ' and apply its defined GUI rules' : ''}. Continue?`,
+                confirmLabel: personalize ? 'Regenerate with AI' : applyRules ? 'Apply rules' : 'Replace with Base',
                 variant: 'danger',
               });
               if (!confirmed) {
@@ -888,7 +960,7 @@ function updatePagesList(editor: Editor) {
                 updatePagesList(editor);
                 return;
               }
-              const snapshot = personalize ? await buildSnapshot() : baseSnapshot;
+              const snapshot = personalize || applyRules ? await buildSnapshot() : baseSnapshot;
               if (!snapshot) {
                 // User declined the fallback copy — leave the variant untouched.
                 switchVariant(editor, page, existing.id);
@@ -897,7 +969,7 @@ function updatePagesList(editor: Editor) {
               }
               applySnapshot(editor, page, snapshot);
               const idx = variants.findIndex((v) => v.id === existing.id);
-              variants[idx] = { ...existing, snapshot };
+              variants[idx] = { ...existing, snapshot, readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model) };
               setPageVariants(page, variants);
               setActiveVariantId(page, existing.id);
               updatePagesList(editor);
@@ -910,13 +982,14 @@ function updatePagesList(editor: Editor) {
               updatePagesList(editor);
               return;
             }
-            // Plain copy already matches the canvas; AI content must be mounted.
-            if (personalize) applySnapshot(editor, page, snapshot);
+            // Plain copy already matches the canvas; adapted content must be mounted.
+            if (personalize || applyRules) applySnapshot(editor, page, snapshot);
 
             const newVariant: PageVariant = {
               id: `variant-${profile.id}-${Date.now()}`,
               profileId: profile.id,
               profileName: profile.name,
+              readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model),
               snapshot,
             };
 
@@ -1258,6 +1331,8 @@ function addPagesPanelCSS() {
       justify-content: flex-end;
       align-items: center;
     }
+    .gjs-page-audio-hint { font-size:12px; color:#174ea6; }
+    .gjs-page-item.selected .gjs-page-audio-hint { color:#fff; }
 
     .gjs-page-item:hover .gjs-page-actions,
     .gjs-page-item.selected .gjs-page-actions {

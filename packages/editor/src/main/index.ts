@@ -86,6 +86,8 @@ export type {
   UserPresentationSpec,
   UserModalitySpec,
   UserContentSpec,
+  UserGuiPresentationSpec,
+  UserGuiPersonalizationSpec,
 } from './packages/user-modeling/personalization-spec';
 export {
   isUserPersonalizationSpec,

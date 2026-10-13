@@ -28,6 +28,26 @@ function buildModel(elements: Record<string, object>, relationships: Record<stri
 // ---------------------------------------------------------------------------
 
 describe('collectPersonalizationConflicts', () => {
+  it('reports GUI content conflicts independently of agent content', () => {
+    const user = makeBox('u1', 'User', [], { content: { adaptContentToUserProfile: false }, gui: { content: { adaptContentToUserProfile: true } } });
+    const disability = makeBox('d1', 'Disability', [], { gui: { content: { adaptContentToUserProfile: false } } });
+    const model = buildModel({ u1: user, d1: disability }, { r1: makeLink('r1', 'u1', 'd1') }) as any;
+    expect(collectPersonalizationConflicts(model)).toEqual([expect.stringContaining('adaptContentToUserProfile (GUI content)')]);
+    disability.personalization = { gui: { content: { adaptContentToUserProfile: true } } };
+    expect(collectPersonalizationConflicts(model)).toEqual([]);
+  });
+
+  it('checks GUI conflicts independently from agent presentation', () => {
+    const user = makeBox('u1', 'User', [], { presentation: { size: 16 }, gui: { presentation: { size: 24 } } });
+    const disability = makeBox('d1', 'Disability', [], { gui: { presentation: { size: 28 } } });
+    const model = buildModel({ u1: user, d1: disability }, { r1: makeLink('r1', 'u1', 'd1') }) as any;
+    const errors = collectPersonalizationConflicts(model);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('size (GUI presentation)');
+    disability.personalization = { gui: { presentation: { size: 24 } } };
+    expect(collectPersonalizationConflicts(model)).toEqual([]);
+  });
+
   it('returns [] for non-UserDiagram models', () => {
     const model = buildModel({}) as any;
     model.type = 'ClassDiagram';
@@ -42,22 +62,22 @@ describe('collectPersonalizationConflicts', () => {
   });
 
   it('returns [] when only one element has a spec', () => {
-    const user = makeBox('u1', 'User', [], { content: { language: 'french' } });
+    const user = makeBox('u1', 'User', [], { presentation: { language: 'french' } });
     const lang = makeBox('l1', 'Language', []);
     const model = buildModel({ u1: user, l1: lang }, { r1: makeLink('r1', 'u1', 'l1') }) as any;
     expect(collectPersonalizationConflicts(model)).toEqual([]);
   });
 
   it('returns [] when two elements set the same field to the same value', () => {
-    const user = makeBox('u1', 'User', [], { content: { language: 'french' } });
-    const lang = makeBox('l1', 'Language', [], { content: { language: 'french' } });
+    const user = makeBox('u1', 'User', [], { presentation: { language: 'french' } });
+    const lang = makeBox('l1', 'Language', [], { presentation: { language: 'french' } });
     const model = buildModel({ u1: user, l1: lang }, { r1: makeLink('r1', 'u1', 'l1') }) as any;
     expect(collectPersonalizationConflicts(model)).toEqual([]);
   });
 
   it('reports a conflict when two boxes in the same profile set the same field to different values', () => {
-    const user = makeBox('u1', 'User', [], { content: { language: 'french' } });
-    const lang = makeBox('l1', 'Language', [], { content: { language: 'german' } });
+    const user = makeBox('u1', 'User', [], { presentation: { language: 'french' } });
+    const lang = makeBox('l1', 'Language', [], { presentation: { language: 'german' } });
     const model = buildModel({ u1: user, l1: lang }, { r1: makeLink('r1', 'u1', 'l1') }) as any;
     const errors = collectPersonalizationConflicts(model);
     expect(errors).toHaveLength(1);
@@ -77,8 +97,8 @@ describe('collectPersonalizationConflicts', () => {
 
   it('does NOT flag fields set by only one source even if other fields conflict', () => {
     // language conflicts, but size is only set in one spec
-    const user = makeBox('u1', 'User', [], { content: { language: 'french' }, presentation: { size: 14 } });
-    const lang = makeBox('l1', 'Language', [], { content: { language: 'german' } });
+    const user = makeBox('u1', 'User', [], { presentation: { language: 'french', size: 14 } });
+    const lang = makeBox('l1', 'Language', [], { presentation: { language: 'german' } });
     const model = buildModel({ u1: user, l1: lang }, { r1: makeLink('r1', 'u1', 'l1') }) as any;
     const errors = collectPersonalizationConflicts(model);
     expect(errors).toHaveLength(1); // only language conflicts
@@ -87,8 +107,8 @@ describe('collectPersonalizationConflicts', () => {
 
   it('handles legacy attribute-level specs (different attribute specs conflict)', () => {
     const user = makeBox('u1', 'User', []);
-    const attr1 = makeAttr('a1', 'iso693_3 = fr', { content: { language: 'french' } });
-    const attr2 = makeAttr('a2', 'level = B2', { content: { language: 'german' } });
+    const attr1 = makeAttr('a1', 'iso693_3 = fr', { presentation: { language: 'french' } });
+    const attr2 = makeAttr('a2', 'level = B2', { presentation: { language: 'german' } });
     const lang = makeBox('l1', 'Language', ['a1', 'a2']);
     const model = buildModel({ u1: user, l1: lang, a1: attr1, a2: attr2 }, { r1: makeLink('r1', 'u1', 'l1') }) as any;
     const errors = collectPersonalizationConflicts(model);
@@ -98,20 +118,20 @@ describe('collectPersonalizationConflicts', () => {
 
   it('does not report a conflict between profiles on the same canvas (different User roots)', () => {
     // Two independent profiles, each sets language to a different value — that is fine
-    const user1 = makeBox('u1', 'User', [], { content: { language: 'french' } });
-    const user2 = makeBox('u2', 'User', [], { content: { language: 'german' } });
+    const user1 = makeBox('u1', 'User', [], { presentation: { language: 'french' } });
+    const user2 = makeBox('u2', 'User', [], { presentation: { language: 'german' } });
     const model = buildModel({ u1: user1, u2: user2 }) as any;
     expect(collectPersonalizationConflicts(model)).toEqual([]);
   });
 
   it('reports separate conflict messages per affected profile', () => {
-    const user1 = makeBox('u1', 'User', ['n1'], { content: { language: 'french' } });
+    const user1 = makeBox('u1', 'User', ['n1'], { presentation: { language: 'french' } });
     const nameAttr1 = makeAttr('n1', 'name = Alice');
-    const lang1 = makeBox('l1', 'Language', [], { content: { language: 'german' } });
+    const lang1 = makeBox('l1', 'Language', [], { presentation: { language: 'german' } });
 
-    const user2 = makeBox('u2', 'User', ['n2'], { content: { language: 'english' } });
+    const user2 = makeBox('u2', 'User', ['n2'], { presentation: { language: 'english' } });
     const nameAttr2 = makeAttr('n2', 'name = Bob');
-    const lang2 = makeBox('l2', 'Language', [], { content: { language: 'spanish' } });
+    const lang2 = makeBox('l2', 'Language', [], { presentation: { language: 'spanish' } });
 
     const model = buildModel(
       { u1: user1, n1: nameAttr1, l1: lang1, u2: user2, n2: nameAttr2, l2: lang2 },

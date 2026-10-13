@@ -256,7 +256,12 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
     try {
       for (const { profile, changes } of profileRecommendations) {
         if (elements[profile.rootBoxId]) {
-          elements[profile.rootBoxId].personalization = buildSpecFromChanges(changes);
+          elements[profile.rootBoxId].personalization = {
+            ...buildSpecFromChanges(changes),
+            ...(elements[profile.rootBoxId].personalization?.gui
+              ? { gui: elements[profile.rootBoxId].personalization.gui }
+              : {}),
+          };
         }
       }
 

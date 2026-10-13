@@ -57,8 +57,7 @@ describe('aggregateProfilePersonalization', () => {
     const { configuration, specs } = aggregateProfilePersonalization(
       modelWith({
         userSpec: {
-          presentation: { size: 16, font: 'serif' },
-          content: { languageComplexity: 'simple', useAbbreviations: true },
+          presentation: { size: 16, font: 'serif', languageComplexity: 'simple', useAbbreviations: true },
         },
       }),
     );
@@ -72,11 +71,11 @@ describe('aggregateProfilePersonalization', () => {
     expect(specs[0]).toMatchObject({ source: 'profile', label: 'User' });
   });
 
-  it('maps content language and style onto agentLanguage/agentStyle', () => {
+  it('maps presentation language and style onto agentLanguage/agentStyle', () => {
     const { configuration } = aggregateProfilePersonalization(
       modelWith({
         userSpec: {
-          content: { language: 'french', style: 'formal', languageComplexity: 'simple' },
+          presentation: { language: 'french', style: 'formal', languageComplexity: 'simple' },
         },
       }),
     );

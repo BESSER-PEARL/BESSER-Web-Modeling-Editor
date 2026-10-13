@@ -25,6 +25,8 @@ export type PageSnapshot = {
   components: any[];
   // CSS rule JSONs styling this page's content (each rule carries a pageId).
   css: any[];
+  /** Resolved baseline font sizes in pixels, including React-widget text. */
+  fontSizes?: Record<string, number>;
 };
 
 /** One personalized variant of a page, keyed to a user profile (UserDiagram). */
@@ -32,6 +34,8 @@ export type PageVariant = {
   id: string;
   profileId: string;
   profileName: string;
+  /** Whether Read aloud was explicitly applied when this variant was created. */
+  readAloudEnabled?: boolean;
   snapshot: PageSnapshot;
 };
 

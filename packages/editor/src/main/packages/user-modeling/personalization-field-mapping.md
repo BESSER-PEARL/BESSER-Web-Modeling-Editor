@@ -1,6 +1,100 @@
 # Personalization Field Mapping for User Model Elements
 
-This document lists the **recommended** personalization fields for each canvas element type in the User Profile diagram. The PersonalizationEditor shows only the recommended subset by default; users can expand to all options via the _Show all options_ toggle.
+The PersonalizationEditor separates **AGENT** and **GUI** rules. Existing agent
+rules retain their top-level `presentation`, `modality`, and `content` storage
+paths for compatibility with saved profiles. GUI rules are stored independently
+under `gui.content` for semantic adaptation and
+under `gui.presentation` and cover `language`, `languageComplexity`, `sentenceLength` plus text styling:
+`size`, `font`, `lineSpacing`, `alignment`, `color`, and `contrast`. These GUI fields are always
+available. In the GUI editor's **Create page variant** panel, select a user profile
+and enable **Apply defined GUI personalization rules** to apply these fields.
+This can be used alone or with **Auto-personalize with AI**. When combined, the
+explicit GUI rules are applied after the LLM result, so they take priority.
+Rule-based variants start from the Base page and preserve its structure and
+bindings. Their snapshots are used by the existing profile-version generation.
+
+GUI **Content → Adapt content to this user profile** enables a generic semantic
+adaptation pass. The backend supplies the full selected profile and the page's
+text grouped by component to an LLM, which reviews each component and changes
+only content relevant to explicit profile needs. Unrelated content is kept.
+For example, it can emphasize an elevator already mentioned on the page for a
+user with mobility limitations, including when that information is in another
+component. The prompt prohibits inventing facilities, facts, or actions.
+Only modeled text slots are replaced; structure, styling, bindings, and stored
+data are preserved. Content runs before language, simplicity, and sentence length,
+so those explicit presentation choices also apply to the adapted content.
+Enable **Apply defined GUI personalization rules** in the page variant panel;
+this checkbox works independently of **Auto-personalize with AI** and Agent rules.
+
+GUI **Content → Summarize long content** adds a short, easy-to-understand summary
+above prose blocks of at least 150 whitespace-separated words. Summaries use two
+or three short sentences, up to 80 words, with a heading in the source language.
+The full text and its markup remain available below the summary. This rule can
+be used alone. When combined with other rules, summaries are generated from the
+final personalized text, before visual styling. Short controls, forms, tables,
+dynamic templates, code, and stored data are excluded. Existing generated
+summaries are recognized to avoid duplicates. The backend creates the summary
+components; the LLM returns only heading and text strings.
+
+GUI **Modality → Read text aloud** marks the profile's text blocks for listening.
+Applying defined GUI rules shows inline **Play/Pause** and **Stop** controls below
+enabled text blocks and summaries. Clicking Play generates and plays that block's preview.
+These DOM controls do not become saved model components. Defined GUI rules are
+selected by default when available; the designer can uncheck them.
+The canvas playback controls are shown only for an
+active personalized variant where Read aloud was applied; Base and other
+variants hide them. Preview uses inline Play/Pause and Stop buttons, visible
+generation progress, and actionable error messages.
+Audio preview is explicit: use **Play** below the corresponding text block
+after applying personalization with Read text aloud enabled.
+The backend selects a `Text2Speech` adapter using
+`BESSER_GUI_TTS_PROVIDER` (`openai` or `piper`) and `BESSER_GUI_TTS_MODEL`.
+OpenAI defaults to `gpt-4o-mini-tts`. Each block/summary has a separate clip.
+Preview speech is generated on demand, returned directly, and held in editor
+memory while the current page and variant are active. Switching pages, variants,
+modeling perspectives, or browser tabs, closing the editor, or editing the text
+releases playback and discards the affected previews. It does not modify the model or store files in
+the backend. When Read text aloud is enabled, React export synthesizes the final
+text into the generated app's `public/audio` directory, with Play/Pause/Stop
+controls and an AI-generated-voice disclosure. There is no automatic playback.
+Dynamic data, forms and controls are excluded.
+Full launcher instructions live in BESSER's `besser/generators/gui/tts/README.md`.
+
+GUI **Language** offers the same choices as Agent: Original, English, Spanish,
+French, German, Portuguese, Luxembourgish, and Italian. Original keeps the current
+language. A selected language translates visible text and labels through the
+backend, independently of general AI adaptation. When combined with Simple text,
+translation runs first and simplification keeps the selected language.
+GUI **Sentence length** offers the agent's Original, concise, and verbose choices.
+It uses the same backend LLM helper, after translation and simplification, and
+can also be applied alone. Original skips the sentence-length rewrite.
+
+GUI **Text complexity → Simple text** optimizes modeled wording for the simplest
+clear language that retains its meaning, using A1–A2 vocabulary as a target.
+The GUI prompt follows W3C cognitive accessibility guidance on everyday words,
+short sentences, clear actions, and consistent labels. It asks for further
+simplification even when wording already meets A1–A2, while preserving facts,
+conditions, and exceptions. This is a rewriting objective, not a WCAG assessment.
+Enable **Apply defined GUI
+personalization rules** when creating a page variant; the general AI option can
+remain unchecked. The backend module `besser/generators/gui/gui_personalization.py`
+extracts visible text and labels, rewrites them in a batch, and reinserts them
+without changing CSS, component structure, IDs, bindings, or stored data values.
+Original makes no text rewrite. If general AI is enabled as well, simplification
+is applied to its result before the deterministic styling rules.
+
+Font size is a minimum expressed in pixels: smaller text is enlarged, while
+larger existing text keeps its size. This applies to table text as well.
+Line spacing is a unitless line-height.
+Both Agent and GUI editors offer font-size presets Medium (18px), Large (24px),
+and Extra large (32px), and line-spacing presets Normal (1.2), Comfortable (1.5),
+and Spacious (1.8). Original keeps the current setting; Custom accepts a numeric
+value. Presets are saved as numbers, so existing custom values remain compatible.
+Contrast uses a foreground/background palette; an explicit text color overrides
+the palette's foreground. High contrast chooses a black or white background for
+an explicit hex color. Only configured fields are applied.
+
+This document lists the **recommended agent** personalization fields for each canvas element type in the User Profile diagram. The PersonalizationEditor shows only the recommended subset by default; users can expand to all options via the _Show all options_ toggle in the AGENT section.
 
 The guiding principle for this mapping is: **can the personalization be reasonably and directly inferred from this specific attribute, without making an unrelated assumption?** If not, the field is excluded from the recommended set.
 

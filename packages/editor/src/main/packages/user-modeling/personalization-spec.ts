@@ -8,7 +8,8 @@
  * personalization tab: the specs live on the model, so a profile carries all of
  * its own configuration plus that of its connected elements.
  *
- * The shape is a curated 3-dimension set (presentation / modality / content).
+ * Agent settings use presentation / modality / content. GUI settings live
+ * separately under `gui.presentation` and initially cover text styling.
  * Every field is optional so an element only stores the dimensions the modeller
  * actually set. Field names are kept flat here (not reusing the webapp's
  * `InterfaceStyleSetting` etc.) so the editor package stays free of webapp
@@ -56,10 +57,27 @@ export interface UserContentSpec {
   adaptContentToUserProfile?: boolean;
 }
 
+/** GUI presentation rules are independent of the agent's presentation. */
+export type UserGuiPresentationSpec = Pick<
+  UserPresentationSpec,
+  'size' | 'font' | 'lineSpacing' | 'alignment' | 'color' | 'contrast' | 'language' | 'sentenceLength'
+> & {
+  languageComplexity?: 'original' | 'simple';
+};
+
+export interface UserGuiPersonalizationSpec {
+  presentation?: UserGuiPresentationSpec;
+  content?: UserContentSpec & { summarizeLongContent?: boolean };
+  modality?: { readAloud?: boolean };
+}
+
 export interface UserPersonalizationSpec {
+  // Existing top-level dimensions belong to the agent. Keep their storage
+  // paths compatible with saved profiles and the agent generation pipeline.
   presentation?: UserPresentationSpec;
   modality?: UserModalitySpec;
   content?: UserContentSpec;
+  gui?: UserGuiPersonalizationSpec;
 }
 
 /** Runtime guard used by element serialize/deserialize and the aggregation. */
@@ -69,6 +87,6 @@ export const isUserPersonalizationSpec = (value: unknown): value is UserPersonal
 /** True when a spec actually carries at least one set field (ignores empty objects). */
 export const isPersonalizationSpecEmpty = (spec?: UserPersonalizationSpec | null): boolean => {
   if (!spec) return true;
-  const dims = [spec.presentation, spec.modality, spec.content];
+  const dims = [spec.presentation, spec.modality, spec.content, spec.gui?.presentation, spec.gui?.content, spec.gui?.modality];
   return dims.every((dim) => !dim || Object.values(dim).every((v) => v === undefined || v === '' || v === null));
 };
