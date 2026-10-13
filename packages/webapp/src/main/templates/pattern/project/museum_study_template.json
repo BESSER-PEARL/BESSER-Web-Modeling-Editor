@@ -1,22 +1,22 @@
 {
   "project": {
-    "id": "effd5b10-f8bf-4c91-a043-767ed4687b0f",
+    "id": "project_1790660201686_yizlauosu",
     "type": "Project",
     "schemaVersion": 4,
     "name": "MuseumAgent",
     "description": "Workspace to create the museum assistant. ",
     "owner": "Study Participant",
-    "createdAt": "2026-09-28T06:53:28.164Z",
+    "createdAt": "2026-09-29T05:36:41.686Z",
     "currentDiagramType": "AgentDiagram",
     "currentDiagramIndices": {
       "ClassDiagram": 0,
       "ObjectDiagram": 0,
       "StateMachineDiagram": 0,
       "AgentDiagram": 0,
+      "NNDiagram": 0,
       "UserDiagram": 0,
       "GUINoCodeDiagram": 0,
       "QuantumCircuitDiagram": 0,
-      "NNDiagram": 0,
       "BPMN": 0
     },
     "diagrams": {
@@ -50,7 +50,7 @@
               },
               "intent_jtmr4apyg_mm9b38u1": {
                 "id": "intent_jtmr4apyg_mm9b38u1",
-                "name": "OpeningHours",
+                "name": "OpeningHoursQuestion",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -171,7 +171,7 @@
               },
               "intent_zuidaui0x_mm9b38u1": {
                 "id": "intent_zuidaui0x_mm9b38u1",
-                "name": "Pricing",
+                "name": "PricingQuestion",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -635,7 +635,7 @@
               },
               "fe11f0b8-059f-4253-a339-6254a5078d5b": {
                 "id": "fe11f0b8-059f-4253-a339-6254a5078d5b",
-                "name": "Navigation",
+                "name": "NavigationQuestion",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -1240,7 +1240,7 @@
             },
             "assessments": {}
           },
-          "lastUpdate": "2026-09-28T12:58:01.484Z",
+          "lastUpdate": "2026-09-29T05:37:16.370Z",
           "config": {
             "agentPlatform": "websocket",
             "agentPlatformUseStreamlit": true,
@@ -1266,7 +1266,7 @@
               "pre_processing": true,
               "intent_threshold": "0.4",
               "huggingface_token": "YOUR-TOKEN",
-              "openai_api_key": "YOUR-API-KEY",
+              "openai_api_key": "",
               "replicate_api_key": "YOUR-API-KEY"
             },
             "platforms": {
@@ -1346,6 +1346,6 @@
       }
     }
   },
-  "exportedAt": "2026-09-28T12:58:02.751Z",
+  "exportedAt": "2026-09-29T05:37:41.255Z",
   "version": "2.0.0"
 }

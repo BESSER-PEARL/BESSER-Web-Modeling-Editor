@@ -1541,6 +1541,10 @@
       "reload": "Applikatioun neit lueden"
     },
     "cookie": {
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
+      },
       "toggleEnable": "Analyse aktivéieren",
       "toggleDisable": "Analyse deaktivéieren",
       "settingsTitle": "Privatsphär-Astellungen",
@@ -2357,6 +2361,8 @@
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",
     "noProfiles": "No user profiles available",
+    "noProfilesTitle": "Keng Benotzerprofile fonnt",
+    "noProfilesGuide": "Fir dës Funktioun ze notzen, modelléiert éischt Är Endbenotzer an der Benotzermodellierungs-Perspektiv. Füügt en User Diagram bäi, definéiert do Är Benotzerprofile an kommt dann hei zréck, fir Äre Agenten ze personaliséieren.",
     "noAgentDiagram": "No agent diagram is currently active",
     "notAgentDiagram": "Active diagram is not an agent diagram",
     "profileNotFound": "Selected profile not found",

@@ -25,7 +25,7 @@ import { ALL_PERSONALIZATION_FIELDS, PersonalizationFieldKey } from './personali
  */
 
 const Wrapper = styled.div`
-  font-size: 12px;
+  font-size: 13px;
 `;
 
 const Section = styled.div`
@@ -67,10 +67,10 @@ const controlStyle = `
   box-sizing: border-box;
   border: 1px solid rgba(127, 127, 127, 0.4);
   border-radius: 4px;
-  padding: 2px 4px;
+  padding: 3px 6px;
   background: transparent;
   color: inherit;
-  font-size: 12px;
+  font-size: 13px;
 `;
 const Select = styled.select`
   ${controlStyle}
@@ -94,7 +94,7 @@ const ToggleButton = styled.button<{ active?: boolean }>`
       : 'rgba(127, 127, 127, 0.07)'};
   color: inherit;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   box-sizing: border-box;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -109,7 +109,7 @@ const ToggleButton = styled.button<{ active?: boolean }>`
 `;
 
 const ButtonDescription = styled.div`
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.5;
   margin-top: 5px;
   margin-bottom: 2px;
@@ -124,7 +124,7 @@ const ShowAllToggle = styled.button`
   border: none;
   color: inherit;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.55;
   padding: 0;
   text-align: left;
@@ -168,7 +168,7 @@ const CheckLabel = styled.label<{ disabled?: boolean }>`
 const InfoMark = styled.span`
   cursor: help;
   opacity: 0.55;
-  font-size: 11px;
+  font-size: 12px;
 `;
 
 /**
@@ -240,7 +240,7 @@ const ColorField: React.FC<{ value?: string; onChange: (v: string | undefined) =
               onChange(undefined);
               setOpen(false);
             }}
-            style={{ background: 'transparent', border: 'none', color: 'inherit', opacity: 0.6, cursor: 'pointer', fontSize: 11 }}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', opacity: 0.6, cursor: 'pointer', fontSize: 12 }}
           >
             clear
           </button>
@@ -414,11 +414,11 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
         title="Configure how the agent adapts its responses for this user group: language, style, interface, and modality"
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ opacity: 0.7, fontSize: 11, lineHeight: 1 }}>✦</span>
+          <span style={{ opacity: 0.7, fontSize: 12, lineHeight: 1 }}>✦</span>
           {label ?? 'Personalization'}
           {active && <Dot />}
         </span>
-        <span style={{ opacity: 0.55, fontSize: 10 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ opacity: 0.55, fontSize: 11 }}>{open ? '▾' : '▸'}</span>
       </ToggleButton>
       <ButtonDescription>
         Define how the agent adapts its responses for this user group.
@@ -580,7 +580,7 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                   onChange={(e) => patchContent({ adaptContentToUserProfile: e.target.checked || undefined })}
                 />
               </CheckRow>
-              <div style={{ opacity: 0.6, fontSize: 11, marginTop: 2 }}>
+              <div style={{ opacity: 0.6, fontSize: 12, marginTop: 2 }}>
                 When enabled, the agent tailors its responses to this profile.
               </div>
             </Section>

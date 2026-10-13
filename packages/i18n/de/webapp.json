@@ -1541,6 +1541,10 @@
       "reload": "Anwendung neu laden"
     },
     "cookie": {
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
+      },
       "toggleEnable": "Analyse aktivieren",
       "toggleDisable": "Analyse deaktivieren",
       "settingsTitle": "Datenschutzeinstellungen",
@@ -2357,6 +2361,8 @@
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",
     "noProfiles": "No user profiles available",
+    "noProfilesTitle": "Keine Benutzerprofile gefunden",
+    "noProfilesGuide": "Um diese Funktion zu nutzen, modellieren Sie zuerst Ihre Endbenutzer in der Benutzermodellierungs-Perspektive. Fügen Sie ein User Diagram hinzu, definieren Sie dort Ihre Benutzerprofile und kommen Sie dann hierher zurück, um Ihren Agenten zu personalisieren.",
     "noAgentDiagram": "No agent diagram is currently active",
     "notAgentDiagram": "Active diagram is not an agent diagram",
     "profileNotFound": "Selected profile not found",

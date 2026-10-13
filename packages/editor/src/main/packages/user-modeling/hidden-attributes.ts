@@ -24,8 +24,6 @@ export const HIDDEN_USER_MODEL_ATTRIBUTES: ReadonlySet<string> = new Set<string>
   // Education — names a specific institution / degree, not a design-level category.
   'Education.providedBy',
   'Education.degreeName',
-  // Disability — free-text runtime detail (the design-level part is `affects`).
-  'Disability.description',
 ]);
 
 /** True when an attribute should be hidden from the modeling environment. */

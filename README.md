@@ -146,11 +146,9 @@ To enable **session recordings**, two things must be true: (1) Session Replay mu
 
 ### Cookie consent mode
 
-By default the app shows a cookie consent banner and only enables analytics after the user accepts.
+When `POSTHOG_KEY` is set and `ENABLE_STUDY_DEPLOY` is **not** active, a small passive notice appears at the bottom of the screen informing users that anonymous interaction data is collected. The notice can be dismissed and the choice is stored in `localStorage`.
 
-Set `FORCE_ANALYTICS_CONSENT=true` in the environment to suppress the banner and treat all users as having consented. Analytics and session recordings are then enabled immediately on load. This is appropriate when participants have already consented via an external process (e.g. a study information sheet / ethics-board approval).
-
-When the variable is absent or set to any other value, the normal banner flow applies and users can accept or decline.
+When `ENABLE_STUDY_DEPLOY=true`, no notice is shown. Instead the study welcome dialog's **"I understand"** button records the participant's explicit acknowledgment and activates PostHog at that moment.
 
 ### Docker / runtime configuration
 
@@ -164,7 +162,6 @@ Variables supported for runtime substitution:
 | `__BACKEND_URL__` | `BACKEND_URL` | Python backend API URL |
 | `__POSTHOG_KEY__` | `POSTHOG_KEY` | PostHog project API key |
 | `__POSTHOG_HOST__` | `POSTHOG_HOST` | PostHog instance URL |
-| `__FORCE_ANALYTICS_CONSENT__` (in `index.html`) | `FORCE_ANALYTICS_CONSENT` | Set to `true` to skip the cookie banner |
 | `__POSTHOG_ENABLE_RECORDINGS__` (in `index.html`) | `POSTHOG_ENABLE_RECORDINGS` | Set to `true` to enable session recordings |
 
 ### Working from the main BESSER repo

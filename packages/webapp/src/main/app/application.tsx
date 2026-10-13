@@ -15,7 +15,7 @@ import { getActiveDiagram, isUMLModel } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
 import { ErrorPanel } from '../shared/components/error-handling/error-panel';
-import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
+import { CookieConsentBanner } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
 import { useProject } from './hooks/useProject';
 import { WorkspaceShell } from './shell/WorkspaceShell';
@@ -75,11 +75,9 @@ const ENABLE_RECORDINGS =
 const postHogOptions = {
   api_host: POSTHOG_HOST,
   autocapture: false,
-  // In study mode, always record sessions for full interaction replay.
   disable_session_recording: ENABLE_STUDY_DEPLOY ? false : !ENABLE_RECORDINGS,
   respect_dnt: true,
-  opt_out_capturing_by_default: !hasUserConsented(),
-  persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',
+  persistence: 'localStorage+cookie' as const,
   ip: false,
 };
 

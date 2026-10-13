@@ -1,4 +1,5 @@
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useEffect, type ReactNode } from 'react';
+import { setPostHogModule } from './lazy-analytics';
 
 interface PostHogProviderProps {
   apiKey: string | undefined;
@@ -7,26 +8,31 @@ interface PostHogProviderProps {
 }
 
 /**
- * A drop-in replacement for `<PostHogProvider>` that lazily loads
- * `posthog-js/react` via dynamic `import()`. Until the module is loaded,
- * children render without a PostHog context -- which is fine because
- * PostHog hooks return safe no-op values when there is no provider.
+ * Initializes PostHog lazily without wrapping children in a React PostHogProvider.
+ *
+ * The old approach (conditionally wrapping children in <PostHogProvider> once the
+ * module loaded) caused React to remount the entire child tree on the parent-type
+ * change, resetting all component state (dialogs open, etc.).
+ *
+ * Instead, posthog.init() is called directly via dynamic import and the instance
+ * is registered through setPostHogModule() so getPostHog() works everywhere.
+ * No components in this codebase use the usePostHog() hook, so no React context
+ * is needed.
  */
 export const LazyPostHogProvider: React.FC<PostHogProviderProps> = ({ apiKey, options, children }) => {
-  const [Provider, setProvider] = useState<React.ComponentType<{ apiKey: string; options: Record<string, unknown>; children: ReactNode }> | null>(null);
-
   useEffect(() => {
+    if (!apiKey) return;
     let cancelled = false;
 
-    import('posthog-js/react')
+    import('posthog-js')
       .then((mod) => {
         if (!cancelled) {
-          // mod.PostHogProvider is the named export
-          setProvider(() => mod.PostHogProvider);
+          mod.default.init(apiKey, options as Parameters<typeof mod.default.init>[1]);
+          setPostHogModule(mod);
         }
       })
       .catch((err) => {
-        console.warn('[LazyPostHogProvider] Failed to load posthog-js/react:', err);
+        console.warn('[LazyPostHogProvider] Failed to load posthog-js:', err);
       });
 
     return () => {
@@ -34,14 +40,6 @@ export const LazyPostHogProvider: React.FC<PostHogProviderProps> = ({ apiKey, op
     };
   }, []);
 
-  if (Provider && apiKey) {
-    return (
-      <Provider apiKey={apiKey} options={options}>
-        {children}
-      </Provider>
-    );
-  }
-
-  // Render children immediately while PostHog loads in background
+  // Always render children in a stable Fragment — never change the parent type.
   return <>{children}</>;
 };

@@ -26,6 +26,7 @@ import {
 } from '../../shared/constants/application-constants';
 import { ENABLE_STUDY_DEPLOY, localStorageStudyParticipantId, localStorageStudyModelUploaded } from '../../shared/constants/constant';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { acceptStudyConsent } from '../../shared/components/cookie-consent/CookieConsentBanner';
 import { apiClient } from '../../shared/api/api-client';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
@@ -246,7 +247,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [studyUploading, setStudyUploading] = useState(false);
 
   const handleUploadStudyModel = useCallback(async () => {
-    if (!currentProject || !studyParticipantId || studyModelUploaded || studyUploading) return;
+    if (!currentProject || !studyParticipantId || studyUploading) return;
     setStudyUploading(true);
     try {
       await apiClient.post('/upload_study_model', {
@@ -262,7 +263,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     } finally {
       setStudyUploading(false);
     }
-  }, [currentProject, studyParticipantId, studyModelUploaded, studyUploading, t]);
+  }, [currentProject, studyParticipantId, studyUploading, t]);
 
   const studyFormUrl = ENABLE_STUDY_DEPLOY && studyParticipantId
     ? 'https://docs.google.com/forms/d/e/1FAIpQLScjqyRv9uH7M7UYQStrdoBko5v7q2yUax4uRGLrI8AS_YQKkQ/viewform' +
@@ -1117,7 +1118,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <StudyWelcomeDialog
         open={studyWelcomeOpen}
         participantId={studyParticipantId}
-        onConfirm={() => setStudyWelcomeOpen(false)}
+        onConfirm={() => {
+          acceptStudyConsent();
+          if (studyParticipantId) {
+            getPostHog()?.identify(studyParticipantId);
+            getPostHog()?.register({ participant_id: studyParticipantId, study_mode: true });
+          }
+          setStudyWelcomeOpen(false);
+        }}
       />
 
       <StudyDeployDialog

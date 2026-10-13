@@ -1541,6 +1541,10 @@
       "reload": "Recargar aplicación"
     },
     "cookie": {
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
+      },
       "toggleEnable": "Activar analíticas",
       "toggleDisable": "Desactivar analíticas",
       "settingsTitle": "Configuración de privacidad",
@@ -2357,6 +2361,8 @@
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",
     "noProfiles": "No user profiles available",
+    "noProfilesTitle": "No se encontraron perfiles de usuario",
+    "noProfilesGuide": "Para usar esta función, primero modele a sus usuarios finales en la perspectiva de modelado de usuarios. Añada un diagrama de usuario, defina sus perfiles allí y luego vuelva aquí para personalizar su agente.",
     "noAgentDiagram": "No agent diagram is currently active",
     "notAgentDiagram": "Active diagram is not an agent diagram",
     "profileNotFound": "Selected profile not found",

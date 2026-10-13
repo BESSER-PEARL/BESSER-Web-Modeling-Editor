@@ -40,7 +40,6 @@ if (fs.existsSync(webappPath)) {
 
   if (fs.existsSync(indexHtml)) {
     const html = fs.readFileSync(indexHtml, 'utf8')
-        .replace(/__FORCE_ANALYTICS_CONSENT__/g, process.env.FORCE_ANALYTICS_CONSENT === 'true' ? 'true' : '')
         .replace(/__POSTHOG_ENABLE_RECORDINGS__/g, process.env.POSTHOG_ENABLE_RECORDINGS === 'true' ? 'true' : '');
     fs.writeFileSync(indexHtml, html);
   }

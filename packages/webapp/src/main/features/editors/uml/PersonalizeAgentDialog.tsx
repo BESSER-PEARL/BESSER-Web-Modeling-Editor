@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { UMLDiagramType } from '@besser/wme';
 import { isUMLModel } from '../../../shared/types/project';
 import { ApiError, apiClient } from '../../../shared/api/api-client';
@@ -127,15 +127,24 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
     try {
       setIsApplying(true);
 
-      const storedBase = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
+      // Only use the stored base when this diagram has already been successfully
+      // personalized (i.e. it carries personalizedVariants in its config). If it
+      // hasn't, any stored base is either stale (saved by old code before a failed
+      // attempt) or simply unnecessary — always start from the live model so the
+      // user's latest edits are picked up.
+      const agentDiagramConfig = (activeAgentDiagram as any)?.config ?? {};
+      const hasBeenPersonalized =
+        Array.isArray(agentDiagramConfig.personalizedVariants) &&
+        agentDiagramConfig.personalizedVariants.length > 0;
+
+      const storedBase = hasBeenPersonalized
+        ? LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id)
+        : null;
+
       const resolvedBase: UMLModel =
         storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram
           ? (storedBase as UMLModel)
           : (activeAgentDiagram.model as UMLModel);
-
-      if (!storedBase && activeAgentDiagram.id) {
-        LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, resolvedBase);
-      }
 
       // Extract the flat agent config from the profile's per-element personalization
       // specs (language, modality, interface style, etc.), then attach the raw
@@ -181,6 +190,13 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
           : (transformedModel as UMLModel | undefined);
 
       if (snapshotModel && currentProject) {
+        // Save the base model on first successful personalization.
+        // Using !hasBeenPersonalized (not !storedBase) means we also overwrite any
+        // stale base that was saved by old code before a failed attempt.
+        if (!hasBeenPersonalized && activeAgentDiagram.id) {
+          LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, resolvedBase);
+        }
+
         const now = new Date().toISOString();
         const configId = `personalize_${Date.now()}`;
         const variantId = `${selected.sourceProfile.id}:${configId}`;
@@ -281,6 +297,14 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
               {t('personalize.applyingHint')}
             </p>
           </div>
+        ) : availableProfiles.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-md border border-border/60 bg-muted/30 px-4 py-6 text-center">
+            <Users className="size-8 text-muted-foreground/60" />
+            <p className="text-sm font-medium">{t('personalize.noProfilesTitle')}</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t('personalize.noProfilesGuide')}
+            </p>
+          </div>
         ) : (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -288,16 +312,9 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
               <Select
                 value={selectedKey}
                 onValueChange={setSelectedKey}
-                disabled={availableProfiles.length === 0}
               >
                 <SelectTrigger id="profile-select">
-                  <SelectValue
-                    placeholder={
-                      availableProfiles.length === 0
-                        ? t('personalize.noProfiles')
-                        : t('personalize.selectProfilePlaceholder')
-                    }
-                  />
+                  <SelectValue placeholder={t('personalize.selectProfilePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableProfiles.map((option) => (

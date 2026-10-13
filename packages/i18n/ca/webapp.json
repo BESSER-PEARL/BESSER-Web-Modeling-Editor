@@ -1541,6 +1541,10 @@
       "reload": "Recarrega l'aplicació"
     },
     "cookie": {
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
+      },
       "toggleEnable": "Activa l'analítica",
       "toggleDisable": "Desactiva l'analítica",
       "settingsTitle": "Configuració de privadesa",
@@ -2357,6 +2361,8 @@
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",
     "noProfiles": "No user profiles available",
+    "noProfilesTitle": "No s'han trobat perfils d'usuari",
+    "noProfilesGuide": "Per utilitzar aquesta funció, primer modeleu els vostres usuaris finals a la perspectiva de modelatge d'usuaris. Afegiu un diagrama d'usuari, definiu-hi els vostres perfils i torneu aquí per personalitzar el vostre agent.",
     "noAgentDiagram": "No agent diagram is currently active",
     "notAgentDiagram": "Active diagram is not an agent diagram",
     "profileNotFound": "Selected profile not found",

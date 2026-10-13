@@ -54,7 +54,7 @@
     },
     "route": {
       "settings": "Settings",
-      "agentCustomization": "Agent Customization",
+      "agentCustomization": "Agent Configuration",
       "agentPersonalization": "Agent Personalization",
       "agentMappings": "Agent Mappings"
     }
@@ -132,7 +132,7 @@
       "llm": "This might take a while to cook up the best LLM-based configuration for your selected user profile.",
       "transform": "This might take a while to cook up the best transformed agent setup and apply it to your diagram."
     },
-    "title": "Agent Customization",
+    "title": "Agent Configuration",
     "subtitle": "Tailor your agent to a specific user profile from the User Diagram. Adjust how it talks, looks, and behaves to match that audience, then save the result as a named configuration you can switch between later.",
     "tabsAriaLabel": "Agent configuration sections",
     "tab": {
@@ -1276,6 +1276,7 @@
     "sidebar": {
       "upload": "Upload my model",
       "uploadDone": "Model uploaded",
+      "reupload": "Re-upload my model",
       "questionnaire": "Study questionnaire",
       "questionnaireBlocked": "Upload your model first"
     },
@@ -1484,7 +1485,7 @@
           "alt": "Define agent intents"
         },
         "customization": {
-          "title": "Agent Customization",
+          "title": "Agent Configuration",
           "body": "<p>Open Agent Config from the sidebar to configure model and runtime settings for generated agents.</p><ul><li>Classical intent recognition: train a local model from defined intents.</li><li>LLM-based intent recognition: delegate intent classification to an LLM.</li></ul>",
           "alt": "Agent configuration"
         }
@@ -1583,6 +1584,10 @@
       "reload": "Reload Application"
     },
     "cookie": {
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
+      },
       "toggleEnable": "Enable analytics",
       "toggleDisable": "Disable analytics",
       "settingsTitle": "Privacy Settings",
@@ -2399,6 +2404,8 @@
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",
     "noProfiles": "No user profiles available",
+    "noProfilesTitle": "No user profiles found",
+    "noProfilesGuide": "To use this feature, first model your end-users in the User Modeling perspective. Add a User Diagram, define your user profiles there, and then come back here to personalise your agent.",
     "noAgentDiagram": "No agent diagram is currently active",
     "notAgentDiagram": "Active diagram is not an agent diagram",
     "profileNotFound": "Selected profile not found",

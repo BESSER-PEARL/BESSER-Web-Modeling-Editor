@@ -12,6 +12,8 @@ import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
 } from '../utils/agentPersonalizationPayload';
+import { buildConfigYaml } from '../../../shared/utils/agent-config-yaml';
+import type { AgentConfigFormData } from '../../../shared/utils/agent-config-yaml';
 
 export interface StudyDeployResult {
   success: boolean;
@@ -76,10 +78,19 @@ export const useStudyDeploy = () => {
         streamlitDb: false,
       };
 
+      // Regenerate configYaml from agentConfigForm when present so that the
+      // stored configYaml (which may have placeholder values from template
+      // setup) always reflects the current form data including real API keys.
+      let configYaml: string | null = typeof agentDiagram.configYaml === 'string' ? agentDiagram.configYaml : null;
+      if (agentDiagram.agentConfigForm) {
+        const customYaml = typeof agentDiagram.agentConfigCustomYaml === 'string' ? agentDiagram.agentConfigCustomYaml : '';
+        configYaml = buildConfigYaml(agentDiagram.agentConfigForm as unknown as AgentConfigFormData, customYaml);
+      }
+
       const payload = {
         agent_model: agentDiagram.model,
         agent_config: normalizedAgentConfig,
-        agent_config_yaml: typeof agentDiagram.configYaml === 'string' ? agentDiagram.configYaml : null,
+        agent_config_yaml: configYaml,
         personalization_mapping: personalizationMapping,
       };
 

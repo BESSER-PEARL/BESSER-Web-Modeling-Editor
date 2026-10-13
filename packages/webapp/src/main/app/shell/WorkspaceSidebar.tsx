@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
-import { ClipboardList, Upload, Check } from 'lucide-react';
+import { ClipboardList, Upload, Check, RefreshCw } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
@@ -233,26 +233,26 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 
             {/* Upload model button */}
             <SidebarTooltip
-              label={studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}
+              label={studyModelUploaded ? t('study.sidebar.reupload') : t('study.sidebar.upload')}
               collapsed={isCollapsed}
             >
               <button
                 type="button"
                 className={
                   navButtonClass(false, isSidebarExpanded, isDarkTheme) +
-                  (studyModelUploaded ? ' text-emerald-500' : ' text-brand') +
+                  ' text-brand' +
                   (studyUploading ? ' opacity-60 cursor-wait' : '')
                 }
                 onClick={onUploadStudyModel}
-                disabled={studyModelUploaded || studyUploading}
-                title={isSidebarExpanded ? undefined : (studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload'))}
-                aria-label={studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}
+                disabled={studyUploading}
+                title={isSidebarExpanded ? undefined : (studyModelUploaded ? t('study.sidebar.reupload') : t('study.sidebar.upload'))}
+                aria-label={studyModelUploaded ? t('study.sidebar.reupload') : t('study.sidebar.upload')}
               >
                 {studyModelUploaded
-                  ? <Check className="size-[18px] shrink-0" />
+                  ? <RefreshCw className="size-[18px] shrink-0" />
                   : <Upload className="size-[18px] shrink-0" />}
                 {isSidebarExpanded && (
-                  <span>{studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}</span>
+                  <span>{studyModelUploaded ? t('study.sidebar.reupload') : t('study.sidebar.upload')}</span>
                 )}
               </button>
             </SidebarTooltip>

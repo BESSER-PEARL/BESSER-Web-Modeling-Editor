@@ -1,13 +1,12 @@
 /**
  * Lazy analytics initialization for Sentry and PostHog.
  *
- * Both libraries are loaded via dynamic `import()` so they are excluded from
- * the critical rendering path. Initialization is deferred until the browser is
- * idle (via `requestIdleCallback`) or after a short timeout as a fallback.
+ * PostHog is initialized by LazyPostHogProvider (not by a React PostHogProvider
+ * wrapper) to avoid remounting the entire child tree when PostHog loads.
+ * Use setPostHogModule() from LazyPostHogProvider once posthog.init() completes.
  *
- * Consumers should call `initLazyAnalytics()` once from the entry file.
- * For PostHog opt-in/opt-out at runtime, use `getPostHog()` which returns the
- * lazily-resolved module (or `null` if it hasn't loaded yet).
+ * Consumers should call `initLazyAnalytics()` once from the entry file (for Sentry).
+ * For PostHog opt-in/opt-out at runtime, use `getPostHog()`.
  */
 
 import type { ConsentStatus } from '../../components/cookie-consent/CookieConsentBanner';
@@ -31,6 +30,18 @@ let posthogModule: typeof import('posthog-js') | null = null;
  */
 export const getPostHog = (): (typeof import('posthog-js'))['default'] | null =>
   posthogModule?.default ?? null;
+
+/**
+ * Called by LazyPostHogProvider after posthog.init() completes.
+ * Stores the module and flushes any queued consent decision.
+ */
+export const setPostHogModule = (mod: typeof import('posthog-js')): void => {
+  posthogModule = mod;
+  if (pendingConsentStatus !== null) {
+    applyConsentToPostHog(pendingConsentStatus);
+    pendingConsentStatus = null;
+  }
+};
 
 /**
  * Queue of consent operations that arrived before PostHog was loaded.
@@ -77,8 +88,8 @@ function scheduleWhenIdle(fn: () => void): void {
 }
 
 /**
- * Call once from the application entry file to lazily load and initialize
- * Sentry and PostHog without blocking the first render.
+ * Call once from the application entry file to lazily load Sentry.
+ * PostHog is initialized separately by LazyPostHogProvider in the React tree.
  */
 export function initLazyAnalytics(config: AnalyticsConfig): void {
   scheduleWhenIdle(() => {
@@ -98,21 +109,5 @@ export function initLazyAnalytics(config: AnalyticsConfig): void {
           console.warn('[analytics] Failed to load Sentry:', err);
         });
     }
-
-    // ── PostHog ───────────────────────────────────────────────────────────
-    // PostHog is loaded by <PostHogProvider> in the React tree, but we also
-    // need the module available for consent toggling. Pre-warm it here.
-    import('posthog-js')
-      .then((mod) => {
-        posthogModule = mod;
-        // Flush any consent decision that was queued before load.
-        if (pendingConsentStatus !== null) {
-          applyConsentToPostHog(pendingConsentStatus);
-          pendingConsentStatus = null;
-        }
-      })
-      .catch((err) => {
-        console.warn('[analytics] Failed to load PostHog:', err);
-      });
   });
 }
