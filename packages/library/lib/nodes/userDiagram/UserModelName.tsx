@@ -24,6 +24,7 @@ import {
   UserModelNameNodeProps,
 } from "@/types"
 import { parseUserCriterion } from "@/utils/classifierMemberDisplay"
+import { applyNodeSize } from "@/utils/nodeSizing"
 
 /**
  * `UserModelName`. Full v3-parity rewrite.
@@ -147,33 +148,13 @@ export function UserModelName({
     // time) leaves an invisible selection box below the drawn card, and
     // a too-short one clips it.
     if (height && height !== minHeight) {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === id
-            ? {
-                ...node,
-                height: minHeight,
-                measured: { ...node.measured, height: minHeight },
-              }
-            : node
-        )
-      )
+      setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
     }
   }, [minHeight, height, id, setNodes])
 
   useEffect(() => {
-    if (width && width <= minWidth) {
-      setNodes((prev) =>
-        prev.map((node) =>
-          node.id === id
-            ? {
-                ...node,
-                width: Math.max(width ?? 0, minWidth),
-                measured: { width: Math.max(width ?? 0, minWidth) },
-              }
-            : node
-        )
-      )
+    if (width && width < minWidth) {
+      setNodes((prev) => applyNodeSize(prev, id, { width: minWidth }))
     }
   }, [id, setNodes, minWidth, width])
 

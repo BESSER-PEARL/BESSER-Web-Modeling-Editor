@@ -16,6 +16,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { formatObjectMember } from "@/utils/classifierMemberDisplay"
+import { applyNodeSize } from "@/utils/nodeSizing"
 
 /**
  * Object-diagram rows render as `attribute = value` (no visibility, no
@@ -118,41 +119,14 @@ export function ObjectName({
   )
 
   useEffect(() => {
-    if (height && height <= minHeight) {
-      setNodes((prev) =>
-        prev.map((node) => {
-          if (node.id === id) {
-            return {
-              ...node,
-              height: minHeight,
-              measured: {
-                ...node.measured,
-                height: minHeight,
-              },
-            }
-          }
-          return node
-        })
-      )
+    if (height && height < minHeight) {
+      setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
     }
   }, [minHeight, height, id, setNodes])
 
   useEffect(() => {
-    if (width && width <= minWidth) {
-      setNodes((prev) =>
-        prev.map((node) => {
-          if (node.id === id) {
-            return {
-              ...node,
-              width: Math.max(width ?? 0, minWidth),
-              measured: {
-                width: Math.max(width ?? 0, minWidth),
-              },
-            }
-          }
-          return node
-        })
-      )
+    if (width && width < minWidth) {
+      setNodes((prev) => applyNodeSize(prev, id, { width: minWidth }))
     }
     // Grow only when the content (minWidth) changes; re-running on every
     // `width` change would write to the store mid-resize.
