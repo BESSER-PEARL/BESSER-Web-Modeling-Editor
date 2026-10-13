@@ -261,8 +261,8 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             className={navButtonClass(false, isSidebarExpanded, isDarkTheme)}
             aria-label={t('nav.starOnGitHub')}
           >
-            <Star className="size-4 transition-colors duration-150 group-hover:fill-amber-400 group-hover:text-amber-500" />
-            {isSidebarExpanded && <span className="min-w-0 truncate">{t('nav.starOnGitHub')}</span>}
+            <Star className="size-4 shrink-0 transition-colors duration-150 group-hover:fill-amber-400 group-hover:text-amber-500" />
+            {isSidebarExpanded && <span className="min-w-0 leading-snug">{t('nav.starOnGitHub')}</span>}
           </a>
         </SidebarTooltip>
         </nav>
