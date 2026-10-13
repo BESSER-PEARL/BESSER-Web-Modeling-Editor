@@ -978,10 +978,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3.5">
               {step === 'start' ? (
-                <>
-                  <img src="/images/logo-light.png" alt="BESSER" width={122} height={28} className="mt-1 h-7 w-auto shrink-0 dark:hidden" />
-                  <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 hidden h-7 w-auto shrink-0 dark:block" />
-                </>
+                <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
               ) : (
                 <button
                   type="button"

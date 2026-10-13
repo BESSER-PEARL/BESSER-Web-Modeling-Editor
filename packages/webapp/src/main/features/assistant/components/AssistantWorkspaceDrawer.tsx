@@ -832,9 +832,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
                 {/* Brand mark + AI badge */}
                 <div key={`entrance-logo-${entranceKey}`} className="animate-fade-up flex items-center justify-center gap-3" style={entrance(0)}>
-                  {/* Real logo per theme: logo.png's white parts only read on dark. */}
-                  <img src="/images/logo-light.png" alt="BESSER" className="h-9 w-auto dark:hidden sm:h-10" />
-                  <img src="/images/logo.png" alt="BESSER" className="hidden h-9 w-auto dark:block sm:h-10" />
+                  <img
+                    src="/images/logo.png"
+                    alt="BESSER"
+                    className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
+                  />
                   <a
                     href="https://besser-agentic-framework.readthedocs.io/latest/"
                     target="_blank"
