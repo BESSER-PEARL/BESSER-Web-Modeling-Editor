@@ -264,7 +264,7 @@ describe('WorkspaceSidebar', () => {
     render(<WorkspaceSidebar {...defaultProps()} />);
 
     const nav = screen.getByRole('navigation', { name: 'Editors' });
-    const star = within(nav).getByRole('link', { name: 'Star us on GitHub' });
+    const star = within(nav).getByRole('link', { name: 'Star on GH' });
     expect(star).toHaveAttribute('href', 'https://github.com/BESSER-PEARL/BESSER');
     expect(star).toHaveAttribute('target', '_blank');
     expect(star).toHaveAttribute('rel', 'noopener noreferrer');
