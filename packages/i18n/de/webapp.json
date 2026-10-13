@@ -43,6 +43,7 @@
     "editors": "Editoren",
     "collapseSidebar": "Seitenleiste einklappen",
     "expandSidebar": "Seitenleiste ausklappen",
+    "starOnGitHub": "Gib uns einen Stern auf GitHub",
     "diagram": {
       "class": "Klasse",
       "object": "Objekt",
