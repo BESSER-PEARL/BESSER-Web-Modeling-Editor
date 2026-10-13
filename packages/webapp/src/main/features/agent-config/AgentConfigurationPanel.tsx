@@ -94,12 +94,19 @@ const SHOW_WIP_AGENT_CONFIG_FIELDS = false;
 const baseTextModality = ['text'];
 const speechEnabledModality = ['text', 'speech'];
 
+// The "default" interface colour is stored as a theme-token reference.
+// Configs written before the React Flow migration (and the backend's
+// recommendation allowlist) still carry the old Apollon token, so map it to
+// the current one whenever a config is read.
+const DEFAULT_INTERFACE_COLOR = 'var(--besser-primary-contrast)';
+const LEGACY_DEFAULT_INTERFACE_COLOR = 'var(--apollon-primary-contrast)';
+
 const defaultInterfaceStyle: InterfaceStyleSetting = {
   size: 16,
   font: 'sans',
   lineSpacing: 1.5,
   alignment: 'left',
-  color: 'var(--apollon-primary-contrast)',
+  color: DEFAULT_INTERFACE_COLOR,
   contrast: 'medium',
 };
 
@@ -123,7 +130,7 @@ type InterfaceColorOption = {
 
 const interfaceColorOptions: InterfaceColorOption[] = [
   {
-    value: 'var(--apollon-primary-contrast)',
+    value: DEFAULT_INTERFACE_COLOR,
     key: 'default',
     swatch: 'var(--besser-primary-contrast)',
   },
@@ -188,10 +195,13 @@ const normalizeAgentLanguage = (value?: string): string => {
 const normalizeModalityList = (value?: string[]): string[] =>
   Array.isArray(value) && value.includes('speech') ? [...speechEnabledModality] : [...baseTextModality];
 
-const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => ({
-  ...defaultInterfaceStyle,
-  ...(value || {}),
-});
+const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => {
+  const style = { ...defaultInterfaceStyle, ...(value || {}) };
+  if (typeof style.color === 'string' && style.color.replace(/\s+/g, '') === LEGACY_DEFAULT_INTERFACE_COLOR) {
+    style.color = DEFAULT_INTERFACE_COLOR;
+  }
+  return style;
+};
 
 const normalizeVoiceStyle = (value?: VoiceStyleSetting): VoiceStyleSetting => ({
   ...defaultVoiceStyle,
