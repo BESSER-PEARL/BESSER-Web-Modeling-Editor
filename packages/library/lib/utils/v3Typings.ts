@@ -117,7 +117,7 @@ export type V3UMLModelElement = {
   name: string
   type: V3UMLModelElementType
   owner: string | null
-  bounds: { x: number; y: number; width: number; height: number }
+  bounds?: { x: number; y: number; width: number; height: number }
   highlight?: string
   fillColor?: string
   strokeColor?: string

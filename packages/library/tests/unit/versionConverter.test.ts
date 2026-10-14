@@ -10,6 +10,8 @@ import {
   isV3Format,
   isV4Format,
   importDiagram,
+  migrateClassDiagramV3ToV4,
+  migrateObjectDiagramV3ToV4,
 } from "@/utils/versionConverter"
 import { ClassType } from "@/types/nodes/enums"
 
@@ -1048,6 +1050,82 @@ describe("convertV3ToV4", () => {
       const result = convertV3ToV4(data)
       expect(result.nodes).toHaveLength(1)
       expect(result.nodes[0].data.name).toBe(bpmnType)
+    }
+  })
+
+  // The `development` backend's buml_to_json emitted generalizations
+  // without `bounds`; every imported, never-edited class diagram with
+  // inheritance is stored that way and used to fail migration entirely.
+  it("migrates a class diagram whose generalization has no bounds", () => {
+    const parent = makeV3Element({ id: "c1", name: "Person" })
+    const child = makeV3Element({
+      id: "c2",
+      name: "Author",
+      bounds: { x: 300, y: 20, width: 200, height: 100 },
+    })
+    const { bounds: _bounds, ...gen } = makeV3Relationship({
+      id: "g1",
+      type: "ClassInheritance",
+      source: { element: "c2", direction: "Left" },
+      target: { element: "c1", direction: "Right" },
+      path: [
+        { x: 300, y: 70 },
+        { x: 210, y: 70 },
+      ],
+    })
+    const result = migrateClassDiagramV3ToV4(
+      makeV3Wrapped({ elements: { c1: parent, c2: child }, relationships: { g1: gen } })
+    )
+    expect(result.nodes.map((n) => n.id)).toEqual(["c1", "c2"])
+    expect(result.edges).toHaveLength(1)
+    expect(result.edges[0].type).toBe("ClassInheritance")
+    expect(result.edges[0].data.points).toEqual([
+      { x: 300, y: 70 },
+      { x: 210, y: 70 },
+    ])
+  })
+
+  it("places an element without bounds at the origin", () => {
+    const { bounds: _bounds, ...el } = makeV3Element({ id: "c1" })
+    const result = convertV3ToV4(makeV3Wrapped({ elements: { c1: el } }))
+    expect(result.nodes[0].position).toEqual({ x: 0, y: 0 })
+  })
+
+  // develop resolved an object's class through the object diagram's
+  // embedded `referenceDiagramData` (by `classId`); v4 drops that
+  // snapshot, so the class name has to be carried onto the node.
+  it("fills object className from the v3 referenceDiagramData", () => {
+    const reference = makeV3Model({
+      elements: {
+        "cls-author": makeV3Element({ id: "cls-author", name: "Author" }),
+      },
+    })
+    const v3Object = makeV3Wrapped({
+      type: "ObjectDiagram",
+      referenceDiagramData: reference,
+      elements: {
+        o1: makeV3Element({
+          id: "o1",
+          type: "ObjectName",
+          name: "author1",
+          classId: "cls-author",
+        }),
+        o2: makeV3Element({
+          id: "o2",
+          type: "ObjectName",
+          name: "orphan",
+          classId: "cls-missing",
+        }),
+      },
+    })
+    for (const result of [
+      migrateObjectDiagramV3ToV4(v3Object),
+      importDiagram(v3Object),
+    ]) {
+      const byId = Object.fromEntries(result.nodes.map((n) => [n.id, n.data]))
+      expect(byId.o1.classId).toBe("cls-author")
+      expect(byId.o1.className).toBe("Author")
+      expect(byId.o2.className).toBeUndefined()
     }
   })
 })

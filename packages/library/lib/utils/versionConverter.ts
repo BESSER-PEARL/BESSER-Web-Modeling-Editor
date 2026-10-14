@@ -591,6 +591,14 @@ export function convertV3EdgeTypeToV4(
 }
 
 /**
+ * v3 `bounds` may be missing (the `development` backend emitted
+ * generalizations without it); read it as the origin.
+ */
+function v3Bounds(item: { bounds?: V3UMLElement["bounds"] }) {
+  return item.bounds ?? { x: 0, y: 0, width: 0, height: 0 }
+}
+
+/**
  * Calculate relative position within parent bounds
  */
 function calculateRelativePosition(
@@ -598,8 +606,8 @@ function calculateRelativePosition(
   parent: V3UMLElement
 ): { x: number; y: number } {
   return {
-    x: child.bounds.x - parent.bounds.x,
-    y: child.bounds.y - parent.bounds.y,
+    x: v3Bounds(child).x - v3Bounds(parent).x,
+    y: v3Bounds(child).y - v3Bounds(parent).y,
   }
 }
 
@@ -2126,7 +2134,8 @@ function convertV3ElementToV4Node(
   allElements: Record<string, V3UMLElement>
 ): BesserNode {
   const nodeType = convertV3NodeTypeToV4(element.type)
-  let position = { x: element.bounds.x, y: element.bounds.y }
+  const bounds = v3Bounds(element)
+  let position = { x: bounds.x, y: bounds.y }
   if (element.owner) {
     const parent = allElements[element.owner]
     if (parent) {
@@ -2138,8 +2147,8 @@ function convertV3ElementToV4Node(
   const normalizedGeometry = normalizeImportedInterfaceGeometry(
     nodeType,
     position,
-    element.bounds.width,
-    element.bounds.height
+    bounds.width,
+    bounds.height
   )
 
   const baseNode: BesserNode = {
@@ -2471,9 +2480,10 @@ function convertV3RelationshipToV4Edge(
   )
   let points: IPoint[] = []
   if (relationship.path && relationship.path.length > 0) {
+    const origin = v3Bounds(relationship)
     points = relationship.path.map((point) => ({
-      x: point.x + relationship.bounds.x,
-      y: point.y + relationship.bounds.y,
+      x: point.x + origin.x,
+      y: point.y + origin.y,
     }))
   }
 
@@ -2585,6 +2595,30 @@ function convertV3RelationshipToV4Edge(
   }
 
   return edge
+}
+
+/**
+ * develop resolved each object's class through the diagram's embedded
+ * `referenceDiagramData` (by `classId`), which v4 does not keep. Copy the
+ * referenced class name onto `data.className` so the class survives.
+ */
+function liftObjectClassNamesFromReference(
+  model: V3UMLModel,
+  nodes: BesserNode[]
+): void {
+  const reference = (
+    model as { referenceDiagramData?: { elements?: unknown } }
+  ).referenceDiagramData
+  const classes = reference?.elements
+  if (!classes || typeof classes !== "object") return
+  for (const node of nodes) {
+    if (node.type !== "objectName") continue
+    const data = node.data as { classId?: string; className?: string }
+    const name = data.classId
+      ? (classes as Record<string, { name?: unknown }>)[data.classId]?.name
+      : undefined
+    if (typeof name === "string" && name) data.className = name
+  }
 }
 
 /**
@@ -2808,6 +2842,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
       return true
     })
     .map((element) => convertV3ElementToV4Node(element, model.elements))
+  if (model.type === "ObjectDiagram") liftObjectClassNamesFromReference(model, nodes)
 
   const edges: BesserEdge[] = Object.values(model.relationships)
     .filter(
