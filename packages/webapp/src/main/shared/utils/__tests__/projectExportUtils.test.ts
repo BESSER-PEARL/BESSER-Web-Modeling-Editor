@@ -311,60 +311,17 @@ describe('buildExportableProjectPayload', () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('round-trip: export filters empty diagrams, import restores them', () => {
-  /**
-   * Simulates what fillMissingDiagrams does in useImportProject.ts:
-   * ensures every SupportedDiagramType exists as an array with at least one diagram.
-   */
-  const fillMissingDiagrams = (project: BesserProject): BesserProject => {
-    const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
-      ClassDiagram: UMLDiagramType.ClassDiagram,
-      ObjectDiagram: UMLDiagramType.ObjectDiagram,
-      StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
-      AgentDiagram: UMLDiagramType.AgentDiagram,
-      ComponentDiagram: UMLDiagramType.ComponentDiagram,
-      DeploymentDiagram: UMLDiagramType.DeploymentDiagram,
-      UserDiagram: UMLDiagramType.UserDiagram,
-      GUINoCodeDiagram: null,
-      KnowledgeGraphDiagram: null,
-      QuantumCircuitDiagram: null,
-      NNDiagram: null,
-      BPMN: null,
-    };
-    const diagramTitles: Record<SupportedDiagramType, string> = {
-      ClassDiagram: 'Class Diagram',
-      ObjectDiagram: 'Object Diagram',
-      StateMachineDiagram: 'State Machine Diagram',
-      AgentDiagram: 'Agent Diagram',
-      ComponentDiagram: 'Component Diagram',
-      DeploymentDiagram: 'Deployment Diagram',
-      UserDiagram: 'User Diagram',
-      GUINoCodeDiagram: 'GUI Diagram',
-      KnowledgeGraphDiagram: 'Knowledge Graph',
-      QuantumCircuitDiagram: 'Quantum Circuit',
-      NNDiagram: 'Neural Network Diagram',
-      BPMN: 'BPMN Diagram',
-    };
-    const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum' | 'kg'>> = {
-      GUINoCodeDiagram: 'gui',
-      KnowledgeGraphDiagram: 'kg',
-      QuantumCircuitDiagram: 'quantum',
-    };
+  // Goes through the REAL importer. A hand-copied fill function here used to
+  // carry its own list of diagram kinds, which hid that the importer's list
+  // was missing the Knowledge Graph type.
+  const reimport = (project: BesserProject): Promise<BesserProject> =>
+    importProjectFromJson(
+      new File([JSON.stringify(buildProjectExportEnvelope(project, undefined, { includePersonalization: false }))], 'project.json', {
+        type: 'application/json',
+      }),
+    );
 
-    for (const diagramType of ALL_DIAGRAM_TYPES) {
-      const existing = (project.diagrams as any)[diagramType];
-      if (!existing) {
-        const umlType = diagramTypeToUMLType[diagramType];
-        const title = diagramTitles[diagramType];
-        const kind = diagramKinds[diagramType];
-        (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
-      } else if (!Array.isArray(existing)) {
-        (project.diagrams as any)[diagramType] = [existing];
-      }
-    }
-    return project;
-  };
-
-  it('export excludes empty diagrams, fillMissingDiagrams restores all types on import', () => {
+  it('export excludes empty diagrams, import restores all types', async () => {
     // 1. Create a project with only ClassDiagram having content
     const project = createDefaultProject('Round Trip', 'test', 'owner');
     project.diagrams.ClassDiagram = [
@@ -378,15 +335,10 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
     expect(exported.diagrams['ObjectDiagram']).toBeUndefined();
     expect(exported.diagrams['GUINoCodeDiagram']).toBeUndefined();
     expect(exported.diagrams['QuantumCircuitDiagram']).toBeUndefined();
+    expect(exported.diagrams['KnowledgeGraphDiagram']).toBeUndefined();
 
-    // 3. Simulate import: reconstruct BesserProject from exported payload
-    const imported: BesserProject = {
-      ...exported,
-      diagrams: exported.diagrams as any,
-    };
-
-    // 4. fillMissingDiagrams restores all diagram types
-    const restored = fillMissingDiagrams(imported);
+    // 3. Import restores all diagram types
+    const restored = await reimport(project);
 
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(restored.diagrams[type]).toBeDefined();
@@ -394,30 +346,33 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       expect(restored.diagrams[type].length).toBeGreaterThanOrEqual(1);
     }
 
-    // 5. The original non-empty ClassDiagram content is preserved
+    // 4. The original non-empty ClassDiagram content is preserved
     const classModel = restored.diagrams.ClassDiagram[0].model as any;
     expect(classModel.elements).toBeDefined();
     expect(Object.keys(classModel.elements).length).toBeGreaterThan(0);
   });
 
-  it('fully empty project round-trips: export has no diagrams, import restores all empty', () => {
+  it('fully empty project round-trips: export has no diagrams, import restores all empty', async () => {
     const project = createDefaultProject('Empty Project', '', 'owner');
 
     // Export: all empty -> no diagram types in payload
     const exported = buildExportableProjectPayload(project);
     expect(Object.keys(exported.diagrams)).toHaveLength(0);
 
-    // Import: fillMissingDiagrams restores all types
-    const imported: BesserProject = {
-      ...exported,
-      diagrams: exported.diagrams as any,
-    };
-    const restored = fillMissingDiagrams(imported);
+    const restored = await reimport(project);
 
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(restored.diagrams[type]).toBeDefined();
       expect(restored.diagrams[type]).toHaveLength(1);
     }
+  });
+
+  it('restores each non-UML type with its own kind of model', async () => {
+    const restored = await reimport(createDefaultProject('Kinds', '', 'owner'));
+
+    expect(restored.diagrams.GUINoCodeDiagram[0].model).toHaveProperty('pages');
+    expect(restored.diagrams.QuantumCircuitDiagram[0].model).toHaveProperty('cols');
+    expect(restored.diagrams.KnowledgeGraphDiagram[0].model).toMatchObject({ type: 'KnowledgeGraphDiagram', nodes: [], edges: [] });
   });
 });
 

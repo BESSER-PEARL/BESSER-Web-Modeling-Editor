@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DIAGRAM_KIND_BY_TYPE,
   ProjectDiagram,
   PROJECT_SCHEMA_VERSION,
   SupportedDiagramType,
@@ -96,10 +97,8 @@ function migrateOldWebappProject(data: any): BesserProject {
       migratedDiagrams[diagramType] = [
         createEmptyDiagram(
           diagramType.replace(/([A-Z])/g, ' $1').trim(),
-          diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
-            ? null
-            : ((UMLDiagramType as any)[diagramType] ?? null),
-          diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined,
+          DIAGRAM_KIND_BY_TYPE[diagramType] ? null : ((UMLDiagramType as any)[diagramType] ?? null),
+          DIAGRAM_KIND_BY_TYPE[diagramType],
         ),
       ];
     }
@@ -194,19 +193,13 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     KnowledgeGraphDiagram: 'Knowledge Graph',
   };
 
-  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
-    GUINoCodeDiagram: 'gui',
-    QuantumCircuitDiagram: 'quantum',
-  };
-
   // Ensure all diagram types exist as arrays
   allDiagramTypes.forEach((diagramType) => {
     const existing = project.diagrams[diagramType];
     if (!existing) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      const kind = diagramKinds[diagramType];
-      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
+      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, DIAGRAM_KIND_BY_TYPE[diagramType])];
     } else if (!Array.isArray(existing)) {
       // Migrate single diagram to array
       (project.diagrams as any)[diagramType] = [existing];
@@ -487,8 +480,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
                 },
               ];
             } else {
-              const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], kind)];
+              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], DIAGRAM_KIND_BY_TYPE[t])];
             }
           }
 

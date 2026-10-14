@@ -415,6 +415,17 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   BPMN: 0,
 });
 
+/** What an empty diagram of a type is built from. Types not listed here are
+ *  Apollon (UML-family) diagrams. Every place that creates an empty diagram for
+ *  a type MUST go through this map: a type that is missing from a private copy
+ *  silently gets a GrapesJS model. */
+export type DiagramKind = 'gui' | 'quantum' | 'kg';
+export const DIAGRAM_KIND_BY_TYPE: Partial<Record<SupportedDiagramType, DiagramKind>> = {
+  GUINoCodeDiagram: 'gui',
+  QuantumCircuitDiagram: 'quantum',
+  KnowledgeGraphDiagram: 'kg',
+};
+
 // Migrate v1 project (single diagram per type) to v2 (array per type)
 export const migrateProjectToV2 = (project: any): BesserProject => {
   if (project.schemaVersion >= 2) {
@@ -433,8 +444,7 @@ export const migrateProjectToV2 = (project: any): BesserProject => {
     } else if (!value) {
       // Create empty diagram for missing types
       const umlType = toUMLDiagramType(type);
-      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : type === 'KnowledgeGraphDiagram' ? 'kg' : undefined;
-      migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, kind)];
+      migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, DIAGRAM_KIND_BY_TYPE[type])];
     }
   }
 
@@ -517,7 +527,7 @@ const generateUUID = (): string => {
 export const createEmptyDiagram = (
   title: string,
   type: UMLDiagramType | null,
-  diagramKind?: 'gui' | 'quantum' | 'kg',
+  diagramKind?: DiagramKind,
 ): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
