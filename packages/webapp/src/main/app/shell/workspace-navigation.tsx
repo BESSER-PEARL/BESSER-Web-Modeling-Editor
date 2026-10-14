@@ -70,8 +70,9 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     label: '2 generators',
   },
   KnowledgeGraphDiagram: {
-    generators: [],
-    label: 'Visual only',
+    // Converts to a class diagram; RDF export is in the Export dialog.
+    generators: ['kg_to_class'],
+    label: 'Converts to class diagram',
   },
 };
 

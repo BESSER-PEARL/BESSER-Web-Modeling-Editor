@@ -2775,7 +2775,7 @@
           "description": "Ein Literalwert (Zeichenkette, Zahl, …)"
         },
         "blank": {
-          "label": "Blank",
+          "label": "Leerer Knoten",
           "description": "Anonyme Ressource (Blank Node)"
         },
         "nodeConstraint": {
@@ -3256,7 +3256,7 @@
         }
       },
       "standaloneHtml": {
-        "fallbackTitle": "Knowledge Graph",
+        "fallbackTitle": "Wissensgraph",
         "cdnFailed": "Cytoscape konnte nicht vom CDN geladen werden. Prüfen Sie Ihre Netzwerkverbindung.",
         "renderFailedPrefix": "Der Graph konnte nicht dargestellt werden: "
       },

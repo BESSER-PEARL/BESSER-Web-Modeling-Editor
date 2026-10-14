@@ -32,11 +32,11 @@ import { SpecsListEditor } from './ConstraintSpecsEditor';
 /** `intro` is the English default; the live text comes from
  *  `editors.kg.constraints.describe.<kind>` -- the same sentences the
  *  natural-language preview uses, so both read identically. */
-const KIND_LABELS: Record<string, { intro: string; addLabel: string; allowAdd: boolean }> = {
-  shaclNot: { intro: 'Must NOT satisfy', addLabel: '', allowAdd: false },
-  shaclAnd: { intro: 'Must satisfy ALL of', addLabel: '+ Add shape', allowAdd: true },
-  shaclOr: { intro: 'Must satisfy ANY of', addLabel: '+ Add shape', allowAdd: true },
-  shaclXone: { intro: 'Must satisfy EXACTLY ONE of', addLabel: '+ Add shape', allowAdd: true },
+const KIND_LABELS: Record<string, { intro: string; allowAdd: boolean }> = {
+  shaclNot: { intro: 'Must NOT satisfy', allowAdd: false },
+  shaclAnd: { intro: 'Must satisfy ALL of', allowAdd: true },
+  shaclOr: { intro: 'Must satisfy ANY of', allowAdd: true },
+  shaclXone: { intro: 'Must satisfy EXACTLY ONE of', allowAdd: true },
 };
 
 /** Operator -> heading key. Reuses the `describe.*` phrasing with an empty
@@ -77,7 +77,7 @@ export const NestedSpecsEditor: React.FC<NestedSpecsEditorProps> = ({
   depth,
 }) => {
   const { t } = useTranslation();
-  const labels = KIND_LABELS[kind] ?? { intro: kind, addLabel: '+ Add shape', allowAdd: true };
+  const labels = KIND_LABELS[kind] ?? { intro: kind, allowAdd: true };
   // Unknown operators fall back to the raw discriminator, as elsewhere.
   const intro = KIND_INTRO_KEYS[kind]
     ? t(KIND_INTRO_KEYS[kind], { defaultValue: labels.intro })
