@@ -255,6 +255,36 @@ describe('KgRefineModal — partial-apply UX', () => {
     });
   });
 
+  it('issues routed to the AI tab need no description: it is an optional add-on', async () => {
+    const mod = await import('../useKgRefine');
+    const mock = (mod as unknown as {
+      __mock: { runLlmFullCleanup: ReturnType<typeof vi.fn> };
+    }).__mock;
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-openai-key');
+    window.sessionStorage.setItem('besser_llm_provider', 'openai');
+    try {
+      render(<KgRefineModal open onClose={vi.fn()} onFixInKg={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('kg-refine-static-issue-list')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('kg-issue-routing-llm-s2'));
+      fireEvent.click(screen.getByTestId('kg-refine-static-apply'));
+      await waitFor(() => {
+        expect(screen.getByTestId('kg-refine-deferred-banner')).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText(/extra context \(optional\)/i)).toBeInTheDocument();
+      const analyze = screen.getByTestId('kg-refine-llm-analyze');
+      expect(analyze).toBeEnabled();
+
+      fireEvent.click(analyze);
+      expect(mock.runLlmFullCleanup).toHaveBeenCalledWith('', 'sk-openai-key');
+    } finally {
+      window.sessionStorage.clear();
+    }
+  });
+
   it('convert mode: shows Convert button when analyzer reports zero issues', async () => {
     vi.doMock('../useKgRefine', () => {
       const m = {

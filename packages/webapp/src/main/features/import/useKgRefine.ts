@@ -146,10 +146,6 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       const desc = (description || '').trim();
       const key = (apiKey || '').trim();
-      if (!desc) {
-        toast.error(t('import.kg.refine.describeSystemFirst'));
-        return null;
-      }
       if (!key) {
         toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;
@@ -188,10 +184,6 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       const desc = (description || '').trim();
       const key = (apiKey || '').trim();
-      if (!desc) {
-        toast.error(t('import.kg.refine.describeSystemFirst'));
-        return null;
-      }
       if (!key) {
         toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;

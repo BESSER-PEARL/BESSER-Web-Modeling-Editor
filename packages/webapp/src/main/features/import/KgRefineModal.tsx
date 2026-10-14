@@ -6,8 +6,13 @@
 //                For ORPHAN_NODE_NO_CLASS_LINK issues, "skip" defers the orphan
 //                set to LLM classification; the apply response carries
 //                pendingOrphanClassification which auto-switches to the AI tab.
-//   - AI:       phase 'input' (description; the OpenAI key comes from the
+//   - AI:       phase 'input' (optional context; the OpenAI key comes from the
 //                shared key store) → phase 'review'.
+//                When the AI tab was reached from issues the Automatic tab
+//                routed here, the model infers the domain from the graph and the
+//                description is an optional add-on. Opened on its own, the tab
+//                needs a description: there is nothing else to say what the
+//                user wants refined.
 //                If pending orphan node ids were carried over, the input phase
 //                triggers /classify-orphans-with-llm; otherwise it triggers
 //                /llm-clean-kg (full-graph). Apply via /apply-kg-refinement
@@ -441,8 +446,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     onClose();
   };
 
+  // Issues routed from the Automatic tab already say what to fix, so the
+  // description is an optional hint. Opened on its own the tab has nothing
+  // else to go on and requires one.
+  const contextOptional = Boolean(pendingOrphan) || llmDeferredIds.length > 0;
   const canAnalyzeLlm =
-    description.trim().length > 0 &&
+    (contextOptional || description.trim().length > 0) &&
     apiKey.trim().length > 0 &&
     refine.llmStatus !== 'loading';
 
@@ -861,16 +870,25 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
             {llmPhase === 'input' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="kg-refine-description">{t('import.kg.refine.systemDescription')}</Label>
+                  <Label htmlFor="kg-refine-description">
+                    {contextOptional ? t('import.kg.refine.contextLabel') : t('import.kg.refine.systemDescription')}
+                  </Label>
                   <textarea
                     id="kg-refine-description"
                     data-testid="kg-refine-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t('import.kg.refine.systemDescriptionPlaceholder')}
-                    rows={5}
+                    placeholder={
+                      contextOptional
+                        ? t('import.kg.refine.contextPlaceholder')
+                        : t('import.kg.refine.systemDescriptionPlaceholder')
+                    }
+                    rows={contextOptional ? 3 : 5}
                     className="block w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/90"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {contextOptional ? t('import.kg.refine.contextHint') : t('import.kg.refine.systemDescriptionHint')}
+                  </p>
                 </div>
                 {apiKey ? (
                   <div

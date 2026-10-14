@@ -43,16 +43,31 @@ beforeEach(() => {
 });
 
 describe('runLlmFullCleanup', () => {
-  it('asks for a description and a key before calling the backend', async () => {
+  it('asks for a key before calling the backend', async () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      expect(await result.current.runLlmFullCleanup('   ', 'sk-key')).toBeNull();
       expect(await result.current.runLlmFullCleanup('a library', '  ')).toBeNull();
     });
 
     expect(api.llmCleanKg).not.toHaveBeenCalled();
-    expect(toast.error).toHaveBeenCalledTimes(2);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs without a description: the backend infers the domain from the graph', async () => {
+    api.llmCleanKg.mockResolvedValue(REPORT);
+    const { result } = renderHook(() => useKgRefine());
+
+    await act(async () => {
+      await result.current.runLlmFullCleanup('   ', 'sk-key');
+    });
+
+    expect(api.llmCleanKg).toHaveBeenCalledWith({
+      diagram: expect.objectContaining({ id: 'd1' }),
+      description: '',
+      apiKey: 'sk-key',
+    });
+    expect(result.current.llmStatus).toBe('success');
   });
 
   it('sends the trimmed description and key together with the active diagram', async () => {

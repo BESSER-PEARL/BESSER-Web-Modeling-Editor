@@ -146,8 +146,8 @@ export const applyKgRefinement = ({
 
 export interface LlmCleanKgRequest {
   diagram: KgDiagramRef;
-  /** What the system is, in the user's words; guides the model. */
-  description: string;
+  /** What the system is, in the user's words. Optional: when blank the model infers the domain from the graph. */
+  description?: string;
   /** The user's OpenAI key. Travels in the form body only, never in the URL. */
   apiKey: string;
 }
@@ -156,7 +156,7 @@ export interface LlmCleanKgRequest {
 export const llmCleanKg = ({ diagram, description, apiKey }: LlmCleanKgRequest): Promise<KgPreflightReport> => {
   const form = new FormData();
   form.append('diagram', JSON.stringify(diagramBody(diagram)));
-  form.append('description', description);
+  if (description?.trim()) form.append('description', description);
   form.append('api_key', apiKey);
   return apiClient.upload<KgPreflightReport>('/llm-clean-kg', form, { timeout: LLM_TIMEOUT_MS });
 };
@@ -176,7 +176,7 @@ export const classifyOrphansWithLlm = ({
 }: ClassifyOrphansRequest): Promise<KgPreflightReport> => {
   const form = new FormData();
   form.append('diagram', JSON.stringify({ ...diagramBody(diagram), kgSignature }));
-  form.append('description', description);
+  if (description?.trim()) form.append('description', description);
   form.append('api_key', apiKey);
   form.append('node_ids', JSON.stringify(nodeIds));
   return apiClient.upload<KgPreflightReport>('/classify-orphans-with-llm', form, { timeout: LLM_TIMEOUT_MS });
