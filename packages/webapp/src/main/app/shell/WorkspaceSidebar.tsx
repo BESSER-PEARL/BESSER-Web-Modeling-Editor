@@ -49,6 +49,34 @@ const SidebarTooltip: React.FC<{ label: string; collapsed: boolean; children: Re
   );
 };
 
+/** A nested link under a diagram button (agent simulation, agent settings, KG
+ *  settings): indented and smaller while the sidebar is open. */
+const SidebarSubItem: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  isCollapsed: boolean;
+  isSidebarExpanded: boolean;
+  isDarkTheme: boolean;
+}> = ({ label, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme }) => (
+  <SidebarTooltip label={label} collapsed={isCollapsed}>
+    <button
+      type="button"
+      className={`${navButtonClass(active, isSidebarExpanded, isDarkTheme)} ${
+        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
+      }`}
+      onClick={onClick}
+      title={isSidebarExpanded ? label : undefined}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+    >
+      {icon}
+      {isSidebarExpanded && <span>{label}</span>}
+    </button>
+  </SidebarTooltip>
+);
+
 /** Diagram count shown next to the label when more than 1 diagram exists. */
 function labelWithCount(label: string, count: number): string {
   return count > 1 ? `${label} (${count})` : label;
@@ -129,6 +157,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   );
 
   const isCollapsed = !isSidebarExpanded;
+  const subItemProps = { isCollapsed, isSidebarExpanded, isDarkTheme };
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -177,43 +206,24 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
               {showAgentSubItems && (
               <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
                 {onTestAgent && (
-                  <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
-                    <button
-                      type="button"
-                      className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
-                        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                      }`}
-                      onClick={onTestAgent}
-                      title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
-                      aria-label={t('agentSimulation.sidebar.simulateAgent')}
-                      aria-current={locationPath === '/agent-simulation' ? 'page' : undefined}
-                    >
-                      <FlaskConical className="size-4" />
-                      {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
-                    </button>
-                  </SidebarTooltip>
+                  <SidebarSubItem
+                    label={t('agentSimulation.sidebar.simulateAgent')}
+                    icon={<FlaskConical className="size-4" />}
+                    active={locationPath === '/agent-simulation'}
+                    onClick={onTestAgent}
+                    {...subItemProps}
+                  />
                 )}
-                {AGENT_ROUTE_ITEMS.map((routeItem) => {
-                  const isActiveSubItem = locationPath === routeItem.path;
-                  const routeLabel = t(routeItem.labelKey);
-                  return (
-                    <SidebarTooltip key={routeItem.path} label={routeLabel} collapsed={isCollapsed}>
-                      <button
-                        type="button"
-                        className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
-                          isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                        }`}
-                        onClick={() => onNavigate(routeItem.path)}
-                        title={isSidebarExpanded ? routeLabel : undefined}
-                        aria-label={routeLabel}
-                        aria-current={isActiveSubItem ? 'page' : undefined}
-                      >
-                        {routeItem.icon}
-                        {isSidebarExpanded && <span>{routeLabel}</span>}
-                      </button>
-                    </SidebarTooltip>
-                  );
-                })}
+                {AGENT_ROUTE_ITEMS.map((routeItem) => (
+                  <SidebarSubItem
+                    key={routeItem.path}
+                    label={t(routeItem.labelKey)}
+                    icon={routeItem.icon}
+                    active={locationPath === routeItem.path}
+                    onClick={() => onNavigate(routeItem.path)}
+                    {...subItemProps}
+                  />
+                ))}
               </div>
               )}
             </div>
@@ -261,32 +271,20 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
                 </button>
               </SidebarTooltip>
-              <div
-                className={`overflow-hidden transition-all duration-200 ${
-                  showKgSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
-                {KG_ROUTE_ITEMS.map((routeItem) => {
-                  const isActiveSubItem = locationPath === routeItem.path;
-                  const subItemLabel = t(routeItem.labelKey);
-                  return (
-                    <SidebarTooltip key={routeItem.path} label={subItemLabel} collapsed={isCollapsed}>
-                      <button
-                        type="button"
-                        className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
-                          isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                        }`}
-                        onClick={() => onNavigate(routeItem.path)}
-                        title={isSidebarExpanded ? subItemLabel : undefined}
-                        aria-label={subItemLabel}
-                      >
-                        {routeItem.icon}
-                        {isSidebarExpanded && <span>{subItemLabel}</span>}
-                      </button>
-                    </SidebarTooltip>
-                  );
-                })}
-              </div>
+              {showKgSubItems && (
+                <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
+                  {KG_ROUTE_ITEMS.map((routeItem) => (
+                    <SidebarSubItem
+                      key={routeItem.path}
+                      label={t(routeItem.labelKey)}
+                      icon={routeItem.icon}
+                      active={locationPath === routeItem.path}
+                      onClick={() => onNavigate(routeItem.path)}
+                      {...subItemProps}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
