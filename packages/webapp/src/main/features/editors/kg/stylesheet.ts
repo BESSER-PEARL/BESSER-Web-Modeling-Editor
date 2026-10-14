@@ -1,3 +1,4 @@
+import type { StylesheetJson } from 'cytoscape';
 import { KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY } from './types';
 
 /** Color per KG node type — palette swatches and canvas nodes stay in sync. */
@@ -16,11 +17,40 @@ export const KG_NODE_COLORS: Record<string, { fill: string; border: string; text
  *  they read as "constraint connection" rather than as domain edges. */
 const KG_CONSTRAINT_EDGE_IRIS = [KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY];
 
-// Typed as `any[]` because the `Stylesheet` type alias isn't reachable under
-// the `export = cytoscape` pattern — `cytoscape.StylesheetStyle` / `StylesheetCSS`
-// are, but interface-member style declarations below mix numeric/string
-// property values that the Css.Node interface doesn't enumerate exhaustively.
-export const kgStylesheet: any[] = [
+/** The colours that depend on the canvas background. Node fills carry their own
+ *  text colour and read on either theme, so only edges, the selection
+ *  highlight and the constraint-edge accent differ. */
+interface ThemePalette {
+  edgeText: string;
+  edgeLabelBackground: string;
+  edgeLine: string;
+  selectedBorder: string;
+  selectedLine: string;
+  constraintEdge: string;
+}
+
+const LIGHT: ThemePalette = {
+  edgeText: '#374151',
+  edgeLabelBackground: '#ffffff',
+  edgeLine: '#6b7280',
+  selectedBorder: '#000000',
+  selectedLine: '#111827',
+  constraintEdge: KG_NODE_COLORS.nodeConstraint.border,
+};
+
+const DARK: ThemePalette = {
+  edgeText: '#e5e7eb',
+  edgeLabelBackground: '#0d1017', // the dark app background (themings.json)
+  edgeLine: '#9ca3af',
+  selectedBorder: '#ffffff',
+  selectedLine: '#f9fafb',
+  constraintEdge: '#c084fc',
+};
+
+/** The editor's Cytoscape stylesheet for the given theme. */
+export function buildKgStylesheet(dark: boolean): StylesheetJson {
+  const c = dark ? DARK : LIGHT;
+  return [
   {
     selector: 'node',
     style: {
@@ -129,9 +159,9 @@ export const kgStylesheet: any[] = [
     selector: `edge[iri = "${iri}"]`,
     style: {
       'line-style': 'dashed',
-      'line-color': KG_NODE_COLORS.nodeConstraint.border,
-      'target-arrow-color': KG_NODE_COLORS.nodeConstraint.border,
-      color: KG_NODE_COLORS.nodeConstraint.border,
+      'line-color': c.constraintEdge,
+      'target-arrow-color': c.constraintEdge,
+      color: c.constraintEdge,
     },
   })),
   {
@@ -140,13 +170,13 @@ export const kgStylesheet: any[] = [
       label: 'data(label)',
       'font-size': 10,
       'font-family': 'system-ui, -apple-system, Segoe UI, sans-serif',
-      color: '#374151',
-      'text-background-color': '#ffffff',
+      color: c.edgeText,
+      'text-background-color': c.edgeLabelBackground,
       'text-background-opacity': 0.9,
       'text-background-padding': '2px',
       width: 1.5,
-      'line-color': '#6b7280',
-      'target-arrow-color': '#6b7280',
+      'line-color': c.edgeLine,
+      'target-arrow-color': c.edgeLine,
       'target-arrow-shape': 'triangle',
       'curve-style': 'bezier',
     },
@@ -154,10 +184,10 @@ export const kgStylesheet: any[] = [
   {
     selector: ':selected',
     style: {
-      'border-color': '#000000',
+      'border-color': c.selectedBorder,
       'border-width': 3,
-      'line-color': '#111827',
-      'target-arrow-color': '#111827',
+      'line-color': c.selectedLine,
+      'target-arrow-color': c.selectedLine,
     },
   },
   // cytoscape-edgehandles transient styles
@@ -202,3 +232,8 @@ export const kgStylesheet: any[] = [
     },
   },
 ];
+}
+
+/** The light stylesheet. Exports (the standalone HTML has a white page) always
+ *  use this one, whatever theme the editor is in. */
+export const kgStylesheet: StylesheetJson = buildKgStylesheet(false);

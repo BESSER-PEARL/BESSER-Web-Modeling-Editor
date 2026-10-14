@@ -1,8 +1,9 @@
 import React, { useEffect, useImperativeHandle, useRef } from 'react';
-import cytoscape, { Core } from 'cytoscape';
+import cytoscape, { type BaseLayoutOptions, type Core, type NodeSingular } from 'cytoscape';
+import type { EdgeHandlesInstance, EdgeHandlesOptions } from 'cytoscape-edgehandles';
 import edgehandles from 'cytoscape-edgehandles';
 import fcose from 'cytoscape-fcose';
-import { kgStylesheet } from './stylesheet';
+import { buildKgStylesheet, kgStylesheet } from './stylesheet';
 import { buildStandaloneHtml, type StandaloneHtmlStrings } from './standaloneHtmlTemplate';
 import { KG_DRAG_MIME } from './KnowledgeGraphPalette';
 import type { KnowledgeGraphData, KGNodeData, KGNodeType } from './types';
@@ -22,14 +23,16 @@ import {
   type CanvasChangeOptions,
 } from './canvasModel';
 import { defaultPredicateFor } from './edge-defaults';
+import { uuid } from '../../../shared/utils/uuid';
+import { useIsDarkTheme } from '../../../shared/hooks/useIsDarkTheme';
 
 // Register extensions exactly once. Cytoscape will throw a benign error on
 // re-registration during HMR; we swallow it.
 let extensionsRegistered = false;
 function registerExtensions() {
   if (extensionsRegistered) return;
-  try { cytoscape.use(edgehandles as any); } catch { /* already registered */ }
-  try { cytoscape.use(fcose as any); } catch { /* already registered */ }
+  try { cytoscape.use(edgehandles); } catch { /* already registered */ }
+  try { cytoscape.use(fcose); } catch { /* already registered */ }
   extensionsRegistered = true;
 }
 
@@ -45,15 +48,18 @@ function assignGridPositions(nodes: KGNodeData[]): KGNodeData[] {
   }));
 }
 
+/** Layout options: the base shape plus each algorithm's own keys (fcose's are not in Cytoscape's typings). */
+type KgLayoutOptions = BaseLayoutOptions & Record<string, unknown>;
+
 /** Cytoscape layout option bag for the given algorithm. */
-function layoutOptions(algorithm: Exclude<KnowledgeGraphLayout, 'grid'>): any {
+function layoutOptions(algorithm: Exclude<KnowledgeGraphLayout, 'grid'>): KgLayoutOptions {
   if (algorithm === 'concentric') {
     return {
       name: 'concentric',
       fit: true,
       padding: 30,
       // High-degree nodes sit in the central ring.
-      concentric: (node: any) => node.degree(),
+      concentric: (node: NodeSingular) => node.degree(false),
       levelWidth: () => 1,
       // Tight but still collision-free. `minNodeSpacing` controls the gap
       // between nodes on the same ring; `spacingFactor` < 1 pulls the
@@ -146,10 +152,7 @@ function hasMeaningfulPositions(nodes: KGNodeData[]): boolean {
 }
 
 function newId(prefix: string): string {
-  const rand = typeof crypto !== 'undefined' && (crypto as any).randomUUID
-    ? (crypto as any).randomUUID()
-    : Math.random().toString(36).slice(2);
-  return `${prefix}:${rand}`;
+  return `${prefix}:${uuid()}`;
 }
 
 export interface CytoscapeCanvasHandle {
@@ -231,7 +234,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
   ) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const cyRef = useRef<Core | null>(null);
-    const ehRef = useRef<any>(null);
+    const ehRef = useRef<EdgeHandlesInstance | null>(null);
 
     // Keep latest props reachable from long-lived event handlers.
     const modelRef = useRef(model);
@@ -273,6 +276,16 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     // rebuild; event handlers honour it.
     const suppressEventsRef = useRef(false);
 
+    // The stylesheet follows the page theme: Cytoscape paints to a <canvas>, so
+    // Tailwind's `dark:` variants cannot reach it. Swapping the stylesheet
+    // restyles the existing elements; nothing is rebuilt and no positions move.
+    const darkTheme = useIsDarkTheme();
+    const darkThemeRef = useRef(darkTheme);
+    darkThemeRef.current = darkTheme;
+    useEffect(() => {
+      cyRef.current?.style(buildKgStylesheet(darkTheme));
+    }, [darkTheme]);
+
     const emitChangeFromCy = (cy: Core) => {
       if (suppressEventsRef.current) return;
       // Mid-gesture, edgehandles' preview/ghost churn fires `remove` events.
@@ -289,7 +302,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
      *  canvas. Neighbors already visible are untouched; hidden neighbors
      *  get positions on a circle around the source and are added to
      *  visibleIds (bounded by the hard limit — editor-side enforcement). */
-    const expandNeighbors = (sourceNode: any) => {
+    const expandNeighbors = (sourceNode: NodeSingular) => {
       const sourceId = String(sourceNode.id());
       const sourcePos = sourceNode.position();
 
@@ -416,7 +429,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       const cy = cytoscape({
         container: containerRef.current,
         elements: modelToElements(visible),
-        style: kgStylesheet as any,
+        style: buildKgStylesheet(darkThemeRef.current),
         layout: { name: 'preset' },
         wheelSensitivity: 0.2,
         minZoom: 0.1,
@@ -437,11 +450,13 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       // sets `cy.autoungrabify(true)` for us, which is exactly the behaviour we
       // want: node positions freeze while the user is wiring things up, and
       // come back the moment the mode is turned off.
-      const eh = (cy as any).edgehandles({
+      // `handleNodes` is a supported option that @types/cytoscape-edgehandles
+      // lacks, so the options are typed here rather than as a fresh literal.
+      const ehOptions: EdgeHandlesOptions & { handleNodes: string } = {
         snap: true,
         hoverDelay: 150,
         handleNodes: 'node',
-        canConnect: (source: any, target: any) => {
+        canConnect: (source, target) => {
           // edgehandles probes `canConnect` with an empty collection on the
           // cancel path (drag released over blank canvas). That is not a
           // rejection worth reporting.
@@ -462,13 +477,14 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         // promotes that very element on completion, so whatever we set here is
         // what lands in the model. Constraint links in particular *must* carry
         // their internal IRI or the preflight reports them as unattached.
-        edgeParams: (source: any, target: any) => {
+        edgeParams: (source, target) => {
           const s = String(source.data('nodeType') ?? '');
           const t = String(target?.data('nodeType') ?? '');
           const { label, iri } = defaultPredicateFor(s, t);
           return { data: { id: newId('edge'), label, ...(iri ? { iri } : {}) } };
         },
-      });
+      };
+      const eh = cy.edgehandles(ehOptions);
       ehRef.current = eh;
       // Draw mode starts off; the connect-mode effect below arms it.
       eh.disable();
@@ -744,7 +760,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       }
 
       // Apply whatever positions each element already has (via `preset`).
-      cy.layout({ name: 'preset' } as any).run();
+      cy.layout({ name: 'preset' }).run();
       if (!needsLayout) return;
 
       // This runs because the graph has no usable positions (first display after

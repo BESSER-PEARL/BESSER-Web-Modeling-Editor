@@ -43,10 +43,12 @@ describe('constraint edges in the stylesheet', () => {
   it.each([KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY])(
     'draw %s as a dashed constraint connection, using the shared IRI constant',
     (iri) => {
-      const rule = kgStylesheet.find((r) => r.selector === `edge[iri = "${iri}"]`);
+      const rule = kgStylesheet.find((r) => r.selector === `edge[iri = "${iri}"]`) as
+        | { style: Record<string, unknown> }
+        | undefined;
 
       expect(rule).toBeDefined();
-      expect(rule.style['line-style']).toBe('dashed');
+      expect(rule!.style['line-style']).toBe('dashed');
     },
   );
 });

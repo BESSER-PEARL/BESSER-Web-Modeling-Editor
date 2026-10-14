@@ -3,5 +3,9 @@ declare module '*.svg' {
   export default content;
 }
 
-// cytoscape-fcose ships no type declarations.
-declare module 'cytoscape-fcose';
+// cytoscape-fcose ships no type declarations; it is a plain Cytoscape extension.
+declare module 'cytoscape-fcose' {
+  import type { Ext } from 'cytoscape';
+  const fcose: Ext;
+  export default fcose;
+}
