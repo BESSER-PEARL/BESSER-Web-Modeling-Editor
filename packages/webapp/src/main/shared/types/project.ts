@@ -209,11 +209,22 @@ export interface KnowledgeGraphSettings {
   maxVisibleNodes?: number;
 }
 
+/** An OWL axiom relating several nodes (equivalent classes, sub-property, ...).
+ *  The frontend does not interpret it: it only carries it, because the backend
+ *  needs it back - see `shared/kg/axioms.ts`. `kind` names the backend's axiom
+ *  class; the other fields are node ids or IRIs. */
+export interface KGAxiom {
+  kind: string;
+  [field: string]: unknown;
+}
+
 export interface KnowledgeGraphData {
   type?: 'KnowledgeGraphDiagram';
   version: string;
   nodes: KGNodeData[];
   edges: KGEdgeData[];
+  /** Set by the OWL importer; carried untouched, trimmed on deletion, renamed on merge. */
+  axioms?: KGAxiom[];
   settings?: KnowledgeGraphSettings;
 }
 

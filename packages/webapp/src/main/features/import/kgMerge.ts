@@ -17,7 +17,9 @@
 //     deduplicated by the triple they represent — (source, predicate, target)
 //     — because RDF graphs are sets of triples and a shared statement should
 //     not become two parallel arrows.
+import { mergeAxioms } from '../../shared/kg/axioms';
 import type {
+  KGAxiom,
   KGConstraintSpec,
   KGEdgeData,
   KGNodeData,
@@ -196,6 +198,9 @@ export function mergeKnowledgeGraphs(
     addedEdges.push({ ...edge, id, source, target });
   }
 
+  // Axioms name nodes by id, so the incoming ones follow the renaming above.
+  const axioms = mergeAxioms(existing.axioms, incoming.axioms, remap);
+
   return {
     model: {
       ...existing,
@@ -203,11 +208,35 @@ export function mergeKnowledgeGraphs(
       version: existing.version || incoming.version || '1.0.0',
       nodes: [...existing.nodes, ...addedNodes],
       edges: [...existing.edges, ...addedEdges],
+      ...(axioms ? { axioms } : {}),
     },
     addedNodeIds,
     addedNodeCount: addedNodes.length,
     addedEdgeCount: addedEdges.length,
     duplicateNodeCount,
     duplicateEdgeCount,
+  };
+}
+
+/**
+ * The diagram model to store for what `/import-owl` returned.
+ *
+ * `axioms` must come along: the backend sends the OWL constructs that relate
+ * several nodes (equivalent classes, inverse and sub-properties, ...) there and
+ * reads them back to find the preflight issues that depend on them. Left out,
+ * the graph looks fine but those findings silently never appear.
+ */
+export function incomingFromImport(model: {
+  version?: string;
+  nodes: KGNodeData[];
+  edges: KGEdgeData[];
+  axioms?: KGAxiom[];
+}): KnowledgeGraphData {
+  return {
+    type: 'KnowledgeGraphDiagram',
+    version: model.version || '1.0.0',
+    nodes: model.nodes,
+    edges: model.edges,
+    ...(Array.isArray(model.axioms) ? { axioms: model.axioms } : {}),
   };
 }

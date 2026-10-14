@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import { mergeKnowledgeGraphs } from '../kgMerge';
-import type { KGEdgeData, KGNodeData, KnowledgeGraphData } from '../../../shared/types/project';
+import { incomingFromImport, mergeKnowledgeGraphs } from '../kgMerge';
+import type { KGAxiom, KGEdgeData, KGNodeData, KnowledgeGraphData } from '../../../shared/types/project';
 
 const EX = 'http://example.org/';
 
@@ -139,5 +139,85 @@ describe('mergeKnowledgeGraphs', () => {
 
     expect(result.model.settings).toEqual({ softLimit: 25, visibleIds: [`${EX}Person`] });
     expect(result.addedNodeIds).toEqual([`${EX}Book`]);
+  });
+});
+
+describe('axioms', () => {
+  const sameAs = (...ids: string[]): KGAxiom => ({ kind: 'EquivalentClassesAxiom', class_ids: ids });
+
+  it('keeps the axioms of both graphs', () => {
+    const existing = { ...kg([classNode('A'), classNode('B')], []), axioms: [sameAs(`${EX}A`, `${EX}B`)] };
+    const incoming = { ...kg([classNode('C'), classNode('D')], []), axioms: [sameAs(`${EX}C`, `${EX}D`)] };
+
+    const { model } = mergeKnowledgeGraphs(existing, incoming);
+
+    expect(model.axioms).toEqual([sameAs(`${EX}A`, `${EX}B`), sameAs(`${EX}C`, `${EX}D`)]);
+  });
+
+  it('does not duplicate an axiom both graphs state', () => {
+    const shared = sameAs(`${EX}A`, `${EX}B`);
+    const existing = { ...kg([classNode('A'), classNode('B')], []), axioms: [shared] };
+    const incoming = { ...kg([classNode('A'), classNode('B')], []), axioms: [sameAs(`${EX}B`, `${EX}A`)] };
+
+    expect(mergeKnowledgeGraphs(existing, incoming).model.axioms).toEqual([shared]);
+  });
+
+  it('follows a node the merge had to rename', () => {
+    // Two different blank nodes share the id "_:b0" in unrelated files.
+    const existing = kg([{ id: '_:b0', nodeType: 'blank', label: '' }], []);
+    const incoming = {
+      ...kg([{ id: '_:b0', nodeType: 'blank', label: '' }, classNode('A')], []),
+      axioms: [sameAs('_:b0', `${EX}A`)],
+    };
+
+    const { model } = mergeKnowledgeGraphs(existing, incoming);
+
+    const renamed = model.nodes.find((n) => n.id !== '_:b0' && n.nodeType === 'blank')!;
+    expect(model.axioms).toEqual([sameAs(renamed.id, `${EX}A`)]);
+  });
+
+  it('has no axioms when neither graph had any', () => {
+    expect(mergeKnowledgeGraphs(kg([classNode('A')], []), kg([classNode('B')], [])).model.axioms).toBeUndefined();
+  });
+
+  it('does not touch the axioms of its inputs', () => {
+    const existing = { ...kg([classNode('A'), classNode('B')], []), axioms: [sameAs(`${EX}A`, `${EX}B`)] };
+    const incoming = { ...kg([classNode('C')], []), axioms: [{ kind: 'ImportAxiom', target_iri: 'http://x' }] };
+
+    mergeKnowledgeGraphs(existing, incoming);
+
+    expect(existing.axioms).toHaveLength(1);
+    expect(incoming.axioms).toHaveLength(1);
+  });
+});
+
+describe('incomingFromImport (what /import-owl returned, as the diagram to store)', () => {
+  const response = {
+    version: '1.0.0',
+    nodes: [classNode('A')],
+    edges: [],
+    axioms: [{ kind: 'ImportAxiom', target_iri: 'http://x' }] as KGAxiom[],
+  };
+
+  it('keeps the axioms the backend sent, which it needs back to find preflight issues', () => {
+    expect(incomingFromImport(response).axioms).toEqual(response.axioms);
+  });
+
+  it('builds a plain diagram model', () => {
+    expect(incomingFromImport(response)).toMatchObject({ type: 'KnowledgeGraphDiagram', version: '1.0.0', nodes: response.nodes, edges: [] });
+  });
+
+  it('copes with a response without axioms', () => {
+    const { axioms: _axioms, ...withoutAxioms } = response;
+
+    expect('axioms' in incomingFromImport(withoutAxioms)).toBe(false);
+  });
+
+  it('defaults the version', () => {
+    expect(incomingFromImport({ nodes: [], edges: [] }).version).toBe('1.0.0');
+  });
+
+  it('ignores an axioms field that is not a list', () => {
+    expect('axioms' in incomingFromImport({ nodes: [], edges: [], axioms: 'oops' as unknown as KGAxiom[] })).toBe(false);
   });
 });

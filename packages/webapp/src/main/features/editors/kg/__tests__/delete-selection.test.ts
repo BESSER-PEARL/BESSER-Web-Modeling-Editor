@@ -53,3 +53,31 @@ describe('deleteSelectionFromModel', () => {
     expect(deleteSelectionFromModel(withSettings, ['c'], []).settings).toEqual({ softLimit: 7 });
   });
 });
+
+describe('deleteSelectionFromModel and axioms', () => {
+  const withAxioms: KnowledgeGraphData = {
+    ...MODEL,
+    axioms: [
+      { kind: 'EquivalentClassesAxiom', class_ids: ['a', 'b', 'c'] },
+      { kind: 'SubPropertyOfAxiom', sub_property_id: 'b', super_property_id: 'c' },
+      { kind: 'ImportAxiom', target_iri: 'http://x' },
+    ],
+  };
+
+  it('removes the axioms that depended on a deleted node and trims the rest', () => {
+    const next = deleteSelectionFromModel(withAxioms, ['b'], []);
+
+    expect(next.axioms).toEqual([
+      { kind: 'EquivalentClassesAxiom', class_ids: ['a', 'c'] },
+      { kind: 'ImportAxiom', target_iri: 'http://x' },
+    ]);
+  });
+
+  it('leaves the axioms alone when only a relation is deleted', () => {
+    expect(deleteSelectionFromModel(withAxioms, [], ['e1']).axioms).toBe(withAxioms.axioms);
+  });
+
+  it('does not invent an axioms field for a graph that has none', () => {
+    expect('axioms' in deleteSelectionFromModel(MODEL, ['a'], [])).toBe(false);
+  });
+});

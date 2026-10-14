@@ -1,3 +1,4 @@
+import { pruneAxioms } from '../../../shared/kg/axioms';
 import type { KnowledgeGraphData } from './types';
 
 /** Remove a selection (nodes and/or relations) from the model.
@@ -6,6 +7,8 @@ import type { KnowledgeGraphData } from './types';
  *  source or target is gone would be dangling, and the canvas drops those
  *  silently anyway (see `mergeWithFullModel` in `CytoscapeCanvas.tsx`). Doing
  *  it here keeps the confirmation prompt honest about what disappears.
+ *
+ *  Axioms that relate a deleted node are trimmed or dropped for the same reason.
  *
  *  Returns the same object when the selection is empty, so callers can pass
  *  the result straight to `onChange` without triggering a needless save. */
@@ -23,5 +26,7 @@ export function deleteSelectionFromModel(
     edges: model.edges.filter(
       (e) => !edgeSet.has(e.id) && !nodeSet.has(e.source) && !nodeSet.has(e.target),
     ),
+    // Axioms name nodes by id; one that names a deleted node would dangle.
+    ...(model.axioms ? { axioms: pruneAxioms(model.axioms, nodeSet) } : {}),
   };
 }

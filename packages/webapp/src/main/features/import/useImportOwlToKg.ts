@@ -30,7 +30,7 @@ import type {
   ProjectDiagram,
 } from '../../shared/types/project';
 import { sortIdsByPriority } from '../../shared/kg/node-priority';
-import { mergeKnowledgeGraphs } from './kgMerge';
+import { incomingFromImport, mergeKnowledgeGraphs } from './kgMerge';
 import type { KgImportTargetModalProps } from './KgImportTargetModal';
 
 const OWL_ACCEPT = '.owl,.ttl,.rdf,.xml,.nt,.n3';
@@ -138,12 +138,7 @@ export const useImportOwlToKg = () => {
         throw new Error(t('import.kg.owl.noActiveDiagram'));
       }
 
-      const incoming: KnowledgeGraphData = {
-        type: KG_TYPE,
-        version: data.model.version || '1.0.0',
-        nodes: data.model.nodes,
-        edges: data.model.edges,
-      };
+      const incoming = incomingFromImport(data.model);
 
       // Empty tab → import straight into it, no question asked.
       if (!diagramHasContent(active)) {
