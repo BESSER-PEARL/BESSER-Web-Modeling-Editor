@@ -836,6 +836,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     return (
       <div
         ref={containerRef}
+        data-testid="kg-canvas"
         className={`relative h-full w-full bg-background${
           connectMode === 'connect' ? ' cursor-crosshair' : ''
         }`}
