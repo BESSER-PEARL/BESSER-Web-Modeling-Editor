@@ -26,7 +26,8 @@ export const kgStylesheet: any[] = [
   {
     selector: 'node',
     style: {
-      label: 'data(label)',
+      // `displayLabel`, not `label`: `label` is the stored value and may be empty.
+      label: 'data(displayLabel)',
       'text-valign': 'center',
       'text-halign': 'center',
       'font-size': 12,
