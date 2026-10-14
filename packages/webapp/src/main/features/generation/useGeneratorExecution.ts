@@ -76,7 +76,6 @@ import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
 import { useKgPreflight } from '../import/useKgPreflight';
 import type { KgIssue } from '../../shared/api/knowledgeGraph';
 import * as kgFocus from '../../shared/kg/kgFocus';
-import { useExportKgRdf } from '../export/useExportKgRdf';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -573,13 +572,6 @@ export interface UseGeneratorExecutionReturn {
     onConvert?: (kgSignature: string) => void;
     initialTab?: 'static' | 'consistency' | 'llm';
   };
-  /** Props bag to spread onto <KgExportOptionsDialog />. Opens when the user
-   *  picks "Export with options…" in the Generate menu on a KG diagram. */
-  kgExportOptionsModalProps: {
-    open: boolean;
-    onClose: () => void;
-    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => void;
-  };
   /** Props bag for <KgConsistencyConfirmModal />. Opens before a KG →
    *  ClassDiagram conversion if the consistency check returned at least
    *  one issue. */
@@ -613,9 +605,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // ``onConvert`` with the kgSignature once the analyzer reports zero
   // remaining issues.
   const [kgConvertMode, setKgConvertMode] = useState(false);
-  // KG → RDF export-options modal: opened by the ``kg_export_with_options``
-  // generator entry; lets the user pick syntax + constraint vocabulary.
-  const [kgExportOptionsOpen, setKgExportOptionsOpen] = useState(false);
   // Pre-conversion consistency gate: when /check-kg-consistency returns
   // non-zero issues, this state opens KgConsistencyConfirmModal and stores
   // a resolver that the modal's buttons call back through.
@@ -657,7 +646,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // its own analyzer calls and decisions.
     setKgConvertMode(true);
   }, [runKgPreflight, runKgConversion, onConsistencyIssues]);
-  const exportKgRdf = useExportKgRdf();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isKgContext } =
     getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
@@ -898,33 +886,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           return { ok: true };
         }
 
-        if (generatorType === 'kg_export_owl' || generatorType === 'kg_export_ttl') {
-          if (!isKgContext) {
-            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
-            toast.error(message);
-            return { ok: false, error: message };
-          }
-          const fmt = generatorType === 'kg_export_owl' ? 'owl' : 'ttl';
-          await exportKgRdf(fmt);
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          getPostHog()?.capture('generator_used', {
-            generator_type: generatorType,
-            diagram_type: currentProject.currentDiagramType,
-            ...getModelMetrics(currentProject),
-          });
-          return { ok: true };
-        }
-
-        if (generatorType === 'kg_export_with_options') {
-          if (!isKgContext) {
-            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
-            toast.error(message);
-            return { ok: false, error: message };
-          }
-          setKgExportOptionsOpen(true);
-          return { ok: true };
-        }
-
         if (generatorType === 'web_app') {
           // Redux state is kept in sync with localStorage via useStorageSync,
           // so currentProject already has the latest GUI model data.
@@ -1135,7 +1096,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
       isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isKgContext,
-      runKgConversion, runKgWithPreflight, exportKgRdf,
+      runKgConversion, runKgWithPreflight,
       ensureGuiForAssistantWebAppGeneration, t,
     ],
   );
@@ -1656,17 +1617,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
   };
 
-  // Props for the KG export-options modal.
-  const kgExportOptionsModalProps = {
-    open: kgExportOptionsOpen,
-    onClose: () => setKgExportOptionsOpen(false),
-    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => {
-      exportKgRdf(fmt, vocab).catch((err) =>
-        toast.error(err instanceof Error ? err.message : t('menu.generate.kgGuards.exportFailed')),
-      );
-    },
-  };
-
   return {
     isGenerating,
     handleGenerateRequest,
@@ -1675,7 +1625,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     configState,
     isLocalEnvironment,
     kgRefineModalProps,
-    kgExportOptionsModalProps,
     kgConsistencyConfirmModalProps,
   };
 }

@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogProvider';
 import { ToastContainer } from 'react-toastify';
@@ -60,9 +60,6 @@ const TemplateLibraryDialog = React.lazy(() =>
 );
 const ExportDialog = React.lazy(() =>
   import('../features/export/ExportDialog').then((m) => ({ default: m.ExportDialog })),
-);
-const KgExportOptionsDialog = React.lazy(() =>
-  import('../features/export/KgExportOptionsDialog').then((m) => ({ default: m.KgExportOptionsDialog })),
 );
 
 const KgRefineModal = React.lazy(() =>
@@ -158,22 +155,8 @@ function AppContentInner() {
     configState,
     isLocalEnvironment,
     kgRefineModalProps,
-    kgExportOptionsModalProps,
     kgConsistencyConfirmModalProps,
   } = useGeneratorExecution(editor);
-
-  // For the KG export-options dialog: feed it the current KG nodes so it
-  // can count how many constraint specs would be skipped at each vocab.
-  // Select only the active KG model (a stable reference until it changes) so
-  // this component doesn't re-render on every unrelated project edit.
-  const kgModel = useAppSelector((state: RootState) => {
-    const project = selectProject(state);
-    return project ? getActiveDiagram(project, 'KnowledgeGraphDiagram')?.model : undefined;
-  });
-  const kgExportNodes = useMemo(() => {
-    const nodes = (kgModel as { nodes?: unknown[] } | undefined)?.nodes;
-    return Array.isArray(nodes) ? (nodes as Array<{ id: string; nodeType: string; label?: string; metadata?: Record<string, unknown> }>) : [];
-  }, [kgModel]);
 
   const handleExport = () => {
     setShowExportDialog(true);
@@ -339,15 +322,6 @@ function AppContentInner() {
           can fix, proceed, or cancel. */}
       <Suspense fallback={null}>
         <KgConsistencyConfirmModal {...kgConsistencyConfirmModalProps} />
-      </Suspense>
-
-      {/* KG export-options dialog: opened from Generate → Export Knowledge
-          Graph → Export with options…. Lets the user pick syntax + vocab. */}
-      <Suspense fallback={null}>
-        <KgExportOptionsDialog
-          {...kgExportOptionsModalProps}
-          nodes={kgExportNodes as any}
-        />
       </Suspense>
 
       {/* Onboarding tutorial — disabled for now

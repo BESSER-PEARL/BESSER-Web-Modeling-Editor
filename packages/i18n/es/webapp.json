@@ -100,8 +100,7 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Datos",
-        "kgConvert": "Convertir a B-UML",
-        "kgExport": "Exportar el grafo de conocimiento"
+        "kgConvert": "Convertir a B-UML"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -115,8 +114,7 @@
         "jsonObjectExport": "Exportación de objeto JSON",
         "userProfileJson": "JSON de perfil de usuario",
         "qiskitCode": "Código Qiskit",
-        "kgToClassDiagram": "Diagrama de clases",
-        "kgExportWithOptions": "Exportar con opciones…"
+        "kgToClassDiagram": "Diagrama de clases"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
@@ -124,9 +122,7 @@
       },
       "kgGuards": {
         "openKgBeforeConverting": "Abre un diagrama de grafo de conocimiento antes de convertirlo a UML.",
-        "openKgBeforeRefining": "Abre un diagrama de grafo de conocimiento antes de refinarlo.",
-        "openKgBeforeExporting": "Abre un diagrama de grafo de conocimiento antes de exportar.",
-        "exportFailed": "Error al exportar el KG."
+        "openKgBeforeRefining": "Abre un diagrama de grafo de conocimiento antes de refinarlo."
       }
     },
     "deploy": {
@@ -3475,12 +3471,11 @@
       "NNDiagram": "Diagrama de red neuronal",
       "BPMN": "Proceso BPMN",
       "ComponentDiagram": "Diagrama de componentes",
-      "DeploymentDiagram": "Diagrama de despliegue"
+      "DeploymentDiagram": "Diagrama de despliegue",
+      "KnowledgeGraphDiagram": "Diagrama de grafo de conocimiento"
     },
     "kg": {
       "options": {
-        "title": "Exportar el grafo de conocimiento",
-        "description": "Elige la sintaxis RDF y qué vocabularios de restricciones emitir.",
         "rdfSyntax": "Sintaxis RDF",
         "constraintVocab": "Vocabulario de restricciones",
         "vocabBoth": "Ambos: emitir OWL y SHACL cuando sea posible",
@@ -3499,6 +3494,9 @@
         "vocabSuffix": " (solo restricciones {{vocab}})",
         "exportCompleted": "Exportación {{format}} completada{{suffix}}.",
         "failed": "Error al exportar el KG."
+      },
+      "dialog": {
+        "description": "Exporta el grafo de conocimiento actual como RDF (Turtle u OWL) y elige qué vocabularios de restricciones incluir."
       }
     }
   },

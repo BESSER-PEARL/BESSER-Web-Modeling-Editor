@@ -14,12 +14,16 @@ import {
   SupportedDiagramType,
   getReferencedDiagram,
   isUMLModel,
+  isKnowledgeGraphData,
   diagramHasContent,
 } from '../../shared/types/project';
 import { useExportPNG } from './useExportPng';
 import { useExportSVG } from './useExportSvg';
 import { useExportBUML } from './useExportBuml';
 import { useExportJSON } from './useExportJson';
+import { useExportKgRdf } from './useExportKgRdf';
+import { KgRdfExportSection } from './KgRdfExportSection';
+import type { KgRdfFormat, KgRdfVocab } from '../../shared/api/knowledgeGraph';
 import { exportProjectById } from './useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from './useExportProjectBUML';
 import { useAppSelector } from '../../app/store/hooks';
@@ -32,7 +36,7 @@ interface ExportDialogProps {
   currentDiagramTitle: string;
 }
 
-type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
+type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML' | 'KG_RDF';
 
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
@@ -44,6 +48,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const exportAsPNG = useExportPNG();
   const exportAsBUML = useExportBUML();
   const exportAsJSON = useExportJSON();
+  const exportKgRdf = useExportKgRdf();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
   // The ref blocks a second click in the same tick; the state drives the UI.
@@ -144,6 +149,22 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     }
   };
 
+  // A Knowledge Graph has no SVG/PNG/UML-JSON form; what you export from it is RDF.
+  const isKgDiagram = currentProject?.currentDiagramType === 'KnowledgeGraphDiagram';
+  const kgNodes = isKnowledgeGraphData(diagram?.model) ? diagram.model.nodes : [];
+
+  const handleKgExport = async (format: KgRdfFormat, vocab: KgRdfVocab) => {
+    if (pendingRef.current) return;
+    pendingRef.current = 'KG_RDF';
+    setPendingFormat('KG_RDF');
+    try {
+      if (await exportKgRdf(format, vocab)) onOpenChange(false);
+    } finally {
+      pendingRef.current = null;
+      setPendingFormat(null);
+    }
+  };
+
   const exportIcon = (format: ExportFormat, Icon: typeof FileJson2) =>
     pendingFormat === format ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />;
 
@@ -231,69 +252,77 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
               <FileImage className="size-4 text-violet-600 dark:text-violet-400" />
               {t('export.dialog.currentTitle')}
             </h3>
-            <p className="mb-3 text-xs text-muted-foreground">{t('export.dialog.currentDescription')}</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              {isKgDiagram ? t('export.kg.dialog.description') : t('export.dialog.currentDescription')}
+            </p>
 
             <div className="mb-4 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5 text-sm font-medium">
               {currentDiagramTitle || t('export.dialog.untitledDiagram')}
             </div>
 
-            <div className="grid gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleExport('SVG')}
-                disabled={pendingFormat !== null}
-                aria-busy={pendingFormat === 'SVG'}
-                className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
-              >
-                {exportIcon('SVG', FileCode2)}
-                {t('export.dialog.exportSvg')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('PNG_WHITE')}
-                disabled={pendingFormat !== null}
-                aria-busy={pendingFormat === 'PNG_WHITE'}
-                className="justify-start gap-2 border-border/50"
-              >
-                {exportIcon('PNG_WHITE', FileImage)}
-                {t('export.dialog.exportPngWhite')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('PNG')}
-                disabled={pendingFormat !== null}
-                aria-busy={pendingFormat === 'PNG'}
-                className="justify-start gap-2 border-border/50"
-              >
-                {exportIcon('PNG', FileImage)}
-                {t('export.dialog.exportPngTransparent')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('SINGLE_JSON')}
-                disabled={pendingFormat !== null}
-                aria-busy={pendingFormat === 'SINGLE_JSON'}
-                className="justify-start gap-2 border-border/50"
-              >
-                {exportIcon('SINGLE_JSON', FileJson2)}
-                {t('export.dialog.exportDiagramJson')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('SINGLE_BUML')}
-                disabled={pendingFormat !== null}
-                aria-busy={pendingFormat === 'SINGLE_BUML'}
-                className="justify-start gap-2 border-border/50"
-              >
-                {exportIcon('SINGLE_BUML', FileCode2)}
-                {t('export.dialog.exportDiagramBuml')}
-              </Button>
-            </div>
+            {isKgDiagram ? (
+              <KgRdfExportSection nodes={kgNodes} busy={pendingFormat !== null} onExport={handleKgExport} />
+            ) : (
+              <>
+              <div className="grid gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('SVG')}
+                  disabled={pendingFormat !== null}
+                  aria-busy={pendingFormat === 'SVG'}
+                  className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
+                >
+                  {exportIcon('SVG', FileCode2)}
+                  {t('export.dialog.exportSvg')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('PNG_WHITE')}
+                  disabled={pendingFormat !== null}
+                  aria-busy={pendingFormat === 'PNG_WHITE'}
+                  className="justify-start gap-2 border-border/50"
+                >
+                  {exportIcon('PNG_WHITE', FileImage)}
+                  {t('export.dialog.exportPngWhite')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('PNG')}
+                  disabled={pendingFormat !== null}
+                  aria-busy={pendingFormat === 'PNG'}
+                  className="justify-start gap-2 border-border/50"
+                >
+                  {exportIcon('PNG', FileImage)}
+                  {t('export.dialog.exportPngTransparent')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('SINGLE_JSON')}
+                  disabled={pendingFormat !== null}
+                  aria-busy={pendingFormat === 'SINGLE_JSON'}
+                  className="justify-start gap-2 border-border/50"
+                >
+                  {exportIcon('SINGLE_JSON', FileJson2)}
+                  {t('export.dialog.exportDiagramJson')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('SINGLE_BUML')}
+                  disabled={pendingFormat !== null}
+                  aria-busy={pendingFormat === 'SINGLE_BUML'}
+                  className="justify-start gap-2 border-border/50"
+                >
+                  {exportIcon('SINGLE_BUML', FileCode2)}
+                  {t('export.dialog.exportDiagramBuml')}
+                </Button>
+              </div>
 
-            {!editor && (
-              <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
-                {t('export.dialog.requiresUmlView')}
-              </p>
+              {!editor && (
+                <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
+                  {t('export.dialog.requiresUmlView')}
+                </p>
+              )}
+              </>
             )}
           </section>
         </div>

@@ -100,8 +100,7 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "In B-UML umwandeln",
-        "kgExport": "Knowledge Graph exportieren"
+        "kgConvert": "In B-UML umwandeln"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -115,8 +114,7 @@
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
-        "kgToClassDiagram": "Klassendiagramm",
-        "kgExportWithOptions": "Mit Optionen exportieren…"
+        "kgToClassDiagram": "Klassendiagramm"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -124,9 +122,7 @@
       },
       "kgGuards": {
         "openKgBeforeConverting": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie in UML umwandeln.",
-        "openKgBeforeRefining": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie es verfeinern.",
-        "openKgBeforeExporting": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie exportieren.",
-        "exportFailed": "KG-Export fehlgeschlagen."
+        "openKgBeforeRefining": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie es verfeinern."
       }
     },
     "deploy": {
@@ -3475,12 +3471,11 @@
       "NNDiagram": "Neuronales-Netz-Diagramm",
       "BPMN": "BPMN-Prozess",
       "ComponentDiagram": "Komponentendiagramm",
-      "DeploymentDiagram": "Bereitstellungsdiagramm"
+      "DeploymentDiagram": "Bereitstellungsdiagramm",
+      "KnowledgeGraphDiagram": "Knowledge-Graph-Diagramm"
     },
     "kg": {
       "options": {
-        "title": "Knowledge Graph exportieren",
-        "description": "Wählen Sie die RDF-Syntax und die auszugebenden Constraint-Vokabulare.",
         "rdfSyntax": "RDF-Syntax",
         "constraintVocab": "Constraint-Vokabular",
         "vocabBoth": "Beide — OWL & SHACL ausgeben, wo möglich",
@@ -3499,6 +3494,9 @@
         "vocabSuffix": " (nur {{vocab}}-Constraints)",
         "exportCompleted": "{{format}}-Export abgeschlossen{{suffix}}.",
         "failed": "KG-Export fehlgeschlagen."
+      },
+      "dialog": {
+        "description": "Exportieren Sie den aktuellen Wissensgraphen als RDF (Turtle oder OWL) und wählen Sie, welche Constraint-Vokabulare enthalten sein sollen."
       }
     }
   },

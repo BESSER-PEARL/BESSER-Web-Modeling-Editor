@@ -175,21 +175,6 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
       },
     ],
   },
-  {
-    kind: 'group',
-    label: 'Export Knowledge Graph',
-    labelKey: 'menu.generate.groups.kgExport',
-    actions: [
-      { kind: 'action', label: 'OWL (RDF/XML)', generator: 'kg_export_owl' },
-      { kind: 'action', label: 'Turtle (TTL)', generator: 'kg_export_ttl' },
-      {
-        kind: 'action',
-        label: 'Export with options…',
-        labelKey: 'menu.generate.actions.kgExportWithOptions',
-        generator: 'kg_export_with_options',
-      },
-    ],
-  },
 ];
 
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [

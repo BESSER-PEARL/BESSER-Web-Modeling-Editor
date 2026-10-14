@@ -19,10 +19,7 @@ export type GeneratorType =
   | 'bpmn'
   | 'test_case'
   | 'kg_to_class'
-  | 'kg_refine'
-  | 'kg_export_owl'
-  | 'kg_export_ttl'
-  | 'kg_export_with_options';
+  | 'kg_refine';
 
 export type GeneratorMenuMode =
   | 'class'

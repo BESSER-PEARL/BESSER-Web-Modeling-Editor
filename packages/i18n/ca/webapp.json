@@ -100,8 +100,7 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Dades",
-        "kgConvert": "Converteix a B-UML",
-        "kgExport": "Exporta el graf de coneixement"
+        "kgConvert": "Converteix a B-UML"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -115,8 +114,7 @@
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
         "qiskitCode": "Codi Qiskit",
-        "kgToClassDiagram": "Diagrama de classes",
-        "kgExportWithOptions": "Exporta amb opcions…"
+        "kgToClassDiagram": "Diagrama de classes"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -124,9 +122,7 @@
       },
       "kgGuards": {
         "openKgBeforeConverting": "Obre un diagrama de graf de coneixement abans de convertir-lo a UML.",
-        "openKgBeforeRefining": "Obre un diagrama de graf de coneixement abans de refinar-lo.",
-        "openKgBeforeExporting": "Obre un diagrama de graf de coneixement abans d'exportar.",
-        "exportFailed": "L'exportació del KG ha fallat."
+        "openKgBeforeRefining": "Obre un diagrama de graf de coneixement abans de refinar-lo."
       }
     },
     "deploy": {
@@ -3475,12 +3471,11 @@
       "NNDiagram": "Diagrama de xarxa neuronal",
       "BPMN": "Procés BPMN",
       "ComponentDiagram": "Diagrama de components",
-      "DeploymentDiagram": "Diagrama de desplegament"
+      "DeploymentDiagram": "Diagrama de desplegament",
+      "KnowledgeGraphDiagram": "Diagrama de graf de coneixement"
     },
     "kg": {
       "options": {
-        "title": "Exporta el graf de coneixement",
-        "description": "Tria la sintaxi RDF i quins vocabularis de restriccions emetre.",
         "rdfSyntax": "Sintaxi RDF",
         "constraintVocab": "Vocabulari de restriccions",
         "vocabBoth": "Tots dos: emet OWL i SHACL quan sigui possible",
@@ -3499,6 +3494,9 @@
         "vocabSuffix": " (només restriccions {{vocab}})",
         "exportCompleted": "Exportació {{format}} completada{{suffix}}.",
         "failed": "L'exportació del KG ha fallat."
+      },
+      "dialog": {
+        "description": "Exporta el graf de coneixement actual com a RDF (Turtle o OWL) i tria quins vocabularis de restriccions s'hi inclouen."
       }
     }
   },

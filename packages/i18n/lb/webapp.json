@@ -100,8 +100,7 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "An B-UML ëmwandelen",
-        "kgExport": "Knowledge Graph exportéieren"
+        "kgConvert": "An B-UML ëmwandelen"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -115,8 +114,7 @@
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
-        "kgToClassDiagram": "Klassendiagramm",
-        "kgExportWithOptions": "Mat Optiounen exportéieren…"
+        "kgToClassDiagram": "Klassendiagramm"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
@@ -124,9 +122,7 @@
       },
       "kgGuards": {
         "openKgBeforeConverting": "Maacht e Knowledge-Graph-Diagramm op, ier Dir an UML ëmwandelt.",
-        "openKgBeforeRefining": "Maacht e Knowledge-Graph-Diagramm op, ier Dir verfeinert.",
-        "openKgBeforeExporting": "Maacht e Knowledge-Graph-Diagramm op, ier Dir exportéiert.",
-        "exportFailed": "KG-Export feelgeschloen."
+        "openKgBeforeRefining": "Maacht e Knowledge-Graph-Diagramm op, ier Dir verfeinert."
       }
     },
     "deploy": {
@@ -3475,12 +3471,11 @@
       "NNDiagram": "Diagramm vun engem neuronalen Netz",
       "BPMN": "BPMN-Prozess",
       "ComponentDiagram": "Komponentendiagramm",
-      "DeploymentDiagram": "Deploymentdiagramm"
+      "DeploymentDiagram": "Deploymentdiagramm",
+      "KnowledgeGraphDiagram": "Knowledge-Graph-Diagramm"
     },
     "kg": {
       "options": {
-        "title": "Knowledge Graph exportéieren",
-        "description": "Wielt d'RDF-Syntax an déi Contrainte-Vokabularen, déi ausgi ginn.",
         "rdfSyntax": "RDF-Syntax",
         "constraintVocab": "Contrainte-Vokabular",
         "vocabBoth": "Béid — OWL & SHACL ausginn, wou méiglech",
@@ -3499,6 +3494,9 @@
         "vocabSuffix": " (nëmmen {{vocab}}-Contrainten)",
         "exportCompleted": "{{format}}-Export ofgeschloss{{suffix}}.",
         "failed": "KG-Export feelgeschloen."
+      },
+      "dialog": {
+        "description": "Exportéiert de gerade Wëssensgraph als RDF (Turtle oder OWL) a wielt wéi eng Contrainte-Vokabulairen dobäi solle sinn."
       }
     }
   },
