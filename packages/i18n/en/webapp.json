@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> issues were routed here from the Automatic tab. Describe the system you want to build, then Analyze to ask the LLM for fixes against the (now partially-cleaned) KG.",
         "systemDescription": "System description",
         "systemDescriptionPlaceholder": "e.g. A library management system that tracks books, members, and loans.",
-        "apiKey": "OpenAI API key",
-        "apiKeyNote": "Stored in this browser session only.",
         "analyzing": "Analyzing…",
         "analyze": "Analyze",
         "llmNoSuggestions": "The LLM did not suggest any changes for the described system.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "No orphan nodes to classify.",
         "invalidOrphanResponse": "Invalid orphan-classification response.",
         "orphanFailed": "Orphan classification failed.",
-        "applyLlmFailed": "Apply LLM refinement failed."
+        "applyLlmFailed": "Apply LLM refinement failed.",
+        "openAiKeyRequired": "AI refinement needs an OpenAI API key. Add one to continue.",
+        "otherProviderKey": "Your saved key is for {{provider}}. AI refinement currently works with OpenAI keys only.",
+        "usingOpenAiKey": "Using your saved OpenAI key.",
+        "addOpenAiKey": "Add OpenAI key",
+        "changeKey": "Change key",
+        "keyDialogDescription": "AI refinement uses the one key this app saves, which the assistant shares: saving an OpenAI key here replaces the key saved before. The key stays in this browser tab and is sent to the server only for the request. Only OpenAI keys work here for now."
       },
       "toUml": {
         "noProject": "Open a project before converting.",

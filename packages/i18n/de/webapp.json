@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> Probleme wurden vom Tab „Automatisch“ hierher geleitet. Beschreiben Sie das gewünschte System und klicken Sie dann auf Analysieren, um das LLM um Korrekturen gegen den (nun teilweise bereinigten) KG zu bitten.",
         "systemDescription": "Systembeschreibung",
         "systemDescriptionPlaceholder": "z. B. Ein Bibliotheksverwaltungssystem, das Bücher, Mitglieder und Ausleihen verwaltet.",
-        "apiKey": "OpenAI-API-Schlüssel",
-        "apiKeyNote": "Nur in dieser Browsersitzung gespeichert.",
         "analyzing": "Wird analysiert…",
         "analyze": "Analysieren",
         "llmNoSuggestions": "Das LLM hat keine Änderungen für das beschriebene System vorgeschlagen.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "Keine verwaisten Knoten zu klassifizieren.",
         "invalidOrphanResponse": "Ungültige Antwort bei der Klassifizierung verwaister Knoten.",
         "orphanFailed": "Die Klassifizierung verwaister Knoten ist fehlgeschlagen.",
-        "applyLlmFailed": "Das Anwenden der LLM-Verfeinerung ist fehlgeschlagen."
+        "applyLlmFailed": "Das Anwenden der LLM-Verfeinerung ist fehlgeschlagen.",
+        "openAiKeyRequired": "Die KI-Verfeinerung benötigt einen OpenAI-API-Schlüssel. Fügen Sie einen hinzu, um fortzufahren.",
+        "otherProviderKey": "Ihr gespeicherter Schlüssel gehört zu {{provider}}. Die KI-Verfeinerung funktioniert derzeit nur mit OpenAI-Schlüsseln.",
+        "usingOpenAiKey": "Ihr gespeicherter OpenAI-Schlüssel wird verwendet.",
+        "addOpenAiKey": "OpenAI-Schlüssel hinzufügen",
+        "changeKey": "Schlüssel ändern",
+        "keyDialogDescription": "Die KI-Verfeinerung nutzt den einen Schlüssel, den diese App speichert und den auch der Assistent verwendet: Wenn Sie hier einen OpenAI-Schlüssel speichern, ersetzt er den zuvor gespeicherten. Der Schlüssel bleibt in diesem Browser-Tab und wird nur für die Anfrage an den Server gesendet. Derzeit funktionieren hier nur OpenAI-Schlüssel."
       },
       "toUml": {
         "noProject": "Öffnen Sie ein Projekt, bevor Sie umwandeln.",

@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> problemes s'han redirigit aquí des de la pestanya Automàtic. Descriu el sistema que vols construir i després prem Analitza per demanar al LLM correccions sobre el KG (ara parcialment net).",
         "systemDescription": "Descripció del sistema",
         "systemDescriptionPlaceholder": "p. ex. Un sistema de gestió de biblioteca que registra llibres, socis i préstecs.",
-        "apiKey": "Clau d'API d'OpenAI",
-        "apiKeyNote": "Es desa només en aquesta sessió del navegador.",
         "analyzing": "S'està analitzant…",
         "analyze": "Analitza",
         "llmNoSuggestions": "El LLM no ha suggerit cap canvi per al sistema descrit.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "No hi ha cap node orfe per classificar.",
         "invalidOrphanResponse": "Resposta de classificació d'orfes no vàlida.",
         "orphanFailed": "La classificació d'orfes ha fallat.",
-        "applyLlmFailed": "L'aplicació del refinament del LLM ha fallat."
+        "applyLlmFailed": "L'aplicació del refinament del LLM ha fallat.",
+        "openAiKeyRequired": "El refinament amb IA necessita una clau d'API d'OpenAI. Afegiu-ne una per continuar.",
+        "otherProviderKey": "La clau desada és per a {{provider}}. De moment, el refinament amb IA només funciona amb claus d'OpenAI.",
+        "usingOpenAiKey": "S'utilitza la clau d'OpenAI desada.",
+        "addOpenAiKey": "Afegeix una clau d'OpenAI",
+        "changeKey": "Canvia la clau",
+        "keyDialogDescription": "El refinament amb IA fa servir l'única clau que desa l'aplicació, que l'assistent comparteix: desar aquí una clau d'OpenAI substitueix la desada abans. La clau només es conserva en aquesta pestanya del navegador i s'envia al servidor només per a la petició. De moment només hi funcionen claus d'OpenAI."
       },
       "toUml": {
         "noProject": "Obre un projecte abans de convertir.",

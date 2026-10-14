@@ -50,10 +50,6 @@ vi.mock('../useKgRefine', () => {
   };
 });
 
-vi.mock('../../../shared/hooks/useOpenAIApiKey', () => ({
-  useOpenAIApiKey: () => ({ apiKey: '', setApiKey: vi.fn(), clearApiKey: vi.fn() }),
-}));
-
 import { KgRefineModal } from '../KgRefineModal';
 
 describe('KgRefineModal — partial-apply UX', () => {

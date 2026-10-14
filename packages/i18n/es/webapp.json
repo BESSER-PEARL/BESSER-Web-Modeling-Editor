@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> problemas se redirigieron aquí desde la pestaña Automático. Describe el sistema que quieres construir y luego pulsa Analizar para pedir al LLM correcciones sobre el KG (ahora parcialmente limpio).",
         "systemDescription": "Descripción del sistema",
         "systemDescriptionPlaceholder": "p. ej. Un sistema de gestión de biblioteca que registra libros, socios y préstamos.",
-        "apiKey": "Clave de API de OpenAI",
-        "apiKeyNote": "Se guarda solo en esta sesión del navegador.",
         "analyzing": "Analizando…",
         "analyze": "Analizar",
         "llmNoSuggestions": "El LLM no sugirió ningún cambio para el sistema descrito.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "No hay nodos huérfanos que clasificar.",
         "invalidOrphanResponse": "Respuesta de clasificación de huérfanos no válida.",
         "orphanFailed": "Error en la clasificación de huérfanos.",
-        "applyLlmFailed": "Error al aplicar el refinado del LLM."
+        "applyLlmFailed": "Error al aplicar el refinado del LLM.",
+        "openAiKeyRequired": "El refinado con IA necesita una clave de API de OpenAI. Añade una para continuar.",
+        "otherProviderKey": "La clave guardada es de {{provider}}. Por ahora, el refinado con IA solo funciona con claves de OpenAI.",
+        "usingOpenAiKey": "Se usa la clave de OpenAI guardada.",
+        "addOpenAiKey": "Añadir clave de OpenAI",
+        "changeKey": "Cambiar clave",
+        "keyDialogDescription": "El refinado con IA usa la única clave que guarda esta aplicación y que comparte el asistente: guardar aquí una clave de OpenAI sustituye a la guardada antes. La clave solo se conserva en esta pestaña del navegador y se envía al servidor únicamente para la solicitud. Por ahora solo funcionan claves de OpenAI."
       },
       "toUml": {
         "noProject": "Abre un proyecto antes de convertir.",

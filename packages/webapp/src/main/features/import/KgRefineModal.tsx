@@ -6,7 +6,8 @@
 //                For ORPHAN_NODE_NO_CLASS_LINK issues, "skip" defers the orphan
 //                set to LLM classification; the apply response carries
 //                pendingOrphanClassification which auto-switches to the AI tab.
-//   - AI:       phase 'input' (description + API key) → phase 'review'.
+//   - AI:       phase 'input' (description; the OpenAI key comes from the
+//                shared key store) → phase 'review'.
 //                If pending orphan node ids were carried over, the input phase
 //                triggers /classify-orphans-with-llm; otherwise it triggers
 //                /llm-clean-kg (full-graph). Apply via /apply-kg-refinement
@@ -31,9 +32,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useOpenAIApiKey } from '../../shared/hooks/useOpenAIApiKey';
+import { LlmKeyDialog, PROVIDER_OPTIONS } from '../../shared/components/byok/LlmKeyDialog';
+import { readLlmKey, type LlmKey } from '../../shared/services/llmKeyStorage';
 import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPreflightIssueRow';
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
 import type { KgIssue, KgPreflightReport } from '../../shared/api/knowledgeGraph';
@@ -152,7 +153,14 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   initialTab,
 }) => {
   const { t } = useTranslation();
-  const { apiKey, setApiKey } = useOpenAIApiKey();
+  // The one shared key (sessionStorage). The AI endpoints call OpenAI, so only
+  // an OpenAI key can be used; anything else gets an explanation and the dialog.
+  const [llmKey, setLlmKey] = useState<LlmKey | null>(() => readLlmKey());
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
+  const apiKey = llmKey?.provider === 'openai' ? llmKey.apiKey : '';
+  const savedKeyProviderLabel = llmKey
+    ? (PROVIDER_OPTIONS.find((p) => p.value === llmKey.provider)?.label ?? llmKey.provider)
+    : '';
   const refine = useKgRefine();
   const diagramLabel = convertMode ? t(DIAGRAM_LABEL_KEY) : null;
 
@@ -187,6 +195,11 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
 
   // Track if static analysis has run for this open session.
   const ranStaticRef = useRef(false);
+
+  // The key may have been added or changed on another surface meanwhile.
+  useEffect(() => {
+    if (open) setLlmKey(readLlmKey());
+  }, [open]);
 
   // Reset internal state on close.
   useEffect(() => {
@@ -859,19 +872,41 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     className="block w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/90"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="kg-refine-api-key">{t('import.kg.refine.apiKey')}</Label>
-                  <Input
-                    id="kg-refine-api-key"
-                    data-testid="kg-refine-api-key"
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    autoComplete="off"
-                  />
-                  <p className="text-xs text-muted-foreground">{t('import.kg.refine.apiKeyNote')}</p>
-                </div>
+                {apiKey ? (
+                  <div
+                    data-testid="kg-refine-key-ready"
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                  >
+                    <span>{t('import.kg.refine.usingOpenAiKey')}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setKeyDialogOpen(true)}
+                      data-testid="kg-refine-change-key"
+                    >
+                      {t('import.kg.refine.changeKey')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    data-testid="kg-refine-key-missing"
+                    className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                  >
+                    <span>
+                      {llmKey
+                        ? t('import.kg.refine.otherProviderKey', { provider: savedKeyProviderLabel })
+                        : t('import.kg.refine.openAiKeyRequired')}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setKeyDialogOpen(true)}
+                      data-testid="kg-refine-add-key"
+                    >
+                      {t('import.kg.refine.addOpenAiKey')}
+                    </Button>
+                  </div>
+                )}
                 <DialogFooter>
                   <Button variant="outline" onClick={onClose} disabled={refine.llmStatus === 'loading'}>
                     {t('common.cancel')}
@@ -977,6 +1012,16 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
             )}
           </div>
         )}
+        <LlmKeyDialog
+          open={keyDialogOpen}
+          onOpenChange={setKeyDialogOpen}
+          preferProvider="openai"
+          preferKeyEntry
+          showRunBudget={false}
+          description={t('import.kg.refine.keyDialogDescription')}
+          onSaved={() => setLlmKey(readLlmKey())}
+          onRemoved={() => setLlmKey(readLlmKey())}
+        />
       </DialogContent>
     </Dialog>
   );

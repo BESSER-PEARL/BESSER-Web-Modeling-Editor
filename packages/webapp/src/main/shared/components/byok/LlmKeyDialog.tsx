@@ -104,6 +104,14 @@ export interface LlmKeyDialogProps {
    * reflect the current selection).
    */
   preferKeyEntry?: boolean;
+  /**
+   * Provider preselected on open, ahead of the stored key's provider. For
+   * surfaces that can only use one provider (e.g. Knowledge Graph refinement
+   * needs an OpenAI key): the user lands on the right one instead of whatever
+   * was saved last. The user can still pick another; saving replaces the single
+   * shared key either way.
+   */
+  preferProvider?: LlmProvider;
 }
 
 interface ProviderOption {
@@ -378,6 +386,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   saveLabel,
   showRunBudget = true,
   preferKeyEntry = false,
+  preferProvider,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -479,7 +488,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     setProviderLockedByUser(false);
     providerLockedRef.current = false;
     const stored = readLlmKey();
-    let nextProvider = stored?.provider ?? 'anthropic';
+    let nextProvider = preferProvider ?? stored?.provider ?? 'anthropic';
     // A pia/local selection stored on a machine that later opens the hosted
     // editor would otherwise render a provider that isn't in the list.
     if (_needsBaseUrl(nextProvider) && !_isLocalDeployment()) {
@@ -503,7 +512,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       ),
     );
     setBudgetOpen(false);
-  }, [open]);
+  }, [open, preferProvider]);
 
   useEffect(() => {
     const presetValues = new Set(MODEL_PRESETS[provider].map((p) => p.value));

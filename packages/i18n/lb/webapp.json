@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> Problemer goufen vum Tab „Automatesch“ hierhi geleet. Beschreift de System, deen Dir bauen wëllt, a klickt dann op Analyséieren, fir den LLM no Fixe géint de (elo deelweis opgeraumten) KG ze froen.",
         "systemDescription": "Systembeschreiwung",
         "systemDescriptionPlaceholder": "z. B. E Bibliothéiksverwaltungssystem, dat Bicher, Memberen a Prête verfollegt.",
-        "apiKey": "OpenAI-API-Schlëssel",
-        "apiKeyNote": "Nëmmen an dëser Browser-Sessioun gespäichert.",
         "analyzing": "Gëtt analyséiert…",
         "analyze": "Analyséieren",
         "llmNoSuggestions": "Den LLM huet keng Ännerunge fir de beschriwwene System virgeschloen.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "Keng Weesekniet ze klasséieren.",
         "invalidOrphanResponse": "Ongëlteg Äntwert bei der Weesekniet-Klassifikatioun.",
         "orphanFailed": "D'Weesekniet-Klassifikatioun ass feelgeschloen.",
-        "applyLlmFailed": "D'Uwende vun der LLM-Verfeinerung ass feelgeschloen."
+        "applyLlmFailed": "D'Uwende vun der LLM-Verfeinerung ass feelgeschloen.",
+        "openAiKeyRequired": "D'KI-Verfeinerung brauch en OpenAI-API-Schlëssel. Setzt een derbäi fir weiderzefueren.",
+        "otherProviderKey": "Äre gespeicherte Schlëssel ass fir {{provider}}. D'KI-Verfeinerung funktionéiert de Moment just mat OpenAI-Schlësselen.",
+        "usingOpenAiKey": "Äre gespeicherten OpenAI-Schlëssel gëtt benotzt.",
+        "addOpenAiKey": "OpenAI-Schlëssel derbäisetzen",
+        "changeKey": "Schlëssel änneren",
+        "keyDialogDescription": "D'KI-Verfeinerung benotzt deen een Schlëssel, deen dës App späichert an deen och den Assistent notzt: Wann Dir hei en OpenAI-Schlëssel späichert, ersetzt e fréier gespäicherten. De Schlëssel bleift an dësem Browser-Tab a gëtt just fir d'Ufro un de Server geschéckt. Zur Zäit funktionéieren hei just OpenAI-Schlësselen."
       },
       "toUml": {
         "noProject": "Maacht e Projet op, ier Dir ëmwandelt.",

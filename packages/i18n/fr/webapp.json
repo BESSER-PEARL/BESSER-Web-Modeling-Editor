@@ -3642,8 +3642,6 @@
         "deferredBanner_other": "<count>{{count}}</count> problèmes ont été redirigés ici depuis l'onglet Automatique. Décrivez le système que vous voulez construire, puis Analyser pour demander au LLM des corrections sur le KG (désormais partiellement nettoyé).",
         "systemDescription": "Description du système",
         "systemDescriptionPlaceholder": "p. ex. Un système de gestion de bibliothèque qui suit les livres, les membres et les emprunts.",
-        "apiKey": "Clé API OpenAI",
-        "apiKeyNote": "Stockée uniquement dans cette session de navigateur.",
         "analyzing": "Analyse…",
         "analyze": "Analyser",
         "llmNoSuggestions": "Le LLM n'a proposé aucune modification pour le système décrit.",
@@ -3665,7 +3663,13 @@
         "noOrphans": "Aucun nœud orphelin à classer.",
         "invalidOrphanResponse": "Réponse de classification des orphelins invalide.",
         "orphanFailed": "Échec de la classification des orphelins.",
-        "applyLlmFailed": "Échec de l'application de l'affinage LLM."
+        "applyLlmFailed": "Échec de l'application de l'affinage LLM.",
+        "openAiKeyRequired": "L'affinage par IA nécessite une clé d'API OpenAI. Ajoutez-en une pour continuer.",
+        "otherProviderKey": "Votre clé enregistrée est pour {{provider}}. L'affinage par IA ne fonctionne actuellement qu'avec des clés OpenAI.",
+        "usingOpenAiKey": "La clé OpenAI enregistrée est utilisée.",
+        "addOpenAiKey": "Ajouter une clé OpenAI",
+        "changeKey": "Changer la clé",
+        "keyDialogDescription": "L'affinage par IA utilise l'unique clé que cette application enregistre et que l'assistant partage : enregistrer ici une clé OpenAI remplace celle enregistrée auparavant. La clé reste dans cet onglet du navigateur et n'est envoyée au serveur que pour la requête. Seules les clés OpenAI fonctionnent ici pour l'instant."
       },
       "toUml": {
         "noProject": "Ouvrez un projet avant de convertir.",
