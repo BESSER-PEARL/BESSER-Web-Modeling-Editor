@@ -18,8 +18,7 @@ export type GeneratorType =
   | 'tensorflow'
   | 'bpmn'
   | 'test_case'
-  | 'kg_to_class'
-  | 'kg_refine';
+  | 'kg_to_class';
 
 export type GeneratorMenuMode =
   | 'class'

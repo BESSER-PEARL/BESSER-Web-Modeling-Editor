@@ -119,10 +119,6 @@
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
         "unavailable": "Für dieses Diagramm noch nicht verfügbar"
-      },
-      "kgGuards": {
-        "openKgBeforeConverting": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie in UML umwandeln.",
-        "openKgBeforeRefining": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie es verfeinern."
       }
     },
     "deploy": {

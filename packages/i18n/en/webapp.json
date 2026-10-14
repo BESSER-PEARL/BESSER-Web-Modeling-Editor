@@ -119,10 +119,6 @@
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
         "unavailable": "Not yet available for this diagram"
-      },
-      "kgGuards": {
-        "openKgBeforeConverting": "Open a Knowledge Graph diagram before converting to UML.",
-        "openKgBeforeRefining": "Open a Knowledge Graph diagram before refining."
       }
     },
     "deploy": {

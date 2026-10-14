@@ -21,6 +21,8 @@ import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
+import { useKgFlows } from '../features/import/useKgFlows';
+import { useKgRouting } from './hooks/useKgRouting';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
@@ -144,7 +146,7 @@ function AppContentInner() {
       setHubInitialStep(undefined);
     }
   }, [setShowProjectHub]);
-  const { generatorMenuMode } = getWorkspaceContext(location.pathname, currentDiagramType);
+  const { generatorMenuMode, isKgContext } = getWorkspaceContext(location.pathname, currentDiagramType);
 
   // All generator config state, execution handlers, and quality-check logic
   const {
@@ -154,9 +156,19 @@ function AppContentInner() {
     handleQualityCheck,
     configState,
     isLocalEnvironment,
-    kgRefineModalProps,
-    kgConsistencyConfirmModalProps,
   } = useGeneratorExecution(editor);
+
+  // Knowledge Graph flows that open their own dialogs: converting to a class
+  // diagram, and refining. They are not code generation, so they stay out of
+  // useGeneratorExecution; the Generate menu and the Quality Check button
+  // reach them from here.
+  const kgFlows = useKgFlows();
+  const { onGenerate, onQualityCheck } = useKgRouting({
+    isKgContext,
+    kg: kgFlows,
+    handleGenerateRequest,
+    handleQualityCheck,
+  });
 
   const handleExport = () => {
     setShowExportDialog(true);
@@ -178,11 +190,11 @@ function AppContentInner() {
         onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
-        onGenerate={(type, config) => handleGenerateRequest(type, config)}
-        onQualityCheck={() => handleQualityCheck()}
+        onGenerate={onGenerate}
+        onQualityCheck={onQualityCheck}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
-        isGenerating={isGenerating}
+        isGenerating={isGenerating || kgFlows.isConverting}
         onAssistantGenerate={handleAssistantGenerate}
         onboarding={onboarding}
       >
@@ -313,7 +325,7 @@ function AppContentInner() {
           (Automatic / AI) refinement flow and surfaces a Convert button
           when the KG is clean. */}
       <Suspense fallback={null}>
-        <KgRefineModal {...kgRefineModalProps} />
+        <KgRefineModal {...kgFlows.refineModalProps} />
       </Suspense>
 
       {/* Pre-conversion consistency-gate modal: shown when the OWL/SHACL
@@ -321,7 +333,7 @@ function AppContentInner() {
           before a KG → ClassDiagram / ObjectDiagram conversion runs. Users
           can fix, proceed, or cancel. */}
       <Suspense fallback={null}>
-        <KgConsistencyConfirmModal {...kgConsistencyConfirmModalProps} />
+        <KgConsistencyConfirmModal {...kgFlows.consistencyConfirmModalProps} />
       </Suspense>
 
       {/* Onboarding tutorial — disabled for now

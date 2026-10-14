@@ -119,10 +119,6 @@
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
         "unavailable": "Aún no disponible para este diagrama"
-      },
-      "kgGuards": {
-        "openKgBeforeConverting": "Abre un diagrama de grafo de conocimiento antes de convertirlo a UML.",
-        "openKgBeforeRefining": "Abre un diagrama de grafo de conocimiento antes de refinarlo."
       }
     },
     "deploy": {

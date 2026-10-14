@@ -119,10 +119,6 @@
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
         "unavailable": "Nach net verfügbar fir dësen Diagramm"
-      },
-      "kgGuards": {
-        "openKgBeforeConverting": "Maacht e Knowledge-Graph-Diagramm op, ier Dir an UML ëmwandelt.",
-        "openKgBeforeRefining": "Maacht e Knowledge-Graph-Diagramm op, ier Dir verfeinert."
       }
     },
     "deploy": {
