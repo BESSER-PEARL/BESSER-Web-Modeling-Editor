@@ -29,7 +29,7 @@ import type {
   KnowledgeGraphData,
   ProjectDiagram,
 } from '../../shared/types/project';
-import { sortIdsByPriority } from '../editors/kg/node-priority';
+import { sortIdsByPriority } from '../../shared/kg/node-priority';
 import { mergeKnowledgeGraphs } from './kgMerge';
 import type { KgImportTargetModalProps } from './KgImportTargetModal';
 

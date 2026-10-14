@@ -75,7 +75,7 @@ import {
 import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
 import { useKgPreflight } from '../import/useKgPreflight';
 import type { KgIssue } from '../import/useKgPreflight';
-import * as kgFocus from '../editors/kg/kgFocus';
+import * as kgFocus from '../../shared/kg/kgFocus';
 import { useExportKgRdf } from '../export/useExportKgRdf';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────

@@ -18,14 +18,14 @@ import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
 import { deleteSelectionFromModel } from './delete-selection';
 import { pruneSelection, sameKgContent } from './modelSync';
-import * as kgFocus from './kgFocus';
+import * as kgFocus from '../../../shared/kg/kgFocus';
 import {
   collectHiddenMetaIds,
   isMetaVocabNode,
   rejectHidden,
   withoutHiddenNodes,
 } from './meta-vocab';
-import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from './node-priority';
+import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from '../../../shared/kg/node-priority';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../../shared/utils/download';

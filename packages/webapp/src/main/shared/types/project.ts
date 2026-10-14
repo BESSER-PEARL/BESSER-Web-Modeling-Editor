@@ -126,7 +126,7 @@ export type KGNodeType =
 /** A single normalised OWL2 / SHACL constraint, stored inside a NodeConstraint
  * or PropertyConstraint via `metadata.constraintSpecs`. Mirrors the backend
  * `ConstraintSpec` dataclass; `kind` is the discriminator and `value` shape
- * depends on `kind` (see `constraint-catalog.ts`).
+ * depends on `kind` (see `shared/kg/constraint-catalog.ts`).
  *
  * For the four SHACL logical operators (`shaclNot` / `shaclAnd` / `shaclOr` /
  * `shaclXone`), `value` is a `KGNestedShape[]` — see below. */

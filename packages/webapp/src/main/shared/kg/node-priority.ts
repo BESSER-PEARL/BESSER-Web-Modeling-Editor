@@ -14,7 +14,7 @@
  *  survives, so a seed stays reproducible across reloads.
  */
 
-import type { KGNodeData, KGNodeType } from './types';
+import type { KGNodeData, KGNodeType } from '../types/project';
 
 /** Lower number = shown first. */
 export const KG_NODE_DISPLAY_PRIORITY: Record<KGNodeType, number> = {

@@ -27,8 +27,8 @@ import {
 } from '@/components/ui/select';
 
 import type { KgRdfFormat, KgRdfVocab } from './useExportKgRdf';
-import { CONSTRAINT_BY_KIND } from '../editors/kg/constraint-catalog';
-import type { KGNodeData } from '../editors/kg/types';
+import { CONSTRAINT_BY_KIND } from '../../shared/kg/constraint-catalog';
+import type { KGNodeData } from '../../shared/types/project';
 
 interface Props {
   open: boolean;

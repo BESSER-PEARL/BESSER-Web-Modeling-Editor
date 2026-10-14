@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import en from '../../../../../../../i18n/en/webapp.json';
 
-import { CONSTRAINT_CATALOG, CATEGORY_LABELS, CONSTRAINT_TEMPLATES } from '../constraint-catalog';
+import { CONSTRAINT_CATALOG, CATEGORY_LABELS, CONSTRAINT_TEMPLATES } from '../../../../shared/kg/constraint-catalog';
 import { KG_EDGE_RULES } from '../edge-rules';
 import { KG_NODE_TYPES } from '../types';
 

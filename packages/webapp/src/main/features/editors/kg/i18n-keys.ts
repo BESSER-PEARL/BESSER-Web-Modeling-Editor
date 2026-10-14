@@ -16,7 +16,7 @@
 
 import type { TFunction } from 'i18next';
 
-import type { ConstraintCatalogEntry, ConstraintCategory, ConstraintTemplate } from './constraint-catalog';
+import type { ConstraintCatalogEntry, ConstraintCategory, ConstraintTemplate } from '../../../shared/kg/constraint-catalog';
 import { KG_EDGE_RULES } from './edge-rules';
 import type { KGNodeType } from './types';
 import { KG_NODE_TYPES } from './types';

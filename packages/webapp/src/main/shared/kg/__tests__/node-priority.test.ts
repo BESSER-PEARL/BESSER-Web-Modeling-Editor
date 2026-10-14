@@ -5,7 +5,7 @@ import {
   sortIdsByPriority,
   sortNodesByPriority,
 } from '../node-priority';
-import type { KGNodeData, KGNodeType } from '../types';
+import type { KGNodeData, KGNodeType } from '../../types/project';
 
 function node(id: string, nodeType: KGNodeType): KGNodeData {
   return { id, nodeType, label: id };

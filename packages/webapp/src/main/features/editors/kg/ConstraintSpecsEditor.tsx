@@ -14,7 +14,7 @@
  *    min > max cardinality / minLength > maxLength.
  *
  *  Heavy by lines but flat by structure: each `valueShape` from
- *  `constraint-catalog.ts` has its own tiny inline editor. Adding a new
+ *  `shared/kg/constraint-catalog.ts` has its own tiny inline editor. Adding a new
  *  constraint kind is a matter of (a) appending an entry to the catalog,
  *  (b) extending the `describeSpec` helper, and (c) handling the new
  *  `valueShape` here.
@@ -59,7 +59,7 @@ import {
   templatesFor,
   type ConstraintCategory,
   type ConstraintCatalogEntry,
-} from './constraint-catalog';
+} from '../../../shared/kg/constraint-catalog';
 import { describeSpec, describeSpecList } from './describeConstraints';
 import { NestedSpecsEditor } from './NestedSpecsEditor';
 
