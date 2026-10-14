@@ -23,8 +23,9 @@ import {
   selectDiagramsForActiveType,
   selectActiveDiagramType,
   selectClassDiagrams,
+  selectProject,
 } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../uml/apollon-editor-context';
+import { BesserEditorContext } from '../uml/besser-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
 import { DiagramLineageBanner } from './DiagramLineageBanner';
@@ -56,9 +57,9 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
 const isDiagramEmpty = (diagram: ProjectDiagram | undefined): boolean => {
   if (!diagram?.model) return true;
   if (isUMLModel(diagram.model)) {
-    const elCount = Object.keys(diagram.model.elements ?? {}).length;
-    const relCount = Object.keys(diagram.model.relationships ?? {}).length;
-    return elCount === 0 && relCount === 0;
+    const nodeCount = Array.isArray(diagram.model.nodes) ? diagram.model.nodes.length : 0;
+    const edgeCount = Array.isArray(diagram.model.edges) ? diagram.model.edges.length : 0;
+    return nodeCount === 0 && edgeCount === 0;
   }
   if (isGrapesJSProjectData(diagram.model)) {
     const pages = diagram.model.pages ?? [];
@@ -102,6 +103,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   // not as a single diagram-level reference, so no dropdown is needed here.
 
   const classDiagrams = useAppSelector(selectClassDiagrams);
+  const activeClassIndex = useAppSelector(selectProject)?.currentDiagramIndices?.ClassDiagram ?? 0;
+  // Same fallback as getReferencedDiagram: the stored reference, else the active class diagram.
+  const activeClassDiagramId = classDiagrams[Math.min(activeClassIndex, classDiagrams.length - 1)]?.id ?? '';
 
   // Read the active diagram's persisted references (ID-based)
   // Clamp the index to prevent out-of-bounds access when diagrams array
@@ -109,13 +113,13 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const safeIndex = diagrams.length > 0 ? Math.min(currentIndex, diagrams.length - 1) : 0;
   const activeDiagram = diagrams[safeIndex];
   const [classRefId, setClassRefId] = useState<string>(
-    () => activeDiagram?.references?.ClassDiagram ?? classDiagrams[0]?.id ?? '',
+    () => activeDiagram?.references?.ClassDiagram ?? activeClassDiagramId,
   );
 
   // When the active diagram tab changes or its references update, restore persisted references
   useEffect(() => {
-    setClassRefId(activeDiagram?.references?.ClassDiagram ?? classDiagrams[0]?.id ?? '');
-  }, [activeDiagram?.id, activeDiagram?.references?.ClassDiagram, classDiagrams]);
+    setClassRefId(activeDiagram?.references?.ClassDiagram ?? activeClassDiagramId);
+  }, [activeDiagram?.id, activeDiagram?.references?.ClassDiagram, activeClassDiagramId]);
 
   // Sync the bridge when ClassDiagram reference changes (ObjectDiagram needs it)
   const prevClassRefIdRef = React.useRef<string | null>(null);
@@ -145,11 +149,11 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     }));
   }, [dispatch, currentDiagramType, safeIndex]);
 
-  const { editor: apollonEditor } = useContext(ApollonEditorContext);
+  const { editor: besserEditor } = useContext(BesserEditorContext);
 
   const handleGenerateObjectsFromClasses = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
-    if (!apollonEditor || !apollonEditor.model) {
+    if (!besserEditor || !besserEditor.model) {
       toast.error(t('editors.diagramTabs.editorNotReady'));
       return;
     }
@@ -159,8 +163,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.error(t('editors.diagramTabs.pickClassRefFirst'));
       return;
     }
-    const classCount = Object.values(refModel.elements ?? {}).filter(
-      (el: any) => el?.type === 'Class',
+    const classCount = (refModel.nodes ?? []).filter(
+      (n: any) => n?.type === 'class' || n?.type === 'Class',
     ).length;
     if (classCount === 0) {
       toast.warning(t('editors.diagramTabs.noClassesToInstantiate'));
@@ -169,15 +173,18 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
     const { model: nextModel, created, skipped, links } = scaffoldObjectsFromClasses({
       classModel: refModel,
-      objectModel: apollonEditor.model,
+      objectModel: besserEditor.model,
     });
 
     // Push to redux first so a refresh / undo stack snapshot reflects the
-    // generated objects, then propagate to the Apollon editor canvas.
+    // generated objects, then propagate to the BESSER WME editor canvas.
     await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
-    await apollonEditor.nextRender;
-    apollonEditor.model = { ...nextModel } as any;
-    await apollonEditor.nextRender;
+    await besserEditor.nextRender;
+    // One undoable step (the `model` setter is a load that wipes undo history).
+    const generated = { ...nextModel } as any;
+    if (typeof besserEditor.applyModel === 'function') besserEditor.applyModel(generated);
+    else besserEditor.model = generated;
+    await besserEditor.nextRender;
 
     const linksFragment = links > 0 ? t('editors.diagramTabs.linksFragment', { count: links }) : '';
     if (created === 0 && links === 0 && skipped > 0) {
@@ -188,7 +195,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.success(t('editors.diagramTabs.generatedFromClassDiagram', { count: created, links: linksFragment }));
     }
     getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
-  }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
+  }, [besserEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);
@@ -567,7 +574,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         <UserProfileFormPanel
           open={profileFormOpen}
           onClose={() => setProfileFormOpen(false)}
-          editor={apollonEditor}
+          editor={besserEditor}
         />
       )}
     </div>

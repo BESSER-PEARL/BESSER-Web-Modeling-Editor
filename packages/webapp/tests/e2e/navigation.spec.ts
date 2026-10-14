@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createBlankProject, openFreshApp, workspaceSidebar } from './helpers/project';
 
 /**
  * Navigation and sidebar tests — verify sidebar diagram type buttons,
@@ -7,17 +8,12 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Navigation and sidebar', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
     await createBlankProject(page, 'Navigation_E2E');
   });
 
   test('sidebar shows all diagram type icons', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // UML diagram types
@@ -32,7 +28,7 @@ test.describe('Navigation and sidebar', () => {
   });
 
   test('click each diagram type and verify editor loads', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     const diagramTypes = [
@@ -49,7 +45,7 @@ test.describe('Navigation and sidebar', () => {
       await button.click();
 
       // After clicking, the button should become active (indicated by border class).
-      await expect(button).toHaveClass(/border-brand/, { timeout: 5_000 });
+      await expect(button).toHaveAttribute('aria-current', 'page', { timeout: 5_000 });
 
       // The main editor area should remain visible.
       await expect(page.locator('main')).toBeVisible();
@@ -57,7 +53,7 @@ test.describe('Navigation and sidebar', () => {
   });
 
   test('click Settings in sidebar and verify settings page loads', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // Click the Settings button.
@@ -68,55 +64,43 @@ test.describe('Navigation and sidebar', () => {
   });
 
   test('collapse sidebar and verify icons-only view', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-    // By default, the sidebar starts collapsed (w-[72px]).
-    // Verify it is in collapsed state by checking that labels are not rendered.
-    // In collapsed mode, button text spans are not rendered (only icons).
-    // The sidebar width class should indicate collapsed state.
-    await expect(sidebar).toHaveClass(/w-\[72px\]/);
+    // The sidebar starts expanded (w-48) with its "Editors" title.
+    await expect(sidebar).toHaveClass(/w-48/);
+    await expect(sidebar.getByText('Editors', { exact: true })).toBeVisible();
 
-    // Expand the sidebar first by clicking the toggle button.
-    const expandButton = sidebar.getByRole('button', { name: /expand sidebar/i });
-    await expandButton.click();
-
-    // Now the sidebar should be expanded (w-48).
-    await expect(sidebar).toHaveClass(/w-48/, { timeout: 5_000 });
-
-    // Labels like "Editors" title should be visible when expanded.
-    await expect(sidebar.getByText('Editors')).toBeVisible();
-
-    // Collapse it again.
-    const collapseButton = sidebar.getByRole('button', { name: /collapse sidebar/i });
-    await collapseButton.click();
-
-    // Verify it is collapsed again.
+    // Collapse it: icons only, no section title or item labels.
+    await sidebar.getByRole('button', { name: /collapse sidebar/i }).click();
     await expect(sidebar).toHaveClass(/w-\[72px\]/, { timeout: 5_000 });
+    await expect(sidebar.getByText('Editors', { exact: true })).toHaveCount(0);
+    await expect(sidebar.getByText('Object', { exact: true })).toHaveCount(0);
+    // The items stay reachable by their accessible names.
+    await expect(sidebar.getByRole('button', { name: 'Object', exact: true })).toBeVisible();
+
+    // Expand it again.
+    await sidebar.getByRole('button', { name: /expand sidebar/i }).click();
+    await expect(sidebar).toHaveClass(/w-48/, { timeout: 5_000 });
   });
 
-  test('expand sidebar and verify labels appear', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+  test('expanded sidebar shows labels', async ({ page }) => {
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-    // Expand the sidebar.
-    const expandButton = sidebar.getByRole('button', { name: /expand sidebar/i });
-    await expandButton.click();
-
-    // After expanding, labels should appear alongside icons.
+    // Collapse then expand, so the labels are shown by the toggle, not just the default.
+    await sidebar.getByRole('button', { name: /collapse sidebar/i }).click();
+    await expect(sidebar).toHaveClass(/w-\[72px\]/, { timeout: 5_000 });
+    await sidebar.getByRole('button', { name: /expand sidebar/i }).click();
     await expect(sidebar).toHaveClass(/w-48/, { timeout: 5_000 });
 
     // The "Editors" section title should be visible.
-    await expect(sidebar.getByText('Editors')).toBeVisible();
+    await expect(sidebar.getByText('Editors', { exact: true })).toBeVisible();
 
     // Diagram type labels should be visible as text within the buttons.
-    await expect(sidebar.getByText('Class')).toBeVisible();
-    await expect(sidebar.getByText('Object')).toBeVisible();
-    await expect(sidebar.getByText('State')).toBeVisible();
-    await expect(sidebar.getByText('Agent', { exact: true })).toBeVisible();
-    await expect(sidebar.getByText('GUI')).toBeVisible();
-    await expect(sidebar.getByText('Quantum')).toBeVisible();
-    await expect(sidebar.getByText('Settings')).toBeVisible();
+    for (const label of ['Class', 'Object', 'State', 'Agent', 'GUI', 'Quantum', 'Settings']) {
+      await expect(sidebar.getByText(label, { exact: true })).toBeVisible();
+    }
   });
 
   test('dropdown menus open when clicking File, Generate, Deploy, Help', async ({ page }) => {
@@ -168,22 +152,3 @@ test.describe('Navigation and sidebar', () => {
     }
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}

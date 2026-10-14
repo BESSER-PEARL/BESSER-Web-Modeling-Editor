@@ -63,7 +63,8 @@
       "agentPersonalization": "Personalización avanzada del agente",
       "agentMappings": "Asignaciones de agente",
       "agentComponents": "Componentes"
-    }
+    },
+    "workspace": "Espacio de trabajo"
   },
   "menu": {
     "file": {
@@ -72,18 +73,18 @@
       "loadTemplate": "Cargar plantilla…",
       "exportProject": "Exportar proyecto…",
       "previewProject": "Vista previa del proyecto…",
-      "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…",
-      "importGroupProject": "Proyecto",
-      "importGroupClassDiagram": "Diagrama de clases desde",
-      "importImage": "Imagen…",
-      "importKnowledgeGraph": "Grafo de conocimiento…",
       "newProject": "Nuevo proyecto…",
       "openProject": "Abrir proyecto…",
       "importProject": "Importar proyecto",
       "import": "Importar",
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
-      "fromSpreadsheet": "Desde hoja de cálculo…",
-      "fromGithub": "Desde GitHub…"
+      "fromSpreadsheet": "Desde una hoja de cálculo",
+      "fromGithub": "Desde GitHub…",
+      "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…",
+      "importGroupProject": "Proyecto",
+      "importGroupClassDiagram": "Diagrama de clases desde",
+      "importImage": "Imagen…",
+      "importKnowledgeGraph": "Grafo de conocimiento…"
     },
     "generate": {
       "title": "Generar",
@@ -842,7 +843,11 @@
       "springAppNameInvalid": "El nombre de la aplicación debe ser un nombre de clase Java válido.",
       "springPackageNameInvalid": "El nombre del paquete debe ser un paquete Java válido, p. ej. com.example.",
       "openUmlBeforeDeploy": "Abre un diagrama UML antes de desplegar.",
-      "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero."
+      "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero.",
+      "openBpmnEditor": "Abre un diagrama BPMN antes de exportar a BPMN 2.0 XML.",
+      "bpmnNoModel": "El diagrama BPMN activo no tiene ningún modelo que exportar.",
+      "bpmnExportFailed": "Error al exportar BPMN: {{error}}",
+      "qualityCheckUnavailable": "La comprobación de calidad aún no está disponible para este editor."
     },
     "context": {
       "djangoGeneration": "Generación de Django",
@@ -1036,7 +1041,9 @@
         "propertiesPanel": "Panel de propiedades",
         "propertiesPanelDesc": "Usar el panel lateral derecho en lugar del cuadro emergente flotante",
         "classNotation": "Notación del diagrama de clases",
-        "classNotationDesc": "UML (predeterminado) muestra clases UML estándar; ER muestra una representación entidad/relación al estilo Chen"
+        "classNotationDesc": "UML (predeterminado) muestra clases UML estándar; ER muestra una representación entidad/relación al estilo Chen",
+        "iconView": "Vista de iconos",
+        "iconViewDesc": "Mostrar los objetos con el icono de su clase en lugar de la tabla de atributos"
       },
       "diagrams": {
         "title": "Diagramas",
@@ -1083,7 +1090,7 @@
           "ObjectDiagram": "Instancias de un diagrama de clases, usadas para pruebas y validación OCL.",
           "StateMachineDiagram": "Modelado de comportamiento basado en estados.",
           "AgentDiagram": "Especificación de agente conversacional / de IA.",
-          "UserDiagram": "Actores y sus interacciones.",
+          "UserDiagram": "Perfiles de usuario (datos demográficos, accesibilidad, competencias, cultura) para la personalización.",
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
           "BPMN": "Notación de Modelo y Proceso de Negocio.",
@@ -1124,7 +1131,8 @@
         "Quantum Circuit": "Circuito cuántico",
         "Neural Network": "Red neuronal",
         "Full Project": "Proyecto completo",
-        "Multi-agent": "Multiagente"
+        "Multi-agent": "Multiagente",
+        "BPMN Diagram": "Diagrama BPMN"
       },
       "confirm": {
         "title": "Diagrama existente detectado",
@@ -1184,9 +1192,6 @@
       "upToDate": "Actualizado",
       "push": "Push",
       "pull": "Pull",
-      "pullConfirmTitle": "¿Reemplazar tus cambios locales?",
-      "pullConfirmDescription": "Al hacer pull se carga la versión de GitHub y se descartan los cambios que aún no has subido.",
-      "pullConfirmAction": "Hacer pull y descartar cambios",
       "history": "Historial",
       "refreshHistory": "Actualizar el historial de commits",
       "latest": "Más reciente",
@@ -1194,6 +1199,9 @@
       "noCommits": "Aún no hay commits",
       "share": "Compartir",
       "createSecretGist": "Crear Gist secreto",
+      "pullConfirmTitle": "¿Reemplazar tus cambios locales?",
+      "pullConfirmDescription": "Al hacer pull se carga la versión de GitHub y se descartan los cambios que aún no has subido.",
+      "pullConfirmAction": "Hacer pull y descartar cambios",
       "openOnGitHub": "Abrir en GitHub",
       "unlink": "Desvincular repositorio",
       "unlinkConfirmTitle": "¿Desvincular este repositorio?",
@@ -1486,17 +1494,17 @@
     "chat": {
       "newChat": "Nuevo chat",
       "newConversationTitle": "Iniciar una nueva conversación",
+      "newChatConfirm": "¿Iniciar un nuevo chat? Se borrará la conversación actual.",
+      "newChatConfirmWithRun": "¿Iniciar un nuevo chat? Se borrará la conversación actual y se detendrá la generación en curso.",
+      "explainModel": "Explicar este modelo",
+      "explainModelTitle": "Obtén un resumen en lenguaje sencillo de tu modelo: los elementos principales que describe y cómo se relacionan",
       "moreActions": "Más acciones",
       "yourModel": "Tu modelo",
       "hideYourModel": "Ocultar tu modelo",
       "apiKeySet": "Clave API configurada",
       "useOwnApiKey": "Usar tu propia clave API",
       "reportIssue": "Informar de un problema",
-      "addApiKey": "Añadir tu clave API",
-      "newChatConfirm": "¿Iniciar un chat nuevo? Se borrará la conversación actual.",
-      "newChatConfirmWithRun": "¿Iniciar un chat nuevo? Se borrará la conversación actual y se detendrá la generación en curso.",
-      "explainModel": "Explicar este modelo",
-      "explainModelTitle": "Obtén un resumen claro de tu modelo: lo que representa y cómo se relaciona"
+      "addApiKey": "Añadir tu clave API"
     },
     "drawer": {
       "pushToClose": "Empuja hacia abajo para cerrar el asistente",
@@ -1576,6 +1584,31 @@
       "transcribingAudio": "Transcribiendo audio…",
       "recordingPrompt": "Grabando… haz clic aquí o pulsa de nuevo el micrófono para detener y enviar ({{time}})",
       "stopSendVoiceTimer": "Detener y enviar el mensaje de voz ({{time}})"
+    },
+    "modelOverview": {
+      "title": "Tu modelo",
+      "close": "Cerrar la vista general del modelo",
+      "empty": "Aún no hay nada modelado: pide al asistente que cree un sistema y el plano aparecerá aquí.",
+      "dataModel": "Modelo de datos",
+      "relationships": "Relaciones",
+      "screens": "Pantallas",
+      "constraints": "Restricciones",
+      "unnamed": "Sin nombre",
+      "page": "Página",
+      "kinds": {
+        "class": "clase",
+        "enum": "enumeración",
+        "interface": "interfaz",
+        "abstract": "abstracta"
+      },
+      "relationKinds": {
+        "association": "asociación",
+        "inheritance": "herencia",
+        "composition": "composición",
+        "aggregation": "agregación",
+        "realization": "realización",
+        "dependency": "dependencia"
+      }
     }
   },
   "deploy": {
@@ -2065,6 +2098,10 @@
       "offlineMessage": "Estás sin conexión. Es posible que algunas funciones no funcionen.",
       "backOnline": "De nuevo en línea.",
       "dismiss": "Descartar aviso de sin conexión"
+    },
+    "storage": {
+      "saveFailedFull": "El almacenamiento del navegador está lleno, así que no se pudieron guardar sus cambios. Exporte sus proyectos y elimine los que ya no necesite.",
+      "nearlyFull": "El almacenamiento del navegador está al {{percent}} %. Exporte sus proyectos y elimine los que ya no necesite para no perder cambios."
     }
   },
   "shell": {
@@ -2082,13 +2119,13 @@
       "failed": "Error al importar: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Valida tus modelos antes de pasar a la siguiente tarea",
-      "description": "Este modelo de usuario no se ha validado tras tus últimos cambios.",
-      "confirmLabel": "Validar modelos",
-      "cancelLabel": "Ignorar"
+      "title": "¿Validar este modelo de usuario antes de salir?",
+      "description": "Has cambiado este modelo de usuario desde la última validación.",
+      "confirmLabel": "Validar ahora",
+      "cancelLabel": "Salir sin validar"
     },
     "leaveWithIssues": {
-      "title": "Hay problemas con tu diagrama, ¿aun así quieres salir de este modelo?",
+      "title": "Este modelo de usuario tiene errores de validación. ¿Salir de todos modos?",
       "description": "La comprobación de calidad encontró errores. Puedes quedarte para corregirlos o salir de este modelo de todos modos.",
       "confirmLabel": "Salir del modelo",
       "cancelLabel": "Quedarse"
@@ -2138,9 +2175,6 @@
       "renameDiagram": "Renombrar diagrama",
       "closeTabLabel": "Eliminar diagrama {{title}}",
       "closeTab": "Eliminar diagrama",
-      "deleteConfirmTitle": "¿Eliminar este diagrama?",
-      "deleteConfirmDescription": "«{{title}}» y todo su contenido se quitarán del proyecto. Esta acción no se puede deshacer.",
-      "deleteConfirmAction": "Eliminar diagrama",
       "addNewDiagram": "Añadir nuevo diagrama",
       "expandLinkedDiagrams": "Expandir diagramas vinculados",
       "collapseLinkedDiagrams": "Contraer diagramas vinculados",
@@ -2155,6 +2189,13 @@
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
+      "profileFormOpen": "Editar como formulario",
+      "profileFormClose": "Cerrar formulario",
+      "profileFormOpenTitle": "Editar este perfil con un formulario guiado",
+      "profileFormCloseTitle": "Cerrar el formulario del perfil de usuario",
+      "deleteConfirmTitle": "¿Eliminar este diagrama?",
+      "deleteConfirmDescription": "«{{title}}» y todo su contenido se quitarán del proyecto. Esta acción no se puede deshacer.",
+      "deleteConfirmAction": "Eliminar diagrama",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
       "closeForm": "Cerrar formulario",
@@ -2843,12 +2884,14 @@
     "success": {
       "diagram": "Diagrama {{diagramType}} importado correctamente y añadido al proyecto «{{projectName}}». Este diagrama se ha convertido del formato {{fileType}} al nuevo formato de proyecto.",
       "kg": "Diagrama {{diagramType}} importado correctamente desde Knowledge Graph y añadido al proyecto «{{projectName}}».",
-      "image": "Diagrama {{diagramType}} importado correctamente desde una imagen y añadido al proyecto «{{projectName}}»."
+      "image": "Diagrama {{diagramType}} importado correctamente desde una imagen y añadido al proyecto «{{projectName}}».",
+      "diagramImported": "Diagrama {{diagramType}} importado en el proyecto \"{{projectName}}\"."
     },
     "descriptions": {
       "imported": "Diagrama {{diagramType}} importado",
       "importedFromKg": "Diagrama {{diagramType}} importado desde Knowledge Graph",
-      "importedFromImage": "Diagrama {{diagramType}} importado desde una imagen"
+      "importedFromImage": "Diagrama {{diagramType}} importado desde una imagen",
+      "importedFromBpmnXml": "Importado desde BPMN 2.0 XML"
     },
     "errors": {
       "title": "Error en la importación",
@@ -2865,11 +2908,22 @@
       "couldNotImportFromImage": "No se pudo importar el diagrama desde una imagen: {{message}}",
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
-      "couldNotParseError": "No se pudo analizar la respuesta de error"
+      "couldNotParseError": "No se pudo analizar la respuesta de error",
+      "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
+      "projectFailed": "No se pudo importar el proyecto: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
       "unnamedElement": "(sin nombre)"
+    },
+    "toasts": {
+      "migratedFromV3": "Diagrama migrado del esquema v3 al v4 durante la importación.",
+      "migratedFromV3Many": "Diagramas migrados del esquema v3 a v4 al importar."
+    },
+    "bpmn": {
+      "defaultTitle": "BPMN importado",
+      "warningsSummary": "BPMN importado con {{count}} advertencia(s) de validación:",
+      "moreWarnings": "…y {{count}} más"
     }
   },
   "validation": {
@@ -3012,7 +3066,10 @@
       "embeddingBaseUrl": "URL base de embedding",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
       "embeddingModel": "Modelo de embedding",
-      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "RAG híbrido (BM25)",
+      "bm25Weight": "Peso BM25",
+      "bm25WeightDescription": "Peso de la puntuación por palabras clave (BM25) en la clasificación híbrida, entre 0 y 1."
     },
     "guis": {
       "title": "GUIs",

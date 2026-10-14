@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { AgentComponentType, UMLModelComponent } from '@besser/wme';
 
 import { useAppSelector } from '../../../app/store/hooks';
@@ -20,6 +21,7 @@ import {
   createAgentComponent,
   defaultLlmAfterRename,
   removeComponent,
+  renameIntentInTransitions,
   removeIntentBody,
   stripBounds,
 } from '../agentComponentModel';
@@ -39,7 +41,7 @@ const EMPTY_SQL_DATABASE: SqlDatabaseEntry = {
  *
  * Reads come from Redux (the stored diagram, normalized); writes go to project storage, whose
  * change notification flows back into Redux — and from there into the diagram bridge, which
- * ApollonEditorComponent keeps in sync.
+ * BesserEditorComponent keeps in sync.
  */
 export function useAgentComponentsStore() {
   const activeDiagram = useAppSelector(selectActiveDiagram);
@@ -72,10 +74,14 @@ export function useAgentComponentsStore() {
 
   const defaultLlmName = String(activeDiagram?.config?.default_llm_name || '');
 
+  // Canvas states are v4 nodes; reasoning states are `AgentState` nodes with
+  // `data.stateType === 'reasoning'` (legacy: a separate `AgentReasoningState` type).
   const hasReasoningState = React.useMemo(() => {
-    const elements = activeDiagram && isUMLModel(activeDiagram.model) ? activeDiagram.model.elements || {} : {};
-    return Object.values(elements).some(
-      (element) => element.type === 'AgentState' && (element as { stateType?: string }).stateType === 'reasoning',
+    const nodes = activeDiagram && isUMLModel(activeDiagram.model) ? activeDiagram.model.nodes || [] : [];
+    return nodes.some(
+      (node) =>
+        (node.type as string) === 'AgentReasoningState' ||
+        ((node.type as string) === 'AgentState' && (node.data as { stateType?: unknown } | undefined)?.stateType === 'reasoning'),
     );
   }, [activeDiagram]);
 
@@ -88,14 +94,20 @@ export function useAgentComponentsStore() {
   }, [project]);
 
   const writeComponents = useCallback(
-    (updater: (current: AgentComponents) => AgentComponents) => {
+    (
+      updater: (current: AgentComponents) => AgentComponents,
+      // Optional same-write change to the rest of the model, given the components before the update.
+      transformModel?: <M extends { edges?: unknown[] }>(model: M, before: AgentComponents) => M,
+    ) => {
       const diagram = loadLatestDiagram();
       if (!project || !diagram) return;
       const baseModel = normalizeStoredAgentModel(diagram);
-      const next = stripBounds(updater({ ...getAgentComponents(diagram) }));
+      const before = getAgentComponents(diagram);
+      const next = stripBounds(updater({ ...before }));
+      const model = baseModel && transformModel ? transformModel(baseModel, before) : baseModel;
       ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', {
         ...diagram,
-        model: baseModel ? { ...baseModel, components: next } : diagram.model,
+        model: model ? { ...model, components: next } : diagram.model,
         lastUpdate: new Date().toISOString(),
       });
     },
@@ -171,7 +183,20 @@ export function useAgentComponentsStore() {
           writeConfig((config) => ({ ...config, default_llm_name: nextDefault }));
         }
       }
-      writeComponents((current) => ({ ...current, [id]: { ...current[id], ...updates } }));
+      const renamesIntent = !!target && (target.type as string) === AgentComponentType.AgentIntent && typeof updates.name === 'string';
+      writeComponents(
+        (current) => ({ ...current, [id]: { ...current[id], ...updates } }),
+        renamesIntent
+          ? (model, before) => {
+              const oldName = before[id]?.name ?? '';
+              // Another intent still answers to the old name: leave its transitions alone.
+              const shared = Object.values(before).some(
+                (c) => c.id !== id && (c.type as string) === AgentComponentType.AgentIntent && c.name === oldName,
+              );
+              return shared ? model : renameIntentInTransitions(model, oldName, updates.name as string);
+            }
+          : undefined,
+      );
     },
     [components, byType.llms, defaultLlmName, writeComponents, writeConfig],
   );
@@ -193,8 +218,13 @@ export function useAgentComponentsStore() {
     [writeConfig],
   );
 
+  /** Add an empty training sentence to an intent; returns its id. */
   const addTrainingSentence = useCallback(
-    (intentId: string) => writeComponents((current) => addIntentBody(current, intentId)),
+    (intentId: string): string => {
+      const bodyId = uuidv4();
+      writeComponents((current) => addIntentBody(current, intentId, bodyId));
+      return bodyId;
+    },
     [writeComponents],
   );
 

@@ -63,7 +63,8 @@
       "agentPersonalization": "Erweidert Agent-Personnalisatioun",
       "agentMappings": "Agent-Zuelongen",
       "agentComponents": "Komponenten"
-    }
+    },
+    "workspace": "Aarbechtsberäich"
   },
   "menu": {
     "file": {
@@ -72,18 +73,18 @@
       "loadTemplate": "Template lueden…",
       "exportProject": "Projet exportéieren…",
       "previewProject": "Projetvirschau…",
-      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
-      "importGroupProject": "Projet",
-      "importGroupClassDiagram": "Klassendiagramm aus",
-      "importImage": "Bild…",
-      "importKnowledgeGraph": "Wëssensgraph…",
       "newProject": "Neie Projet…",
       "openProject": "Projet opmaachen…",
       "importProject": "Projet importéieren",
       "import": "Importéieren",
-      "importProjectFile": "Projetdatei (.json / .py)…",
+      "importProjectFile": "Projetsdatei (.json / .py)",
       "fromSpreadsheet": "Aus enger Tabell…",
-      "fromGithub": "Aus GitHub…"
+      "fromGithub": "Vu GitHub",
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wëssensgraph…"
     },
     "generate": {
       "title": "Generéieren",
@@ -842,7 +843,11 @@
       "springAppNameInvalid": "Den Applikatiounsnumm muss e valabelen Java-Klassennumm sinn.",
       "springPackageNameInvalid": "De Paketnumm muss e valabelt Java-Paket sinn, z. B. com.example.",
       "openUmlBeforeDeploy": "Maacht en UML-Diagramm op ier Dir deployt.",
-      "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten."
+      "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten.",
+      "openBpmnEditor": "Maacht e BPMN-Diagramm op, ier Dir BPMN 2.0 XML exportéiert.",
+      "bpmnNoModel": "Dat aktivt BPMN-Diagramm huet kee Modell fir ze exportéieren.",
+      "bpmnExportFailed": "BPMN-Export ass feelgeschloen: {{error}}",
+      "qualityCheckUnavailable": "D'Qualitéitskontroll ass fir dësen Editor nach net disponibel."
     },
     "context": {
       "djangoGeneration": "Django-Generéierung",
@@ -1036,7 +1041,9 @@
         "propertiesPanel": "Eegeschafte-Panel",
         "propertiesPanelDesc": "Benotzt de rietse Panel amplaz vum schwiewende Popover",
         "classNotation": "Klassendiagramm-Notatioun",
-        "classNotationDesc": "UML (Standard) weist Standard-UML-Klassen; ER weist eng Chen-Stil Entitéit/Relatioun-Duerstellung"
+        "classNotationDesc": "UML (Standard) weist Standard-UML-Klassen; ER weist eng Chen-Stil Entitéit/Relatioun-Duerstellung",
+        "iconView": "Ikonenusiicht",
+        "iconViewDesc": "Objeten mat hirem Klassen-Ikon amplaz vun der Attributtabell uweisen"
       },
       "diagrams": {
         "title": "Diagrammer",
@@ -1083,7 +1090,7 @@
           "ObjectDiagram": "Instanzen vun engem Klassendiagramm, benotzt fir Tester an OCL-Validéierung.",
           "StateMachineDiagram": "Zoustandsbaséiert Verhalensmodelléierung.",
           "AgentDiagram": "Konversatiouns- / KI-Agent-Spezifikatioun.",
-          "UserDiagram": "Akteuren an hir Interaktiounen.",
+          "UserDiagram": "Benotzerprofiler (Demografie, Barrièrefräiheet, Kompetenzen, Kultur) fir d'Personaliséierung.",
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
@@ -1124,7 +1131,8 @@
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
         "Full Project": "Ganze Projet",
-        "Multi-agent": "Multi-Agenten"
+        "Multi-agent": "Multi-Agenten",
+        "BPMN Diagram": "BPMN-Diagramm"
       },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",
@@ -1184,9 +1192,6 @@
       "upToDate": "Aktuell",
       "push": "Push",
       "pull": "Pull",
-      "pullConfirmTitle": "Lokal Ännerungen ersetzen?",
-      "pullConfirmDescription": "De Pull lued d’Versioun vu GitHub a verwërft d’Ännerungen, déi s du nach net gepusht hues.",
-      "pullConfirmAction": "Pullen an Ännerungen verwerfen",
       "history": "Historik",
       "refreshHistory": "Commit-Historik aktualiséieren",
       "latest": "Aktuellst",
@@ -1194,6 +1199,9 @@
       "noCommits": "Nach keng Commits",
       "share": "Deelen",
       "createSecretGist": "Geheime Gist erstellen",
+      "pullConfirmTitle": "Lokal Ännerungen ersetzen?",
+      "pullConfirmDescription": "De Pull lued d’Versioun vu GitHub a verwërft d’Ännerungen, déi s du nach net gepusht hues.",
+      "pullConfirmAction": "Pullen an Ännerungen verwerfen",
       "openOnGitHub": "Op GitHub opmaachen",
       "unlink": "Repository trennen",
       "unlinkConfirmTitle": "Dëse Repository trennen?",
@@ -1486,25 +1494,25 @@
     "chat": {
       "newChat": "Neie Chat",
       "newConversationTitle": "En neit Gespréich ufänken",
+      "newChatConfirm": "En neie Chat ufänken? Är aktuell Konversatioun gëtt geläscht.",
+      "newChatConfirmWithRun": "En neie Chat ufänken? Är aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gëtt gestoppt.",
+      "explainModel": "Dëse Modell erklären",
+      "explainModelTitle": "Kritt eng einfach Iwwersiicht vun Ärem Modell — wat en haaptsächlech beschreift a wéi dat zesummenhänkt",
       "moreActions": "Méi Aktiounen",
       "yourModel": "Däi Modell",
       "hideYourModel": "Däi Modell verstoppen",
       "apiKeySet": "API-Schlëssel gesat",
       "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
       "reportIssue": "Problem mellen",
-      "addApiKey": "Däin API-Schlëssel derbäisetzen",
-      "newChatConfirm": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht.",
-      "newChatConfirmWithRun": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gestoppt.",
-      "explainModel": "Dëse Modell erklären",
-      "explainModelTitle": "Kréi en einfachen Iwwerbléck iwwer däi Modell – wat en haaptsächlech duerstellt a wéi et zesummenhänkt"
+      "addApiKey": "Däin API-Schlëssel derbäisetzen"
     },
     "drawer": {
       "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
       "pullToOpen": "No uewen zéie fir den Assistent opzemaachen",
       "pushUp": "No uewen drécken",
       "pullDown": "Assistent no ënnen zéien",
-      "labelClosed": "Beschreif deng App",
-      "labelOpen": "Spezifikatioune kucken"
+      "labelClosed": "Beschreift Är App",
+      "labelOpen": "Spezifikatiounen uweisen"
     },
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
@@ -1576,6 +1584,31 @@
       "transcribingAudio": "Audio gëtt transkribéiert…",
       "recordingPrompt": "Opnam leeft… klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
       "stopSendVoiceTimer": "Sproochnoriicht stoppen an schécken ({{time}})"
+    },
+    "modelOverview": {
+      "title": "Äre Modell",
+      "close": "Modelliwwersiicht zoumaachen",
+      "empty": "Nach näischt modelléiert — frot den Assistent, e System ze erstellen, an de Bauplang erschéngt hei.",
+      "dataModel": "Datemodell",
+      "relationships": "Bezéiungen",
+      "screens": "Ecranen",
+      "constraints": "Aschränkungen",
+      "unnamed": "Ouni Numm",
+      "page": "Säit",
+      "kinds": {
+        "class": "Klass",
+        "enum": "Enum",
+        "interface": "Interface",
+        "abstract": "abstrakt"
+      },
+      "relationKinds": {
+        "association": "Associatioun",
+        "inheritance": "Ierfschaft",
+        "composition": "Kompositioun",
+        "aggregation": "Aggregatioun",
+        "realization": "Realisatioun",
+        "dependency": "Ofhängegkeet"
+      }
     }
   },
   "deploy": {
@@ -2065,6 +2098,10 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "storage": {
+      "saveFailedFull": "De Browserspäicher ass voll, dofir konnten Är Ännerungen net gespäichert ginn. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht.",
+      "nearlyFull": "De Browserspäicher ass zu {{percent}} % voll. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht, fir keng Ännerungen ze verléieren."
     }
   },
   "shell": {
@@ -2082,13 +2119,13 @@
       "failed": "Import feelgeschloen: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validéiert Är Modeller ier Dir bei déi nächst Aufgab gitt",
-      "description": "Dëse User-Model gouf no Äre leschten Ännerungen net validéiert.",
-      "confirmLabel": "Modeller validéieren",
-      "cancelLabel": "Ignoréieren"
+      "title": "Dëse Benotzermodell validéieren, ier Dir en verloosst?",
+      "description": "Dir hutt dëse Benotzermodell zënter der leschter Validatioun geännert.",
+      "confirmLabel": "Elo validéieren",
+      "cancelLabel": "Ouni Validatioun verloossen"
     },
     "leaveWithIssues": {
-      "title": "Et gi Problemer mat Ärem Diagramm, wëllt Dir dëse Model trotzdeem verloossen?",
+      "title": "Dëse Benotzermodell huet Validatiounsfeeler. Trotzdeem verloossen?",
       "description": "De Qualitéitscheck huet Feeler fonnt. Dir kënnt bleiwen fir se ze fixen oder dëse Model trotzdeem verloossen.",
       "confirmLabel": "Model verloossen",
       "cancelLabel": "Bleiwen"
@@ -2138,9 +2175,6 @@
       "renameDiagram": "Diagramm ëmbenennen",
       "closeTabLabel": "Diagramm {{title}} läschen",
       "closeTab": "Diagramm läschen",
-      "deleteConfirmTitle": "Dëst Diagramm läschen?",
-      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
-      "deleteConfirmAction": "Diagramm läschen",
       "addNewDiagram": "Nei Diagramm bäifügen",
       "expandLinkedDiagrams": "Verlinkten Diagrammer opklappen",
       "collapseLinkedDiagrams": "Verlinkten Diagrammer zouklappen",
@@ -2155,6 +2189,13 @@
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "profileFormOpen": "Als Formulaire beaarbechten",
+      "profileFormClose": "Formulaire zoumaachen",
+      "profileFormOpenTitle": "Dëse Profil mat engem geféierte Formulaire beaarbechten",
+      "profileFormCloseTitle": "De Formulaire vum Benotzerprofil zoumaachen",
+      "deleteConfirmTitle": "Dëst Diagramm läschen?",
+      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
+      "deleteConfirmAction": "Diagramm läschen",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",
       "closeForm": "Formulaire zoumaachen",
@@ -2827,12 +2868,12 @@
     },
     "diagramLabels": {
       "ClassDiagram": "Klassendiagramm",
-      "ObjectDiagram": "Objetdiagramm",
+      "ObjectDiagram": "Objektdiagramm",
       "StateMachineDiagram": "Zoustandsdiagramm",
       "AgentDiagram": "Agentendiagramm",
       "UserDiagram": "Benotzerdiagramm",
       "GUINoCodeDiagram": "Ecranen (GUI)",
-      "QuantumCircuitDiagram": "Quanteschaltung",
+      "QuantumCircuitDiagram": "Quanteschaltkrees",
       "NNDiagram": "Diagramm vun engem neuronalen Netz",
       "BPMN": "BPMN-Prozess",
       "ComponentDiagram": "Komponentendiagramm",
@@ -2843,12 +2884,14 @@
     "success": {
       "diagram": "{{diagramType}}-Diagramm erfollegräich importéiert an zum Projet \"{{projectName}}\" derbäigesat. Dësen Diagramm gouf vum {{fileType}}-Format an dat neit Projetformat ëmgewandelt.",
       "kg": "{{diagramType}}-Diagramm erfollegräich vum Knowledge Graph importéiert an zum Projet \"{{projectName}}\" derbäigesat.",
-      "image": "{{diagramType}}-Diagramm erfollegräich vun engem Bild importéiert an zum Projet \"{{projectName}}\" derbäigesat."
+      "image": "{{diagramType}}-Diagramm erfollegräich vun engem Bild importéiert an zum Projet \"{{projectName}}\" derbäigesat.",
+      "diagramImported": "{{diagramType}}-Diagramm an de Projet \"{{projectName}}\" importéiert."
     },
     "descriptions": {
       "imported": "Importéiert {{diagramType}}-Diagramm",
       "importedFromKg": "Importéiert {{diagramType}}-Diagramm vum Knowledge Graph",
-      "importedFromImage": "Importéiert {{diagramType}}-Diagramm vun engem Bild"
+      "importedFromImage": "Importéiert {{diagramType}}-Diagramm vun engem Bild",
+      "importedFromBpmnXml": "Aus BPMN 2.0 XML importéiert"
     },
     "errors": {
       "title": "Import feelgeschloen",
@@ -2865,11 +2908,22 @@
       "couldNotImportFromImage": "Diagramm konnt net vun engem Bild importéiert ginn: {{message}}",
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
+      "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
+      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
       "unnamedElement": "(ouni Numm)"
+    },
+    "toasts": {
+      "migratedFromV3": "Diagramm beim Import vum v3-Schema op v4 migréiert.",
+      "migratedFromV3Many": "Diagrammer beim Import vum v3-Schema op v4 migréiert."
+    },
+    "bpmn": {
+      "defaultTitle": "Importéiert BPMN",
+      "warningsSummary": "BPMN mat {{count}} Validatiouns-Warnung(en) importéiert:",
+      "moreWarnings": "…an nach {{count}}"
     }
   },
   "validation": {
@@ -3012,7 +3066,10 @@
       "embeddingBaseUrl": "Aibindungs-Basis-URL",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
       "embeddingModel": "Aibindungsmodell",
-      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "Hybridd RAG (BM25)",
+      "bm25Weight": "BM25-Gewiicht",
+      "bm25WeightDescription": "Undeel vum Schlësselwuert-Score (BM25) um hybride Ranking, tëscht 0 an 1."
     },
     "guis": {
       "title": "GUIs",

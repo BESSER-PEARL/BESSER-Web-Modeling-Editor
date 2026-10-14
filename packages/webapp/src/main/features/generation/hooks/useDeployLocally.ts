@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -22,7 +22,7 @@ export type GeneratorConfig = {
 export const useDeployLocally = () => {
   const { t } = useTranslation();
   const deployLocally = useCallback(
-    async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
+    async (editor: BesserEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);

@@ -2,8 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, ChevronDown, GitBranch, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { inputBaseClass } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
 import type { AgentVariantOption } from '../topbar-types';
 import {
@@ -15,6 +13,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Radix Select reserves '' for "no value"; the base model is a real choice.
+const BASE_AGENT_VARIANT = '__base__';
 
 interface TopBarUtilitiesProps {
   showQualityCheck: boolean;
@@ -89,20 +91,26 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
       {showAgentVariantSelector && (
         <div className="hidden min-w-0 shrink items-center gap-1.5 xl:flex 2xl:gap-2">
           <span className="ui-kicker hidden 2xl:inline">{t('topbar.variant')}</span>
-          <select
-            className={cn(inputBaseClass, 'h-9 w-[180px] min-w-0 shrink px-2 py-1 2xl:w-[210px] 2xl:px-3')}
-            value={activeAgentVariantId ?? ''}
-            onChange={(event) => onAgentVariantChange?.(event.target.value)}
-            aria-label={t('topbar.selectAgentVariant')}
-            title={t('topbar.selectAgentVariant')}
+          <Select
+            value={activeAgentVariantId || BASE_AGENT_VARIANT}
+            onValueChange={(value) => onAgentVariantChange?.(value === BASE_AGENT_VARIANT ? '' : value)}
           >
-            <option value="">{t('topbar.baseAgentModel')}</option>
-            {(agentVariantOptions ?? []).map((option) => (
-              <option key={option.id} value={option.id} title={option.description}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              className="h-9 w-[180px] min-w-0 shrink px-2 text-sm transition-colors hover:border-brand/30 2xl:w-[210px] 2xl:px-3"
+              aria-label={t('topbar.selectAgentVariant')}
+              title={t('topbar.selectAgentVariant')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={BASE_AGENT_VARIANT}>{t('topbar.baseAgentModel')}</SelectItem>
+              {(agentVariantOptions ?? []).map((option) => (
+                <SelectItem key={option.id} value={option.id} title={option.description}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

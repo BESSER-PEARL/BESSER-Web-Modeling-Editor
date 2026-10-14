@@ -5,6 +5,7 @@ import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
 import { pushUndoSnapshot } from './undoStack';
+import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
 
 // Re-export ModelModification for backward compatibility
 export type { ModelModification };
@@ -52,14 +53,28 @@ export interface ModelUpdate {
   replaceExisting?: boolean;
 }
 
-export interface BESSERModel {
-  version: string;
-  type: string; // DiagramType: ClassDiagram, ObjectDiagram, StateMachineDiagram, AgentDiagram
-  size: { width: number; height: number };
-  elements: Record<string, any>;
-  relationships: Record<string, any>;
-  interactive: { elements: Record<string, any>; relationships: Record<string, any> };
-  assessments: Record<string, any>;
+/**
+ * Webapp internals consume v4 directly. `BESSERModel` is now a thin
+ * alias for the lib's v4 `UMLModel`. Modifiers, converters, and
+ * UMLModelingService walk `nodes[]` / `edges[]` natively — no v3 detour.
+ *
+ * Some `data` fields per-diagram are not exhaustively typed by the lib (it
+ * uses `[key: string]: unknown`), so individual modifier files narrow with
+ * `as any` casts at access sites where needed.
+ */
+export type BESSERModel = UMLModel;
+
+/**
+ * Put an assistant edit on the canvas as ONE undoable step. `editor.model =`
+ * is a model swap that clears the user's undo history; `applyModel` (when the
+ * editor build has it) records the change instead.
+ */
+export function applyModelToEditor(editor: any, model: BESSERModel): void {
+  if (typeof editor?.applyModel === 'function') {
+    editor.applyModel(model);
+  } else {
+    editor.model = model;
+  }
 }
 
 /**
@@ -97,7 +112,7 @@ export class UMLModelingService {
    */
   updateCurrentModel(model: BESSERModel) {
     this.currentModel = model;
-    this.currentDiagramType = model.type || 'ClassDiagram';
+    this.currentDiagramType = (model as any).type || 'ClassDiagram';
   }
 
   /**
@@ -116,19 +131,24 @@ export class UMLModelingService {
     }
 
     if (this.editor?.model) {
-      return this.editor.model;
+      // Editor.model is v4; consume directly.
+      return this.editor.model as BESSERModel;
     }
 
-    // Return default model structure with current diagram type
+    // Default empty v4 model.
+    return this.createEmptyModel(this.currentDiagramType);
+  }
+
+  private createEmptyModel(type: string): BESSERModel {
     return {
-      version: "3.0.0",
-      type: this.currentDiagramType,
-      size: { width: 1400, height: 740 },
-      elements: {},
-      relationships: {},
-      interactive: { elements: {}, relationships: {} },
-      assessments: {}
-    };
+      version: '4.0.0',
+      id: '',
+      title: '',
+      type: type as any,
+      nodes: [],
+      edges: [],
+      assessments: {},
+    } as unknown as BESSERModel;
   }
 
   /**
@@ -352,9 +372,9 @@ export class UMLModelingService {
       })).unwrap();
 
       if (this.editor) {
-        await this.editor.nextRender;
-        this.editor.model = { ...updatedModel };
-        await this.editor.nextRender;
+        await this.editor.ready;
+        applyModelToEditor(this.editor, { ...(updatedModel as any) });
+        await this.editor.ready;
       } else {
         console.warn('[UMLModelingService] No editor reference — model saved to Redux only');
       }
@@ -391,24 +411,24 @@ export class UMLModelingService {
     // Snapshot before full replacement
     pushUndoSnapshot(currentModel, 'Replace entire model');
 
-    const mergedModel: BESSERModel = {
-      ...currentModel,
-      ...model,
-      version: typeof model.version === 'string' ? model.version : currentModel.version || '3.0.0',
-      type: typeof model.type === 'string' ? model.type : currentModel.type || this.currentDiagramType,
-      size: model.size || currentModel.size,
-      elements: model.elements || currentModel.elements || {},
-      relationships: model.relationships || currentModel.relationships || {},
-      interactive: model.interactive || currentModel.interactive || { elements: {}, relationships: {} },
-      assessments: model.assessments || currentModel.assessments || {}
-    };
+    const m = model as any;
+    const cur = currentModel as any;
+    const mergedModel = {
+      ...cur,
+      ...m,
+      version: typeof m.version === 'string' ? m.version : cur.version || '4.0.0',
+      type: typeof m.type === 'string' ? m.type : cur.type || this.currentDiagramType,
+      nodes: Array.isArray(m.nodes) ? m.nodes : cur.nodes || [],
+      edges: Array.isArray(m.edges) ? m.edges : cur.edges || [],
+      assessments: m.assessments || cur.assessments || {},
+    } as BESSERModel;
 
-    if (!mergedModel.elements || typeof mergedModel.elements !== 'object' || Array.isArray(mergedModel.elements)) {
-      throw new Error('Model elements must be provided as a keyed object');
+    if (!Array.isArray((mergedModel as any).nodes)) {
+      throw new Error('Model nodes must be provided as an array');
     }
 
-    if (Object.keys(mergedModel.elements).length === 0) {
-      throw new Error('Model payload does not include any elements to render');
+    if ((mergedModel as any).nodes.length === 0) {
+      throw new Error('Model payload does not include any nodes to render');
     }
 
     // Persist to Redux store first, then update editor
@@ -417,9 +437,9 @@ export class UMLModelingService {
     })).unwrap();
 
     if (this.editor) {
-      await this.editor.nextRender;
-      this.editor.model = { ...mergedModel };
-      await this.editor.nextRender;
+      await this.editor.ready;
+      applyModelToEditor(this.editor, { ...(mergedModel as any) });
+      await this.editor.ready;
     } else {
       console.warn('[UMLModelingService] No editor reference — model saved to Redux only');
     }
@@ -430,31 +450,24 @@ export class UMLModelingService {
   }
 
   /**
-   * Get all top-level diagram elements with coordinates.
+   * Get all top-level diagram nodes with positions (no parentId).
    */
   private getTopLevelElements(model: Partial<BESSERModel> | null | undefined): Array<{ id: string; bounds: { x: number; y: number } }> {
-    if (!model?.elements || typeof model.elements !== 'object') {
+    const m = model as any;
+    if (!Array.isArray(m?.nodes)) {
       return [];
     }
 
-    return Object.entries(model.elements)
-      .filter(([, element]) => {
-        const candidate = element as any;
-        if (!candidate || typeof candidate !== 'object') {
-          return false;
-        }
-        if (candidate.owner !== null && candidate.owner !== undefined) {
-          return false;
-        }
-        const bounds = candidate.bounds;
-        return bounds && typeof bounds.x === 'number' && typeof bounds.y === 'number';
+    return (m.nodes as BesserNode[])
+      .filter((n) => {
+        if (!n || typeof n !== 'object') return false;
+        if (n.parentId) return false;
+        const pos = n.position;
+        return pos && typeof pos.x === 'number' && typeof pos.y === 'number';
       })
-      .map(([id, element]) => ({
-        id,
-        bounds: {
-          x: (element as any).bounds.x,
-          y: (element as any).bounds.y,
-        },
+      .map((n) => ({
+        id: n.id,
+        bounds: { x: n.position.x, y: n.position.y },
       }));
   }
 
@@ -566,137 +579,120 @@ export class UMLModelingService {
   }
 
   /**
-   * Shift system elements (and relationship geometry) by an offset.
+   * Shift v4 nodes (and edge geometry) by an offset.
    */
   private offsetSystemLayout(systemData: any, offset: { x: number; y: number }): any {
-    if (!systemData || !systemData.elements || (offset.x === 0 && offset.y === 0)) {
+    if (!systemData || (offset.x === 0 && offset.y === 0)) {
       return systemData;
     }
 
-    const shiftedElements = Object.fromEntries(
-      Object.entries(systemData.elements).map(([elementId, element]) => {
-        const candidate = element as any;
-        if (!candidate?.bounds) {
-          return [elementId, candidate];
-        }
-        return [
-          elementId,
-          {
-            ...candidate,
-            bounds: {
-              ...candidate.bounds,
-              x: candidate.bounds.x + offset.x,
-              y: candidate.bounds.y + offset.y,
-            },
-          },
-        ];
-      }),
-    );
+    const nodes = Array.isArray(systemData.nodes) ? systemData.nodes : [];
+    const edges = Array.isArray(systemData.edges) ? systemData.edges : [];
 
-    const shiftedRelationships = Object.fromEntries(
-      Object.entries(systemData.relationships || {}).map(([relationshipId, relationship]) => {
-        const candidate = relationship as any;
-        if (!candidate || typeof candidate !== 'object') {
-          return [relationshipId, candidate];
-        }
+    const shiftedNodes = (nodes as BesserNode[]).map((node) => {
+      if (!node?.position) return node;
+      // Only shift root-level nodes; child nodes are positioned relative to their parent.
+      if (node.parentId) return node;
+      return {
+        ...node,
+        position: {
+          x: node.position.x + offset.x,
+          y: node.position.y + offset.y,
+        },
+      };
+    });
 
-        const shiftBounds = (bounds: any) =>
-          bounds && typeof bounds.x === 'number' && typeof bounds.y === 'number'
-            ? { ...bounds, x: bounds.x + offset.x, y: bounds.y + offset.y }
-            : bounds;
-
-        const shiftedPath = Array.isArray(candidate.path)
-          ? candidate.path.map((point: any) =>
-              point && typeof point.x === 'number' && typeof point.y === 'number'
-                ? { ...point, x: point.x + offset.x, y: point.y + offset.y }
-                : point,
-            )
-          : candidate.path;
-
-        return [
-          relationshipId,
-          {
-            ...candidate,
-            bounds: shiftBounds(candidate.bounds),
-            path: shiftedPath,
-            source: candidate.source ? { ...candidate.source, bounds: shiftBounds(candidate.source.bounds) } : candidate.source,
-            target: candidate.target ? { ...candidate.target, bounds: shiftBounds(candidate.target.bounds) } : candidate.target,
-          },
-        ];
-      }),
-    );
+    const shiftedEdges = (edges as BesserEdge[]).map((edge) => {
+      if (!edge?.data?.points) return edge;
+      const shiftedPoints = Array.isArray(edge.data.points)
+        ? edge.data.points.map((p: any) =>
+            p && typeof p.x === 'number' && typeof p.y === 'number'
+              ? { ...p, x: p.x + offset.x, y: p.y + offset.y }
+              : p,
+          )
+        : edge.data.points;
+      return {
+        ...edge,
+        data: {
+          ...edge.data,
+          points: shiftedPoints,
+        },
+      };
+    });
 
     return {
       ...systemData,
-      elements: shiftedElements,
-      relationships: shiftedRelationships,
+      nodes: shiftedNodes,
+      edges: shiftedEdges,
     };
   }
 
   /**
-   * Merge single element into existing model
+   * Merge single-element converter output into existing v4 model.
+   * Single-element output may be either:
+   *   - {nodes: BesserNode[], edges?: BesserEdge[]} (canonical v4 partial)
+   *   - a single BesserNode (no wrapper)
    */
   private mergeElementIntoModel(currentModel: BESSERModel, elementData: any): BESSERModel {
-    const updatedElements = { ...(currentModel.elements || {}) };
-    const updatedRelationships = { ...(currentModel.relationships || {}) };
+    const cur = currentModel as any;
+    const baseNodes = Array.isArray(cur.nodes) ? cur.nodes : [];
+    const baseEdges = Array.isArray(cur.edges) ? cur.edges : [];
 
-    // Handle different diagram types - each has different main element
-    // ClassDiagram: class, attributes, methods
-    // ObjectDiagram: object, attributes
-    // StateMachineDiagram: state, bodies
-    // AgentDiagram: state/intent, bodies
-    
-    // Find the main element (the one without an owner)
-    const mainElement = elementData.class || elementData.object || elementData.state || 
-                       elementData.intent || elementData.initialNode;
-    
-    if (!mainElement) {
+    let newNodes: BesserNode[] = [];
+    let newEdges: BesserEdge[] = [];
+
+    if (Array.isArray(elementData)) {
+      newNodes = elementData.filter((n: any) => n && typeof n === 'object' && n.id);
+    } else if (elementData && typeof elementData === 'object') {
+      if (Array.isArray(elementData.nodes)) {
+        newNodes = elementData.nodes;
+      } else if (elementData.id && elementData.type && elementData.position) {
+        newNodes = [elementData];
+      }
+      if (Array.isArray(elementData.edges)) {
+        newEdges = elementData.edges;
+      }
+    }
+
+    // AgentDiagram fragments may carry off-canvas components (e.g. an intent)
+    // instead of nodes; they merge into `model.components`.
+    const newComponents =
+      elementData && typeof elementData === 'object' && elementData.components && typeof elementData.components === 'object'
+        ? elementData.components
+        : undefined;
+    const hasComponents = !!newComponents && Object.keys(newComponents).length > 0;
+
+    if (newNodes.length === 0 && newEdges.length === 0 && !hasComponents) {
       throw new Error('No main element found in elementData');
-    }
-    
-    // Add main element
-    updatedElements[mainElement.id] = mainElement;
-
-    // Add child elements (attributes, methods, bodies, etc.)
-    if (elementData.attributes) {
-      Object.assign(updatedElements, elementData.attributes);
-    }
-    
-    if (elementData.methods) {
-      Object.assign(updatedElements, elementData.methods);
-    }
-
-    if (elementData.bodies) {
-      Object.assign(updatedElements, elementData.bodies);
-    }
-
-    if (elementData.relationships) {
-      Object.assign(updatedRelationships, elementData.relationships);
     }
 
     return {
-      ...currentModel,
-      elements: updatedElements,
-      relationships: updatedRelationships
-    };
+      ...cur,
+      nodes: mergeById(baseNodes, newNodes),
+      edges: mergeById(baseEdges, newEdges),
+      ...(hasComponents && { components: { ...(cur.components ?? {}), ...newComponents } }),
+    } as BESSERModel;
   }
 
   /**
-   * Merge complete system into existing model
+   * Merge complete system (v4 model) into existing v4 model.
    */
   private mergeSystemIntoModel(currentModel: BESSERModel, systemData: any): BESSERModel {
+    const cur = currentModel as any;
     return {
-      ...currentModel,
-      elements: {
-        ...currentModel.elements,
-        ...systemData.elements
-      },
-      relationships: {
-        ...currentModel.relationships,
-        ...systemData.relationships
-      },
-      size: systemData.size || currentModel.size
-    };
+      ...cur,
+      nodes: mergeById(cur.nodes ?? [], (systemData?.nodes as BesserNode[]) ?? []),
+      edges: mergeById(cur.edges ?? [], (systemData?.edges as BesserEdge[]) ?? []),
+      // AgentDiagram: off-canvas components (intents, LLMs, …) merge by id.
+      ...(systemData?.components && { components: { ...(cur.components ?? {}), ...systemData.components } }),
+    } as BESSERModel;
   }
+}
 
+/** Merge by id like develop's v3 element maps: a reused id replaces in place. */
+function mergeById<T extends { id: string }>(base: T[], incoming: T[]): T[] {
+  const incomingById = new Map(incoming.map((item) => [item.id, item]));
+  const merged = base.map((item) => incomingById.get(item.id) ?? item);
+  const baseIds = new Set(base.map((item) => item.id));
+  return [...merged, ...incoming.filter((item) => !baseIds.has(item.id))];
 }

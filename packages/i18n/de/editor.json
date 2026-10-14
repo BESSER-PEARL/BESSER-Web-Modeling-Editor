@@ -3,10 +3,14 @@
     "modeling": "Modellierung",
     "interactive": "Interaktiv",
     "highlight": "Interaktive Elemente anzeigen",
-    "iconMode": "Objektdiagramm im Symbolmodus anzeigen"
+    "iconMode": "Objektdiagramm im Symbolmodus anzeigen",
+    "model": "Modell",
+    "selectElements": "Elemente auswählen",
+    "highlightHint": "Klicken Sie auf Elemente oder Beziehungen, um umzuschalten, ob sie interaktiv sind."
   },
   "popup": {
     "nn": {
+      "optionalAttributes": "optionale Attribute",
       "container": {
         "inputVariable": "Eingabevariable",
         "returnVariables": "Rückgabevariablen",
@@ -42,7 +46,8 @@
         "slice": "Slice",
         "startPlaceholder": "Start",
         "stopPlaceholder": "Stopp",
-        "stepPlaceholder": "Schritt"
+        "stepPlaceholder": "Schritt",
+        "reverted": "Auf {{value}} zurückgesetzt."
       },
       "help": {
         "split_sizes": "Entweder eine Ganzzahl (Anzahl gleich großer Teile, z. B. 3) oder eine Liste (Größe je Teil, z. B. [2,3,5])",
@@ -159,7 +164,9 @@
         "anyGuiInteraction": "Jede GUI-Interaktion",
         "event": "Ereignis",
         "conditions": "Bedingungen",
-        "addCondition": "Bedingung hinzufügen"
+        "addCondition": "Bedingung hinzufügen",
+        "missingIntentTag": "fehlt",
+        "missingIntent": "Der Intent \"{{name}}\" existiert nicht. Wählen Sie einen Intent oder fügen Sie ihn auf der Seite Komponenten hinzu."
       },
       "intent": {
         "name": "Intent-Name",
@@ -216,7 +223,31 @@
       "definedInBal": "Methode in BESSER-Action-Language-Code definiert",
       "showEditor": "Editor anzeigen",
       "implementation": "Implementierung",
-      "hideCodeEditor": "Code-Editor ausblenden"
+      "hideCodeEditor": "Code-Editor ausblenden",
+      "implNone": "Keine (UML)",
+      "implCode": "Python-Code",
+      "implStateMachine": "Zustandsmaschine",
+      "implQuantumCircuit": "Quantenschaltkreis",
+      "implNeuralNetwork": "Neuronales Netz",
+      "signaturePlaceholder": "methode(param: typ): rückgabetyp",
+      "returnType": "Rückgabetyp",
+      "hideOptions": "Parameter, Code und Farben ausblenden",
+      "showOptions": "Parameter, Code und Farben",
+      "rowOptions": "Methodenoptionen",
+      "deleteMethod": "Methode löschen",
+      "customReturnTypePlaceholder": "benutzerdefinierter Rückgabetyp (Freitext)",
+      "paramNamePlaceholder": "Name",
+      "paramTypePlaceholder": "Typ",
+      "addParameterPlaceholder": "+ Parameter hinzufügen (Name: Typ, Enter)",
+      "balBodyPlaceholder": "BAL-Methodenrumpf…",
+      "pythonBodyPlaceholder": "Python-Methodenrumpf…",
+      "name": "Methodenname",
+      "customReturnType": "Eigener Rückgabetyp",
+      "paramName": "Parametername",
+      "paramType": "Parametertyp",
+      "deleteParameter": "Parameter löschen",
+      "addParameter": "Parameter hinzufügen",
+      "implementationType": "Implementierung"
     },
     "classifier": {
       "createMethodWithCode": "Methode mit Code-Verhalten erstellen",
@@ -224,24 +255,175 @@
       "moveUp": "Nach oben verschieben",
       "codeButton": "Code",
       "newLiteralPlaceholder": "Literal",
-      "newAttributePlaceholder": "+ Attribut: str"
+      "newAttributePlaceholder": "+ Attribut: str",
+      "addAttributePlaceholder": "+ Attribut hinzufügen",
+      "addMethodPlaceholder": "+ Methode hinzufügen",
+      "newMethodPlaceholder": "+ methode(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "Literalname",
-      "namePlaceholder": "Attributname"
+      "namePlaceholder": "Attributname",
+      "shorthandPlaceholder": "+ Attribut: Typ",
+      "hideOptions": "Optionen ausblenden",
+      "showColors": "Farben anzeigen",
+      "showOptions": "Eigenschaften, Standardwert und Farben anzeigen",
+      "rowOptions": "Attributoptionen",
+      "deleteLiteral": "Literal löschen",
+      "deleteAttribute": "Attribut löschen",
+      "customTypePlaceholder": "benutzerdefinierter Typ (Freitext)",
+      "defaultValue": "Standardwert",
+      "defaultValueOptionalPlaceholder": "Standardwert (optional)",
+      "visibility": "Sichtbarkeit",
+      "literalName": "Literalname",
+      "name": "Attributname",
+      "customType": "Eigener Typ",
+      "type": "Attributtyp"
     },
     "associationNamePlaceholder": "Assoziationsname",
     "literals": "Literale",
     "preset": "Vorgabe",
     "presetPlaceholder": "Vorgabe wählen…",
     "stereotype": "Stereotyp",
+    "showStereotype": "Stereotyp anzeigen",
     "label": "Beschriftung",
     "unnamed": "(unbenannt)",
     "missingElement": "(fehlt)",
     "addTarget": "Ziel hinzufügen…",
     "lineage": "Herkunft",
     "lineageSource": "Quelle:",
-    "lineageDerivedFrom": "Abgeleitet von"
+    "lineageDerivedFrom": "Abgeleitet von",
+    "class": {
+      "biAssociation": "Bidirektionale Assoziation",
+      "uniAssociation": "Unidirektionale Assoziation",
+      "inheritance": "Vererbung",
+      "endMultiplicity": "Multiplizität von {{name}}",
+      "endRole": "Rolle von {{name}}",
+      "erMultiplicityPlaceholder": "(1,1) oder 1..1",
+      "sourceEnd": "Quelle — {{name}}",
+      "targetEnd": "Ziel — {{name}}",
+      "classesDivider": "── Klassen ──",
+      "enumerationsDivider": "── Aufzählungen ──",
+      "customType": "benutzerdefiniert…",
+      "colors": "Farben",
+      "metadata": "Metadaten",
+      "uriPlaceholder": "URI (z. B. https://example.com/MyClass)",
+      "iconPlaceholder": "Symbol (SVG-Inhalt oder URL)",
+      "addLiteral": "Literal hinzufügen",
+      "addAttribute": "Attribut hinzufügen",
+      "addMethod": "Methode hinzufügen",
+      "addLiteralInputPlaceholder": "+ Literal hinzufügen (Enter für automatischen Namen)",
+      "addAttributeInputPlaceholder": "+ Attribut hinzufügen (Enter für automatischen Namen)",
+      "addMethodInputPlaceholder": "+ Methode hinzufügen (Enter)",
+      "icon": "Symbol",
+      "stereotype": "Stereotyp",
+      "enumerationRelationshipsWarning": "Eine Enumeration kann keine Beziehungen haben; andere Klassen verwenden sie als Attributtyp. Beim Umwandeln werden {{count}} Beziehung(en) entfernt.",
+      "enumerationConvertConfirm": "Entfernen und umwandeln"
+    },
+    "object": {
+      "colorResetHint": "{{label}} (Rechtsklick zum Zurücksetzen)",
+      "selectLiteral": "— Literal auswählen —",
+      "slotNamePlaceholder": "Name",
+      "typeInherited": "Typ von der Klasse geerbt: {{type}}",
+      "deleteAttribute": "Attribut löschen",
+      "extendsHint": "erweitert {{parents}}",
+      "attributeCount": "({{count}} Attr.)",
+      "addAttributePlaceholder": "+ Attribut hinzufügen (Enter)",
+      "noAssociationsHint": "Keine Assoziationen verfügbar — verknüpfen Sie zuerst Quell- / Zielobjekte mit Klassen.",
+      "classLabel": "Klasse",
+      "unlinked": "— Nicht verknüpft —",
+      "slotName": "Attributname",
+      "objectName": "Objektname",
+      "addAttribute": "Attribut hinzufügen"
+    },
+    "user": {
+      "rowStyle": "Zeilenstil",
+      "deleteAttribute": "Attribut löschen",
+      "selectPlaceholder": "— auswählen —",
+      "stringValuePlaceholder": "Wert (wird in Anführungszeichen gesetzt: \"…\")",
+      "valuePlaceholder": "Wert / Standard",
+      "metadata": "Metadaten",
+      "operator": "Operator",
+      "defaultValue": "Standardwert",
+      "defaultValueQuoted": "Standardwert (wird in Anführungszeichen gesetzt: \"…\")",
+      "view": "Auf der Arbeitsfläche anzeigen als"
+    },
+    "communication": {
+      "direction": "Richtung: {{direction}}",
+      "messagePlaceholder": "Nachricht {{index}}",
+      "duplicateMessage": "Doppelte Nachricht",
+      "deleteMessage": "Nachricht löschen",
+      "addMessagePlaceholder": "+ Nachricht hinzufügen",
+      "messageExists": "Diese Nachricht existiert bereits"
+    },
+    "bpmn": {
+      "startType": "Starttyp",
+      "intermediateType": "Zwischentyp",
+      "endType": "Endtyp",
+      "taskType": "Aufgabentyp",
+      "gatewayType": "Gateway-Typ",
+      "marker": "Markierung",
+      "markerParallelMultiInstance": "Parallele Mehrfachinstanz",
+      "markerSequentialMultiInstance": "Sequenzielle Mehrfachinstanz",
+      "markerLoop": "Schleife",
+      "poolName": "Pool-Name",
+      "moveLaneUp": "Bahn nach oben verschieben",
+      "moveLaneDown": "Bahn nach unten verschieben",
+      "deleteLane": "Bahn löschen",
+      "newLaneName": "Name der neuen Bahn",
+      "addLane": "Bahn hinzufügen",
+      "controlFlow": "Kontrollfluss",
+      "mergingNeedsDiverging": "Erfordert ein agentisches verzweigendes Gateway davor",
+      "orphanedMergingGateway": "Kein agentisches verzweigendes Gateway davor: Dieses Gateway schließt keinen Kollaborationsblock."
+    },
+    "state": {
+      "italic": "kursiv",
+      "underline": "unterstrichen",
+      "noBodyRows": "noch keine Rumpfzeilen",
+      "noFallbackBodyRows": "noch keine Fallback-Rumpfzeilen",
+      "deleteBody": "Rumpf löschen",
+      "deleteFallbackBody": "Fallback-Rumpf löschen",
+      "addBodyPlaceholder": "+ Rumpf hinzufügen (Enter)",
+      "addFallbackBodyPlaceholder": "+ Fallback-Rumpf hinzufügen (Enter)",
+      "fallbackActionPlaceholder": "Fallback-Aktion",
+      "actionName": "Aktionsname",
+      "language": "Sprache",
+      "code": "Code",
+      "noOutgoingTransitions": "Noch keine ausgehenden Transitionen.",
+      "instanceName": "Instanzname",
+      "class": "Klasse",
+      "unlinked": "— Nicht verknüpft —",
+      "eventHandlerPlaceholder": "Name der Event-Handler-Funktion",
+      "removeParameter": "Parameter {{index}} entfernen",
+      "codeBlockName": "Funktionsname (leer = aus def)"
+    },
+    "useCase": {
+      "optionalAssociationLabel": "Optionale Beschriftung für die Assoziation"
+    },
+    "deployment": {
+      "optionalAssociationLabel": "Optionale Beschriftung für die Assoziation"
+    },
+    "petriNet": {
+      "arc": "Petri-Netz-Kante"
+    },
+    "reachability": {
+      "arc": "Erreichbarkeitskante"
+    },
+    "syntaxTree": {
+      "relations": "Beziehungen"
+    },
+    "sfc": {
+      "editTransition": "Transition bearbeiten",
+      "condition": "Bedingung",
+      "conditionPlaceholder": "Transitionsbedingung eingeben",
+      "showCrossbar": "Querbalken anzeigen",
+      "negatedCondition": "Negierte Bedingung (Überstrich)",
+      "actions": "Aktionen",
+      "idPlaceholder": "ID",
+      "addActionName": "+ Aktionsnamen hinzufügen"
+    },
+    "multiplicityInvalidER": "Verwenden Sie (min,max), z. B. (0,1), (1,N) – oder 1, 0..1, 1..*",
+    "multiplicityInvalid": "Verwenden Sie z. B. 1, 0..1, *, 1..* oder 2..5",
+    "associationNameHiddenHint": "Auf der Arbeitsfläche ausgeblendet. Aktivieren Sie „Assoziationsnamen anzeigen“ in den Einstellungen."
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -417,6 +599,7 @@
       "BPMNDataAssociationFlow": "Datenassoziation",
       "BPMNDefaultSequenceFlow": "Standardfluss",
       "BPMNDataObject": "Datenobjekt",
+      "BPMNDataStore": "Datenspeicher",
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Bahn",
       "BPMNSwimlanes": "Bahnen",
@@ -451,7 +634,8 @@
       "BPMNGatewayRoleMerging": "Zusammenführend",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Rolle",
-      "BPMNAgentRolePlaceholder": "z. B. solution"
+      "BPMNAgentRolePlaceholder": "z. B. solution",
+      "BPMNReflectionMode": "Reflexion"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",
@@ -476,12 +660,18 @@
       "TrainingDataset": "Trainingsdatensatz",
       "TestDataset": "Testdatensatz",
       "Datasets": "NN-Datensätze",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "SectionStructure": "NN-Struktur",
+      "SectionLayers": "NN-Schichten",
+      "SectionTensorOps": "NN-Tensoroperationen",
+      "SectionConfiguration": "NN-Konfiguration"
     },
     "OCLConstraint": {
       "Constraint": "OCL-Einschränkung",
       "DescriptionPlaceholder": "z. B. Achten Sie darauf, ein realistisches Alter zu wählen",
-      "DescriptionLabel": "Beschreibung (wird Endbenutzern angezeigt, wenn die Validierung fehlschlägt) Optional"
+      "DescriptionLabel": "Beschreibung (wird Endbenutzern angezeigt, wenn die Validierung fehlschlägt) Optional",
+      "expressionPlaceholder": "OCL-Ausdruck…",
+      "descriptionOptionalPlaceholder": "Beschreibung (optional)"
     },
     "StateDiagram": {
       "StateTransition": "Übergang",
@@ -775,7 +965,29 @@
       "webCrawlNamePrefix": "Crawl:",
       "A2ASendTo": "Senden an",
       "A2AReceiveFrom": "Empfangen von",
-      "A2APeer": "Gegenstelle"
+      "A2APeer": "Gegenstelle",
+      "stateName": "Name",
+      "italic": "kursiv",
+      "underline": "unterstrichen",
+      "initialState": "Anfangszustand",
+      "flipTransition": "Quelle / Ziel tauschen",
+      "transitionName": "Name",
+      "parameters": "Parameter",
+      "initTransition": "Anfangstransition",
+      "deleteInitTransition": "Anfangstransition löschen",
+      "intentDescriptionPlaceholder": "Beschreibung dessen, was dieser Intent darstellt",
+      "noTrainingPhrases": "noch keine Trainingssätze",
+      "trainingPhrasePlaceholder": "z. B. hallo",
+      "deleteTrainingPhrase": "Trainingssatz löschen",
+      "card": {
+        "initial": "Start",
+        "state": "Zustand",
+        "reasoning": "Reasoning",
+        "fallback": "Fallback",
+        "maxSteps": "≤ {{count}} Schritte",
+        "planning": "Planung",
+        "defaultLlm": "Standard"
+      }
     },
     "UserDiagram": {
       "UserModelName": "Benutzer",
@@ -791,7 +1003,21 @@
     "add": "Hinzufügen",
     "remove": "Entfernen",
     "width": "Breite",
-    "height": "Höhe"
+    "height": "Höhe",
+    "edgeType": "Verbindungstyp",
+    "edgeLabel": "Verbindungsbeschriftung",
+    "flipSourceTarget": "Quelle / Ziel tauschen",
+    "source": "Quelle",
+    "target": "Ziel",
+    "type": "Typ",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "none": "Keine",
+    "label": "Beschriftung",
+    "value": "Wert",
+    "dragToReorder": "Ziehen zum Neuordnen",
+    "addLowercase": "hinzufügen",
+    "back": "Zurück"
   },
   "stylePane": {
     "enterUri": "URI eingeben…",
@@ -815,6 +1041,13 @@
     "default": "Standard",
     "enterNumber": "Zahl eingeben…",
     "derived": "Abgeleitet",
+    "rowTextColor": "Textfarbe der Zeile",
+    "rowFillColor": "Füllfarbe der Zeile",
+    "rowStyle": "Zeilenstil (Farben + Symbol)",
+    "rowColors": "Zeilenfarben",
+    "toggleColorSettings": "Farbeinstellungen ein-/ausblenden",
+    "enterNodeName": "Elementnamen eingeben",
+    "rightClickToReset": "{{label}} (Rechtsklick zum Zurücksetzen)",
     "colors": {
       "red": "Rot",
       "orange": "Orange",
@@ -837,7 +1070,26 @@
   },
   "propertiesPanel": {
     "close": "Schließen",
+    "closeEditor": "Editor schließen",
     "resize": "Eigenschaftenbereich anpassen"
+  },
+  "toolbar": {
+    "undo": "Rückgängig (Strg+Z)",
+    "redo": "Wiederholen (Strg+Y oder Strg+Umschalt+Z)",
+    "autoLayout": "Diagramm automatisch anordnen",
+    "autoLayoutOptions": "Optionen für automatisches Anordnen",
+    "autoLayoutStrategy": {
+      "hierarchical": "Hierarchisch",
+      "compact": "Kompakt",
+      "horizontal": "Von links nach rechts",
+      "vertical": "Von oben nach unten"
+    },
+    "resetZoom": "Zoom auf 100% zurücksetzen",
+    "minimap": "Übersichtskarte",
+    "attachAssociationClass": "Assoziationsklasse anhängen"
+  },
+  "comment": {
+    "link": "Kommentarverbindung"
   },
   "actions": {
     "edit": "Bearbeiten",
@@ -849,9 +1101,26 @@
   "zoomPane": {
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
-    "autoLayout": "Automatisches Layout"
+    "autoLayout": "Automatisches Layout",
+    "fitView": "Ansicht anpassen"
   },
   "sidebar": {
-    "resize": "Palette anpassen"
+    "resize": "Palette anpassen",
+    "palette": "Elementpalette"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Enumerationen können nicht verbunden werden; verwenden Sie sie stattdessen als Attributtypen.",
+      "objectNoAssociation": "Die Klassen dieser Objekte haben im Klassendiagramm keine Assoziation.",
+      "nnEndpoint": "Datensätze und Konfigurationen werden nur mit einem NN-Container verbunden.",
+      "nnConfigurationTaken": "Dieser NN-Container hat bereits eine Konfiguration.",
+      "bpmnCrossPool": "Sequenzflüsse können keine Pools überqueren, und dieses Element kann keine Nachrichtenflüsse senden.",
+      "bpmnIllegalFlow": "BPMN erlaubt keinen Fluss zwischen diesen Elementen.",
+      "bpmnMessageSamePool": "Endereignisse können keinen Fluss beginnen und Startereignisse keinen empfangen; Nachrichtenflüsse verbinden nur verschiedene Pools.",
+      "stateCodeBlock": "Codeblöcke werden nicht verbunden; verweisen Sie über den Namen aus einem Zustandsrumpf oder einer Transition auf sie.",
+      "stateFinalOutgoing": "Ein Endzustand beendet den Zustandsautomaten; keine Transition verlässt ihn.",
+      "stateInitialIncoming": "Der Anfangszustand startet nur den Zustandsautomaten; keine Transition führt in ihn hinein.",
+      "generic": "Diese Elemente können nicht verbunden werden."
+    }
   }
 }

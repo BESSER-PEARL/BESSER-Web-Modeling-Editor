@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { BesserEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -160,7 +160,7 @@ export const useGenerateCode = () => {
         ...flatProject,
         name: normalizeProjectName(currentProject.name || 'project'),
         settings: {
-          ...flatProject.settings,
+          ...(flatProject.settings as Record<string, unknown> | undefined),
           generator: generatorType,
           config: config
         }
@@ -255,7 +255,7 @@ export const useGenerateCode = () => {
 
   const generateCode = useCallback(
     async (
-      editor: ApollonEditor | null,
+      editor: BesserEditor | null,
       generatorType: string,
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
@@ -303,7 +303,7 @@ export const useGenerateCode = () => {
       // structurally during generation. The model actually being sent is
       // what gets validated.
       if (editor) {
-        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
+        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration, { onlyProblems: true });
         if (!validationResult.isValid) {
           toast.error(validationResult.message || t('generation.toasts.validationFailed'));
           return { ok: false, error: validationResult.message || 'Validation failed' };
@@ -313,7 +313,8 @@ export const useGenerateCode = () => {
       // Prepare body for single diagram generation. modelOverride is used by
       // agent personalization to ship the un-personalized base instead of
       // whatever variant happens to be active in the editor — see
-      // handleAgentGenerate in useGeneratorExecution.
+      // handleAgentGenerate in useGeneratorExecution. Validation above still
+      // runs against the live editor model.
       const body: any = {
         title: diagramTitle,
         model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : modelForGeneration,

@@ -30,11 +30,12 @@ export const DiagramLineageBanner: React.FC<DiagramLineageBannerProps> = ({ acti
     for (let i = 0; i < bpmnDiagrams.length; i++) {
       const model = bpmnDiagrams[i].model;
       if (!isUMLModel(model)) continue;
-      const lane = Object.values(model.elements).find(
-        (el) => el.type === 'BPMNSwimlane' && 'agentDiagramRef' in el && el.agentDiagramRef === activeDiagram.id,
+      const lane = model.nodes.find(
+        (node) => node.type === 'bpmnSwimlane' && node.data?.agentDiagramRef === activeDiagram.id,
       );
       if (lane) {
-        return { diagramIndex: i, laneName: lane.name.trim() || t('editors.diagramTabs.lineage.unnamedLane') };
+        const name = typeof lane.data.name === 'string' ? lane.data.name.trim() : '';
+        return { diagramIndex: i, laneName: name || t('editors.diagramTabs.lineage.unnamedLane') };
       }
     }
     return null;

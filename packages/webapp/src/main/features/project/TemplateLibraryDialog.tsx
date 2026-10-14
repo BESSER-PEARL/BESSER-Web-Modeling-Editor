@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { UMLDiagramType } from '@besser/wme';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -39,43 +39,54 @@ import {
 } from './create-diagram-from-template-modal/software-pattern/software-pattern-types';
 
 /**
- * Shifts all element and relationship bounds so their combined bounding box is
- * centered at canvas origin (0, 0).  Mirrors the same transform in
+ * Shifts all top-level nodes so their combined bounding box is centered at
+ * canvas origin (0, 0). Mirrors the same transform in
  * bpmn-xml-importer.ts::centerOnOrigin so templates load centered in the
  * viewport — the same way imported .bpmn files do.
+ *
+ * Only root nodes move: React Flow child positions are relative to their
+ * parent, so nested nodes (pool lanes, intent rows, …) follow automatically.
+ * Absolute edge waypoints (`data.points`) are shifted by the same delta.
+ * Anything that is not a v4 model is returned untouched.
  */
-function centerModelOnOrigin(model: any): any {
-  const nodes = Object.values(model.elements ?? {}) as Array<{
-    bounds: { x: number; y: number; width: number; height: number };
-  }>;
-  if (nodes.length === 0) return model;
+function centerModelOnOrigin<T>(model: T): T {
+  const m = model as unknown as {
+    nodes?: Array<{
+      parentId?: string;
+      position: { x: number; y: number };
+      width?: number;
+      height?: number;
+      measured?: { width?: number; height?: number };
+    }>;
+    edges?: Array<{ data?: { points?: Array<{ x: number; y: number }> } }>;
+  };
+  if (!Array.isArray(m?.nodes) || !Array.isArray(m?.edges)) return model;
+  const roots = m.nodes.filter((n) => !n.parentId && n.position);
+  if (roots.length === 0) return model;
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
     maxY = -Infinity;
-  for (const n of nodes) {
-    minX = Math.min(minX, n.bounds.x);
-    minY = Math.min(minY, n.bounds.y);
-    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
-    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  for (const n of roots) {
+    const width = n.width ?? n.measured?.width ?? 0;
+    const height = n.height ?? n.measured?.height ?? 0;
+    minX = Math.min(minX, n.position.x);
+    minY = Math.min(minY, n.position.y);
+    maxX = Math.max(maxX, n.position.x + width);
+    maxY = Math.max(maxY, n.position.y + height);
   }
   const dx = -Math.round((minX + maxX) / 2);
   const dy = -Math.round((minY + maxY) / 2);
   if (dx === 0 && dy === 0) return model;
-  const shiftBounds = (b: { x: number; y: number; width: number; height: number }) => ({
-    ...b,
-    x: b.x + dx,
-    y: b.y + dy,
-  });
-  const shiftedElements: Record<string, any> = {};
-  for (const [id, el] of Object.entries(model.elements ?? {})) {
-    shiftedElements[id] = { ...(el as any), bounds: shiftBounds((el as any).bounds) };
-  }
-  const shiftedRelationships: Record<string, any> = {};
-  for (const [id, rel] of Object.entries(model.relationships ?? {})) {
-    shiftedRelationships[id] = { ...(rel as any), bounds: shiftBounds((rel as any).bounds) };
-  }
-  return { ...model, elements: shiftedElements, relationships: shiftedRelationships };
+  const nodes = m.nodes.map((n) =>
+    n.parentId || !n.position ? n : { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } },
+  );
+  const edges = m.edges.map((e) =>
+    Array.isArray(e.data?.points) && e.data.points.length > 0
+      ? { ...e, data: { ...e.data, points: e.data.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy })) } }
+      : e,
+  );
+  return { ...(model as object), nodes, edges } as T;
 }
 
 interface TemplateLibraryDialogProps {
@@ -109,10 +120,7 @@ const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatter
  * For full-project templates, summarize which diagrams are populated so users
  * can tell apart e.g. "class only" from "class + agent + GUI" at a glance.
  */
-const summarizeFullProjectDiagrams = (
-  template: SoftwarePatternTemplate,
-  multiDiagramLabel: string,
-): string => {
+const summarizeFullProjectDiagrams = (template: SoftwarePatternTemplate, multiDiagramLabel: string): string => {
   const project = (template.diagram as { project?: { diagrams?: Record<string, unknown[]> } })?.project;
   const diagrams = project?.diagrams;
   if (!diagrams) return multiDiagramLabel;
@@ -157,6 +165,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
   const categoryListRef = useRef<HTMLDivElement>(null);
+  const newTabButtonRef = useRef<HTMLButtonElement>(null);
 
   // When dialog opens, jump to the category matching the active diagram type
   React.useEffect(() => {
@@ -258,10 +267,12 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       } else {
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
         const supportedType = toSupportedDiagramType(umlType);
-        const centeredModel = centerModelOnOrigin(selectedTemplate.diagram as any);
+        const centeredModel = centerModelOnOrigin(selectedTemplate.diagram as UMLModel);
+        const existingDiagram = currentProject ? getActiveDiagram(currentProject, supportedType) : undefined;
 
-        if (mode === 'new_tab' && currentProject) {
-          // Create a new tab (addDiagram auto-suffixes a taken title).
+        if (currentProject && (mode === 'new_tab' || !existingDiagram)) {
+          // Create a new tab (addDiagram auto-suffixes a taken title). Also the path taken
+          // when the project has no diagram of this type yet, so there is nothing to replace.
           const addResult = await dispatch(
             addDiagramThunk({
               diagramType: supportedType,
@@ -274,9 +285,8 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
           await dispatch(switchDiagramIndexThunk({ diagramType: supportedType, index: addResult.index }));
           await dispatch(updateDiagramModelThunk({ model: centeredModel }));
-        } else if (currentProject) {
+        } else if (currentProject && existingDiagram) {
           // Replace the active diagram
-          const existingDiagram = getActiveDiagram(currentProject, supportedType);
           ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
             ...existingDiagram,
             title: selectedTemplate.type,
@@ -294,7 +304,11 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
+      toast.error(
+        t('project.templates.toasts.loadFailed', {
+          error: error instanceof Error ? error.message : t('project.templates.unknownError'),
+        }),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -321,9 +335,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             <Sparkles className="size-5 text-brand" />
             {t('project.templates.title')}
           </DialogTitle>
-          <DialogDescription>
-            {t('project.templates.description')}
-          </DialogDescription>
+          <DialogDescription>{t('project.templates.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:grid md:grid-cols-[220px_1fr] md:grid-rows-[minmax(0,1fr)]">
@@ -443,7 +455,13 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       </DialogContent>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            newTabButtonRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" />
@@ -464,13 +482,18 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="destructive" onClick={() => doLoadTemplate('replace')} className="sm:mr-auto">
+            {/* The safe choice (a new tab) is primary and focused; replacing stays a quiet secondary action. */}
+            <Button
+              variant="ghost"
+              onClick={() => doLoadTemplate('replace')}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
+            >
               {t('project.templates.confirm.replace')}
             </Button>
             <Button variant="outline" onClick={() => setShowConfirm(false)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={() => doLoadTemplate('new_tab')}>
+            <Button ref={newTabButtonRef} onClick={() => doLoadTemplate('new_tab')}>
               <Layers className="size-4" />
               {t('project.templates.confirm.newTab')}
             </Button>

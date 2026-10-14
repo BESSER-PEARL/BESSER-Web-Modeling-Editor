@@ -20,7 +20,7 @@ import {
   specDrivenReducer,
   claimRunSlot,
 } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { BesserEditorProvider } from '../../../editors/uml/besser-editor-context';
 
 const _client = vi.hoisted(() => ({ resetSessionCalls: 0 }));
 
@@ -88,9 +88,9 @@ function renderHarness() {
   const store = makeStore();
   const utils = render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Harness apiRef={apiRef} />
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>,
   );
   return { apiRef, store, ...utils };

@@ -1,8 +1,12 @@
 /**
  * Base Modifier Interface
- * Defines the contract for all diagram-specific modification handlers
+ * Defines the contract for all diagram-specific modification handlers.
+ *
+ * Webapp internals are v4-native. Modifiers walk `model.nodes[]` /
+ * `model.edges[]` directly — no v3 elements/relationships records anywhere.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { BESSERModel } from '../UMLModelingService';
 import { DiagramType, generateUniqueId } from '../shared-types';
 
@@ -21,14 +25,22 @@ export interface ModificationTarget {
   targetClass?: string;
   stateId?: string;
   stateName?: string;
-  intentId?: string;
-  intentName?: string;
-  // AgentDiagram add_transition / remove_transition endpoints
+  // add_transition (agent): the backend's AgentModificationTarget emits these
+  // instead of the generic sourceClass/targetClass/stateName above.
   sourceStateName?: string;
   targetStateName?: string;
+  // StateMachineDiagram add/modify/remove transition endpoints.
+  sourceState?: string;
+  targetState?: string;
+  intentId?: string;
+  intentName?: string;
+  // AgentDiagram remove_transition by id
   transitionId?: string;
   objectId?: string;
   objectName?: string;
+  // ObjectDiagram add_link endpoints.
+  sourceObject?: string;
+  targetObject?: string;
   // User-profile (UserDiagram) targets
   profileName?: string;
   sourceProfile?: string;
@@ -92,6 +104,10 @@ export interface ModificationChanges {
   entryAction?: string;
   exitAction?: string;
   doActivity?: string;
+  // StateMachineDiagram transition fields
+  trigger?: string;
+  guard?: string;
+  effect?: string;
   // BPMN add_task / add_gateway / add_event / modify_node fields
   // (source / target / label / name reused from above for add_flow)
   taskType?: string;
@@ -118,6 +134,8 @@ export interface ModificationChanges {
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
+  // add_intent_training_phrase: a single phrase to append (vs. the array above).
+  trainingPhrase?: string;
   intentName?: string;
   objectName?: string;
   ragDatabaseName?: string;
@@ -142,6 +160,7 @@ export interface ModelModification {
     | 'modify_state'
     | 'modify_intent'
     | 'add_transition'
+    | 'modify_transition'
     | 'remove_transition'
     | 'add_state_body'
     | 'modify_object'
@@ -192,7 +211,12 @@ export interface ModelModification {
   newClasses?: Array<{
     name: string;
     attributes: Array<{ name: string; type: string; visibility?: string }>;
-    methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }>;
+    methods?: Array<{
+      name: string;
+      returnType: string;
+      visibility?: string;
+      parameters?: Array<{ name: string; type: string }>;
+    }>;
   }>;
   inheritFrom?: string;
   classes?: string[];
@@ -225,7 +249,7 @@ export interface DiagramModifier {
 }
 
 /**
- * Helper functions shared across modifiers
+ * Helper functions shared across modifiers (v4-native).
  */
 export class ModifierHelpers {
   /**
@@ -242,89 +266,122 @@ export class ModifierHelpers {
     return structuredClone(model);
   }
 
-  /**
-   * Find element by name and type
-   */
-  static findElementByName(model: BESSERModel, name: string, type: string): string | null {
-    const normalizedName = (name || '').trim().toLowerCase();
-    // First pass: exact match
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type && element.name === name) {
-        return id;
-      }
-    }
-    // Second pass: case-insensitive match
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type && (element.name || '').trim().toLowerCase() === normalizedName) {
-        return id;
-      }
-    }
-    return null;
+  /** Read-only convenience accessor for `model.nodes`. */
+  static nodes(model: BESSERModel): BesserNode[] {
+    return ((model as any).nodes ?? []) as BesserNode[];
+  }
+
+  /** Read-only convenience accessor for `model.edges`. */
+  static edges(model: BESSERModel): BesserEdge[] {
+    return ((model as any).edges ?? []) as BesserEdge[];
+  }
+
+  /** Find a node by id. */
+  static findNodeById(model: BESSERModel, id: string): BesserNode | undefined {
+    return ModifierHelpers.nodes(model).find((n) => n.id === id);
+  }
+
+  /** Find an edge by id. */
+  static findEdgeById(model: BESSERModel, id: string): BesserEdge | undefined {
+    return ModifierHelpers.edges(model).find((e) => e.id === id);
   }
 
   /**
-   * Resolve an element reference that may be an element id or a name, among
-   * elements of the given types. Returns null when nothing matches.
+   * Push a new node onto the model.
    */
-  static resolveElementRef(model: BESSERModel, ref: string | undefined, types: string[]): string | null {
-    if (!ref) return null;
-    if (types.includes(model.elements[ref]?.type)) return ref;
-    for (const type of types) {
-      const id = ModifierHelpers.findElementByName(model, ref, type);
-      if (id) return id;
-    }
-    return null;
+  static addNode(model: BESSERModel, node: BesserNode): void {
+    const m = model as any;
+    if (!Array.isArray(m.nodes)) m.nodes = [];
+    m.nodes.push(node);
   }
 
   /**
-   * Find elements by type
+   * Push a new edge onto the model.
    */
-  static findElementsByType(model: BESSERModel, type: string): Array<{ id: string; element: any }> {
-    const results: Array<{ id: string; element: any }> = [];
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type) {
-        results.push({ id, element });
-      }
-    }
-    return results;
+  static addEdge(model: BESSERModel, edge: BesserEdge): void {
+    const m = model as any;
+    if (!Array.isArray(m.edges)) m.edges = [];
+    m.edges.push(edge);
   }
 
-  /**
-   * Remove element and its children
-   */
-  static removeElementWithChildren(model: BESSERModel, elementId: string): BESSERModel {
-    if (!model.elements[elementId]) return model;
+  /** Remove a node by id (and any of its children by parentId), plus incident edges. */
+  static removeNodeWithChildren(model: BESSERModel, nodeId: string): BESSERModel {
+    const m = model as any;
+    const target = ModifierHelpers.findNodeById(model, nodeId);
+    if (!target) return model;
 
-    // Collect the element, its listed children (attributes, methods, bodies,
-    // ...) and, recursively, every element it owns (lanes of a pool, tasks of
-    // a lane, components of a subsystem, ...).
-    const removed = new Set<string>();
-    const collect = (id: string) => {
-      if (removed.has(id) || !model.elements[id]) return;
-      removed.add(id);
-      const element = model.elements[id];
-      ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
-        const children = element[childProp];
-        if (Array.isArray(children)) children.forEach(collect);
-      });
-      for (const [childId, child] of Object.entries(model.elements)) {
-        if (child.owner === id) collect(childId);
-      }
-    };
-    collect(elementId);
-    removed.forEach((id) => delete model.elements[id]);
-
-    // Remove relationships that touch any removed element
-    if (model.relationships) {
-      Object.keys(model.relationships).forEach((relId) => {
-        const rel = model.relationships[relId];
-        if (removed.has(rel.source?.element) || removed.has(rel.target?.element)) {
-          delete model.relationships[relId];
+    // Collect ids of nodes to remove: the target plus any descendants via parentId.
+    const toRemove = new Set<string>([nodeId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const n of ModifierHelpers.nodes(model)) {
+        if (n.parentId && toRemove.has(n.parentId) && !toRemove.has(n.id)) {
+          toRemove.add(n.id);
+          changed = true;
         }
-      });
+      }
     }
 
+    m.nodes = (m.nodes ?? []).filter((n: BesserNode) => !toRemove.has(n.id));
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => !toRemove.has(e.source) && !toRemove.has(e.target));
     return model;
+  }
+
+  /**
+   * Find a node by `data.name` matching the given name; optionally filtered by `node.type`.
+   * In v4, attributes/methods/bodies are inline rows on the parent node and are NOT
+   * separate nodes — so this only matches top-level UML element node types.
+   */
+  static findNodeByName(
+    model: BESSERModel,
+    name: string,
+    type?: string,
+  ): BesserNode | undefined {
+    const normalizedName = (name || '').trim().toLowerCase();
+    const candidates = ModifierHelpers.nodes(model).filter((n) =>
+      type ? n.type === type : true,
+    );
+    // Exact match first
+    for (const n of candidates) {
+      const data: any = n.data || {};
+      if (data.name === name) return n;
+    }
+    // Case-insensitive fallback
+    for (const n of candidates) {
+      const data: any = n.data || {};
+      if (typeof data.name === 'string' && data.name.trim().toLowerCase() === normalizedName) return n;
+    }
+    return undefined;
+  }
+
+  /**
+   * Resolve a node reference that may be a node id or a display name, among
+   * nodes of the given types. An id hit wins over a name match.
+   */
+  static resolveNodeRef(model: BESSERModel, ref: string | undefined, types: string[]): BesserNode | undefined {
+    if (!ref) return undefined;
+    const byId = ModifierHelpers.findNodeById(model, ref);
+    if (byId && types.includes(byId.type)) return byId;
+    for (const type of types) {
+      const hit = ModifierHelpers.findNodeByName(model, ref, type);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+
+  /** Grow a child's parent node so the child, plus `padding`, stays inside it. */
+  static growParentToFit(model: BESSERModel, child: BesserNode, padding: number): void {
+    const parent = child.parentId ? ModifierHelpers.findNodeById(model, child.parentId) : undefined;
+    if (!parent) return;
+    parent.width = Math.max(parent.width || 0, child.position.x + (child.width || 0) + padding);
+    parent.height = Math.max(parent.height || 0, child.position.y + (child.height || 0) + padding);
+    parent.measured = { width: parent.width, height: parent.height };
+  }
+
+  /** Find all nodes whose `type` matches. */
+  static findNodesByType(model: BESSERModel, type: string): BesserNode[] {
+    return ModifierHelpers.nodes(model).filter((n) => n.type === type);
   }
 }
 
@@ -348,26 +405,36 @@ const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
  * real before/after is the only description that cannot lie.
  */
 export function summarizeModelDiff(before: any, after: any): ModelDiff {
+  // v4 models: every classifier is a `class` node, relationships are edges.
+  // v3 models (legacy snapshots): `elements` / `relationships` records.
   const classNames = (model: any): Map<string, string> => {
     const out = new Map<string, string>();
+    if (Array.isArray(model?.nodes)) {
+      for (const node of model.nodes) {
+        if (node?.type === 'class') out.set(node.id, node.data?.name ?? node.id);
+      }
+      return out;
+    }
     for (const [id, el] of Object.entries((model?.elements ?? {}) as Record<string, any>)) {
       if (el && CLASS_LIKE.includes(el.type)) out.set(id, el.name ?? id);
     }
     return out;
   };
+  const relationshipIds = (model: any): Set<string> =>
+    Array.isArray(model?.edges)
+      ? new Set(model.edges.map((e: any) => e?.id).filter(Boolean))
+      : new Set(Object.keys(model?.relationships ?? {}));
 
   const b = classNames(before);
   const a = classNames(after);
+  const br = relationshipIds(before);
+  const ar = relationshipIds(after);
 
   return {
     removedClasses: [...b.entries()].filter(([id]) => !a.has(id)).map(([, name]) => name),
     addedClasses: [...a.entries()].filter(([id]) => !b.has(id)).map(([, name]) => name),
-    removedRelationships: Object.keys(before?.relationships ?? {}).filter(
-      (id) => !(id in (after?.relationships ?? {})),
-    ).length,
-    addedRelationships: Object.keys(after?.relationships ?? {}).filter(
-      (id) => !(id in (before?.relationships ?? {})),
-    ).length,
+    removedRelationships: [...br].filter((id) => !ar.has(id)).length,
+    addedRelationships: [...ar].filter((id) => !br.has(id)).length,
   };
 }
 

@@ -16,7 +16,7 @@ export type GeneratorType =
   | 'jsonobject'
   | 'pytorch'
   | 'tensorflow'
-  | 'bpmn'
-  | 'test_case';
+  | 'test_case'
+  | 'bpmn';
 
 export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'bpmn' | 'none';

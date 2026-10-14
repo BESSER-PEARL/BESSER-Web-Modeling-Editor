@@ -1,0 +1,184 @@
+{
+  "version": "3.0.0",
+  "type": "StateMachineDiagram",
+  "size": { "width": 1200, "height": 800 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "init-1": {
+      "id": "init-1",
+      "name": "",
+      "type": "StateInitialNode",
+      "owner": null,
+      "bounds": { "x": 60, "y": 60, "width": 45, "height": 45 }
+    },
+    "state-Idle": {
+      "id": "state-Idle",
+      "name": "Idle",
+      "type": "State",
+      "owner": null,
+      "bounds": { "x": 160, "y": 50, "width": 200, "height": 80 },
+      "italic": false,
+      "underline": false,
+      "stereotype": null,
+      "deviderPosition": 80,
+      "hasBody": false,
+      "hasFallbackBody": false
+    },
+    "state-Working": {
+      "id": "state-Working",
+      "name": "Working",
+      "type": "State",
+      "owner": null,
+      "bounds": { "x": 420, "y": 50, "width": 240, "height": 160 },
+      "italic": false,
+      "underline": false,
+      "stereotype": "active",
+      "deviderPosition": 110,
+      "hasBody": true,
+      "hasFallbackBody": true
+    },
+    "body-Working-1": {
+      "id": "body-Working-1",
+      "name": "entry / startMotor()",
+      "type": "StateBody",
+      "owner": "state-Working",
+      "bounds": { "x": 420, "y": 100, "width": 240, "height": 30 }
+    },
+    "body-Working-2": {
+      "id": "body-Working-2",
+      "name": "do / monitor()",
+      "type": "StateBody",
+      "owner": "state-Working",
+      "bounds": { "x": 420, "y": 130, "width": 240, "height": 30 }
+    },
+    "fallback-Working-1": {
+      "id": "fallback-Working-1",
+      "name": "fallback / safeStop()",
+      "type": "StateFallbackBody",
+      "owner": "state-Working",
+      "bounds": { "x": 420, "y": 160, "width": 240, "height": 30 }
+    },
+    "code-Working-1": {
+      "id": "code-Working-1",
+      "name": "snippet",
+      "type": "StateCodeBlock",
+      "owner": null,
+      "bounds": { "x": 700, "y": 50, "width": 200, "height": 150 },
+      "code": "def monitor():\n    while True:\n        check()",
+      "language": "python"
+    },
+    "state-Done": {
+      "id": "state-Done",
+      "name": "Done",
+      "type": "State",
+      "owner": null,
+      "bounds": { "x": 920, "y": 50, "width": 200, "height": 80 },
+      "italic": false,
+      "underline": false,
+      "stereotype": null,
+      "deviderPosition": 80,
+      "hasBody": false,
+      "hasFallbackBody": false
+    },
+    "fork-1": {
+      "id": "fork-1",
+      "name": "",
+      "type": "StateForkNode",
+      "owner": null,
+      "bounds": { "x": 360, "y": 240, "width": 20, "height": 100 }
+    },
+    "merge-1": {
+      "id": "merge-1",
+      "name": "decision",
+      "type": "StateMergeNode",
+      "owner": null,
+      "bounds": { "x": 600, "y": 280, "width": 80, "height": 80 }
+    },
+    "action-1": {
+      "id": "action-1",
+      "name": "log",
+      "type": "StateActionNode",
+      "owner": null,
+      "bounds": { "x": 760, "y": 280, "width": 120, "height": 50 },
+      "code": "print('logged')"
+    },
+    "obj-1": {
+      "id": "obj-1",
+      "name": "ctx",
+      "type": "StateObjectNode",
+      "owner": null,
+      "bounds": { "x": 920, "y": 280, "width": 160, "height": 50 },
+      "classId": "node-Context",
+      "className": "Context"
+    },
+    "final-1": {
+      "id": "final-1",
+      "name": "",
+      "type": "StateFinalNode",
+      "owner": null,
+      "bounds": { "x": 1140, "y": 60, "width": 45, "height": 45 }
+    }
+  },
+  "relationships": {
+    "trans-1": {
+      "id": "trans-1",
+      "name": "start",
+      "type": "StateTransition",
+      "owner": null,
+      "bounds": { "x": 105, "y": 80, "width": 55, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 55, "y": 0 }
+      ],
+      "source": { "element": "init-1", "direction": "Right" },
+      "target": { "element": "state-Idle", "direction": "Left" },
+      "params": { "0": "input" },
+      "guard": ""
+    },
+    "trans-2": {
+      "id": "trans-2",
+      "name": "begin",
+      "type": "StateTransition",
+      "owner": null,
+      "bounds": { "x": 360, "y": 80, "width": 60, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 60, "y": 0 }
+      ],
+      "source": { "element": "state-Idle", "direction": "Right" },
+      "target": { "element": "state-Working", "direction": "Left" },
+      "params": { "0": "x", "1": "y" },
+      "guard": "ready",
+      "eventName": "BeginEvent",
+      "code": "println('starting')"
+    },
+    "trans-3": {
+      "id": "trans-3",
+      "name": "complete",
+      "type": "StateTransition",
+      "owner": null,
+      "bounds": { "x": 660, "y": 80, "width": 260, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 260, "y": 0 }
+      ],
+      "source": { "element": "state-Working", "direction": "Right" },
+      "target": { "element": "state-Done", "direction": "Left" }
+    },
+    "trans-4": {
+      "id": "trans-4",
+      "name": "finish",
+      "type": "StateTransition",
+      "owner": null,
+      "bounds": { "x": 1120, "y": 80, "width": 20, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 20, "y": 0 }
+      ],
+      "source": { "element": "state-Done", "direction": "Right" },
+      "target": { "element": "final-1", "direction": "Left" },
+      "guard": "true"
+    }
+  },
+  "assessments": {}
+}

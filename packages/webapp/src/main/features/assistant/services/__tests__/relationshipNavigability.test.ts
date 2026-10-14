@@ -7,15 +7,19 @@ import type { BESSERModel } from '../UMLModelingService';
 
 function makeEmptyModel(): BESSERModel {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: 'm',
+    title: '',
     type: 'ClassDiagram',
-    size: { width: 1000, height: 800 },
-    elements: {},
-    relationships: {},
-    interactive: { elements: {}, relationships: {} },
+    nodes: [],
+    edges: [],
     assessments: {},
-  };
+  } as unknown as BESSERModel;
 }
+
+// v4: per-end navigability lives on edge.data.sourceNavigable / targetNavigable.
+const nav = (edge: any) => [edge.data?.sourceNavigable, edge.data?.targetNavigable];
+const nodeName = (model: any, id: string) => model.nodes.find((n: any) => n.id === id)?.data?.name;
 
 // Relationship types the modeling agent's RelationshipSpec can send, plus
 // legacy / free-form values the webapp still accepts.
@@ -63,37 +67,34 @@ describe('ClassDiagramModifier relationships', () => {
     });
   }
 
-  const onlyRelationship = (model: BESSERModel) => Object.values(model.relationships)[0] as any;
+  const onlyRelationship = (model: BESSERModel) => ((model as any).edges as any[])[0];
 
   it('adds a plain association as ClassBidirectional with both ends navigable', () => {
     const rel = onlyRelationship(addRelationship(makeEmptyModel(), 'Association'));
     expect(rel.type).toBe('ClassBidirectional');
-    expect(rel.source.navigable).toBe(true);
-    expect(rel.target.navigable).toBe(true);
+    expect(nav(rel)).toEqual([true, true]);
   });
 
   it('adds a unidirectional association pointing at the target class', () => {
     const result = addRelationship(makeEmptyModel(), 'unidirectional');
     const rel = onlyRelationship(result);
     expect(rel.type).toBe('ClassBidirectional');
-    expect(result.elements[rel.source.element].name).toBe('Order');
-    expect(rel.source.navigable).toBe(false);
-    expect(result.elements[rel.target.element].name).toBe('Customer');
-    expect(rel.target.navigable).toBe(true);
+    expect(nodeName(result, rel.source)).toBe('Order');
+    expect(nodeName(result, rel.target)).toBe('Customer');
+    expect(nav(rel)).toEqual([false, true]);
   });
 
   it('keeps the part end of a composition navigable', () => {
     const rel = onlyRelationship(addRelationship(makeEmptyModel(), 'Composition'));
     expect(rel.type).toBe('ClassComposition');
-    expect(rel.source.navigable).toBe(true);
-    expect(rel.target.navigable).toBe(true);
+    expect(nav(rel)).toEqual([true, true]);
   });
 
   it('does not add navigability to an inheritance', () => {
     const rel = onlyRelationship(addRelationship(makeEmptyModel(), 'Inheritance'));
     expect(rel.type).toBe('ClassInheritance');
-    expect(rel.source).not.toHaveProperty('navigable');
-    expect(rel.target).not.toHaveProperty('navigable');
+    expect(rel.data).not.toHaveProperty('sourceNavigable');
+    expect(rel.data).not.toHaveProperty('targetNavigable');
   });
 
   it('updates navigability when modify_relationship changes the type', () => {
@@ -102,24 +103,24 @@ describe('ClassDiagramModifier relationships', () => {
     model = modifyRelationship(model, { relationshipType: 'Unidirectional' });
     let rel = onlyRelationship(model);
     expect(rel.type).toBe('ClassBidirectional');
-    expect([rel.source.navigable, rel.target.navigable]).toEqual([false, true]);
+    expect(nav(rel)).toEqual([false, true]);
 
     model = modifyRelationship(model, { relationshipType: 'Composition' });
     rel = onlyRelationship(model);
     expect(rel.type).toBe('ClassComposition');
-    expect([rel.source.navigable, rel.target.navigable]).toEqual([true, true]);
+    expect(nav(rel)).toEqual([true, true]);
 
     model = modifyRelationship(model, { relationshipType: 'Inheritance' });
     rel = onlyRelationship(model);
     expect(rel.type).toBe('ClassInheritance');
-    expect(rel.source).not.toHaveProperty('navigable');
+    expect(rel.data).not.toHaveProperty('sourceNavigable');
   });
 
   it('leaves navigability untouched when only the multiplicity changes', () => {
     let model = addRelationship(makeEmptyModel(), 'Unidirectional');
     model = modifyRelationship(model, { targetMultiplicity: '1' });
     const rel = onlyRelationship(model);
-    expect([rel.source.navigable, rel.target.navigable]).toEqual([false, true]);
+    expect(nav(rel)).toEqual([false, true]);
   });
 });
 
@@ -141,16 +142,16 @@ describe('ClassDiagramConverter relationships', () => {
         { type: 'Inheritance', source: 'VipCustomer', target: 'Customer' },
       ],
     });
-    const rels = Object.values(result.relationships) as any[];
+    const rels = result.edges as any[];
     const byType = (type: string) => rels.filter((r) => r.type === type);
 
     expect(rels.some((r) => r.type === 'ClassUnidirectional')).toBe(false);
     const [assoc, uni] = byType('ClassBidirectional');
-    expect([assoc.source.navigable, assoc.target.navigable]).toEqual([true, true]);
-    expect([uni.source.navigable, uni.target.navigable]).toEqual([false, true]);
+    expect(nav(assoc)).toEqual([true, true]);
+    expect(nav(uni)).toEqual([false, true]);
     const [composition] = byType('ClassComposition');
-    expect(composition.source.navigable).toBe(true);
+    expect(composition.data.sourceNavigable).toBe(true);
     const [inheritance] = byType('ClassInheritance');
-    expect(inheritance.source).not.toHaveProperty('navigable');
+    expect(inheritance.data).not.toHaveProperty('sourceNavigable');
   });
 });

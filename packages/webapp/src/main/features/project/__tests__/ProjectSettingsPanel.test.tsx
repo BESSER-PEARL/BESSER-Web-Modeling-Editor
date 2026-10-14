@@ -25,6 +25,7 @@ vi.mock('@besser/wme', async (importOriginal) => {
     ...actual,
     settingsService: {
       shouldShowInstancedObjects: vi.fn(() => false),
+      shouldShowIconView: vi.fn(() => false),
       shouldShowAssociationNames: vi.fn(() => false),
       shouldUsePropertiesPanel: vi.fn(() => false),
       getClassNotation: vi.fn(() => 'UML'),
@@ -104,14 +105,15 @@ const renderWithStore = (project: BesserProject | null) => {
 const createProjectWithContent = (): BesserProject => {
   const project = createDefaultProject('My Project', 'A test project', 'alice');
   project.diagrams.ClassDiagram[0].model = {
-    version: '3.0.0' as const,
+    version: '4.0.0' as const,
+    id: 'cd-test',
+    title: 'Class Diagram',
     type: UMLDiagramType.ClassDiagram,
-    size: { width: 1400, height: 740 },
-    elements: { 'element-1': { id: 'element-1', type: 'Class', name: 'User' } as any },
-    relationships: {},
+    nodes: [{ id: 'element-1', type: 'class', position: { x: 0, y: 0 }, width: 100, height: 50, measured: { width: 100, height: 50 }, data: { name: 'User' } } as any],
+    edges: [],
     interactive: { elements: {}, relationships: {} },
     assessments: {},
-  };
+  } as any;
   return project;
 };
 
@@ -274,5 +276,41 @@ describe('ProjectSettingsPanel', () => {
     setupUseProject({ currentProject: project });
     renderWithStore(project);
     expect(screen.getByText('Export Project')).toBeInTheDocument();
+  });
+
+  it('renders the Icon View toggle initialized from settingsService', async () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const { settingsService } = await import('@besser/wme');
+    expect(settingsService.shouldShowIconView).toHaveBeenCalled();
+    const toggle = screen.getByTestId('display-toggle-icon-view') as HTMLInputElement;
+    expect(toggle).toBeInTheDocument();
+    expect(toggle.checked).toBe(false);
+  });
+
+  it('persists the Icon View toggle through settingsService.updateSetting', async () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const toggle = screen.getByTestId('display-toggle-icon-view') as HTMLInputElement;
+    fireEvent.click(toggle);
+
+    const { settingsService } = await import('@besser/wme');
+    expect(settingsService.updateSetting).toHaveBeenCalledWith('showIconView', true);
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('describes Show Instanced Objects as the Object Diagram palette toggle', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    expect(screen.getByText('Show Instanced Objects')).toBeInTheDocument();
+    expect(
+      screen.getByText('Show one draggable instance per class in the Object Diagram palette'),
+    ).toBeInTheDocument();
   });
 });

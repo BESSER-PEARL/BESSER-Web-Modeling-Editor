@@ -29,14 +29,15 @@ vi.mock('../../../app/store/workspaceSlice', () => ({
 
 function populatedClassModel(): UMLModel {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: 'c-model-1',
+    title: 'Test',
     type: UMLDiagramType.ClassDiagram,
-    size: { width: 1400, height: 740 },
-    elements: { 'c-1': { id: 'c-1' } as any },
-    relationships: {},
+    nodes: [{ id: 'c-1' } as any],
+    edges: [],
     interactive: { elements: {}, relationships: {} },
     assessments: {},
-  };
+  } as UMLModel;
 }
 
 beforeEach(() => {

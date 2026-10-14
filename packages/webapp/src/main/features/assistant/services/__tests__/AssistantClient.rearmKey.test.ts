@@ -1,8 +1,10 @@
 /**
  * The agent keeps the BYOK key on its session, which is keyed by the
- * persistent user id and outlives the tab. Re-arming only ever SENT a stored
- * key, so a key removed in another dialog, or one that died with an old tab,
- * kept being used (and billed) by the agent.
+ * persistent `localStorage` user id, so every tab of the browser shares it.
+ * Re-arming used to send `{ user_api_key: '' }` from a tab with no key, which
+ * wiped the key another open tab had just set (its next request silently fell
+ * back to the server key). A tab now re-sends only a key it holds; removing a
+ * key clears it explicitly from the BYOK dialog.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -24,13 +26,10 @@ const connectedClient = () => {
 describe('AssistantClient — BYOK re-arm on connect', () => {
   afterEach(() => window.sessionStorage.clear());
 
-  it('clears the agent-side key when this tab stores none', () => {
+  it("sends nothing when this tab stores no key (never clears another tab's key)", () => {
     const { sent, rearm } = connectedClient();
     rearm();
-    expect(sent).toHaveLength(1);
-    const frame = JSON.parse(sent[0]);
-    expect(frame.action).toBe('user_set_variable');
-    expect(frame.message).toEqual({ user_api_key: '' });
+    expect(sent).toHaveLength(0);
   });
 
   it('re-sends a stored key', () => {

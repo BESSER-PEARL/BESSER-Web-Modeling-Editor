@@ -4,13 +4,13 @@ import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogPro
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from '../shared/constants/constant';
 import { getActiveDiagram } from '../shared/types/project';
-import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
+import { BesserEditorProvider } from '../features/editors/uml/besser-editor-context';
 import { EditorView } from '../features/editors/EditorView';
 import { ErrorPanel } from '../shared/components/error-handling/error-panel';
 import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
@@ -25,7 +25,6 @@ import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback'
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
-import { useOnboarding } from '../features/onboarding/useOnboarding';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { loadProjectThunk, selectProject } from './store/workspaceSlice';
 import type { RootState } from './store/store';
@@ -91,7 +90,7 @@ const postHogOptions = {
 };
 
 function AppContentInner() {
-  const [editor, setEditor] = useState<ApollonEditor>();
+  const [editor, setEditor] = useState<BesserEditor>();
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
 
@@ -159,7 +158,7 @@ function AppContentInner() {
   const onboarding = null as any;
 
   return (
-    <ApollonEditorProvider value={{ editor, setEditor }}>
+    <BesserEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
         onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
@@ -316,7 +315,7 @@ function AppContentInner() {
       </Suspense>
       <ToastContainer />
       <GlobalConfirmProvider />
-    </ApollonEditorProvider>
+    </BesserEditorProvider>
   );
 }
 

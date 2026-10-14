@@ -8,12 +8,12 @@ import type { BESSERModel } from '../../main/features/assistant/services/UMLMode
 type AgentTestModel = BESSERModel & { components?: Record<string, any> };
 
 const emptyAgentModel = (): AgentTestModel => ({
-  version: '3.0.0',
-  type: 'AgentDiagram',
-  size: { width: 1000, height: 800 },
-  elements: {},
-  relationships: {},
-  interactive: { elements: {}, relationships: {} },
+  version: '4.0.0',
+  id: 'agent',
+  title: 'Agent',
+  type: 'AgentDiagram' as UMLModel['type'],
+  nodes: [],
+  edges: [],
   assessments: {},
 });
 
@@ -21,12 +21,23 @@ const modifier = new AgentDiagramModifier();
 const apply = (model: AgentTestModel, modification: Record<string, unknown>): AgentTestModel =>
   modifier.applyModification(model, modification as unknown as ModelModification) as AgentTestModel;
 
-const bodiesOf = (model: AgentTestModel) =>
-  Object.values(model.elements).filter((el: any) => el.type === 'AgentStateBody');
+/** The inline action rows of every AgentState node (v4 `data.bodies`). */
+const bodiesOf = (model: AgentTestModel): Record<string, any>[] =>
+  model.nodes.filter((n) => n.type === 'AgentState').flatMap((n) => (n.data.bodies as Record<string, any>[]) ?? []);
 
-/** The body payload, without the per-call identity and geometry. */
+const stateNode = (id: string, name: string) => ({
+  id,
+  type: 'AgentState' as any,
+  position: { x: 0, y: 0 },
+  width: 100,
+  height: 30,
+  measured: { width: 100, height: 30 },
+  data: { name, bodies: [], fallbackBodies: [] },
+});
+
+/** The body payload, without the per-call identity. */
 const payload = (body: Record<string, any>) => {
-  const { id: _id, owner: _owner, bounds: _bounds, ...rest } = body;
+  const { id: _id, ...rest } = body;
   return rest;
 };
 
@@ -86,7 +97,7 @@ describe('AgentDiagramModifier component actions', () => {
 
   it.each(cases)('%s adds one off-canvas component', (action, changes, expected) => {
     const model = apply(emptyAgentModel(), { type: 'single', action, target: {}, changes });
-    expect(Object.keys(model.elements)).toHaveLength(0);
+    expect(model.nodes).toHaveLength(0);
     const components = Object.values(model.components ?? {});
     expect(components).toHaveLength(1);
     expect(components[0]).toMatchObject({ owner: null, ...expected });
@@ -114,13 +125,14 @@ describe('AgentDiagramConverter components section', () => {
     guis: [{ gui_id: 'signup', is_form: true }],
   };
 
-  it('puts every component in `components` and only canvas elements in `elements`', () => {
+  it('puts every component in `components` and only canvas items in `nodes`', () => {
     const model = new AgentDiagramConverter().convertCompleteSystem(spec) as AgentTestModel;
     const componentTypes = Object.values(model.components ?? {}).map((c: any) => c.type).sort();
     expect(componentTypes).toEqual(
       ['AgentGUI', 'AgentIntent', 'AgentIntentBody', 'AgentIntentBody', 'AgentLLM', 'AgentRagElement', 'AgentSkill', 'AgentTool', 'AgentWorkspace'].sort(),
     );
-    expect(Object.values(model.elements).map((e: any) => e.type).sort()).toEqual(['AgentState', 'AgentStateBody', 'StateInitialNode']);
+    expect(model.nodes.map((n) => n.type).sort()).toEqual(['AgentState', 'StateInitialNode']);
+    expect(bodiesOf(model)).toHaveLength(1);
     expect(Object.values(model.components ?? {}).every((c: any) => c.bounds === undefined)).toBe(true);
   });
 
@@ -128,7 +140,7 @@ describe('AgentDiagramConverter components section', () => {
     const model = new AgentDiagramConverter().convertCompleteSystem(spec) as AgentTestModel;
     const normalized = normalizeAgentComponents(model as unknown as UMLModel);
     expect(normalized.components).toEqual(model.components);
-    expect(normalized.elements).toEqual(model.elements);
+    expect(normalized.nodes).toEqual(model.nodes);
 
     // The modifier finds converter-built intents in `components`.
     const renamed = apply(model, { type: 'single', action: 'modify_intent', target: { intentName: 'greet' }, changes: { name: 'hello' } });
@@ -144,14 +156,22 @@ describe('AgentDiagramConverter components section', () => {
 });
 
 describe('AgentDiagramModifier on old-format models (components on the canvas)', () => {
+  // Pre-Components-page v4 models rendered intents as canvas nodes with
+  // inline `data.training_phrases` rows.
   const legacyModel = (): AgentTestModel => {
     const model = emptyAgentModel();
-    const bounds = { x: 0, y: 0, width: 100, height: 30 };
-    model.elements = {
-      state: { id: 'state', name: 'Welcome', type: 'AgentState', owner: null, bounds, bodies: [], actions: [] },
-      intent: { id: 'intent', name: 'greet', type: 'AgentIntent', owner: null, bounds, bodies: ['phrase'] },
-      phrase: { id: 'phrase', name: 'hi', type: 'AgentIntentBody', owner: 'intent', bounds },
-    };
+    model.nodes = [
+      stateNode('state', 'Welcome'),
+      {
+        id: 'intent',
+        type: 'AgentIntent' as any,
+        position: { x: 0, y: 0 },
+        width: 100,
+        height: 30,
+        measured: { width: 100, height: 30 },
+        data: { name: 'greet', intent_description: '', training_phrases: [{ id: 'phrase', name: 'hi' }] },
+      },
+    ];
     return model;
   };
 
@@ -159,7 +179,7 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
     const result = apply(legacyModel(), {
       type: 'single', action: 'modify_intent', target: { intentName: 'greet' }, changes: { text: 'hello' },
     });
-    expect(result.elements.intent).toBeUndefined();
+    expect(result.nodes.find((n) => n.id === 'intent')).toBeUndefined();
     expect(result.components?.intent.bodies).toHaveLength(2);
     expect(Object.values(result.components ?? {}).filter((c: any) => c.type === 'AgentIntentBody')).toHaveLength(2);
   });
@@ -167,7 +187,7 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
   it('removes a legacy intent with its training phrases', () => {
     const result = apply(legacyModel(), { type: 'single', action: 'remove_element', target: { intentName: 'greet' }, changes: {} });
     expect(result.components).toEqual({});
-    expect(Object.keys(result.elements)).toEqual(['state']);
+    expect(result.nodes.map((n) => n.id)).toEqual(['state']);
   });
 
   it('add_intent_training_phrase appends one phrase to the intent', () => {
@@ -184,28 +204,28 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
 
   it('add_transition connects the states the assistant names on the target', () => {
     const model = legacyModel();
-    model.elements.other = {
-      id: 'other', name: 'Help', type: 'AgentState', owner: null,
-      bounds: { x: 0, y: 0, width: 100, height: 30 }, bodies: [], actions: [],
-    };
+    model.nodes.push(stateNode('other', 'Help'));
     const result = apply(model, {
       type: 'single', action: 'add_transition',
       target: { sourceStateName: 'Welcome', targetStateName: 'Help' },
       changes: { condition: 'when_intent_matched', intentName: 'greet' },
     });
-    const [transition] = Object.values(result.relationships) as any[];
+    const [transition] = result.edges as any[];
     expect(transition).toMatchObject({
       type: 'AgentStateTransition',
-      source: { element: 'state' },
-      target: { element: 'other' },
-      predefined: { predefinedType: 'when_intent_matched', intentName: 'greet' },
+      source: 'state',
+      target: 'other',
+      data: {
+        transitionType: 'predefined',
+        predefined: { predefinedType: 'when_intent_matched', intentName: 'greet' },
+      },
     });
 
     const removed = apply(result, {
       type: 'single', action: 'remove_transition',
       target: { sourceStateName: 'Welcome', targetStateName: 'Help' }, changes: {},
     });
-    expect(removed.relationships).toEqual({});
+    expect(removed.edges).toEqual([]);
   });
 
   it('add_transition and remove_transition fail clearly when endpoints are missing', () => {

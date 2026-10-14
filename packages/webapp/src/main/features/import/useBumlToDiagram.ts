@@ -127,7 +127,9 @@ export const useBumlToDiagram = () => {
           break;
       }
 
-      // Create the diagram object
+      // Create the diagram object. The backend may still answer with a v3
+      // `{elements, relationships}` model — callers run the result through
+      // `maybeMigrateImportedDiagram` before validating it as v4.
       const diagram: ProjectDiagram = {
         id: uuid(),
         title: title,
@@ -171,8 +173,8 @@ export const isJsonFile = (file: File): boolean => {
 
 /**
  * Utility function to check if a file is a BPMN 2.0 XML file.
- * Accepts .bpmn, .bpmn.xml, and raw .xml (content-sniff in bpmnXmlToApollon
- * rejects non-BPMN .xml files cleanly).
+ * Accepts .bpmn, .bpmn.xml, and raw .xml (the content sniff in
+ * `bpmnXmlToModel` rejects non-BPMN .xml files cleanly).
  */
 export const isBpmnXmlFile = (file: File): boolean => {
   const name = file.name.toLowerCase();

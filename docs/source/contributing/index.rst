@@ -22,9 +22,9 @@ Quick Links
 Where to Contribute
 -------------------
 
-**Editor package** (``packages/editor``)
-   The reusable modeling engine. Add diagram types, element renderers, palette
-   previews, property popups, or improve the ``ApollonEditor`` API.
+**Library package** (``packages/library``)
+   The reusable modeling engine. Add diagram types, node / edge components,
+   palette previews, inspector panels, or improve the ``BesserEditor`` API.
 
 **Web application** (``packages/webapp``)
    The React SPA. Improve project management, code generation integration,

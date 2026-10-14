@@ -1,96 +1,202 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "pool-message",
+  "title": "pool-message",
   "type": "BPMNDiagram",
-  "size": { "width": 1000, "height": 700 },
-  "elements": {
-    "pool-a": {
+  "nodes": [
+    {
       "id": "pool-a",
-      "name": "SwarmA",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 40, "width": 400, "height": 160 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 400,
+      "height": 160,
+      "measured": {
+        "width": 400,
+        "height": 160
+      },
+      "data": {
+        "name": "SwarmA"
+      }
     },
-    "lane-a": {
+    {
       "id": "lane-a",
-      "name": "Coordinator",
-      "type": "BPMNSwimlane",
-      "owner": "pool-a",
-      "bounds": { "x": 60, "y": 60, "width": 380, "height": 120 },
-      "isAgentic": true,
-      "role": "supervision",
-      "trustScore": 70
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 380,
+      "height": 120,
+      "measured": {
+        "width": 380,
+        "height": 120
+      },
+      "data": {
+        "name": "Coordinator",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 70
+      },
+      "parentId": "pool-a"
     },
-    "task-a": {
+    {
       "id": "task-a",
-      "name": "Request",
-      "type": "BPMNTask",
-      "owner": "lane-a",
-      "bounds": { "x": 120, "y": 90, "width": 140, "height": 60 },
-      "isAgentic": true
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 30
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Request",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-a"
     },
-    "pool-b": {
+    {
       "id": "pool-b",
-      "name": "SwarmB",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 260, "width": 400, "height": 160 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 260
+      },
+      "width": 400,
+      "height": 160,
+      "measured": {
+        "width": 400,
+        "height": 160
+      },
+      "data": {
+        "name": "SwarmB"
+      }
     },
-    "lane-b": {
+    {
       "id": "lane-b",
-      "name": "Solver",
-      "type": "BPMNSwimlane",
-      "owner": "pool-b",
-      "bounds": { "x": 60, "y": 280, "width": 380, "height": 120 },
-      "isAgentic": true,
-      "role": "solution",
-      "trustScore": 60
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 380,
+      "height": 120,
+      "measured": {
+        "width": 380,
+        "height": 120
+      },
+      "data": {
+        "name": "Solver",
+        "isAgentic": true,
+        "role": "solution",
+        "trustScore": 60
+      },
+      "parentId": "pool-b"
     },
-    "task-b": {
+    {
       "id": "task-b",
-      "name": "Solve",
-      "type": "BPMNTask",
-      "owner": "lane-b",
-      "bounds": { "x": 120, "y": 310, "width": 140, "height": 60 },
-      "isAgentic": true
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 30
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Solve",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-b"
     },
-    "pool-c": {
+    {
       "id": "pool-c",
-      "name": "LegacySystem",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 520, "y": 40, "width": 320, "height": 120 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 520,
+        "y": 40
+      },
+      "width": 320,
+      "height": 120,
+      "measured": {
+        "width": 320,
+        "height": 120
+      },
+      "data": {
+        "name": "LegacySystem"
+      }
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {
-    "mf-1": {
+  ],
+  "edges": [
+    {
       "id": "mf-1",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "message",
-      "owner": null,
-      "bounds": { "x": 40, "y": 200, "width": 1, "height": 60 },
-      "path": [
-        { "x": 240, "y": 200 },
-        { "x": 240, "y": 260 }
-      ],
-      "source": { "element": "pool-a", "direction": "Down" },
-      "target": { "element": "pool-b", "direction": "Up" }
+      "source": "pool-a",
+      "target": "pool-b",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 280,
+            "y": 400
+          },
+          {
+            "x": 280,
+            "y": 460
+          }
+        ]
+      }
     },
-    "mf-2": {
+    {
       "id": "mf-2",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "message",
-      "owner": null,
-      "bounds": { "x": 260, "y": 90, "width": 260, "height": 1 },
-      "path": [
-        { "x": 260, "y": 120 },
-        { "x": 520, "y": 100 }
-      ],
-      "source": { "element": "task-a", "direction": "Right" },
-      "target": { "element": "pool-c", "direction": "Left" }
+      "source": "task-a",
+      "target": "pool-c",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 520,
+            "y": 210
+          },
+          {
+            "x": 780,
+            "y": 190
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

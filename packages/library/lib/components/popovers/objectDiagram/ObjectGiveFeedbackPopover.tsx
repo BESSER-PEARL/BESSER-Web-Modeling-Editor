@@ -1,0 +1,47 @@
+import { useDiagramStore } from "@/store"
+import { useShallow } from "zustand/shallow"
+import { ObjectNodeProps } from "@/types"
+import { PopoverProps } from "../types"
+import { GiveFeedbackAssessmentBox } from "../GiveFeedbackAssessmentBox"
+import Button from "@mui/material/Button"
+import { useGoToNextAssessment } from "@/hooks"
+import { useTranslation } from "@/i18n"
+
+export const ObjectGiveFeedbackPopover = ({ elementId }: PopoverProps) => {
+  const nodes = useDiagramStore(useShallow((state) => state.nodes))
+  const handleGoToNextAssessment = useGoToNextAssessment(elementId)
+  const { t } = useTranslation()
+
+  const node = nodes.find((node) => node.id === elementId)
+  if (!node) return null
+
+  const nodeData = node.data as ObjectNodeProps
+
+  return (
+    <>
+      <GiveFeedbackAssessmentBox
+        elementId={elementId}
+        name={nodeData.name}
+        type="Node"
+      />
+      {nodeData.attributes.map((attr) => (
+        <GiveFeedbackAssessmentBox
+          key={attr.id}
+          elementId={attr.id}
+          name={attr.name}
+          type="Attribute"
+        />
+      ))}
+      {/* Object instances don't carry methods —
+          UML object diagrams show data values, not types. */}
+      <Button
+        variant="contained"
+        size="small"
+        onClick={handleGoToNextAssessment}
+        style={{ textTransform: "none" }}
+      >
+        {t("assessment.nextAssessment", "Next Assessment")}
+      </Button>
+    </>
+  )
+}

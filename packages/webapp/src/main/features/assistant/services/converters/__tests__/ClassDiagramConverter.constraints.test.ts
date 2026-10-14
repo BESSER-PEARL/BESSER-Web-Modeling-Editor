@@ -46,14 +46,27 @@ const HOTEL_SPEC = {
   ]
 };
 
+// v4 views: constraint boxes are `ClassOCLConstraint` nodes (full OCL text on
+// `data.expression`), tethered to their class by `ClassOCLLink` edges.
 const oclElements = (model: any) =>
-  Object.values(model.elements).filter((e: any) => e.type === 'ClassOCLConstraint') as any[];
+  (model.nodes as any[])
+    .filter((n: any) => n.type === 'ClassOCLConstraint')
+    .map((n: any) => ({
+      id: n.id,
+      constraint: n.data.expression as string,
+      bounds: { x: n.position.x, y: n.position.y, width: n.width, height: n.height },
+    })) as any[];
 
 const oclLinks = (model: any) =>
-  Object.values(model.relationships).filter((r: any) => r.type === 'ClassOCLLink') as any[];
+  (model.edges as any[])
+    .filter((e: any) => e.type === 'ClassOCLLink')
+    .map((e: any) => ({ id: e.id, source: { element: e.source }, target: { element: e.target } })) as any[];
+
+const classNodes = (model: any) =>
+  (model.nodes as any[]).filter((n: any) => n.type === 'class' && !n.data.stereotype);
 
 const classIdByName = (model: any, name: string) =>
-  (Object.values(model.elements) as any[]).find((e: any) => e.type === 'Class' && e.name === name)?.id;
+  classNodes(model).find((n: any) => n.data.name === name)?.id;
 
 describe('ClassDiagramConverter — native association classes', () => {
   const spec = {
@@ -68,19 +81,23 @@ describe('ClassDiagramConverter — native association classes', () => {
 
   it('attaches the attribute class to the direct association, preserving roles and bounds', () => {
     const model = new ClassDiagramConverter().convertCompleteSystem(spec);
-    const links = Object.values(model.relationships).filter((r: any) => r.type === 'ClassLinkRel');
+    const links = (model.edges as any[]).filter((e: any) => e.type === 'ClassLinkRel');
     expect(links).toHaveLength(1);
     const link = links[0] as any;
-    expect(link.source.element).toBe(classIdByName(model, 'ReservedRoom'));
-    const association = model.relationships[link.target.element];
+    // Canonical v4 association-class link: source = the association EDGE,
+    // target = the association-class node.
+    expect(link.target).toBe(classIdByName(model, 'ReservedRoom'));
+    expect(link.sourceHandle).toBe('Center');
+    const association = (model.edges as any[]).find((e: any) => e.id === link.source);
     expect(association.type).toBe('ClassBidirectional');
-    expect(association.source).toMatchObject({ role: 'bookings', multiplicity: '0..*' });
-    expect(association.target).toMatchObject({ role: 'rooms', multiplicity: '1..*' });
-    const attributes = model.elements[link.source.element].attributes.map((id: string) => model.elements[id].name);
+    expect(association.data).toMatchObject({ sourceRole: 'bookings', sourceMultiplicity: '0..*' });
+    expect(association.data).toMatchObject({ targetRole: 'rooms', targetMultiplicity: '1..*' });
+    const classNode = (model.nodes as any[]).find((n: any) => n.id === link.target);
+    const attributes = classNode.data.attributes.map((a: any) => a.name);
     expect(attributes).toEqual(['agreedPrice', 'extraCharges']);
     // Ordinary specs remain ordinary; never infer an attachment from a name.
     const plain = new ClassDiagramConverter().convertCompleteSystem({ ...spec, relationships: HOTEL_SPEC.relationships });
-    expect(Object.values(plain.relationships).some((r: any) => r.type === 'ClassLinkRel')).toBe(false);
+    expect((plain.edges as any[]).some((e: any) => e.type === 'ClassLinkRel')).toBe(false);
   });
 
   it('rejects missing or multiply attached classes instead of silently discarding link attributes', () => {
@@ -134,14 +151,12 @@ describe('ClassDiagramConverter — OCL constraints', () => {
 
   it('does not disturb the classes or associations', () => {
     const model = new ClassDiagramConverter().convertCompleteSystem(HOTEL_SPEC);
-    const classes = (Object.values(model.elements) as any[]).filter((e: any) => e.type === 'Class');
-    expect(classes.map((c) => c.name).sort()).toEqual(['Booking', 'Person', 'Room']);
+    const classes = classNodes(model);
+    expect(classes.map((c: any) => c.data.name).sort()).toEqual(['Booking', 'Person', 'Room']);
 
-    const assocs = (Object.values(model.relationships) as any[]).filter(
-      (r: any) => r.type !== 'ClassOCLLink'
-    );
+    const assocs = (model.edges as any[]).filter((e: any) => e.type !== 'ClassOCLLink');
     expect(assocs).toHaveLength(1);
-    expect(assocs[0].target.multiplicity).toBe('1..*');
+    expect(assocs[0].data.targetMultiplicity).toBe('1..*');
   });
 
   it('drops a constraint whose context is not a class in the spec', () => {

@@ -1,19 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ApollonEditor,
-  ApollonMode,
-  UMLDiagramType,
-  Locale,
-  type UMLModel,
-  type UMLRelationship,
-  type Patch,
-} from '@besser/wme';
+import { BesserEditor, BesserMode, UMLDiagramType, type UMLModel } from '@besser/wme';
 import { Bot, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppSelector } from '@/main/app/store/hooks';
 import { selectActiveDiagram } from '@/main/app/store/workspaceSlice';
 import { selectStdoutLines } from '@/main/features/agent-simulation';
 import { isUMLModel } from '@/main/shared/types/project';
+import { toEditorLocale } from '@/main/shared/i18n/languages';
 
 const ACTIVE_STATE_FILL = '#03d7fc';
 const ACTIVE_TRANSITION_STROKE = '#03d7fc';
@@ -31,7 +24,7 @@ function parseTransitionLog(line: string): TransitionEntry | null {
   if (!arrowMatch) return null;
   const from = arrowMatch[1].trim();
   const to = arrowMatch[2].trim();
-  let beforeArrow = line.slice(0, arrowMatch.index!).trimEnd().replace(/:?\s*$/, '').trimEnd();
+  const beforeArrow = line.slice(0, arrowMatch.index!).trimEnd().replace(/:?\s*$/, '').trimEnd();
   const infoIdx = beforeArrow.search(/\bINFO\b/i);
   let candidate = infoIdx >= 0 ? beforeArrow.slice(infoIdx + 4) : beforeArrow;
   candidate = candidate.replace(/^[\s\-:]+/, '');
@@ -43,76 +36,54 @@ function parseTransitionLog(line: string): TransitionEntry | null {
   return event ? { event, from, to } : null;
 }
 
-function findStateElementId(model: UMLModel, stateName: string | null): string | null {
+const nodeName = (node: UMLModel['nodes'][number]): unknown => (node.data as { name?: unknown } | undefined)?.name;
+
+/** Id of the AgentState node (v4 `nodes`) named `stateName`. */
+export function findStateNodeId(model: UMLModel, stateName: string | null): string | null {
   if (!stateName) return null;
-  for (const [id, el] of Object.entries(model.elements)) {
-    if (el.type === AGENT_STATE_TYPE && el.name === stateName) return id;
-  }
-  return null;
+  const node = (model.nodes ?? []).find((n) => (n.type as string) === AGENT_STATE_TYPE && nodeName(n) === stateName);
+  return node?.id ?? null;
 }
 
-function findTransitionRelId(
+/** Id of the AgentStateTransition edge (v4 `edges`) between two named states. */
+export function findTransitionEdgeId(
   model: UMLModel,
   fromStateName: string | null,
   toStateName: string | null,
 ): string | null {
   if (!fromStateName || !toStateName) return null;
-  const fromId = findStateElementId(model, fromStateName);
-  const toId = findStateElementId(model, toStateName);
+  const fromId = findStateNodeId(model, fromStateName);
+  const toId = findStateNodeId(model, toStateName);
   if (!fromId || !toId) return null;
-  for (const [id, rel] of Object.entries(model.relationships)) {
-    const r = rel as UMLRelationship;
-    if (
-      r.type === AGENT_TRANSITION_TYPE &&
-      r.source?.element === fromId &&
-      r.target?.element === toId
-    ) {
-      return id;
-    }
-  }
-  return null;
-}
-
-function buildHighlightedModel(model: UMLModel, activeState: string | null): UMLModel {
-  if (!activeState) return model;
-  const elements = { ...model.elements };
-  for (const [id, el] of Object.entries(elements)) {
-    if (el.type === AGENT_STATE_TYPE && el.name === activeState) {
-      elements[id] = { ...el, fillColor: ACTIVE_STATE_FILL };
-    }
-  }
-  return { ...model, elements };
-}
-
-function scrollToState(containerEl: HTMLElement, model: UMLModel, stateName: string): void {
-  const activeEl = Object.values(model.elements).find(
-    (e) => e.type === AGENT_STATE_TYPE && e.name === stateName,
+  const edge = (model.edges ?? []).find(
+    (e) => (e.type as string) === AGENT_TRANSITION_TYPE && e.source === fromId && e.target === toId,
   );
-  if (!activeEl) return;
+  return edge?.id ?? null;
+}
 
-  const canvasSvg = containerEl.querySelector<Element>('#modeling-editor-canvas');
-  if (!canvasSvg) return;
-
-  let scrollEl: HTMLElement | null = canvasSvg.parentElement as HTMLElement | null;
-  while (scrollEl && scrollEl !== containerEl) {
-    const { overflow, overflowX, overflowY } = getComputedStyle(scrollEl);
-    if (/auto|scroll/.test(overflow + overflowX + overflowY)) break;
-    scrollEl = scrollEl.parentElement as HTMLElement | null;
-  }
-  if (!scrollEl || scrollEl === containerEl) return;
-
-  const svgEl = canvasSvg as SVGSVGElement;
-  const svgWidth = svgEl.width?.baseVal?.value || svgEl.clientWidth || 0;
-  const svgHeight = svgEl.height?.baseVal?.value || svgEl.clientHeight || 0;
-
-  const cx = svgWidth / 2 + activeEl.bounds.x + activeEl.bounds.width / 2;
-  const cy = svgHeight / 2 + activeEl.bounds.y + activeEl.bounds.height / 2;
-
-  scrollEl.scrollTo({
-    left: Math.max(0, cx - scrollEl.clientWidth / 2),
-    top: Math.max(0, cy - scrollEl.clientHeight / 2),
-    behavior: 'smooth',
-  });
+/**
+ * The model with the active state filled and the last-taken transition stroked. Pure: the
+ * stored model is never mutated, so the original colours come back when the highlight moves.
+ */
+export function buildHighlightedModel(
+  model: UMLModel,
+  activeState: string | null,
+  activeTransitionId: string | null = null,
+): UMLModel {
+  if (!activeState && !activeTransitionId) return model;
+  return {
+    ...model,
+    nodes: (model.nodes ?? []).map((node) =>
+      activeState && (node.type as string) === AGENT_STATE_TYPE && nodeName(node) === activeState
+        ? { ...node, data: { ...node.data, fillColor: ACTIVE_STATE_FILL } }
+        : node,
+    ),
+    edges: (model.edges ?? []).map((edge) =>
+      activeTransitionId && edge.id === activeTransitionId
+        ? { ...edge, data: { ...edge.data, strokeColor: ACTIVE_TRANSITION_STROKE } }
+        : edge,
+    ),
+  };
 }
 
 interface AgentDiagramReadOnlyProps {
@@ -120,9 +91,9 @@ interface AgentDiagramReadOnlyProps {
 }
 
 export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ currentState }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<ApollonEditor | null>(null);
+  const editorRef = useRef<BesserEditor | null>(null);
   const isReadyRef = useRef(false);
   const currentStateRef = useRef(currentState);
   currentStateRef.current = currentState;
@@ -132,15 +103,9 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
   const diagramRef = useRef(diagram);
   diagramRef.current = diagram;
 
-  // State highlight tracking
-  const prevHighlightIdRef = useRef<string | null>(null);
-  const originalFillsRef = useRef<Record<string, string | undefined>>({});
-  const prevDiagramRef = useRef(diagram);
-
-  // Transition highlight tracking
+  // Transition highlight tracking: the transition taken to reach the current state.
   const prevCurrentStateRef = useRef<string | null>(null);
-  const prevHighlightRelIdRef = useRef<string | null>(null);
-  const origRelStrokesRef = useRef<Record<string, string | undefined>>({});
+  const activeTransitionIdRef = useRef<string | null>(null);
   const styleElRef = useRef<HTMLStyleElement | null>(null);
 
   const [showHistory, setShowHistory] = useState(false);
@@ -155,52 +120,34 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     return entries;
   }, [stdoutLines]);
 
-  // Create editor on mount
+  // Create a read-only React Flow editor on mount (readonly hides the palette; no popups).
   useEffect(() => {
     if (!containerRef.current) return;
 
     const origModel = diagramRef.current?.model;
     const umlModel = origModel && isUMLModel(origModel) ? origModel : undefined;
-
-    if (umlModel) {
-      for (const [id, el] of Object.entries(umlModel.elements)) {
-        if (el.type === AGENT_STATE_TYPE) {
-          originalFillsRef.current[id] = el.fillColor;
-        }
-      }
-      for (const [id, rel] of Object.entries(umlModel.relationships)) {
-        origRelStrokesRef.current[id] = (rel as UMLRelationship).strokeColor;
-      }
-    }
-
     const initState = currentStateRef.current;
-    prevHighlightIdRef.current = umlModel ? findStateElementId(umlModel, initState) : null;
-    prevDiagramRef.current = diagramRef.current;
+    prevCurrentStateRef.current = initState;
 
-    const editor = new ApollonEditor(containerRef.current, {
+    const editor = new BesserEditor(containerRef.current, {
       type: UMLDiagramType.AgentDiagram,
       readonly: true,
-      mode: ApollonMode.Exporting,
+      mode: BesserMode.Exporting,
       enablePopups: false,
-      locale: Locale.en,
+      locale: toEditorLocale(i18n.language),
       model: umlModel ? buildHighlightedModel(umlModel, initState) : undefined,
     });
     editorRef.current = editor;
 
-    void editor.nextRender.then(() => {
+    void editor.ready.then(() => {
       if (editorRef.current !== editor) return;
       isReadyRef.current = true;
-
-      if (initState && containerRef.current) {
-        requestAnimationFrame(() => {
-          if (containerRef.current && initState && editorRef.current) {
-            scrollToState(containerRef.current, editorRef.current.model, initState);
-          }
-        });
-      }
+      // Bring the initial state into view, as develop's scrollToState did.
+      const stateId = umlModel && initState ? findStateNodeId(umlModel, initState) : null;
+      if (stateId) editor.fitToElements([stateId]);
     });
 
-    // Inject <style> element for transition stroke-width override
+    // Injected <style> element: glow on the active transition (doesn't scale the arrowhead)
     const styleEl = document.createElement('style');
     styleEl.setAttribute('data-agent-test', 'transition-highlight');
     document.head.appendChild(styleEl);
@@ -209,108 +156,41 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     return () => {
       editorRef.current = null;
       isReadyRef.current = false;
-      prevHighlightIdRef.current = null;
-      originalFillsRef.current = {};
-      prevHighlightRelIdRef.current = null;
-      origRelStrokesRef.current = {};
+      activeTransitionIdRef.current = null;
       prevCurrentStateRef.current = null;
       styleElRef.current?.remove();
       styleElRef.current = null;
       setTimeout(() => {
-        try { editor.destroy(); } catch {}
+        try {
+          editor.destroy();
+        } catch {
+          /* already destroyed */
+        }
       }, 0);
     };
+    // The editor is created once; model / highlight changes are pushed by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update state + transition highlight when currentState changes
+  // Update state + transition highlight when the current state (or the diagram) changes.
   useEffect(() => {
     if (!isReadyRef.current || !editorRef.current) return;
     const model = diagram?.model;
     if (!model || !isUMLModel(model)) return;
 
-    const editor = editorRef.current;
-    const isDiagramChange = prevDiagramRef.current !== diagram;
-    prevDiagramRef.current = diagram;
-
-    if (isDiagramChange) {
-      originalFillsRef.current = {};
-      for (const [id, el] of Object.entries(model.elements)) {
-        if (el.type === AGENT_STATE_TYPE) {
-          originalFillsRef.current[id] = el.fillColor;
-        }
-      }
-      origRelStrokesRef.current = {};
-      for (const [id, rel] of Object.entries(model.relationships)) {
-        origRelStrokesRef.current[id] = (rel as UMLRelationship).strokeColor;
-      }
-      const newStateId = findStateElementId(model, currentState);
-      prevHighlightIdRef.current = newStateId;
-      const newRelId = findTransitionRelId(model, prevCurrentStateRef.current, currentState);
-      prevHighlightRelIdRef.current = newRelId;
+    if (prevCurrentStateRef.current !== currentState) {
+      activeTransitionIdRef.current = findTransitionEdgeId(model, prevCurrentStateRef.current, currentState);
       prevCurrentStateRef.current = currentState;
-      editor.model = buildHighlightedModel(model, currentState);
-      return;
     }
+    const activeTransitionId = activeTransitionIdRef.current;
+    editorRef.current.model = buildHighlightedModel(model, currentState, activeTransitionId);
+    const stateId = findStateNodeId(model, currentState);
+    if (stateId) editorRef.current.fitToElements([stateId]);
 
-    const patches: Patch = [];
-
-    // --- State fill highlight ---
-    const prevStateId = prevHighlightIdRef.current;
-    const newStateId = findStateElementId(model, currentState);
-
-    if (prevStateId !== newStateId) {
-      if (prevStateId) {
-        const orig = originalFillsRef.current[prevStateId];
-        if (orig !== undefined && orig !== null) {
-          patches.push({ op: 'replace', path: `/elements/${prevStateId}/fillColor`, value: orig });
-        } else {
-          patches.push({ op: 'remove', path: `/elements/${prevStateId}/fillColor` });
-        }
-      }
-      if (newStateId) {
-        patches.push({ op: 'add', path: `/elements/${newStateId}/fillColor`, value: ACTIVE_STATE_FILL });
-      }
-      prevHighlightIdRef.current = newStateId;
-    }
-
-    // --- Transition stroke highlight ---
-    const prevRelId = prevHighlightRelIdRef.current;
-    const newRelId = findTransitionRelId(model, prevCurrentStateRef.current, currentState);
-    prevCurrentStateRef.current = currentState;
-
-    if (prevRelId !== newRelId) {
-      if (prevRelId) {
-        const orig = origRelStrokesRef.current[prevRelId];
-        if (orig !== undefined && orig !== null) {
-          patches.push({ op: 'replace', path: `/relationships/${prevRelId}/strokeColor`, value: orig });
-        } else {
-          patches.push({ op: 'remove', path: `/relationships/${prevRelId}/strokeColor` });
-        }
-      }
-      if (newRelId) {
-        patches.push({ op: 'add', path: `/relationships/${newRelId}/strokeColor`, value: ACTIVE_TRANSITION_STROKE });
-      }
-      prevHighlightRelIdRef.current = newRelId;
-
-      // CSS injection: glow on the active transition (doesn't scale the arrowhead)
-      if (styleElRef.current) {
-        styleElRef.current.textContent = newRelId
-          ? `#${CSS.escape(newRelId)} g { filter: drop-shadow(0 0 4px ${ACTIVE_TRANSITION_STROKE}cc); }`
-          : '';
-      }
-    }
-
-    if (patches.length > 0) {
-      editor.importPatch(patches);
-    }
-
-    // Smooth-scroll to new active state
-    if (currentState && containerRef.current) {
-      requestAnimationFrame(() => {
-        if (containerRef.current && currentState && editorRef.current) {
-          scrollToState(containerRef.current, editorRef.current.model, currentState);
-        }
-      });
+    if (styleElRef.current) {
+      styleElRef.current.textContent = activeTransitionId
+        ? `.react-flow__edge[data-id="${CSS.escape(activeTransitionId)}"] { filter: drop-shadow(0 0 4px ${ACTIVE_TRANSITION_STROKE}cc); }`
+        : '';
     }
   }, [currentState, diagram]);
 
@@ -413,7 +293,7 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
         <div
           ref={containerRef}
           className="absolute inset-0"
-          style={{ backgroundColor: 'var(--apollon-background, #ffffff)' }}
+          style={{ backgroundColor: 'var(--besser-background, #ffffff)' }}
         />
       </div>
     </div>

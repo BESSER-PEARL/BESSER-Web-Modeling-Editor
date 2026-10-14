@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
+import { BesserEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
@@ -64,6 +64,7 @@ import {
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import { bpmnModelToXml } from '../export/bpmn-xml-exporter';
 import i18n from '../../shared/i18n';
 import {
   buildAllWebAppVersions,
@@ -118,9 +119,9 @@ function isUMLModelEmpty(diagram: ProjectDiagram | undefined): boolean {
   if (!diagram || !diagram.model) return true;
   if (!isUMLModel(diagram.model)) return true;
   const model = diagram.model;
-  const elementCount = model.elements ? Object.keys(model.elements).length : 0;
-  const relationshipCount = model.relationships ? Object.keys(model.relationships).length : 0;
-  return elementCount === 0 && relationshipCount === 0;
+  const nodeCount = Array.isArray(model.nodes) ? model.nodes.length : 0;
+  const edgeCount = Array.isArray(model.edges) ? model.edges.length : 0;
+  return nodeCount === 0 && edgeCount === 0;
 }
 
 function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
@@ -150,32 +151,46 @@ function didValidationPass(result: any): boolean {
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
 
-function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+export function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
   const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);
   const model = diagram?.model as any;
-  if (!model || !model.elements) return empty;
+  if (!model || !Array.isArray(model.nodes)) return empty;
 
-  const elements = model.elements ? Object.values(model.elements) as any[] : [];
-  const countByType = (types: string[]) => elements.filter((el) => types.includes(el.type)).length;
+  // v4 collapsed ClassAttribute / ClassMethod into rows on the parent class's
+  // node.data.attributes / node.data.methods. We count those by walking nodes
+  // of type 'class' and summing the row arrays.
+  const nodes: any[] = Array.isArray(model.nodes) ? model.nodes : [];
+  const countByType = (types: string[]) => nodes.filter((n) => types.includes(n.type)).length;
 
-  const classesCount = countByType(['Class']);
-  const abstractClassesCount = countByType(['AbstractClass']);
-  const attributesCount = countByType(['ClassAttribute']);
-  const methodsCount = countByType(['ClassMethod']);
-  const enumerationsCount = countByType(['Enumeration']);
-  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  // v4 'class' nodes carry a `data.stereotype` discriminator: 'Abstract',
+  // 'Interface', 'Enumeration' (ClassType casing; older data may be
+  // lowercase), or null/undefined for a plain Class.
+  const classNodes = nodes.filter((n) => n.type === 'class');
+  const stereotypeOf = (n: any): string => String(n?.data?.stereotype ?? '').toLowerCase();
+  const classesCount = classNodes.filter((n) => !n?.data?.stereotype).length;
+  const abstractClassesCount = classNodes.filter((n) => stereotypeOf(n) === 'abstract').length;
+  const enumerationsCount = classNodes.filter((n) => stereotypeOf(n) === 'enumeration').length;
+  // Fall back to counting v3-style standalone attribute/method nodes if the migrator
+  // ever leaves them around (it shouldn't) — defensive against partial models.
+  const attributesCount =
+    classNodes.reduce((sum, n) => sum + (Array.isArray(n?.data?.attributes) ? n.data.attributes.length : 0), 0) +
+    countByType(['ClassAttribute']);
+  const methodsCount =
+    classNodes.reduce((sum, n) => sum + (Array.isArray(n?.data?.methods) ? n.data.methods.length : 0), 0) +
+    countByType(['ClassMethod']);
+  const relationshipsCount = Array.isArray(model.edges) ? model.edges.length : 0;
 
   return {
-    elements_count: elements.length,
+    elements_count: nodes.length,
     classes_count: classesCount,
     abstract_classes_count: abstractClassesCount,
     attributes_count: attributesCount,
     methods_count: methodsCount,
     enumerations_count: enumerationsCount,
     relationships_count: relationshipsCount,
-    total_size: elements.length + relationshipsCount,
+    total_size: nodes.length + relationshipsCount,
   };
 }
 
@@ -549,7 +564,7 @@ export interface GeneratorConfigState {
 export interface UseGeneratorExecutionReturn {
   isGenerating: boolean;
   /** Passed to WorkspaceShell → onGenerate */
-  handleGenerateRequest: (type: GeneratorType) => Promise<void>;
+  handleGenerateRequest: (type: GeneratorType, config?: Record<string, any>) => Promise<void>;
   /** Passed to WorkspaceShell → onAssistantGenerate  and UMLAgentModeling */
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
@@ -560,7 +575,7 @@ export interface UseGeneratorExecutionReturn {
   isLocalEnvironment: boolean;
 }
 
-export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGeneratorExecutionReturn {
+export function useGeneratorExecution(editor: BesserEditor | undefined): UseGeneratorExecutionReturn {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -570,7 +585,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
 
-  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isBpmnContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -728,7 +743,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // ── Core execution ─────────────────────────────────────────────────────────
 
   const ensureGuiForAssistantWebAppGeneration = useCallback(
-    async (): Promise<GenerationResult | null> => {
+    async (): Promise<Extract<GenerationResult, { ok: false }> | null> => {
       if (!currentProject) {
         return { ok: false, error: t('generation.toasts.createOrLoadProject') };
       }
@@ -845,7 +860,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
-          const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
+          const nnResult = await runGen(editor ?? null, generatorType, activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (nnResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -855,6 +870,46 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             });
           }
           return nnResult;
+        }
+
+        if (generatorType === 'bpmn') {
+          // BPMN export is a purely client-side transform (there is no
+          // server-side BPMN generator). Serialize the active BPMN diagram's
+          // v4 model to BPMN 2.0 XML and trigger a `.bpmn` download.
+          if (!isBpmnContext) {
+            toast.error(t('generation.toasts.openBpmnEditor'));
+            return { ok: false, error: 'Open a BPMN diagram before exporting BPMN 2.0 XML.' };
+          }
+          const bpmnModel = getActiveDiagram(currentProject, 'BPMN')?.model;
+          if (!bpmnModel || !isUMLModel(bpmnModel)) {
+            toast.error(t('generation.toasts.bpmnNoModel'));
+            return { ok: false, error: 'The active BPMN diagram has no model to export.' };
+          }
+          try {
+            const xml = bpmnModelToXml(bpmnModel);
+            const filename = `${activeDiagramTitle || 'diagram'}.bpmn`;
+            const blob = new Blob([xml], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+            getPostHog()?.capture('generator_used', {
+              generator_type: 'bpmn',
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+            return { ok: true, filename };
+          } catch (error) {
+            const msg = t('generation.toasts.bpmnExportFailed', {
+              error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
+            });
+            toast.error(msg);
+            return { ok: false, error: msg };
+          }
         }
 
         // Agentic flow: a class-diagram generator was requested while a
@@ -870,8 +925,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {
           const storedClassDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
           const storedModel = storedClassDiagram?.model as UMLModel | undefined;
-          const hasElements =
-            !!storedModel && Object.keys((storedModel as any).elements ?? {}).length > 0;
+          const hasElements = !!storedModel && Array.isArray((storedModel as any).nodes) && (storedModel as any).nodes.length > 0;
           if (hasElements) {
             // Smart Data Models is the jsonschema generator in smart_data mode
             // (the backend has no 'smartdata' generator), as in the switch below.
@@ -916,7 +970,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await runGen(editor, 'django', activeDiagramTitle, config as DjangoConfig);
             break;
           case 'spring':
-            result = await generateCode(editor, 'spring', activeDiagramTitle, config as SpringConfig);
+            result = await runGen(editor, 'spring', activeDiagramTitle, config as SpringConfig);
             break;
           case 'sql':
             result = await runGen(editor, 'sql', activeDiagramTitle, config as SQLConfig);
@@ -988,7 +1042,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration, t,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isBpmnContext, ensureGuiForAssistantWebAppGeneration, t,
     ],
   );
 
@@ -1028,7 +1082,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error(t('generation.toasts.comingSoon'));
+      toast.info(t('generation.toasts.qualityCheckUnavailable', 'Quality check is not available for this editor yet.'));
       return { executed: false, passed: false };
     }
 
@@ -1191,9 +1245,16 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     const resolvedOpenAiModel =
       agentConfig.agentLlmModel === 'other' ? agentConfig.agentCustomLlmModel.trim() : agentConfig.agentLlmModel;
     const defaultLlmNameFromDiagram =
-      diagramConfig && typeof diagramConfig.default_llm_name === 'string' && diagramConfig.default_llm_name
-        ? diagramConfig.default_llm_name
+      diagramConfig && typeof diagramConfig.default_llm_name === 'string' && diagramConfig.default_llm_name.trim()
+        ? diagramConfig.default_llm_name.trim()
         : undefined;
+    // The Runtime tab can drive the LLM either via a named definition
+    // (`llm: { name }` + top-level `default_llm_name`, the multi-LLM path) or
+    // the legacy inline `llm: { provider, model }`. Resolve the named shape —
+    // falling back to `default_llm_name` when only that is set — and forward
+    // it verbatim so standalone agent generation emits the same wire-shape the
+    // BAF backend reads (parity with the personalization path).
+    const namedLlm = agentConfig.agentLlmName.trim() || defaultLlmNameFromDiagram || '';
     const resolvedAgentPlatform =
       agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
         ? 'streamlit'
@@ -1202,8 +1263,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       agentPlatform: resolvedAgentPlatform,
       intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
       ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
-      ...(agentConfig.agentLlmName
-        ? { llm: { name: agentConfig.agentLlmName } }
+      ...(namedLlm
+        ? { llm: { name: namedLlm }, default_llm_name: defaultLlmNameFromDiagram ?? namedLlm }
         : agentConfig.agentLlmProvider
           ? {
               llm: {
@@ -1273,12 +1334,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
           };
         })
-        .filter((entry): entry is {
-          name: string;
-          configuration: Record<string, any>;
-          user_profile: Record<string, any>;
-          agent_model: Record<string, any>;
-        } => Boolean(entry));
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
       if (personalizationMapping.length === 0) {
         toast.error(t('generation.toasts.noValidPersonalizationMappings'));

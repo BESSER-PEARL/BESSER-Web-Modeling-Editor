@@ -61,18 +61,19 @@ const agenticSpec = {
   ],
 };
 
-const byName = (model: BESSERModel, name: string) => Object.values(model.elements).find((el) => el.name === name);
+const byName = (model: BESSERModel, name: string) =>
+  ((model as any).nodes as any[]).find((n) => n.data?.name === name);
 
 describe('reflectionReviewerLaneId from the modeling agent', () => {
   it('maps the converter spec lane reference (id or name) to the editor lane id', () => {
     const model = new BPMNDiagramConverter().convertCompleteSystem(agenticSpec) as BESSERModel;
     const supervisor = byName(model, 'Supervisor Agent');
-    expect(supervisor).toMatchObject({ type: 'BPMNSwimlane', role: 'supervision', multiplicity: 1 });
-    expect(byName(model, 'Reviewer Agents')).toMatchObject({ multiplicity: 3, role: 'solution' });
+    expect(supervisor).toMatchObject({ type: 'bpmnSwimlane', data: { role: 'supervision', multiplicity: 1 } });
+    expect(byName(model, 'Reviewer Agents')).toMatchObject({ data: { multiplicity: 3, role: 'solution' } });
 
-    expect(byName(model, 'Draft Summary')?.reflectionReviewerLaneId).toBe(supervisor?.id);
-    expect(byName(model, 'Review Summary')?.reflectionReviewerLaneId).toBe(supervisor?.id);
-    expect(byName(model, 'Orphan Review')).not.toHaveProperty('reflectionReviewerLaneId');
+    expect(byName(model, 'Draft Summary')?.data.reflectionReviewerLaneId).toBe(supervisor?.id);
+    expect(byName(model, 'Review Summary')?.data.reflectionReviewerLaneId).toBe(supervisor?.id);
+    expect(byName(model, 'Orphan Review')?.data).not.toHaveProperty('reflectionReviewerLaneId');
   });
 
   it('maps the modifier lane reference and drops one that does not resolve', () => {
@@ -82,18 +83,18 @@ describe('reflectionReviewerLaneId from the modeling agent', () => {
 
     const modify = (changes: ModelModification['changes']): BESSERModel =>
       modifier.applyModification(base, { action: 'modify_node', target: { nodeName: 'Orphan Review' }, changes });
-    expect(byName(modify({ reflectionReviewerLaneId: 'Reviewer Agents' }), 'Orphan Review')?.reflectionReviewerLaneId).toBe(
+    expect(byName(modify({ reflectionReviewerLaneId: 'Reviewer Agents' }), 'Orphan Review')?.data.reflectionReviewerLaneId).toBe(
       reviewersLane.id,
     );
-    expect(byName(modify({ reflectionReviewerLaneId: 'lane-fact-checker' }), 'Orphan Review')).not.toHaveProperty(
+    expect(byName(modify({ reflectionReviewerLaneId: 'lane-fact-checker' }), 'Orphan Review')?.data).not.toHaveProperty(
       'reflectionReviewerLaneId',
     );
 
     const added = modifier.applyModification(base, {
       action: 'add_task',
       target: { nodeName: 'Check Facts' },
-      changes: { owner: 'Writer Agent', reflectionMode: 'cross', reflectionReviewerLaneId: reviewersLane.id },
+      changes: { owner: 'Writer Agent', isAgentic: true, reflectionMode: 'cross', reflectionReviewerLaneId: reviewersLane.id },
     });
-    expect(byName(added, 'Check Facts')?.reflectionReviewerLaneId).toBe(reviewersLane.id);
+    expect(byName(added, 'Check Facts')?.data.reflectionReviewerLaneId).toBe(reviewersLane.id);
   });
 });

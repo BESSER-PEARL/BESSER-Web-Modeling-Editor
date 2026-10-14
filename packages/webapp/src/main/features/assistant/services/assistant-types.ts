@@ -21,6 +21,13 @@ export interface ProjectMetadata {
 export interface AssistantWorkspaceContext {
   activeDiagramType: string;
   activeDiagramId?: string;
+  /**
+   * The active diagram's live model (UMLModel / GrapesJSProjectData /
+   * QuantumCircuitData depending on diagram type), read straight from the
+   * editor/modeling service when available so it never lags a render behind
+   * a just-applied change. Consumers narrow by diagram type before use.
+   */
+  activeModel?: unknown;
   projectSnapshot?: any;
   projectName?: string;
   diagramSummaries?: DiagramSummary[];
@@ -46,6 +53,7 @@ export type AssistantActionName =
   | 'inject_complete_system'
   | 'modify_model'
   | 'switch_diagram'
+  | 'create_diagram_tab'
   | 'trigger_generator'
   | 'trigger_smart_generator'
   | 'trigger_github_import'
@@ -75,6 +83,8 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   diagramType?: string;
+  /** Quick-reply chips the agent attached to this message (assistant_message). */
+  suggestedActions?: unknown[];
 }
 
 export interface AgentResponse {

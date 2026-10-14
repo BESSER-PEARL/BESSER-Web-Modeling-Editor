@@ -1,5 +1,5 @@
 /**
- * Wires the User Profile form to the live Apollon editor and Redux so the form
+ * Wires the User Profile form to the live BesserEditor and Redux so the form
  * and the graphical canvas stay in sync in both directions.
  *
  * Design invariant: the editor model is written ONLY in response to an explicit
@@ -8,7 +8,7 @@
  * call `editor.model = …`, so simply opening the form can never reload or
  * mutate the canvas.
  *
- *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.model
+ *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.applyModel
  *   canvas edit    -> subscribeToModelChange -> reparse -> setState (no write-back)
  *
  * `suppressSyncRef` prevents our own model-change listener from reacting to the
@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ApollonEditor } from '@besser/wme';
+import type { BesserEditor, UMLModel } from '@besser/wme';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
 import { buildMetamodelTree, MetaTree } from './metamodel-tree';
@@ -39,7 +39,7 @@ interface UseUserProfileForm {
   ready: boolean;
 }
 
-export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefined): UseUserProfileForm => {
+export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefined): UseUserProfileForm => {
   const dispatch = useAppDispatch();
   const [tree, setTree] = useState<MetaTree | null>(null);
   const [formState, setFormState] = useState<Instance | null>(null);
@@ -66,14 +66,15 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
       debounceRef.current = setTimeout(async () => {
         const t = treeRef.current;
         if (!t) return;
-        const model = buildUserDiagramModel(state, t, editor.model as any);
+        const model: UMLModel = buildUserDiagramModel(state, t, editor.model);
         lastSigRef.current = instanceSignature(state);
         suppressSyncRef.current = true;
         try {
-          await dispatch(updateDiagramModelThunk({ model: model as any })).unwrap();
-          await editor.nextRender;
-          editor.model = { ...(model as any) };
-          await editor.nextRender;
+          await dispatch(updateDiagramModelThunk({ model })).unwrap();
+          await editor.ready;
+          // One undoable step; the `model` setter is a load that wipes undo history.
+          if (typeof editor.applyModel === 'function') editor.applyModel({ ...model });
+          else editor.model = { ...model };
         } catch {
           // Swallow: a transient write failure shouldn't break the form.
         } finally {
@@ -112,7 +113,7 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
       commitState(null);
       return;
     }
-    const parsed = (editor ? parseUserDiagramModel(editor.model as any, t) : null) ?? createEmptyInstance(t.root);
+    const parsed = (editor ? parseUserDiagramModel(editor.model, t) : null) ?? createEmptyInstance(t.root);
     commitState(parsed);
   }, [open, editor, commitState]);
 
@@ -120,7 +121,7 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
   // Read-only — never writes back.
   useEffect(() => {
     if (!open || !editor) return;
-    const subId = editor.subscribeToModelChange((model: any) => {
+    const subId = editor.subscribeToModelChange((model: UMLModel) => {
       if (suppressSyncRef.current) return; // ignore the echo of our own write
       const t = treeRef.current;
       if (!t?.root) return;

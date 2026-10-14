@@ -1,11 +1,51 @@
 /**
- * Class Diagram Modifier
- * Handles all modification operations for Class Diagrams
+ * Class Diagram Modifier (v4-native)
+ *
+ * Walks v4 `model.nodes[]` / `model.edges[]` directly.
+ *
+ * v4 ClassDiagram shape (per docs/source/migrations/uml-v4-shape.md):
+ *   - All classifiers (Class, AbstractClass, Interface, Enumeration) collapse
+ *     into a single `node.type === 'class'` discriminated by `data.stereotype`:
+ *       null/undefined → plain Class
+ *       'Abstract'     → AbstractClass
+ *       'Interface'    → Interface
+ *       'Enumeration'  → Enumeration
+ *     (the library's `ClassType` casing; compare case-insensitively, older
+ *     data may carry lowercase values)
+ *   - Attributes / methods are NOT separate nodes — they are inline rows on
+ *     `node.data.attributes` / `node.data.methods` (ClassifierMember[]).
+ *   - Edges follow `edge.source` / `edge.target` (node ids), with role &
+ *     multiplicity on `edge.data.sourceRole` / `edge.data.sourceMultiplicity`
+ *     etc.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
+import {
+  CLASS_NODE_TYPE,
+  CLASS_STEREOTYPE,
+  buildClassNode as buildSharedClassNode,
+  canonicalStereotype,
+  isStereotype,
+  recalculateClassNodeHeight,
+} from '../shared/v4Builders';
+
+/** v4 ClassifierMember row shape (subset; tolerant of extra fields). */
+type ClassifierMember = {
+  id: string;
+  name: string;
+  attributeType?: string;
+  visibility?: 'public' | 'private' | 'protected' | 'package';
+  isOptional?: boolean;
+  isDerived?: boolean;
+  defaultValue?: unknown;
+  code?: string;
+  implementationType?: string;
+  isExternalId?: boolean;
+  [k: string]: unknown;
+};
 import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramModifier implements DiagramModifier {
@@ -34,12 +74,10 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   applyModification(model: BESSERModel, modification: ModelModification): BESSERModel {
-    // Validate required fields before proceeding
     if (!modification.action) {
       throw new Error('Modification is missing required "action" field');
     }
 
-    // Refactoring actions use top-level fields instead of target/changes
     const refactoringActions = ['extract_class', 'split_class', 'merge_classes', 'promote_attribute', 'add_enum'];
     const isRefactoring = refactoringActions.includes(modification.action);
 
@@ -47,8 +85,6 @@ export class ClassDiagramModifier implements DiagramModifier {
       if (!modification.target || typeof modification.target !== 'object') {
         throw new Error(`Modification "${modification.action}" is missing required "target" object`);
       }
-      // changes is required for all actions except remove_element.
-      // For modify_relationship without changes, skip silently (no-op from cascading renames).
       if (modification.action !== 'remove_element' && (!modification.changes || typeof modification.changes !== 'object')) {
         if (modification.action === 'modify_relationship') {
           console.warn(`[ClassDiagramModifier] Skipping modify_relationship with no changes (no-op)`);
@@ -61,109 +97,109 @@ export class ClassDiagramModifier implements DiagramModifier {
     const updatedModel = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
-      case 'add_class':
-        return this.addClass(updatedModel, modification);
-      case 'modify_class':
-        return this.modifyClass(updatedModel, modification);
-      case 'add_attribute':
-        return this.addAttribute(updatedModel, modification);
-      case 'modify_attribute':
-        return this.modifyAttribute(updatedModel, modification);
-      case 'add_method':
-        return this.addMethod(updatedModel, modification);
-      case 'modify_method':
-        return this.modifyMethod(updatedModel, modification);
-      case 'add_relationship':
-        return this.addRelationship(updatedModel, modification);
-      case 'modify_relationship':
-        return this.modifyRelationship(updatedModel, modification);
-      case 'remove_element':
-        return this.removeElement(updatedModel, modification);
-      case 'extract_class':
-        return this.extractClass(updatedModel, modification);
-      case 'split_class':
-        return this.splitClass(updatedModel, modification);
-      case 'merge_classes':
-        return this.mergeClasses(updatedModel, modification);
-      case 'promote_attribute':
-        return this.promoteAttribute(updatedModel, modification);
-      case 'add_enum':
-        return this.addEnum(updatedModel, modification);
-      case 'add_ocl_constraint':
-        return this.addOclConstraint(updatedModel, modification);
+      case 'add_class':         return this.addClass(updatedModel, modification);
+      case 'modify_class':      return this.modifyClass(updatedModel, modification);
+      case 'add_attribute':     return this.addAttribute(updatedModel, modification);
+      case 'modify_attribute':  return this.modifyAttribute(updatedModel, modification);
+      case 'add_method':        return this.addMethod(updatedModel, modification);
+      case 'modify_method':     return this.modifyMethod(updatedModel, modification);
+      case 'add_relationship':  return this.addRelationship(updatedModel, modification);
+      case 'modify_relationship': return this.modifyRelationship(updatedModel, modification);
+      case 'remove_element':    return this.removeElement(updatedModel, modification);
+      case 'extract_class':     return this.extractClass(updatedModel, modification);
+      case 'split_class':       return this.splitClass(updatedModel, modification);
+      case 'merge_classes':     return this.mergeClasses(updatedModel, modification);
+      case 'promote_attribute': return this.promoteAttribute(updatedModel, modification);
+      case 'add_enum':          return this.addEnum(updatedModel, modification);
+      case 'add_ocl_constraint': return this.addOclConstraint(updatedModel, modification);
       default:
         throw new Error(`Unsupported action for ClassDiagram: ${modification.action}`);
     }
   }
 
-  private addOclConstraint(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const constraintText = (modification.changes?.constraint || '').trim();
-    if (!constraintText) {
-      throw new Error('add_ocl_constraint requires a "constraint" string in changes (full BOCL block: "context X (inv|pre|post) [name]: body").');
+  // ─── Helpers (v4) ────────────────────────────────────────────────────────
+
+  /**
+   * Find a node representing a class-like classifier (Class / Abstract /
+   * Interface / Enumeration) by name. v4 stores them all under
+   * `node.type === 'class'` with stereotype distinguishing.
+   */
+  private findClassNode(model: BESSERModel, className: string): BesserNode | undefined {
+    if (!className) return undefined;
+    const normalized = className.trim().toLowerCase();
+    const classNodes = ModifierHelpers.nodes(model).filter((n) => n.type === CLASS_NODE_TYPE);
+    for (const n of classNodes) {
+      const data: any = n.data || {};
+      if (data.name === className) return n;
     }
-
-    const className = modification.target?.className;
-    if (!className) {
-      throw new Error('add_ocl_constraint requires target.className (the class the constraint anchors on).');
+    for (const n of classNodes) {
+      const data: any = n.data || {};
+      if (typeof data.name === 'string' && data.name.trim().toLowerCase() === normalized) return n;
     }
-
-    const classId = this.findClassIdByName(model, className);
-    if (!classId || !model.elements[classId]) {
-      throw new Error(`add_ocl_constraint: class '${className}' not found in the model.`);
-    }
-
-    const classElement = model.elements[classId];
-    const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
-
-    const constraintWidth = 240;
-    const constraintHeight = 80;
-    const x = (classBounds.x ?? 0) + (classBounds.width ?? 220) + 80;
-    const y = (classBounds.y ?? 0);
-
-    const constraintId = ModifierHelpers.generateUniqueId('ocl');
-    model.elements[constraintId] = {
-      id: constraintId,
-      name: 'OCL',
-      type: 'ClassOCLConstraint',
-      owner: null,
-      bounds: { x, y, width: constraintWidth, height: constraintHeight },
-      constraint: constraintText,
-      description: (modification.changes?.text || '').trim() || '',
-    };
-
-    if (!model.relationships) {
-      model.relationships = {};
-    }
-
-    const linkId = ModifierHelpers.generateUniqueId('rel');
-    model.relationships[linkId] = {
-      id: linkId,
-      type: 'ClassOCLLink',
-      source: {
-        element: constraintId,
-        direction: 'Left',
-        multiplicity: '',
-        role: '',
-        bounds: { x: 0, y: 0, width: 0, height: 0 },
-      },
-      target: {
-        element: classId,
-        direction: 'Right',
-        multiplicity: '',
-        role: '',
-        bounds: { x: 0, y: 0, width: 0, height: 0 },
-      },
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      name: '',
-      path: [
-        { x: 0, y: 10 },
-        { x: 100, y: 10 },
-      ],
-      isManuallyLayouted: false,
-    };
-
-    return model;
+    return undefined;
   }
+
+  /** Find an attribute row on a class node by name (case-insensitive, name-only match). */
+  private findAttributeRow(classNode: BesserNode, attributeName: string): ClassifierMember | undefined {
+    const data: any = classNode.data || {};
+    const rows: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
+    const normalizedTarget = this.normalizeAttributeName(attributeName);
+    for (const row of rows) {
+      const candidate = this.normalizeAttributeName(row.name || '');
+      if (candidate.toLowerCase() === normalizedTarget.toLowerCase()) return row;
+      if ((row.name || '').toLowerCase().includes(attributeName.toLowerCase())) return row;
+    }
+    return undefined;
+  }
+
+  /** Find a method row on a class node by name (case-insensitive). */
+  private findMethodRow(classNode: BesserNode, methodName: string): ClassifierMember | undefined {
+    const data: any = classNode.data || {};
+    const rows: ClassifierMember[] = Array.isArray(data.methods) ? data.methods : [];
+    const normalizedTarget = this.normalizeMethodName(methodName);
+    for (const row of rows) {
+      const candidate = this.normalizeMethodName(row.name || '');
+      if (candidate.toLowerCase() === normalizedTarget.toLowerCase()) return row;
+      if ((row.name || '').toLowerCase().includes(methodName.toLowerCase())) return row;
+    }
+    return undefined;
+  }
+
+  /** Compute a node's height from its row counts (shared v4 builder). */
+  private recalculateClassHeight(node: BesserNode): void {
+    recalculateClassNodeHeight(node);
+  }
+
+  /** Build a v4 class node (shared v4 builder). */
+  private buildClassNode(opts: {
+    id: string;
+    name: string;
+    stereotype?: string | null;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    extraData?: Record<string, unknown>;
+  }): BesserNode {
+    return buildSharedClassNode(opts);
+  }
+
+  /** Find the rightmost class-node and return where to place a new class beside it. */
+  private nextClassPosition(model: BESSERModel): { x: number; y: number } {
+    let posX = 0;
+    let posY = 0;
+    for (const node of ModifierHelpers.nodes(model)) {
+      if (node.type !== CLASS_NODE_TYPE) continue;
+      const right = (node.position?.x ?? 0) + (node.width ?? 220);
+      if (right + 80 > posX) {
+        posX = right + 80;
+        posY = node.position?.y ?? 0;
+      }
+    }
+    return { x: posX, y: posY };
+  }
+
+  // ─── Action handlers ──────────────────────────────────────────────────────
 
   private addClass(model: BESSERModel, modification: ModelModification): BESSERModel {
     const className = modification.changes?.className || modification.target?.className;
@@ -171,191 +207,129 @@ export class ClassDiagramModifier implements DiagramModifier {
       throw new Error('add_class requires a className in target or changes.');
     }
 
-    // Check if class already exists
-    const existingId = this.findClassIdByName(model, className);
-    if (existingId) {
+    if (this.findClassNode(model, className)) {
       console.warn(`[ClassDiagramModifier] addClass: class '${className}' already exists, skipping.`);
       return model;
     }
 
-    // Find position: to the right of the rightmost existing class
-    let posX = 0;
-    let posY = 0;
-    for (const el of Object.values(model.elements)) {
-      if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
-        const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
-        if (right + 80 > posX) {
-          posX = right + 80;
-          posY = el.bounds?.y ?? 0;
-        }
-      }
-    }
-
+    const { x: posX, y: posY } = this.nextClassPosition(model);
     const classId = ModifierHelpers.generateUniqueId('class');
-    model.elements[classId] = {
-      id: classId,
-      name: className,
-      type: 'Class',
-      owner: null,
-      bounds: { x: posX, y: posY, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    };
 
-    // Handle abstract class
-    const classIsAbstract = modification.changes?.isAbstract ??
-      (modification as any).isAbstract;
-    if (classIsAbstract) {
-      model.elements[classId].type = 'AbstractClass';
-      model.elements[classId].italic = true;
-      model.elements[classId].stereotype = 'abstract';
+    let stereotype: string | null = null;
+    if ((modification.changes as any)?.isAbstract ?? (modification as any).isAbstract) stereotype = CLASS_STEREOTYPE.Abstract;
+    else if ((modification.changes as any)?.isInterface ?? (modification as any).isInterface) stereotype = CLASS_STEREOTYPE.Interface;
+    else if ((modification.changes as any)?.isEnumeration ?? (modification as any).isEnumeration) stereotype = CLASS_STEREOTYPE.Enumeration;
+
+    const node = this.buildClassNode({ id: classId, name: className, stereotype, x: posX, y: posY });
+
+    // Italic flag is a render-time hint; preserve for backward compat with tests that read it.
+    if (stereotype === CLASS_STEREOTYPE.Abstract || stereotype === CLASS_STEREOTYPE.Interface) {
+      (node.data as any).italic = true;
     }
 
-    // Handle enumeration
-    const classIsEnumeration = modification.changes?.isEnumeration ??
-      (modification as any).isEnumeration;
-    if (classIsEnumeration) {
-      model.elements[classId].type = 'Enumeration';
-      model.elements[classId].stereotype = 'enumeration';
-    }
-
-    // Handle interface
-    const classIsInterface = modification.changes?.isInterface ??
-      (modification as any).isInterface;
-    if (classIsInterface) {
-      model.elements[classId].type = 'Interface';
-      model.elements[classId].italic = true;
-      model.elements[classId].stereotype = 'interface';
-    }
-
-    // Collect all class names for type resolution
-    const classNames = new Set<string>();
-    for (const el of Object.values(model.elements)) {
-      if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') classNames.add(el.name);
-    }
+    // Attributes
+    const classNames = new Set<string>(
+      ModifierHelpers.nodes(model)
+        .filter((n) => n.type === CLASS_NODE_TYPE)
+        .map((n) => (n.data as any)?.name)
+        .filter((n): n is string => typeof n === 'string'),
+    );
     classNames.add(className);
 
-    // Add attributes from changes
     const attributes = modification.changes?.attributes || [];
-    for (let i = 0; i < attributes.length; i++) {
-      const attrSpec = attributes[i];
+    const attrRows: ClassifierMember[] = [];
+    for (const attrSpec of attributes) {
       const attrId = ModifierHelpers.generateUniqueId('attr');
-      const attrY = posY + 50 + i * 25;
-      const visibility = attrSpec.visibility || 'public';
-      const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
-      const type = normalizeType(attrSpec.type, classNames);
-
-      const attrElement: any = {
+      const row: ClassifierMember = {
         id: attrId,
         name: attrSpec.name,
-        type: 'ClassAttribute',
-        owner: classId,
-        bounds: { x: posX + 1, y: attrY, width: 218, height: 25 },
-        visibility: visibility,
-        attributeType: type,
+        attributeType: normalizeType(attrSpec.type, classNames),
+        visibility: (attrSpec.visibility as any) || 'public',
       };
-
-      if (attrSpec.isDerived) {
-        attrElement.isDerived = true;
+      if ((attrSpec as any).isDerived) row.isDerived = true;
+      if ((attrSpec as any).defaultValue !== undefined && (attrSpec as any).defaultValue !== null) {
+        row.defaultValue = (attrSpec as any).defaultValue;
       }
-      if (attrSpec.defaultValue !== undefined && attrSpec.defaultValue !== null) {
-        attrElement.defaultValue = attrSpec.defaultValue;
-      }
-      if (attrSpec.isOptional) {
-        attrElement.isOptional = true;
-      }
-      if (attrSpec.isExternalId) {
-        attrElement.isExternalId = true;
-      }
-
-      model.elements[attrId] = attrElement;
-      model.elements[classId].attributes.push(attrId);
+      if ((attrSpec as any).isOptional) row.isOptional = true;
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if ((attrSpec as any).isExternalId) row.isExternalId = true;
+      attrRows.push(row);
     }
+    (node.data as any).attributes = attrRows;
 
-    // Add methods from changes
+    // Methods
     const methods = modification.changes?.methods || [];
-    const attrCount = attributes.length;
-    for (let i = 0; i < methods.length; i++) {
-      const methodSpec = methods[i];
+    const methodRows: ClassifierMember[] = [];
+    for (const methodSpec of methods) {
       const methodId = ModifierHelpers.generateUniqueId('method');
-      const methodY = posY + 50 + attrCount * 25 + 10 + i * 25;
-      const visSymbol = methodSpec.visibility === 'private' ? '-' : methodSpec.visibility === 'protected' ? '#' : '+';
       const paramStr = methodSpec.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
       const returnType = normalizeType(methodSpec.returnType || 'any');
-
-      model.elements[methodId] = {
+      const visSymbol = methodSpec.visibility === 'private' ? '-' :
+                        methodSpec.visibility === 'protected' ? '#' : '+';
+      methodRows.push({
         id: methodId,
         // Return type belongs in the name — the backend parses it from there
         // (parse_method), not from attributeType. Mirror modifyMethod's format.
         name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
-        type: 'ClassMethod',
-        owner: classId,
-        bounds: { x: posX + 1, y: methodY, width: 218, height: 25 },
-        visibility: methodSpec.visibility || 'public',
         attributeType: returnType,
-      };
-      model.elements[classId].methods.push(methodId);
+        visibility: (methodSpec.visibility as any) || 'public',
+      });
     }
+    (node.data as any).methods = methodRows;
 
-    this.recalculateClassHeight(model.elements[classId]);
+    this.recalculateClassHeight(node);
 
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
   private modifyClass(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { classId, className } = modification.target;
-    const targetId = classId || this.findClassIdByName(model, className!);
+    const node = (classId ? ModifierHelpers.findNodeById(model, classId) : undefined) ||
+                 this.findClassNode(model, className!);
 
-    if (!targetId || !model.elements[targetId]) {
+    if (!node) {
       throw new Error(`Class '${className || classId}' not found in the model.`);
     }
 
-    const element = model.elements[targetId];
+    const data = node.data as any;
+    const changes = modification.changes as any;
 
-    if (modification.changes.name) {
-      element.name = modification.changes.name;
-    }
+    if (changes.name) data.name = changes.name;
 
-    // Support additional class-level properties the LLM may send
-    if (modification.changes.visibility) {
-      element.visibility = modification.changes.visibility;
-    }
-    if (typeof (modification.changes as any).isAbstract === 'boolean') {
-      const isAbstract = (modification.changes as any).isAbstract;
-      element.italic = isAbstract;
-      if (isAbstract) {
-        element.type = 'AbstractClass';
-        element.stereotype = 'abstract';
+    if (changes.visibility) data.visibility = changes.visibility;
+
+    // v4 keeps `node.type === 'class'` for every classifier; only the
+    // `data.stereotype` discriminator (and italic render hint) changes.
+    // `isAbstract: false` resets to a plain class whatever the stereotype (develop).
+    if (typeof changes.isAbstract === 'boolean') {
+      data.italic = changes.isAbstract;
+      if (changes.isAbstract) {
+        data.stereotype = CLASS_STEREOTYPE.Abstract;
       } else {
-        element.type = 'Class';
-        delete element.stereotype;
+        delete data.stereotype;
       }
     }
-    if (typeof (modification.changes as any).isEnumeration === 'boolean') {
-      const isEnumeration = (modification.changes as any).isEnumeration;
-      if (isEnumeration) {
-        element.type = 'Enumeration';
-        element.stereotype = 'enumeration';
-        delete element.italic;
-      } else if (element.type === 'Enumeration') {
-        element.type = 'Class';
-        delete element.stereotype;
+    if (typeof changes.isEnumeration === 'boolean') {
+      if (changes.isEnumeration) {
+        data.stereotype = CLASS_STEREOTYPE.Enumeration;
+        delete data.italic;
+      } else if (isStereotype(data.stereotype, CLASS_STEREOTYPE.Enumeration)) {
+        delete data.stereotype;
       }
     }
-    if (typeof (modification.changes as any).isInterface === 'boolean') {
-      const isInterface = (modification.changes as any).isInterface;
-      if (isInterface) {
-        element.type = 'Interface';
-        element.italic = true;
-        element.stereotype = 'interface';
-      } else if (element.type === 'Interface') {
-        element.type = 'Class';
-        delete element.stereotype;
-        delete element.italic;
+    if (typeof changes.isInterface === 'boolean') {
+      if (changes.isInterface) {
+        data.stereotype = CLASS_STEREOTYPE.Interface;
+        data.italic = true;
+      } else if (isStereotype(data.stereotype, CLASS_STEREOTYPE.Interface)) {
+        delete data.stereotype;
+        delete data.italic;
       }
     }
-    if ((modification.changes as any).stereotype !== undefined) {
-      element.stereotype = (modification.changes as any).stereotype;
+    if (changes.stereotype !== undefined) {
+      data.stereotype = canonicalStereotype(changes.stereotype);
     }
 
     return model;
@@ -367,65 +341,38 @@ export class ClassDiagramModifier implements DiagramModifier {
       throw new Error('add_attribute requires a target className.');
     }
 
-    const classId = this.findClassIdByName(model, className);
-    if (!classId || !model.elements[classId]) {
+    const node = this.findClassNode(model, className);
+    if (!node) {
       throw new Error(`Class '${className}' not found in the model.`);
     }
 
-    const classElement = model.elements[classId];
-    if (!classElement.attributes) {
-      classElement.attributes = [];
-    }
+    const data = node.data as any;
+    if (!Array.isArray(data.attributes)) data.attributes = [];
 
     const name = modification.changes.name || 'newAttribute';
-
-    // Skip if attribute with the same name already exists on this class
-    const existingAttr = classElement.attributes.some((attrId: string) => {
-      const attr = model.elements[attrId];
-      return attr && (attr.name === name || attr.name?.toLowerCase() === name.toLowerCase());
-    });
-    if (existingAttr) {
+    if ((data.attributes as ClassifierMember[]).some((row) =>
+      row.name === name || (row.name || '').toLowerCase() === name.toLowerCase()
+    )) {
       console.warn(`[ClassDiagramModifier] addAttribute: '${name}' already exists on '${className}', skipping.`);
       return model;
     }
 
-    const attrId = ModifierHelpers.generateUniqueId('attr');
-    const visibility = modification.changes.visibility || 'public';
+    const visibility = (modification.changes.visibility as any) || 'public';
     const type = normalizeType(modification.changes.type) || 'str';
-
-    // Compute bounds: place below last existing attribute
-    const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
-    const existingAttrCount = classElement.attributes.length;
-    const attrY = classBounds.y + 50 + existingAttrCount * 25; // header(50) + rows
-
-    const attrElement: any = {
-      id: attrId,
-      name: name,
-      type: 'ClassAttribute',
-      owner: classId,
-      bounds: { x: classBounds.x + 1, y: attrY, width: (classBounds.width || 220) - 2, height: 25 },
-      visibility: visibility,
+    const row: ClassifierMember = {
+      id: ModifierHelpers.generateUniqueId('attr'),
+      name,
       attributeType: type,
+      visibility,
     };
-
-    if (modification.changes.isDerived) {
-      attrElement.isDerived = true;
+    if ((modification.changes as any).isDerived) row.isDerived = true;
+    if ((modification.changes as any).defaultValue !== undefined && (modification.changes as any).defaultValue !== null) {
+      row.defaultValue = (modification.changes as any).defaultValue;
     }
-    if (modification.changes.defaultValue !== undefined && modification.changes.defaultValue !== null) {
-      attrElement.defaultValue = modification.changes.defaultValue;
-    }
-    if (modification.changes.isOptional) {
-      attrElement.isOptional = true;
-    }
+    if ((modification.changes as any).isOptional) row.isOptional = true;
 
-    model.elements[attrId] = attrElement;
-
-    classElement.attributes.push(attrId);
-
-    // Expand class height to fit the new attribute
-    if (classBounds.height) {
-      classBounds.height = Math.max(classBounds.height, 50 + (existingAttrCount + 1) * 25 + 15);
-    }
+    data.attributes.push(row);
+    this.recalculateClassHeight(node);
 
     return model;
   }
@@ -436,210 +383,160 @@ export class ClassDiagramModifier implements DiagramModifier {
       throw new Error('add_method requires a target className.');
     }
 
-    const classId = this.findClassIdByName(model, className);
-    if (!classId || !model.elements[classId]) {
+    const node = this.findClassNode(model, className);
+    if (!node) {
       throw new Error(`Class '${className}' not found in the model.`);
     }
 
-    const classElement = model.elements[classId];
-    if (!classElement.methods) {
-      classElement.methods = [];
-    }
+    const data = node.data as any;
+    if (!Array.isArray(data.methods)) data.methods = [];
 
-    const methodId = ModifierHelpers.generateUniqueId('method');
-    const visibilitySymbol = modification.changes.visibility === 'private' ? '-' :
-                              modification.changes.visibility === 'protected' ? '#' : '+';
     const name = modification.changes.name || 'newMethod';
     const returnType = normalizeType(modification.changes.returnType || 'any');
     const paramStr = modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
-    const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
-    const existingAttrCount = (classElement.attributes || []).length;
-    const existingMethodCount = classElement.methods.length;
-    const methodY = classBounds.y + 50 + existingAttrCount * 25 + 10 + existingMethodCount * 25;
+    const visibilitySymbol = modification.changes.visibility === 'private' ? '-' :
+                             modification.changes.visibility === 'protected' ? '#' : '+';
 
-    const methodElement: any = {
-      id: methodId,
-      // The method's return type MUST live in the name string, not just in
-      // attributeType: the backend converter parses return type from the name
-      // (`parse_method(method["name"])`) and ignores attributeType for methods.
-      // Mirror modifyMethod's canonical UML signature so an added method carries
-      // its return type into generated code exactly like an edited one does.
+    // The method's return type MUST live in the name string, not just in
+    // attributeType: the backend converter parses return type from the name
+    // (`parse_method(method["name"])`) and ignores attributeType for methods.
+    // Mirror modifyMethod's canonical UML signature so an added method carries
+    // its return type into generated code exactly like an edited one does.
+    const row: ClassifierMember = {
+      id: ModifierHelpers.generateUniqueId('method'),
       name: `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`,
-      type: 'ClassMethod',
-      owner: classId,
-      bounds: { x: classBounds.x + 1, y: methodY, width: (classBounds.width || 220) - 2, height: 25 },
-      visibility: modification.changes.visibility || 'public',
       attributeType: returnType,
+      visibility: (modification.changes.visibility as any) || 'public',
     };
-
     if (modification.changes.code) {
-      methodElement.code = modification.changes.code;
+      row.code = modification.changes.code;
       if (!modification.changes.implementationType) {
-        methodElement.implementationType = 'code';
+        row.implementationType = 'code';
       }
     }
-
     if (modification.changes.implementationType) {
-      methodElement.implementationType = modification.changes.implementationType;
+      row.implementationType = modification.changes.implementationType;
     }
 
-    model.elements[methodId] = methodElement;
-
-    classElement.methods.push(methodId);
-
-    // Expand class height
-    if (classBounds.height) {
-      const totalRows = existingAttrCount + existingMethodCount + 1;
-      classBounds.height = Math.max(classBounds.height, 50 + totalRows * 25 + 25);
-    }
+    data.methods.push(row);
+    this.recalculateClassHeight(node);
 
     return model;
   }
 
   private modifyAttribute(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { attributeId, attributeName, className } = modification.target;
-    let targetId = attributeId;
+    if (!className) {
+      console.warn('[ClassDiagramModifier] modifyAttribute: missing className');
+      return model;
+    }
+    const node = this.findClassNode(model, className);
+    if (!node) {
+      console.warn(`[ClassDiagramModifier] modifyAttribute: class '${className}' not found`);
+      return model;
+    }
 
-    if (!targetId && className) {
+    const data = node.data as any;
+    const rows: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
+
+    let row: ClassifierMember | undefined;
+    if (attributeId) {
+      row = rows.find((r) => r.id === attributeId);
+    }
+    if (!row) {
       const candidates = [
         attributeName,
         modification.changes.previousName,
-        modification.target.attributeName,
-        modification.changes.name
-      ].filter((value): value is string => Boolean(value));
-
-      for (const candidate of candidates) {
-        const foundId = this.findAttributeIdByClassAndName(model, className, candidate);
-        if (foundId) {
-          targetId = foundId;
-          break;
-        }
+        modification.changes.name,
+      ].filter((v): v is string => Boolean(v));
+      for (const cand of candidates) {
+        const found = this.findAttributeRow(node, cand);
+        if (found) { row = found; break; }
       }
     }
 
-    if (!targetId && className) {
-      const classId = this.findClassIdByName(model, className);
-      if (classId) {
-        const classElement = model.elements[classId];
-        const normalizedTarget = this.normalizeAttributeName(attributeName || modification.changes.name || '');
-        const fallbackId = classElement?.attributes?.find((attrId: string) => {
-          const attr = model.elements[attrId];
-          const normalized = attr?.name ? this.normalizeAttributeName(attr.name) : '';
-          return normalizedTarget && normalized.toLowerCase() === normalizedTarget.toLowerCase();
-        });
-        if (fallbackId) {
-          targetId = fallbackId;
-        }
-      }
-    }
-
-    if (targetId && model.elements[targetId]) {
-      const element = model.elements[targetId];
-      const parsed = this.parseAttributeLabel(element.name || '');
-
-      if (modification.changes.name) {
-        element.name = modification.changes.name;
-      } else if (parsed.name) {
-        element.name = parsed.name;
-      }
-      if (modification.changes.visibility) {
-        element.visibility = modification.changes.visibility;
-      }
-      if (modification.changes.type) {
-        element.attributeType = normalizeType(modification.changes.type);
-      }
-
-      if (typeof modification.changes.isDerived === 'boolean') {
-        element.isDerived = modification.changes.isDerived;
-      }
-      if (modification.changes.defaultValue !== undefined) {
-        element.defaultValue = modification.changes.defaultValue;
-      }
-      if (typeof modification.changes.isOptional === 'boolean') {
-        element.isOptional = modification.changes.isOptional;
-      }
-    } else {
+    if (!row) {
       console.warn(
-        `[ClassDiagramModifier] modifyAttribute: could not find attribute '${attributeName || attributeId}' in class '${className}'`
+        `[ClassDiagramModifier] modifyAttribute: could not find attribute '${attributeName || attributeId}' in class '${className}'`,
       );
+      return model;
     }
+
+    const parsed = this.parseAttributeLabel(row.name || '');
+
+    if (modification.changes.name) row.name = modification.changes.name;
+    else if (parsed.name) row.name = parsed.name;
+
+    if (modification.changes.visibility) row.visibility = modification.changes.visibility as any;
+    if (modification.changes.type) row.attributeType = normalizeType(modification.changes.type);
+    if (typeof (modification.changes as any).isDerived === 'boolean') row.isDerived = (modification.changes as any).isDerived;
+    if ((modification.changes as any).defaultValue !== undefined) row.defaultValue = (modification.changes as any).defaultValue;
+    if (typeof (modification.changes as any).isOptional === 'boolean') row.isOptional = (modification.changes as any).isOptional;
 
     return model;
   }
 
   private modifyMethod(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { methodId, methodName, className } = modification.target;
-    let targetId = methodId;
+    if (!className) {
+      console.warn('[ClassDiagramModifier] modifyMethod: missing className');
+      return model;
+    }
+    const node = this.findClassNode(model, className);
+    if (!node) {
+      console.warn(`[ClassDiagramModifier] modifyMethod: class '${className}' not found`);
+      return model;
+    }
 
-    if (!targetId && className) {
+    const data = node.data as any;
+    const rows: ClassifierMember[] = Array.isArray(data.methods) ? data.methods : [];
+
+    let row: ClassifierMember | undefined;
+    if (methodId) {
+      row = rows.find((r) => r.id === methodId);
+    }
+    if (!row) {
       const candidates = [
         methodName,
         modification.changes.previousName,
-        modification.target.methodName,
-        modification.changes.name
-      ].filter((value): value is string => Boolean(value));
-
-      for (const candidate of candidates) {
-        const foundId = this.findMethodIdByClassAndName(model, className, candidate);
-        if (foundId) {
-          targetId = foundId;
-          break;
-        }
+        modification.changes.name,
+      ].filter((v): v is string => Boolean(v));
+      for (const cand of candidates) {
+        const found = this.findMethodRow(node, cand);
+        if (found) { row = found; break; }
       }
     }
 
-    if (!targetId && className) {
-      const classId = this.findClassIdByName(model, className);
-      if (classId) {
-        const classElement = model.elements[classId];
-        const normalizedTarget = this.normalizeMethodName(methodName || modification.changes.name || '');
-        const fallbackId = classElement?.methods?.find((methodRef: string) => {
-          const methodElement = model.elements[methodRef];
-          const normalized = methodElement?.name ? this.normalizeMethodName(methodElement.name) : '';
-          return normalizedTarget && normalized.toLowerCase() === normalizedTarget.toLowerCase();
-        });
-        if (fallbackId) {
-          targetId = fallbackId;
-        }
-      }
-    }
-
-    if (targetId && model.elements[targetId]) {
-      const element = model.elements[targetId];
-      const parsed = this.parseMethodLabel(element.name || '');
-      const visibilitySymbol =
-        this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
-      const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
-      const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
-      const parameters =
-        modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name) || parsed.parameters;
-      const paramStr = parameters.join(', ');
-
-      element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
-
-      if (modification.changes.code) {
-        element.code = modification.changes.code;
-        if (!modification.changes.implementationType) {
-          element.implementationType = 'code';
-        }
-      }
-
-      if (modification.changes.implementationType) {
-        element.implementationType = modification.changes.implementationType;
-      }
-    } else {
+    if (!row) {
       console.warn(
-        `[ClassDiagramModifier] modifyMethod: could not find method '${methodName || methodId}' in class '${className}'`
+        `[ClassDiagramModifier] modifyMethod: could not find method '${methodName || methodId}' in class '${className}'`,
       );
+      return model;
     }
+
+    const parsed = this.parseMethodLabel(row.name || '');
+    const visibilitySymbol =
+      this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
+    const name = modification.changes.name || parsed.name || this.normalizeMethodName(row.name || '');
+    const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
+    const parameters =
+      modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name) || parsed.parameters;
+    const paramStr = parameters.join(', ');
+
+    row.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
+
+    if (modification.changes.code) {
+      row.code = modification.changes.code;
+      if (!modification.changes.implementationType) row.implementationType = 'code';
+    }
+    if (modification.changes.implementationType) row.implementationType = modification.changes.implementationType;
 
     return model;
   }
 
   private addRelationship(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) {
-      model.relationships = {};
-    }
+    const m = model as any;
+    if (!Array.isArray(m.edges)) m.edges = [];
 
     const changes = modification.changes;
     const target = modification.target;
@@ -651,145 +548,104 @@ export class ClassDiagramModifier implements DiagramModifier {
       throw new Error('Relationship modifications require both source and target class names.');
     }
 
-    let sourceClassId = this.findClassIdByName(model, sourceClassName);
-    let targetClassId = this.findClassIdByName(model, targetClassName);
+    let sourceNode = this.findClassNode(model, sourceClassName);
+    let targetNode = this.findClassNode(model, targetClassName);
 
-    // Auto-create missing classes so "add a class linked to X" works
-    if (!sourceClassId) {
-      sourceClassId = this.createMinimalClass(model, sourceClassName, targetClassId);
+    if (!sourceNode) {
+      sourceNode = this.createMinimalClassNode(model, sourceClassName, targetNode);
     }
-    if (!targetClassId) {
-      targetClassId = this.createMinimalClass(model, targetClassName, sourceClassId);
+    if (!targetNode) {
+      targetNode = this.createMinimalClassNode(model, targetClassName, sourceNode);
     }
 
     const relationshipId = ModifierHelpers.generateUniqueId('rel');
-    // Accept both 'relationshipType' and 'type' for compatibility with backend
     const relType = changes.relationshipType || (changes as any).type || 'Association';
     const sourceMultiplicity = changes.sourceMultiplicity || '1';
     const targetMultiplicity = changes.targetMultiplicity || '*';
     const relationshipName = changes.name || changes.roleName || target.relationshipName || '';
 
-    const relationship: any = {
+    const edge: BesserEdge = {
       id: relationshipId,
-      type: 'ClassBidirectional',
-      source: {
-        element: sourceClassId,
-        direction: 'Left',
-        multiplicity: sourceMultiplicity,
-        role: '',
-        bounds: { x: 0, y: 0, width: 0, height: 0 }
+      source: sourceNode!.id,
+      target: targetNode!.id,
+      type: 'ClassBidirectional' as any,
+      sourceHandle: 'left',
+      targetHandle: 'right',
+      data: {
+        name: relationshipName,
+        sourceMultiplicity,
+        targetMultiplicity,
+        sourceRole: '',
+        targetRole: relationshipName,
+        isManuallyLayouted: false,
+        points: [],
       },
-      target: {
-        element: targetClassId,
-        direction: 'Right',
-        multiplicity: targetMultiplicity,
-        role: relationshipName,
-        bounds: { x: 0, y: 0, width: 0, height: 0 }
-      },
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      name: relationshipName,
-      path: [
-        { x: 100, y: 10 },
-        { x: 0, y: 10 }
-      ],
-      isManuallyLayouted: false
     };
-    applyAssistantRelationshipType(relationship, relType);
-    model.relationships[relationshipId] = relationship;
+    // Type + explicit per-end navigability; ClassUnidirectional is never
+    // produced (a "unidirectional" spec is a one-way ClassBidirectional).
+    applyAssistantRelationshipType(edge, relType);
 
+    m.edges.push(edge);
     return model;
   }
 
-  /**
-   * Modify an existing relationship (multiplicity, type, name/role).
-   * Finds the relationship by id, name, or source+target class pair.
-   */
   private modifyRelationship(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) {
+    const edges = ModifierHelpers.edges(model);
+    if (edges.length === 0) {
       throw new Error('No relationships exist in the model to modify.');
     }
 
     const changes = modification.changes;
     const target = modification.target;
 
-    // --- Locate the relationship ---
-    let matchedRelId: string | null = null;
+    let matchedEdge: BesserEdge | undefined;
 
-    // 1. By explicit relationship ID
-    if (target.relationshipId && model.relationships[target.relationshipId]) {
-      matchedRelId = target.relationshipId;
+    if (target.relationshipId) {
+      matchedEdge = edges.find((e) => e.id === target.relationshipId);
     }
-
-    // 2. By relationship name
-    if (!matchedRelId && target.relationshipName) {
-      const normalizedName = target.relationshipName.trim().toLowerCase();
-      for (const [relId, rel] of Object.entries(model.relationships)) {
-        if ((rel.name || '').trim().toLowerCase() === normalizedName) {
-          matchedRelId = relId;
-          break;
-        }
-      }
+    if (!matchedEdge && target.relationshipName) {
+      const normalized = target.relationshipName.trim().toLowerCase();
+      matchedEdge = edges.find((e) => {
+        const name = (e.data as any)?.name;
+        return typeof name === 'string' && name.trim().toLowerCase() === normalized;
+      });
     }
-
-    // 3. By source + target class names
-    if (!matchedRelId) {
+    if (!matchedEdge) {
       const sourceClassName = changes.sourceClass || target.sourceClass || target.className;
       const targetClassName = changes.targetClass || target.targetClass;
-
       if (sourceClassName && targetClassName) {
-        const sourceClassId = this.findClassIdByName(model, sourceClassName);
-        const targetClassId = this.findClassIdByName(model, targetClassName);
-
-        if (sourceClassId && targetClassId) {
-          for (const [relId, rel] of Object.entries(model.relationships)) {
-            const relSource = rel.source?.element;
-            const relTarget = rel.target?.element;
-            // Match in either direction
-            if (
-              (relSource === sourceClassId && relTarget === targetClassId) ||
-              (relSource === targetClassId && relTarget === sourceClassId)
-            ) {
-              matchedRelId = relId;
-              break;
-            }
-          }
+        const src = this.findClassNode(model, sourceClassName);
+        const tgt = this.findClassNode(model, targetClassName);
+        if (src && tgt) {
+          matchedEdge = edges.find((e) =>
+            (e.source === src.id && e.target === tgt.id) || (e.source === tgt.id && e.target === src.id),
+          );
         }
       }
     }
 
-    if (!matchedRelId) {
+    if (!matchedEdge) {
       throw new Error(
-        'Could not find the relationship to modify. Provide relationshipId, relationshipName, or sourceClass + targetClass.'
+        'Could not find the relationship to modify. Provide relationshipId, relationshipName, or sourceClass + targetClass.',
       );
     }
 
-    const rel = model.relationships[matchedRelId];
-
-    // --- Apply changes ---
     if (changes.relationshipType || (changes as any).type) {
-      applyAssistantRelationshipType(rel, changes.relationshipType || (changes as any).type);
+      // Type + explicit per-end navigability (data.sourceNavigable /
+      // data.targetNavigable); stale flags are dropped for inheritance etc.
+      applyAssistantRelationshipType(matchedEdge, changes.relationshipType || (changes as any).type);
     }
-
-    if (changes.sourceMultiplicity !== undefined && rel.source) {
-      rel.source.multiplicity = changes.sourceMultiplicity;
-    }
-
-    if (changes.targetMultiplicity !== undefined && rel.target) {
-      rel.target.multiplicity = changes.targetMultiplicity;
-    }
-
-    if (changes.name !== undefined) {
-      rel.name = changes.name;
-    }
-
-    if (changes.roleName !== undefined && rel.target) {
-      rel.target.role = changes.roleName;
-    }
+    const data = matchedEdge.data as any;
+    if (changes.sourceMultiplicity !== undefined) data.sourceMultiplicity = changes.sourceMultiplicity;
+    if (changes.targetMultiplicity !== undefined) data.targetMultiplicity = changes.targetMultiplicity;
+    if (changes.name !== undefined) data.name = changes.name;
+    if (changes.roleName !== undefined) data.targetRole = changes.roleName;
 
     return model;
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const m = model as any;
     let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
       modification.target;
 
@@ -804,12 +660,13 @@ export class ClassDiagramModifier implements DiagramModifier {
     // relationship cannot be resolved, do nothing.
     const endpoints = this.relationshipEndpoints(modification.target || {});
     if (endpoints && !attributeId && !attributeName && !methodId && !methodName) {
+      const edgeList: BesserEdge[] = Array.isArray(m.edges) ? m.edges : [];
       const resolvedRelId =
-        relationshipId && model.relationships?.[relationshipId]
+        relationshipId && edgeList.some((e) => e.id === relationshipId)
           ? relationshipId
           : this.findRelationshipIdByEndpoints(model, endpoints.source, endpoints.target);
-      if (resolvedRelId && model.relationships?.[resolvedRelId]) {
-        delete model.relationships[resolvedRelId];
+      if (resolvedRelId) {
+        m.edges = edgeList.filter((e) => e.id !== resolvedRelId);
       } else {
         console.warn(
           `[ClassDiagramModifier] removeElement: no relationship '${endpoints.source} → ` +
@@ -841,105 +698,126 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
     if (!className && !classId && !relationshipId && !relationshipName && !attributeId && !attributeName && !methodId && !methodName) {
       const candidates = Object.values(modification.target || {}).filter(
-        (v): v is string => typeof v === 'string' && v.trim().length > 0
+        (v): v is string => typeof v === 'string' && v.trim().length > 0,
       );
       for (const cand of candidates) {
-        if (this.findClassIdByName(model, cand)) {
-          className = cand;
-          break;
-        }
+        if (this.findClassNode(model, cand)) { className = cand; break; }
       }
-      // Also check modification.changes (some LLMs put the target name there)
       if (!className && modification.changes) {
         const changeCandidates = Object.values(modification.changes).filter(
-          (v): v is string => typeof v === 'string' && v.trim().length > 0
+          (v): v is string => typeof v === 'string' && v.trim().length > 0,
         );
         for (const cand of changeCandidates) {
-          if (this.findClassIdByName(model, cand)) {
-            className = cand;
-            break;
-          }
+          if (this.findClassNode(model, cand)) { className = cand; break; }
         }
       }
     }
 
     // Remove relationship
     if (relationshipId || relationshipName) {
-      if (relationshipId && model.relationships?.[relationshipId]) {
-        delete model.relationships[relationshipId];
-      } else if (relationshipName && model.relationships) {
-        for (const [relId, rel] of Object.entries(model.relationships)) {
-          if (rel.name === relationshipName) {
-            delete model.relationships[relId];
-            break;
-          }
-        }
-      }
+      m.edges = (m.edges ?? []).filter((e: BesserEdge) => {
+        if (relationshipId && e.id === relationshipId) return false;
+        if (relationshipName && (e.data as any)?.name === relationshipName) return false;
+        return true;
+      });
       return model;
     }
 
-    // Remove attribute
+    // Remove attribute (row on class node)
     if ((attributeId || attributeName) && className) {
-      const classElementId = classId || this.findClassIdByName(model, className);
-      if (classElementId) {
-        const classElement = model.elements[classElementId];
-        if (classElement?.attributes) {
-          const resolvedAttrId =
-            attributeId ||
-            this.findAttributeIdByClassAndName(model, className, attributeName || modification.changes.name);
-          if (resolvedAttrId) {
-            classElement.attributes = classElement.attributes.filter((attr: string) => attr !== resolvedAttrId);
-            delete model.elements[resolvedAttrId];
-          }
-        }
+      const node = (classId && ModifierHelpers.findNodeById(model, classId)) || this.findClassNode(model, className);
+      if (node) {
+        const data = node.data as any;
+        const rows: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
+        const targetName = attributeName || modification.changes.name || '';
+        data.attributes = rows.filter((row) => {
+          if (attributeId && row.id === attributeId) return false;
+          if (targetName && this.normalizeAttributeName(row.name || '').toLowerCase() === this.normalizeAttributeName(targetName).toLowerCase()) return false;
+          return true;
+        });
       }
       return model;
     }
 
-    // Remove method
+    // Remove method (row on class node)
     if ((methodId || methodName) && className) {
-      const classElementId = classId || this.findClassIdByName(model, className);
-      if (classElementId) {
-        const classElement = model.elements[classElementId];
-        if (classElement?.methods) {
-          const resolvedMethodId =
-            methodId ||
-            this.findMethodIdByClassAndName(model, className, methodName || modification.changes.name);
-          if (resolvedMethodId) {
-            classElement.methods = classElement.methods.filter((method: string) => method !== resolvedMethodId);
-            delete model.elements[resolvedMethodId];
-          }
-        }
+      const node = (classId && ModifierHelpers.findNodeById(model, classId)) || this.findClassNode(model, className);
+      if (node) {
+        const data = node.data as any;
+        const rows: ClassifierMember[] = Array.isArray(data.methods) ? data.methods : [];
+        const targetName = methodName || modification.changes.name || '';
+        data.methods = rows.filter((row) => {
+          if (methodId && row.id === methodId) return false;
+          if (targetName && this.normalizeMethodName(row.name || '').toLowerCase() === this.normalizeMethodName(targetName).toLowerCase()) return false;
+          return true;
+        });
       }
       return model;
     }
 
     // Remove entire class
-    const targetClassId = classId || this.findClassIdByName(model, className!);
-    if (targetClassId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetClassId);
+    const targetNode = (classId ? ModifierHelpers.findNodeById(model, classId) : undefined) ||
+                       (className ? this.findClassNode(model, className) : undefined);
+    if (targetNode) {
+      return ModifierHelpers.removeNodeWithChildren(model, targetNode.id);
     }
 
-    // Idempotent: if the class can't be found, it might already have been removed
-    // by an earlier modification in the same batch. Log a warning and no-op instead
-    // of throwing, so a single "remove the class X" request that generates multiple
-    // remove_element entries for the same class doesn't fail on the second one.
     console.warn(
       `[ClassDiagramModifier] removeElement: class '${className || classId}' not found — ` +
-      `treating as already removed (no-op).`
+      `treating as already removed (no-op).`,
     );
+    return model;
+  }
+
+  private addOclConstraint(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const constraintText = (modification.changes?.constraint || '').trim();
+    if (!constraintText) {
+      throw new Error('add_ocl_constraint requires a "constraint" string in changes (full BOCL block: "context X (inv|pre|post) [name]: body").');
+    }
+    const className = modification.target?.className;
+    if (!className) {
+      throw new Error('add_ocl_constraint requires target.className (the class the constraint anchors on).');
+    }
+    const classNode = this.findClassNode(model, className);
+    if (!classNode) {
+      throw new Error(`add_ocl_constraint: class '${className}' not found in the model.`);
+    }
+
+    // A visible ClassOCLConstraint box linked to its class, as the converter
+    // emits (rows on `data.oclConstraints` are not rendered or editable).
+    const constraintId = ModifierHelpers.generateUniqueId('ocl');
+    const width = 240;
+    const height = 80;
+    ModifierHelpers.addNode(model, {
+      id: constraintId,
+      type: 'ClassOCLConstraint' as any,
+      position: {
+        x: (classNode.position?.x ?? 0) + (classNode.width ?? 220) + 80,
+        y: classNode.position?.y ?? 0,
+      },
+      width,
+      height,
+      measured: { width, height },
+      data: {
+        name: 'OCL',
+        expression: constraintText,
+        description: (modification.changes?.text || '').trim() || '',
+      },
+    });
+    ModifierHelpers.addEdge(model, {
+      id: ModifierHelpers.generateUniqueId('ocllink'),
+      source: constraintId,
+      target: classNode.id,
+      type: 'ClassOCLLink' as any,
+      sourceHandle: 'left',
+      targetHandle: 'right',
+      data: { points: [] } as any,
+    });
     return model;
   }
 
   // ─── Refactoring action handlers ───────────────────────────────────────────
 
-  /**
-   * Extract attributes from a source class into a new class and create a relationship.
-   *
-   * Payload shape:
-   * { action: "extract_class", sourceClass: "User", newClass: "Address",
-   *   attributes: ["street", "city", "zip"], relationshipType: "ClassComposition" }
-   */
   private extractClass(model: BESSERModel, modification: ModelModification): BESSERModel {
     const sourceClassName = modification.sourceClass;
     const newClassName = modification.newClass;
@@ -950,85 +828,40 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (!newClassName) throw new Error('extract_class requires a "newClass" field.');
     if (attributeNames.length === 0) throw new Error('extract_class requires a non-empty "attributes" array.');
 
-    const sourceClassId = this.findClassIdByName(model, sourceClassName);
-    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+    const sourceNode = this.findClassNode(model, sourceClassName);
+    if (!sourceNode) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
 
-    const sourceElement = model.elements[sourceClassId];
-    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+    const sourceData = sourceNode.data as any;
+    const sourceRows: ClassifierMember[] = Array.isArray(sourceData.attributes) ? sourceData.attributes : [];
 
-    // Collect matching attributes from the source class
-    const extractedAttrs: Array<{ id: string; element: any }> = [];
-    const remainingAttrIds: string[] = [];
-
-    for (const attrId of (sourceElement.attributes || [])) {
-      const attr = model.elements[attrId];
-      if (!attr) { remainingAttrIds.push(attrId); continue; }
-      const normalizedName = this.normalizeAttributeName(attr.name || '');
-      if (attributeNames.some(name => name.toLowerCase() === normalizedName.toLowerCase())) {
-        extractedAttrs.push({ id: attrId, element: attr });
+    const extracted: ClassifierMember[] = [];
+    const remaining: ClassifierMember[] = [];
+    for (const row of sourceRows) {
+      const normalized = this.normalizeAttributeName(row.name || '');
+      if (attributeNames.some((n) => n.toLowerCase() === normalized.toLowerCase())) {
+        extracted.push(row);
       } else {
-        remainingAttrIds.push(attrId);
+        remaining.push(row);
       }
     }
+    sourceData.attributes = remaining;
+    this.recalculateClassHeight(sourceNode);
 
-    // Update source class: remove the extracted attributes
-    sourceElement.attributes = remainingAttrIds;
-    for (const extracted of extractedAttrs) {
-      delete model.elements[extracted.id];
-    }
-    // Shrink source class height
-    this.recalculateClassHeight(sourceElement);
-
-    // Create new class positioned to the right of the source
     const newClassId = ModifierHelpers.generateUniqueId('class');
-    const newClassX = sourceBounds.x + (sourceBounds.width || 220) + 400;
-    const newClassY = sourceBounds.y;
-
-    model.elements[newClassId] = {
+    const newNode = this.buildClassNode({
       id: newClassId,
       name: newClassName,
-      type: 'Class',
-      owner: null,
-      bounds: { x: newClassX, y: newClassY, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    };
+      x: sourceNode.position.x + (sourceNode.width || 220) + 400,
+      y: sourceNode.position.y,
+    });
+    (newNode.data as any).attributes = extracted.map((r) => ({ ...r, id: ModifierHelpers.generateUniqueId('attr') }));
+    this.recalculateClassHeight(newNode);
+    ModifierHelpers.addNode(model, newNode);
 
-    // Re-create extracted attributes under the new class
-    for (let i = 0; i < extractedAttrs.length; i++) {
-      const original = extractedAttrs[i].element;
-      const attrId = ModifierHelpers.generateUniqueId('attr');
-      const attrY = newClassY + 50 + i * 25;
-      model.elements[attrId] = {
-        id: attrId,
-        name: original.name,
-        type: 'ClassAttribute',
-        owner: newClassId,
-        bounds: { x: newClassX + 1, y: attrY, width: 218, height: 25 },
-        visibility: original.visibility || 'public',
-        attributeType: original.attributeType || 'str',
-      };
-      model.elements[newClassId].attributes.push(attrId);
-    }
-    this.recalculateClassHeight(model.elements[newClassId]);
-
-    // Create relationship from source to new class
-    this.createRelationship(model, sourceClassId, newClassId, relType);
-
+    this.createRelationshipEdge(model, sourceNode.id, newClassId, relType);
     return model;
   }
 
-  /**
-   * Split a class into two (or more) new classes.
-   *
-   * Payload shape:
-   * { action: "split_class", sourceClass: "User",
-   *   newClasses: [{ name: "UserProfile", attributes: [...] }, { name: "UserAuth", attributes: [...] }],
-   *   inheritFrom: "User" }
-   *
-   * If inheritFrom is specified, the source class is kept as a parent with inheritance relationships.
-   * Otherwise, the source class is removed and replaced by the new classes.
-   */
   private splitClass(model: BESSERModel, modification: ModelModification): BESSERModel {
     const sourceClassName = modification.sourceClass;
     const newClassSpecs = modification.newClasses || [];
@@ -1037,126 +870,75 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (!sourceClassName) throw new Error('split_class requires a "sourceClass" field.');
     if (newClassSpecs.length === 0) throw new Error('split_class requires a non-empty "newClasses" array.');
 
-    const sourceClassId = this.findClassIdByName(model, sourceClassName);
-    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+    const sourceNode = this.findClassNode(model, sourceClassName);
+    if (!sourceNode) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
 
-    const sourceElement = model.elements[sourceClassId];
-    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+    const sourcePos = sourceNode.position;
+    const sourceWidth = sourceNode.width || 220;
 
-    // Collect all existing relationships involving the source class (for reconnection if needed)
-    const existingRelationships: Array<{ relId: string; rel: any; direction: 'source' | 'target' }> = [];
-    if (model.relationships) {
-      for (const [relId, rel] of Object.entries(model.relationships)) {
-        if (rel.source?.element === sourceClassId) {
-          existingRelationships.push({ relId, rel, direction: 'source' });
-        } else if (rel.target?.element === sourceClassId) {
-          existingRelationships.push({ relId, rel, direction: 'target' });
-        }
-      }
+    // Collect existing edges involving the source class (for reconnection)
+    const existingEdges: Array<{ edge: BesserEdge; direction: 'source' | 'target' }> = [];
+    for (const edge of ModifierHelpers.edges(model)) {
+      if (edge.source === sourceNode.id) existingEdges.push({ edge, direction: 'source' });
+      else if (edge.target === sourceNode.id) existingEdges.push({ edge, direction: 'target' });
     }
 
-    // Create new classes
     const newClassIds: string[] = [];
     for (let ci = 0; ci < newClassSpecs.length; ci++) {
       const spec = newClassSpecs[ci];
       const newClassId = ModifierHelpers.generateUniqueId('class');
       const offsetX = (ci - (newClassSpecs.length - 1) / 2) * 300;
-      const newX = sourceBounds.x + offsetX;
-      const newY = inheritFrom ? sourceBounds.y + 250 : sourceBounds.y;
+      const newX = sourcePos.x + offsetX;
+      const newY = inheritFrom ? sourcePos.y + 250 : sourcePos.y;
 
-      model.elements[newClassId] = {
-        id: newClassId,
-        name: spec.name,
-        type: 'Class',
-        owner: null,
-        bounds: { x: newX, y: newY, width: 220, height: 90 },
-        attributes: [],
-        methods: [],
-      };
+      const node = this.buildClassNode({ id: newClassId, name: spec.name, x: newX, y: newY });
 
-      // Add attributes
       if (spec.attributes) {
-        for (let ai = 0; ai < spec.attributes.length; ai++) {
-          const attrSpec = spec.attributes[ai];
-          const attrId = ModifierHelpers.generateUniqueId('attr');
-          const attrY = newY + 50 + ai * 25;
-          model.elements[attrId] = {
-            id: attrId,
-            name: attrSpec.name,
-            visibility: attrSpec.visibility || 'public',
-            attributeType: normalizeType(attrSpec.type),
-            type: 'ClassAttribute',
-            owner: newClassId,
-            bounds: { x: newX + 1, y: attrY, width: 218, height: 25 },
-          };
-          model.elements[newClassId].attributes.push(attrId);
-        }
+        (node.data as any).attributes = spec.attributes.map((a) => ({
+          id: ModifierHelpers.generateUniqueId('attr'),
+          name: a.name,
+          attributeType: normalizeType(a.type),
+          visibility: (a.visibility as any) || 'public',
+        }));
       }
-
-      // Add methods
       if (spec.methods) {
-        for (let mi = 0; mi < spec.methods.length; mi++) {
-          const methodSpec = spec.methods[mi];
-          const methodId = ModifierHelpers.generateUniqueId('method');
-          const attrCount = (spec.attributes || []).length;
-          const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
-          const paramStr = methodSpec.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
-          const returnType = normalizeType(methodSpec.returnType || 'any');
-          const visSymbol = methodSpec.visibility === 'private' ? '-' :
-                            methodSpec.visibility === 'protected' ? '#' : '+';
-          model.elements[methodId] = {
-            id: methodId,
+        (node.data as any).methods = spec.methods.map((m) => {
+          const paramStr = m.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
+          const returnType = normalizeType(m.returnType || 'any');
+          const visSymbol = m.visibility === 'private' ? '-' :
+                            m.visibility === 'protected' ? '#' : '+';
+          return {
+            id: ModifierHelpers.generateUniqueId('method'),
             // Return type belongs in the name (backend parses it from there).
-            name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
-            type: 'ClassMethod',
-            owner: newClassId,
-            bounds: { x: newX + 1, y: methodY, width: 218, height: 25 },
-            visibility: methodSpec.visibility || 'public',
+            name: `${visSymbol} ${m.name}(${paramStr}): ${returnType}`,
             attributeType: returnType,
+            visibility: (m.visibility as any) || 'public',
           };
-          model.elements[newClassId].methods.push(methodId);
-        }
+        });
       }
-
-      this.recalculateClassHeight(model.elements[newClassId]);
+      this.recalculateClassHeight(node);
+      ModifierHelpers.addNode(model, node);
       newClassIds.push(newClassId);
     }
 
     if (inheritFrom) {
-      // Keep source class, create inheritance relationships from new classes to source
       for (const newClassId of newClassIds) {
-        this.createRelationship(model, newClassId, sourceClassId, 'ClassInheritance');
+        this.createRelationshipEdge(model, newClassId, sourceNode.id, 'ClassInheritance');
       }
     } else {
-      // Remove source class and reconnect existing relationships to the first new class
-      // (best-effort: attributes mentioned in a new class determine reconnection)
-      for (const { relId, rel, direction } of existingRelationships) {
-        // Reconnect to the first new class by default
-        if (direction === 'source') {
-          rel.source.element = newClassIds[0];
-        } else {
-          rel.target.element = newClassIds[0];
-        }
+      // Reconnect existing edges to the first new class, then drop the source
+      for (const { edge, direction } of existingEdges) {
+        if (direction === 'source') edge.source = newClassIds[0];
+        else edge.target = newClassIds[0];
       }
-      // Remove the source class and its children
-      ModifierHelpers.removeElementWithChildren(model, sourceClassId);
-      // Re-add relationships that were removed by removeElementWithChildren
-      for (const { relId, rel } of existingRelationships) {
-        if (!model.relationships[relId]) {
-          model.relationships[relId] = rel;
-        }
-      }
+      const m = model as any;
+      m.nodes = (m.nodes ?? []).filter((n: BesserNode) => n.id !== sourceNode.id);
+      // edges that referenced the source were already redirected; no need to filter
     }
 
     return model;
   }
 
-  /**
-   * Merge two or more classes into a single class.
-   *
-   * Payload shape:
-   * { action: "merge_classes", classes: ["Address", "Location"], targetName: "Address" }
-   */
   private mergeClasses(model: BESSERModel, modification: ModelModification): BESSERModel {
     const classNames = modification.classes || [];
     const targetName = modification.targetName;
@@ -1164,141 +946,76 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (classNames.length < 2) throw new Error('merge_classes requires at least two class names in "classes".');
     if (!targetName) throw new Error('merge_classes requires a "targetName" field.');
 
-    // Resolve class IDs
-    const classEntries: Array<{ id: string; element: any }> = [];
+    const nodes: BesserNode[] = [];
     for (const name of classNames) {
-      const classId = this.findClassIdByName(model, name);
-      if (!classId) throw new Error(`Class '${name}' not found in the model.`);
-      classEntries.push({ id: classId, element: model.elements[classId] });
+      const n = this.findClassNode(model, name);
+      if (!n) throw new Error(`Class '${name}' not found in the model.`);
+      nodes.push(n);
     }
 
-    // Compute position: midpoint of all classes being merged
     let sumX = 0, sumY = 0;
-    for (const entry of classEntries) {
-      const bounds = entry.element.bounds || { x: 0, y: 0 };
-      sumX += bounds.x;
-      sumY += bounds.y;
+    for (const n of nodes) {
+      sumX += n.position.x;
+      sumY += n.position.y;
     }
-    const mergedX = Math.round(sumX / classEntries.length);
-    const mergedY = Math.round(sumY / classEntries.length);
+    const mergedX = Math.round(sumX / nodes.length);
+    const mergedY = Math.round(sumY / nodes.length);
 
-    // Collect all attributes and methods (deduplicate attributes by normalized name)
-    const seenAttrNames = new Set<string>();
-    const collectedAttrs: any[] = [];
-    const collectedMethods: any[] = [];
-    const seenMethodNames = new Set<string>();
-
-    for (const entry of classEntries) {
-      for (const attrId of (entry.element.attributes || [])) {
-        const attr = model.elements[attrId];
-        if (!attr) continue;
-        const normalizedName = this.normalizeAttributeName(attr.name || '').toLowerCase();
-        if (!seenAttrNames.has(normalizedName)) {
-          seenAttrNames.add(normalizedName);
-          collectedAttrs.push({ ...attr });
+    const seenAttrs = new Set<string>();
+    const collectedAttrs: ClassifierMember[] = [];
+    const seenMethods = new Set<string>();
+    const collectedMethods: ClassifierMember[] = [];
+    for (const n of nodes) {
+      const data: any = n.data || {};
+      const attrs: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
+      for (const a of attrs) {
+        const key = this.normalizeAttributeName(a.name || '').toLowerCase();
+        if (!seenAttrs.has(key)) {
+          seenAttrs.add(key);
+          collectedAttrs.push({ ...a, id: ModifierHelpers.generateUniqueId('attr') });
         }
       }
-      for (const methodId of (entry.element.methods || [])) {
-        const method = model.elements[methodId];
-        if (!method) continue;
-        const normalizedName = this.normalizeMethodName(method.name || '').toLowerCase();
-        if (!seenMethodNames.has(normalizedName)) {
-          seenMethodNames.add(normalizedName);
-          collectedMethods.push({ ...method });
+      const methods: ClassifierMember[] = Array.isArray(data.methods) ? data.methods : [];
+      for (const meth of methods) {
+        const key = this.normalizeMethodName(meth.name || '').toLowerCase();
+        if (!seenMethods.has(key)) {
+          seenMethods.add(key);
+          collectedMethods.push({ ...meth, id: ModifierHelpers.generateUniqueId('method') });
         }
       }
     }
 
-    // Collect all relationships involving any of the merged classes
-    const affectedRelationships: Array<{ relId: string; rel: any }> = [];
-    const mergedClassIds = new Set(classEntries.map(e => e.id));
-    if (model.relationships) {
-      for (const [relId, rel] of Object.entries(model.relationships)) {
-        const srcId = rel.source?.element;
-        const tgtId = rel.target?.element;
-        // Skip relationships that are between two classes being merged
-        if (mergedClassIds.has(srcId) && mergedClassIds.has(tgtId)) {
-          continue;
-        }
-        if (mergedClassIds.has(srcId) || mergedClassIds.has(tgtId)) {
-          affectedRelationships.push({ relId, rel: { ...rel, source: { ...rel.source }, target: { ...rel.target } } });
-        }
-      }
+    const mergedClassIds = new Set(nodes.map((n) => n.id));
+    const affectedEdges: BesserEdge[] = [];
+    for (const edge of ModifierHelpers.edges(model)) {
+      if (mergedClassIds.has(edge.source) && mergedClassIds.has(edge.target)) continue;
+      if (mergedClassIds.has(edge.source) || mergedClassIds.has(edge.target)) affectedEdges.push(edge);
     }
 
-    // Remove all old classes (and their children and relationships)
-    for (const entry of classEntries) {
-      ModifierHelpers.removeElementWithChildren(model, entry.id);
-    }
+    // Drop merged class nodes and their incident edges (between merged peers)
+    const m = model as any;
+    m.nodes = (m.nodes ?? []).filter((n: BesserNode) => !mergedClassIds.has(n.id));
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => {
+      if (mergedClassIds.has(e.source) && mergedClassIds.has(e.target)) return false;
+      return true;
+    });
 
-    // Create merged class
     const mergedClassId = ModifierHelpers.generateUniqueId('class');
-    model.elements[mergedClassId] = {
-      id: mergedClassId,
-      name: targetName,
-      type: 'Class',
-      owner: null,
-      bounds: { x: mergedX, y: mergedY, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    };
+    const node = this.buildClassNode({ id: mergedClassId, name: targetName, x: mergedX, y: mergedY });
+    (node.data as any).attributes = collectedAttrs;
+    (node.data as any).methods = collectedMethods;
+    this.recalculateClassHeight(node);
+    ModifierHelpers.addNode(model, node);
 
-    // Re-create attributes under the merged class
-    for (let i = 0; i < collectedAttrs.length; i++) {
-      const original = collectedAttrs[i];
-      const attrId = ModifierHelpers.generateUniqueId('attr');
-      const attrY = mergedY + 50 + i * 25;
-      model.elements[attrId] = {
-        id: attrId,
-        name: original.name,
-        type: 'ClassAttribute',
-        owner: mergedClassId,
-        bounds: { x: mergedX + 1, y: attrY, width: 218, height: 25 },
-        visibility: original.visibility || 'public',
-        attributeType: original.attributeType || 'str',
-      };
-      model.elements[mergedClassId].attributes.push(attrId);
-    }
-
-    // Re-create methods under the merged class
-    const attrCount = collectedAttrs.length;
-    for (let i = 0; i < collectedMethods.length; i++) {
-      const original = collectedMethods[i];
-      const methodId = ModifierHelpers.generateUniqueId('method');
-      const methodY = mergedY + 50 + attrCount * 25 + 10 + i * 25;
-      model.elements[methodId] = {
-        id: methodId,
-        name: original.name,
-        type: 'ClassMethod',
-        owner: mergedClassId,
-        bounds: { x: mergedX + 1, y: methodY, width: 218, height: 25 },
-      };
-      model.elements[mergedClassId].methods.push(methodId);
-    }
-    this.recalculateClassHeight(model.elements[mergedClassId]);
-
-    // Re-add affected relationships, pointing to the merged class
-    if (!model.relationships) model.relationships = {};
-    for (const { relId, rel } of affectedRelationships) {
-      if (mergedClassIds.has(rel.source.element)) {
-        rel.source.element = mergedClassId;
-      }
-      if (mergedClassIds.has(rel.target.element)) {
-        rel.target.element = mergedClassId;
-      }
-      model.relationships[relId] = rel;
+    // Reconnect affected edges to the merged class
+    for (const edge of affectedEdges) {
+      if (mergedClassIds.has(edge.source)) edge.source = mergedClassId;
+      if (mergedClassIds.has(edge.target)) edge.target = mergedClassId;
     }
 
     return model;
   }
 
-  /**
-   * Promote an attribute from a class into its own class with a composition relationship.
-   *
-   * Payload shape:
-   * { action: "promote_attribute", sourceClass: "User", attribute: "address",
-   *   newClass: "Address", newAttributes: [{ name: "street", type: "str" }, ...] }
-   */
   private promoteAttribute(model: BESSERModel, modification: ModelModification): BESSERModel {
     const sourceClassName = modification.sourceClass;
     const attributeName = modification.attribute;
@@ -1309,71 +1026,37 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (!attributeName) throw new Error('promote_attribute requires an "attribute" field.');
     if (!newClassName) throw new Error('promote_attribute requires a "newClass" field.');
 
-    const sourceClassId = this.findClassIdByName(model, sourceClassName);
-    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+    const sourceNode = this.findClassNode(model, sourceClassName);
+    if (!sourceNode) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
 
-    const sourceElement = model.elements[sourceClassId];
-    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+    const sourceData = sourceNode.data as any;
+    const sourceAttrs: ClassifierMember[] = Array.isArray(sourceData.attributes) ? sourceData.attributes : [];
+    const normalizedTarget = this.normalizeAttributeName(attributeName).toLowerCase();
+    sourceData.attributes = sourceAttrs.filter((a) =>
+      this.normalizeAttributeName(a.name || '').toLowerCase() !== normalizedTarget,
+    );
+    this.recalculateClassHeight(sourceNode);
 
-    // Find and remove the attribute from the source class
-    const attrId = this.findAttributeIdByClassAndName(model, sourceClassName, attributeName);
-    if (attrId) {
-      sourceElement.attributes = (sourceElement.attributes || []).filter((id: string) => id !== attrId);
-      delete model.elements[attrId];
-      this.recalculateClassHeight(sourceElement);
-    }
-
-    // Create the new class positioned to the right of the source
     const newClassId = ModifierHelpers.generateUniqueId('class');
-    const newClassX = sourceBounds.x + (sourceBounds.width || 220) + 400;
-    const newClassY = sourceBounds.y;
-
-    model.elements[newClassId] = {
+    const newClassNode = this.buildClassNode({
       id: newClassId,
       name: newClassName,
-      type: 'Class',
-      owner: null,
-      bounds: { x: newClassX, y: newClassY, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    };
+      x: sourceNode.position.x + (sourceNode.width || 220) + 400,
+      y: sourceNode.position.y,
+    });
+    (newClassNode.data as any).attributes = newAttributes.map((a) => ({
+      id: ModifierHelpers.generateUniqueId('attr'),
+      name: a.name,
+      attributeType: normalizeType(a.type),
+      visibility: (a.visibility as any) || 'public',
+    }));
+    this.recalculateClassHeight(newClassNode);
+    ModifierHelpers.addNode(model, newClassNode);
 
-    // Add new attributes to the new class
-    for (let i = 0; i < newAttributes.length; i++) {
-      const attrSpec = newAttributes[i];
-      const newAttrId = ModifierHelpers.generateUniqueId('attr');
-      const attrY = newClassY + 50 + i * 25;
-      const visibility = attrSpec.visibility || 'public';
-      const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
-      const type = normalizeType(attrSpec.type);
-
-      model.elements[newAttrId] = {
-        id: newAttrId,
-        name: attrSpec.name,
-        type: 'ClassAttribute',
-        owner: newClassId,
-        bounds: { x: newClassX + 1, y: attrY, width: 218, height: 25 },
-        visibility: visibility,
-        attributeType: type,
-      };
-      model.elements[newClassId].attributes.push(newAttrId);
-    }
-    this.recalculateClassHeight(model.elements[newClassId]);
-
-    // Create composition relationship from source to new class
-    this.createRelationship(model, sourceClassId, newClassId, 'ClassComposition');
-
+    this.createRelationshipEdge(model, sourceNode.id, newClassId, 'ClassComposition');
     return model;
   }
 
-  /**
-   * Add an Enumeration element and optionally update class attributes to use it.
-   *
-   * Payload shape:
-   * { action: "add_enum", enumName: "OrderStatus",
-   *   values: ["PENDING", "SHIPPED", "DELIVERED"],
-   *   usedBy: [{ className: "Order", attributeName: "status" }] }
-   */
   private addEnum(model: BESSERModel, modification: ModelModification): BESSERModel {
     const enumName = modification.enumName;
     const values = modification.values || [];
@@ -1382,18 +1065,14 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (!enumName) throw new Error('add_enum requires an "enumName" field.');
     if (values.length === 0) throw new Error('add_enum requires a non-empty "values" array.');
 
-    // Determine position: near the classes that use it, or fall back to a default spot
-    let posX = 0;
-    let posY = 0;
-
+    let posX = 0, posY = 0;
     if (usedBy.length > 0) {
       let count = 0;
       for (const usage of usedBy) {
-        const classId = this.findClassIdByName(model, usage.className);
-        if (classId && model.elements[classId]) {
-          const bounds = model.elements[classId].bounds || { x: 0, y: 0 };
-          posX += bounds.x;
-          posY += bounds.y;
+        const node = this.findClassNode(model, usage.className);
+        if (node) {
+          posX += node.position.x;
+          posY += node.position.y;
           count++;
         }
       }
@@ -1402,138 +1081,87 @@ export class ClassDiagramModifier implements DiagramModifier {
         posY = Math.round(posY / count) - 100;
       }
     } else {
-      // Place after the rightmost element
-      for (const el of Object.values(model.elements)) {
-        if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
-          const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
-          if (right + 80 > posX) {
-            posX = right + 80;
-            posY = el.bounds?.y ?? 0;
-          }
-        }
-      }
+      const next = this.nextClassPosition(model);
+      posX = next.x;
+      posY = next.y;
     }
 
-    // Create the Enumeration element
     const enumId = ModifierHelpers.generateUniqueId('enum');
-    const enumWidth = 220;
-    const headerHeight = 50;
-    const valueHeight = 25;
-    const totalHeight = headerHeight + values.length * valueHeight + 10;
+    const node = this.buildClassNode({ id: enumId, name: enumName, stereotype: CLASS_STEREOTYPE.Enumeration, x: posX, y: posY });
+    (node.data as any).attributes = values.map((v) => ({
+      id: ModifierHelpers.generateUniqueId('literal'),
+      name: v,
+      attributeType: 'str',
+      visibility: 'public',
+    }));
+    this.recalculateClassHeight(node);
+    ModifierHelpers.addNode(model, node);
 
-    model.elements[enumId] = {
-      id: enumId,
-      name: enumName,
-      type: 'Enumeration',
-      owner: null,
-      bounds: { x: posX, y: posY, width: enumWidth, height: totalHeight },
-      attributes: [],
-      methods: [],
-    };
-
-    // Add enumeration literals as attributes
-    for (let i = 0; i < values.length; i++) {
-      const literalId = ModifierHelpers.generateUniqueId('literal');
-      const literalY = posY + headerHeight + i * valueHeight;
-
-      model.elements[literalId] = {
-        id: literalId,
-        name: values[i],
-        type: 'EnumerationLiteral',
-        owner: enumId,
-        bounds: { x: posX + 1, y: literalY, width: enumWidth - 2, height: valueHeight },
-      };
-      model.elements[enumId].attributes.push(literalId);
-    }
-
-    // Update attribute types in classes that use this enum
+    // Update attribute types in classes that reference this enum
     for (const usage of usedBy) {
-      const classId = this.findClassIdByName(model, usage.className);
-      if (!classId) continue;
-
-      const classElement = model.elements[classId];
-      if (!classElement?.attributes) continue;
-
-      for (const attrId of classElement.attributes) {
-        const attr = model.elements[attrId];
-        if (!attr) continue;
-
-        const normalizedName = this.normalizeAttributeName(attr.name || '');
-        if (normalizedName.toLowerCase() === usage.attributeName.toLowerCase()) {
-          // Update the attribute type to the enum name
-          const parsed = this.parseAttributeLabel(attr.name || '');
-          attr.name = `${parsed.visibilitySymbol} ${parsed.name}: ${enumName}`;
-          attr.attributeType = enumName;
+      const refNode = this.findClassNode(model, usage.className);
+      if (!refNode) continue;
+      const data = refNode.data as any;
+      const rows: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
+      for (const row of rows) {
+        if (this.normalizeAttributeName(row.name || '').toLowerCase() === usage.attributeName.toLowerCase()) {
+          row.attributeType = enumName;
         }
       }
     }
-
     return model;
   }
 
-  // ─── Shared helpers for refactoring actions ──────────────────────────────────
+  // ─── Shared helpers ──────────────────────────────────────────────────────
 
-  /**
-   * Recalculate a class element's height based on its current attributes and methods.
-   */
-  private recalculateClassHeight(classElement: any): void {
-    const attrCount = (classElement.attributes || []).length;
-    const methodCount = (classElement.methods || []).length;
-    const headerHeight = 50;
-    const rowHeight = 25;
-    const methodGap = methodCount > 0 ? 10 : 0;
-    const padding = 15;
-    classElement.bounds.height = Math.max(
-      90,
-      headerHeight + attrCount * rowHeight + methodGap + methodCount * rowHeight + padding
-    );
-  }
-
-  /**
-   * Create a relationship between two classes and add it to the model.
-   */
-  private createRelationship(
+  private createMinimalClassNode(
     model: BESSERModel,
-    sourceClassId: string,
-    targetClassId: string,
-    relationshipType: string,
-    name: string = ''
-  ): string {
-    if (!model.relationships) model.relationships = {};
-
-    const relId = ModifierHelpers.generateUniqueId('rel');
-    model.relationships[relId] = {
-      id: relId,
-      type: relationshipType,
-      source: {
-        element: sourceClassId,
-        direction: 'Left',
-        multiplicity: '1',
-        role: '',
-        bounds: { x: 0, y: 0, width: 0, height: 0 }
-      },
-      target: {
-        element: targetClassId,
-        direction: 'Right',
-        multiplicity: '*',
-        role: name,
-        bounds: { x: 0, y: 0, width: 0, height: 0 }
-      },
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      name: name,
-      path: [
-        { x: 100, y: 10 },
-        { x: 0, y: 10 }
-      ],
-      isManuallyLayouted: false
-    };
-
-    return relId;
+    className: string,
+    neighbour?: BesserNode,
+  ): BesserNode {
+    let x = 0, y = 0;
+    if (neighbour) {
+      x = neighbour.position.x + (neighbour.width || 250) + 80;
+      y = neighbour.position.y;
+    } else {
+      const next = this.nextClassPosition(model);
+      x = next.x; y = next.y;
+    }
+    const node = this.buildClassNode({ id: ModifierHelpers.generateUniqueId('class'), name: className, x, y });
+    ModifierHelpers.addNode(model, node);
+    return node;
   }
 
-  // ─── Lookup helpers ──────────────────────────────────────────────────────────
+  private createRelationshipEdge(
+    model: BESSERModel,
+    sourceId: string,
+    targetId: string,
+    relationshipType: string,
+    name: string = '',
+  ): string {
+    const edgeId = ModifierHelpers.generateUniqueId('rel');
+    const edge: BesserEdge = {
+      id: edgeId,
+      source: sourceId,
+      target: targetId,
+      type: relationshipType as any,
+      sourceHandle: 'left',
+      targetHandle: 'right',
+      data: {
+        name,
+        sourceMultiplicity: '1',
+        targetMultiplicity: '*',
+        sourceRole: '',
+        targetRole: name,
+        isManuallyLayouted: false,
+        points: [],
+      },
+    };
+    applyAssistantRelationshipType(edge, relationshipType);
+    ModifierHelpers.addEdge(model, edge);
+    return edgeId;
+  }
 
-  // Helper methods
   /**
    * The endpoint pair naming a relationship, or null if the target names none.
    *
@@ -1562,9 +1190,9 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   /**
-   * Resolve a relationship from the names of the classes it connects.
+   * Resolve a relationship edge from the names of the classes it connects.
    *
-   * Matching by `rel.name` alone is not enough: the agent's label is the arrow
+   * Matching by `data.name` alone is not enough: the agent's label is the arrow
    * form ("Book → BookCopy") while the stored name is the role ("copies"), so
    * a name comparison never matches and the caller is left with nothing to do.
    */
@@ -1573,117 +1201,17 @@ export class ClassDiagramModifier implements DiagramModifier {
     sourceName: string,
     targetName: string,
   ): string | null {
-    const sourceId = this.findClassIdByName(model, sourceName);
-    const targetId = this.findClassIdByName(model, targetName);
+    const sourceId = this.findClassNode(model, sourceName)?.id;
+    const targetId = this.findClassNode(model, targetName)?.id;
     if (!sourceId || !targetId) return null;
 
-    const entries = Object.entries(model.relationships || {});
-    const endpointsOf = (rel: any) => [rel?.source?.element, rel?.target?.element];
-
-    for (const [relId, rel] of entries) {
-      const [from, to] = endpointsOf(rel);
-      if (from === sourceId && to === targetId) return relId;
-    }
+    const edges = ModifierHelpers.edges(model);
+    const direct = edges.find((e) => e.source === sourceId && e.target === targetId);
+    if (direct) return direct.id;
     // An association is drawn one way but reads either way, and the LLM names
     // the endpoints in whichever order it described them.
-    for (const [relId, rel] of entries) {
-      const [from, to] = endpointsOf(rel);
-      if (from === targetId && to === sourceId) return relId;
-    }
-    return null;
-  }
-
-  private findClassIdByName(model: BESSERModel, className: string): string | null {
-    // Search across all class-like types (Class, AbstractClass, Interface, Enumeration)
-    return ModifierHelpers.findElementByName(model, className, 'Class')
-      ?? ModifierHelpers.findElementByName(model, className, 'AbstractClass')
-      ?? ModifierHelpers.findElementByName(model, className, 'Interface')
-      ?? ModifierHelpers.findElementByName(model, className, 'Enumeration');
-  }
-
-  /**
-   * Create a minimal Class element so that add_relationship can reference it.
-   * Positions the new class near an optional neighbour if provided.
-   */
-  private createMinimalClass(model: BESSERModel, className: string, neighbourId?: string | null): string {
-    const classId = ModifierHelpers.generateUniqueId('class');
-    // Place the new class to the right of (or below) the neighbour, or at origin
-    let x = 0;
-    let y = 0;
-    if (neighbourId && model.elements[neighbourId]) {
-      const nb = model.elements[neighbourId];
-      x = (nb.bounds?.x ?? 0) + (nb.bounds?.width ?? 250) + 80;
-      y = nb.bounds?.y ?? 0;
-    } else {
-      // Fallback: find the rightmost class and place to its right
-      for (const el of Object.values(model.elements)) {
-        if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
-          const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 250);
-          if (right + 80 > x) {
-            x = right + 80;
-            y = el.bounds?.y ?? 0;
-          }
-        }
-      }
-    }
-    model.elements[classId] = {
-      id: classId,
-      name: className,
-      type: 'Class',
-      owner: null,
-      bounds: { x, y, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    };
-    return classId;
-  }
-
-  private findAttributeIdByClassAndName(model: BESSERModel, className: string, attributeName?: string): string | null {
-    if (!attributeName) return null;
-    const classId = this.findClassIdByName(model, className);
-    if (!classId) return null;
-
-    const classElement = model.elements[classId];
-    if (!classElement?.attributes) return null;
-
-    const normalizedTarget = this.normalizeAttributeName(attributeName);
-
-    for (const attrId of classElement.attributes) {
-      const attr = model.elements[attrId];
-      if (!attr?.name) continue;
-      const normalizedAttr = this.normalizeAttributeName(attr.name);
-      if (normalizedAttr.toLowerCase() === normalizedTarget.toLowerCase()) {
-        return attrId;
-      }
-      if (attr.name.toLowerCase().includes(attributeName.toLowerCase())) {
-        return attrId;
-      }
-    }
-    return null;
-  }
-
-  private findMethodIdByClassAndName(model: BESSERModel, className: string, methodName?: string): string | null {
-    if (!methodName) return null;
-    const classId = this.findClassIdByName(model, className);
-    if (!classId) return null;
-
-    const classElement = model.elements[classId];
-    if (!classElement?.methods) return null;
-
-    const normalizedTarget = this.normalizeMethodName(methodName);
-
-    for (const methodId of classElement.methods) {
-      const method = model.elements[methodId];
-      if (!method?.name) continue;
-      const normalizedMethod = this.normalizeMethodName(method.name);
-      if (normalizedMethod.toLowerCase() === normalizedTarget.toLowerCase()) {
-        return methodId;
-      }
-      if (method.name.toLowerCase().includes(methodName.toLowerCase())) {
-        return methodId;
-      }
-    }
-    return null;
+    const reverse = edges.find((e) => e.source === targetId && e.target === sourceId);
+    return reverse ? reverse.id : null;
   }
 
   private normalizeAttributeName(label: string): string {
@@ -1703,11 +1231,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       trimmed.trim().startsWith('#') ? '#' : '+';
     const withoutVisibility = trimmed.replace(/^([+#-])\s*/, '');
     const [namePart, typePart] = withoutVisibility.split(':').map(part => part?.trim() || '');
-    return {
-      visibilitySymbol,
-      name: namePart || '',
-      type: typePart || ''
-    };
+    return { visibilitySymbol, name: namePart || '', type: typePart || '' };
   }
 
   private parseMethodLabel(label: string) {
@@ -1719,16 +1243,12 @@ export class ClassDiagramModifier implements DiagramModifier {
     const [signature, returnTypePart] = withoutVisibility.split(':').map(part => part?.trim() || '');
     const [namePart, paramsPart] = signature.split('(');
     const params = paramsPart?.replace(')', '').trim() || '';
-
-    const parameterList = params
-      ? params.split(',').map(param => param.trim()).filter(Boolean)
-      : [];
-
+    const parameterList = params ? params.split(',').map(p => p.trim()).filter(Boolean) : [];
     return {
       visibilitySymbol,
       name: namePart?.trim() || '',
       returnType: returnTypePart || '',
-      parameters: parameterList
+      parameters: parameterList,
     };
   }
 

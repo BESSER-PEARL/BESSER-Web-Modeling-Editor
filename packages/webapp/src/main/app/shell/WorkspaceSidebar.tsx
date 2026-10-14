@@ -121,7 +121,10 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
+      <aside
+        aria-label={t('nav.workspace')}
+        className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}
+      >
         {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
         <nav aria-label={t('nav.editors')} className="flex flex-col gap-0.5">
         {visibleUmlItems.map((item) => {

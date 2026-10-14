@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ApollonEditor, UMLModel } from '@besser/wme';
+import type { BesserEditor, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -35,8 +35,8 @@ vi.mock('../../../app/store/workspaceSlice', () => ({
   selectActiveDiagramType: (state: { workspace: { activeDiagramType: unknown } }) => state.workspace.activeDiagramType,
 }));
 
-const bpmnModel = minimalAgentic as unknown as UMLModel;
-const laneId = Object.values(bpmnModel.elements).find((el) => el.type === 'BPMNSwimlane')!.id;
+const bpmnModel = structuredClone(minimalAgentic) as unknown as UMLModel;
+const laneId = bpmnModel.nodes.find((node) => node.type === 'bpmnSwimlane')!.id;
 
 let project: BesserProject;
 let failingActions: Set<string>;
@@ -69,7 +69,7 @@ const setup = () => {
     selector(state as unknown as Parameters<typeof selector>[0]),
   );
 
-  const editor = { model: bpmnModel } as unknown as ApollonEditor;
+  const editor = { model: bpmnModel } as unknown as BesserEditor;
   return renderHook(() => useAgentDiagramLinker({ current: editor }));
 };
 
@@ -97,8 +97,12 @@ describe('useAgentDiagramLinker.createForLane', () => {
       'setElementLineage',
       'bumpEditorRevision',
     ]);
+    // The derived Agent diagram is stamped as a v4 model.
+    const populated = dispatched.filter((a) => a.type === 'updateDiagramModel')[1].payload as { model: UMLModel };
+    expect(populated.model.type).toBe('AgentDiagram');
+    expect(populated.model.nodes.some((node) => node.type === 'AgentState')).toBe(true);
     const linkedBpmn = project.diagrams.BPMN[0].model as UMLModel;
-    expect(linkedBpmn.elements[laneId]).toMatchObject({ agentDiagramRef: 'agent-new' });
+    expect(linkedBpmn.nodes.find((node) => node.id === laneId)?.data).toMatchObject({ agentDiagramRef: 'agent-new' });
     const agent = project.diagrams.AgentDiagram.find((d) => d.id === 'agent-new');
     expect(agent?.derivedFrom?.sourceModelHash).toBe(hashUmlModel(linkedBpmn));
   });
