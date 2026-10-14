@@ -5,9 +5,10 @@ import { ComponentRelationshipType } from '.';
 import { Button } from '../../components/controls/button/button';
 import { Divider } from '../../components/controls/divider/divider';
 import { Dropdown } from '../../components/controls/dropdown/dropdown';
+import { Textfield } from '../../components/controls/textfield/textfield';
 import { ExchangeIcon } from '../../components/controls/icon/exchange';
 import { TrashIcon } from '../../components/controls/icon/trash';
-import { Header } from '../../components/controls/typography/typography';
+import { Body, Header } from '../../components/controls/typography/typography';
 import { I18nContext } from '../../components/i18n/i18n-context';
 import { localized } from '../../components/i18n/localized';
 import { ModelState } from '../../components/store/model-state';
@@ -17,11 +18,21 @@ import { UMLRelationshipRepository } from '../../services/uml-relationship/uml-r
 import { UMLRelationship } from '../../services/uml-relationship/uml-relationship';
 import { ColorButton } from '../../components/controls/color-button/color-button';
 import { StylePane } from '../../components/style-pane/style-pane';
+import { COMPONENT_EDGE_STEREOTYPE_PRESETS } from '../common/agentic/agentic-tokens';
+import { LineageSourceLink } from '../../components/lineage/LineageSourceLink';
+import { PresetField } from '../common/agentic/preset-field';
+import { IUMLComponentDependency } from './uml-component-dependency/uml-component-dependency';
 
 const Flex = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+`;
+
+const FieldLabel = styled(Body)`
+  width: 6em;
+  flex-shrink: 0;
+  margin-right: 0.5em;
 `;
 
 type State = { colorOpen: boolean };
@@ -37,6 +48,8 @@ class ComponentAssociationUpdate extends Component<Props, State> {
 
   render() {
     const { element } = this.props;
+    const isDependency = element.type === ComponentRelationshipType.ComponentDependency;
+    const stereotype = (element as IUMLComponentDependency).stereotype ?? '';
 
     return (
       <div>
@@ -69,6 +82,39 @@ class ComponentAssociationUpdate extends Component<Props, State> {
             </Dropdown.Item>
           </Dropdown>
         </section>
+        {isDependency && (
+          <>
+            <Divider />
+            <section>
+              <Flex>
+                <FieldLabel>{this.props.translate('popup.stereotype')}</FieldLabel>
+                <Textfield
+                  value={stereotype}
+                  onChange={this.onStereotypeChange}
+                  placeholder={this.props.translate('packages.ComponentDiagram.ComponentDependencyStereotypePlaceholder')}
+                />
+              </Flex>
+              <Flex>
+                <FieldLabel>{this.props.translate('popup.preset')}</FieldLabel>
+                <PresetField>
+                  <Dropdown
+                    value={stereotype}
+                    onChange={this.onStereotypeChange}
+                    placeholder={this.props.translate('popup.presetPlaceholder')}
+                  >
+                    {COMPONENT_EDGE_STEREOTYPE_PRESETS.map((token) => (
+                      <Dropdown.Item key={token} value={token}>
+                        {token}
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown>
+                </PresetField>
+              </Flex>
+            </section>
+          </>
+        )}
+        {/* Self-gating: only renders for derived ComponentDependencies. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -76,6 +122,11 @@ class ComponentAssociationUpdate extends Component<Props, State> {
   private onChange = (value: keyof typeof ComponentRelationshipType) => {
     const { element, update } = this.props;
     update(element.id, { type: value });
+  };
+
+  private onStereotypeChange = (value: string) => {
+    const { element, update } = this.props;
+    update<IUMLComponentDependency>(element.id, { stereotype: value });
   };
 }
 

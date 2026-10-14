@@ -11,6 +11,7 @@ import { UMLElementComponentProps } from '../uml-element-component-props';
 type StateProps = {
   zoomFactor: number;
   selectionBoxActive: boolean;
+  selected: boolean;
 };
 
 type DispatchProps = {
@@ -29,9 +30,10 @@ const initialState = {
 type State = typeof initialState;
 
 const enhance = connect<StateProps, DispatchProps, UMLElementComponentProps, ModelState>(
-  (state) => ({
+  (state, props) => ({
     zoomFactor: state.editor.zoomFactor,
     selectionBoxActive: state.editor.selectionBoxActive,
+    selected: state.selected.includes(props.id),
   }),
   {
     start: UMLElementRepository.startResizing,
@@ -46,6 +48,19 @@ const Handle = {
   transform: 'translate(-10, -10)',
   fill: 'none',
 };
+
+const MARKER = 6;
+
+// Visible corner marker, drawn only for the selected element; the hit areas above stay as they are.
+const Marker = styled.rect.attrs({
+  width: MARKER,
+  height: MARKER,
+  rx: 1.5,
+  transform: `translate(${-MARKER / 2}, ${-MARKER / 2})`,
+  pointerEvents: 'none',
+})`
+  fill: ${(props) => props.theme.color.primary};
+`;
 
 const HandleBottomRight = styled.rect.attrs({
   x: '100%',
@@ -93,10 +108,19 @@ export const resizable =
       }
 
       render() {
-        const { start, resize, end, selectionBoxActive, ...props } = this.props;
+        const { start, resize, end, selectionBoxActive, selected, ...props } = this.props;
+        const markers = selected && !selectionBoxActive;
         return (
           <WrappedComponent {...props}>
             {props.children}
+            {markers && (
+              <>
+                <Marker x="0%" y="0%" />
+                <Marker x="100%" y="0%" />
+                <Marker x="0%" y="100%" />
+                <Marker x="100%" y="100%" />
+              </>
+            )}
             <HandleBottomRight
               onPointerDown={(e) => {
                 this.onPointerDown(e, ResizeFrom.BOTTOMRIGHT);

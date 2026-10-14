@@ -44,7 +44,7 @@ backend at http://localhost:9000/besser_api in development mode.
    * - ``npm run lint``
      - Runs ESLint for webapp + server
      - root workspace
-   * - ``npm run lint --workspace=editor``
+   * - ``npm run lint --workspace=@besser/wme``
      - Lints the editor package
      - editor
    * - ``npm run lint --workspace=webapp``
@@ -73,8 +73,8 @@ When contributing to the editor, run package-specific checks:
 
 .. code-block:: bash
 
-   npm run lint --workspace=editor
-   npm run prettier:check --workspace=editor   # optional, run from package root
+   npm run lint --workspace=@besser/wme
+   npm run prettier:check --workspace=@besser/wme   # optional, run from package root
 
 4. Update documentation
 -----------------------

@@ -10,8 +10,8 @@ import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLRelationshipRepository } from '../../../services/uml-relationship/uml-relationship-repository';
-import { UMLDeploymentAssociation } from './uml-deployment-association';
-import { Header } from '../../../components/controls/typography/typography';
+import { IUMLDeploymentAssociation, UMLDeploymentAssociation } from './uml-deployment-association';
+import { Body, Header } from '../../../components/controls/typography/typography';
 import { ExchangeIcon } from '../../../components/controls/icon/exchange';
 import { Divider } from '../../../components/controls/divider/divider';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
@@ -21,6 +21,7 @@ import { DeploymentRelationshipType } from '../index';
 import { UMLDeploymentDependency } from '../uml-deployment-dependency/uml-deployment-dependency';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
   display: flex;
@@ -92,14 +93,32 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
             <Divider />
             <section>
               <Flex>
-                <Textfield value={element.name} onChange={this.rename} autoFocus />
+                <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.label')}</Body>
+                <Textfield
+                  value={element.name}
+                  onChange={this.rename}
+                  autoFocus
+                  placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentAssociationLabelPlaceholder')}
+                />
                 <Button color="link" onClick={() => this.props.delete(element.id)}>
                   <TrashIcon />
                 </Button>
               </Flex>
             </section>
+            <section>
+              <Flex>
+                <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.stereotype')}</Body>
+                <Textfield
+                  value={(element as IUMLDeploymentAssociation).stereotype ?? ''}
+                  onChange={this.onStereotypeChange}
+                  placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentAssociationStereotypePlaceholder')}
+                />
+              </Flex>
+            </section>
           </>
         )}
+        {/* Self-gating: only renders for derived edges. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -112,6 +131,11 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
   private rename = (value: string) => {
     const { element, update } = this.props;
     update(element.id, { name: value });
+  };
+
+  private onStereotypeChange = (value: string) => {
+    const { element, update } = this.props;
+    update<IUMLDeploymentAssociation>(element.id, { stereotype: value });
   };
 }
 

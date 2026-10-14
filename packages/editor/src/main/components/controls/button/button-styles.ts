@@ -1,4 +1,3 @@
-import { darken } from '../../../utils/color';
 import { css, styled } from '../../theme/styles';
 import { defaultProps } from './button';
 
@@ -6,6 +5,9 @@ const HOVER_BACKGROUND_DARKEN = 7.5;
 const HOVER_BORDER_DARKEN = 10;
 const ACTIVE_BACKGROUND_DARKEN = 10;
 const ACTIVE_BORDER_DARKEN = 12.5;
+
+// Theme colours are CSS variables, so mix in the browser rather than parsing hex.
+const shade = (color: string, percent: number): string => `color-mix(in srgb, ${color} ${100 - percent}%, black)`;
 
 const Button = styled.button`
   appearance: button;
@@ -21,10 +23,11 @@ const Button = styled.button`
   padding: 0.375em 0.75em;
   text-transform: none;
   transition:
-    color 0.15s ease-in-out,
-    background-color 0.15s ease-in-out,
-    border-color 0.15s ease-in-out,
-    box-shadow 0.15s ease-in-out;
+    color 0.15s ease-out,
+    background-color 0.15s ease-out,
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out,
+    transform 0.1s ease-out;
   user-select: none;
 
   svg {
@@ -42,6 +45,10 @@ const Button = styled.button`
 
   :not(:disabled) {
     cursor: pointer;
+  }
+
+  :active:not(:disabled) {
+    transform: scale(0.97);
   }
 `;
 
@@ -82,12 +89,10 @@ export const StyledButton = styled(Button).withConfig({ shouldForwardProp: (prop
       fill: ${props.theme.color.primaryContrast};
     `}
 
-    ${props.color !== 'link' &&
-    css`
-      :focus {
-        box-shadow: 0 0 0 0.2em ${color}80;
-      }
-    `}
+    :focus-visible {
+      outline: 2px solid ${color};
+      outline-offset: 2px;
+    }
 
     ${props.color !== 'link' &&
     !props.outline &&
@@ -97,13 +102,13 @@ export const StyledButton = styled(Button).withConfig({ shouldForwardProp: (prop
       color: ${props.theme.color.background};
 
       :hover {
-        background-color: ${darken(color, HOVER_BACKGROUND_DARKEN)};
-        border-color: ${darken(color, HOVER_BORDER_DARKEN)};
+        background-color: ${shade(color, HOVER_BACKGROUND_DARKEN)};
+        border-color: ${shade(color, HOVER_BORDER_DARKEN)};
       }
 
       :active {
-        background-color: ${darken(color, ACTIVE_BACKGROUND_DARKEN)};
-        border-color: ${darken(color, ACTIVE_BORDER_DARKEN)};
+        background-color: ${shade(color, ACTIVE_BACKGROUND_DARKEN)};
+        border-color: ${shade(color, ACTIVE_BORDER_DARKEN)};
       }
     `}
 

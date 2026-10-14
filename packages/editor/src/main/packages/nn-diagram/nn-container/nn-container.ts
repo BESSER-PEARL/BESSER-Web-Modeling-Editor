@@ -30,6 +30,10 @@ export class NNContainer extends UMLContainer {
   static defaultWidth = 800;
   static defaultHeight = 200;
 
+  // NN-level attributes
+  input_var?: string;
+  return_vars?: string;
+
   constructor(values?: Partial<NNContainer>) {
     super();
     this.name = 'Neural_Network';
@@ -53,6 +57,20 @@ export class NNContainer extends UMLContainer {
       height: NNContainer.defaultHeight,
     };
     return cloned;
+  }
+
+  serialize(children?: UMLElement[]): any {
+    return {
+      ...super.serialize(children),
+      input_var: this.input_var,
+      return_vars: this.return_vars,
+    };
+  }
+
+  deserialize(values: any, children?: any[]) {
+    super.deserialize(values, children);
+    if (values.input_var !== undefined) this.input_var = values.input_var;
+    if (values.return_vars !== undefined) this.return_vars = values.return_vars;
   }
 
   render(layer: ILayer, children: ILayoutable[] = [], calculateWithoutChildren?: boolean): ILayoutable[] {

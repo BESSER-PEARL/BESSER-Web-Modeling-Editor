@@ -4,6 +4,7 @@ import { toast, Id } from 'react-toastify'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
+import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import React from 'react';
 
 // Add type definitions
@@ -56,7 +57,7 @@ export const useDeployLocally = () => {
           },
           body: JSON.stringify({
             title: diagramTitle,
-            model: editor.model,
+            model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
             generator: generatorType,
             config: config,
           }),

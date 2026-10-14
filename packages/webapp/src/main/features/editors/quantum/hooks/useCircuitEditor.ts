@@ -3,7 +3,7 @@ import { Circuit, Gate, CircuitColumn } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
 import { useUndoRedo } from './useUndoRedo';
-import { GATE_SIZE, WIRE_SPACING } from '../layout-constants';
+import { GATE_SIZE, cellAt } from '../layout-constants';
 
 interface UseCircuitEditorOptions {
     initialCircuit: Circuit;
@@ -41,6 +41,8 @@ export interface CircuitEditorState {
     handleDragStart: (gateType: string, e: React.MouseEvent) => void;
     handleMouseMove: (e: React.MouseEvent, gridRef: React.RefObject<HTMLDivElement>) => void;
     handleMouseUp: () => void;
+    /** Places a gate at a viewport point (click-to-place); returns whether it landed. */
+    placeGateAt: (gateType: string, clientX: number, clientY: number, gridRef: React.RefObject<HTMLDivElement>) => boolean;
 
     // Clipboard
     copiedGate: Gate | null;
@@ -116,81 +118,79 @@ export function useCircuitEditor({
         setSelectedGate(null);
     }, []);
 
-    const handleMouseMove = useCallback((e: React.MouseEvent, gridRef: React.RefObject<HTMLDivElement>) => {
-        if (!draggedGate || !gridRef.current) return;
+    const positionAt = useCallback((gateType: string, clientX: number, clientY: number, grid: HTMLDivElement): PreviewPosition => {
+        const rect = grid.getBoundingClientRect();
+        const relativeX = clientX - rect.left + grid.scrollLeft;
+        const relativeY = clientY - rect.top + grid.scrollTop;
 
-        const rect = gridRef.current.getBoundingClientRect();
-        const relativeX = e.clientX - rect.left + gridRef.current.scrollLeft;
-        const relativeY = e.clientY - rect.top + gridRef.current.scrollTop;
+        const { col, row } = cellAt(relativeX, relativeY);
 
-        setMousePos({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        });
-
-        const LEFT_MARGIN = 60;
-        const TOP_MARGIN = 20;
-        const col = Math.floor((relativeX - LEFT_MARGIN) / (GATE_SIZE + 4));
-        const row = Math.floor((relativeY - TOP_MARGIN) / WIRE_SPACING);
-
-        const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
+        const gateDefinition = GATES.find((g) => g.type === gateType);
         const gateHeight = gateDefinition?.height || 1;
         const currentCircuit = circuitRef.current;
 
         const isValid = col >= 0 && row >= 0 && row + gateHeight <= currentCircuit.qubitCount;
 
-        setPreviewPosition({
+        return {
             col: Math.max(0, col),
             row: Math.max(0, row),
             isValid,
+        };
+    }, []);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent, gridRef: React.RefObject<HTMLDivElement>) => {
+        if (!draggedGate || !gridRef.current) return;
+
+        const rect = gridRef.current.getBoundingClientRect();
+        setMousePos({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
         });
-    }, [draggedGate]);
 
-    const handleMouseUp = useCallback(() => {
-        if (!draggedGate || !previewPosition || !previewPosition.isValid) {
-            setDraggedGate(null);
-            setPreviewPosition(null);
-            return;
-        }
+        // Snap on the dragged gate's centre, as the main editor does.
+        setPreviewPosition(positionAt(
+            draggedGate.gate,
+            e.clientX - draggedGate.offset.x + GATE_SIZE / 2,
+            e.clientY - draggedGate.offset.y + GATE_SIZE / 2,
+            gridRef.current,
+        ));
+    }, [draggedGate, positionAt]);
 
-        const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
-        if (!gateDefinition) {
-            setDraggedGate(null);
-            setPreviewPosition(null);
-            return;
-        }
+    const placeGate = useCallback((gateType: string, position: PreviewPosition): boolean => {
+        const gateDefinition = GATES.find((g) => g.type === gateType);
+        if (!gateDefinition || !position.isValid) return false;
 
         setCircuit((prev) => {
             const newColumns = [...prev.columns];
             const gateHeight = gateDefinition.height || 1;
 
-            if (previewPosition.row + gateHeight > prev.qubitCount) {
+            if (position.row + gateHeight > prev.qubitCount) {
                 return prev;
             }
 
-            while (newColumns.length <= previewPosition.col) {
+            while (newColumns.length <= position.col) {
                 newColumns.push({ gates: Array(prev.qubitCount).fill(null) });
             }
 
-            const targetColumn = newColumns[previewPosition.col];
+            const targetColumn = newColumns[position.col];
             const newGates = [...targetColumn.gates];
 
             for (let i = 0; i < gateHeight; i++) {
-                if (newGates[previewPosition.row + i] !== null) {
+                if (newGates[position.row + i] !== null) {
                     return prev;
                 }
             }
 
             const newGate: Gate = {
                 ...gateDefinition,
-                id: `${draggedGate.gate}-${Date.now()}-${Math.random()}`,
+                id: `${gateType}-${Date.now()}-${Math.random()}`,
             };
 
-            newGates[previewPosition.row] = newGate;
+            newGates[position.row] = newGate;
 
             for (let i = 1; i < gateHeight; i++) {
-                if (previewPosition.row + i < newGates.length) {
-                    newGates[previewPosition.row + i] = {
+                if (position.row + i < newGates.length) {
+                    newGates[position.row + i] = {
                         type: 'OCCUPIED',
                         id: `${newGate.id}-occupied-${i}`,
                         label: '',
@@ -198,13 +198,27 @@ export function useCircuitEditor({
                 }
             }
 
-            newColumns[previewPosition.col] = { gates: newGates };
+            newColumns[position.col] = { gates: newGates };
             return trimCircuit({ ...prev, columns: newColumns });
         });
+        return true;
+    }, [setCircuit]);
 
+    const handleMouseUp = useCallback(() => {
+        if (draggedGate && previewPosition) {
+            placeGate(draggedGate.gate, previewPosition);
+        }
         setDraggedGate(null);
         setPreviewPosition(null);
-    }, [draggedGate, previewPosition, setCircuit]);
+    }, [draggedGate, previewPosition, placeGate]);
+
+    const placeGateAt = useCallback(
+        (gateType: string, clientX: number, clientY: number, gridRef: React.RefObject<HTMLDivElement>): boolean => {
+            if (!gridRef.current) return false;
+            return placeGate(gateType, positionAt(gateType, clientX, clientY, gridRef.current));
+        },
+        [placeGate, positionAt],
+    );
 
     // Copy handler
     const handleCopy = useCallback(() => {
@@ -330,6 +344,7 @@ export function useCircuitEditor({
         handleDragStart,
         handleMouseMove,
         handleMouseUp,
+        placeGateAt,
         copiedGate,
         handleCopy,
         handlePaste,

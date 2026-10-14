@@ -2,10 +2,13 @@ import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import {
   Atom,
+  Blocks,
   Bot,
+  Component,
   Brain,
   Layers3,
   Network,
+  PackageOpen,
   PanelsTopLeft,
   PanelLeftClose,
   PanelLeftOpen,
@@ -37,6 +40,14 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
   AgentDiagram: {
     generators: ['agent'],
     label: '1 generator',
+  },
+  ComponentDiagram: {
+    generators: [],
+    label: 'No generators yet',
+  },
+  DeploymentDiagram: {
+    generators: [],
+    label: 'No generators yet',
   },
   UserDiagram: {
     generators: ['jsonobject'],
@@ -87,6 +98,8 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; labelKey: s
   { type: UMLDiagramType.StateMachineDiagram, label: 'State', labelKey: 'nav.diagram.state', icon: <Repeat2 className="size-4" /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent', labelKey: 'nav.diagram.agent', icon: <Bot className="size-4" /> },
   { type: UMLDiagramType.BPMN, label: 'BPMN', labelKey: 'nav.diagram.bpmn', icon: <Workflow className="size-4" /> },
+  { type: UMLDiagramType.ComponentDiagram, label: 'Component', labelKey: 'nav.diagram.component', icon: <Component className="size-4" /> },
+  { type: UMLDiagramType.DeploymentDiagram, label: 'Deployment', labelKey: 'nav.diagram.deployment', icon: <PackageOpen className="size-4" /> },
   { type: UMLDiagramType.UserDiagram, label: 'User', labelKey: 'nav.diagram.user', icon: <User className="size-4" /> },
   { type: UMLDiagramType.NNDiagram, label: 'Neural Net', labelKey: 'nav.diagram.neuralNet', icon: <Brain className="size-4" /> },
 ];
@@ -105,6 +118,7 @@ const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
+  { path: '/agent-components', label: 'Components', labelKey: 'nav.route.agentComponents', icon: <Blocks className="size-4" /> },
   { path: '/agent-config', label: 'Agent Customization', labelKey: 'nav.route.agentCustomization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;
@@ -117,14 +131,18 @@ export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labe
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [
-    `group flex w-auto items-center rounded-lg border px-2.5 py-2 text-left text-sm transition-all duration-200 md:w-full ${
-      expanded ? 'justify-start gap-2' : 'justify-center'
+    `group flex w-auto items-center rounded-lg px-2.5 py-2 text-left text-sm transition-[background-color,color,transform] duration-150 ease-out md:w-full ${
+      expanded ? 'justify-start gap-2.5' : 'justify-center'
     }`,
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 active:scale-[0.98]',
+    // Active = brand tint + weight; hover = neutral tint, so the two never look alike.
     isActive
       ? isDark
-        ? 'border-brand/40 bg-brand/20 text-brand shadow-sm'
-        : 'border-brand/30 bg-brand/10 text-brand-dark shadow-sm'
-      : 'border-transparent text-muted-foreground hover:border-border/50 hover:bg-accent hover:text-foreground hover:shadow-sm active:scale-[0.97]',
+        ? 'bg-brand/15 font-medium text-brand'
+        : 'bg-brand/10 font-medium text-brand-dark'
+      : isDark
+        ? 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground'
+        : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground',
   ].join(' ');
 }
 

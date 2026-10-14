@@ -1,20 +1,48 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Languages } from 'lucide-react';
+import { Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SUPPORTED_LANGUAGES } from '../../shared/i18n/languages';
+import { HeaderTooltip } from './menus/HeaderTooltip';
 
 interface LanguageSelectorProps {
   outlineButtonClass?: string;
 }
+
+function useActiveLanguage() {
+  const { i18n } = useTranslation();
+  const active = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.resolvedLanguage) ?? SUPPORTED_LANGUAGES[0];
+  return { active, i18n };
+}
+
+/** Language choices as menu radio items; shared by the top-bar selector and the mobile "More" menu. */
+export const LanguageRadioItems: React.FC = () => {
+  const { active, i18n } = useActiveLanguage();
+  return (
+    <DropdownMenuRadioGroup
+      value={active.code}
+      onValueChange={(code) => {
+        void i18n.changeLanguage(code);
+      }}
+    >
+      {SUPPORTED_LANGUAGES.map((language) => (
+        <DropdownMenuRadioItem key={language.code} value={language.code} className="gap-2">
+          <span>{language.nativeName}</span>
+          <span className="ml-auto text-xs uppercase text-muted-foreground">{language.code}</span>
+        </DropdownMenuRadioItem>
+      ))}
+    </DropdownMenuRadioGroup>
+  );
+};
 
 /**
  * Top-bar control to switch the editor UI language. Persists the choice via the
@@ -22,38 +50,24 @@ interface LanguageSelectorProps {
  * picks up the change through `ApollonEditorComponent`'s `languageChanged` listener.
  */
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ outlineButtonClass = '' }) => {
-  const { t, i18n } = useTranslation();
-  const active = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.resolvedLanguage) ?? SUPPORTED_LANGUAGES[0];
+  const { t } = useTranslation();
+  const { active } = useActiveLanguage();
+  const label = t('topbar.language');
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className={`gap-1.5 ${outlineButtonClass}`}
-          title={t('topbar.language')}
-          aria-label={t('topbar.language')}
-        >
-          <Languages className="size-4" />
-          <span className="hidden text-xs font-medium uppercase sm:inline">{active.code}</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <HeaderTooltip label={label}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className={`gap-1.5 ${outlineButtonClass}`} aria-label={label}>
+            <Languages className="size-4" aria-hidden="true" />
+            <span className="hidden text-xs font-medium uppercase sm:inline">{active.code}</span>
+          </Button>
+        </DropdownMenuTrigger>
+      </HeaderTooltip>
       <DropdownMenuContent align="end" className="min-w-[180px]">
-        <DropdownMenuLabel>{t('topbar.language')}</DropdownMenuLabel>
+        <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {SUPPORTED_LANGUAGES.map((language) => (
-          <DropdownMenuItem
-            key={language.code}
-            onSelect={() => {
-              void i18n.changeLanguage(language.code);
-            }}
-            className="gap-2"
-          >
-            <Check className={`size-4 ${language.code === active.code ? 'opacity-100' : 'opacity-0'}`} />
-            <span>{language.nativeName}</span>
-            <span className="ml-auto text-xs uppercase text-muted-foreground">{language.code}</span>
-          </DropdownMenuItem>
-        ))}
+        <LanguageRadioItems />
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -9,30 +9,35 @@ import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from '../shared/constants/constant';
-import { getActiveDiagram, isUMLModel } from '../shared/types/project';
+import { getActiveDiagram } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
 import { ErrorPanel } from '../shared/components/error-handling/error-panel';
 import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
-import { useProject } from './hooks/useProject';
+import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
-import { GeneratingOverlay } from '../shared/components/loading/GeneratingOverlay';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
 import { useOnboarding } from '../features/onboarding/useOnboarding';
-import { useAppSelector } from './store/hooks';
-import { selectActiveDiagram } from './store/workspaceSlice';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { loadProjectThunk, selectProject } from './store/workspaceSlice';
+import type { RootState } from './store/store';
+import { useHasOpened } from './hooks/useHasOpened';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
+);
+
+const AgentComponentsPanel = React.lazy(() =>
+  import('../features/agent-components/AgentComponentsPanel').then((m) => ({ default: m.AgentComponentsPanel })),
 );
 
 const ProjectSettingsPanel = React.lazy(() =>
@@ -40,6 +45,10 @@ const ProjectSettingsPanel = React.lazy(() =>
 );
 const KnowledgeGraphSettingsPanel = React.lazy(() =>
   import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
+);
+
+const AgentSimulationPage = React.lazy(() =>
+  import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
 );
 
 // Lazy-loaded dialogs (only fetched when opened)
@@ -70,6 +79,21 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
+const SpecDrivenKeyDialogHost = React.lazy(() =>
+  import('../features/spec-driven/components/SpecDrivenKeyDialogHost').then((m) => ({ default: m.SpecDrivenKeyDialogHost })),
+);
+const SpecDrivenPushDialogHost = React.lazy(() =>
+  import('../features/github/dialogs/SpecDrivenPushDialogHost').then((m) => ({ default: m.SpecDrivenPushDialogHost })),
+);
+
+// Primitive selectors: the root must not re-render on every model save.
+const selectHasProject = (state: RootState) => Boolean(selectProject(state));
+const selectCurrentDiagramType = (state: RootState) => selectProject(state)?.currentDiagramType;
+const selectActiveDiagramTitle = (state: RootState) => {
+  const project = selectProject(state);
+  if (!project) return 'Diagram';
+  return getActiveDiagram(project, project.currentDiagramType)?.title || project.name || 'Diagram';
+};
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -91,25 +115,39 @@ function AppContentInner() {
   // Keep Redux in sync with direct localStorage writes from editors
   useStorageSync();
 
-  const { currentProject, loadProject } = useProject();
+  const dispatch = useAppDispatch();
+  const hasProject = useAppSelector(selectHasProject);
+  const currentDiagramType = useAppSelector(selectCurrentDiagramType);
+  const activeDiagramTitle = useAppSelector(selectActiveDiagramTitle);
   const loadProjectForBootstrap = useCallback(
     async (projectId: string): Promise<void> => {
-      await loadProject(projectId);
+      const result = await dispatch(loadProjectThunk(projectId));
+      if (!loadProjectThunk.fulfilled.match(result)) {
+        throw new Error(result.error?.message || 'Failed to load project');
+      }
     },
-    [loadProject],
+    [dispatch],
   );
   const { showProjectHub, setShowProjectHub } = useProjectBootstrap({
-    currentProject,
+    hasProject,
     loadProject: loadProjectForBootstrap,
     pathname: location.pathname,
   });
-  const { generatorMenuMode } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
-  );
-
-  const activeDiagram = currentProject ? getActiveDiagram(currentProject, currentProject.currentDiagramType) : undefined;
-  const activeDiagramTitle = activeDiagram?.title || currentProject?.name || 'Diagram';
+  // Which step the Project Hub opens at. Undefined for the forced first-run
+  // open (which shows the 'welcome' chooser); a File-menu action requests a
+  // specific step (New → create, Open → open, Import → import).
+  const [hubInitialStep, setHubInitialStep] = useState<ProjectHubOpenStep | undefined>(undefined);
+  const openProjectHub = useCallback((step?: ProjectHubOpenStep) => {
+    setHubInitialStep(step);
+    setShowProjectHub(true);
+  }, [setShowProjectHub]);
+  const handleProjectHubOpenChange = useCallback((next: boolean) => {
+    setShowProjectHub(next);
+    if (!next) {
+      setHubInitialStep(undefined);
+    }
+  }, [setShowProjectHub]);
+  const { generatorMenuMode } = getWorkspaceContext(location.pathname, currentDiagramType);
 
   // All generator config state, execution handlers, and quality-check logic
   const {
@@ -126,16 +164,26 @@ function AppContentInner() {
 
   // For the KG export-options dialog: feed it the current KG nodes so it
   // can count how many constraint specs would be skipped at each vocab.
+  // Select only the active KG model (a stable reference until it changes) so
+  // this component doesn't re-render on every unrelated project edit.
+  const kgModel = useAppSelector((state: RootState) => {
+    const project = selectProject(state);
+    return project ? getActiveDiagram(project, 'KnowledgeGraphDiagram')?.model : undefined;
+  });
   const kgExportNodes = useMemo(() => {
-    if (!currentProject) return [];
-    const diagram = getActiveDiagram(currentProject, 'KnowledgeGraphDiagram');
-    const nodes = (diagram?.model as { nodes?: unknown[] } | undefined)?.nodes;
+    const nodes = (kgModel as { nodes?: unknown[] } | undefined)?.nodes;
     return Array.isArray(nodes) ? (nodes as Array<{ id: string; nodeType: string; label?: string; metadata?: Record<string, unknown> }>) : [];
-  }, [currentProject]);
+  }, [kgModel]);
 
   const handleExport = () => {
     setShowExportDialog(true);
   };
+
+  // Lazy dialogs mount on first open so their chunks are not fetched at startup.
+  const projectHubMounted = useHasOpened(showProjectHub);
+  const templateDialogMounted = useHasOpened(showTemplateDialog);
+  const exportDialogMounted = useHasOpened(showExportDialog);
+  const generatorDialogsMounted = useHasOpened(configState.configDialog !== 'none');
 
   // Onboarding system — disabled for now
   // const onboarding = useOnboarding();
@@ -144,7 +192,7 @@ function AppContentInner() {
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
-        onOpenProjectHub={() => setShowProjectHub(true)}
+        onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
@@ -159,34 +207,43 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+            <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
+            <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </WorkspaceShell>
 
-      <Suspense fallback={null}>
-        <ProjectHubDialog open={showProjectHub} onOpenChange={setShowProjectHub} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExportDialog
-          open={showExportDialog}
-          onOpenChange={setShowExportDialog}
-          editor={editor}
-          currentDiagramTitle={activeDiagramTitle}
-        />
-      </Suspense>
+      {projectHubMounted && (
+        <Suspense fallback={null}>
+          <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
+        </Suspense>
+      )}
+      {templateDialogMounted && (
+        <Suspense fallback={null}>
+          <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
+        </Suspense>
+      )}
+      {exportDialogMounted && (
+        <Suspense fallback={null}>
+          <ExportDialog
+            open={showExportDialog}
+            onOpenChange={setShowExportDialog}
+            editor={editor}
+            currentDiagramTitle={activeDiagramTitle}
+          />
+        </Suspense>
+      )}
 
       {/*
-       * Generator configuration dialogs (Django, SQL, SQLAlchemy, JSON Schema,
-       * Agent, Qiskit). All state lives in the useGeneratorExecution hook;
+       * Generator configuration dialogs (Django, Spring, SQL, SQLAlchemy,
+       * JSON Schema, Agent, Qiskit). All state lives in the useGeneratorExecution hook;
        * configState is the props bag that wires every field, change handler,
        * and execution callback into the presentational dialog component.
        */}
+      {generatorDialogsMounted && (
       <Suspense fallback={null}>
       <GeneratorConfigDialogs
         // ── Dialog control ───────────────────────────────────────────
@@ -197,6 +254,12 @@ function AppContentInner() {
         djangoProjectName={configState.djangoProjectName}
         djangoAppName={configState.djangoAppName}
         useDocker={configState.useDocker}
+        // ── Spring config ────────────────────────────────────────────
+        springProjectName={configState.springProjectName}
+        springAppName={configState.springAppName}
+        springPackageName={configState.springPackageName}
+        springBootVersion={configState.springBootVersion}
+        springJavaVersion={configState.springJavaVersion}
         // ── SQL / SQLAlchemy / JSON Schema config ────────────────────
         sqlDialect={configState.sqlDialect}
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
@@ -227,6 +290,11 @@ function AppContentInner() {
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}
         onUseDockerChange={configState.onUseDockerChange}
+        onSpringProjectNameChange={configState.onSpringProjectNameChange}
+        onSpringAppNameChange={configState.onSpringAppNameChange}
+        onSpringPackageNameChange={configState.onSpringPackageNameChange}
+        onSpringBootVersionChange={configState.onSpringBootVersionChange}
+        onSpringJavaVersionChange={configState.onSpringJavaVersionChange}
         onSqlDialectChange={configState.onSqlDialectChange}
         onSqlAlchemyDbmsChange={configState.onSqlAlchemyDbmsChange}
         onJsonSchemaModeChange={configState.onJsonSchemaModeChange}
@@ -243,6 +311,7 @@ function AppContentInner() {
         // ── Execution callbacks (validate → generate → close dialog) ─
         onDjangoGenerate={configState.onDjangoGenerate}
         onDjangoDeploy={configState.onDjangoDeploy}
+        onSpringGenerate={configState.onSpringGenerate}
         onSqlGenerate={configState.onSqlGenerate}
         onSqlAlchemyGenerate={configState.onSqlAlchemyGenerate}
         onJsonSchemaGenerate={configState.onJsonSchemaGenerate}
@@ -252,6 +321,7 @@ function AppContentInner() {
         onWebAppGenerate={configState.onWebAppGenerate}
       />
       </Suspense>
+      )}
 
       {/* Refine KG modal: opened from the Quality Check button (refine-only)
           when a Knowledge Graph diagram is active, or from Generate →
@@ -297,7 +367,12 @@ function AppContentInner() {
       <Suspense fallback={null}>
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
       </Suspense>
-      <GeneratingOverlay visible={isGenerating} />
+      <Suspense fallback={null}>
+        <SpecDrivenKeyDialogHost />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SpecDrivenPushDialogHost />
+      </Suspense>
       <ToastContainer />
       <GlobalConfirmProvider />
     </ApollonEditorProvider>

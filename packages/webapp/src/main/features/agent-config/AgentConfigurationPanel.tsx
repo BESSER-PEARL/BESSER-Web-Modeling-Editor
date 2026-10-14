@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import {
+  UMLDiagramType,
+  UMLModel,
+  diagramBridge,
+  AGENT_LLM_PROVIDERS,
+  canonicalizeAgentLLMProvider,
+} from '@besser/wme';
+import type { AgentLLMProviderType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { apiClient, ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
@@ -45,7 +53,8 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
-import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
+import { AgentRuntimePanel } from './AgentRuntimePanel';
+import { OptionSelect } from './runtime/runtimeFields';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -63,7 +72,6 @@ type MappingRecommendationSignals = {
   isMultilingual: boolean;
 };
 
-const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 
 // Feature flag — hides agent configuration fields whose runtime support
 // isn't fully wired up yet (voice gender/speed, avatar upload, response
@@ -354,9 +362,10 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
+/** Provider on a diagram AgentLLM element. Canonical keys only — see canonicalizeAgentLLMProvider. */
+export type AgentLLMElementProvider = AgentLLMProviderType;
 
-type AgentLLMElement = {
+export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
@@ -368,13 +377,35 @@ type AgentLLMElement = {
   global_context: string | null;
 };
 
-const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'Hugging Face' },
-  { value: 'huggingface_api', label: 'Hugging Face API' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'ollama', label: 'Ollama (local)' },
+// Display order is deliberately different from AGENT_LLM_PROVIDERS (hosted families
+// first, local/self-hosted last). The Record type below is the completeness guard:
+// adding a provider to the canonical list without a label here fails the build.
+const AGENT_LLM_PROVIDER_LABELS: Record<AgentLLMProviderType, string> = {
+  openai: 'OpenAI',
+  mistral: 'Mistral AI',
+  deepseek: 'DeepSeek',
+  google: 'Google (Gemini)',
+  meta: 'Meta (Llama)',
+  anthropic: 'Anthropic (Claude)',
+  qwen: 'Alibaba Qwen',
+  xai: 'xAI (Grok)',
+  groq: 'Groq',
+  together: 'Together AI',
+  openrouter: 'OpenRouter',
+  huggingface: 'Hugging Face (local)',
+  huggingface_api: 'Hugging Face API',
+  replicate: 'Replicate',
+  ollama: 'Ollama (local)',
+};
+
+const AGENT_LLM_PROVIDER_DISPLAY_ORDER: readonly AgentLLMProviderType[] = [
+  'openai', 'mistral', 'deepseek', 'google', 'meta', 'anthropic', 'qwen',
+  'xai', 'groq', 'together', 'openrouter', 'huggingface', 'huggingface_api',
+  'replicate', 'ollama',
 ];
+
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> =
+  AGENT_LLM_PROVIDER_DISPLAY_ORDER.map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
 
 const generateAgentLLMId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -389,10 +420,10 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
   return candidate.type === 'AgentLLM';
 };
 
-const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
-    ? raw.provider
-    : 'openai') as AgentLLMElementProvider;
+export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  // Accepts legacy spellings and maps them onto the canonical key, so a config
+  // saved before 'huggingface_api' existed is migrated rather than reset.
+  const provider = canonicalizeAgentLLMProvider(raw?.provider);
   const parameters =
     raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
       ? (raw.parameters as Record<string, unknown>)
@@ -688,7 +719,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-medium">{displayName}</span>
           {isDefault && (
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+            <Badge variant="secondary" size="sm">
               {t('agentConfig.row.default')}
             </Badge>
           )}
@@ -709,12 +740,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-provider-${element.id}`}>{t('agentConfig.row.provider')}</Label>
-              <select
+              <OptionSelect
                 id={`agent-llm-provider-${element.id}`}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="transition-colors hover:border-brand/30"
                 value={element.provider}
-                onChange={(event) => {
-                  const newProvider = event.target.value as AgentLLMElementProvider;
+                options={AGENT_LLM_PROVIDER_OPTIONS}
+                onValueChange={(value) => {
+                  const newProvider = value as AgentLLMElementProvider;
                   const updates: Partial<AgentLLMElement> = { provider: newProvider };
                   if (newProvider === 'ollama') {
                     const seeded = {
@@ -728,13 +760,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                   }
                   onChange(element.id, updates);
                 }}
-              >
-                {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-num-prev-${element.id}`}>{t('agentConfig.row.numPrevMessages')}</Label>
@@ -756,7 +782,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
           {element.provider === 'ollama' && (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>{t('agentConfig.row.ollamaBaseUrl')}</Label>
                 <Input
                   id={`agent-llm-ollama-url-${element.id}`}
                   value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
@@ -765,11 +791,11 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>{t('agentConfig.row.ollamaModel')}</Label>
                 <Input
                   id={`agent-llm-ollama-model-${element.id}`}
                   value={(element.parameters.model as string) ?? ''}
-                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  placeholder={t('agentConfig.row.ollamaModelPlaceholder')}
                   onChange={(event) => updateOllamaParam('model', event.target.value)}
                 />
               </div>
@@ -804,7 +830,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-default-${element.id}`}
                 type="radio"
                 name="agent-llm-default-radio"
-                className="h-4 w-4"
+                className="h-4 w-4 cursor-pointer accent-brand"
                 checked={isDefault}
                 onChange={() => onSetDefault(element.id)}
               />
@@ -813,7 +839,16 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemove(element.id)}
+              onClick={async () => {
+                const confirmed = await globalConfirm({
+                  title: t('agentConfig.confirm.removeLlm.title'),
+                  description: t('agentConfig.confirm.removeLlm.description', { name: displayName }),
+                  confirmLabel: t('agentConfig.row.remove'),
+                  cancelLabel: t('common.cancel'),
+                  variant: 'danger',
+                });
+                if (confirmed) onRemove(element.id);
+              }}
               className="text-destructive hover:text-destructive"
             >
               {t('agentConfig.row.remove')}
@@ -847,7 +882,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
   const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
-  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || DEFAULT_CONFIG_NAME);
+  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || t('agentConfig.save.defaultName'));
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(() => t('agentConfig.loading.preparing'));
@@ -1307,7 +1342,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigId(nextId);
       setSelectedConfigId(nextId ?? '');
       setActiveConfigName(nextName);
-      setConfigurationName(nextName || DEFAULT_CONFIG_NAME);
+      setConfigurationName(nextName || t('agentConfig.save.defaultName'));
     }
   }, []);
 
@@ -1316,7 +1351,18 @@ export const AgentConfigurationPanel: React.FC = () => {
     refreshUserProfiles();
   }, [currentProject, refreshSavedConfigurations, refreshUserProfiles]);
 
+  // The hydration effect below reads these via refs: keying it on the project
+  // object re-applied the stored config on every project write and wiped
+  // unsaved personalization edits.
+  const currentProjectRef = useRef(currentProject);
+  currentProjectRef.current = currentProject;
+  const tabUserProfilesRef = useRef(tabUserProfiles);
+  tabUserProfilesRef.current = tabUserProfiles;
+  const currentAgentDiagramId = currentAgentDiagram?.id;
+
   useEffect(() => {
+    const currentProject = currentProjectRef.current;
+    const tabUserProfiles = tabUserProfilesRef.current;
     if (!currentProject) {
       return;
     }
@@ -1367,7 +1413,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         throw err;
       }
     }
-  }, [currentProject?.id, applyConfiguration, tabUserProfiles]);
+  }, [currentProject?.id, currentAgentDiagramId, applyConfiguration]);
 
   const getConfigObject = useCallback((): AgentConfigurationPayload => {
     // The runtime tab now drives the LLM choice via `agentLlmName` (a
@@ -1641,12 +1687,12 @@ export const AgentConfigurationPanel: React.FC = () => {
     toast.success(t('agentConfig.toasts.deleted'));
   }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId, t]);
 
-  const handleInputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
+  const handleInputSpeechToggle = (checked: boolean) => {
+    setInputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
   };
 
-  const handleOutputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setOutputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
+  const handleOutputSpeechToggle = (checked: boolean) => {
+    setOutputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
   };
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1838,14 +1884,22 @@ export const AgentConfigurationPanel: React.FC = () => {
   const resetFormToDefaults = useCallback(() => {
     applyConfiguration(createDefaultConfig());
     setActiveCustomizationSection(null);
-    setConfigurationName(DEFAULT_CONFIG_NAME);
+    setConfigurationName(t('agentConfig.save.defaultName'));
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
     LocalStorageRepository.clearActiveAgentConfigurationId();
   }, [applyConfiguration]);
 
-  const handleResetToDefaults = () => {
+  const handleResetToDefaults = async () => {
+    const confirmed = await globalConfirm({
+      title: t('agentConfig.confirm.reset.title'),
+      description: t('agentConfig.confirm.reset.description'),
+      confirmLabel: t('agentConfig.save.resetDefaults'),
+      cancelLabel: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     resetFormToDefaults();
     toast.info(t('agentConfig.toasts.resetToDefaults'));
   };
@@ -2034,16 +2088,25 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (loadEvent) => {
+    reader.onload = async (loadEvent) => {
+      let normalized: ReturnType<typeof normalizeAgentConfiguration>;
       try {
         const parsed = JSON.parse(loadEvent.target?.result as string);
-        const flattened = flattenStructuredConfig(parsed);
-        const normalized = normalizeAgentConfiguration(flattened);
-        applyConfiguration(normalized);
-        toast.success(t('agentConfig.toasts.uploadLoaded'));
+        normalized = normalizeAgentConfiguration(flattenStructuredConfig(parsed));
       } catch {
         toast.error(t('agentConfig.toasts.invalidFile'));
+        return;
       }
+      const confirmed = await globalConfirm({
+        title: t('agentConfig.confirm.upload.title'),
+        description: t('agentConfig.confirm.upload.description', { name: file.name }),
+        confirmLabel: t('agentConfig.confirm.replace'),
+        cancelLabel: t('common.cancel'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+      applyConfiguration(normalized);
+      toast.success(t('agentConfig.toasts.uploadLoaded'));
     };
 
     reader.readAsText(file);
@@ -2053,6 +2116,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const toggleCustomizationSection = (section: string) => {
     setActiveCustomizationSection((previous) => (previous === section ? null : section));
   };
+
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const configurationNameMissing = !configurationName.trim();
 
   // When a customization section opens, scroll it into view. Otherwise the
   // previously open (taller) section collapsing above this one can push the
@@ -2072,10 +2138,10 @@ export const AgentConfigurationPanel: React.FC = () => {
   const showVoiceControls = outputModalities.includes('speech');
 
   return (
-    <div className="relative h-full overflow-auto px-4 py-6 sm:px-8">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-elevation-3">
             <div className="mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-border border-t-brand" />
             <h3 className="text-lg font-semibold">{t('agentConfig.loadingTitle')}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{loadingMessage}</p>
@@ -2083,7 +2149,8 @@ export const AgentConfigurationPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="shrink-0 border-b border-border/50 px-4 pt-6 pb-4 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('agentConfig.title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2126,7 +2193,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
         {activeTab === 'personalization' && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
-            <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="px-1 text-xs font-medium text-muted-foreground">
               {t('agentConfig.loadSavedLabel')}
             </span>
             {activeConfigId && (
@@ -2136,22 +2203,17 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </span>
               </Badge>
             )}
-            <select
+            <OptionSelect
               aria-label={t('agentConfig.selectAriaLabel')}
-              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="h-9 w-auto min-w-[12rem] gap-2 px-2 py-1 transition-colors hover:border-brand/30"
               value={selectedConfigId}
-              onChange={(event) => setSelectedConfigId(event.target.value)}
+              onValueChange={setSelectedConfigId}
               disabled={savedConfigs.length === 0}
-            >
-              <option value="">
-                {savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.selectSaved')}
-              </option>
-              {savedConfigs.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.selectSaved') },
+                ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+              ]}
+            />
             <Button
               type="button"
               size="sm"
@@ -2163,7 +2225,24 @@ export const AgentConfigurationPanel: React.FC = () => {
             </Button>
           </div>
         )}
+      </div>
+      </div>
 
+      {activeTab === 'runtime' && !currentAgentModel && (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          {t('agentConfig.noActiveDiagram')}
+        </div>
+      )}
+      {activeTab === 'runtime' && currentAgentModel && (
+        <AgentRuntimePanel
+          currentProject={currentProject}
+          agentRuntimeConfig={agentRuntimeConfig}
+          updateAgentRuntimeConfig={updateAgentRuntimeConfig}
+          agentLLMElements={agentLLMElements}
+        />
+      )}
+      <div className={activeTab === 'personalization' ? 'flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
@@ -2179,22 +2258,17 @@ export const AgentConfigurationPanel: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="user-profile-mapping">{t('agentConfig.profileMapping.label')}</Label>
-                <select
+                <OptionSelect
                   id="user-profile-mapping"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  className="transition-colors hover:border-brand/30"
                   value={selectedUserProfileName}
-                  onChange={(event) => setSelectedUserProfileName(event.target.value)}
+                  onValueChange={setSelectedUserProfileName}
                   disabled={userProfiles.length === 0}
-                >
-                  <option value="">
-                    {userProfiles.length === 0 ? t('agentConfig.profileMapping.noTabs') : t('agentConfig.profileMapping.selectProfile')}
-                  </option>
-                  {userProfiles.map((profile) => (
-                    <option key={profile.id} value={profile.name}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: userProfiles.length === 0 ? t('agentConfig.profileMapping.noTabs') : t('agentConfig.profileMapping.selectProfile') },
+                    ...userProfiles.map((profile) => ({ value: profile.name, label: profile.name })),
+                  ]}
+                />
                 {userProfiles.length === 0 && (
                   <p className="text-xs text-muted-foreground">{t('agentConfig.profileMapping.createFirst')}</p>
                 )}
@@ -2260,148 +2334,6 @@ export const AgentConfigurationPanel: React.FC = () => {
 
           )}
 
-          {activeTab === 'runtime' && currentAgentModel && (
-          <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.runtime.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.runtime.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-platform">{t('agentConfig.runtime.platform')}</Label>
-                  <select
-                    id="agent-runtime-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({
-                      agentPlatform: event.target.value,
-                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
-                    })}
-                  >
-                    <option value="websocket">WebSocket</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
-                      />
-                      Use Streamlit UI
-                    </label>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-intent">{t('agentConfig.runtime.intent')}</Label>
-                  <select
-                    id="agent-runtime-intent"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
-                    <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
-                  </select>
-                </div>
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-name">{t('agentConfig.runtime.llm')}</Label>
-                    <select
-                      id="agent-runtime-llm-name"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmName}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
-                      }
-                    >
-                      <option value="">{t('agentConfig.runtime.useDefault')}</option>
-                      {agentLLMElements.map((entry) => (
-                        <option key={entry.id} value={entry.name}>
-                          {entry.name || t('agentConfig.row.unnamedLlm')}
-                        </option>
-                      ))}
-                    </select>
-                    {agentLLMElements.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('agentConfig.runtime.defineLlmHint')}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.llms.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.llms.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agentLLMElements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('agentConfig.llms.empty')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {agentLLMElements.map((llm) => (
-                    <AgentLLMRow
-                      key={llm.id}
-                      element={llm}
-                      expanded={expandedLlmId === llm.id}
-                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
-                      onToggleExpanded={handleToggleExpandedLlm}
-                      onChange={handleUpdateAgentLLM}
-                      onRemove={handleRemoveAgentLLM}
-                      onSetDefault={handleSetDefaultLlm}
-                    />
-                  ))}
-                </div>
-              )}
-              <div>
-                <Button type="button" onClick={handleAddAgentLLM}>
-                  {t('agentConfig.llms.add')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
-              <CardDescription>
-                Edit the <code>config.yaml</code> file that will be included when generating the agent.
-                {' '}
-                <a
-                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand underline underline-offset-2 hover:text-brand/80"
-                >
-                  Configuration properties reference ↗
-                </a>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentConfigYamlEditor currentProject={currentProject} />
-            </CardContent>
-          </Card>
-          </>
-          )}
-
           {activeTab === 'personalization' && (
           <>
           <Card>
@@ -2420,6 +2352,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('presentation')}
+                  aria-expanded={activeCustomizationSection === 'presentation'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.presentation.title')}</p>
@@ -2434,73 +2367,71 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <div className="grid gap-4 md:grid-cols-4">
                       <div className="space-y-1.5">
                         <Label htmlFor="agent-language">{t('agentConfig.field.language')}</Label>
-                        <select
+                        <OptionSelect
                           id="agent-language"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={agentLanguage}
-                          onChange={(event) => setAgentLanguage(event.target.value)}
-                        >
-                          <option value="original">{t('agentConfig.language.original')}</option>
-                          <option value="english">{t('agentConfig.language.english')}</option>
-                          <option value="spanish">{t('agentConfig.language.spanish')}</option>
-                          <option value="french">{t('agentConfig.language.french')}</option>
-                          <option value="german">{t('agentConfig.language.german')}</option>
-                          <option value="portuguese">{t('agentConfig.language.portuguese')}</option>
-                          <option value="luxembourgish">{t('agentConfig.language.luxembourgish')}</option>
-                          <option value="italian">{t('agentConfig.language.italian')}</option>
-                        </select>
+                          onValueChange={(value) => setAgentLanguage(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.language.original') },
+                            { value: 'english', label: t('agentConfig.language.english') },
+                            { value: 'spanish', label: t('agentConfig.language.spanish') },
+                            { value: 'french', label: t('agentConfig.language.french') },
+                            { value: 'german', label: t('agentConfig.language.german') },
+                            { value: 'portuguese', label: t('agentConfig.language.portuguese') },
+                            { value: 'luxembourgish', label: t('agentConfig.language.luxembourgish') },
+                            { value: 'italian', label: t('agentConfig.language.italian') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="agent-style">{t('agentConfig.field.style')}</Label>
-                        <select
+                        <OptionSelect
                           id="agent-style"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={agentStyle}
-                          onChange={(event) => setAgentStyle(event.target.value)}
-                        >
-                          <option value="original">{t('agentConfig.style.original')}</option>
-                          <option value="formal">{t('agentConfig.style.formal')}</option>
-                          <option value="informal">{t('agentConfig.style.informal')}</option>
-                        </select>
+                          onValueChange={(value) => setAgentStyle(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.style.original') },
+                            { value: 'formal', label: t('agentConfig.style.formal') },
+                            { value: 'informal', label: t('agentConfig.style.informal') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="language-complexity">{t('agentConfig.field.languageComplexity')}</Label>
-                        <select
+                        <OptionSelect
                           id="language-complexity"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={languageComplexity}
-                          onChange={(event) => setLanguageComplexity(event.target.value as AgentLanguageComplexity)}
-                        >
-                          <option value="original">{t('agentConfig.complexity.original')}</option>
-                          <option value="simple">{t('agentConfig.complexity.simple')}</option>
-                          <option value="medium">{t('agentConfig.complexity.medium')}</option>
-                          <option value="complex">{t('agentConfig.complexity.complex')}</option>
-                        </select>
+                          onValueChange={(value) => setLanguageComplexity(value as AgentLanguageComplexity)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.complexity.original') },
+                            { value: 'simple', label: t('agentConfig.complexity.simple') },
+                            { value: 'medium', label: t('agentConfig.complexity.medium') },
+                            { value: 'complex', label: t('agentConfig.complexity.complex') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="sentence-length">{t('agentConfig.field.sentenceLength')}</Label>
-                        <select
+                        <OptionSelect
                           id="sentence-length"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={sentenceLength}
-                          onChange={(event) => setSentenceLength(event.target.value as AgentSentenceLength)}
-                        >
-                          <option value="original">{t('agentConfig.sentence.original')}</option>
-                          <option value="concise">{t('agentConfig.sentence.concise')}</option>
-                          <option value="verbose">{t('agentConfig.sentence.verbose')}</option>
-                        </select>
+                          onValueChange={(value) => setSentenceLength(value as AgentSentenceLength)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.sentence.original') },
+                            { value: 'concise', label: t('agentConfig.sentence.concise') },
+                            { value: 'verbose', label: t('agentConfig.sentence.verbose') },
+                          ]}
+                        />
                       </div>
                     </div>
 
                     <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="accent-brand"
+                      <Checkbox
                         checked={useAbbreviations}
-                        onChange={(event) => setUseAbbreviations(event.target.checked)}
+                        onCheckedChange={setUseAbbreviations}
                       />
                       {t('agentConfig.useAbbreviations')}
                     </label>
@@ -2545,19 +2476,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-font">{t('agentConfig.interface.font')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-font"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.font}
-                          onChange={(event) => updateInterfaceStyle('font', event.target.value as InterfaceStyleSetting['font'])}
-                        >
-                          <option value="sans">{t('agentConfig.font.sans')}</option>
-                          <option value="serif">{t('agentConfig.font.serif')}</option>
-                          <option value="monospace">{t('agentConfig.font.monospace')}</option>
-                          <option value="neutral">{t('agentConfig.font.neutral')}</option>
-                          <option value="grotesque">{t('agentConfig.font.grotesque')}</option>
-                          <option value="condensed">{t('agentConfig.font.condensed')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('font', value as InterfaceStyleSetting['font'])}
+                          options={[
+                            { value: 'sans', label: t('agentConfig.font.sans') },
+                            { value: 'serif', label: t('agentConfig.font.serif') },
+                            { value: 'monospace', label: t('agentConfig.font.monospace') },
+                            { value: 'neutral', label: t('agentConfig.font.neutral') },
+                            { value: 'grotesque', label: t('agentConfig.font.grotesque') },
+                            { value: 'condensed', label: t('agentConfig.font.condensed') },
+                          ]}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-line-spacing">{t('agentConfig.interface.lineSpacing')}</Label>
@@ -2599,30 +2530,30 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-alignment">{t('agentConfig.interface.alignment')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-alignment"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.alignment}
-                          onChange={(event) => updateInterfaceStyle('alignment', event.target.value as InterfaceStyleSetting['alignment'])}
-                        >
-                          <option value="left">{t('agentConfig.alignment.left')}</option>
-                          <option value="center">{t('agentConfig.alignment.center')}</option>
-                          <option value="justify">{t('agentConfig.alignment.justify')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('alignment', value as InterfaceStyleSetting['alignment'])}
+                          options={[
+                            { value: 'left', label: t('agentConfig.alignment.left') },
+                            { value: 'center', label: t('agentConfig.alignment.center') },
+                            { value: 'justify', label: t('agentConfig.alignment.justify') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-contrast">{t('agentConfig.interface.contrast')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-contrast"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.contrast}
-                          onChange={(event) => updateInterfaceStyle('contrast', event.target.value as InterfaceStyleSetting['contrast'])}
-                        >
-                          <option value="low">{t('agentConfig.contrast.low')}</option>
-                          <option value="medium">{t('agentConfig.contrast.medium')}</option>
-                          <option value="high">{t('agentConfig.contrast.high')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('contrast', value as InterfaceStyleSetting['contrast'])}
+                          options={[
+                            { value: 'low', label: t('agentConfig.contrast.low') },
+                            { value: 'medium', label: t('agentConfig.contrast.medium') },
+                            { value: 'high', label: t('agentConfig.contrast.high') },
+                          ]}
+                        />
                       </div>
                     </div>
 
@@ -2677,19 +2608,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="voice-gender">{t('agentConfig.voice.gender')}</Label>
-                          <select
+                          <OptionSelect
                             id="voice-gender"
-                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={voiceStyle.gender}
-                            onChange={(event) => setVoiceStyle((previous) => ({
+                            onValueChange={(value) => setVoiceStyle((previous) => ({
                               ...previous,
-                              gender: event.target.value as VoiceStyleSetting['gender'],
+                              gender: value as VoiceStyleSetting['gender'],
                             }))}
-                          >
-                            <option value="male">{t('agentConfig.voice.male')}</option>
-                            <option value="female">{t('agentConfig.voice.female')}</option>
-                            <option value="ambiguous">{t('agentConfig.voice.ambiguous')}</option>
-                          </select>
+                            options={[
+                              { value: 'male', label: t('agentConfig.voice.male') },
+                              { value: 'female', label: t('agentConfig.voice.female') },
+                              { value: 'ambiguous', label: t('agentConfig.voice.ambiguous') },
+                            ]}
+                          />
                         </div>
 
                         <div className="space-y-1.5">
@@ -2732,6 +2663,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('modality')}
+                  aria-expanded={activeCustomizationSection === 'modality'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.modality.title')}</p>
@@ -2747,11 +2679,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <p className="text-sm font-medium">{t('agentConfig.modality.input')}</p>
                       <p className="text-xs text-muted-foreground">{t('agentConfig.modality.inputAlways')}</p>
                       <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          className="accent-brand"
+                        <Checkbox
                           checked={inputModalities.includes('speech')}
-                          onChange={handleInputSpeechToggle}
+                          onCheckedChange={handleInputSpeechToggle}
                         />
                         {t('agentConfig.modality.enableSpeechInput')}
                       </label>
@@ -2760,11 +2690,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <p className="text-sm font-medium">{t('agentConfig.modality.output')}</p>
                       <p className="text-xs text-muted-foreground">{t('agentConfig.modality.outputAlways')}</p>
                       <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          className="accent-brand"
+                        <Checkbox
                           checked={outputModalities.includes('speech')}
-                          onChange={handleOutputSpeechToggle}
+                          onCheckedChange={handleOutputSpeechToggle}
                         />
                         {t('agentConfig.modality.enableSpeechOutput')}
                       </label>
@@ -2781,6 +2709,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('content')}
+                  aria-expanded={activeCustomizationSection === 'content'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.content.title')}</p>
@@ -2793,11 +2722,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                 {activeCustomizationSection === 'content' && (
                   <div className="space-y-3 border-t border-border px-4 py-4">
                     <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="accent-brand"
+                      <Checkbox
                         checked={adaptContentToUserProfile}
-                        onChange={(event) => setAdaptContentToUserProfile(event.target.checked)}
+                        onCheckedChange={setAdaptContentToUserProfile}
                       />
                       {t('agentConfig.content.adapt')}
                     </label>
@@ -2820,6 +2747,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     type="button"
                     className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                     onClick={() => toggleCustomizationSection('behavior')}
+                    aria-expanded={activeCustomizationSection === 'behavior'}
                   >
                     <div>
                       <p className="font-medium">{t('agentConfig.behavior.title')}</p>
@@ -2832,15 +2760,15 @@ export const AgentConfigurationPanel: React.FC = () => {
                   {activeCustomizationSection === 'behavior' && (
                     <div className="space-y-1.5 border-t border-border px-4 py-4 md:max-w-sm">
                       <Label htmlFor="response-timing">{t('agentConfig.behavior.responseTiming')}</Label>
-                      <select
+                      <OptionSelect
                         id="response-timing"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={responseTiming}
-                        onChange={(event) => setResponseTiming(event.target.value)}
-                      >
-                        <option value="instant">{t('agentConfig.timing.instant')}</option>
-                        <option value="delayed">{t('agentConfig.timing.delayed')}</option>
-                      </select>
+                        onValueChange={setResponseTiming}
+                        options={[
+                          { value: 'instant', label: t('agentConfig.timing.instant') },
+                          { value: 'delayed', label: t('agentConfig.timing.delayed') },
+                        ]}
+                      />
                     </div>
                   )}
                 </div>
@@ -2861,10 +2789,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="configuration-name">{t('agentConfig.save.nameLabel')}</Label>
                   <Input
                     id="configuration-name"
+                    name="configuration-name"
+                    autoComplete="off"
                     value={configurationName}
                     placeholder={t('agentConfig.save.namePlaceholder')}
                     onChange={(event) => setConfigurationName(event.target.value)}
+                    aria-invalid={configurationNameMissing || undefined}
+                    aria-describedby={configurationNameMissing ? 'configuration-name-error' : undefined}
                   />
+                  {configurationNameMissing && (
+                    <p id="configuration-name-error" className="text-xs text-destructive">
+                      {t('agentConfig.toasts.nameBeforeSave')}
+                    </p>
+                  )}
                   {activeConfigId ? (
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="secondary">{t('agentConfig.save.activeBadge')}</Badge>
@@ -2877,22 +2814,16 @@ export const AgentConfigurationPanel: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="saved-configurations">{t('agentConfig.save.savedLabel')}</Label>
-                  <select
+                  <OptionSelect
                     id="saved-configurations"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={selectedConfigId}
-                    onChange={(event) => setSelectedConfigId(event.target.value)}
+                    onValueChange={setSelectedConfigId}
                     disabled={savedConfigs.length === 0}
-                  >
-                    <option value="">
-                      {savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.save.selectCustomization')}
-                    </option>
-                    {savedConfigs.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.save.selectCustomization') },
+                      ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
                   {selectedConfig && (
                     <p className="text-xs text-muted-foreground">
                       {t('agentConfig.save.lastUpdated', { date: new Date(selectedConfig.savedAt).toLocaleString() })}
@@ -2912,7 +2843,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Separator />
 
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={handleSaveAndApply} disabled={isLoading}>
+                  <Button type="button" onClick={handleSaveAndApply} disabled={isLoading || configurationNameMissing}>
                     {isLoading ? t('agentConfig.save.applying') : t('agentConfig.save.saveAndApply')}
                   </Button>
                   <Button type="button" variant="outline" onClick={handleResetToDefaults} disabled={isLoading}>
@@ -2934,10 +2865,18 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Button type="button" variant="outline" onClick={handleDownload}>
                     {t('agentConfig.importExport.downloadJson')}
                   </Button>
-                  <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:border-brand/30">
+                  <Button type="button" variant="outline" onClick={() => uploadInputRef.current?.click()}>
                     {t('agentConfig.importExport.uploadJson')}
-                    <input type="file" accept="application/json" className="hidden" onChange={handleUpload} />
-                  </label>
+                  </Button>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    tabIndex={-1}
+                    aria-hidden
+                    onChange={handleUpload}
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t('agentConfig.importExport.uploadNote')}
@@ -2948,6 +2887,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           </>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

@@ -1,9 +1,12 @@
-import React, { Component, ComponentType } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
+import { Divider } from '../../../components/controls/divider/divider';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { Body } from '../../../components/controls/typography/typography';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
@@ -11,11 +14,24 @@ import { UMLElementRepository } from '../../../services/uml-element/uml-element-
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { IUMLComponent, UMLComponent } from './uml-component';
 import { StereotypeToggle } from '../../../components/controls/stereotype-toggle/stereotype-toggle';
+import { Dropdown } from '../../../components/controls/dropdown/dropdown';
+import { COMPONENT_STEREOTYPE_PRESETS } from '../agentic/agentic-tokens';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
+import { ElementPickerField } from '../../../components/element-picker/ElementPickerField';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
+import { PresetField } from '../agentic/preset-field';
 
 const Flex = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+`;
+
+const FieldLabel = styled(Body)`
+  width: 6em;
+  flex-shrink: 0;
+  margin-right: 0.5em;
 `;
 
 type State = { colorOpen: boolean };
@@ -48,6 +64,47 @@ class ComponentUpdate extends Component<Props, State> {
             </Button>
           </Flex>
         </section>
+        <section>
+          <Divider />
+          <Flex>
+            <FieldLabel>{this.props.translate('popup.stereotype')}</FieldLabel>
+            <Textfield
+              value={element.stereotype}
+              onChange={this.onStereotypeRename}
+              placeholder={this.props.translate('packages.ComponentDiagram.ComponentStereotypePlaceholder')}
+            />
+          </Flex>
+          <Flex>
+            <FieldLabel>{this.props.translate('popup.preset')}</FieldLabel>
+            <PresetField>
+              <Dropdown
+                value={element.stereotype}
+                onChange={this.onStereotypeRename}
+                placeholder={this.props.translate('popup.presetPlaceholder')}
+              >
+                {COMPONENT_STEREOTYPE_PRESETS.map((token) => (
+                  <Dropdown.Item key={token} value={token}>
+                    {token}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown>
+            </PresetField>
+          </Flex>
+        </section>
+        {/* `realizes` picker: Component-diagram Component only (not the
+            Deployment diagram's Component). Self-gates to render nothing when
+            the host registers no element-picker provider. */}
+        {element.type === 'Component' && (
+          <section>
+            <Divider />
+            <ElementPickerField
+              label={this.props.translate('packages.ComponentDiagram.Realizes')}
+              selected={(element as IUMLComponent).realizes ?? []}
+              typeTokens={['Class', 'AbstractClass', 'Interface', 'Enumeration']}
+              onChange={this.onRealizesChange}
+            />
+          </section>
+        )}
         <StylePane
           open={this.state.colorOpen}
           element={element}
@@ -59,6 +116,8 @@ class ComponentUpdate extends Component<Props, State> {
           textColor
           fillColor
         />
+        {/* Self-gating: renders nothing for non-derived elements. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -73,6 +132,16 @@ class ComponentUpdate extends Component<Props, State> {
     const newVisibilityValue = !element.displayStereotype;
     update<IUMLComponent>(element.id, { displayStereotype: newVisibilityValue });
   };
+
+  private onStereotypeRename = (value: string) => {
+    const { element, update } = this.props;
+    update<IUMLComponent>(element.id, { stereotype: value });
+  };
+
+  private onRealizesChange = (value: string[]) => {
+    const { element, update } = this.props;
+    update<IUMLComponent>(element.id, { realizes: value });
+  };
 }
 
 type OwnProps = {
@@ -86,11 +155,14 @@ type DispatchProps = {
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-  delete: UMLElementRepository.delete,
-});
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+    delete: UMLElementRepository.delete,
+  }),
+);
 
-export const UMLComponentUpdate: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(ComponentUpdate);
+export const UMLComponentUpdate = enhance(ComponentUpdate);

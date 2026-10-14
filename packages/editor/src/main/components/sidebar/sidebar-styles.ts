@@ -2,6 +2,19 @@ import styled from 'styled-components';
 
 export type ContainerProps = {};
 
+export const ResizeHandle = styled.div`
+  width: 8px;
+  flex-shrink: 0;
+  cursor: ew-resize;
+  background: ${(props) => props.theme.color.gray};
+  user-select: none;
+  outline: none;
+
+  &:focus-visible {
+    background: ${(props) => props.theme.color.primary};
+  }
+`;
+
 export const Container = styled.aside.attrs<ContainerProps>({})<ContainerProps>`
   flex: 0 0 148px;
   padding: 0 10px;

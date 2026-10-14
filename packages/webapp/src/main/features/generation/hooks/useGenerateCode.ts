@@ -7,12 +7,12 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
 } from '../../deploy/utils/restoreBaseAgentModels';
-import type { GenerationResult } from '../types';
+import type { GenerationOptions, GenerationResult } from '../types';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
 // Add type definitions
@@ -20,6 +20,49 @@ export interface DjangoConfig {
   project_name: string;
   app_name: string;
   containerization: boolean;
+}
+
+/**
+ * Spring Boot parent-POM versions offered in the Spring config dialog.
+ *
+ * Kept to the currently maintained 3.x lines — the generated `pom.xml` pins
+ * this straight into `spring-boot-starter-parent`, so every entry has to be a
+ * version that actually resolves from Maven Central. Refresh when a line goes
+ * end-of-life.
+ */
+export const SPRING_BOOT_VERSIONS = ['3.5.6', '3.4.4', '3.3.13'] as const;
+export type SpringBootVersion = (typeof SPRING_BOOT_VERSIONS)[number];
+/** Mirrors `DEFAULT_SPRING_BOOT_VERSION` in the backend's Spring generator. */
+export const DEFAULT_SPRING_BOOT_VERSION: SpringBootVersion = '3.4.4';
+
+/** Java releases the generated POM can target (Spring Boot 3.x needs 17+). */
+export const SPRING_JAVA_VERSIONS = ['17', '21', '25'] as const;
+export type SpringJavaVersion = (typeof SPRING_JAVA_VERSIONS)[number];
+/** Mirrors `DEFAULT_JAVA_VERSION` in the backend's Spring generator. */
+export const DEFAULT_SPRING_JAVA_VERSION: SpringJavaVersion = '21';
+
+/** Base Java package used when the user does not pick one. */
+export const DEFAULT_SPRING_PACKAGE_NAME = 'com.example';
+
+/**
+ * Spring Boot backend generator options.
+ *
+ * `app_name` becomes the generated Java application class
+ * (`<AppName>.java` / `<AppName>Tests.java`) and `package_name` becomes the
+ * source directory path, so both must be valid Java identifiers — see the
+ * inline validation in the Spring config dialog.
+ */
+export interface SpringConfig {
+  /** Name of the generated project folder / zip. */
+  project_name: string;
+  /** Java application class name (also the Maven artifactId). */
+  app_name: string;
+  /** Spring Boot parent POM version. */
+  spring_boot_version: SpringBootVersion;
+  /** Java release the POM targets. */
+  java_version: SpringJavaVersion;
+  /** Base Java package, e.g. 'com.example'. */
+  package_name: string;
 }
 
 export interface SQLConfig {
@@ -66,6 +109,7 @@ export interface AgentConfig {
 
 export type GeneratorConfig = {
   django: DjangoConfig;
+  spring: SpringConfig;
   sql: SQLConfig;
   supabase: SupabaseConfig;
   sqlalchemy: SQLAlchemyConfig;
@@ -80,7 +124,11 @@ export const useGenerateCode = () => {
   const { t } = useTranslation();
 
   const generateCodeFromProject = useCallback(
-    async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<GenerationResult> => {
+    async (
+      generatorType: string,
+      config?: GeneratorConfig[keyof GeneratorConfig],
+      opts?: GenerationOptions,
+    ): Promise<GenerationResult> => {
       console.log('Starting code generation from project...');
 
       // Read from storage at generation time as a safety net: although useStorageSync
@@ -142,14 +190,15 @@ export const useGenerateCode = () => {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData);
 
-          if (response.status === 400 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
-          }
-
-          if (response.status === 500 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
+          // 422 carries a readable detail only when it is a string (FastAPI's
+          // own request validation sends a list).
+          const hasDetail =
+            ((response.status === 400 || response.status === 500) && errorData.detail) ||
+            (response.status === 422 && typeof errorData.detail === 'string');
+          if (hasDetail) {
+            const detail = `${errorData.detail}`;
+            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            return { ok: false, error: detail };
           }
 
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -177,6 +226,12 @@ export const useGenerateCode = () => {
           }
         }
 
+        // Deferred download (assistant flow): return the blob so the caller
+        // can render a result card with a manual Download button instead of
+        // auto-saving. The menu path leaves autoDownload at its default (true).
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
@@ -206,36 +261,53 @@ export const useGenerateCode = () => {
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
       modelOverride?: UMLModel,
+      opts?: GenerationOptions,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
       // For Web App generator, send the entire project (doesn't need editor)
       if (generatorType === 'web_app') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For Qiskit generator, it uses project data not editor
       if (generatorType === 'qiskit') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For NN generators, use project data (like Qiskit)
       if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
-      // For other generators, we need the editor and model
-      if (!editor || !editor.model) {
+      // Docker Compose reads the project's Deployment diagram and the Agent
+      // diagrams its artifacts reference
+      if (generatorType === 'docker_compose') {
+        return await generateCodeFromProject(generatorType, config, opts);
+      }
+
+      // For other generators we need a model — the live editor's, or an
+      // explicit override (the assistant drawer generates from the STORED
+      // class diagram regardless of which tab is visually active).
+      const modelForGeneration = modelOverride ?? editor?.model;
+      if (!modelForGeneration) {
         console.error('No editor or model available');
         toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
-      // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
-      if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
-        return { ok: false, error: validationResult.message || 'Validation failed' };
+      // Validate before generation when a live editor is present (the
+      // pre-existing behavior — including the agent-personalization case
+      // that passes BOTH an editor and an override). An override without an
+      // editor comes from stored project data; the backend still validates
+      // structurally during generation. The model actually being sent is
+      // what gets validated.
+      if (editor) {
+        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
+        if (!validationResult.isValid) {
+          toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+          return { ok: false, error: validationResult.message || 'Validation failed' };
+        }
       }
 
       // Prepare body for single diagram generation. modelOverride is used by
@@ -244,7 +316,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : modelForGeneration,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
@@ -280,14 +352,15 @@ export const useGenerateCode = () => {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData); // Debug log
 
-          if (response.status === 400 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
-          }
-
-          if (response.status === 500 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
+          // 422 carries a readable detail only when it is a string (FastAPI's
+          // own request validation sends a list).
+          const hasDetail =
+            ((response.status === 400 || response.status === 500) && errorData.detail) ||
+            (response.status === 422 && typeof errorData.detail === 'string');
+          if (hasDetail) {
+            const detail = `${errorData.detail}`;
+            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            return { ok: false, error: detail };
           }
 
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -316,6 +389,9 @@ export const useGenerateCode = () => {
           }
         }
 
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };

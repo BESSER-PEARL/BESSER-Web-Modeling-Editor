@@ -7,7 +7,7 @@ import { CreatePane } from '../create-pane/create-pane';
 import { I18nContext } from '../i18n/i18n-context';
 import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
-import { Container } from './sidebar-styles';
+import { Container, ResizeHandle } from './sidebar-styles';
 import { SelectableState } from '../../services/uml-element/selectable/selectable-types';
 import { settingsService } from '../../services/settings/settings-service';
 import { LayouterRepository } from '../../services/layouter/layouter-repository';
@@ -53,6 +53,10 @@ const enhance = compose<ComponentClass<OwnProps>>(
     },
   ),
 );
+
+const MIN_SIDEBAR_WIDTH = 128;
+const MAX_SIDEBAR_WIDTH = 1000;
+const RESIZE_STEP = 16;
 
 interface SidebarComponentState {
   sidebarWidth: number;
@@ -117,7 +121,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
           maxWidth: 1000,
           resize: 'none',
           overflow: 'auto',
-          borderRight: '1px solid #ddd',
+          borderRight: '1px solid var(--apollon-gray, #e9ecef)',
         }}
       >
         {mode === ApollonMode.Exporting && (
@@ -136,12 +140,16 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
           <>
 
             {(isObjectDiagram && !isUserDiagram) && (
-              <label htmlFor="toggleIconMode" style={{ display: 'block', marginTop: 8 }}>
+              <label
+                htmlFor="toggleIconMode"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 4px 6px', fontSize: 12, lineHeight: 1.3, cursor: 'pointer' }}
+              >
                 <input
                   id="toggleIconMode"
                   type="checkbox"
                   checked={shouldUseIconMode}
                   onChange={this.handleToggleIconMode}
+                  style={{ margin: 0, flexShrink: 0, accentColor: 'var(--apollon-primary, #2a8fbd)' }}
                 />
                 {translate('views.iconMode')}
               </label>
@@ -165,14 +173,16 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
 
     // Resize handle
     const resizeHandle = (
-      <div
-        style={{
-          width: 8,
-          cursor: 'ew-resize',
-          background: '#eee',
-          userSelect: 'none',
-        }}
+      <ResizeHandle
         onMouseDown={this.handleResizeMouseDown}
+        onKeyDown={this.handleResizeKeyDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={translate('sidebar.resize') || 'Resize palette'}
+        aria-valuenow={Math.round(sidebarWidth)}
+        aria-valuemin={MIN_SIDEBAR_WIDTH}
+        aria-valuemax={MAX_SIDEBAR_WIDTH}
+        tabIndex={0}
       />
     );
 
@@ -196,6 +206,17 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
         el.style.maxWidth = `${Math.min(autoWidth)}px`;
       }
     }
+  };
+
+  handleResizeKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    // Arrow keys would otherwise also move the selected canvas elements.
+    e.stopPropagation();
+    const delta = e.key === 'ArrowRight' ? RESIZE_STEP : -RESIZE_STEP;
+    this.setState(({ sidebarWidth }) => ({
+      sidebarWidth: Math.min(Math.max(sidebarWidth + delta, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH),
+    }));
   };
 
   handleResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {

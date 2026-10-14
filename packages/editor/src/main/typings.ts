@@ -14,6 +14,7 @@ import { BPMNIntermediateEventType } from './packages/bpmn/bpmn-intermediate-eve
 import { BPMNTaskType } from './packages/bpmn/bpmn-task/bpmn-task';
 import { BPMNFlowType } from './packages/bpmn/bpmn-flow/bpmn-flow';
 import { BPMNMarkerType } from './packages/bpmn/common/types';
+import { BPMNAgentRole, BPMNGatewayRole, BPMNReflectionMode } from './packages/bpmn/common/types';
 
 export { UMLDiagramType, UMLElementType, UMLRelationshipType, ApollonMode, Locale };
 export type { Styles };
@@ -28,6 +29,8 @@ export type ApollonOptions = {
   locale?: Locale;
   copyPasteToClipboard?: boolean;
   colorEnabled?: boolean;
+  /** Shows the agentic BPMN controls (Agentic switches on lanes, tasks and gateways). */
+  agenticEnabled?: boolean;
   scale?: number;
 };
 
@@ -45,6 +48,27 @@ export type UMLModel = {
   relationships: { [id: string]: UMLRelationship };
   assessments: { [id: string]: Assessment };
   referenceDiagramData?: any;
+  /**
+   * Off-canvas agent components (LLMs, intents + intent bodies, RAG databases, tools, skills,
+   * workspaces, GUIs), keyed by id. Only used by agent diagrams; managed by the webapp's agent
+   * components panel. Components carry no canvas position, so `bounds` is optional.
+   */
+  components?: { [id: string]: UMLModelComponent };
+  /**
+   * @deprecated Legacy location of the agent components. Migrated into `components` by
+   * `normalizeAgentComponents` on every editor load; never written by the editor.
+   */
+  agentComponents?: { [id: string]: UMLModelComponent };
+};
+
+/**
+ * An off-canvas agent component stored in `UMLModel.components`. Same shape as a canvas element
+ * minus the mandatory geometry, plus the type-specific payload fields (e.g. `bodies`,
+ * `intent_description`, `provider`, `gui_id`, `is_form`).
+ */
+export type UMLModelComponent = Omit<UMLModelElement, 'bounds'> & {
+  bounds?: IBoundary;
+  [field: string]: any;
 };
 
 export type UMLModelElementType = UMLElementType | UMLRelationshipType | UMLDiagramType;
@@ -77,6 +101,14 @@ export interface AgentModelElement extends UMLModelElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
   // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
@@ -86,12 +118,17 @@ export interface AgentModelElement extends UMLModelElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  // web crawl session-var interpolation
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle (all LLM-generated answer actions)
+  sendReply?: boolean;
   // websocket-specific reply fields
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -119,7 +156,7 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
-export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit';
+export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit' | 'neural_network';
 
 export type DiagramReference = {
   id: string;
@@ -134,6 +171,7 @@ export type UMLClassifierMember = UMLElement & {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  neuralNetworkId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;
@@ -212,6 +250,7 @@ export type AgentStateTransition = UMLRelationship & {
     intentName?: string;
     fileType?: string;
     conditionValue?: string | { variable: string; operator: string; targetValue: string };
+    formGuiId?: string;
   };
   custom?: {
     event?:
@@ -221,8 +260,10 @@ export type AgentStateTransition = UMLRelationship & {
       | 'ReceiveMessageEvent'
       | 'ReceiveTextEvent'
       | 'ReceiveJSONEvent'
-      | 'ReceiveFileEvent';
+      | 'ReceiveFileEvent'
+      | 'GUIEvent';
     condition?: string[];
+    guiEventGuiId?: string;
   };
   // Legacy flat properties — kept for backward compatibility with existing diagrams
   predefinedType?: string;
@@ -233,7 +274,8 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   condition?: string | string[];
   intentName?: string;
   variable?: string;
@@ -251,8 +293,11 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   customConditions?: string[];
+  guiEventGuiId?: string;
+  formGuiId?: string;
 };
 
 export type UMLDeploymentNode = UMLElement & {
@@ -260,7 +305,18 @@ export type UMLDeploymentNode = UMLElement & {
   displayStereotype: boolean;
 };
 
+export type UMLDeploymentArtifact = UMLElement & {
+  manifests?: string[];
+  // UUID of the Agent diagram this artifact deploys, threaded
+  // from the source agentic lane's `agentDiagramRef` via Component.agentModelRef.
+  // BESSER reads this as `Artifact.agent_model_ref` to resolve
+  // which BAF agent to bake into the artifact's build context.
+  agentModelRef?: string;
+};
+
 export type UMLDeploymentComponent = UMLElement & {
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
 };
 
@@ -270,7 +326,16 @@ export type UMLComponentSubsystem = UMLElement & {
 };
 
 export type UMLComponentComponent = UMLElement & {
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
+  realizes?: string[];
+  processModelRefs?: string[];
+  // UUID of the Agent diagram this agent-Component is defined by,
+  // copied from the source lane's `agentDiagramRef` during BPMN→Component
+  // derivation. Waypoint on the way to the Deployment Artifact (carried via
+  // the Artifact).
+  agentModelRef?: string;
 };
 
 export type UMLPetriNetPlace = UMLElement & {
@@ -278,9 +343,31 @@ export type UMLPetriNetPlace = UMLElement & {
   capacity: number | string;
 };
 
+// Agentic BPMN: `isAgentic` / `role` / `reflectionMode` / `trustScore` live on
+// the base swimlane, task and gateway — there are no separate agentic types.
+// The agentic fields are only serialized for agentic elements.
+// `agentDiagramRef` is an optional cross-diagram link to the BESSER Agent
+// diagram that defines the element's agent.
+export type BPMNSwimlane = UMLElement & {
+  isAgentic?: boolean;
+  role?: BPMNAgentRole;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string;
+};
+
 export type BPMNTask = UMLElement & {
   taskType: BPMNTaskType;
   marker: BPMNMarkerType;
+  isAgentic?: boolean;
+  reflectionMode?: BPMNReflectionMode;
+  trustScore?: number;
+  // Cross-diagram link from an agentic task to the BESSER Agent
+  // diagram that defines its internal behavior.
+  agentDiagramRef?: string;
+  // Cross-reflection reviewer: the ID of the agentic BPMN lane whose
+  // agent reviews this task's output. Absent = placeholder peer="reviewer".
+  reflectionReviewerLaneId?: string;
 };
 
 export type BPMNSubprocess = UMLElement & {
@@ -297,6 +384,10 @@ export type BPMNCallActivity = UMLElement & {
 
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
+  isAgentic?: boolean;
+  gatewayRole?: BPMNGatewayRole;
+  trustScore?: number;
+  governanceDsl?: string;
 };
 
 export type BPMNStartEvent = UMLElement & {
@@ -324,11 +415,31 @@ export type UMLAssociation = UMLRelationship & {
   source: UMLRelationship['source'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
   target: UMLRelationship['target'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
+};
+
+export type UMLComponentDependency = UMLRelationship & {
+  stereotype?: string;
+};
+
+export type UMLDeploymentAssociation = UMLRelationship & {
+  stereotype?: string;
 };
 
 export type UMLCommunicationLink = UMLRelationship & {

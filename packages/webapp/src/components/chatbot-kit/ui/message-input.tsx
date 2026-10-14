@@ -11,6 +11,11 @@ import { AudioVisualizer } from "@/components/chatbot-kit/ui/audio-visualizer"
 import { Button } from "@/components/ui/button"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { InterruptPrompt } from "@/components/chatbot-kit/ui/interrupt-prompt"
+import { shouldAttachPaste } from "@/components/chatbot-kit/ui/paste-routing"
+
+/** The chat path's own message cap — a paste longer than this cannot be sent
+ * as text, so it becomes a file whatever its shape. Keep in sync with
+ * `maxMessageLength` in the assistant's rate limiter. */
 
 interface MessageInputBaseProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -127,14 +132,10 @@ export function MessageInput({
     if (!items) return
 
     const text = event.clipboardData.getData("text")
-    // Threshold high enough that a multi-sentence natural-language request (e.g.
-    // "the customer places an order, then the system checks stock, then...", a
-    // typical BPMN/state-machine process description) stays as normal chat text
-    // and goes through intent routing, instead of being silently rerouted into
-    // file-conversion (a different code path with much narrower diagram-type
-    // detection). Still catches genuinely large pastes (JSON dumps, full
-    // PlantUML/CSV files, etc.).
-    if (text && text.length > 3000 && props.allowAttachments) {
+    // Route on WHAT was pasted, not just how long it is: a length cut-off sent
+    // ordinary prose — a requirements brief is the core input of a spec-driven
+    // tool — down the narrower file-conversion path. See `shouldAttachPaste`.
+    if (text && shouldAttachPaste(text) && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })
       const file = new File([blob], t("assistant.chatKit.pastedText"), {
@@ -155,17 +156,24 @@ export function MessageInput({
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape to clear the input
+    // An IME is composing (CJK input, dead keys): Enter/Escape belong to it.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
+
+    // Escape steps out of the composer without discarding the draft. It is
+    // only consumed (preventDefault) when there was something to step out of,
+    // so on an empty composer it still reaches the surface (closes the sheet).
     if (event.key === "Escape") {
-      event.preventDefault()
-      if (onValueChange) {
-        onValueChange("")
-      } else {
-        // Fallback: synthesise a change event with empty value
-        props.onChange?.({
-          target: { value: "" },
-        } as React.ChangeEvent<HTMLTextAreaElement>)
+      if (showInterruptPrompt) {
+        event.preventDefault()
+        setShowInterruptPrompt(false)
+      } else if (
+        props.value ||
+        (props.allowAttachments && props.files?.length)
+      ) {
+        event.preventDefault()
+        event.currentTarget.blur()
       }
+      onKeyDownProp?.(event)
       return
     }
 
@@ -206,13 +214,6 @@ export function MessageInput({
   }
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
-
-  useEffect(() => {
-    if (textAreaRef.current) {
-      setTextAreaHeight(textAreaRef.current.offsetHeight)
-    }
-  }, [props.value])
 
   const showFileList =
     props.allowAttachments && props.files && props.files.length > 0
@@ -253,7 +254,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "relative z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-32 text-sm ring-offset-background transition-[color,border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "relative z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-32 text-sm ring-offset-background transition-[color,border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-brand focus-visible:shadow-[0_0_0_3px_hsl(var(--brand)/0.15)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               showFileList && "pb-16",
               className
             )}
@@ -329,7 +330,7 @@ export function MessageInput({
             aria-label={t("assistant.chatKit.stopGenerating")}
             onClick={stop}
           >
-            <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
+            <Square className="h-3 w-3 animate-pulse motion-reduce:animate-none" fill="currentColor" />
           </Button>
         ) : (
           <Button
@@ -350,7 +351,7 @@ export function MessageInput({
         isRecording={isRecording}
         isTranscribing={isTranscribing}
         audioStream={audioStream}
-        textAreaHeight={textAreaHeight}
+        textAreaRef={textAreaRef}
         secondsLeft={recordingSecondsLeft}
         onStopRecording={stopRecording}
       />
@@ -419,7 +420,7 @@ function TranscribingOverlay() {
       <div className="relative">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <motion.div
-          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20"
+          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20 motion-reduce:animate-none"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1.2, opacity: 1 }}
           transition={{
@@ -455,17 +456,10 @@ function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingP
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ top: 0, filter: "blur(5px)" }}
-          animate={{
-            top: -40,
-            filter: "blur(0px)",
-            transition: {
-              type: "spring",
-              filter: { type: "tween" },
-            },
-          }}
-          exit={{ top: 0, filter: "blur(5px)" }}
-          className="absolute left-1/2 flex -translate-x-1/2 cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
+          initial={{ x: "-50%", y: 0, opacity: 0 }}
+          animate={{ x: "-50%", y: -40, opacity: 1, transition: { type: "spring" } }}
+          exit={{ x: "-50%", y: 0, opacity: 0 }}
+          className="absolute left-1/2 top-0 flex cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
           onClick={onStopRecording}
         >
           <span className="mx-2.5 flex items-center">
@@ -482,7 +476,7 @@ interface RecordingControlsProps {
   isRecording: boolean
   isTranscribing: boolean
   audioStream: MediaStream | null
-  textAreaHeight: number
+  textAreaRef: React.RefObject<HTMLTextAreaElement>
   secondsLeft: number
   onStopRecording: () => void
 }
@@ -491,11 +485,13 @@ function RecordingControls({
   isRecording,
   isTranscribing,
   audioStream,
-  textAreaHeight,
+  textAreaRef,
   secondsLeft,
   onStopRecording,
 }: RecordingControlsProps) {
   const { t } = useTranslation()
+  // Measured only while an overlay is shown (recording toggles re-render this).
+  const textAreaHeight = textAreaRef.current?.offsetHeight ?? 0
   if (isRecording) {
     return (
       <div

@@ -6,6 +6,7 @@ export enum SoftwarePatternCategory {
   STRUCTURAL = 'Class Diagram',
   BEHAVIORAL = 'Behavioral',
   AGENT = 'Agent Diagram',
+  MULTI_AGENT = 'Multi-agent',
   STATE_MACHINE = 'State Machine Diagram',
   BPMN = 'BPMN Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
@@ -26,6 +27,7 @@ export enum SoftwarePatternType {
   DB_AGENT = 'Database Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',
+  CHATBOT_AGENT = 'Chatbot Agent',
   LIBRARY_AGENT = 'Library Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
@@ -33,6 +35,7 @@ export enum SoftwarePatternType {
   BPMN_PARALLEL_REVIEW = 'Parallel Document Review',
   BPMN_CAR_WASH = 'Car Wash Collaboration',
   BPMN_ORDER_FULFILLMENT = 'Pizza Store Collaboration',
+  BPMN_AGENTIC_STARTER = 'Agentic Bug-fixing Process',
   // Neural Network patterns
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',
@@ -49,6 +52,7 @@ export enum SoftwarePatternType {
   // Full Project patterns (multi-diagram bundles imported as new projects)
   LIBRARY_FULL_STACK = 'Library (Full Stack)',
   PERSONALIZED_GYM_AGENT = 'Personalized Gym Agent',
+  MULTI_AGENT_BUG_FIXING = 'Multi-agent Bug Fixing',
 }
 
 /**

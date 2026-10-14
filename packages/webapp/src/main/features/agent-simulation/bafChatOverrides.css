@@ -1,0 +1,28 @@
+.baf-chat .chat-area__messages {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.baf-chat .chat-area__input-row {
+  width: 100%;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.baf-chat .chat-area__input-line {
+  width: 100%;
+}
+
+/* --accent is the brand teal, which is light in dark mode: text on it uses the
+   brand foreground token (white in light mode, near-black in dark) instead of #fff. */
+.baf-chat .btn--primary,
+.baf-chat .view-toggle__btn--active,
+.baf-chat .mode-toggle__btn--active,
+.baf-chat .message__bubble--user,
+.baf-chat .msg-file-btn:hover,
+.baf-chat .msg-option-btn:hover,
+.baf-chat .gui-renderer__tab-badge,
+.baf-chat .gui-form-btn--submit,
+.baf-chat .gui-form-btn--fab {
+  color: hsl(var(--brand-foreground));
+}

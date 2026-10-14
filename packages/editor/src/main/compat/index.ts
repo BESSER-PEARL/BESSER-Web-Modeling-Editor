@@ -1,6 +1,7 @@
 import { UMLModel } from '../typings';
 import { UMLModelCompat } from './typings';
 import { isV2, v2ModeltoV3Model } from './v2';
+import { normalizeModelAssociationNavigability } from '../packages/common/uml-association/uml-association-navigability';
 
 /**
  *
@@ -11,11 +12,11 @@ import { isV2, v2ModeltoV3Model } from './v2';
  *
  */
 export function backwardsCompatibleModel(model: UMLModelCompat): UMLModel {
-  if (isV2(model)) {
-    return v2ModeltoV3Model(model);
-  } else {
-    return model;
-  }
+  const latest = isV2(model) ? v2ModeltoV3Model(model) : model;
+  // Class-diagram associations: the legacy `ClassUnidirectional` type becomes a
+  // `ClassBidirectional` with per-end `navigable` flags, and missing flags are
+  // filled in from the legacy defaults.
+  return normalizeModelAssociationNavigability(latest);
 }
 
 export type { UMLModelCompat } from './typings';

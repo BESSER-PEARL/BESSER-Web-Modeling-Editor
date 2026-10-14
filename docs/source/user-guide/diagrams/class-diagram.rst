@@ -76,13 +76,29 @@ To create relationships between classes:
 3.  Double-click the relationship line to edit its properties.
 
 .. image:: ../../images/wme/class_diagram/relationship_prop.png
-  :width: 350
-  :alt: Association properties
+  :width: 650
+  :alt: Association properties panel with a Navigable checkbox for each end
   :align: center
 
 *   **Name**: Assign a name to the association.
-*   **Type**: Unidirectional, Bidirectional, Composition, or Generalization.
+*   **Type**: Association, Composition, or Generalization.
 *   **Multiplicity**: Define cardinality (e.g., ``1``, ``0..1``, ``*``, ``1..*``).
+*   **Navigable**: Each end of an association or composition has its own
+    **Navigable** checkbox. A navigable end can be reached from the class at the
+    other end. When both ends are navigable the line has no arrowhead; when only
+    one end is navigable, the arrowhead points at that end.
+
+Navigability rules:
+
+*   At least one end of an association must stay navigable, so the checkbox of
+    the last navigable end is locked.
+*   In a composition, the part end (the end opposite the diamond) is always
+    navigable, because the composite can always reach its parts. Its checkbox
+    is locked.
+
+Diagrams created before per-end navigability keep their meaning when opened:
+a former unidirectional association becomes an association whose source end is
+not navigable, and every other association keeps both ends navigable.
 
 OCL Constraints
 ~~~~~~~~~~~~~~~

@@ -16,6 +16,7 @@ export const Popover = forwardRef<HTMLDivElement, Props>(
   ({ children, placement = 'right', alignment = 'center', maxHeight, style, onMouseDown, onMouseMove, ...props }, ref) => (
     <PopoverContainer 
       ref={ref} 
+      data-apollon-popup=""
       placement={placement} 
       alignment={alignment} 
       style={style} 

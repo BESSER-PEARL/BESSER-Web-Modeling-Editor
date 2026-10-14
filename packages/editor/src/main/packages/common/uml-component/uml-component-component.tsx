@@ -2,6 +2,8 @@ import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { UMLComponent } from './uml-component';
 import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponents';
+import { AgenticBotIcon } from '../agentic/agentic-bot-icon';
+import { isAgentStereotype } from '../agentic/agentic-tokens';
 
 export const UMLComponentComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => (
   <g data-cy="uml-component">
@@ -27,6 +29,7 @@ export const UMLComponentComponent: FunctionComponent<Props> = ({ element, child
         strokeMiterlimit="10"
       />
     </g>
+    {isAgentStereotype(element.stereotype) && <AgenticBotIcon x={7} y={7} strokeColor={element.strokeColor} />}
     <Text fill={element.textColor}>
       {element.stereotype && element.displayStereotype && (
         <tspan x="50%" dy={-8} textAnchor="middle" fontSize="85%">

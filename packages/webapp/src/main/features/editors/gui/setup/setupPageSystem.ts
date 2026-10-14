@@ -2,6 +2,7 @@
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import i18n from '@/main/shared/i18n';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -233,7 +234,7 @@ const getAvailableProfiles = (): ProfileOption[] => {
     const userDiagrams = project.diagrams?.UserDiagram || [];
     const profiles = userDiagrams.map((diagram: any) => ({
       id: diagram.id,
-      name: diagram.title || 'Unnamed Profile',
+      name: diagram.title || i18n.t('editors.gui.pages.unnamedProfile'),
       // Full UML model of the UserDiagram — needed for LLM personalization.
       model: diagram.model,
     }));
@@ -263,11 +264,11 @@ const openLoadingModal = (editor: Editor, title: string, message: string): (() =
   modal.setTitle(title);
   modal.setContent(`
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 340px; padding: 4px 0 8px;">
-      <p style="margin: 0 0 14px; color: #444; line-height: 1.5;">${message}</p>
-      <div style="position: relative; height: 8px; border-radius: 999px; background: #e8e8e8; overflow: hidden;">
-        <div style="position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px; background: #2563eb; animation: gjsPersonalizeIndet 1.2s ease-in-out infinite;"></div>
+      <p style="margin: 0 0 14px; color: hsl(var(--foreground)); line-height: 1.5;">${message}</p>
+      <div style="position: relative; height: 8px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden;">
+        <div style="position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px; background: hsl(var(--brand)); animation: gjsPersonalizeIndet 1.2s ease-in-out infinite;"></div>
       </div>
-      <p style="margin: 12px 0 0; color: #888; font-size: 12px;">This can take up to a minute. Please don't close the editor.</p>
+      <p style="margin: 12px 0 0; color: hsl(var(--muted-foreground)); font-size: 12px;">${i18n.t('editors.gui.pages.loadingNotice')}</p>
       <style>
         @keyframes gjsPersonalizeIndet {
           0% { left: -40%; }
@@ -308,7 +309,7 @@ const personalizeSnapshotWithAI = async (
 
   const result = response?.guiPage;
   if (!result || !Array.isArray(result.components)) {
-    throw new Error('Personalization service returned an invalid page.');
+    throw new Error(i18n.t('editors.gui.pages.personalizationServiceInvalid'));
   }
   const pageId = page?.getId?.();
   return {
@@ -338,9 +339,9 @@ const openProfilePickerModal = async (
   if (profiles.length === 0) {
     await globalConfirm({
       title: options.title,
-      description: 'No user profiles are available. Create a user profile in the User Diagram first, then try again.',
-      confirmLabel: 'OK',
-      cancelLabel: 'OK',
+      description: i18n.t('editors.gui.pages.noProfiles'),
+      confirmLabel: i18n.t('editors.gui.pages.ok'),
+      cancelLabel: i18n.t('editors.gui.pages.ok'),
     });
     return;
   }
@@ -352,23 +353,23 @@ const openProfilePickerModal = async (
     ? `
       <label style="display:flex; align-items:flex-start; gap:8px; margin-top:14px; cursor:pointer;">
         <input type="checkbox" id="${toggleId}" style="margin-top:3px;" />
-        <span style="font-size:13px; color:#444; line-height:1.4;">
-          <strong>✨ Auto-personalize with AI</strong><br/>
-          <span style="color:#777;">Use an LLM to adapt the page's content and style to this profile. Leave unchecked to copy the page as-is.</span>
+        <span style="font-size:13px; color:hsl(var(--foreground)); line-height:1.4;">
+          <strong>✨ ${i18n.t('editors.gui.pages.autoPersonalize')}</strong><br/>
+          <span style="color:hsl(var(--muted-foreground));">${i18n.t('editors.gui.pages.autoPersonalizeDescription')}</span>
         </span>
       </label>`
     : '';
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 320px;">
-      <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
-      <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">User profile</label>
-      <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
+      <p style="margin: 0 0 12px; color: hsl(var(--foreground)); line-height: 1.5;">${options.description}</p>
+      <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:hsl(var(--foreground)); text-transform:uppercase; letter-spacing:0.04em;">${i18n.t('editors.gui.pages.userProfile')}</label>
+      <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid hsl(var(--input)); border-radius:6px; font-size:14px; background:hsl(var(--background)); color:hsl(var(--foreground));">
         ${profiles.map((profile) => `<option value="${profile.id}">${escapeHtml(profile.name)}</option>`).join('')}
       </select>
       ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
-        <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer;">${options.confirmLabel}</button>
+        <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid hsl(var(--input)); border-radius:6px; background:hsl(var(--background)); color:hsl(var(--foreground)); cursor:pointer;">${i18n.t('common.cancel')}</button>
+        <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:hsl(var(--brand)); color:hsl(var(--brand-foreground)); cursor:pointer;">${options.confirmLabel}</button>
       </div>
     </div>
   `;
@@ -411,28 +412,28 @@ const openPageDeleteModal = (
   const variantRows = variants
     .map(
       (v) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px;">
-        <span style="font-size:14px; color:#333;">${escapeHtml(v.profileName)}${activeId === v.id ? ' <span style="color:#1d4ed8; font-size:11px; font-weight:600;">(active)</span>' : ''}</span>
-        <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid #e74c3c; color:#e74c3c; background:#fff; border-radius:6px; cursor:pointer; font-size:12px;">Delete</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid hsl(var(--border)); border-radius:6px; margin-bottom:6px;">
+        <span style="font-size:14px; color:hsl(var(--foreground));">${escapeHtml(v.profileName)}${activeId === v.id ? ` <span style="color:hsl(var(--brand)); font-size:11px; font-weight:600;">(${i18n.t('editors.gui.pages.active')})</span>` : ''}</span>
+        <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid hsl(var(--destructive)); color:hsl(var(--destructive)); background:transparent; border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.delete')}</button>
       </div>`,
     )
     .join('');
 
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 360px;">
-      <p style="margin:0 0 12px; color:#444; line-height:1.5;">"${escapeHtml(page.getName())}" has personalized variants. Choose what to delete.</p>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; background:#fafafa;">
-        <span style="font-size:14px; color:#333;">Base page <span style="color:#888; font-size:11px;">— deletes the page and all variants</span></span>
-        <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:#fff; background:#c0392b; border-radius:6px; cursor:pointer; font-size:12px;">Delete all</button>
+      <p style="margin:0 0 12px; color:hsl(var(--foreground)); line-height:1.5;">${i18n.t('editors.gui.pages.deleteVariantDescription', { name: page.getName() })}</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid hsl(var(--border)); border-radius:6px; margin-bottom:6px; background:hsl(var(--muted));">
+        <span style="font-size:14px; color:hsl(var(--foreground));">${i18n.t('editors.gui.pages.basePage')} <span style="color:hsl(var(--muted-foreground)); font-size:11px;">— ${i18n.t('editors.gui.pages.basePageDescription')}</span></span>
+        <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:hsl(var(--destructive-foreground)); background:hsl(var(--destructive)); border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.deleteAll')}</button>
       </div>
       ${variantRows}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button type="button" id="gjs-del-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
+        <button type="button" id="gjs-del-cancel-btn" style="padding:8px 12px; border:1px solid hsl(var(--input)); border-radius:6px; background:hsl(var(--background)); color:hsl(var(--foreground)); cursor:pointer;">${i18n.t('common.cancel')}</button>
       </div>
     </div>
   `;
 
-  modal.setTitle('Delete page or variant');
+  modal.setTitle(i18n.t('editors.gui.pages.deletePageOrVariant'));
   modal.setContent(content);
   modal.open();
 
@@ -477,9 +478,9 @@ export function loadDefaultPages(editor: Editor) {
   if (!pages || pages.getAll().length > 0) return;
   
   const defaults = [
-    { id: 'home', name: 'Home' },
-    { id: 'about', name: 'About' },
-    { id: 'contact', name: 'Contact' }
+    { id: 'home', name: i18n.t('editors.gui.pages.defaultHome') },
+    { id: 'about', name: i18n.t('editors.gui.pages.defaultAbout') },
+    { id: 'contact', name: i18n.t('editors.gui.pages.defaultContact') }
   ];
   
   defaults.forEach(p => pages.add(p));
@@ -503,7 +504,7 @@ function setupPagesTabInSidebar(editor: Editor) {
       className: 'fa fa-file-alt gjs-pn-btn',
       command: 'open-pages-tab',
       togglable: true,
-      attributes: { title: 'Pages' },
+      attributes: { title: i18n.t('editors.gui.pages.title') },
       label: `<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
         <path d="M19,5V19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M7,7H9V9H7V7M7,11H9V13H7V11M7,15H9V17H7V15M11,7H17V9H11V7M11,11H17V13H11V11M11,15H17V17H11V15Z" />
       </svg>`,
@@ -605,17 +606,17 @@ function createAndAppendPagesPanel(editor: Editor) {
   
   container.innerHTML = `
     <div class="gjs-pages-header">
-      <span class="gjs-pages-title">Pages</span>
+      <span class="gjs-pages-title">${i18n.t('editors.gui.pages.title')}</span>
     </div>
     <div class="gjs-pages-search-container">
-      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
+      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="${i18n.t('editors.gui.pages.searchPlaceholder')}" />
     </div>
     <div class="gjs-pages-actions">
-      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page" aria-label="Add new page">
+      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="${i18n.t('editors.gui.pages.addNewPage')}" aria-label="${i18n.t('editors.gui.pages.addNewPage')}">
         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
           <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
-        <span>Add Page</span>
+        <span>${i18n.t('editors.gui.pages.addPage')}</span>
       </button>
     </div>
     <div id="gjs-pages-list" class="gjs-pages-list"></div>
@@ -714,33 +715,33 @@ function updatePagesList(editor: Editor) {
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
-          <button class="gjs-page-btn route-page-btn" title="Edit URL route" aria-label="Edit URL route">
+          <button class="gjs-page-btn route-page-btn" title="${i18n.t('editors.gui.pages.editRoute')}" aria-label="${i18n.t('editors.gui.pages.editRoute')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.12 9.17,4.17C12.12,1.22 16.88,1.22 19.83,4.17C22.78,7.12 22.78,11.88 19.83,14.83C19.44,15.22 18.8,15.22 18.41,14.83C18,14.44 18,13.8 18.41,13.41C20.59,11.23 20.59,7.77 18.41,5.59C16.23,3.41 12.77,3.41 10.59,5.59C8.41,7.77 8.41,11.23 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.88 14.83,19.83C11.88,22.78 7.12,22.78 4.17,19.83C1.22,16.88 1.22,12.12 4.17,9.17C4.56,8.78 5.2,8.78 5.59,9.17C6,9.56 6,10.2 5.59,10.59C3.41,12.77 3.41,16.23 5.59,18.41C7.77,20.59 11.23,20.59 13.41,18.41C15.59,16.23 15.59,12.77 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn rename-page-btn" title="Rename page" aria-label="Rename page">
+          <button class="gjs-page-btn rename-page-btn" title="${i18n.t('editors.gui.pages.renamePage')}" aria-label="${i18n.t('editors.gui.pages.renamePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn duplicate-page-btn" title="Duplicate page" aria-label="Duplicate page">
+          <button class="gjs-page-btn duplicate-page-btn" title="${i18n.t('editors.gui.pages.duplicatePage')}" aria-label="${i18n.t('editors.gui.pages.duplicatePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn add-variant-btn" title="Add personalized variant" aria-label="Add personalized variant">
+          <button class="gjs-page-btn add-variant-btn" title="${i18n.t('editors.gui.pages.addPersonalizedVariant')}" aria-label="${i18n.t('editors.gui.pages.addPersonalizedVariant')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M12,12A4,4 0 1,0 8,8A4,4 0 0,0 12,12M12,14C9.33,14 4,15.33 4,18V20H20V18C20,15.33 14.67,14 12,14M19,8V5H17V8H14V10H17V13H19V10H22V8Z" />
             </svg>
           </button>
           ${variants.length > 0 ? `
-          <select class="gjs-page-variants-select" title="Switch variant" aria-label="Switch variant" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
-            <option value="">Base</option>
+          <select class="gjs-page-variants-select" title="${i18n.t('editors.gui.pages.switchVariant')}" aria-label="${i18n.t('editors.gui.pages.switchVariant')}" style="padding: 4px; border-radius: 4px; border: 1px solid hsl(var(--input)); background: hsl(var(--background)); color: hsl(var(--foreground)); font-size: 12px;">
+            <option value="">${i18n.t('editors.gui.pages.base')}</option>
             ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${escapeHtml(v.profileName)}</option>`).join('')}
           </select>
           ` : ''}
-          <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
+          <button class="gjs-page-btn delete-page-btn" title="${i18n.t('editors.gui.pages.deletePage')}" aria-label="${i18n.t('editors.gui.pages.deletePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
@@ -759,7 +760,7 @@ function updatePagesList(editor: Editor) {
       item.querySelector('.route-page-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         const currentRoute = page.get('route_path') || '/' + page.getName().toLowerCase().replace(/\s+/g, '-');
-        const newRoute = prompt('Enter URL route for this page (e.g., /about-us):', currentRoute);
+        const newRoute = prompt(i18n.t('editors.gui.pages.promptRoute'), currentRoute);
         if (newRoute !== null) {
           // Ensure route starts with /
           let cleanRoute = newRoute.trim();
@@ -775,7 +776,7 @@ function updatePagesList(editor: Editor) {
       
       item.querySelector('.rename-page-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newName = prompt('Enter new page name:', page.getName());
+        const newName = prompt(i18n.t('editors.gui.pages.promptRename'), page.getName());
         if (newName?.trim()) {
           page.set('name', newName.trim());
           updatePagesList(editor);
@@ -786,7 +787,7 @@ function updatePagesList(editor: Editor) {
         e.stopPropagation();
         
         const originalName = page.getName();
-        const newName = prompt('Enter name for duplicated page:', originalName + ' Copy');
+        const newName = prompt(i18n.t('editors.gui.pages.promptDuplicate'), `${originalName} ${i18n.t('editors.gui.pages.copySuffix')}`);
         if (!newName?.trim()) return;
         const newPage = editor.Pages?.add({ id: createUniquePageId(newName), name: newName.trim() });
         if (newPage) {
@@ -810,9 +811,9 @@ function updatePagesList(editor: Editor) {
         e.stopPropagation();
 
         await openProfilePickerModal(editor, {
-          title: 'Create page variant',
-          description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
-          confirmLabel: 'Create variant',
+          title: i18n.t('editors.gui.pages.createVariantTitle'),
+          description: i18n.t('editors.gui.pages.createVariantDescription', { name: page.getName() }),
+          confirmLabel: i18n.t('editors.gui.pages.createVariant'),
           personalizeToggle: true,
           onConfirm: async (profile, { personalize }) => {
             // Persist any edits in the currently-active variant/base first.
@@ -833,8 +834,8 @@ function updatePagesList(editor: Editor) {
 
               const closeLoading = openLoadingModal(
                 editor,
-                'Personalizing page with AI',
-                `Adapting "${page.getName()}" for ${profile.name}…`,
+                i18n.t('editors.gui.pages.personalizingTitle'),
+                i18n.t('editors.gui.pages.personalizingDescription', { pageName: page.getName(), profileName: profile.name }),
               );
               let snap: PageSnapshot | null = null;
               let failure: string | null = null;
@@ -845,26 +846,26 @@ function updatePagesList(editor: Editor) {
                   err instanceof ApiError
                     ? err.message
                     : err instanceof DOMException && err.name === 'TimeoutError'
-                      ? 'The request timed out.'
+                      ? i18n.t('editors.gui.pages.requestTimedOut')
                       : err instanceof Error
                         ? err.message
-                        : 'Unknown error.';
+                        : i18n.t('editors.gui.unknownError');
               } finally {
                 closeLoading();
               }
 
               if (snap) {
-                notify(editor, 'success', `✓ Personalized "${page.getName()}" for ${profile.name}.`);
+                notify(editor, 'success', i18n.t('editors.gui.pages.personalized', { pageName: page.getName(), profileName: profile.name }));
                 return snap;
               }
 
               // Personalization failed — show the error and ask whether to fall
               // back to a manual copy.
               const makeCopy = await globalConfirm({
-                title: 'AI personalization failed',
-                description: `${failure ?? 'Something went wrong.'}\n\nDo you still want to create a copy to manually personalize?`,
-                confirmLabel: 'Create copy',
-                cancelLabel: 'Cancel',
+                title: i18n.t('editors.gui.pages.personalizationFailed'),
+                description: i18n.t('editors.gui.pages.personalizationFailedDescription', { error: failure ?? i18n.t('editors.gui.pages.somethingWentWrong') }),
+                confirmLabel: i18n.t('editors.gui.pages.createCopy'),
+                cancelLabel: i18n.t('common.cancel'),
               });
               return makeCopy ? captureSnapshot(editor, page) : null;
             };
@@ -875,11 +876,11 @@ function updatePagesList(editor: Editor) {
             if (existing) {
               // Re-adding an existing profile replaces its content.
               const confirmed = await globalConfirm({
-                title: 'Variant already exists',
+                title: i18n.t('editors.gui.pages.variantExists'),
                 description: personalize
-                  ? `A variant for "${profile.name}" already exists. Continue to regenerate it with AI? This replaces its current content.`
-                  : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page. Continue?`,
-                confirmLabel: personalize ? 'Regenerate with AI' : 'Replace with Base',
+                  ? i18n.t('editors.gui.pages.variantExistsAiDescription', { name: profile.name })
+                  : i18n.t('editors.gui.pages.variantExistsBaseDescription', { name: profile.name }),
+                confirmLabel: personalize ? i18n.t('editors.gui.pages.regenerateWithAi') : i18n.t('editors.gui.pages.replaceWithBase'),
                 variant: 'danger',
               });
               if (!confirmed) {
@@ -935,10 +936,10 @@ function updatePagesList(editor: Editor) {
           // Prevent deleting the last page
           if (editor.Pages.getAll().length <= 1) {
             await globalConfirm({
-              title: 'Cannot Delete Page',
-              description: 'Cannot delete the last page. At least one page is required.',
-              confirmLabel: 'OK',
-              cancelLabel: 'OK',
+              title: i18n.t('editors.gui.pages.cannotDeleteTitle'),
+              description: i18n.t('editors.gui.pages.cannotDeleteDescription'),
+              confirmLabel: i18n.t('editors.gui.pages.ok'),
+              cancelLabel: i18n.t('editors.gui.pages.ok'),
             });
             return;
           }
@@ -962,9 +963,9 @@ function updatePagesList(editor: Editor) {
         // No variants — keep the simple confirm.
         if (variants.length === 0) {
           const confirmed = await globalConfirm({
-            title: 'Delete Page',
-            description: 'Delete page "' + page.getName() + '"?',
-            confirmLabel: 'Delete',
+            title: i18n.t('editors.gui.pages.deletePageTitle'),
+            description: i18n.t('editors.gui.pages.deleteConfirm', { name: page.getName() }),
+            confirmLabel: i18n.t('editors.gui.pages.delete'),
             variant: 'danger',
           });
           if (confirmed) await removePageEntirely();
@@ -1002,9 +1003,9 @@ function updatePagesList(editor: Editor) {
          fallback.className = 'gjs-page-item';
          const label = (() => {
            try {
-             return page?.getName?.() || 'Untitled page';
+             return page?.getName?.() || i18n.t('editors.gui.pages.untitledPage');
            } catch {
-             return 'Untitled page';
+             return i18n.t('editors.gui.pages.untitledPage');
            }
          })();
          fallback.innerHTML = `<div class="gjs-page-info"><span class="gjs-page-name">${label}</span></div>`;
@@ -1037,15 +1038,55 @@ function setupPageCommands(editor: Editor) {
   
   editor.Commands.add('add-page', {
     run() {
-      const name = prompt('Enter page name:');
+      const name = prompt(i18n.t('editors.gui.pages.promptNewPage'));
       if (!name?.trim() || !editor.Pages) return;
 
-      const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-      const page = editor.Pages.add({ id, name: name.trim() });
-      if (page) {
-        editor.Pages.select(page);
-        updatePagesList(editor);
+      const trimmed = name.trim();
+      const safeName = trimmed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const slug = trimmed.toLowerCase().replace(/\s+/g, '-');
+      const id = slug + '-' + Date.now();
+      const source = editor.Pages.getSelected();
+      const page = editor.Pages.add({ id, name: trimmed });
+      if (!page) return;
+      (page as any).set?.('route_path', '/' + slug);
+
+      // A new page should belong to the app, not open as a blank white
+      // canvas: carry over the current page's shell (nav/footer bands and
+      // wrapper classes) and seed an on-theme starter section between them.
+      try {
+        const srcRoot: any = (source as any)?.getMainComponent?.();
+        const destRoot: any = (page as any).getMainComponent?.();
+        if (destRoot) {
+          const bandKind = (comp: any): 'nav' | 'footer' | null => {
+            const classes: string[] = comp.getClasses?.() || [];
+            const tag = String(comp.get?.('tagName') || '').toLowerCase();
+            if (classes.includes('ds-nav') || classes.includes('assistant-nav-header') || tag === 'nav') return 'nav';
+            if (classes.includes('ds-footer') || classes.includes('assistant-footer') || tag === 'footer') return 'footer';
+            return null;
+          };
+          let navHtml = '';
+          let footerHtml = '';
+          if (srcRoot) {
+            (srcRoot.getClasses?.() || []).forEach((cls: string) => destRoot.addClass?.(cls));
+            srcRoot.components?.()?.forEach((comp: any) => {
+              const kind = bandKind(comp);
+              if (kind === 'nav' && !navHtml) navHtml = comp.toHTML();
+              if (kind === 'footer' && !footerHtml) footerHtml = comp.toHTML();
+            });
+          }
+          const starter =
+            '<section class="ds-section"><div class="ds-container">' +
+            `<h2 class="ds-heading">${safeName}</h2>` +
+            '<p>Start building this page.</p>' +
+            '</div></section>';
+          destRoot.append(navHtml + starter + footerHtml);
+        }
+      } catch (cloneError) {
+        console.warn('[Pages] Could not clone the app shell into the new page:', cloneError);
       }
+
+      editor.Pages.select(page);
+      updatePagesList(editor);
     }
   });
 
@@ -1096,7 +1137,7 @@ function addPagesPanelCSS() {
       left: 0;
       right: 0;
       bottom: 0;
-      background: #ffffff;
+      background: hsl(var(--card));
       display: flex;
       flex-direction: column;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1107,21 +1148,21 @@ function addPagesPanelCSS() {
       justify-content: flex-start;
       align-items: center;
       padding: 10px 12px;
-      background: #f5f5f5;
-      border-bottom: 1px solid #ddd;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
     }
     
     .gjs-pages-title {
       font-size: 12px;
       font-weight: 600;
-      color: #333;
+      color: hsl(var(--foreground));
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .gjs-pages-actions {
       padding: 8px 12px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid hsl(var(--border));
     }
     
     .gjs-pages-add-btn {
@@ -1131,18 +1172,18 @@ function addPagesPanelCSS() {
       gap: 6px;
       width: 100%;
       height: 34px;
-      background: #0066cc;
+      background: hsl(var(--brand));
       border: none;
       border-radius: 4px;
-      color: white;
+      color: hsl(var(--brand-foreground));
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 150ms ease-out;
     }
     
     .gjs-pages-add-btn:hover {
-      background: #0052a3;
+      background: hsl(var(--brand-dark));
     }
     
     .gjs-pages-add-btn svg {
@@ -1156,22 +1197,22 @@ function addPagesPanelCSS() {
     .gjs-pages-search {
       width: 100%;
       padding: 8px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid hsl(var(--input));
       border-radius: 4px;
       font-size: 13px;
-      background: #fff;
-      color: #333;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
       box-sizing: border-box;
     }
     
     .gjs-pages-search:focus {
       outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+      border-color: hsl(var(--ring));
+      box-shadow: 0 0 0 2px hsl(var(--ring) / 0.15);
     }
     
     .gjs-pages-search::placeholder {
-      color: #999;
+      color: hsl(var(--muted-foreground));
     }
     
     .gjs-pages-list {
@@ -1187,21 +1228,21 @@ function addPagesPanelCSS() {
       gap: 8px;
       padding: 10px 12px;
       margin-bottom: 4px;
-      background: #f9f9f9;
-      border: 1px solid #eee;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 150ms ease-out, border-color 150ms ease-out;
     }
     
     .gjs-page-item:hover {
-      background: #f0f0f0;
-      border-color: #0066cc;
+      background: hsl(var(--muted));
+      border-color: hsl(var(--brand));
     }
     
     .gjs-page-item.selected {
-      background: #0066cc;
-      border-color: #0066cc;
+      background: hsl(var(--brand));
+      border-color: hsl(var(--brand));
     }
     
     .gjs-page-info {
@@ -1217,8 +1258,8 @@ function addPagesPanelCSS() {
       align-self: flex-start;
       padding: 1px 6px;
       border-radius: 999px;
-      background: rgba(37, 99, 235, 0.12);
-      color: #1d4ed8;
+      background: hsl(var(--brand) / 0.12);
+      color: hsl(var(--brand));
       font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.02em;
@@ -1228,7 +1269,7 @@ function addPagesPanelCSS() {
     .gjs-page-name {
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: hsl(var(--foreground));
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1236,7 +1277,7 @@ function addPagesPanelCSS() {
     
     .gjs-page-route {
       font-size: 11px;
-      color: #888;
+      color: hsl(var(--muted-foreground));
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1244,11 +1285,11 @@ function addPagesPanelCSS() {
     }
     
     .gjs-page-item.selected .gjs-page-name {
-      color: #fff;
+      color: hsl(var(--brand-foreground));
     }
     
     .gjs-page-item.selected .gjs-page-route {
-      color: rgba(255, 255, 255, 0.7);
+      color: hsl(var(--brand-foreground) / 0.75);
     }
     
     .gjs-page-actions {
@@ -1274,31 +1315,31 @@ function addPagesPanelCSS() {
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      color: #666;
-      transition: all 0.2s;
+      color: hsl(var(--muted-foreground));
+      transition: background-color 150ms ease-out, color 150ms ease-out;
     }
     
     .gjs-page-btn:hover {
-      background: rgba(0, 0, 0, 0.1);
-      color: #333;
+      background: hsl(var(--foreground) / 0.08);
+      color: hsl(var(--foreground));
     }
     
     .gjs-page-item.selected .gjs-page-btn {
-      color: rgba(255, 255, 255, 0.8);
+      color: hsl(var(--brand-foreground) / 0.8);
     }
     
     .gjs-page-item.selected .gjs-page-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      background: hsl(var(--brand-foreground) / 0.2);
+      color: hsl(var(--brand-foreground));
     }
     
     .gjs-page-btn.delete-page-btn:hover {
-      background: #e74c3c;
-      color: white;
+      background: hsl(var(--destructive));
+      color: hsl(var(--destructive-foreground));
     }
     
     .gjs-page-item.selected .gjs-page-btn.delete-page-btn:hover {
-      background: #c0392b;
+      background: hsl(var(--destructive));
     }
     
     /* Scrollbar styling */
@@ -1307,16 +1348,16 @@ function addPagesPanelCSS() {
     }
     
     .gjs-pages-list::-webkit-scrollbar-track {
-      background: #f5f5f5;
+      background: transparent;
     }
     
     .gjs-pages-list::-webkit-scrollbar-thumb {
-      background: #ccc;
+      background: hsl(var(--muted-foreground) / 0.25);
       border-radius: 3px;
     }
     
     .gjs-pages-list::-webkit-scrollbar-thumb:hover {
-      background: #999;
+      background: hsl(var(--muted-foreground) / 0.4);
     }
     
     /* Hide the old floating panel if it exists */

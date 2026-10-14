@@ -68,9 +68,11 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
               type="file"
               accept={isImageMode ? 'image/png, image/jpeg' : '.ttl,.rdf,.json'}
               onChange={onFileChange}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'assistant-import-error' : undefined}
               className="block w-full cursor-pointer rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/80"
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && <p id="assistant-import-error" role="alert" className="text-xs text-destructive">{error}</p>}
             {selectedFile && <p className="text-xs text-muted-foreground">{t('assistant.import.selected', { name: selectedFile.name })}</p>}
           </div>
         </div>

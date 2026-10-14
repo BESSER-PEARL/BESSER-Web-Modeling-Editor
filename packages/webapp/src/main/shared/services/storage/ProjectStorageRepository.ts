@@ -1,6 +1,8 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DiagramLineage,
+  InterfaceMode,
   PerspectiveSettings,
   ProjectDiagram,
   createDefaultProject,
@@ -14,6 +16,7 @@ import {
 } from '../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
 import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
+import { nextDiagramTitle } from '../../utils/diagramTitles';
 
 export class ProjectStorageRepository {
 
@@ -192,8 +195,10 @@ export class ProjectStorageRepository {
     description: string,
     owner: string,
     perspectives?: PerspectiveSettings,
+    preferredInterface?: InterfaceMode,
+    initialDiagramType?: SupportedDiagramType,
   ): BesserProject {
-    const project = createDefaultProject(name, description, owner, perspectives);
+    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface, initialDiagramType);
     this.saveProject(project);
     return project;
   }
@@ -238,7 +243,13 @@ export class ProjectStorageRepository {
   }
   
   // Add a new diagram to a type (returns index, or null if at limit)
-  static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
+  static addDiagram(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    title?: string,
+    /** Set on hook-driven derivations; absent on user-created diagrams. */
+    derivedFrom?: DiagramLineage,
+  ): { index: number; diagram: ProjectDiagram } | null {
     const project = this.loadProject(projectId);
     if (!project) {
       return null;
@@ -258,10 +269,10 @@ export class ProjectStorageRepository {
     // Pick a title that doesn't collide with an existing one (case-insensitive).
     // If the caller passed a title, start from it and append " 2", " 3", ... on
     // collision so templates / duplicate actions keep working. If no title,
-    // use the default ``<Type> <n>`` scheme. Bounded by MAX_DIAGRAMS_PER_TYPE
+    // use nextDiagramTitle (already unique). Bounded by MAX_DIAGRAMS_PER_TYPE
     // so pathological states can't infinite-loop.
     const existingTitles = new Set(diagrams.map((d) => d.title.trim().toLowerCase()));
-    const baseTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
+    const baseTitle = title || nextDiagramTitle(diagramType, diagrams.map((d) => d.title));
     let uniqueTitle = baseTitle;
     if (existingTitles.has(uniqueTitle.trim().toLowerCase())) {
       const maxAttempts = MAX_DIAGRAMS_PER_TYPE + 1;
@@ -294,6 +305,10 @@ export class ProjectStorageRepository {
       if (Object.keys(refs).length > 0) {
         diagram.references = refs;
       }
+    }
+
+    if (derivedFrom) {
+      diagram.derivedFrom = derivedFrom;
     }
 
     diagrams.push(diagram);
@@ -337,6 +352,13 @@ export class ProjectStorageRepository {
           d.references[diagramType] = fallbackId;
         }
       }
+    }
+
+    // `derivedFrom` on other diagrams is deliberately left pointing at the
+    // deleted id: DiagramTabs renders the "source diagram deleted" badge from
+    // it. The deleted diagram's own element-lineage sidecar is garbage now.
+    if (project.elementLineage) {
+      delete project.elementLineage[deletedId];
     }
 
     this.saveProject(project);
@@ -448,8 +470,11 @@ export class ProjectStorageRepository {
       localStorage.removeItem('besser_github_auto_commit');
     }
 
-    // Clean up deploy linked repo entry (per-project key)
+    // Clean up deploy linked repo entries (per-project keys). The bare key is
+    // the legacy Render webapp link; ``_github`` is the Spec-Driven Agent "Push to
+    // GitHub" link, kept separate so it never collides with Render targets.
     localStorage.removeItem(`besser_deploy_linked_${projectId}`);
+    localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);
   }
   
   // Helper: Update projects list

@@ -5,6 +5,7 @@ import { useFileDownload } from '../../shared/services/file-download/useFileDown
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../shared/constants/constant';
+import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 
 export const useExportBUML = () => {
   const downloadFile = useFileDownload();
@@ -32,7 +33,7 @@ export const useExportBUML = () => {
           },
           body: JSON.stringify({
             title: diagramTitle,
-            model: editor.model,
+            model: prepareAgentModelForBackend(editor.model),
             generator: 'buml',
             ...(referenceDiagramData ? { referenceDiagramData } : {}),
           }),

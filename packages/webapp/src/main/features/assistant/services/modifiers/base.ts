@@ -23,6 +23,9 @@ export interface ModificationTarget {
   stateName?: string;
   intentId?: string;
   intentName?: string;
+  // AgentDiagram add_transition / remove_transition endpoints
+  sourceStateName?: string;
+  targetStateName?: string;
   transitionId?: string;
   objectId?: string;
   objectName?: string;
@@ -35,6 +38,11 @@ export interface ModificationTarget {
   nodeId?: string;
   nodeName?: string;
   flowId?: string;
+  // Component / Deployment elements and BPMN pools / lanes
+  elementId?: string;
+  elementName?: string;
+  poolName?: string;
+  swimlaneName?: string;
 }
 
 export interface ModificationChanges {
@@ -90,6 +98,23 @@ export interface ModificationChanges {
   gatewayType?: string;
   eventKind?: string;
   eventType?: string;
+  // Agentic BPMN task / gateway / lane fields
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  // reviewer lane (id or name) for reflectionMode 'cross'
+  reflectionReviewerLaneId?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
+  role?: string;
+  multiplicity?: number;
+  poolName?: string;
+  // Component / Deployment fields (`owner` names the containing Subsystem,
+  // Node or, for BPMN nodes, lane)
+  stereotype?: string;
+  dependencyStereotype?: string;
+  owner?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -139,7 +164,22 @@ export interface ModelModification {
     | 'add_event'
     | 'add_flow'
     | 'modify_node'
-    | 'remove_flow';
+    | 'remove_flow'
+    // BPMN pools / lanes
+    | 'add_pool'
+    | 'add_swimlane'
+    | 'modify_swimlane'
+    | 'remove_swimlane'
+    | 'remove_pool'
+    // Component diagram
+    | 'add_component'
+    | 'add_subsystem'
+    | 'add_dependency'
+    | 'modify_element'
+    | 'remove_dependency'
+    // Deployment diagram
+    | 'add_node'
+    | 'add_artifact';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;
@@ -223,6 +263,20 @@ export class ModifierHelpers {
   }
 
   /**
+   * Resolve an element reference that may be an element id or a name, among
+   * elements of the given types. Returns null when nothing matches.
+   */
+  static resolveElementRef(model: BESSERModel, ref: string | undefined, types: string[]): string | null {
+    if (!ref) return null;
+    if (types.includes(model.elements[ref]?.type)) return ref;
+    for (const type of types) {
+      const id = ModifierHelpers.findElementByName(model, ref, type);
+      if (id) return id;
+    }
+    return null;
+  }
+
+  /**
    * Find elements by type
    */
   static findElementsByType(model: BESSERModel, type: string): Array<{ id: string; element: any }> {
@@ -239,27 +293,32 @@ export class ModifierHelpers {
    * Remove element and its children
    */
   static removeElementWithChildren(model: BESSERModel, elementId: string): BESSERModel {
-    const element = model.elements[elementId];
-    if (!element) return model;
+    if (!model.elements[elementId]) return model;
 
-    // Remove child elements (attributes, methods, bodies, etc.)
-    ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
-      const children = element[childProp];
-      if (Array.isArray(children)) {
-        children.forEach((childId: string) => {
-          delete model.elements[childId];
-        });
+    // Collect the element, its listed children (attributes, methods, bodies,
+    // ...) and, recursively, every element it owns (lanes of a pool, tasks of
+    // a lane, components of a subsystem, ...).
+    const removed = new Set<string>();
+    const collect = (id: string) => {
+      if (removed.has(id) || !model.elements[id]) return;
+      removed.add(id);
+      const element = model.elements[id];
+      ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
+        const children = element[childProp];
+        if (Array.isArray(children)) children.forEach(collect);
+      });
+      for (const [childId, child] of Object.entries(model.elements)) {
+        if (child.owner === id) collect(childId);
       }
-    });
+    };
+    collect(elementId);
+    removed.forEach((id) => delete model.elements[id]);
 
-    // Remove the element itself
-    delete model.elements[elementId];
-
-    // Remove related relationships
+    // Remove relationships that touch any removed element
     if (model.relationships) {
       Object.keys(model.relationships).forEach((relId) => {
         const rel = model.relationships[relId];
-        if (rel.source?.element === elementId || rel.target?.element === elementId) {
+        if (removed.has(rel.source?.element) || removed.has(rel.target?.element)) {
           delete model.relationships[relId];
         }
       });
@@ -267,4 +326,69 @@ export class ModifierHelpers {
 
     return model;
   }
+}
+
+/** What a batch of modifications actually did to the model. */
+export interface ModelDiff {
+  removedClasses: string[];
+  addedClasses: string[];
+  removedRelationships: number;
+  addedRelationships: number;
+}
+
+const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
+
+/**
+ * Compare two models structurally.
+ *
+ * The change summary the user sees is written by the agent from what it
+ * INTENDED, so a modification that does something else entirely is still
+ * reported as a success: "remove book copy" deleted three classes and nine
+ * relationships and announced "Applied 4 changes". Diffing the
+ * real before/after is the only description that cannot lie.
+ */
+export function summarizeModelDiff(before: any, after: any): ModelDiff {
+  const classNames = (model: any): Map<string, string> => {
+    const out = new Map<string, string>();
+    for (const [id, el] of Object.entries((model?.elements ?? {}) as Record<string, any>)) {
+      if (el && CLASS_LIKE.includes(el.type)) out.set(id, el.name ?? id);
+    }
+    return out;
+  };
+
+  const b = classNames(before);
+  const a = classNames(after);
+
+  return {
+    removedClasses: [...b.entries()].filter(([id]) => !a.has(id)).map(([, name]) => name),
+    addedClasses: [...a.entries()].filter(([id]) => !b.has(id)).map(([, name]) => name),
+    removedRelationships: Object.keys(before?.relationships ?? {}).filter(
+      (id) => !(id in (after?.relationships ?? {})),
+    ).length,
+    addedRelationships: Object.keys(after?.relationships ?? {}).filter(
+      (id) => !(id in (before?.relationships ?? {})),
+    ).length,
+  };
+}
+
+/**
+ * Class names a batch of modifications explicitly asked to remove.
+ *
+ * Anything deleted beyond this set is collateral, and the caller should say so
+ * rather than let it pass as an intended change.
+ */
+export function classesNamedForRemoval(modifications: any[]): Set<string> {
+  const named = new Set<string>();
+  for (const mod of modifications ?? []) {
+    if (mod?.action !== 'remove_element') continue;
+    const target = mod.target ?? {};
+    // A relationship removal names endpoints, never a class to delete.
+    if (target.sourceClass || target.targetClass) continue;
+    if (target.attributeName || target.attributeId) continue;
+    if (target.methodName || target.methodId) continue;
+    if (typeof target.className === 'string' && target.className.trim()) {
+      named.add(target.className.trim());
+    }
+  }
+  return named;
 }

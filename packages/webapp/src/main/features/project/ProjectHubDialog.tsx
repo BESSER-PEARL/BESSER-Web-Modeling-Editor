@@ -3,43 +3,124 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   FileSpreadsheet,
   FolderOpen,
+  Github,
   Layers3,
+  Loader2,
   Plus,
   Sparkles,
   Trash2,
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField } from '@/components/ui/form-field';
-import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { BesserProject, InterfaceMode, PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
+import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
+import { FirstRunLanding } from './FirstRunLanding';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
 import { LanguageSelector } from '../../app/shell/LanguageSelector';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { importProject } from '../../shared/services/project-import/projectImport';
+import { importProject, importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import {
+  BACKEND_URL,
+  localStoragePreferredInterface,
+  sessionStorageContinueFromGithubIntent,
+  sessionStorageOpenAssistantOnLoad,
+} from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
+import { apiClient, ApiError } from '../../shared/api/api-client';
+import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import { emitDeliveryEvent } from '../../shared/services/telemetry/pilotTelemetry';
+import { useAppDispatch } from '../../app/store/hooks';
+import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitHubStorage';
+import { writeProjectLastRun } from '../spec-driven/storage';
+import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
+
+/** Steps the File menu can open the hub directly at (New / Open / Import Project). */
+export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';
 
 interface ProjectHubDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * When the hub is opened from a specific File-menu action, jump straight to
+   * that step instead of the default first-run / start logic. Undefined for the
+   * auto-open first-run path (which shows the 'welcome' chooser).
+   */
+  initialStep?: ProjectHubOpenStep;
 }
 
-type ProjectHubStep = 'start' | 'create' | 'import' | 'spreadsheet' | 'open';
+type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+
+/** Read the per-user default interface saved via "Remember my choice". */
+const readPreferredInterface = (): InterfaceMode | null => {
+  try {
+    const v = localStorage.getItem(localStoragePreferredInterface);
+    return v === 'model' || v === 'agent' ? v : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Per-link interface override read from the URL for this load only (never
+ * persisted). `?agentic` / `?agentic=true` / `?mode=agent` open straight into
+ * the agentic flow; `?mode=model` forces the modelling flow. Wins over the
+ * stored "Remember my choice" default.
+ */
+const readUrlInterfaceOverride = (): InterfaceMode | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('agentic')) {
+      const v = params.get('agentic');
+      if (v === null || v === '' || v === 'true' || v === '1') {
+        return 'agent';
+      }
+    }
+    const mode = params.get('mode');
+    if (mode === 'agent') return 'agent';
+    if (mode === 'model') return 'model';
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/** Deploy-link target token for the GitHub push (shared with the spec-driven push flow). */
+const GITHUB_TARGET = 'github';
+const GITHUB_DEFAULT_BRANCH = 'main';
+
+/**
+ * Response of ``POST /spec-driven/import-github-run``. ``project`` is a re-importable V2
+ * project export envelope (same shape as ``buml/diagrams.json``); ``has_model``
+ * is false when the repo carries no BESSER model.
+ */
+interface ImportGitHubRunResponse {
+  run_id: string;
+  project: unknown;
+  has_model: boolean;
+  owner: string;
+  repo: string;
+  branch: string;
+}
 
 const defaultForm = {
   name: 'New_Project',
@@ -64,6 +145,12 @@ const resolvePerspectives = (key: string): PerspectiveSettings | undefined => {
   return preset ? perspectivesFromDiagramList(preset.diagrams) : undefined;
 };
 
+// The diagram a project created with the preset opens on (Multi-Agent → BPMN).
+// Without one, createDefaultProject picks the first visible type in sidebar
+// order, so the project never opens on a diagram hidden from the sidebar.
+const resolveEntryDiagram = (key: string): SupportedDiagramType | undefined =>
+  PERSPECTIVES.find((p) => p.key === key)?.entryDiagram;
+
 const readableFileSize = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -74,10 +161,18 @@ const readableFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange }) => {
+export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep }) => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
+  // Interface the user picked on the 'welcome' landing (null when the hub was
+  // opened for an existing project or via the manual "start" path). Stored on
+  // the project at creation time.
+  const [pendingPreferredInterface, setPendingPreferredInterface] = useState<InterfaceMode | null>(null);
+  // The step the hub was opened at (from the File menu, first run, or the start
+  // hub). Drives where "Back" goes: a directly-opened step closes on Back; a
+  // step navigated into from a hub returns to that hub. See handleBack.
+  const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
@@ -87,6 +182,22 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [isDragging, setIsDragging] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const spreadsheetFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ── "Continue from GitHub" picker state ──────────────────────────────
+  const [githubRepoFullName, setGithubRepoFullName] = useState('');
+  const [githubBranches, setGithubBranches] = useState<string[]>([]);
+  const [githubBranch, setGithubBranch] = useState('');
+  const [githubLoadingBranches, setGithubLoadingBranches] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
+
+  const dispatch = useAppDispatch();
+  const { isAuthenticated: isGithubAuthenticated, githubSession, login: githubLogin } = useGitHubAuth();
+  const {
+    repositories: githubRepositories,
+    isLoading: githubReposLoading,
+    fetchRepositories: fetchGithubRepositories,
+    fetchBranches: fetchGithubBranches,
+  } = useGitHubStorage();
 
   const { currentProject, createProject, loadProject, deleteProject } = useProject();
   const importDiagramToProject = useImportDiagramToProject();
@@ -120,44 +231,147 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return;
     }
     refreshProjects();
-    setStep('start');
+    // A File-menu action opens the hub directly at a specific step (New →
+    // create, Open → open, Import → import), overriding the first-run logic.
+    // Otherwise: first run (no project yet) opens the mode chooser — unless a
+    // `?agentic`/`?mode=` URL override or a saved "Remember my choice" default
+    // skips straight to that workspace's flow (URL wins over the stored
+    // default). Opening the hub for an existing project keeps the start screen,
+    // and so does a returning user whose saved projects exist but none is open.
+    if (initialStep) {
+      // New project: pick low-code or agentic first, then the settings form.
+      const first = initialStep === 'create' ? 'welcome' : initialStep;
+      setPendingPreferredInterface(null);
+      setStep(first);
+      setEntryStep(first);
+    } else if (!currentProject && ProjectStorageRepository.getAllProjects().length === 0) {
+      const chosen = readUrlInterfaceOverride() ?? readPreferredInterface();
+      if (chosen === 'model' || chosen === 'agent') {
+        // Both interfaces go through the same project-creation form; the mode is
+        // recorded on the project and, for 'agent', the assistant drawer is
+        // opened once the editor loads (see handleCreateProject).
+        setPendingPreferredInterface(chosen);
+        setStep('create');
+        setEntryStep('welcome');
+      } else {
+        setPendingPreferredInterface(null);
+        setStep('welcome');
+        setEntryStep('welcome');
+      }
+    } else {
+      setPendingPreferredInterface(null);
+      setStep('start');
+      setEntryStep('start');
+    }
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetForm(defaultForm);
     setSpreadsheetPerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetFiles([]);
+    setGithubRepoFullName('');
+    setGithubBranches([]);
+    setGithubBranch('');
+    setGithubLoadingBranches(false);
+    setGithubError(null);
     createValidation.resetTouched();
     spreadsheetValidation.resetTouched();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, refreshProjects]);
 
-  const currentStepInfo = useMemo(() => {
+  // Resume "Continue from GitHub" after the OAuth redirect: once the hub is
+  // open AND we're authenticated, consume-and-clear the stashed intent and jump
+  // straight to the repo picker. Declared AFTER the open-reset effect above so
+  // it wins the ``step`` write when both fire on the same ``open`` transition;
+  // when auth resolves asynchronously it re-runs on ``isGithubAuthenticated``.
+  useEffect(() => {
+    if (!open || !isGithubAuthenticated) {
+      return;
+    }
+    let hasIntent = false;
+    try {
+      hasIntent = sessionStorage.getItem(sessionStorageContinueFromGithubIntent) !== null;
+    } catch {
+      hasIntent = false;
+    }
+    if (!hasIntent) {
+      return;
+    }
+    try {
+      sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
+    } catch {
+      /* ignore */
+    }
+    setStep('github');
+  }, [open, isGithubAuthenticated]);
+
+  // Lazy-load the user's repositories when the GitHub step opens. Once per
+  // visit: an empty or failed result must not re-trigger the fetch.
+  const githubReposRequestedRef = useRef(false);
+  useEffect(() => {
+    if (!open || step !== 'github') {
+      githubReposRequestedRef.current = false;
+      return;
+    }
+    if (!isGithubAuthenticated || !githubSession) {
+      return;
+    }
+    if (githubRepositories.length > 0 || githubReposLoading || githubReposRequestedRef.current) {
+      return;
+    }
+    githubReposRequestedRef.current = true;
+    void fetchGithubRepositories(githubSession);
+  }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
+
+  // The two-step "Step n of 2" framing belongs to the first-run / new-project
+  // flow (entered through the welcome chooser). A hub opened at the start screen
+  // or straight at a File-menu step is a returning visit: neutral copy, no badge.
+  const isFirstRun = entryStep === 'welcome';
+
+  const currentStepInfo = useMemo((): { title: string; description: string; badge: string | null } => {
     if (step === 'create') {
       return {
         title: t('project.hub.create.title'),
         description: t('project.hub.create.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'import') {
       return {
         title: t('project.hub.import.title'),
         description: t('project.hub.import.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'spreadsheet') {
       return {
         title: t('project.hub.spreadsheet.title'),
         description: t('project.hub.spreadsheet.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'open') {
       return {
         title: t('project.hub.open.title'),
         description: t('project.hub.open.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
+      };
+    }
+    if (step === 'github') {
+      return {
+        title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
+        description: t('project.hub.github.description', {
+          defaultValue: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
+        }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
+      };
+    }
+    if (!isFirstRun) {
+      return {
+        title: t('project.hub.returning.title', { defaultValue: 'Projects' }),
+        description: t('project.hub.returning.description', {
+          defaultValue: 'Open a recent project or start a new one.',
+        }),
+        badge: null,
       };
     }
     return {
@@ -165,13 +379,46 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       description: t('project.hub.start.description'),
       badge: t('project.hub.stepBadge', { current: 1, total: 2 }),
     };
-  }, [step, t]);
+  }, [step, t, isFirstRun]);
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && !canClose) {
       return;
     }
     onOpenChange(nextOpen);
+  };
+
+  // First-run landing: a portal was chosen. Persist the per-user default when
+  // "Remember my choice" is ticked, then advance into the shared project-
+  // creation form. BOTH modes create a project the same way; the only
+  // difference is post-create — 'agent' opens the assistant drawer once the
+  // editor loads (handleCreateProject sets the flag), 'model' stays on canvas.
+  const handleChooseInterface = (mode: InterfaceMode, remember: boolean) => {
+    try {
+      if (remember) {
+        localStorage.setItem(localStoragePreferredInterface, mode);
+      } else {
+        localStorage.removeItem(localStoragePreferredInterface);
+      }
+    } catch {
+      /* storage may be unavailable (private mode / quota) — non-fatal */
+    }
+    setPendingPreferredInterface(mode);
+    const firstRun = ProjectStorageRepository.getAllProjects().length === 0;
+    trackInterfaceChoice(mode, firstRun ? 'first_run' : 'new_project', { remembered: remember });
+    setStep('create');
+  };
+
+  // "Back" on a hub sub-step. A step opened directly (from the File menu via
+  // initialStep, so entryStep === step) has no parent to return to — Back closes
+  // the dialog. A step navigated into from the welcome/start hub returns there,
+  // rather than surfacing the start hub when the user never came from it.
+  const handleBack = () => {
+    if (step === entryStep) {
+      handleDialogOpenChange(false);
+      return;
+    }
+    setStep(entryStep === 'welcome' ? 'welcome' : 'start');
   };
 
   const handleCreateProject = async () => {
@@ -186,16 +433,37 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     try {
       setIsBusy(true);
+      // Arm the drawer-open flag BEFORE creating the project. createProject
+      // updates currentProject, which fires WorkspaceShell's consume-and-open
+      // effect — if we set the flag AFTER the await, that effect has already run
+      // and missed it (the race that left the agentic drawer closed on create).
+      if (pendingPreferredInterface === 'agent') {
+        try {
+          sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
+        } catch {
+          /* storage unavailable — the drawer just won't auto-open, non-fatal */
+        }
+      }
       await createProject(
         name,
         description || defaultForm.description,
         owner || defaultForm.owner,
         resolvePerspectives(createPerspectiveKey),
+        pendingPreferredInterface ?? undefined,
+        resolveEntryDiagram(createPerspectiveKey),
       );
+      trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(t('project.hub.toasts.created', { name }));
     } catch (error) {
+      // Creation failed — disarm the flag so it can't spuriously open the drawer
+      // on some later, unrelated project load.
+      try {
+        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
+      } catch {
+        /* non-fatal */
+      }
       toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
@@ -354,6 +622,187 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
   };
 
+  // Enter the "Continue from GitHub" step, connecting first when needed. Mirrors
+  // the connect-first pattern in useSpecDrivenGithubPush: stash the intent, kick
+  // off OAuth, and let the hub reopen on the repo picker once we're back.
+  const handleOpenGithubStep = () => {
+    setGithubError(null);
+    if (!isGithubAuthenticated) {
+      try {
+        sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
+      } catch {
+        /* sessionStorage may be unavailable — login still proceeds. */
+      }
+      toast.info(t('project.hub.github.toasts.connectToContinue', {
+        defaultValue: 'Connect GitHub to continue from one of your repositories.',
+      }));
+      githubLogin();
+      return;
+    }
+    setStep('github');
+  };
+
+  const handleSelectGithubRepo = async (fullName: string) => {
+    setGithubRepoFullName(fullName);
+    setGithubBranches([]);
+    setGithubBranch('');
+    setGithubError(null);
+    const repo = githubRepositories.find((r) => r.full_name === fullName);
+    if (!repo || !githubSession) {
+      return;
+    }
+    const [owner] = repo.full_name.split('/');
+    setGithubLoadingBranches(true);
+    const list = await fetchGithubBranches(githubSession, owner, repo.name);
+    setGithubLoadingBranches(false);
+    const resolved = list.length > 0 ? list : [repo.default_branch].filter(Boolean);
+    setGithubBranches(resolved);
+    setGithubBranch(repo.default_branch || resolved[0] || GITHUB_DEFAULT_BRANCH);
+  };
+
+  // Load a BESSER-created repo's model into a fresh project AND prime the next
+  // Spec-Driven Agent run to modify that repo's code and push back to the same repo.
+  const handleContinueGithubRepo = async () => {
+    setGithubError(null);
+    const repo: GitHubRepository | undefined = githubRepositories.find(
+      (r) => r.full_name === githubRepoFullName,
+    );
+    if (!repo) {
+      setGithubError(t('project.hub.github.errors.selectRepo', { defaultValue: 'Select a repository to continue from.' }));
+      return;
+    }
+    if (!githubSession) {
+      setGithubError(t('project.hub.github.errors.noSession', { defaultValue: 'GitHub session not found. Please reconnect.' }));
+      return;
+    }
+
+    const [owner] = repo.full_name.split('/');
+    const branch = githubBranch || repo.default_branch || GITHUB_DEFAULT_BRANCH;
+
+    try {
+      setIsBusy(true);
+      const response = await apiClient.post<ImportGitHubRunResponse>(
+        '/spec-driven/import-github-run',
+        { owner, repo: repo.name, branch },
+        { headers: { 'X-GitHub-Session': githubSession } },
+      );
+
+      if (!response.has_model) {
+        setGithubError(
+          t('project.hub.github.errors.noModel', {
+            defaultValue: "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+          }),
+        );
+        return;
+      }
+
+      // The returned ``project`` is a V2 export envelope — route it through the
+      // V2-aware importer (validateV2ExportData + extractPersonalization) by
+      // wrapping it in a File, exactly like a ``diagrams.json`` import.
+      const file = new File([JSON.stringify(response.project)], 'diagrams.json', {
+        type: 'application/json',
+      });
+      const imported = await importProjectFromJson(file);
+      await loadProject(imported.id);
+
+      // Link the push target so a later spec-driven push updates the same repo.
+      LocalStorageRepository.setDeployLinkedRepo(imported.id, GITHUB_TARGET, {
+        owner: response.owner,
+        repo: response.repo,
+        branch: response.branch,
+      });
+
+      // Prime the modify base: record this run as the project's last successful
+      // run so the next spec-driven request auto-selects mode=modify + base_run_id
+      // (via decideRunMode). Mirror to localStorage AND the in-memory store.
+      const at = Date.now();
+      writeProjectLastRun(imported.id, response.run_id, at);
+      dispatch(setLastRunForProject({ projectId: imported.id, runId: response.run_id, at }));
+
+      refreshProjects();
+      handleDialogOpenChange(false);
+      // Opt-in research telemetry: a completed continue-from-repo import is a
+      // delivery action. Fire-and-forget; no-op unless opened with `?pilot=<label>`.
+      emitDeliveryEvent('continue_from_repo', response.run_id);
+      toast.success(t('project.hub.github.toasts.continuing', {
+        defaultValue: 'Continuing from {{repo}}.',
+        repo: `${response.owner}/${response.repo}`,
+      }));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setGithubError(t('project.hub.github.errors.sessionExpired', { defaultValue: 'Your GitHub session expired. Reconnect and try again.' }));
+        toast.error(t('project.hub.github.toasts.sessionExpired', { defaultValue: 'GitHub session expired — please reconnect.' }));
+      } else {
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
+        setGithubError(message);
+        toast.error(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }));
+      }
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  // Low-code vs agentic picker shown inside the create form. Seeded from the
+  // landing choice (pendingPreferredInterface) so clicking "Describe it" on the
+  // landing preselects Agentic here, and vice versa; the user can still flip it.
+  // When Agentic is chosen the modelling-perspective picker is hidden (below),
+  // since the agentic path drops the user straight into the assistant drawer.
+  const renderInterfaceModePicker = () => {
+    const mode: InterfaceMode = pendingPreferredInterface ?? 'model';
+    const options: { key: InterfaceMode; label: string; description: string }[] = [
+      {
+        key: 'model',
+        label: t('project.hub.interface.model.label', { defaultValue: 'Low-code' }),
+        description: t('project.hub.interface.model.description', {
+          defaultValue: 'Build visually with UML diagrams on the modelling canvas.',
+        }),
+      },
+      {
+        key: 'agent',
+        label: t('project.hub.interface.agent.label', { defaultValue: 'Agentic' }),
+        description: t('project.hub.interface.agent.description', {
+          defaultValue: 'Describe your app in natural language; the assistant builds it.',
+        }),
+      },
+    ];
+    const label = t('project.hub.interface.label', { defaultValue: 'View' });
+    return (
+      <FormField
+        label={label}
+        htmlFor="create-interface-mode"
+        helperText={t('project.hub.interface.helper', {
+          defaultValue: "Choose how you'll build. You can switch anytime from the assistant drawer.",
+        })}
+      >
+        <div id="create-interface-mode" role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+          {options.map((opt) => {
+            const active = opt.key === mode;
+            return (
+              <Button
+                key={opt.key}
+                type="button"
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                role="radio"
+                aria-checked={active}
+                title={opt.description}
+                onClick={() => setPendingPreferredInterface(opt.key)}
+                data-testid={`create-interface-${opt.key}`}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
+        </div>
+      </FormField>
+    );
+  };
+
   const renderPerspectivePicker = (
     selected: string,
     onSelect: (key: string) => void,
@@ -392,90 +841,178 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     </FormField>
   );
 
+  // Project cards: the whole card opens the project (the primary action);
+  // delete is a hover/focus-revealed corner control so it can't be hit by
+  // accident but is always one hover away (dimmed but visible on touch).
   const renderProjectList = () => (
-    <div className="flex flex-col gap-3">
+    <div className="grid gap-2.5 md:grid-cols-2">
       {sortedProjects.length === 0 && (
-        <Card className="border-dashed border-border/80 bg-muted/20 shadow-none">
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            {t('project.hub.list.emptyHint')}
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-dashed border-border/60 bg-muted/15 px-4 py-10 text-center text-sm text-muted-foreground md:col-span-2">
+          {t('project.hub.list.emptyHint')}
+        </div>
       )}
 
       {sortedProjects.map((project) => {
         const isCurrent = currentProject?.id === project.id;
         return (
-          <Card key={project.id} className={isCurrent ? 'border-brand/40 bg-brand/5 shadow-none' : 'shadow-none'}>
-            <CardContent className="flex flex-col gap-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{project.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{project.description || t('project.hub.list.noDescription')}</p>
+          <div
+            key={project.id}
+            className={cn(
+              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:shadow-elevation-1 has-[.project-card-open:active]:scale-[0.98] has-[.project-card-open:focus-visible]:ring-2 has-[.project-card-open:focus-visible]:ring-brand/40 [@media(hover:hover)]:hover:-translate-y-0.5',
+              isCurrent
+                ? 'border-brand/40 bg-brand/[0.04] hover:border-brand/50'
+                : 'border-border/60 hover:border-brand/30',
+              isBusy && 'pointer-events-none opacity-60',
+            )}
+          >
+            <div className="flex items-start gap-3 pr-7">
+              <div
+                className={cn(
+                  'mt-0.5 inline-flex shrink-0 rounded-lg p-2 ring-1 transition-colors',
+                  isCurrent
+                    ? 'bg-brand/10 text-brand ring-brand/15'
+                    : 'bg-brand/[0.06] text-brand/70 ring-brand/10 group-hover:bg-brand/10 group-hover:text-brand',
+                )}
+              >
+                <FolderOpen className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  {/* Stretched over the whole card via ::after; delete stays a sibling. */}
+                  <button
+                    type="button"
+                    className="project-card-open truncate text-left text-sm font-semibold tracking-tight after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+                    onClick={() => void handleOpenProject(project.id)}
+                    disabled={isBusy}
+                  >
+                    {project.name}
+                  </button>
+                  {isCurrent && (
+                    <Badge className="shrink-0 rounded-full border-brand/20 bg-brand/10 px-2 py-0 text-[10px] font-medium text-brand">
+                      {t('project.hub.list.active')}
+                    </Badge>
+                  )}
                 </div>
-                {isCurrent && <Badge className="border-brand/20 bg-brand/10 text-brand">{t('project.hub.list.active')}</Badge>}
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                  {project.description || t('project.hub.list.noDescription')}
+                </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CalendarDays className="size-3.5" />
-                <span>{new Date(project.createdAt).toLocaleString()}</span>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-muted-foreground/70">
+                <CalendarDays className="size-3" />
+                {new Date(project.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-has-[.project-card-open:focus-visible]:opacity-100">
+                {t('project.hub.list.open')}
+                <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </span>
+            </div>
 
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void handleOpenProject(project.id)}
-                  disabled={isBusy}
-                  className="flex-1 gap-1.5 border-brand/20 text-brand hover:border-brand/30 hover:bg-brand/[0.04]"
-                >
-                  <FolderOpen className="size-3.5" />
-                  {t('project.hub.list.open')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => void handleDeleteProject(project.id, project.name)}
-                  disabled={isBusy}
-                  aria-label={t('project.hub.list.deleteAria', { name: project.name })}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
+              onClick={() => void handleDeleteProject(project.id, project.name)}
+              disabled={isBusy}
+              aria-label={t('project.hub.list.deleteAria', { name: project.name })}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
         );
       })}
     </div>
   );
 
+  // Manual start paths on the hub; "New Project" opens the low-code/agentic chooser.
+  const startCards: { key: string; icon: typeof Plus; title: string; description: string; onClick: () => void }[] = [
+    {
+      key: 'new',
+      icon: Plus,
+      title: t('project.hub.start.cardNew.title', { defaultValue: 'New Project' }),
+      description: t('project.hub.start.cardNew.description', {
+        defaultValue: 'Choose low-code or agentic, then start modelling.',
+      }),
+      onClick: () => setStep('welcome'),
+    },
+    {
+      key: 'spreadsheet',
+      icon: FileSpreadsheet,
+      title: t('project.hub.start.cardSpreadsheet.title'),
+      description: t('project.hub.start.cardSpreadsheet.description'),
+      onClick: () => setStep('spreadsheet'),
+    },
+    {
+      key: 'import',
+      icon: Upload,
+      title: t('project.hub.start.cardImport.title'),
+      description: t('project.hub.start.cardImport.description'),
+      onClick: () => setStep('import'),
+    },
+    {
+      key: 'github',
+      icon: Github,
+      title: t('project.hub.start.cardGithub.title', { defaultValue: 'Continue From GitHub' }),
+      description: t('project.hub.start.cardGithub.description', {
+        defaultValue: 'Reopen a repo BESSER created and keep building.',
+      }),
+      onClick: handleOpenGithubStep,
+    },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
-        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-3">
+      <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', step === 'welcome' && 'sm:max-w-4xl', !canClose && '[&>button]:hidden')}>
+        {step === 'welcome' && (
+          <FirstRunLanding
+            onChoose={handleChooseInterface}
+            onMoreOptions={() => setStep('start')}
+            defaultRemember={readPreferredInterface() !== null}
+          />
+        )}
+        {step !== 'welcome' && (
+        <>
+        <DialogHeader className={cn('border-b border-border/60 pt-5 pb-4 pl-6', canClose ? 'pr-14' : 'pr-6')}>
           <div className="flex items-start justify-between gap-3">
-            <div className={cn(step === 'start' && 'flex items-start gap-3.5')}>
-              {step === 'start' && (
-                <img src="/images/logo.png" alt="BESSER" className="mt-0.5 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+            <div className="flex min-w-0 items-start gap-3.5">
+              {step === 'start' ? (
+                <>
+                  <img src="/images/logo-light.png" alt="BESSER" width={122} height={28} className="mt-1 h-7 w-auto shrink-0 dark:hidden" />
+                  <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 hidden h-7 w-auto shrink-0 dark:block" />
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  aria-label={t('project.hub.back')}
+                  className="mt-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
               )}
-              <div>
-                <DialogTitle className={cn(
-                  'text-xl tracking-tight',
-                  step === 'start' && 'font-display text-2xl',
-                )}>
+              <div className="min-w-0">
+                {/* The step reads as a kicker above the title, which keeps the right-hand cluster to the language picker. */}
+                {currentStepInfo.badge && <p className="ui-kicker mb-1.5">{currentStepInfo.badge}</p>}
+                <DialogTitle className={dialogDisplayTitleClass}>
                   {currentStepInfo.title}
                 </DialogTitle>
                 <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {step === 'start' && <LanguageSelector outlineButtonClass="h-9" />}
-              <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-                {currentStepInfo.badge}
-              </Badge>
+              {/* The hub renders outside WorkspaceShell, so it supplies the provider LanguageSelector's tooltip needs. */}
+              {step === 'start' && (
+                <TooltipProvider delayDuration={400}>
+                  <LanguageSelector outlineButtonClass="h-9" />
+                </TooltipProvider>
+              )}
             </div>
           </div>
         </DialogHeader>
+        </>
+        )}
 
         <input
           ref={importFileInputRef}
@@ -493,60 +1030,29 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           onChange={handleSpreadsheetFileSelect}
         />
 
+        {step !== 'welcome' && (
         <div className="max-h-[75vh] overflow-y-auto px-6 py-4">
           {step === 'start' && (
             <div className="flex flex-col gap-5">
-              {/* Hero banner */}
-              <div className="grain-overlay relative overflow-hidden rounded-2xl border border-brand/15 bg-gradient-to-br from-brand/[0.06] via-background to-brand/[0.03] p-5">
-                <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-brand/10 blur-2xl" />
-                <div className="relative z-[2]">
-                  <p className="text-sm font-semibold tracking-tight text-foreground">{t('project.hub.start.heroTitle')}</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    {t('project.hub.start.heroBody')}
-                  </p>
+              {/* Manual start paths; agentic entry is the landing chooser / assistant. */}
+              <div className="flex flex-col gap-2.5">
+                <div className="grid gap-2.5 md:grid-cols-2">
+                  {startCards.map(({ key, icon: Icon, title, description, onClick }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={onClick}
+                      data-testid={`hub-start-${key}`}
+                      className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/30 hover:shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
+                    >
+                      <div className="mb-2.5 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
+                        <Icon className="size-4" aria-hidden="true" />
+                      </div>
+                      <p className="text-sm font-semibold tracking-tight">{title}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+                    </button>
+                  ))}
                 </div>
-              </div>
-
-              {/* Action cards */}
-              <div className="grid gap-3 md:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setStep('create')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-brand/[0.08] p-2.5 text-brand ring-1 ring-brand/10">
-                    <Plus className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardCreate.title')}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardCreate.description')}</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStep('spreadsheet')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-emerald-500/[0.08] p-2.5 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
-                    <FileSpreadsheet className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardSpreadsheet.title')}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardSpreadsheet.description')}</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStep('import')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-violet-500/[0.08] p-2.5 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
-                    <Upload className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardImport.title')}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardImport.description')}</p>
-                </button>
               </div>
 
               {/* Existing projects */}
@@ -560,21 +1066,21 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     {sortedProjects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
-                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
+                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
                       >
                         <button
                           type="button"
-                          className="flex min-w-0 flex-1 items-center justify-between text-left"
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
                           onClick={() => void handleOpenProject(project.id)}
                           disabled={isBusy}
                         >
+                          <FolderOpen className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-brand" />
                           <span className="truncate text-sm font-medium">{project.name}</span>
-                          <FolderOpen className="size-3.5 text-muted-foreground transition-colors group-hover:text-brand" />
                         </button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
                           aria-label={t('project.hub.list.deleteAria', { name: project.name })}
@@ -612,109 +1118,97 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <CardTitle className="text-base tracking-tight">{t('project.hub.create.detailsTitle')}</CardTitle>
                   <CardDescription className="text-xs">{t('project.hub.create.detailsDescription')}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-2.5">
-                  <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
-                    <Input
-                      id="project-name"
-                      value={form.name}
-                      onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                      onBlur={() => createValidation.markTouched('name')}
-                      placeholder="My_Modeling_Project"
-                      className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
-                    />
-                  </FormField>
-                  <FormField label={t('project.field.owner')} htmlFor="project-owner">
-                    <Input
-                      id="project-owner"
-                      value={form.owner}
-                      onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
-                      placeholder="BESSER User"
-                    />
-                  </FormField>
-                  <FormField label={t('project.field.description')} htmlFor="project-description">
-                    <Textarea
-                      id="project-description"
-                      value={form.description}
-                      onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
-                      className="min-h-16"
-                    />
-                  </FormField>
-                  {renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
-                  <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
-                    <Sparkles className="size-4" />
-                    {t('project.hub.create.submit')}
-                  </Button>
+                <CardContent>
+                  <form
+                    className="flex flex-col gap-2.5"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!isBusy && createValidation.isValid) {
+                        void handleCreateProject();
+                      }
+                    }}
+                  >
+                    <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
+                      <Input
+                        id="project-name"
+                        name="project-name"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={form.name}
+                        onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
+                        onBlur={() => createValidation.markTouched('name')}
+                        placeholder="My_Modeling_Project…"
+                        className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+                      />
+                    </FormField>
+                    <FormField label={t('project.field.owner')} htmlFor="project-owner">
+                      <Input
+                        id="project-owner"
+                        name="project-owner"
+                        autoComplete="name"
+                        value={form.owner}
+                        onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
+                        placeholder="BESSER User…"
+                      />
+                    </FormField>
+                    <FormField label={t('project.field.description')} htmlFor="project-description">
+                      <Textarea
+                        id="project-description"
+                        value={form.description}
+                        onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                        className="min-h-16"
+                      />
+                    </FormField>
+                    {renderInterfaceModePicker()}
+                    {(pendingPreferredInterface ?? 'model') === 'model' &&
+                      renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                    <Button type="submit" disabled={isBusy || !createValidation.isValid} className="w-full gap-2">
+                      <Sparkles className="size-4" />
+                      {t('project.hub.create.submit')}
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
 
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Layers3 className="size-3" />
-                  {t('project.hub.create.tip')}
-                </p>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
-                  <ArrowLeft className="size-3.5" />
-                  {t('project.hub.back')}
-                </Button>
-              </div>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Layers3 className="size-3" />
+                {t('project.hub.create.tip')}
+              </p>
             </div>
           )}
 
           {step === 'import' && (
-            <div className="flex flex-col gap-5">
-              <Card className="border-border/50 shadow-elevation-1">
-                <CardHeader>
-                  <CardTitle className="text-lg tracking-tight">{t('project.hub.import.cardTitle')}</CardTitle>
-                  <CardDescription>{t('project.hub.import.cardDescription')}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div
-                    role="button"
-                    tabIndex={isBusy ? -1 : 0}
-                    aria-disabled={isBusy}
-                    aria-label={t('project.hub.import.dropAria')}
-                    className={cn(
-                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
-                      isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
-                      isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
-                    )}
-                    onClick={() => { if (!isBusy) importFileInputRef.current?.click(); }}
-                    onKeyDown={(e) => {
-                      if (isBusy) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        importFileInputRef.current?.click();
-                      }
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                    onDrop={(e) => void handleImportDrop(e)}
-                  >
-                    <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
-                    <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
-                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
-                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end">
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
-                  <ArrowLeft className="size-3.5" />
-                  {t('project.hub.back')}
-                </Button>
-              </div>
+            <div
+              role="button"
+              tabIndex={isBusy ? -1 : 0}
+              aria-disabled={isBusy}
+              aria-label={t('project.hub.import.dropAria')}
+              className={cn(
+                'relative overflow-hidden rounded-xl border-2 border-dashed bg-brand/[0.03] p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+                isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
+                isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
+              )}
+              onClick={() => { if (!isBusy) importFileInputRef.current?.click(); }}
+              onKeyDown={(e) => {
+                if (isBusy) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  importFileInputRef.current?.click();
+                }
+              }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+              onDrop={(e) => void handleImportDrop(e)}
+            >
+              <Upload className={cn('mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
+              <p className="text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
+              <p className="mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
             </div>
           )}
 
           {step === 'spreadsheet' && (
             <div className="flex flex-col gap-5">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
-                <ArrowLeft className="size-3.5" />
-                {t('project.hub.back')}
-              </Button>
-
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                 <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
@@ -725,23 +1219,28 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     <FormField label={t('project.field.name')} htmlFor="spreadsheet-project-name" required error={spreadsheetValidation.getError('name')}>
                       <Input
                         id="spreadsheet-project-name"
+                        name="spreadsheet-project-name"
+                        autoComplete="off"
+                        spellCheck={false}
                         value={spreadsheetForm.name}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, name: event.target.value }))
                         }
                         onBlur={() => spreadsheetValidation.markTouched('name')}
-                        placeholder="My_Spreadsheet_Project"
+                        placeholder="My_Spreadsheet_Project…"
                         className={spreadsheetValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                       />
                     </FormField>
                     <FormField label={t('project.field.owner')} htmlFor="spreadsheet-project-owner">
                       <Input
                         id="spreadsheet-project-owner"
+                        name="spreadsheet-project-owner"
+                        autoComplete="name"
                         value={spreadsheetForm.owner}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, owner: event.target.value }))
                         }
-                        placeholder="BESSER User"
+                        placeholder="BESSER User…"
                       />
                     </FormField>
                     <FormField label={t('project.field.description')} htmlFor="spreadsheet-project-description">
@@ -763,7 +1262,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       </div>
                       <Button
                         variant="outline"
-                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 transition-all hover:border-brand/30 hover:bg-brand/[0.04]"
+                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 hover:border-brand/30 hover:bg-brand/[0.04]"
                         onClick={() => spreadsheetFileInputRef.current?.click()}
                         disabled={isBusy}
                       >
@@ -785,7 +1284,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       )}
                     </div>
 
-                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
+                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid || spreadsheetFiles.length === 0} className="w-full gap-2">
                       <Sparkles className="size-4" />
                       {t('project.hub.spreadsheet.submit')}
                     </Button>
@@ -819,19 +1318,104 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           )}
 
           {step === 'open' && (
-            <div className="flex flex-col gap-4">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
-                <ArrowLeft className="mr-1.5 size-3.5" />
-                {t('project.hub.back')}
-              </Button>
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-base font-semibold">{t('project.hub.open.allProjects')}</h3>
-                <Badge variant="secondary">{sortedProjects.length}</Badge>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold tracking-tight">{t('project.hub.open.allProjects')}</p>
+                <Badge variant="secondary" className="rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] text-brand">
+                  {sortedProjects.length}
+                </Badge>
               </div>
               {renderProjectList()}
             </div>
           )}
+
+          {step === 'github' && !isGithubAuthenticated && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                {t('project.hub.github.connectHint', {
+                  defaultValue: "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
+                })}
+              </p>
+              <Button type="button" onClick={handleOpenGithubStep} className="w-full gap-2">
+                <Github className="size-4" />
+                {t('github.connect.button')}
+              </Button>
+            </div>
+          )}
+
+          {step === 'github' && isGithubAuthenticated && (
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!isBusy && githubRepoFullName) {
+                  void handleContinueGithubRepo();
+                }
+              }}
+            >
+              <FormField label={t('github.linked.repository')} htmlFor="github-continue-repo">
+                <Select
+                  value={githubRepoFullName}
+                  onValueChange={(value) => value && void handleSelectGithubRepo(value)}
+                  disabled={githubReposLoading || isBusy}
+                >
+                  <SelectTrigger id="github-continue-repo">
+                    <SelectValue
+                      placeholder={githubReposLoading
+                        ? t('project.hub.github.loadingRepos', { defaultValue: 'Loading repositories…' })
+                        : t('project.hub.github.selectRepo', { defaultValue: 'Select a repository' })}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {githubRepositories.map((repo) => (
+                      <SelectItem key={repo.id} value={repo.full_name}>
+                        {repo.full_name}
+                        {repo.private ? ` ${t('project.hub.github.privateSuffix', { defaultValue: '(private)' })}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {githubRepoFullName && (
+                <FormField label={t('github.linkModal.branch')} htmlFor="github-continue-branch">
+                  <Select
+                    value={githubLoadingBranches ? '' : githubBranch}
+                    onValueChange={(value) => value && setGithubBranch(value)}
+                    disabled={githubLoadingBranches || isBusy}
+                  >
+                    <SelectTrigger id="github-continue-branch">
+                      <SelectValue
+                        placeholder={githubLoadingBranches
+                          ? t('project.hub.github.loadingBranches', { defaultValue: 'Loading branches…' })
+                          : undefined}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {githubBranches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              {githubError && (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {githubError}
+                </p>
+              )}
+
+              <Button type="submit" disabled={isBusy || !githubRepoFullName} className="w-full gap-2">
+                {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
+                {isBusy ? t('common.loading') : t('project.hub.github.continue', { defaultValue: 'Continue' })}
+              </Button>
+            </form>
+          )}
         </div>
+        )}
       </DialogContent>
 
       <ConfirmDialog

@@ -1,5 +1,4 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
-import type { ElkNode } from 'elkjs/lib/elk.bundled.js';
+import type { ELK as ElkInstance, ElkNode } from 'elkjs/lib/elk.bundled.js';
 
 /**
  * Framework-agnostic ELK auto-layout.
@@ -59,7 +58,12 @@ export interface ElkLayoutOptions {
   direction?: LayoutDirection;
 }
 
-const elk = new ELK();
+// ELK is ~1.3 MB, so it is loaded on first use instead of shipping in the entry chunk.
+let elkPromise: Promise<ElkInstance> | null = null;
+const loadElk = (): Promise<ElkInstance> => {
+  elkPromise ??= import('elkjs/lib/elk.bundled.js').then(({ default: ELK }) => new ELK());
+  return elkPromise;
+};
 
 /**
  * Computes new top-left positions for every node using ELK's layered
@@ -101,6 +105,7 @@ export async function computeElkLayout(
     edges: elkEdges,
   };
 
+  const elk = await loadElk();
   const laidOut = await elk.layout(graph);
 
   const nodePositions: LayoutPosition[] = (laidOut.children ?? []).map((child) => ({

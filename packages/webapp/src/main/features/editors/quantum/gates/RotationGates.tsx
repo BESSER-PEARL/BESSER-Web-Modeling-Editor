@@ -5,6 +5,9 @@ import { GATE_SIZE, WIRE_SPACING, COLORS } from '../layout-constants';
 // Rotation Gate Drawer
 const RotationDrawer = ({ rect, label, symbol }: { rect: { x: number, y: number, width: number, height: number }, label: string, symbol: string }) => {
     const { width, height } = rect;
+    const text = symbol || label;
+    // Fit longer symbols (e.g. "e^-iXt") inside the gate box.
+    const fontSize = text.length <= 3 ? 14 : text.length === 4 ? 12 : text.length === 5 ? 10.5 : 9;
     return (
         <svg width={width} height={height} style={{ position: 'absolute', top: 0, left: 0 }}>
             <rect x={0} y={0} width={width} height={height} fill={COLORS.GATE_FILL} stroke="black" strokeWidth={1} />
@@ -13,11 +16,11 @@ const RotationDrawer = ({ rect, label, symbol }: { rect: { x: number, y: number,
                 y={height / 2}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize="14px"
+                fontSize={`${fontSize}px`}
                 fontWeight="bold"
                 fill="black"
             >
-                {symbol || label}
+                {text}
             </text>
         </svg>
     );

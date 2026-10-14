@@ -1,5 +1,6 @@
 const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin')
 const typescriptParser = require('@typescript-eslint/parser')
+const reactHooksPlugin = require('eslint-plugin-react-hooks')
 
 module.exports = [
   {
@@ -12,6 +13,7 @@ module.exports = [
     },
     plugins: {
       '@typescript-eslint': typescriptEslintPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
       'no-constant-condition': 'warn', 
@@ -30,6 +32,12 @@ module.exports = [
 
       '@typescript-eslint/ban-types': 'off', 
       '@typescript-eslint/no-namespace': 'off', 
+
+      // The codebase carries `eslint-disable` comments for exhaustive-deps,
+      // which fail as "rule not found" unless the plugin is registered.
+      // rules-of-hooks is an error because a violation is a real bug.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
     files: ['**/*.ts', '**/*.tsx'],
   },

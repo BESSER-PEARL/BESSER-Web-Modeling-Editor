@@ -1,14 +1,15 @@
 {
   "common": {
-    "connecting": "Verbannen...",
+    "connecting": "Verbannen…",
     "cancel": "Ofbriechen",
     "save": "Späicheren",
     "close": "Zoumaachen",
     "delete": "Läschen",
     "confirm": "Bestätegen",
-    "loading": "Lueden...",
+    "loading": "Lueden…",
     "yes": "Jo",
-    "no": "Nee"
+    "no": "Nee",
+    "retry": "Nach eng Kéier probéieren"
   },
   "topbar": {
     "language": "Sprooch",
@@ -35,18 +36,21 @@
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
       "notValidated": "Net validéiert"
-    }
+    },
+    "more": "Méi"
   },
   "nav": {
     "editors": "Editoren",
-    "collapseSidebar": "Säiteleescht zoumaachen",
-    "expandSidebar": "Säiteleescht opmaachen",
+    "collapseSidebar": "Säiteläischt zoumaachen",
+    "expandSidebar": "Säiteläischt opmaachen",
     "diagram": {
       "class": "Klass",
       "object": "Objet",
       "state": "Zoustand",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "component": "Komponent",
+      "deployment": "Deployment",
       "user": "Benotzer",
       "neuralNet": "Neuronaalt Netz",
       "gui": "GUI",
@@ -58,27 +62,38 @@
       "agentCustomization": "Agent-Personnalisatioun",
       "agentPersonalization": "Erweidert Agent-Personnalisatioun",
       "agentMappings": "Agent-Zuelongen",
+      "agentComponents": "Komponenten",
       "kgSettings": "KG-Astellungen"
     }
   },
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
-      "loadTemplate": "Template lueden",
-      "exportProject": "Projet exportéieren",
-      "importClassDiagramFrom": "Klassendiagramm importéieren vun",
-      "imageToProject": "Bild zu Projet",
-      "kgToProject": "KG zu Projet",
-      "importKgOwl": "KG importéieren (OWL)",
-      "previewProject": "Projetvirschau"
+      "loadTemplate": "Template lueden…",
+      "exportProject": "Projet exportéieren…",
+      "previewProject": "Projetvirschau…",
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wëssensgraph…",
+      "newProject": "Neie Projet…",
+      "openProject": "Projet opmaachen…",
+      "importProject": "Projet importéieren",
+      "import": "Importéieren",
+      "importProjectFile": "Projetdatei (.json / .py)…",
+      "fromSpreadsheet": "Aus enger Tabell…",
+      "fromGithub": "Aus GitHub…",
+      "importKgOwl": "KG importéieren (OWL)"
     },
     "generate": {
       "title": "Generéieren",
-      "generating": "Generéiert...",
-      "codeGeneration": "Code-Generéierung",
+      "generating": "Generéiert…",
       "goToClassDiagram": "Bei d'Klassendiagramm goen",
+      "deriveComponentDiagram": "Komponentendiagramm generéieren",
+      "deriveDeploymentDiagram": "Deploymentdiagramm generéieren",
+      "generateDockerCompose": "Docker Compose generéieren",
       "groups": {
         "web": "Web",
         "database": "Datebank",
@@ -90,6 +105,7 @@
       },
       "actions": {
         "djangoProject": "Django-Projet",
+        "springProject": "Spring-Projet",
         "fullBackend": "Komplett Backend",
         "webApplication": "Webapplikatioun",
         "pythonClasses": "Python-Klassen",
@@ -115,15 +131,15 @@
     },
     "deploy": {
       "title": "Deployen",
-      "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
-      "publishToRender": "Op Render deployen"
+      "publishToRender": "Op Render deployen…",
+      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
     },
     "community": {
       "title": "Communautéit",
       "contribute": "Bäidroen",
       "githubRepository": "GitHub-Repository",
-      "sendFeedback": "Feedback schécken",
+      "sendFeedback": "Feedback schécken…",
       "userSurvey": "Benotzerëmfro",
       "reportProblem": "E Problem mellen"
     },
@@ -136,10 +152,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Mir schaffen drun...",
+    "loadingTitle": "Mir schaffen drun…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Är Konfiguratioun gëtt virbereet...",
+      "preparing": "Är Konfiguratioun gëtt virbereet…",
       "rules": "Virdefinéiert literaturbaséiert Zouuerdnung gëtt ugewannt fir eng passend Konfiguratioun ze recommandéieren.",
       "llm": "Dat kann e Moment daueren, fir déi bescht LLM-baséiert Konfiguratioun fir Äert ausgewielt Benotzerprofil ze erstellen.",
       "transform": "Dat kann e Moment daueren, fir den transforméierten Agent-Setup ze erstellen an op Ären Diagramm unzewenden."
@@ -192,12 +208,123 @@
       "title": "Agent-Runtime",
       "description": "Runtime-Astellunge fir dat aktivt Agent-Diagramm (Plattform, Intent-Erkennung, LLM-Provider/Modell). Dës Wäerter leien um Agent-Diagramm selwer, net am globale Späicher.",
       "platform": "Plattform",
+      "platformWebSocket": "WebSocket",
+      "platformTelegram": "Telegram",
+      "useStreamlitUi": "Streamlit UI benotzen",
       "intent": "Intent-Erkennung",
       "intentClassical": "Klassesch",
       "intentLlmBased": "LLM-baséiert",
       "llm": "LLM",
       "useDefault": "(Standard benotzen)",
-      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen."
+      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen.",
+      "defineLlmsHint": "Definéier LLMen op der Säit <strong>Agent-Komponenten</strong>.",
+      "enabled": "Aktivéiert",
+      "boolTrue": "Wouer",
+      "boolFalse": "Falsch",
+      "sidebarSettings": "Astellungen",
+      "sidebarConfigFile": "Konfiguratiounsdatei",
+      "sidebarPlatforms": "Plattformen",
+      "apiKeys": "API-Schlësselen",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Iwwerwaachung",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Verzögerung a Sekonnen tëschent all Zyklus vun der Iwwergangsevaluatioun."
+        },
+        "nlp": {
+          "languageDesc": "Erwaart Sprooch vum Benotzer (ISO 639-1).",
+          "regionDesc": "Sproochregioun (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zäitzon fir Datums- an Zäitoperatiounen.",
+          "intentThresholdDesc": "Vertrauensschwell fir d’Intent-Prognosen.",
+          "preProcessingDesc": "Aktivéiert Stemming, fir Wierder op hir Grondform ze reduzéieren.",
+          "huggingfaceTokenDesc": "API-Schlëssel fir d’HuggingFace Inference API.",
+          "openaiApiKeyDesc": "OpenAI-API-Schlëssel fir den LLM-Zougang.",
+          "replicateApiKeyDesc": "Replicate-API-Schlëssel fir d’Modellinferenz.",
+          "huggingfaceToken": "HuggingFace-Token",
+          "openaiApiKey": "OpenAI-api_key",
+          "replicateApiKey": "Replicate-api_key"
+        },
+        "websocket": {
+          "hostDesc": "Serveradress fir WebSocket-Verbindungen.",
+          "portDesc": "Portnummer fir de WebSocket-Server.",
+          "streamlitHostDesc": "Hostadress fir d’Streamlit-Uewerfläch.",
+          "streamlitPortDesc": "Port fir d’Streamlit-Uewerfläch.",
+          "chatSizeDesc": "Standard-Schrëftgréisst fir de Chat.",
+          "chatFontDesc": "Schrëftfamill fir den Chat-Text.",
+          "chatLineSpacingDesc": "Multiplikator fir d’Zeilenhéicht.",
+          "chatAlignmentDesc": "Horizontal Textausriichtung.",
+          "chatColorDesc": "Astellung vun der Textfaarf.",
+          "chatContrastDesc": "Kontraschtniveau fir d’Liesbarkeet."
+        },
+        "telegram": {
+          "tokenDesc": "Bot-Authentifikatiounstoken fir d’Telegram-API."
+        },
+        "github": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitHub-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitHub verfügbar ass."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitLab-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitLab verfügbar ass."
+        },
+        "a2a": {
+          "portDesc": "Lokale Port fir d’Kommunikatioun tëschent Agenten."
+        },
+        "db": {
+          "dialectDesc": "Identifizéierer vum Datebanksystem (z. B. postgresql)",
+          "hostDesc": "Adress vum Datebankserver",
+          "portDesc": "Port fir d’Datebankverbindung",
+          "databaseDesc": "Numm vun der Datebank",
+          "usernameDesc": "Login-Donnéeë vum Datebankbenotzer",
+          "passwordDesc": "Authentifikatiounspasswuert vun der Datebank"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Runtime-Astellungen fir dat aktivt Agentendiagramm. Ginn am Diagramm selwer gespäichert, net am globale Späicher."
+        },
+        "agent": {
+          "desc": "Grondleeënd Ausféierungsastellungen vum Agent."
+        },
+        "nlp": {
+          "desc": "Astellunge fir d’Veraarbechtung vun natierlecher Sprooch fir d’Intent-Erkennung."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Konfiguratioun vum WebSocket-Server an der Streamlit-Uewerfläch."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Astellunge fir d’Telegram-Bot-Integratioun."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Astellunge fir d’GitHub-Webhook-Integratioun."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Astellunge fir d’GitLab-Webhook-Integratioun."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Astellunge fir d’Kommunikatioun tëschent Agenten."
+        },
+        "database": {
+          "title": "Datebank",
+          "desc": "Datebankverbindunge fir d’Iwwerwaachung a Streamlit."
+        },
+        "custom": {
+          "title": "Personaliséiert YAML",
+          "desc": "Zousätzlech YAML-Eegeschaften, déi um Enn vun der generéierter config.yaml ugehaange ginn."
+        },
+        "raw": {
+          "desc": "Nëmme-liesen-Usiicht vun der komplett generéierter config.yaml. Änner eenzel Sektiounen oder füüg personaliséiert YAML derbäi."
+        }
+      },
+      "enablePlatform": "{{platform}} aktivéieren"
     },
     "llms": {
       "title": "LLMs",
@@ -211,6 +338,9 @@
       "namePlaceholder": "z. B. gpt-4o-mini",
       "provider": "Provider",
       "numPrevMessages": "Zuel vu viregte Messagen",
+      "ollamaBaseUrl": "Basis-URL",
+      "ollamaModel": "Modell",
+      "ollamaModelPlaceholder": "z.B. llama3, mistral, qwen2.5",
       "parameters": "Parameteren (JSON)",
       "globalContext": "Globale Kontext (optional)",
       "globalContextPlaceholder": "Systemkontext dee bei all Prompt ugehaange gëtt",
@@ -367,6 +497,7 @@
     },
     "save": {
       "title": "Dës Personaliséierung späicheren",
+      "defaultName": "Standard-Agentekonfiguratioun",
       "description": "Wann Dir d'Formulaire hei uewe fäerdeg ausgefëllt hutt, gitt Ärer Personaliséierung een Numm a späichert se hei. Gespäichert Personaliséierunge weisen am \"Eng gespäichert Personaliséierung lueden\"-Auswieler uewen op der Säit, sou datt Dir spéider tëscht hinne wiessele kënnt.",
       "nameLabel": "Numm vun der Personaliséierung",
       "namePlaceholder": "Gitt dësem Setup en Numm",
@@ -377,11 +508,102 @@
       "selectCustomization": "Eng Personaliséierung auswielen",
       "lastUpdated": "Lescht aktualiséiert {{date}}",
       "loadSelected": "Ausgewielt lueden",
-      "applying": "Gëtt ugewannt...",
+      "applying": "Gëtt ugewannt…",
       "saveAndApply": "Konfiguratioun späicheren & uwenden",
       "resetDefaults": "Op Standard zerécksetzen",
       "errors": {
         "generic": "D'Konfiguratioun konnt net gespäichert ginn."
+      }
+    },
+    "yaml": {
+      "title": "Agentekonfiguratiounsdatei (config.yaml)",
+      "description": "D'config.yaml-Datei änneren, déi beim Generiere vum Agent abegraff gëtt.",
+      "linkText": "Konfiguratiounseegenschaften-Referenz ↗"
+    },
+    "yamlEditor": {
+      "tab": {
+        "form": "Formular",
+        "raw": "Onveraarbecht YAML"
+      },
+      "section": {
+        "agent": "Agent",
+        "nlp": "NLP",
+        "platforms": "Plattformen",
+        "database": "Datebank (db)"
+      },
+      "syntaxError": "YAML-Syntaxfehler:",
+      "customLabel": "Zousätzlech benotzerdefiniert YAML-Eegeschaften",
+      "customDescription": "All gültegt YAML, dat hei dobäigesat gëtt, gëtt um Enn vun der generéierter config.yaml ugehaangen.",
+      "rawDescription": "Virschau vum Inhalt vun der generéierter config.yaml. Ännerunge ginn am Tab „Formular“ gemaach.",
+      "fields": {
+        "checkTransitionsDelay": "Zäit a Sekonnen tëscht all Evaluatiounszyklus vun den Iwwergäng.",
+        "nlpLanguage": "Erwaart Benotzersprooch (ISO 639-1). Beaflosst d'NLP-Qualitéit.",
+        "nlpRegion": "Sproochregioun (ISO 3166-1 Alpha-2) fir eng verbessert NLP-Veraarbechtung.",
+        "nlpTimezone": "Zäitzon fir Datum- an Zäitoperatiounen (tz-Datebankformat).",
+        "nlpIntentThreshold": "Vertrauensschwell, ënner där Prognosen op Réckfallszenarie zréckgräifen.",
+        "nlpPreProcessing": "Aktivéiert d'Stemmung, fir Wierder op Basisformen ze reduzéieren an d'Verallgemengerung vu Benotzeragaben ze verbesseren.",
+        "hfToken": "API-Schlëssel, dee fir den Zougang zu der HuggingFace Inference API fir LLM-Funktionalitéit néideg ass.",
+        "mistralKey": "Mistral-AI-API-Schlëssel fir den Zougang zu de Modeller.",
+        "deepseekKey": "DeepSeek-API-Schlëssel fir den Zougang zu de Modeller.",
+        "googleKey": "Google-AI-(Gemini-)API-Schlëssel fir den Zougang zu de Modeller.",
+        "metaKey": "Meta-AI-API-Schlëssel fir den Zougang zu de Llama-Modeller.",
+        "anthropicKey": "Anthropic-API-Schlëssel fir den Zougang zu de Claude-Modeller.",
+        "qwenKey": "Alibaba-DashScope-API-Schlëssel fir den Zougang zu de Qwen-Modeller.",
+        "xaiKey": "xAI-API-Schlëssel fir den Zougang zu de Grok-Modeller.",
+        "groqKey": "Groq-API-Schlëssel fir séier Inferenz.",
+        "togetherKey": "Together-AI-API-Schlëssel fir den Zougang zu gehoste Modeller.",
+        "openrouterKey": "OpenRouter-API-Schlëssel fir den Zougang zu Modeller vu ville Fournisseuren.",
+        "openaiKey": "OpenAI-API-Schlëssel fir den Zougang zum LLM.",
+        "replicateKey": "Replicate-API-Schlëssel fir Modellinferenz.",
+        "wsHost": "Serveradress fir WebSocket-Verbindungen.",
+        "wsPort": "Portnummer vum WebSocket-Server.",
+        "wsStreamlitHost": "Hostadress fir den Asaz vun der Streamlit-Benotzeruewerfläch.",
+        "wsStreamlitPort": "Port fir op d'Streamlit-Benotzeruewerfläch zouzegräifen.",
+        "chatSize": "Standard-Schrëftgréisst fir Chatnoriichten a Streamlit.",
+        "chatFont": "Identifikateur vun der Schrëftfamill fir den Chattext.",
+        "chatLineSpacing": "Zeilenhéicht-Multiplikator fir Chatnoriichten.",
+        "chatAlignment": "Horizontal Textausriichtung an der Chatbenotzeruewerfläch.",
+        "chatColor": "Textfaarfastellung fir d'Chat-Display.",
+        "chatContrast": "Kontrastniveau fir d'Liesbarkeet vum Text.",
+        "telegramToken": "Bot-Authentifikatiounstoken fir d'Telegram-API.",
+        "githubPersonalToken": "Perséinlechen Zougangstoken fir d'GitHub-API-Authentifikatioun.",
+        "githubWebhookToken": "Geheimen Token, dee bei der Webhook-Erstellung definéiert gouf.",
+        "githubWebhookPort": "Lokale Serverport, dee fir GitHub fräiginn oder weidergeleet gëtt.",
+        "gitlabPersonalToken": "Perséinlechen Zougangstoken fir d'GitLab-API-Authentifikatioun.",
+        "gitlabWebhookToken": "Geheimen Token fir d'Webhook-Verifizéierung.",
+        "gitlabWebhookPort": "Lokale Serverport, dee fir GitLab fräiginn oder weidergeleet gëtt.",
+        "a2aPort": "Lokale Port fir d'Kommunikatiounsnetz tëscht Agenten.",
+        "dbDialect": "Kennung vum Datebanksystem (z. B. postgresql)",
+        "dbHost": "Adress vum Datebankserver",
+        "dbPort": "Datebankverbindungsport",
+        "dbDatabase": "Numm vun der Datebank",
+        "dbUsername": "Benotzeruganksdaten fir d'Datebank",
+        "dbPassword": "Datebank-Authentifikatiounspasswuert"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -401,8 +623,21 @@
       "profile": {
         "title": "Bestoend Benotzerprofil-Zouuerdnung ersetzen?",
         "description": "De Benotzerprofil \"{{profile}}\" ass scho mat der Konfiguratioun \"{{existing}}\" zougeuerdent. D'Späichere wäert déi Zouuerdnung mat \"{{next}}\" ersetzen."
+      },
+      "removeLlm": {
+        "title": "Dësen LLM ewechhuelen?",
+        "description": "„{{name}}“ gëtt ewechgeholl. Alles, wat en notzt, benotzt dann de Standard-LLM."
+      },
+      "reset": {
+        "title": "Op Standardwäerter zrécksetzen?",
+        "description": "All net gespäichert Ännerungen an dësem Formulaire ginn duerch d’Standardwäerter ersat."
+      },
+      "upload": {
+        "title": "Aktuell Konfiguratioun ersetzen?",
+        "description": "Wann „{{name}}“ gelueden gëtt, ginn déi aktuell Wäerter am Formulaire iwwerschriwwen."
       }
     },
+    "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv. Öffne fir d'éischt en Agent-Diagramm.",
     "toasts": {
       "persistFailed": "Den Agent-Diagramm konnt net aktualiséiert ginn.",
       "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv.",
@@ -450,6 +685,20 @@
       "appName": "App-Numm",
       "includeDocker": "Docker-Containeriséierung abezéien"
     },
+    "spring": {
+      "title": "Spring Boot Projet-Konfiguratioun",
+      "description": "Konfiguréiert Nimm a Versioune fir d'Spring-Boot-Backend-Generéierung.",
+      "projectName": "Projetsnumm",
+      "appName": "Applikatiounsnumm",
+      "appNameHint": "Gëtt zur generéierter Java-Applikatiounsklass, z. B. MyApplication.java.",
+      "packageName": "Paketnumm",
+      "packageNameHint": "Java-Basispaket, z. B. com.example. Et gëtt och de Wee vum Quellverzeechnes.",
+      "bootVersion": "Spring-Boot-Versioun",
+      "selectBootVersion": "Spring-Boot-Versioun auswielen",
+      "javaVersion": "Java-Versioun",
+      "selectJavaVersion": "Java-Versioun auswielen",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "SQL-Dialekt Auswiel",
       "description": "Wielt den SQL-Dialekt fir déi generéiert DDL-Uweisungen.",
@@ -484,7 +733,7 @@
       "configureTechnologies": "Agent-Technologien konfiguréieren",
       "sourceLanguage": "Quellsprooch (optional)",
       "addSpokenLanguage": "Geschwate Sprooch fir d'Agent-Iwwersetzung dobäisetzen",
-      "selectLanguage": "Sprooch wielen...",
+      "selectLanguage": "Sprooch wielen…",
       "addLanguage": "Sprooch dobäisetzen",
       "translatedToAll": "Den Agent gëtt an all ausgewielte geschwate Sproochen iwwersat.",
       "warningAriaLabel": "Warnung",
@@ -493,6 +742,9 @@
       "editInAgentConfig": "An Agent Config änneren",
       "platform": "Plattform",
       "platformStreamlit": "WebSocket mat Streamlit-Interface",
+      "platformWebSocket": "WebSocket",
+      "platformWebSocketStreamlit": "WebSocket mat Streamlit-Interface",
+      "platformTelegram": "Telegram",
       "intentRecognition": "Intent-Erkennung",
       "classical": "Klassesch",
       "llmBased": "LLM-baséiert",
@@ -553,12 +805,25 @@
       "guiDiagramLabel": "GUI-Diagramm",
       "agentDiagramsLabel": "Agent-Diagrammer",
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponent am GUI konfiguréiert)",
-      "noneAvailable": "Keng verfügbar"
+      "noneAvailable": "Keng verfügbar",
+      "versions": "Versiounen",
+      "versionsDescription": "Eenzel Säiten hu personaliséiert Varianten. Wielt, wéi eng Versioun(en) generéiert soll(en) ginn. All Versioun benotzt d'Variant vun enger Säit, wa se existéiert, soss d'Basissäit.",
+      "versionBase": "Nëmme Basis",
+      "versionProfile": "Eenzel Profil",
+      "versionAll": "All Versiounen",
+      "selectProfile": "Profil auswielen",
+      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil).",
+      "status": {
+        "ready": "Prett",
+        "missing": "Feelt",
+        "empty": "Eidel",
+        "skipped": "Gëtt iwwersprongen"
+      }
     },
     "toasts": {
       "validationFailed": "Validatioun feelgeschloen",
       "noDiagram": "Et ass keen Diagramm verfügbar, aus deem Code generéiert ka ginn.",
-      "localDeploymentInProgress": "Lokalen Deployment am Gaang... Dat kann e puer Minutten daueren.",
+      "localDeploymentInProgress": "Lokalen Deployment am Gaang… Dat kann e puer Minutten daueren.",
       "httpError": "HTTP-Feeler! Status: {{status}}",
       "localDeploymentCompleted": "Lokalen Deployment ofgeschloss!",
       "accessApplicationAt": "Dir kënnt elo op Är Applikatioun zougräifen op: ",
@@ -585,12 +850,16 @@
       "namesRequired": "Projets- an App-Nimm sinn erfuerderlech.",
       "namesMustDiffer": "Projets- an App-Nimm musse verschidde sinn.",
       "namesInvalid": "Nimm musse mat engem Buschtaf/Ënnerstréch ufänken an nëmme Buschtawen, Zuelen an Ënnerstréch enthalen.",
+      "springFieldsRequired": "Projets-, Applikatiouns- a Paketnumm si verlaangt.",
+      "springAppNameInvalid": "Den Applikatiounsnumm muss e valabelen Java-Klassennumm sinn.",
+      "springPackageNameInvalid": "De Paketnumm muss e valabelt Java-Paket sinn, z. B. com.example.",
       "openUmlBeforeDeploy": "Maacht en UML-Diagramm op ier Dir deployt.",
       "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten."
     },
     "context": {
       "djangoGeneration": "Django-Generéierung",
       "djangoDeployment": "Django-Deployment",
+      "springGeneration": "Spring-Generéierung",
       "sqlGeneration": "SQL-Generéierung",
       "supabaseGeneration": "Supabase-Generéierung",
       "sqlAlchemyGeneration": "SQLAlchemy-Generéierung",
@@ -602,9 +871,15 @@
     "overlay": {
       "subtitle": "Waart w.e.g., wärend Äre Code generéiert gëtt",
       "title": "Code gëtt generéiert",
-      "stepPackaging": "Ausgab gëtt verpaakt...",
-      "stepGenerating": "Code gëtt generéiert...",
-      "stepParsing": "Diagramm gëtt analyséiert..."
+      "stepPackaging": "Ausgab gëtt verpaakt…",
+      "stepGenerating": "Code gëtt generéiert…",
+      "stepParsing": "Diagramm gëtt analyséiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ongëlteg Governance-DSL",
+      "invalidGovernance": "Kontrolléiert d'Governance-Politik um Gateway „{{gateway}}“. Detailer an der Browser-Konsol.",
+      "deploymentDiagramRequired": "Keen Inhalt am Deployment-Diagramm fonnt – setzt op d'mannst een Element derbäi, ier Dir generéiert.",
+      "noLinkedAgents": "Nach keen Agent ass mat engem Artefakt verlinkt. Leet d'Deployment-Diagramm iwwer BPMN → Komponent of, fir d'Agent-Kontexter ze verbannen."
     }
   },
   "project": {
@@ -623,13 +898,11 @@
         "detailsTitle": "Projet-Detailer",
         "detailsDescription": "Gitt Ärem Aarbechtsraum en Numm an eng Beschreiwung.",
         "submit": "Projet erstellen",
-        "tip": "Tipp: wielt eng Modelléierungsperspektiv fir den Aarbechtsraum op d'Diagrammer ze fokusséieren déi Dir braucht."
+        "tip": "Tipp: wielt eng Modelléierungsperspektiv fir den Aarbechtsraum op déi Diagrammer ze fokusséieren, déi Dir braucht."
       },
       "import": {
         "title": "E Projet importéieren",
         "description": "Luet eng exportéiert Projet-Datei a maacht do weider wou Dir opgehalen hutt.",
-        "cardTitle": "Projet-Datei importéieren",
-        "cardDescription": "Ënnerstëtzte Formater: .json, .py.",
         "dropAria": "Eng Datei eroplueden oder klickt fir ze sichen",
         "dropPrompt": "Zitt eng Datei heihinner oder klickt fir ze sichen",
         "dropHint": "JSON- oder Python-Projetdateien"
@@ -638,15 +911,15 @@
         "title": "Vun engem Spreadsheet ufänken",
         "description": "Erstellt e Projet a generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien.",
         "cardTitle": "Spreadsheet-Input",
-        "cardDescription": "Erstellt d'Projet-Metadaten a lued Quelldateien erop.",
+        "cardDescription": "Erstellt d'Projet-Metadaten a luet Quelldateien erop.",
         "sourceFiles": "Quelldateien",
         "selectFiles": "CSV / XLSX-Dateien auswielen",
-        "submit": "Aus Spreadsheet erstellen",
+        "submit": "Aus Tabell erstellen",
         "howTitle": "Wéi et funktionéiert",
         "step1": "De Projet gëtt fir d'éischt mat Äre Metadaten erstallt.",
         "step2": "D'Spreadsheet-Dateie ginn an e Klassendiagramm ëmgewandelt.",
         "step3": "De generéierte Klassendiagramm gëtt automatesch an de Projet importéiert.",
-        "accepted": "Akzeptéiert: .csv, .xlsx, .xls"
+        "accepted": "Ënnerstëtze Formater: .csv, .xlsx, .xls"
       },
       "open": {
         "title": "Bestoende Projet opmaachen",
@@ -658,10 +931,7 @@
         "description": "Wielt, wéi Dir Är Modelléierungssessioun starte wëllt, a maacht Ären Aarbechtsberäich op.",
         "heroTitle": "Start Äre Modelléierungsaarbechtsberäich",
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
-        "cardCreate": {
-          "title": "Eidel erstellen",
-          "description": "Fänkt vun Null un. All Editore stinn zur Verfügung."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Vun engem Spreadsheet",
           "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
@@ -673,11 +943,19 @@
         "existingProjects": "Bestoend Projeten",
         "viewAll": "All Projeten weisen",
         "noProjects": "Nach keng Projeten.",
-        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen."
+        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen.",
+        "cardGithub": {
+          "description": "E Repository, dat BESSER erstallt huet, nees opmaachen a weiderbauen.",
+          "title": "Vu GitHub weidermaachen"
+        },
+        "cardNew": {
+          "description": "Low-Code oder agentesch wielen, dann mam Modelléieren ufänken.",
+          "title": "Neie Projet"
+        }
       },
       "perspective": {
         "label": "Modelléierungsperspektiv",
-        "helper": "Bestëmmt wéi eng Diagrammer an der Säiteleescht erschéngen. Dir kënnt dat spéider an den Astellungen änneren."
+        "helper": "Bestëmmt wéi eng Diagrammer an der Säiteläischt erschéngen. Dir kënnt dat spéider an den Astellungen änneren."
       },
       "list": {
         "emptyHint": "Nach keng Projeten. Erstellt een fir unzefänken.",
@@ -704,14 +982,53 @@
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
         "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+      },
+      "returning": {
+        "title": "Projeten",
+        "description": "Maach e rezente Projet op oder fänk en neie un."
+      },
+      "github": {
+        "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
+        "continue": "Weider",
+        "description": "Wiel e Repository, dat BESSER erstallt huet – säi Modell gëtt gelueden, an den nächste Laf vum Spec-Driven Agent ännert säi Code.",
+        "errors": {
+          "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
+          "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",
+          "noSession": "GitHub-Sessioun net fonnt. Verbann dech w.e.g. nees.",
+          "selectRepo": "Wiel e Repository, fir weiderzemaachen.",
+          "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Verbann dech nees a probéier et nach eng Kéier."
+        },
+        "loadingBranches": "Branche gi gelueden…",
+        "loadingRepos": "Repositorye gi gelueden…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Repository wielen",
+        "title": "Vu GitHub weidermaachen",
+        "toasts": {
+          "connectToContinue": "Verbann GitHub, fir vun engem vun denge Repositoryen weiderzemaachen.",
+          "continuing": "Et gëtt vu {{repo}} weidergemaach.",
+          "failed": "Weidermaache vu GitHub ass feelgeschloen: {{message}}",
+          "sessionExpired": "GitHub-Sessioun ofgelaf – verbann dech w.e.g. nees."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Beschreif deng App an natierlecher Sprooch; den Assistent baut se.",
+          "label": "Agentesch"
+        },
+        "helper": "Wiel, wéi s du baue wëlls. Du kanns all Moment iwwer de Panneau vum Assistent wiesselen.",
+        "label": "Usiicht",
+        "model": {
+          "description": "Visuell mat UML-Diagrammer op der Modelléierungsfläch bauen.",
+          "label": "Low-Code"
+        }
       }
     },
     "settings": {
       "title": "Projet-Astellungen",
       "subtitle": "Metadaten, Diagrammer an Affichage-Preferenze verwalten",
       "exportProject": "Projet exportéieren",
-      "exporting": "Exportéieren...",
-      "loadingProject": "Projet gëtt gelueden...",
+      "exporting": "Exportéieren…",
+      "loadingProject": "Projet gëtt gelueden…",
       "noProject": "Maacht e Projet op oder erstellt een fir d'Astellungen z'änneren.",
       "unknownError": "Onbekannte Feeler",
       "general": {
@@ -743,7 +1060,7 @@
       },
       "perspectives": {
         "title": "Modelléierungsperspektiven",
-        "description": "Verstoppt Perspektiven déi Dir net braucht. Benotzt eng Virastellung fir e puer op eemol ze wiesselen, oder schalt all eenzel hei drënner. Deaktivéiert Perspektive ginn aus der Säiteleescht ewechgeholl; bestoend Modeller ginn erhalen a beim Reaktivéieren erëmhiergestallt. Generatoren bleiwen onofhängeg disponibel.",
+        "description": "Verstoppt Perspektiven déi Dir net braucht. Benotzt eng Virastellung fir e puer op eemol ze wiesselen, oder schalt all eenzel hei drënner. Deaktivéiert Perspektive ginn aus der Säiteläischt ewechgeholl; bestoend Modeller ginn erhalen a beim Reaktivéieren erëmhiergestallt. Generatoren bleiwen onofhängeg disponibel.",
         "quickPresets": "Séier Virastellungen",
         "lastEnabledTitle": "Op d'mannst eng Perspektiv muss aktivéiert sinn.",
         "toggleAria": "Sichtbarkeet vun {{label}} ëmschalten",
@@ -756,13 +1073,13 @@
             "label": "Agent-Entwéckler",
             "description": "Agent- a Benotzerdiagrammer fir Konversatiounsagenten."
           },
+          "agenticSwarm": {
+            "label": "Multi-Agenten",
+            "description": "Agentesch BPMN-, Agent-, Komponenten- an Deploymentdiagrammer."
+          },
           "fullApp": {
             "label": "Komplett Webapplikatioun",
             "description": "Klassen-, Agent- an No-Code-GUI-Diagrammer."
-          },
-          "knowledge": {
-            "label": "Wëssensingenieur",
-            "description": "Klassen-, Objet- a Wëssensgraf-Diagrammer fir Ontologien an RDF/OWL."
           },
           "quantum": {
             "label": "Quantum",
@@ -771,6 +1088,10 @@
           "all": {
             "label": "Alles weisen",
             "description": "All ënnerstëtzt Perspektiv."
+          },
+          "knowledge": {
+            "label": "Wëssensingenieur",
+            "description": "Klassen-, Objet- a Wëssensgraf-Diagrammer fir Ontologien an RDF/OWL."
           }
         },
         "diagrams": {
@@ -783,6 +1104,8 @@
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
           "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow).",
+          "ComponentDiagram": "Softwarekomponenten an d'Schnëttstellen tëscht hinnen.",
+          "DeploymentDiagram": "Kniet, Artefakter an d'Verdeelung vum System.",
           "KnowledgeGraphDiagram": "Erstellung vu RDF/OWL-Wëssensgrafen, mat Konversioun vun a bis B-UML."
         }
       },
@@ -791,6 +1114,16 @@
         "applyPresetFailed": "Virastellung konnt net ugewannt ginn",
         "exported": "Projet erfollegräich exportéiert.",
         "exportFailed": "Projet konnt net exportéiert ginn: {{error}}"
+      },
+      "apiKey": {
+        "change": "Schlëssel änneren",
+        "description": "Benotz däin eegene Schlëssel vun Anthropic, OpenAI, Mistral oder Nebius. Eemol hei aginn, benotzen en de Modelléierungsassistent an de Spec-Driven-Generator (Nebius nëmmen de Generator). E gëtt nëmmen an dësem Browser-Tab gespäichert, ni op eise Serveren.",
+        "keySet": "Schlëssel gesat · {{provider}}",
+        "keySetHint": "Gëlt fir den Assistent an de Generator",
+        "noKey": "Kee Schlëssel gesat",
+        "noKeyHint": "Gedeelte Server-Schlëssel mat Limitten",
+        "set": "API-Schlëssel setzen",
+        "title": "KI-/LLM-API-Schlëssel"
       }
     },
     "templates": {
@@ -807,7 +1140,8 @@
         "State Machine Diagram": "Zoustandsautomaten Diagramm",
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
-        "Full Project": "Ganze Projet"
+        "Full Project": "Ganze Projet",
+        "Multi-agent": "Multi-Agenten"
       },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",
@@ -838,7 +1172,7 @@
   },
   "github": {
     "sync": "GitHub-Synchronisatioun",
-    "closeSidebar": "GitHub-Säiteleescht zoumaachen",
+    "closeSidebar": "GitHub-Säiteläischt zoumaachen",
     "fullPath": "Komplette Wee:",
     "folderPathLabel": "Dossier-Pfad (fakultativ)",
     "folderPathPlaceholder": "z.B. projects/my-models",
@@ -862,18 +1196,26 @@
     },
     "linked": {
       "repository": "Repository",
-      "checking": "Préift...",
+      "checking": "Préift…",
       "unsavedChanges": "Du hues net gespäichert Ännerungen",
       "upToDate": "Aktuell",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Lokal Ännerungen ersetzen?",
+      "pullConfirmDescription": "De Pull lued d’Versioun vu GitHub a verwërft d’Ännerungen, déi s du nach net gepusht hues.",
+      "pullConfirmAction": "Pullen an Ännerungen verwerfen",
       "history": "Historik",
       "refreshHistory": "Commit-Historik aktualiséieren",
       "latest": "Aktuellst",
       "clickToRestore": "Klick fir nei opzespillen",
       "noCommits": "Nach keng Commits",
       "share": "Deelen",
-      "createSecretGist": "Geheime Gist erstellen"
+      "createSecretGist": "Geheime Gist erstellen",
+      "openOnGitHub": "Op GitHub opmaachen",
+      "unlink": "Repository trennen",
+      "unlinkConfirmTitle": "Dëse Repository trennen?",
+      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an op GitHub. Push, Pull an Auto-Commit stoppen, bis du erëm e Repository verbënns.",
+      "unlinkConfirmAction": "Trennen"
     },
     "settings": {
       "title": "Astellungen",
@@ -886,7 +1228,7 @@
       "interval15": "15 Minutten",
       "interval30": "30 Minutten",
       "interval60": "1 Stonn",
-      "autoSaving": "Späichert automatesch..."
+      "autoSaving": "Späichert automatesch…"
     },
     "linkModal": {
       "goBack": "Zréck zur Repository-Auswiel",
@@ -922,18 +1264,18 @@
       "title": "Op GitHub pushen",
       "description": "Schreif eng Commit-Noriicht fir deng Ännerungen.",
       "messageLabel": "Commit-Noriicht",
-      "messagePlaceholder": "Beschreif deng Ännerungen...",
-      "pushing": "Pusht...",
+      "messagePlaceholder": "Beschreif deng Ännerungen…",
+      "pushing": "Pusht…",
       "push": "Push"
     },
     "gist": {
       "title": "Gist erstellen",
       "description": "Erstell e GitHub-Gist fir däi Projet séier ze deelen.",
       "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Gist-Beschreiwung...",
+      "descriptionPlaceholder": "Gist-Beschreiwung…",
       "publicGist": "Ëffentleche Gist",
       "secretHint": "Geheime Gisten si vu Sichmaschinne verstoppt, awer fir jiddereen mam Link sichtbar.",
-      "creating": "Erstellt...",
+      "creating": "Erstellt…",
       "createGist": "Gist erstellen"
     },
     "createRepo": {
@@ -942,16 +1284,16 @@
       "repoNameLabel": "Repository-Numm",
       "repoNameHelper": "Nëmme kleng Buschtawen, Zuelen, Bindestrécher an Ënnerstrécher sinn erlaabt.",
       "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Fakultativ Beschreiwung...",
+      "descriptionPlaceholder": "Fakultativ Beschreiwung…",
       "privateRepository": "Privaten Repository",
-      "creating": "Erstellt...",
+      "creating": "Erstellt…",
       "create": "Erstellen"
     },
     "restore": {
       "title": "Versioun nei opspillen",
       "description": "Deng aktuell net gespäichert Ännerunge gi verluer. Iwwerlee däin aktuellt Wierk fir d'éischt ze pushen.",
       "confirmQuestion": "Dëse Commit nei opspillen?",
-      "restoring": "Spillt nei op...",
+      "restoring": "Spillt nei op…",
       "restoreButton": "Dës Versioun nei opspillen"
     },
     "context": {
@@ -967,7 +1309,8 @@
       "creatingRepository": "Repository gëtt erstallt",
       "committing": "Op GitHub gëtt committ",
       "restoringCommit": "Commit gëtt nei opgespillt",
-      "creatingGist": "Gist gëtt erstallt"
+      "creatingGist": "Gist gëtt erstallt",
+      "unlinkingRepository": "Repository gëtt getrennt"
     },
     "toasts": {
       "loadProjectFailed": "De Projet konnt net geluede ginn",
@@ -1009,16 +1352,55 @@
       "createGistFailed": "Erstelle vum Gist feelgeschloen",
       "gistCreated": "Gist erfollegräich erstallt!",
       "invalidGitHubUrl": "Ongülteg GitHub-URL. Gitt w.e.g. eng gülteg GitHub-Repository-URL un.",
-      "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden...",
+      "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden…",
       "fileNotFound": "Datei net op GitHub fonnt. Iwwerpréift w.e.g. d'URL a probéiert et nach eng Kéier.",
       "fetchFileFailed": "D'Datei konnt net vu GitHub gelueden ginn: {{status}}",
       "importProjectSuccess": "Projet erfollegräich importéiert: {{name}}",
       "importModelFailed": "D'Modell konnt net vu GitHub importéiert ginn",
       "starThanks": "Merci datt Dir BESSER e Stär ginn hutt!",
       "starFailed": "De Stär konnt net aktualiséiert ginn"
+    },
+    "push": {
+      "changeRepo": "Repository änneren",
+      "commitMessageHelper": "Beschreif, wat geännert huet (optional).",
+      "commitMessagePlaceholder": "Generéiert App aktualiséieren",
+      "createNew": "Neie Repository erstellen",
+      "defaultDescription": "Mat BESSER generéiert – {{name}}",
+      "descriptionCreate": "De generéierte Code an de Projetmodell an e GitHub-Repository pushen.",
+      "descriptionUpdate": "De verlinkte Repository mat dengem neiste generéierte Code a Modell aktualiséieren.",
+      "done": "Fäerdeg",
+      "filesUploaded_one": "{{count}} Datei eropgelueden.",
+      "filesUploaded_other": "{{count}} Dateien eropgelueden.",
+      "linkedTo": "Verlinkt mat",
+      "loadingBranches": "Branche gi gelueden…",
+      "loadingRepositories": "Repositorye gi gelueden…",
+      "noRepositories": "Keng Repositorye gelueden. D’Ufro ass méiglecherweis feelgeschloen.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Dëse Repository gëtt ëffentlech. Jiddereen kann de generéierte Code an de Modell gesinn.",
+      "pushUpdate": "Update pushen",
+      "repushHint": "Nees pushen aktualiséiert dëse Repository.",
+      "selectRepository": "Repository wielen…",
+      "selectRepositoryError": "Wiel e Repository als Zil.",
+      "successCreated": "Repository erstallt an Dateie gepusht.",
+      "successTitle": "Op GitHub gepusht",
+      "successUpdated": "Repository mat denger neister Generatioun aktualiséiert.",
+      "useExisting": "Bestoende Repository benotzen"
     }
   },
   "assistant": {
+    "generatedFiles": {
+      "download": "Eroflueden",
+      "opening": "De Projet gëtt opgemaach…",
+      "loadFailed": "Déi generéiert Fichieren konnten net geluede ginn. De Server hält se ongeféier {{minutes}} Minutten nom Laf; duerno nach eng Kéier generéieren, fir se ze gesinn.",
+      "treeLabel": "Generéiert Fichieren",
+      "fileCount_one": "{{count}} Fichier",
+      "fileCount_other": "{{count}} Fichieren",
+      "fileMeta": "{{lines}} Zeilen · {{size}} · {{language}}",
+      "plainText": "Text",
+      "tooLarge": "Dëse Fichier ass ze grouss fir eng Virschau. Lued de Projet erof, fir en opzemaachen.",
+      "binary": "Binäre Fichier, keng Virschau méiglech."
+    },
+    "rateLimitTooltip": "Ufroen an der leschter Minutt (Limit {{limit}})",
     "import": {
       "titleImage": "Klassendiagramm aus engem Bild importéieren",
       "titleKg": "Klassendiagramm aus engem Knowledge Graph importéieren",
@@ -1027,7 +1409,7 @@
       "uploadImageLabel": "Diagramm-Bild eroplueden (PNG/JPEG)",
       "uploadKgLabel": "Knowledge Graph eroplueden (TTL/RDF/JSON)",
       "selected": "Ausgewielt: {{name}}",
-      "importing": "Gëtt importéiert...",
+      "importing": "Gëtt importéiert…",
       "import": "Importéieren",
       "errors": {
         "noProject": "Erstellt oder lued fir d'éischt e Projet.",
@@ -1059,10 +1441,12 @@
       "headlinePost": "?",
       "subtitle": "Beschreift Äre System a natierlecher Sprooch. Kritt Modeller, Interfaces a Code.",
       "pressEscPre": "Dréckt",
-      "pressEscPost": "fir zouzemaachen"
+      "pressEscPost": "fir zouzemaachen",
+      "freeTier": "Gratis mat eisem gehoste Modell.",
+      "changeModel": "Modell wiesselen"
     },
     "composer": {
-      "placeholder": "Beschreift wat Dir erstellen oder ännere wëllt..."
+      "placeholder": "Beschreift wat Dir erstellen oder ännere wëllt…"
     },
     "messageCount_one": "{{count}} Message",
     "messageCount_other": "{{count}} Messagen",
@@ -1086,6 +1470,7 @@
       "privacyBody": "Vermeit et sensibel oder vertraulech Informatiounen ze schecken.",
       "understand": "Ech verstinn"
     },
+    "pilotNotice": "De Fuerschungsstudie-Modus ass aktiv. Dësen Tab registréiert fir eng Fuerschungsstudie Är Ufroen, wat den Assistent domat gemaach huet, d'Resultater vun de Generatiounen an d'Downloads oder GitHub-Aktiounen. En ass nëmmen aktiv, well Dir e Studie-Link opgemaach hutt. Maacht dësen Tab zou, fir en ze stoppen.",
     "poweredWithBaf": "Ugedriwwe mat BAF",
     "capabilities": {
       "systemDesign": {
@@ -1117,13 +1502,26 @@
     },
     "chat": {
       "newChat": "Neie Chat",
-      "newConversationTitle": "En neit Gespréich ufänken"
+      "newConversationTitle": "En neit Gespréich ufänken",
+      "moreActions": "Méi Aktiounen",
+      "yourModel": "Däi Modell",
+      "hideYourModel": "Däi Modell verstoppen",
+      "apiKeySet": "API-Schlëssel gesat",
+      "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
+      "reportIssue": "Problem mellen",
+      "addApiKey": "Däin API-Schlëssel derbäisetzen",
+      "newChatConfirm": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht.",
+      "newChatConfirmWithRun": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gestoppt.",
+      "explainModel": "Dëse Modell erklären",
+      "explainModelTitle": "Kréi en einfachen Iwwerbléck iwwer däi Modell – wat en haaptsächlech duerstellt a wéi et zesummenhänkt"
     },
     "drawer": {
-      "pushToClose": "No uewen drécke fir den Assistent zouzemaachen",
-      "pullToOpen": "No ënnen zéie fir den Assistent opzemaachen",
+      "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
+      "pullToOpen": "No uewen zéie fir den Assistent opzemaachen",
       "pushUp": "No uewen drécken",
-      "pullDown": "Assistent no ënnen zéien"
+      "pullDown": "Assistent no ënnen zéien",
+      "labelClosed": "Beschreif deng App",
+      "labelOpen": "Spezifikatioune kucken"
     },
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
@@ -1132,8 +1530,8 @@
     "guiGenerated": "✓ GUI erfollegräich aus Ärem Klassendiagramm generéiert!",
     "convertThisFile": "Dës Datei ëmwandelen",
     "convertFileToDiagram": "Dës Datei an en Diagramm ëmwandelen",
-    "reconnectingMessage": "Verbënnt nei mam Assistent — Äre Message gëtt automatesch geschéckt.",
-    "reconnectingVoice": "Verbënnt nei mam Assistent — Äre Sproochmessage gëtt automatesch geschéckt.",
+    "reconnectingMessage": "Verbannt nei mam Assistent — Äre Message gëtt automatesch geschéckt.",
+    "reconnectingVoice": "verbannt nei mam Assistent — Äre Sproochmessage gëtt automatesch geschéckt.",
     "tryAgain": "Nach eng Kéier probéieren",
     "errors": {
       "createTabFailed": "Neien Tab konnt net erstallt ginn: {{error}}",
@@ -1179,7 +1577,7 @@
       "toolCancelled": "Ofgebrach",
       "toolCalling": "Rifft op",
       "toolResultFrom": "Resultat vun",
-      "loading": "Gëtt gelueden...",
+      "loading": "Gëtt gelueden…",
       "removeAttachment": "Unhang ewechhuelen",
       "interruptPrompt": "Nach eemol Enter drécken fir z'ënnerbriechen",
       "close": "Zoumaachen",
@@ -1192,8 +1590,8 @@
       "stopGenerating": "Generéierung stoppen",
       "sendMessage": "Noriicht schécken",
       "dropFiles": "Losst Är Dateien hei falen fir se unzehänken.",
-      "transcribingAudio": "Audio gëtt transkribéiert...",
-      "recordingPrompt": "Opnam leeft... klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
+      "transcribingAudio": "Audio gëtt transkribéiert…",
+      "recordingPrompt": "Opnam leeft… klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
       "stopSendVoiceTimer": "Sproochnoriicht stoppen an schécken ({{time}})"
     }
   },
@@ -1233,7 +1631,7 @@
       "publishAgent": "Agent op Render verëffentlechen",
       "updatePublish": "Aktualiséieren & Verëffentlechen",
       "updatePublishAgent": "Agent aktualiséieren & verëffentlechen",
-      "publishing": "Verëffentlechen..."
+      "publishing": "Verëffentlechen…"
     },
     "result": {
       "titleUpdated": "Repository erfollegräich aktualiséiert",
@@ -1275,6 +1673,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
     "BPMN": "BPMN-Diagramm",
+    "ComponentDiagram": "Komponentendiagramm",
+    "DeploymentDiagram": "Deploymentdiagramm",
     "NNDiagram": "Neuronaalt-Netz-Diagramm",
     "KnowledgeGraphDiagram": "Wëssensgraf-Diagramm"
   },
@@ -1285,8 +1685,9 @@
       "para1": "BESSER ass eng Low-Code-Plattform fir intelligent Softwaremodelléierung an Code-Generéierung. Et stellt e Python-baséierte Metamodell (B-UML) fir d'Beschreiwung vun Domänemodeller, Zoustandsmaschinnen, GUI-Designen, Agenten a méi zur Verfügung.",
       "para2": "De <brand>Web Modeling Editor</brand> ass den Online-Visuell-Editor fir BESSER-Modeller ze erstellen an ze änneren, Code ze generéieren an Applikatiounen ze deployéieren.",
       "besserRepository": "BESSER-Repository",
-      "wmeRepository": "WME-Repository",
-      "libraryRepository": "Paket-Repository"
+      "wmeRepository": "Quellcode vum Editor",
+      "libraryRepository": "Paket-Repository",
+      "version": "Versioun {{version}}"
     },
     "shortcuts": {
       "title": "Tastatur-Ofkierzungen",
@@ -1322,7 +1723,6 @@
       "title": "Wéi den Editor funktionéiert",
       "description": "Komplett Modelléierungsguide mat Beispiller a Biller.",
       "diagramTypesHeading": "Diagrammtypen",
-      "noImage": "Kee Bild fir dëst Element.",
       "openDocs": "BESSER-Dokumentatioun opmaachen",
       "openWmeRepo": "WME-Repository opmaachen",
       "class": {
@@ -1330,12 +1730,12 @@
         "summary": "Modelléier Klassen, Bezéiungen, Aschränkungen an erweidert UML-Strukturen.",
         "addClass": {
           "title": "Klass bäifügen",
-          "body": "<p>Zitt eng Klassefiguer aus der lénker Palett op d'Modelléierungsleinwand a loosst se do fal.</p>",
+          "body": "<p>Zitt eng Klassefigur aus der lénker Palett op d'Modelléierungsleinwand a loosst se do falen.</p>",
           "alt": "Klassenelement erstellen"
         },
         "addAssociation": {
           "title": "Associatioun oder Generaliséierung bäifügen",
-          "body": "<p>Wielt eng Quellklass aus, an zitt dann vun engem blaue Verbindungspunkt op eng aner Klass. Fir Multiplizitéiten benotzt Wäerter wéi <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code>, oder <code>2..4</code>.</p>",
+          "body": "<p>Wielt eng Quellklass aus, an zitt dann vun engem bloe Verbindungspunkt op eng aner Klass. Fir Multiplizitéiten benotzt Wäerter wéi <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code>, oder <code>2..4</code>.</p>",
           "alt": "Klassebezéiung erstellen"
         },
         "editClass": {
@@ -1350,12 +1750,12 @@
         },
         "deleteMove": {
           "title": "Läschen a beweegen",
-          "body": "<p>Wielt eng Klass aus a dréckt <code>Delete</code> oder <code>Backspace</code> fir se ze läschen.</p><p>Beweegt Elementer andeems Dir se zitt oder d'Tastaturpfeile benotzt.</p><p>Benotzt <code>Ctrl+Z</code> an <code>Ctrl+Y</code> fir Réckgängeg/Widderhuelen.</p>",
+          "body": "<p>Wielt eng Klass aus a dréckt <code>Delete</code> oder <code>Backspace</code> fir se ze läschen.</p><p>Beweegt Elementer andeems Dir se zitt oder d'Tastaturfeiler benotzt.</p><p>Benotzt <code>Ctrl+Z</code> an <code>Ctrl+Y</code> fir Réckgängeg/Widderhuelen.</p>",
           "alt": "Klassenelement beweegen"
         },
         "oclConstraint": {
           "title": "OCL-Contrainte",
-          "body": "<p>Zitt d'OCL-Figuer a schreift dann Aschränkunge wéi <code>Context \"ClassName\" ...</code>. Dir kënnt Aschränkunge mat Klassen iwwer gepunktelt Verbindunge verbannen.</p><p>D'Validéierung vun der Aschränkungssyntax leeft während der Quality Check a gëtt vun <boclLink>B-OCL</boclLink> ugedriwwen.</p>",
+          "body": "<p>Zitt d'OCL-Figuer a schreift dann Aschränkunge wéi <code>Context \"ClassName\" ...</code>. Dir kënnt Aschränkunge mat Klassen iwwer gepunktelt Verbindunge verbannen.</p><p>D'Validéierung vun der Aschränkungssyntax leeft wärend dem Qualitéitscheck a gëtt vun <boclLink>B-OCL</boclLink> ugedriwwen.</p>",
           "alt": "OCL-Aschränkungshëllef"
         },
         "associationClass": {
@@ -1366,7 +1766,7 @@
       },
       "object": {
         "label": "Objektdiagramm",
-        "summary": "Stellt konkret Laafzäit-Instanzen an hir Verbindungen duer.",
+        "summary": "Stellt konkret Lafzäit-Instanzen an hir Verbindungen duer.",
         "about": {
           "title": "Iwwer Objektdiagrammer",
           "body": "<p>Objektdiagrammer weisen Instanze vu Klassen zu engem bestëmmte Moment, dorënner aktuell Attributwäerter a Verbindungen.</p>"
@@ -1383,7 +1783,7 @@
         },
         "addLink": {
           "title": "Objektverbindung bäifügen",
-          "body": "<p>Klickt op en Objet, zitt vun engem blaue Verbindungspunkt, a loosst et op engem anere Objet falen fir eng Verbindung ze erstellen.</p>",
+          "body": "<p>Klickt op en Objet, zitt vun engem bloe Verbindungspunkt, a loosst et op engem anere Objet falen fir eng Verbindung ze erstellen.</p>",
           "alt": "Objektverbindung erstellen"
         },
         "editLink": {
@@ -1393,7 +1793,7 @@
         },
         "deleteMove": {
           "title": "Läschen, beweegen a bewäert Praktiken",
-          "body": "<p>Läscht Objeten/Verbindunge mat <code>Delete</code> oder <code>Backspace</code>. Beweegt Objeten duerch Zéien oder mat de Pfeiler.</p><p>Benotzt Objektdiagrammer zesumme mat Klassendiagrammer fir richteg Szenarien, Nimm an d'Konsistenz vun de Wäerter ze validéieren.</p>"
+          "body": "<p>Läscht Objeten/Verbindunge mat <code>Delete</code> oder <code>Backspace</code>. Beweegt Objeten duerch Zéien oder mat de Feiler.</p><p>Benotzt Objektdiagrammer zesumme mat Klassendiagrammer fir richteg Szenarien, Nimm an d'Konsistenz vun de Wäerter ze validéieren.</p>"
         }
       },
       "state": {
@@ -1401,11 +1801,11 @@
         "summary": "Fänkt dynamescht Verhalen mat Zoustänn, Iwwergäng an Aktiounen op.",
         "about": {
           "title": "Iwwer Zoustands-Diagrammer",
-          "body": "<p>Zoustands-Diagrammer beschreiwe Verhalensännerungen iwwer d'Zäit als Reaktioun op Eventer a Bedéngungen.</p>"
+          "body": "<p>Zoustands-Diagrammer beschreiwe Verhalensännerungen mat der Zäit als Reaktioun op Eventer a Bedéngungen.</p>"
         },
         "initialFinal": {
           "title": "Ufanks- an Ofschlossfloss bäifügen",
-          "body": "<p>Fänkt mat engem Ufanksknuet un a verbënnt e mam éischten Zoustand.</p>",
+          "body": "<p>Fänkt mat engem Ufanksknuet un a verbannt e mam éischten Zoustand.</p>",
           "alt": "Ufanks- an Ofschlosszoustänn vun der Zoustandsmaschinn"
         },
         "editState": {
@@ -1415,7 +1815,7 @@
         },
         "codeBlock": {
           "title": "Code-Block verlinken",
-          "body": "<p>Verlinkt Code-Verhalen andeems Dir Funktiounsnimm an de Felder Body/Fallback vum Zoustand ugitt fir eng präzis Ausféierungsofbildung.</p>",
+          "body": "<p>Verlinkt Code-Verhalen andeems Dir Funktiounsnimm an de Felder Body/Fallback vum Zoustand ugitt fir eng prezis Ausféierungsofbildung.</p>",
           "alt": "Code-Block vun der Zoustandsmaschinn"
         },
         "bestPractices": {
@@ -1452,7 +1852,7 @@
         },
         "initialState": {
           "title": "Ufankszoustand festleeën",
-          "body": "<p>Verbënnt den Ufanksknuet mam Zoustand, wou d'Gespréich soll ufänken.</p>",
+          "body": "<p>Verbannt den Ufanksknuet mam Zoustand, wou d'Gespréich soll ufänken.</p>",
           "alt": "Agenten-Ufankszoustand"
         },
         "defineIntents": {
@@ -1462,7 +1862,7 @@
         },
         "customization": {
           "title": "Agenten-Personaliséierung",
-          "body": "<p>Maacht Agent Config aus der Säiteleescht op fir Modell- a Laafzäit-Astellunge fir generéiert Agenten ze konfiguréieren.</p><ul><li>Klassesch Intent-Erkennung: trainéiert e lokale Modell aus den definéierten Intenten.</li><li>LLM-baséiert Intent-Erkennung: delegéier d'Intent-Klassifikatioun un en LLM.</li></ul>",
+          "body": "<p>Maacht Agent Config aus der Säiteläischt op fir Modell- a Lafzäit-Astellunge fir generéiert Agenten ze konfiguréieren.</p><ul><li>Klassesch Intent-Erkennung: trainéiert e lokale Modell aus den definéierten Intenten.</li><li>LLM-baséiert Intent-Erkennung: delegéier d'Intent-Klassifikatioun un en LLM.</li></ul>",
           "alt": "Agenten-Konfiguratioun"
         }
       },
@@ -1471,7 +1871,7 @@
         "summary": "Bau UI-Écranen visuell a generéier Frontenden fir Web-Applikatiounen.",
         "coreWorkflow": {
           "title": "Kär-Aarbechtsoflaf",
-          "body": "<p>Benotzt Virlagblocken, komponéiert Layouten, a verbënnt da modellbaséiert Donnéeën an Aktiounen.</p><p>Haalt d'Säite modulaar, sou datt déi generéiert Ausgab virausseebar an ënnerhaltbar bleift.</p>"
+          "body": "<p>Benotzt Virlagblocken, komponéiert Layouten, a verbannt da modellbaséiert Donnéeën an Aktiounen.</p><p>Haalt d'Säite modulaar, sou datt déi generéiert Ausgab virausseebar an ënnerhaltbar bleift.</p>"
         }
       },
       "quantum": {
@@ -1479,51 +1879,83 @@
         "summary": "Entwéckel Circuiten, konfiguréier Gaten a generéier Qiskit-kompatibel Artefakter.",
         "coreWorkflow": {
           "title": "Kär-Aarbechtsoflaf",
-          "body": "<p>Setzt Gaten op Qubit-Linnen, validéiert d'Struktur, a generéiert dann mat de gewielten Backend-Astellungen.</p><p>Benotzt d'Unzuel vun de Schéiss an d'Backend-Auswiel am Generate fir reproduzéierbar Resultater.</p>"
+          "body": "<p>Setzt Gaten op Qubit-Linnen, validéiert d'Struktur, a generéiert dann mat de gewielten Backend-Astellungen.</p><p>Benotzt d'Unzuel vun d'Uschless an der Backend-Auswal am Generate fir reproduzéierbar Resultater.</p>"
         }
       },
       "nn": {
         "label": "Neuronaalt Netzwierk",
-        "summary": "Entwéckel neuronaal Netzwierker, verbënnt Datesätz an Trainingskonfiguratioun, a generéier PyTorch- oder TensorFlow-Code.",
+        "summary": "Entwéckel neuronal Netzwierker, verbannt Datesätz an Trainingskonfiguratioun, a generéier PyTorch- oder TensorFlow-Code.",
         "coreWorkflow": {
           "title": "Kär-Aarbechtsoflaf",
-          "body": "<p>Baut en neuronaalt Netzwierk andeems Dir en NNContainer op d'Leinwand falle loost. Zitt Schichten an TensorOps do eran, a verbënnt se dann mat NNNext-Bezéiunge fir de Forward Pass ze definéieren.</p><p>Configuration an Training/Test Datasets sinn optional Elementer, déi Trainings-Hyperparameter an Datesatz-Metadonnéeën halen. Wann d'Diagramm fäerdeg ass, generéiert PyTorch- oder TensorFlow-Code aus dem Generate-Menü.</p>",
+          "body": "<p>Baut en neuronaalt Netzwierk andeems Dir en NNContainer op d'Leinwand fale loost. Zitt Schichten an TensorOps do eran, a verbannt se dann mat NNNext-Bezéiunge fir de Forward Pass ze definéieren.</p><p>Configuration an Training/Test Datasets sinn optional Elementer, déi Trainings-Hyperparameter an Datesaz-Metadonnéeën halen. Wann d'Diagramm fäerdeg ass, generéiert PyTorch- oder TensorFlow-Code aus dem Generate-Menü.</p>",
           "alt": "Iwwersiicht vum NN-Diagramm"
         },
         "containerLayers": {
           "title": "NN-Container, Schichten an TensorOps bäifügen",
-          "body": "<p>Fänkt un andeems Dir en NNContainer aus der Palett op d'Leinwand zitt; all neuronaal Netzwierkmoduler mussen do dra leien.</p><p>Verfügbar Schichten: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Verfügbar TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "body": "<p>Fänkt un andeems Dir en NNContainer aus der Palett op d'Leinwand zitt; all neuronal Netzwierkmoduler mussen do dra leien.</p><p>Verfügbar Schichten: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Verfügbar TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
           "alt": "NN-Palett mat enger gefall geloossener Schicht"
         },
         "connect": {
           "title": "Moduler verbannen (NNNext)",
-          "body": "<p>Zitt vun engem blaue Verbindungspunkt op engem Quellmodul op iergendee Zilmodul fir eng NNNext-Bezéiung ze erstellen. Deen doraus resultéierende \"next\"-Pfeil definéiert d'Reiefolleg vum Forward Pass, onofhängeg dovun, ob déi verbonne Moduler Schichten, TensorOps, oder eng Mëschung aus béide sinn.</p>",
-          "alt": "Zwee Moduler mat engem NNNext-Pfeil verbonnen"
+          "body": "<p>Zitt vun engem bloe Verbindungspunkt op engem Quellmodul op iergendee Zilmodul fir eng NNNext-Bezéiung ze erstellen. Deen doraus resultéierende \"next\"-Feil definéiert d'Reiefolleg vum Forward Pass, onofhängeg dovun, ob déi verbonne Moduler Schichten, TensorOps, oder eng Mëschung aus béide sinn.</p>",
+          "alt": "Zwee Moduler mat engem NNNext-Feil verbonnen"
         },
         "editAttributes": {
           "title": "Modul-Attributer änneren",
-          "body": "<p>Duebelklickt op iergendeng Schicht oder TensorOp fir hiren Attribut-Popup opzemaachen. Obligatoresch Attributer ginn ëmmer gewisen; optionaler ginn iwwer Kontrollkäschtercher aktivéiert.</p><p>Vill Felder benotzen Dropdowns: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Attributer vum Typ Lëscht passe sech un d'Dimensioun vum Modul un. Eng Pooling-Schicht mat <code>dimension = 2D</code> erwaart <code>kernel_dim = [3, 3]</code>, während <code>dimension = 3D</code> <code>[3, 3, 3]</code> erwaart. Déiselwecht Regel gëllt fir <code>stride_dim</code> an <code>output_dim</code>. Fir TensorOps kontrolléiert de gewielten <code>tns_type</code>, wéi eng Dimensiounsattribut gewise gëtt (zum Beispill <code>reshape_dim</code> fir reshape, <code>concatenate_dim</code> fir concatenate).</p>",
+          "body": "<p>Duebelklickt op iergendeng Schicht oder TensorOp fir hiren Attribut-Popup opzemaachen. Obligatoresch Attributer ginn ëmmer gewisen; optionaler ginn iwwer d'Checkboxen aktivéiert.</p><p>Vill Felder benotzen Dropdowns: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Attributer vum Typ Lëscht passe sech un d'Dimensioun vum Modul un. Eng Pooling-Schicht mat <code>dimension = 2D</code> erwaart <code>kernel_dim = [3, 3]</code>, wärend <code>dimension = 3D</code> <code>[3, 3, 3]</code> erwaart. Déiselwecht Regel gëllt fir <code>stride_dim</code> an <code>output_dim</code>. Fir TensorOps kontrolléiert de gewielten <code>tns_type</code>, wéi eng Dimensiounsattribut gewise gëtt (zum Beispill <code>reshape_dim</code> fir reshape, <code>concatenate_dim</code> fir concatenate).</p>",
           "alt": "Modul-Attributer änneren"
         },
         "datasets": {
           "title": "Datesätz (Training an Test)",
-          "body": "<p>Datesätz sinn optional. Benotzt en Training Dataset an en Test Dataset fir Datequellen fir d'Netzwierk ze deklaréieren.</p><p>Obligatoresch Attributer sinn <code>name</code> an <code>path_data</code> (Datei- oder Dossier-Pad zum Datesatz). Optional Attributer sinn <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) an <code>input_format</code> (<code>csv</code>, <code>images</code>). Wann <code>input_format = images</code>, erschénge zwee zousätzlech Attributer: <code>shape</code> (zum Beispill <code>[32, 32, 3]</code>) an <code>normalize</code> (<code>true</code> oder <code>false</code>).</p><p>Verbënnt all Datesatz mam NNContainer mat enger Associatiounslinn.</p>",
+          "body": "<p>Datesätz sinn optional. Benotzt en Training Dataset an en Test Dataset fir Datequellen fir d'Netzwierk ze deklaréieren.</p><p>Obligatoresch Attributer sinn <code>name</code> an <code>path_data</code> (Datei- oder Dossier-Pad zum Datesaz). Optional Attributer sinn <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) an <code>input_format</code> (<code>csv</code>, <code>images</code>). Wann <code>input_format = images</code>, erschénge zwee zousätzlech Attributer: <code>shape</code> (zum Beispill <code>[32, 32, 3]</code>) an <code>normalize</code> (<code>true</code> oder <code>false</code>).</p><p>verbannt all Datesaz mam NNContainer mat enger Associatiounslinn.</p>",
           "alt": "Trainings- an Test-Datesätz"
         },
         "configuration": {
           "title": "Konfiguratioun",
-          "body": "<p>D'Konfiguratioun ass optional. Zitt e Configuration-Element a verbënnt et mam NNContainer mat enger Kompositiounsbezéiung fir Trainings-Hyperparameter festzeleeën.</p><p>Obligatoresch Attributer: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>), an <code>metrics</code> (Méifachauswiel aus <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optional Attributer: <code>weight_decay</code> an <code>momentum</code>.</p>",
+          "body": "<p>D'Konfiguratioun ass optional. Zitt e Configuration-Element a verbannt et mam NNContainer mat enger Kompositiounsbezéiung fir Trainings-Hyperparameter festzeleeën.</p><p>Obligatoresch Attributer: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>), an <code>metrics</code> (Méifachauswiel aus <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optional Attributer: <code>weight_decay</code> an <code>momentum</code>.</p>",
           "alt": "Configuration-Element mat Optimizer-Dropdown"
         },
         "reference": {
           "title": "En anert Netzwierk referenzéieren (NNReference)",
-          "body": "<p>Benotzt en NNReference-Element fir en NN nei ze benotzen, dee scho op der selwechter Leinwand definéiert ass. Wielt den Ziel-NNContainer aus dem Popup; dat referenzéiert Netzwierk gëtt während der Code-Generéierung als Subnetzwierk abezunn.</p>",
+          "body": "<p>Benotzt en NNReference-Element fir en NN nei ze benotzen, dee scho op der selwechter Leinwand definéiert ass. Wielt den Ziel-NNContainer aus dem Popup; dat referenzéiert Netzwierk gëtt wärend der Code-Generéierung als Subnetzwierk abezunn.</p>",
           "alt": "NNReference mat Popup fir Zilauswiel"
         },
         "validateGenerate": {
           "title": "Validéieren a generéieren",
-          "body": "<p>Féiert d'Quality Check aus der Uewerleescht aus fir strukturell Problemer wéi net verbonne Schichten oder feelend obligatoresch Attributer ze fänken, ier Dir Code generéiert.</p><p>Maacht de Generate-Menü op a wielt e Framework an e Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Ënnerklass mat engem expliziten Forward Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Kompositioun fir strikt sequenziell Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Ënnerklass mat engem benotzerdefinéierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Kompositioun.</li></ul><p>D'NN-Architekturdefinitioun gëtt am gewielte Framework generéiert, zesumme mat Trainings- an Evaluatiounscode, wann Datesätz an Configuration definéiert sinn.</p>",
+          "body": "<p>Féiert de Qualitéitscheck aus der Uewerläischt aus fir strukturell Problemer wéi net verbonne Schichten oder feelend obligatoresch Attributer ze fänken, ier Dir Code generéiert.</p><p>Maacht de Generate-Menü op a wielt e Framework an e Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Ënnerklass mat engem expliziten Forward Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Kompositioun fir strikt sequenziell Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Ënnerklass mat engem benotzerdefinéierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Kompositioun.</li></ul><p>D'NN-Architekturdefinitioun gëtt am gewielte Framework generéiert, zesumme mat Trainings- an Evaluatiounscode, wann Datesätz an Configuration definéiert sinn.</p>",
           "alt": "Menü fir Code-Generéierung"
+        }
+      },
+      "user": {
+        "label": "Benotzerdiagramm",
+        "summary": "Modelléier Benotzerprofiler, déi personaliséiert Agenten a GUIen steieren.",
+        "about": {
+          "title": "Iwwer Benotzerdiagrammer",
+          "body": "<p>E Benotzerdiagramm beschreift ee Benotzerprofil: eng <code>User</code>-Wuerzel, verbonne mat Deeler wéi perséinlech Informatiounen, Kompetenz, Accessibilitéit, Kultur, Perséinlechkeet, Preferenzen an Ziler.</p>"
+        },
+        "addParts": {
+          "title": "Deeler derbäisetzen a beaarbechten",
+          "body": "<p>Zéi Profilelementer aus der Palette, verbann se mam <code>User</code> a duebelklick op en Element fir seng Attributwäerter ze setzen.</p>"
+        },
+        "editAsForm": {
+          "title": "Als Formulaire beaarbechten",
+          "body": "<p>Klick an der Tab-Läischt op <strong>Als Formulaire beaarbechten</strong> fir de Profil an engem guidéierte Säitepanel ze beaarbechten. Setz Deeler derbäi oder huel se ewech a setz Critèren; d’Ännerunge gesäit een direkt um Canvas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN-Diagramm",
+        "summary": "Modelléier Geschäftsprozesser mat Aufgaben, Evenementer, Gateways a Flëss.",
+        "buildProcess": {
+          "title": "E Prozess opbauen",
+          "body": "<p>Zéi Elementer aus der Palette: Aufgaben, Ënnerprozesser, Transaktiounen an Opruffaktivitéiten; Start-, Zwëschen- an Ennevenementer; Gateways; Dateobjeten an Datespäicher; Pools a Lanes; Notizen a Gruppen.</p>"
+        },
+        "connectFlows": {
+          "title": "Mat Flëss verbannen",
+          "body": "<p>Zéi vun engem Element op en anert fir e Floss ze maachen. Den Editor wielt e gültegen Typ fir d’Pair (Sequenz, Message, Associatioun oder Dateassociatioun); duebelklick op e Floss fir en z’änneren.</p>"
+        },
+        "elementTypes": {
+          "title": "Elementtypen setzen",
+          "body": "<p>Duebelklick op eng Aufgab, en Evenement oder e Gateway fir den Typ ze setzen, zum Beispill eng Benotzer- oder Serviceaufgab, en Timer-Startevenement, oder en exklusiven oder parallele Gateway.</p>"
         }
       }
     }
@@ -1531,7 +1963,7 @@
   "shared": {
     "commandPalette": {
       "dialogLabel": "Kommandopalett",
-      "placeholder": "Gitt e Kommando an...",
+      "placeholder": "Gitt e Kommando an…",
       "searchLabel": "Kommandoen sichen",
       "noResults": "Keng passend Kommandoen",
       "navigate": "Navigéieren",
@@ -1565,7 +1997,7 @@
       "settingsTitle": "Privatsphär-Astellungen",
       "settingsDesc": "Analyse-Astellunge fir dëse Browser verwalten.",
       "policyTitle": "Dateschutzerklärung",
-      "policyDesc": "Resümé vun der Analysedatebehandlung an BESSER.",
+      "policyDesc": "Resumé vun der Analysedatebehandlung an BESSER.",
       "settingsButton": "Privatsphär-Astellungen",
       "banner": {
         "title": "Analyse-Cookien",
@@ -1605,7 +2037,7 @@
         "noCollect": {
           "identity": "Perséinlech Identitéitsdonnéeën (Numm, E-Mail)",
           "content": "Diagramm-/Modellinhalter",
-          "recordings": "Bildschiermopnamen oder Sessiounswiderhuelung",
+          "recordings": "Bildschiermopnamen oder Sessiounswidderhuelung",
           "names": "Projetsnimm an Diagrammtitelen"
         },
         "useTitle": "Wéi mir Donnéeën benotzen",
@@ -1632,9 +2064,9 @@
       "expand": "{{name}} opklappen",
       "collapse": "{{name}} zouklappen",
       "root": "Wuerzel",
-      "generatingBuml": "B-UML-Virschau gëtt generéiert...",
+      "generatingBuml": "B-UML-Virschau gëtt generéiert…",
       "noBumlPreview": "Nach keng B-UML-Virschau verfügbar.",
-      "generating": "Generéiert...",
+      "generating": "Generéiert…",
       "regenerate": "Nei generéieren",
       "downloadBuml": "B-UML eroflueden",
       "copyBuml": "B-UML kopéieren",
@@ -1696,7 +2128,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
       "bumlLabel": "Projet B-UML Virschau"
-    }
+    },
+    "skipToEditor": "Op den Editor sprangen"
   },
   "editors": {
     "diagramTabs": {
@@ -1721,8 +2154,11 @@
       "diagramTabLabel": "Diagramm-Tab: {{title}}",
       "validationStatusLabel": "Validatiounsstatus: {{status}}",
       "renameDiagram": "Diagramm ëmbenennen",
-      "closeTabLabel": "Tab {{title}} zoumaachen",
-      "closeTab": "Tab zoumaachen",
+      "closeTabLabel": "Diagramm {{title}} läschen",
+      "closeTab": "Diagramm läschen",
+      "deleteConfirmTitle": "Dëst Diagramm läschen?",
+      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
+      "deleteConfirmAction": "Diagramm läschen",
       "addNewDiagram": "Nei Diagramm bäifügen",
       "expandLinkedDiagrams": "Verlinkten Diagrammer opklappen",
       "collapseLinkedDiagrams": "Verlinkten Diagrammer zouklappen",
@@ -1736,10 +2172,24 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
-      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar"
+      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "tablistLabel": "Diagrammer",
+      "editAsForm": "Als Formulaire beaarbechten",
+      "closeForm": "Formulaire zoumaachen",
+      "editAsFormTitle": "Dëse Profil mat engem guidéierte Formulaire beaarbechten",
+      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm geläscht ({{type}})",
+        "derivedFrom": "← Ofgeleet vun <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "D'Quelldiagramm huet sech geännert, zënter dëst Diagramm ofgeleet gouf.",
+        "sourceChanged": "Quell geännert",
+        "implementationOf": "← Ëmsetzung vun <em>{{lane}}</em>",
+        "unnamedLane": "(Bunn ouni Numm)",
+        "openFailed": "D'Quelldiagramm konnt net opgemaach ginn."
+      }
     },
     "charts": {
-      "loadingChart": "Diagramm gëtt gelueden...",
+      "loadingChart": "Diagramm gëtt gelueden…",
       "noDataAvailable": "Keng Daten verfügbar"
     },
     "table": {
@@ -1758,7 +2208,7 @@
     "quantum": {
       "editorTitle": "Quantum Editor",
       "saved": "Gespäichert",
-      "saving": "Späicheren...",
+      "saving": "Späicheren…",
       "error": "Feeler",
       "undo": "Réckgängeg",
       "redo": "Widderhuelen",
@@ -1896,7 +2346,11 @@
         "AXIS_SAMPLE": "3-Achsen-Stéchprouf: Tast de Qubit gläichzäiteg an den X-, Y- an Z-Basen of. Fir d'tomographesch Rekonstruktioun.",
         "SPACER": "Ofstandshalter"
       },
-      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert"
+      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert",
+      "toolboxLabel": "Gatter-Toolbox",
+      "gateName": "Gatternumm",
+      "placeGateLabel": "{{gate}}-Gatter placéieren",
+      "armedHint": "Klick op eng Zell vum Circuit fir {{gate}} ze placéieren. Esc fir ofzebriechen."
     },
     "gui": {
       "traits": {
@@ -2062,11 +2516,15 @@
         "valueColor": "Wäert-Faarf",
         "valueSize": "Wäert-Gréisst",
         "negativeTrendColor": "Faarf negativen Trend",
-        "positiveTrendColor": "Faarf positiven Trend"
+        "positiveTrendColor": "Faarf positiven Trend",
+        "latitudeField": "Breedegrad-Feld",
+        "longitudeField": "Längegrad-Feld",
+        "markerLabelField": "Marker-Titel-Feld",
+        "layers": "Schichten"
       },
       "pages": {
         "title": "Säiten",
-        "searchPlaceholder": "Säite sichen...",
+        "searchPlaceholder": "Säite sichen…",
         "addNewPage": "Nei Säit dobäisetzen",
         "addPage": "Säit dobäisetzen",
         "editRoute": "URL-Route änneren",
@@ -2082,7 +2540,44 @@
         "ok": "OK",
         "deletePageTitle": "Säit läschen",
         "deleteConfirm": "Säit \"{{name}}\" läschen?",
-        "delete": "Läschen"
+        "delete": "Läschen",
+        "unnamedProfile": "Profil ouni Numm",
+        "loadingNotice": "Dëst ka bis zu enger Minutt daueren. Maacht den Editeur w.e.g net zou.",
+        "personalizationServiceInvalid": "De Personalisatiounsdéngscht huet eng ongëlteg Säit zeréckginn.",
+        "noProfiles": "Et si keng Benotzerprofiler verfügbar. Erstellt als éischt e Benotzerprofil am Benotzerdiagramm a probéiert et dann nach eng Kéier.",
+        "autoPersonalize": "Mat KI automatesch personaliséieren",
+        "autoPersonalizeDescription": "Benotzt e LLM, fir den Inhalt an de Stil vun der Säit un dëse Profil unzepassen. Loosst d'Këscht net markéiert, fir d'Säit onverännert ze kopéieren.",
+        "userProfile": "Benotzerprofil",
+        "active": "aktiv",
+        "deleteVariantDescription": "\"{{name}}\" huet personaliséiert Varianten. Wielt, wat geläscht soll ginn.",
+        "basePage": "Basissäit",
+        "basePageDescription": "läscht d'Säit an all Varianten",
+        "deleteAll": "Alles läschen",
+        "deletePageOrVariant": "Säit oder Variant läschen",
+        "defaultHome": "Haaptsäit",
+        "defaultAbout": "Iwwer",
+        "defaultContact": "Kontakt",
+        "switchVariant": "Variant wiesselen",
+        "addPersonalizedVariant": "Personaliséiert Variant dobäisetzen",
+        "base": "Basis",
+        "createVariantTitle": "Säitevariant erstellen",
+        "createVariantDescription": "Wielt e Benotzerprofil, fir eng personaliséiert Variant vu \"{{name}}\" ze erstellen.",
+        "createVariant": "Variant erstellen",
+        "personalizingTitle": "Säit gëtt mat KI personaliséiert",
+        "personalizingDescription": "\"{{pageName}}\" gëtt fir {{profileName}} ugepasst…",
+        "requestTimedOut": "D'Ufro huet d'Zäitlimitt iwwerschratt.",
+        "personalized": "✓ \"{{pageName}}\" gouf fir {{profileName}} personaliséiert.",
+        "personalizationFailed": "KI-Personaliséierung ass feelgeschloen",
+        "personalizationFailedDescription": "{{error}}\n\nWëllt Dir trotzdem eng Kopie erstellen, fir se manuell ze personaliséieren?",
+        "somethingWentWrong": "Eppes ass schifgaangen.",
+        "createCopy": "Kopie erstellen",
+        "variantExists": "Variant gëtt et schonn",
+        "variantExistsAiDescription": "Et gëtt schonn eng Variant fir \"{{name}}\". Wëllt Dir weiderfueren an se mat KI nei generéieren? Hiren aktuellen Inhalt gëtt dobäi ersat.",
+        "variantExistsBaseDescription": "Et gëtt schonn eng personaliséiert Variant fir \"{{name}}\". Wann Dir se nach eng Kéier erstellt, gëtt hiren aktuellen Inhalt duerch d'Basissäit ersat. Weiderfueren?",
+        "regenerateWithAi": "Mat KI nei generéieren",
+        "replaceWithBase": "Duerch Basis ersetzen",
+        "untitledPage": "Säit ouni Titel",
+        "copySuffix": "Kopie"
       },
       "columnsManager": {
         "title": "Tabellekolonnen",
@@ -2121,14 +2616,10 @@
         "previewMode": "Virschau-Modus",
         "greeting": "Moien! Ech sinn {{agentName}}. Wéi kann ech hëllefen?",
         "previewMessage": "Dëst ass eng Virschau vun der Chat-Uewerfläch",
-        "selectAgent": "Wielt en Agent fir ze chatten...",
-        "typeMessage": "Message aginn...",
+        "selectAgent": "Wielt en Agent fir ze chatten…",
+        "typeMessage": "Message aginn…",
         "selectAgentFirst": "Fir d'éischt en Agent auswielen",
         "send": "Schécken"
-      },
-      "map": {
-        "location": "Standuert",
-        "viewLargerMap": "Méi grouss Kaart weisen"
       },
       "utils": {
         "selectPage": "-- Säit auswielen --",
@@ -2146,7 +2637,7 @@
       "errorGeneratingGui": "Feeler beim Generéiere vum GUI: {{message}}",
       "guiModelLoaded": "GUI-Modell vum Assistent gelueden.",
       "statusSaved": "Gespäichert",
-      "statusSaving": "Späicheren...",
+      "statusSaving": "Späicheren…",
       "statusErrorSaving": "Feeler beim Späicheren",
       "editorStillLoading": "Den Editor lued nach. Waart wannechgelift e Moment a probéiert nach eng Kéier.",
       "errorSavingProject": "Feeler beim Späichere vum Projet. Kuckt wannechgelift d'Konsol fir Detailer.",
@@ -2225,7 +2716,53 @@
           "range": "Beräich",
           "search": "Sich"
         }
+      },
+      "layerManager": {
+        "title": "Kaarteschichten",
+        "addLayer": "Schicht dobäisetzen",
+        "removeLayer": "Schicht ewechhuelen",
+        "defaultLayerName": "Schicht {{index}}",
+        "none": "— keng —",
+        "typePoints": "Punkten (Lat/Lng-Marker)",
+        "typeGeojson": "GeoJSON-Polygonen/-Linnen",
+        "typeChoropleth": "Choroplethekaart (agefierfte Regiounen)",
+        "typeHeatmap": "Hëtztkaart",
+        "weightField": "Gewiichtsfeld",
+        "geometryField": "Geometrifeld (GeoJSON)",
+        "valueField": "Wäertfeld"
+      },
+      "colorPalette": "Faarfpalette",
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Eidel Säit",
+        "title": "Maach aus dengem Modell en Ecran",
+        "subtitle": "Generéier dës Säit aus dengem Klassendiagramm, bau se aus Bléck oder beschreif se. Du kanns dat duerno kombinéieren.",
+        "subtitleNoClasses": "Ecranen ginn aus dengem Klassendiagramm generéiert. Setz fir d’éischt e puer Klassen derbäi oder fänk direkt mat Bléck un.",
+        "generateTitle": "Aus dem Klassendiagramm generéieren",
+        "generateDescription": "{{count}} Klassen fonnt: {{names}}.",
+        "addClassesTitle": "Fir d’éischt Klassen derbäisetzen",
+        "addClassesDescription": "Mécht de Klasseneditor op. Komm zréck fir Ecranen ze generéieren.",
+        "blocksTitle": "Mat engem Block ufänken",
+        "blocksDescription": "Zéi Kolonnen, Text, Tabellen a Formulairen op d’Säit.",
+        "describeTitle": "Den Ecran beschreiwen",
+        "describeDescription": "So dem Assistent, wat dës Säit weise soll.",
+        "footer": "Dat verschwënnt, soubal s du eng Komponent derbäisetz.",
+        "figureTag": "Säit",
+        "newItem": "Nei: {{name}}",
+        "noClassesTitle": "Nach keng Klassen",
+        "noClassesHint": "Setz se am Klasseneditor derbäi",
+        "starterPrompt": "Maach eng Säit fir {{page}} ze duerchsichen",
+        "starterPromptNoClasses": "Maach eng Startsäit fir meng App",
+        "generateDescription_one": "1 Klass fonnt: {{names}}.",
+        "generateDescription_other": "{{count}} Klassen fonnt: {{names}}."
       }
+    },
+    "loadingGuiEditor": "GUI-Editor gëtt gelueden…",
+    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden…",
+    "hiddenPerspectives": {
+      "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
+      "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
+      "enable": "{{label}} aktivéieren"
     },
     "kg": {
       "nodeTypes": {
@@ -2847,14 +3384,7 @@
         "resetToDefaults": "Op Standard zerécksetzen"
       }
     },
-    "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
-    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
-    "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden...",
-    "hiddenPerspectives": {
-      "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
-      "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
-      "enable": "{{label}} aktivéieren"
-    }
+    "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden..."
   },
   "feedback": {
     "feedbackPlaceholder": "Sot eis, wat funktionéiert, wat net, a wat Dir als Nächst wëllt.",
@@ -2866,7 +3396,7 @@
       "unknownError": "Onbekannte Feeler",
       "submitFailed": "Schécke vum Feedback feelgeschloen: {{error}}"
     },
-    "submitting": "Gëtt geschéckt...",
+    "submitting": "Gëtt geschéckt…",
     "title": "Hëlleft eis, BESSER ze verbesseren",
     "description": "Deelt Äert Feedback iwwer den Editor an de Generatiounsworkflow.",
     "satisfactionQuestion": "Wéi zefridde sidd Dir mat Ärer Erfarung?",
@@ -2934,6 +3464,19 @@
       "projectExportedAs": "Projet als {{filename}} exportéiert",
       "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
     },
+    "diagramLabels": {
+      "ClassDiagram": "Klassendiagramm",
+      "ObjectDiagram": "Objetdiagramm",
+      "StateMachineDiagram": "Zoustandsdiagramm",
+      "AgentDiagram": "Agentendiagramm",
+      "UserDiagram": "Benotzerdiagramm",
+      "GUINoCodeDiagram": "Ecranen (GUI)",
+      "QuantumCircuitDiagram": "Quanteschaltung",
+      "NNDiagram": "Diagramm vun engem neuronalen Netz",
+      "BPMN": "BPMN-Prozess",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Deploymentdiagramm"
+    },
     "kg": {
       "options": {
         "title": "Knowledge Graph exportéieren",
@@ -2986,6 +3529,10 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    },
+    "warnings": {
+      "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
+      "unnamedElement": "(ouni Numm)"
     },
     "kg": {
       "owl": {
@@ -3136,7 +3683,7 @@
     "toasts": {
       "noDiagramToValidate": "Keen Diagramm fir ze validéieren",
       "diagramEmpty": "Den Diagramm ass eidel. Füügt Elementer bäi ier Dir d'Qualitéitskontroll ausféiert.",
-      "validating": "Den Diagramm gëtt validéiert...",
+      "validating": "Den Diagramm gëtt validéiert…",
       "timedOut": "D'Validéierung huet d'Zäitlimit iwwerschratt. De Backend ass villäicht iwwerlaascht.",
       "validationFailed": "Validéierung feelgeschloen",
       "errorsLabel": "Validéierungsfeeler:",
@@ -3155,7 +3702,336 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
       "dropHere": "Hei fale loossen",
-      "invalid": "Ongülteg"
+      "invalid": "Ongülteg",
+      "initialStateLabel": "Ufankszoustand vun {{qubit}}: {{state}}. Klick fir z’änneren."
+    }
+  },
+  "agentComponents": {
+    "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv.",
+    "sidebarTitle": "Komponenten",
+    "unnamed": "Onbenannt",
+    "nav": {
+      "llms": "LLMs",
+      "intents": "Intenten",
+      "tools": "Tools",
+      "skills": "Skills",
+      "workspaces": "Workspaces",
+      "ragDatabases": "RAG-Datebänk",
+      "sqlDatabases": "SQL-Datebänk",
+      "guis": "GUIs"
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "Sproochmoudeller disponibel fir den Agent. LLMs gi mat Numm aus Zoustänn a RAG-Datebänk referenzéiert.",
+      "addLabel": "LLM derbäisetzen",
+      "empty": "Nach keng LLMs defeneiert.",
+      "modelName": "Modellnumm",
+      "modelNamePlaceholder": "e.g. main_llm",
+      "modelNameDescription": "Identifikateur fir dëst LLM ze referenzéieren.",
+      "provider": "Provider",
+      "setDefault": "Als Standard-LLM setzen",
+      "setDefaultDescription": "Dëst LLM benotzen wann kee spezifescht LLM an enger Zoustandsaktioun ausgewielt ass.",
+      "numPrevMessages": "Unz. fréiere Messaggien",
+      "parameters": "Parameteren",
+      "parametersDescription": "Provider-spezifesch Parameteren als JSON-Objet.",
+      "globalContext": "Globale Kontext",
+      "globalContextPlaceholder": "Optional Systeminstruktiounen fir dëst LLM"
+    },
+    "intents": {
+      "title": "Intenten",
+      "description": "Benotzerintenten déi vum Agent erkannt ginn. All Intent kann Trainingssätz hunn fir d'Erkennung ze verbesseren.",
+      "addLabel": "Intent derbäisetzen",
+      "empty": "Noch keng Intenten defeneiert.",
+      "sentenceCount_one": "{{count}} Saz",
+      "sentenceCount_other": "{{count}} Sätz",
+      "name": "Intent-Numm",
+      "namePlaceholder": "e.g. greet_user",
+      "intentDescription": "Beschreiwung (optional)",
+      "intentDescriptionPlaceholder": "Kuerz Beschreiwung vun deem wat dësen Intent erfaasst",
+      "trainingSentences": "Trainingssätz",
+      "addSentence": "Saz derbäisetzen",
+      "noSentences": "Nach keng Trainingssätz. Setzt w.e.g. w.e.g. e puer bäi fir d'Intent-Erkennung ze verbesseren.",
+      "sentencePlaceholder": "z. B. Moien"
+    },
+    "tools": {
+      "title": "Tools",
+      "description": "Python-Funktiounen déi vu Reasoning States während der Agentexekutioun opgeruff ginn.",
+      "addLabel": "Tool derbäisetzen",
+      "empty": "Nach keng Tools defeneiert.",
+      "warning": "Tools kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Tools ze benotzen.",
+      "name": "Tool-Numm",
+      "namePlaceholder": "e.g. search_web",
+      "toolDescription": "Beschreiwung",
+      "toolDescriptionPlaceholder": "Kuerz Beschreiwung, déi dem LLM ugewise gëtt",
+      "code": "Python-Code",
+      "codeDescription": "Benotzt de Parameter `session` fir Zougang zur Agent-Sessioun."
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Markdown-Wëssendokumenter déi Reasoning States bereetgestallt ginn.",
+      "addLabel": "Skill derbäisetzen",
+      "empty": "Nach keng Skills defeneiert.",
+      "warning": "Skills kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Skills ze benotzen.",
+      "name": "Skill-Numm",
+      "namePlaceholder": "e.g. product_knowledge",
+      "skillDescription": "Beschreiwung",
+      "skillDescriptionPlaceholder": "Optional kuerz Beschreiwung",
+      "content": "Markdown-Inhalt",
+      "contentPlaceholder": "# Skill\n\nUweisungen a markdown…"
+    },
+    "workspaces": {
+      "title": "Workspaces",
+      "description": "Dateisystemverzeechnesser déi den Agent während dem Reasoning liese oder schreiwen kann.",
+      "addLabel": "Workspace derbäisetzen",
+      "empty": "Nach keng Workspaces defeneiert.",
+      "warning": "Workspaces kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Workspaces ze benotzen.",
+      "badgeWritable": "schreifbar",
+      "badgeReadOnly": "nëmme liesen",
+      "name": "Workspace-Numm",
+      "namePlaceholder": "e.g. project_files",
+      "path": "Dateisystem-Paad",
+      "pathPlaceholder": "/path/to/workspace",
+      "pathDescription": "Absolutte Paad zum Verzeichnis op dem Host-System.",
+      "wsDescription": "Beschreiwung",
+      "wsDescriptionPlaceholder": "Optional Beschreiwung",
+      "writable": "Schreifbar",
+      "writableDescription": "Dem Agent erlaben Fichieren ze crééieren oder ze änneren.",
+      "maxReadBytes": "Max. Liese-Bytes"
+    },
+    "rags": {
+      "title": "RAG-Datebänk",
+      "description": "Vektordatebänk fir retrieval-augmented generation.",
+      "addLabel": "RAG-Datebank derbäisetzen",
+      "empty": "Nach keng RAG-Datebänk defeneiert.",
+      "name": "Numm",
+      "namePlaceholder": "e.g. faq_db",
+      "llm": "LLM",
+      "llmUseDefault": "(Standard benotzen)",
+      "llmDescription": "LLM dat benotzt gëtt fir ofgerufene Inhalt ze beäntweren.",
+      "promptPrefix": "LLM-Ufforderungspräfix",
+      "promptPrefixPlaceholder": "Optional Ufforderungspräfix fir d'LLM",
+      "kChunks": "K (ofgerufene Stécker)",
+      "kChunksDescription": "Dokumentstécker déi pro Ufro ofgeruff ginn.",
+      "numPrevMessages": "Unz. fréiere Messaggien",
+      "embeddingProvider": "Aibindungsanbieder",
+      "embeddingOpenai": "OpenAI",
+      "embeddingOllama": "Ollama (lokal)",
+      "embeddingBaseUrl": "Aibindungs-Basis-URL",
+      "embeddingBaseUrlPlaceholder": "http://localhost:11434",
+      "embeddingModel": "Aibindungsmodell",
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+    },
+    "guis": {
+      "title": "GUIs",
+      "description": "Grafesch Benotzeroberfläch-Komponenten déi den Agent als Chat-Äntwerten schécke kann oder op GUI-Evenementer reagéiere kann.",
+      "addLabel": "GUI erstellen",
+      "empty": "Nach keng GUIs defeneiert.",
+      "badgeForm": "Formular",
+      "guiId": "GUI-ID (message_id)",
+      "guiIdPlaceholder": "Automatesch generéiert UUID",
+      "guiIdDescription": "Gëtt als message_id an GUIEvent a form_id an when_form_submitted benotzt.",
+      "persist": "Beibehalten",
+      "persistDescription": "D'GUI no der Benotzerinteraktioun siichtbar halen.",
+      "isForm": "Ass Formular",
+      "isFormDescription": "Aktivéiert when_form_submitted-Iwwergäng fir dës GUI.",
+      "width": "Breet (optional)",
+      "widthPlaceholder": "e.g. 600px",
+      "widthDescription": "CSS-Breet vum GUI-Panel.",
+      "editDesign": "GUI-Design beaarbechten",
+      "openEditor": "GUI-Editor opmaachen",
+      "editorTitle": "GUI-Editeur",
+      "editorSaveAndExit": "Späicheren an zoumaachen"
+    },
+    "sql": {
+      "title": "SQL-Datebänk",
+      "description": "SQL-Datebankverbindungen déi an db.sql an config.yaml geschriwwe ginn.",
+      "addLabel": "SQL-Datebank derbäisetzen",
+      "empty": "Nach keng SQL-Datebänk defeneiert.",
+      "name": "Numm",
+      "namePlaceholder": "e.g. my_database",
+      "nameDescription": "Gëtt als Schlëssel an config.yaml benotzt.",
+      "dialect": "Dialekt",
+      "dialectPostgresql": "PostgreSQL",
+      "dialectSqlite": "SQLite",
+      "dialectMysql": "MySQL",
+      "dialectMariadb": "MariaDB",
+      "dialectMssql": "Microsoft SQL Server",
+      "dialectOracle": "Oracle",
+      "databaseFilePath": "Datebankdatei-Paad",
+      "databaseName": "Datebanknumm",
+      "databaseFilePathPlaceholder": "/path/to/local.db",
+      "databaseNamePlaceholder": "YOUR-DB-NAME",
+      "host": "Host",
+      "hostPlaceholder": "localhost",
+      "port": "Port",
+      "portPlaceholder": "5432",
+      "username": "Benotzernumm",
+      "usernamePlaceholder": "YOUR-DB-USERNAME",
+      "password": "Passwuert",
+      "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Ewechhuelen",
+    "json": {
+      "mustBeObject": "Muss en JSON-Objet sinn",
+      "invalid": "Ongültegen JSON"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Agent simuléieren"
+    },
+    "panel": {
+      "header": "Simulator: {{title}}",
+      "stop": "Simulatioun stoppen",
+      "errorTitle": "Simulatiounsfeeler",
+      "tabDiagram": "Diagramm",
+      "tabSource": "Quellcode",
+      "lastTransition": "Leschten Iwwergang:",
+      "starting": "Simulatioun start…",
+      "restart": "Simulatioun nei starten",
+      "reset": "Nei starten",
+      "dragToResize": "Zéien fir d’Gréisst z’änneren",
+      "loading": "Den Agent gëtt gelueden, wann ech gelift waart.",
+      "resizeChat": "Chatberäich upassen"
+    },
+    "codeViewer": {
+      "copyTitle": "Code kopéieren",
+      "copyLabel": "Generéierten Agentencode kopéieren",
+      "emptyTitle": "De generéierte Code erschéngt hei",
+      "emptyDescription": "Féier de Validéierungsschrëtt aus, fir den Agentencode als Virschau ze weisen.",
+      "header": "Generéierten Agentencode"
+    },
+    "diagram": {
+      "currentState": "Aktuellen Zoustand:",
+      "hide": "Verstoppen",
+      "view": "Weisen",
+      "transitions_one": "{{count}} Iwwergang",
+      "transitions_other": "{{count}} Iwwergäng",
+      "empty": "Keen Agentendiagramm verfügbar"
+    },
+    "fileExplorer": {
+      "copy": "Dateiinhalt kopéieren",
+      "noSessionTitle": "Keng aktiv Testsitzung",
+      "noSessionDescription": "Start eng Testsitzung, fir déi generéiert Dateien z’entdecken.",
+      "loading": "Sitzungsdateie ginn gelueden…",
+      "filesTitle": "Dateien",
+      "refresh": "Dateien aktualiséieren",
+      "noFiles": "Keng Dateien oder Dossiere fonnt",
+      "selectFile": "Wiel eng Datei aus, fir hiren Inhalt ze weisen",
+      "fetchFailed": "D'Sessiounsfichiere konnten net geluede ginn: {{message}}"
+    },
+    "chat": {
+      "websocketError": "WebSocket-Verbindungsfeeler.",
+      "sensitivityWarning": "Deel am Test-Chat keng sensibel perséinlech Informatiounen. Sitzunge kënne protokolléiert ginn.",
+      "authRequired": "Fir d'Agentesimulatioun ass eng GitHub-Umeldung néideg. Mell dech w.e.g. fir d'éischt un.",
+      "agentError": "Agentefeeler: {{message}}",
+      "unknownError": "Onbekannten Agentefeeler",
+      "backendUnavailable": "D'URL vum Simulatiounsdéngscht ass net konfiguréiert.",
+      "connectionRejected": "De Simulatiounsdéngscht huet d'Verbindung refuséiert."
+    },
+    "terminal": {
+      "expand": "Terminal opklappen",
+      "collapse": "Terminal zesummeklappen",
+      "header": "Agentenausgab",
+      "empty": "Nach keng Ausgab…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Deel am Simulatiouns-Chat keng sensibel perséinlech Informatiounen (Passwierder, perséinlech Donnéeën, vertraulech Dokumenter). Simulatiounssitzunge ginn protokolléiert a kënne fir d’Bedreiwer vun dësem Editor siichtbar sinn.",
+      "title": "Agent simuléieren: {{name}}",
+      "apiKeysTitle": "API-Schlësselen",
+      "ownKeys": "Meng eege API-Schlësselen benotzen",
+      "editorQuota": "Editor-Kontingent benotzen",
+      "openAiLabel": "OpenAI-API-Schlëssel",
+      "optional": "(fakultativ)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "HuggingFace-API-Token",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Replicate-API-Schlëssel",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Ressourcelimiten",
+      "memory": "Späicher",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " Kär(en)",
+      "disk": "Disk",
+      "lifetime": "Sitzungsdauer",
+      "unitMin": " min",
+      "start": "Simulatioun starten"
+    },
+    "errors": {
+      "startFailed": "D'Agentesimulatioun konnt net gestart ginn.",
+      "validateFailed": "Den Agent konnt net validéiert ginn.",
+      "stopFailed": "D'Agentesimulatioun konnt net gestoppt ginn.",
+      "restartFailed": "D'Agentesimulatioun konnt net nei gestart ginn.",
+      "restartUnavailable": "Näischt fir nei ze starten: start fir d'éischt d'Simulatioun.",
+      "limitsFailed": "D'Simulatiounslimitten konnten net geluede ginn.",
+      "timeout": "De Simulatiounsdéngscht huet net rechtzäiteg geäntwert.",
+      "networkError": "Netzwierkfeeler"
+    },
+    "launch": {
+      "emptyDiagram": "D'Agentediagramm ass eidel. Setz Zoustänn, Iwwergäng an Intents derbäi, ier s de simuléiers.",
+      "validationFailed": "D'Validatioun vum Agent ass feelgeschloen: {{message}}",
+      "validationFailedGeneric": "Validatioun feelgeschloen"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann net definéiert ginn: D'BPMN-Diagramm ass net aktiv.",
+      "noProject": "Et ass kee Projet op.",
+      "limitReached": "Et kënne keng weider Agent-Diagrammer derbäigesat ginn (max. {{max}} pro Projet). Läscht als éischt en existent Agent-Diagramm.",
+      "flushFailed": "D'BPMN-Diagramm konnt net gespäichert ginn, ier den Agent definéiert gouf. Probéiert w.e.g. nach eng Kéier.",
+      "createFailed": "D'Agent-Diagramm konnt net erstallt ginn. Probéiert w.e.g. nach eng Kéier.",
+      "linkNotSaved": "D'Agent-Diagramm gouf erstallt, mee de Link konnt net um BPMN-Element gespäichert ginn.",
+      "openFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net opgemaach ginn. Maacht et iwwer d'Tabs vun den Agent-Diagrammer op.",
+      "openExistingFailed": "D'Agent-Diagramm konnt net opgemaach ginn.",
+      "populateFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net aus der Bunn gefëllt ginn.",
+      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt:",
+      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt:",
+      "emptyAgent": {
+        "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotFound": "D'Bunn konnt net gelies ginn, dofir fänkt d'Agent-Diagramm eidel un."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "D'Komponentendiagramm kann net ofgeleet ginn: {{reason}}",
+        "noPools": "Setzt als éischt op d'mannst ee Pool mat Bunnen an dëst BPMN-Diagramm.",
+        "noLanes": "Setzt als éischt op d'mannst eng Bunn an e Pool.",
+        "notBpmn": "Dës Aktioun funktionéiert nëmmen an engem BPMN-Diagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel u Komponentendiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Komponentendiagramm generéiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert:"
+      },
+      "deployment": {
+        "failed": "D'Deploymentdiagramm kann net ofgeleet ginn: {{reason}}",
+        "noComponents": "Setzt als éischt op d'mannst ee Komponent an dëst Komponentendiagramm.",
+        "notComponentDiagram": "Dës Aktioun funktionéiert nëmmen an engem Komponentendiagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel un Deploymentdiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Deploymentdiagramm generéiert.",
+        "doneWithWarnings_one": "Deploymentdiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Deploymentdiagramm mat {{count}} Warnungen generéiert:"
+      }
+    },
+    "warnings": {
+      "more": "…an nach {{count}}",
+      "unnamed": "(ouni Numm)",
+      "droppedTask": "D'Aufgab „{{task}}“ läit an der net-agentescher Bunn „{{lane}}“ a gëtt dofir net am Komponentendiagramm gewisen.",
+      "capabilityHeavyAgent": "Den Agent „{{lane}}“ benotzt {{count}} Tools, Fäegkeeten a Ressourcen; säin Deel vum Diagramm ka dofir iwwerlueden ausgesinn.",
+      "capabilityHeavyZone": "D'Grupp „{{zone}}“ huet {{count}} Elementer a ka iwwerlueden ausgesinn.",
+      "danglingAgentRef": "„{{name}}“ verweist op en Agent-Diagramm, dat net méi an dësem Projet ass; seng Tools a Fäegkeete goufen iwwersprong.",
+      "flatScaffold": "D'Komponentendiagramm huet keng Subsystemer, dofir goufen all d'Komponenten op een eenzegen Docker Host gesat. Setzt Subsystemer derbäi fir e méi räicht Layout.",
+      "ioUnresolvedIn": "De Floss vu „{{peer}}“ erreecht keng Aufgab vun dëser Bunn, dofir kritt keen Zoustand en.",
+      "ioUnresolvedOut": "De Floss op „{{peer}}“ fänkt bei kenger Aufgab vun dëser Bunn un, dofir schéckt keen Zoustand en.",
+      "mergeNoProducers": "De gesteierte Fusiouns-Gateway „{{gateway}}“ huet keen erakommende Floss, dofir huet säin Decisiounszoustand keen erakommenden Iwwergang. Setzt en mat der Hand derbäi.",
+      "mergeNoSuccessors": "De gesteierte Fusiouns-Gateway „{{gateway}}“ féiert op keng Aufgab vun dëser Bunn, dofir huet säin Decisiounszoustand keen erausgoenden Iwwergang. Setzt en mat der Hand derbäi."
     }
   }
 }

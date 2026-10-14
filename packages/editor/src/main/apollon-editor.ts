@@ -1,5 +1,5 @@
 import 'pepjs';
-import { createElement } from 'react';
+import { createElement, ReactElement } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { DeepPartial, Store } from 'redux';
 import { ModelState, PartialModelState } from './components/store/model-state';
@@ -21,7 +21,12 @@ import { debounce } from './utils/debounce';
 import { delay } from './utils/delay';
 import { ErrorBoundary } from './components/controls/error-boundary/ErrorBoundary';
 import { replaceColorVariables } from './utils/replace-color-variables';
-import { UMLModelCompat } from './compat';
+import { backwardsCompatibleModel, UMLModelCompat } from './compat';
+import { normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
+import { LineageProvider, lineageContext } from './components/lineage/LineageContext';
+import { ElementPickerProvider, elementPickerContext } from './components/element-picker/ElementPickerContext';
+import { AgentDiagramLinker, agentDiagramLinkerContext } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+import { HostProviderSlot } from './components/host-provider/host-provider';
 
 export class ApollonEditor {
   private ensureInitialized() {
@@ -41,7 +46,7 @@ export class ApollonEditor {
    */
   get model(): Apollon.UMLModel {
     this.ensureInitialized();
-    return ModelState.toModel(this.store!.getState());
+    return this.toPublicModel(this.store!.getState());
   }
 
   /**
@@ -51,7 +56,7 @@ export class ApollonEditor {
   set model(model: UMLModelCompat) {
     this.ensureInitialized();
     const state: PartialModelState = {
-      ...ModelState.fromModel(model),
+      ...ModelState.fromModel(this.prepareModel(model)),
       editor: { ...this.store!.getState().editor },
     };
     this.recreateEditor(state);
@@ -74,6 +79,19 @@ export class ApollonEditor {
   }
 
   /**
+   * Shows or hides the agentic BPMN controls (the Agentic switches on lanes,
+   * tasks and gateways). Rebuilds the editor like the locale setter.
+   * @param enabled whether the agentic controls are shown
+   */
+  set agenticEnabled(enabled: boolean) {
+    this.ensureInitialized();
+    const state = this.store!.getState();
+    if (state.editor.agenticEnabled === enabled) return;
+    this.options.agenticEnabled = enabled;
+    this.recreateEditor({ ...state, editor: { ...state.editor, agenticEnabled: enabled } });
+  }
+
+  /**
    * Sets the current locale of the Apollon Editor.
    * @param locale supported locale
    */
@@ -89,15 +107,17 @@ export class ApollonEditor {
    * @param model the apollon model to export as a svg
    * @param options options to change the export behavior (add margin, exclude element ...)
    * @param theme the theme which should be applied on the svg
+   * @param locale language of translated labels in the svg (defaults to English)
    */
   static async exportModelAsSvg(
     model: Apollon.UMLModel,
     options?: Apollon.ExportOptions,
     theme?: DeepPartial<Styles>,
+    locale?: Locale,
   ): Promise<Apollon.SVG> {
     const container = document.createElement('div');
     const root = createRoot(container);
-    const element = createElement(Svg, { model, options, styles: theme });
+    const element = createElement(Svg, { model, options, styles: theme, locale });
     const svg = new Svg({ model, options, styles: theme });
     root.render(element);
     await delay(50);
@@ -111,6 +131,8 @@ export class ApollonEditor {
   selection: Apollon.Selection = { elements: {}, relationships: {} };
   private root?: Root;
   private currentModelState?: ModelState;
+  private lastSelected?: ModelState['selected'];
+  private lastAssessments?: ModelState['assessments'];
   private assessments: Apollon.Assessment[] = [];
   private application: Application | null = null;
   private patcher = new Patcher<UMLModel>();
@@ -120,12 +142,26 @@ export class ApollonEditor {
   private discreteModelSubscribers: { [key: number]: (model: Apollon.UMLModel) => void } = {};
   private errorSubscribers: { [key: number]: (error: Error) => void } = {};
   private nextRenderPromise: Promise<void>;
+  /**
+   * Agent components migrated out of a legacy model on load (see `prepareModel`). They are not
+   * part of the editor state, so they are attached to the emitted model until the first model
+   * change notification has handed them to the host for persisting.
+   */
+  private migratedAgentComponents?: { [id: string]: Apollon.UMLModelComponent };
+
+  // Host-supplied providers read by the popups. Each slot survives editor
+  // rebuilds and forwards setter calls to the mounted React provider root.
+  private readonly lineageSlot = new HostProviderSlot<LineageProvider>(lineageContext);
+  private readonly elementPickerSlot = new HostProviderSlot<ElementPickerProvider>(elementPickerContext);
+  private readonly agentDiagramLinkerSlot = new HostProviderSlot<AgentDiagramLinker>(agentDiagramLinkerContext);
 
   constructor(
     private container: HTMLElement,
     private options: Apollon.ApollonOptions,
   ) {
-    let state: PartialModelState | undefined = options.model ? ModelState.fromModel(options.model) : {};
+    let state: PartialModelState | undefined = options.model
+      ? ModelState.fromModel(this.prepareModel(options.model))
+      : {};
 
     state = {
       ...state,
@@ -138,6 +174,7 @@ export class ApollonEditor {
         view: ApollonView.Modelling,
         mode: options.mode || ApollonMode.Exporting,
         colorEnabled: options.colorEnabled || false,
+        agenticEnabled: options.agenticEnabled || false,
         zoomFactor: options.scale || 1.0,
         readonly: options.readonly || false,
         enablePopups: options.enablePopups === true || options.enablePopups === undefined,
@@ -173,7 +210,11 @@ export class ApollonEditor {
       styles: options.theme,
       locale: options.locale,
     });
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
+    );
     this.root = createRoot(container);
     this.root.render(errorBoundary);
     try {
@@ -234,6 +275,40 @@ export class ApollonEditor {
    */
   unsubscribeFromSelectionChange(subscriptionId: number) {
     delete this.selectionSubscribers[subscriptionId];
+  }
+
+  /**
+   * Register a lineage provider so derived-element popups can
+   * render a "← Derived from X" link and dispatch click-through.
+   * Pass `null` to clear. Safe to call before or after mount; the
+   * editor captures the latest value on its next render.
+   */
+  setLineageProvider(provider: LineageProvider | null): void {
+    this.lineageSlot.set(provider);
+  }
+
+  /**
+   * Register an element-picker provider so cross-diagram pickers
+   * (`realizes`, `manifests`) can list elements from other diagrams.
+   * Pass `null` to clear. Safe before or after mount.
+   */
+  setElementPickerProvider(provider: ElementPickerProvider | null): void {
+    this.elementPickerSlot.set(provider);
+  }
+
+  /**
+   * Register an agent-diagram linker so the agentic-lane popup can
+   * render the Define / Open affordance and dispatch the project-mutating
+   * callbacks. Pass `null` to clear. Safe to call before or after mount;
+   * the editor captures the latest value on its next render.
+   */
+  setAgentDiagramLinker(linker: AgentDiagramLinker | null): void {
+    this.agentDiagramLinkerSlot.set(linker);
+  }
+
+  /** Wraps the application element in the host-provider roots read by the popups. */
+  private wrapWithHostProviders(app: ReactElement): ReactElement {
+    return this.elementPickerSlot.wrap(this.lineageSlot.wrap(this.agentDiagramLinkerSlot.wrap(app)));
   }
 
   /**
@@ -399,7 +474,7 @@ export class ApollonEditor {
    * @param options options to change the export behavior (add margin, exclude element ...)
    */
   exportAsSVG(options?: Apollon.ExportOptions): Promise<Apollon.SVG> {
-    return ApollonEditor.exportModelAsSvg(this.model, options, this.options.theme);
+    return ApollonEditor.exportModelAsSvg(this.model, options, this.options.theme, this.options.locale);
   }
 
   /**
@@ -431,33 +506,37 @@ export class ApollonEditor {
   private onDispatch = () => {
     if (!this.store) return;
     const { elements, selected, assessments } = this.store.getState();
-    const selection: Apollon.Selection = {
-      elements: selected
-        .filter((id) => elements[id].type in UMLElementType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-      relationships: selected
-        .filter((id) => elements[id].type in UMLRelationshipType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-    };
+    // Runs on every dispatch (each drag step); only recompute when the slice itself changed.
+    if (selected !== this.lastSelected) {
+      this.lastSelected = selected;
+      const selection: Apollon.Selection = { elements: {}, relationships: {} };
+      for (const id of selected) {
+        if (elements[id].type in UMLElementType) selection.elements[id] = true;
+        else if (elements[id].type in UMLRelationshipType) selection.relationships[id] = true;
+      }
 
-    // check if previous selection differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
-      Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
-      this.selection = selection;
+      // check if previous selection differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
+        Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
+        this.selection = selection;
+      }
     }
 
-    const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
-      modelElementId: id,
-      elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
-      score: assessments[id].score,
-      feedback: assessments[id].feedback,
-      dropInfo: assessments[id].dropInfo,
-    }));
+    if (assessments !== this.lastAssessments) {
+      this.lastAssessments = assessments;
+      const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
+        modelElementId: id,
+        elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
+        score: assessments[id].score,
+        feedback: assessments[id].feedback,
+        dropInfo: assessments[id].dropInfo,
+      }));
 
-    // check if previous assessment differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
-      Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
-      this.assessments = umlAssessments;
+      // check if previous assessment differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
+        Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
+        this.assessments = umlAssessments;
+      }
     }
 
     // notfiy that action was done
@@ -473,14 +552,13 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
-      const model = this.model;
       if (
         // At the end of each update operation there is an action that ends with END except DELETE
         // Function is called with every redux action but only notifies subscribers if the action ends with given words
         this.store.getState().lastAction.endsWith('END') ||
         this.store.getState().lastAction.endsWith('DELETE')
       ) {
-        const lastModel = ModelState.toModel(this.store.getState());
+        const lastModel = this.toPublicModel(this.store.getState());
         Object.values(this.discreteModelSubscribers).forEach((subscriber) => subscriber(lastModel));
       }
     } catch (error) {
@@ -493,11 +571,17 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
+      // Mid-drag/resize every pointer move lands here; emit once the gesture ends.
+      const { moving, resizing } = this.store.getState();
+      if (moving.length || resizing.length) return;
       const model = this.model;
       const lastModel = this.currentModelState ? ModelState.toModel(this.currentModelState) : null;
       if ((!lastModel && model) || (lastModel && JSON.stringify(model) !== JSON.stringify(lastModel))) {
         Object.values(this.modelSubscribers).forEach((subscriber) => subscriber(model));
         this.currentModelState = this.store.getState();
+        // The host now has the migrated components; later emissions must not overwrite
+        // the host's (possibly newer) copy with this load-time snapshot.
+        this.migratedAgentComponents = undefined;
       } else {
         this.currentModelState = this.store.getState();
       }
@@ -506,6 +590,23 @@ export class ApollonEditor {
       // -> no need to emit latest changes
     }
   }, 50);
+
+  /**
+   * Normalizes a model on every load path: upgrades older model versions and, for agent
+   * diagrams, moves off-canvas agent components out of `elements` / legacy `agentComponents`
+   * into `components` so they never reach the canvas state.
+   */
+  private prepareModel(compatModel: UMLModelCompat): UMLModel {
+    const model = backwardsCompatibleModel(compatModel);
+    const normalized = normalizeAgentComponents(model);
+    this.migratedAgentComponents = normalized !== model ? normalized.components : undefined;
+    return normalized;
+  }
+
+  private toPublicModel(state: ModelState): UMLModel {
+    const model = ModelState.toModel(state);
+    return this.migratedAgentComponents ? { ...model, components: this.migratedAgentComponents } : model;
+  }
 
   private recreateEditor(state: PartialModelState) {
     this.destroy();
@@ -528,7 +629,11 @@ export class ApollonEditor {
       styles: this.options.theme,
       locale: this.options.locale,
     } as any);
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
+    );
     this.root = createRoot(this.container);
     this.root.render(errorBoundary);
     this.componentDidMount();

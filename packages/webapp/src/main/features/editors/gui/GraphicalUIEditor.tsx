@@ -1,28 +1,21 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import './grapesjs-styles.css';
-import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { getChartConfigs } from './configs/chartConfigs';
-import { getTableConfig } from './configs/tableConfig';
-import { getMetricCardConfig } from './configs/metricCardConfigs';
-import { getMapConfig } from './configs/mapConfig';
-import { registerChartComponent } from './component-registrars/registerChartComponent';
-import { registerTableComponent } from './component-registrars/registerTableComponent';
-import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
-import { registerMapComponent } from './component-registrars/registerMapComponent';
-import { registerButtonComponent } from './component-registrars/registerButtonComponent';
-import { registerFormComponents } from './component-registrars/registerFormComponents';
-import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
-import { registerAgentComponent } from './component-registrars/registerAgentComponent';
+import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
-import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
-import { setupInputBlocks } from './setup/setupInputBlocks';
-import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
+import { registerAllComponents } from './registerAllComponents';
+import { ensureDesignSystemStyles } from './designSystem';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 
@@ -65,6 +58,12 @@ export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Empty-page guidance: shown over the canvas while the current page has no components.
+  const [isPageEmpty, setIsPageEmpty] = useState(false);
+  const [isDraggingBlock, setIsDraggingBlock] = useState(false);
+  const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track the active language so a switch remounts the editor (see the init
@@ -149,6 +148,17 @@ export const GraphicalUIEditor: React.FC = () => {
             throw new Error('Invalid GrapesJS model data');
           }
 
+          // GrapesJS only allows double-click text editing when a component has
+          // BOTH type:'text' AND editable:true. Models loaded via loadProjectData
+          // use their component defs as-is (the preset-webpage plugin's defaults
+          // are NOT applied), so agent-generated text arrives locked. Walk the
+          // model and mark every text component editable (and coerce bare text
+          // tags like <p> to editable text) so generated GUIs can be edited just
+          // like manually-created ones. Mutating `model` here fixes both the live
+          // load (below) and the persisted copy (saved further down). The shared
+          // helper is reused on the assistant's editor-bypass injection paths.
+          markTextEditable(model);
+
           // Clear existing pages
           const pages = editor.Pages;
           if (pages) {
@@ -158,6 +168,15 @@ export const GraphicalUIEditor: React.FC = () => {
 
           // Load the new project data into the live editor
           editor.loadProjectData(model);
+
+          // The undo stack now spans two unrelated documents — Ctrl+Z would
+          // walk back into a mix of the old and new pages. Programmatic loads
+          // are a fresh baseline, not an edit: clear the history.
+          editor.UndoManager?.clear?.();
+
+          // Older agent models may predate the ds-* stylesheet — make sure
+          // the design system exists so palette blocks stay on-theme.
+          ensureDesignSystemStyles(editor);
 
           // Persist to ProjectStorageRepository (Redux sync happens
           // automatically via useStorageSync listening to notifyChange)
@@ -238,23 +257,37 @@ export const GraphicalUIEditor: React.FC = () => {
       window.addEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
       window.addEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
       window.addEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+
+      // Empty-page state: re-check after anything that can add/remove components or switch pages.
+      const updateEmptyState = () => {
+        const wrapper = editor.getWrapper();
+        setIsPageEmpty(Boolean(wrapper) && wrapper!.components().length === 0);
+        setCanvasEl(editor.Canvas.getElement() ?? null);
+      };
+      const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
+      const onBlockDragStart = () => setIsDraggingBlock(true);
+      const onBlockDragStop = () => {
+        setIsDraggingBlock(false);
+        deferEmptyCheck();
+      };
+      editor.on('load page:select component:add component:remove', deferEmptyCheck);
+      editor.on('block:drag:start', onBlockDragStart);
+      editor.on('block:drag:stop', onBlockDragStop);
+      updateEmptyState();
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
-      // Register all custom components
-      registerCustomComponents(editor);
+      // Custom components, blocks and traits are registered once in
+      // setupEditorFeatures() via registerAllComponents().
 
-      // Handle editor load event
-      editor.on('load', () => {
-        // console.log('[GraphicalUIEditor] Editor ready, loading stored data');
-        editor.StorageManager.load((data: unknown) => {
-          if (data && Object.keys(data as Record<string, unknown>).length > 0) {
-            console.log('[GraphicalUIEditor] Stored data loaded successfully');
-          } else {
-            console.log('[GraphicalUIEditor] No stored data found, using defaults');
-          }
-        });
-      });
+      // Stored data is loaded by the StorageManager itself (autoload: true in
+      // the init config) — no manual re-load here: a second load re-imported
+      // the project on top of the already-loaded document.
+
+      // Blank/manual projects get the baseline ds-* stylesheet so palette
+      // blocks render in the same design language as agent-generated pages.
+      // (Agent projects already carry their own themed ds-* rules — no-op.)
+      editor.on('load', () => ensureDesignSystemStyles(editor));
 
       // Store cleanup so the synchronous teardown can call it
       cleanupFn = () => {
@@ -306,6 +339,9 @@ export const GraphicalUIEditor: React.FC = () => {
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
         window.removeEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+        editor.off('load page:select component:add component:remove', deferEmptyCheck);
+        editor.off('block:drag:start', onBlockDragStart);
+        editor.off('block:drag:stop', onBlockDragStop);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
 
         // Destroy editor and clean up global reference
@@ -333,8 +369,87 @@ export const GraphicalUIEditor: React.FC = () => {
     // GrapesJS registrar/config re-runs in the new language (see the `lang` state above).
   }, [lang]);
 
+  // Stamp the "Saved · hh:mm" time whenever a save round-trip completes.
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      setLastSavedAt(new Date());
+    }
+  }, [saveStatus]);
+
+  // Classes of the referenced class diagram, read when the empty state is about to show.
+  const emptyStateClasses = useMemo(
+    () =>
+      isPageEmpty
+        ? getClassOptions().map((c) => ({ name: c.label, attributes: getAttributeOptionsByClassId(c.value).map((a) => a.label) }))
+        : [],
+    [isPageEmpty],
+  );
+
+  const openBlocksPanel = () => {
+    const button = editorRef.current?.Panels?.getButton?.('views', 'open-blocks');
+    if (button && !button.get('active')) button.set('active', true);
+  };
+
+  const describeScreen = () => {
+    const first = emptyStateClasses.find((c) => c.attributes.length > 0) ?? emptyStateClasses[0];
+    const prompt = first
+      ? i18n.t('editors.gui.emptyState.starterPrompt', { page: pluralize(first.name).toLowerCase() })
+      : i18n.t('editors.gui.emptyState.starterPromptNoClasses');
+    // Opens the bottom assistant with the prompt typed in (not sent), so the user can adjust it.
+    window.dispatchEvent(new CustomEvent('wme:assistant-prefill', { detail: { prompt } }));
+  };
+
   return (
-    <div ref={containerRef} id="gjs"></div>
+    <div className="relative h-full min-h-0">
+      <div ref={containerRef} id="gjs"></div>
+      {isPageEmpty &&
+        !isDraggingBlock &&
+        canvasEl &&
+        createPortal(
+          <GuiEmptyState
+            classes={emptyStateClasses}
+            onGenerate={() => editorRef.current?.runCommand('auto-generate-gui')}
+            onOpenBlocks={openBlocksPanel}
+            onDescribe={describeScreen}
+            onAddClasses={() => void dispatch(switchDiagramTypeThunk({ diagramType: 'ClassDiagram' }))}
+          />,
+          canvasEl,
+        )}
+      {/* Save-status badge — the only user-visible confirmation that edits
+          persist. Driven by the storage listeners above; pointer-events-none
+          so it never blocks canvas interaction. */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-sm"
+      >
+        {saveStatus === 'saving' && (
+          <>
+            <Loader2 className="size-3 animate-spin text-brand" />
+            <span className="text-muted-foreground">{i18n.t('editors.gui.statusSaving')}</span>
+          </>
+        )}
+        {saveStatus === 'saved' && (
+          <>
+            <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-muted-foreground">
+              {i18n.t('editors.gui.statusSaved')}
+              {lastSavedAt && (
+                <span className="font-mono text-[10px] text-muted-foreground/70">
+                  {' · '}
+                  {lastSavedAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </span>
+          </>
+        )}
+        {saveStatus === 'error' && (
+          <>
+            <AlertTriangle className="size-3 text-destructive" />
+            <span className="text-destructive">{i18n.t('editors.gui.statusErrorSaving')}</span>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -387,6 +502,15 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
+
+    // Load the design typefaces (Inter + Fraunces, shipped same-origin in
+    // /public/fonts) into the canvas iframe — the CSP blocks external font
+    // hosts, so real typography has to come from our own origin. The agent's
+    // design-system tokens reference these families.
+    canvas: {
+      styles: ['/fonts/design-fonts.css'],
+      scripts: [],
+    },
 
     // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` uses our
     // own pack (`grapesjsLocaleLb`) since GrapesJS ships none.
@@ -468,10 +592,6 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     },
 
     showOffsets: true,
-    canvas: {
-      styles: [],
-      scripts: [],
-    },
   });
 }
 
@@ -508,40 +628,11 @@ function setupEditorFeatures(
   
   // Additional features
   setupDataBindingTraits(editor);
-  setupCustomTraits(editor);
-  setupLayoutBlocks(editor);
-  setupInputBlocks(editor);
-  // enableAbsolutePositioning(editor);
+  // Shared components, blocks and traits (also used by AgentGUIEditor).
+  registerAllComponents(editor);
   
   // Return cleanup function
   return cleanupStorage;
-}
-
-/**
- * Register all custom components
- */
-function registerCustomComponents(editor: Editor) {
-  // Configs are built via factories so labels resolve in the current language
-  // on every (re)mount — e.g. after a language switch remounts the editor.
-  // Register charts
-  getChartConfigs().forEach((config) => {
-    registerChartComponent(editor, config);
-  });
-
-  // Register table
-  registerTableComponent(editor, getTableConfig());
-
-  // Register metric card
-  registerMetricCardComponent(editor, getMetricCardConfig());
-
-  // Register other components
-  registerMapComponent(editor, getMapConfig());
-  registerButtonComponent(editor);
-  // registerFormComponents(editor); // Commented out - forms removed for now
-  registerLayoutComponents(editor);
-  registerAgentComponent(editor);
-  
-  // console.log('[GraphicalUIEditor] All custom components registered');
 }
 
 /**
@@ -556,7 +647,7 @@ function removeUnwantedBlocks(editor: Editor) {
     'quote',           // Quote
     // 'link',            // Link
     'video',           // Video
-    'map',             // Map (we have custom map in Charts category)
+    // 'map' is our custom Leaflet map block — do NOT remove it
     'sect100',         // Section blocks
     'sect50',
     'sect30',
@@ -594,7 +685,7 @@ function removeUnwantedBlocks(editor: Editor) {
 /**
  * Setup ProjectStorageRepository integration
  */
-function setupProjectStorageIntegration(
+export function setupProjectStorageIntegration(
   editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
   saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
@@ -698,7 +789,6 @@ function setupProjectStorageIntegration(
         if (updated) {
           // Redux sync happens automatically via useStorageSync
           setSaveStatus('saved');
-          setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
@@ -713,17 +803,14 @@ function setupProjectStorageIntegration(
   // Listen to storage events
   editor.on('storage:start', () => {
     setSaveStatus('saving');
-    updateSaveStatusUI(editor, 'saving');
   });
   
   editor.on('storage:end', () => {
     setSaveStatus('saved');
-    updateSaveStatusUI(editor, 'saved');
   });
   
   editor.on('storage:error', () => {
     setSaveStatus('error');
-    updateSaveStatusUI(editor, 'error');
   });
   
   // Wait for editor to be fully loaded before setting up auto-save
@@ -797,8 +884,11 @@ function setupProjectStorageIntegration(
       editor.on('page:add page:remove page:update', debouncedSave);
       editor.on('style:update', debouncedSave);
       
-      // Periodic backup save every 30 seconds - store in ref so we can clear it
+      // Periodic backup save every 30 seconds - store in ref so we can clear it.
+      // Skipped when nothing changed: each store replaces the whole project
+      // and re-renders the shell.
       saveIntervalRef.current = setInterval(() => {
+        if (editor.getDirtyCount() === 0) return;
         safeSave();
       }, 30000);
       
@@ -821,30 +911,6 @@ function setupProjectStorageIntegration(
       saveIntervalRef.current = null;
     }
   };
-}
-
-/**
- * Update save status UI indicator
- */
-function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error') {
-  const statusEl = document.getElementById('save-status-indicator');
-  if (!statusEl) return;
-  
-  const config = {
-    saved: { icon: '✓', message: i18n.t('editors.gui.statusSaved'), color: '#27ae60' },
-    saving: { icon: '⟳', message: i18n.t('editors.gui.statusSaving'), color: '#3498db' },
-    error: { icon: '⚠', message: i18n.t('editors.gui.statusErrorSaving'), color: '#e74c3c' }
-  };
-  
-  const { icon, message, color } = config[status];
-  const spinAnimation = status === 'saving' ? 'animation: spin 1s linear infinite;' : '';
-  
-  statusEl.innerHTML = `
-    <span style="color: ${color}; display: flex; align-items: center; gap: 6px;">
-      <span style="font-size: 16px; ${spinAnimation}">${icon}</span>
-      <span style="font-size: 12px; font-weight: 500;">${message}</span>
-    </span>
-  `;
 }
 
 // ============================================
@@ -934,21 +1000,6 @@ function setupCommands(editor: Editor) {
     },
   });
   
-  // // Preview mode with filtering
-  // editor.Commands.add('preview-mode', {
-  //   run(editor: Editor) {
-  //     setTimeout(() => filterPreviewContent(editor), 100);
-  //     editor.runCommand('preview');
-  //   },
-  //   stop(editor: Editor) {
-  //     editor.stopCommand('preview');
-  //     restorePreviewContent(editor);
-  //   },
-  // });
-  
-//   // Filter preview on default preview command
-//   editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
-//   editor.on('stop:preview', () => restorePreviewContent(editor));
 }
 
 /**
@@ -978,7 +1029,7 @@ ${html}
  */
 function createDownloadButton(id: string, label: string): string {
   return `
-    <button id="${id}" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+    <button id="${id}" style="margin-bottom: 15px; background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
       ${label}
     </button>
   `;
@@ -991,7 +1042,7 @@ function createModalContent(downloadBtn: string, content: string, textareaId: st
   return `
     <div style="padding: 20px;">
       ${downloadBtn}
-      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${content}</textarea>
+      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground));">${content}</textarea>
     </div>
   `;
 }
@@ -1111,42 +1162,42 @@ function addAutoGenerateGUIButton(editor: Editor) {
 
       const modalContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; line-height: 1.5;">
             ${i18n.t('editors.gui.autoGenerateIntro')}
           </p>
 
-          <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
+          <div style="background-color: rgba(127, 127, 127, 0.08); border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: hsl(var(--brand)); margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
             </div>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
+            <ul style="margin: 0; padding-left: 1.5rem; color: inherit; font-size: 0.875rem; line-height: 1.8;">
               <li>${i18n.t('editors.gui.autoGenerateItemNav')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemPage')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemMethods')}</li>
             </ul>
           </div>
 
-          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; color: #664d03;">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+          <div style="background-color: rgba(255, 193, 7, 0.14); border: 1px solid rgba(255, 193, 7, 0.55); border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; color: inherit;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="color: #d39e00; margin-right: 0.5rem;">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCannotUndo')}</strong>
             </div>
           </div>
 
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; font-weight: 500;">
             ${i18n.t('editors.gui.autoGenerateConfirmQuestion')}
           </p>
 
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid rgba(127, 127, 127, 0.25);">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('common.cancel')}
             </button>
-            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: 1px solid hsl(var(--brand)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>
@@ -1162,12 +1213,12 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (confirmBtn) {
         confirmBtn.onmouseover = () => {
-          confirmBtn.style.backgroundColor = '#0b5ed7';
-          confirmBtn.style.borderColor = '#0a58ca';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand-dark))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand-dark))';
         };
         confirmBtn.onmouseout = () => {
-          confirmBtn.style.backgroundColor = '#0d6efd';
-          confirmBtn.style.borderColor = '#0d6efd';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand))';
         };
         confirmBtn.onclick = async () => {
           modal.close();
@@ -1192,12 +1243,10 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (cancelBtn) {
         cancelBtn.onmouseover = () => {
-          cancelBtn.style.backgroundColor = '#5c636a';
-          cancelBtn.style.borderColor = '#565e64';
+          cancelBtn.style.backgroundColor = 'hsl(var(--muted))';
         };
         cancelBtn.onmouseout = () => {
-          cancelBtn.style.backgroundColor = '#6c757d';
-          cancelBtn.style.borderColor = '#6c757d';
+          cancelBtn.style.backgroundColor = 'transparent';
         };
         cancelBtn.onclick = () => {
           modal.close();
@@ -1234,15 +1283,15 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
       : `<li>${i18n.t('editors.gui.unknownError')}</li>`;
     const modalContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-        <h2 style="color:#e74c3c; margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
-        <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+        <h2 style="color:hsl(var(--destructive)); margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
+        <p style="font-size:1rem; color:inherit; margin-bottom:1rem;">
           ${i18n.t('editors.gui.qualityCheckFailedMessage')}
         </p>
-        <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+        <ul style="background:hsl(var(--destructive) / 0.08); border:1px solid hsl(var(--destructive) / 0.5); border-radius:6px; padding:1rem; color:hsl(var(--destructive)); font-size:1rem;">
           ${errorList}
         </ul>
         <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
-          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:hsl(var(--destructive)); color:hsl(var(--destructive-foreground)); border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
         </div>
       </div>
     `;
@@ -1328,8 +1377,12 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
     
     await new Promise(resolve => setTimeout(resolve, 120));
     editor.store();
+
+    // Auto-generate replaced every page: the undo history behind it mixes
+    // the old and new documents. Reset it so Ctrl+Z can't corrupt the result.
+    editor.UndoManager?.clear?.();
   };
-  
+
   // Execute the async page processing
   return processPages();
   
@@ -1518,7 +1571,7 @@ function buildPageComponents(
             if (classEnds?.length) {
               classEnds.forEach((end: any) => {
                 const targetClassMetadata = getClassMetadata(end.value);
-                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                const firstAttribute = getDisplayAttribute(targetClassMetadata);
                 autoColumns.push({
                   field: end.label || end.value,
                   label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
@@ -1851,42 +1904,73 @@ function resolveSidebarButtonLabel(
  */
 function setupDataBindingTraits(editor: Editor) {
   const dataBindableTypes = ['text', 'input', 'select', 'textarea', 'default', 'list', 'data-list', 'table'];
-  
-  // Add data binding traits to components
+
+  // Bindings are picked from the class diagram, never typed by hand: the
+  // class dropdown lists the referenced diagram's classes, and the two field
+  // dropdowns list the chosen class's attributes. Options are rebuilt on
+  // every selection so they track class-diagram changes.
+  const fieldOptions = (classId: string) => {
+    const meta = classId ? getClassMetadata(classId) : null;
+    const attrs = (meta?.attributes || []).map((a: any) => ({ value: a.name, label: a.name }));
+    return [{ value: '', label: '—' }, ...attrs];
+  };
+
+  const currentValue = (component: any, name: string) =>
+    component.get(name) ?? component.getAttributes()[name] ?? '';
+
+  const rebuildBindingTraits = (component: any) => {
+    const traits = component.get('traits');
+    const classId = currentValue(component, 'data-source');
+    const defs = [
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDataSource'),
+        name: 'data-source',
+        options: [{ value: '', label: '—' }, ...getClassOptions()],
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDisplayField'),
+        name: 'label-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitValueField'),
+        name: 'value-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+    ];
+    defs.forEach((def) => {
+      const existing = traits.where({ name: def.name })[0];
+      if (existing) traits.remove(existing);
+      traits.add({ ...def, value: currentValue(component, def.name) });
+    });
+  };
+
   editor.on('component:selected', (component: any) => {
     if (!component) return;
-    
+
     const compType = component.get('type');
     if (!dataBindableTypes.includes(compType) && component.get('tagName') !== 'input') return;
-    
-    const traits = component.get('traits');
-    const hasDataSource = traits.where({ name: 'data-source' }).length > 0;
-    
-    if (!hasDataSource) {
-      traits.add([
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDataSource'),
-          name: 'data-source',
-          placeholder: i18n.t('editors.gui.traitDataSourcePlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDisplayField'),
-          name: 'label-field',
-          placeholder: i18n.t('editors.gui.traitDisplayFieldPlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitValueField'),
-          name: 'value-field',
-          placeholder: i18n.t('editors.gui.traitValueFieldPlaceholder'),
-          changeProp: 1,
-        }
-      ]);
-      console.log('[Data Binding] Added traits to:', compType);
+
+    rebuildBindingTraits(component);
+
+    if (!component.__dsBindingWired) {
+      component.__dsBindingWired = true;
+      // Mirror binding values into HTML attributes (what the generator
+      // reads) and refresh the field dropdowns when the class changes.
+      ['data-source', 'label-field', 'value-field'].forEach((name) => {
+        component.on(`change:${name}`, () => {
+          const attrs = { ...component.getAttributes() };
+          attrs[name] = component.get(name) || '';
+          component.setAttributes(attrs);
+        });
+      });
+      component.on('change:data-source', () => rebuildBindingTraits(component));
     }
   });
   
@@ -1901,209 +1985,4 @@ function setupDataBindingTraits(editor: Editor) {
   });
   
   console.log('[Data Binding] System initialized');
-}
-
-/**
- * Setup custom traits (columns-manager, etc.)
- */
-function setupCustomTraits(editor: Editor) {
-  // Register columns-manager trait for tables
-  registerColumnsManagerTrait(editor);
-  
-  // console.log('[Custom Traits] Registered columns-manager trait');
-}
-
-// ============================================
-// ABSOLUTE POSITIONING
-// ============================================
-
-/**
- * Enable absolute positioning with free dragging
- */
-/**
- * Enable absolute positioning with free dragging
- */
-function enableAbsolutePositioning(editor: Editor) {
-  editor.on('load', () => {
-    const canvas = editor.Canvas;
-    const frame = canvas.getFrameEl();
-    
-    if (!frame || !frame.contentWindow) return;
-    
-    const frameDoc = frame.contentWindow.document;
-    let isDragging = false;
-    let dragTarget: any = null;
-    let dragStart = { x: 0, y: 0, left: 0, top: 0 };
-    
-    frameDoc.addEventListener('mousedown', (e: any) => {
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (!el) return;
-      
-      const component = findComponent(editor, el);
-      if (!component) return;
-      
-      const style = component.getStyle();
-      const position = Array.isArray(style.position) ? style.position[0] : style.position;
-      
-      if (position === 'absolute' || position === 'fixed') {
-        isDragging = true;
-        dragTarget = component;
-        dragStart = {
-          x: e.clientX,
-          y: e.clientY,
-          left: parseStyleValue(style.left),
-          top: parseStyleValue(style.top)
-        };
-        
-        el.style.cursor = 'move';
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (!isDragging || !dragTarget) return;
-      
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      dragTarget.setStyle({
-        left: `${dragStart.left + deltaX}px`,
-        top: `${dragStart.top + deltaY}px`,
-      });
-      
-      e.preventDefault();
-    });
-    
-    frameDoc.addEventListener('mouseup', () => {
-      if (isDragging && dragTarget) {
-        const el = dragTarget.getEl();
-        if (el) el.style.cursor = '';
-      }
-      isDragging = false;
-      dragTarget = null;
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (isDragging) return;
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (el) el.style.cursor = 'move';
-    });
-  });
-  
-  console.log('[Absolute Positioning] Dragging enabled');
-}
-
-/**
- * Find GrapesJS component for DOM element
- */
-function findComponent(editor: Editor, el: HTMLElement): any {
-  const componentId = el.getAttribute('data-gjs-id');
-  if (componentId) {
-    const wrapper = editor.getWrapper();
-    if (wrapper) {
-      const found = wrapper.find(`[data-gjs-id="${componentId}"]`);
-      if (found && found[0]) return found[0];
-    }
-  }
-  
-  let checkEl: any = el;
-  while (checkEl) {
-    if (checkEl.__gjscomp) return checkEl.__gjscomp;
-    if (!checkEl.parentElement || checkEl.parentElement === el.ownerDocument.body) break;
-    checkEl = checkEl.parentElement;
-  }
-  
-  return null;
-}
-
-/**
- * Parse CSS style value to number
- */
-function parseStyleValue(value: any): number {
-  if (Array.isArray(value)) value = value[0];
-  if (typeof value !== 'string') return 0;
-  const parsed = parseInt(value.replace('px', ''), 10);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-// ============================================
-// PREVIEW FILTERING
-// ============================================
-
-/**
- * Filter preview content to show only widgets and base components
- */
-/**
- * Filter preview content to show only widgets and base components
- */
-function filterPreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove existing filter if any
-  const existingStyle = frameDoc.getElementById('preview-filter-style');
-  if (existingStyle) existingStyle.remove();
-  
-  // Add CSS to hide editor UI
-  const style = frameDoc.createElement('style');
-  style.id = 'preview-filter-style';
-  style.textContent = `
-    .gjs-selected, .gjs-hovered, .gjs-highlightable, [data-gjs-highlightable],
-    [data-gjs-type="toolbar"], [data-gjs-type="toolbar-item"], .gjs-toolbar,
-    .gjs-cv-cover, .gjs-cv-canvas > .gjs-cover, .gjs-resizer, .gjs-ruler,
-    .gjs-ruler-v, .gjs-ruler-h, .gjs-offset-v, .gjs-offset-h, .gjs-offset, .gjs-badge {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-    }
-    [data-gjs-type]:not([data-gjs-type="toolbar"]):not([data-gjs-type="toolbar-item"]) {
-      visibility: visible !important;
-      display: block !important;
-    }
-  `;
-  frameDoc.head.appendChild(style);
-  
-  // Hide elements programmatically
-  const hideSelectors = ['.gjs-selected', '.gjs-hovered', '.gjs-toolbar', '.gjs-resizer', '.gjs-cv-cover', '.gjs-ruler', '.gjs-offset'];
-  hideSelectors.forEach(selector => {
-    try {
-      frameDoc.body.querySelectorAll(selector).forEach((el: any) => {
-        if (el && !el.hasAttribute('data-gjs-type')) {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.setAttribute('data-preview-hidden', 'true');
-        }
-      });
-    } catch (e) {
-      // Ignore errors
-    }
-  });
-  
-  console.log('[Preview] Content filtered');
-}
-
-/**
- * Restore preview content
- */
-function restorePreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove filter style
-  const filterStyle = frameDoc.getElementById('preview-filter-style');
-  if (filterStyle) filterStyle.remove();
-  
-  // Restore hidden elements
-  frameDoc.querySelectorAll('[data-preview-hidden="true"]').forEach((el: any) => {
-    el.style.display = '';
-    el.style.visibility = '';
-    el.removeAttribute('data-preview-hidden');
-  });
-  
-  console.log('[Preview] Content restored');
 }

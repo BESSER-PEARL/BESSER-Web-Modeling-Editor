@@ -21,18 +21,29 @@ export function useAutosizeTextArea({
     const currentRef = ref.current
     const borderAdjustment = borderWidth * 2
 
+    currentRef.style.removeProperty("height")
+
     if (originalHeight.current === null) {
+      // The empty height, measured with the value blanked. Measuring it as-is
+      // captured whatever content was present on the first render, and since
+      // it is the lower clamp below, a box that mounted holding a long value
+      // could never shrink again — a 4600-char prompt left a 1284px empty
+      // input after sending. Restored synchronously, before paint.
+      const value = currentRef.value
+      currentRef.value = ""
       originalHeight.current = currentRef.scrollHeight - borderAdjustment
+      currentRef.value = value
+      currentRef.style.removeProperty("height")
     }
 
-    currentRef.style.removeProperty("height")
     const scrollHeight = currentRef.scrollHeight
+    // maxHeight is the hard ceiling: clamping up to the minimum afterwards
+    // used to be able to exceed it, which is how 240px became 1284px.
+    const clamped = Math.min(
+      Math.max(Math.min(scrollHeight, maxHeight), originalHeight.current),
+      maxHeight,
+    )
 
-    // Make sure we don't go over maxHeight
-    const clampedToMax = Math.min(scrollHeight, maxHeight)
-    // Make sure we don't go less than the original height
-    const clampedToMin = Math.max(clampedToMax, originalHeight.current)
-
-    currentRef.style.height = `${clampedToMin + borderAdjustment}px`
+    currentRef.style.height = `${clamped + borderAdjustment}px`
   }, [maxHeight, ref, ...dependencies])
 }

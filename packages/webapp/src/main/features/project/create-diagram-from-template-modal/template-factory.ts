@@ -15,16 +15,19 @@ import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import dbagent from '../../../templates/pattern/agent/dbagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
+import chatbotAgent from '../../../templates/pattern/agent/chatbotagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
 import bpmnCarWash from '../../../templates/pattern/bpmn/car_wash.json';
 import bpmnOrderFulfillment from '../../../templates/pattern/bpmn/pizza_store.json';
+import bpmnAgenticStarter from '../../../templates/pattern/bpmn/agentic_starter.json';
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
+import multiAgentBugFixingProject from '../../../templates/pattern/multi-agent/bug_fixing.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -113,6 +116,13 @@ export class TemplateFactory {
           faqRagAgent as any,
           SoftwarePatternCategory.AGENT,
         );
+      case SoftwarePatternType.CHATBOT_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          chatbotAgent as any,
+          SoftwarePatternCategory.AGENT,
+        );
       case SoftwarePatternType.LIBRARY_AGENT:
         return new SoftwarePatternTemplate(
           softwarePatternType,
@@ -146,6 +156,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.BPMN,
           bpmnOrderFulfillment as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_AGENTIC_STARTER:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnAgenticStarter as any,
           SoftwarePatternCategory.BPMN,
         );
       case SoftwarePatternType.NN_TUTORIAL_EXAMPLE:
@@ -251,6 +268,14 @@ export class TemplateFactory {
           FULL_PROJECT_DIAGRAM_TYPE,
           personalizedGymAgentProject as object,
           SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.MULTI_AGENT_BUG_FIXING:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          multiAgentBugFixingProject as object,
+          SoftwarePatternCategory.MULTI_AGENT,
           false,
         );
       default:

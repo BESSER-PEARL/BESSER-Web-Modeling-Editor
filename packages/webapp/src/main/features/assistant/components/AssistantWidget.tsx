@@ -7,10 +7,10 @@
  * diagram switching via route navigation.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, CircleHelp, Code, Loader2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -22,12 +22,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
+import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
+import { sessionStorageAssistantDrawerOpen } from '../../../shared/constants/constant';
+import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
 /*  Constants & helpers                                                */
@@ -41,7 +47,7 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
       return 'bg-emerald-500';
     case 'connecting':
     case 'closing':
-      return 'bg-amber-500 animate-pulse';
+      return 'bg-amber-500 animate-pulse motion-reduce:animate-none';
     default:
       return 'bg-red-500';
   }
@@ -79,11 +85,20 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [byokOpen, setByokOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  // Reflect whether a BYOK key is saved (re-reads when the dialog closes).
+  const savedApiKey = readLlmKey();
 
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
+  // While a Spec-Driven run card is live it shows its own progress —
+  // suppress the chat's "Typing" chip so it doesn't stick for the whole
+  // run (the run card, not the chip, is the progress surface).
+  const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
 
   const isOnEditorPage = location.pathname === '/';
   // The modeling assistant is UML-oriented and has no reasoning over NN
@@ -116,12 +131,16 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressSteps,
     lastSentMessage,
     messageListContainerRef,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
+    reportIssue,
+    assistantClient,
   } = useAssistantLogic({
     isActive: isVisible,
     switchDiagram,
@@ -133,18 +152,70 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     handleSubmit(undefined, { overrideText: prompt });
   }, [handleSubmit]);
 
-  /* ---- Keyboard shortcuts on input ---- */
-  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setInputValue('');
+  /* ---- Suggested-action chip handler: route "modify the GUI" to the GUI tab ---- */
+  const handleSuggestedAction = useCallback((action: GuiActionRouteInput) => {
+    // "Review the spec" hides the widget so the diagram on the canvas is
+    // visible — it's a UI-only action, never relayed to the agent.
+    if (isReviewSpecAction(action)) {
+      setIsVisible(false);
       return;
     }
+    if (shouldOpenGuiTab(action)) {
+      void switchDiagram('GUINoCodeDiagram');
+      return;
+    }
+    handleSubmit(undefined, { overrideText: action.prompt ?? '' });
+  }, [handleSubmit]);
+
+  /* ---- Keyboard shortcuts on input ---- */
+  // Escape is handled by the composer (blur, keeping the draft) and the
+  // popup-level listener below (close), not here.
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'ArrowUp' && !inputValue && lastSentMessage) {
       e.preventDefault();
       setInputValue(lastSentMessage);
     }
   }, [inputValue, lastSentMessage, setInputValue]);
+
+  /* ---- Escape closes the popup and returns focus to the toggle ---- */
+  useEffect(() => {
+    if (!isVisible) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      // A dialog above the popup (privacy, API key) owns Escape.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      setIsVisible(false);
+      toggleRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isVisible]);
+
+  /* ---- Opening moves focus into the composer ---- */
+  useEffect(() => {
+    if (!isVisible) return;
+    // Phones would pop the keyboard over the popup; leave focus alone there.
+    if (window.matchMedia?.('(pointer: coarse)')?.matches) return;
+    const frame = requestAnimationFrame(() => {
+      containerRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isVisible]);
+
+  /* ---- Per-message options (stable so memoised messages skip re-render) ---- */
+  const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
+  const messageOptions = useCallback((message: ChatKitMessage) => {
+    const meta = messageMeta[message.id];
+    // onPushToGithub is always threaded so SpecDrivenCards can push;
+    // the status badge is added only when the message has one.
+    // Opening the push dialog is a pure dispatch — it's mounted
+    // app-level (SpecDrivenPushDialogHost) and Redux-driven.
+    if (!meta?.badge) return { onPushToGithub: handlePushToGithub };
+    return {
+      onPushToGithub: handlePushToGithub,
+      status: <MessageBadge badge={meta.badge} label={meta.badgeLabel} />,
+    };
+  }, [messageMeta, handlePushToGithub]);
 
   /* ---- Compute last assistant message for QuickActions ---- */
   const lastAssistantMsg = messages.length > 0
@@ -173,7 +244,15 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   /* ---- Hide widget when the workspace drawer is open ---- */
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Initialize from the persisted drawer state so a restored-open drawer hides
+  // the FAB on first paint (no reliance on the sync event racing our mount).
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     const onDrawer = (e: Event) => {
@@ -199,23 +278,28 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      <div className="fixed bottom-5 right-4 md:right-16" style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Clear of the canvas zoom controls (right edge); in the GUI editor, left of the
+          GrapesJS side panel (15% of the editor width) and its save-status badge. */}
+      <div ref={containerRef} className={cn('fixed bottom-5', activeDiagramType === 'GUINoCodeDiagram' ? 'right-[calc(15vw+1rem)]' : 'right-16')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
+          id="assistant-widget-panel"
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-all duration-300 ease-out sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
+          aria-hidden={!isVisible}
+          {...((!isVisible ? { inert: '' } : {}) as React.HTMLAttributes<HTMLElement>)}
         >
           {/* Header */}
-          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
+          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
-                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
+                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain dark:invert" />
               </div>
               <div>
                 <p className="text-sm font-semibold leading-none tracking-tight text-foreground">{t('assistant.modelingAssistant')}</p>
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">{t('assistant.byBesser')}</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">{t('assistant.byBesser')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -223,23 +307,55 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                className={cn(
+                  'relative size-7 rounded-lg transition-colors hover:bg-brand/5 hover:text-foreground',
+                  savedApiKey ? 'text-brand' : 'text-muted-foreground',
+                )}
+                onClick={() => setByokOpen(true)}
+                title={
+                  savedApiKey
+                    ? `Your ${savedApiKey.provider} API key is set — click to change or remove`
+                    : 'Use your own API key (assistant + generator)'
+                }
+                aria-label={savedApiKey ? 'API key set — click to change' : 'Use your own API key'}
+              >
+                <KeyRound className="size-3.5" />
+                {savedApiKey ? (
+                  <Check className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-background text-brand" />
+                ) : null}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground transition-colors hover:bg-brand/5 hover:text-foreground"
+                onClick={() => reportIssue()}
+                title="Report an issue — opens a pre-filled GitHub issue with this conversation's context"
+                aria-label="Report an issue"
+              >
+                <Flag className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
                 title={t('assistant.privacy.iconLabel')}
                 aria-label={t('assistant.privacy.iconLabel')}
               >
                 <CircleHelp className="size-3.5" />
               </Button>
-              <span className={cn('size-2 rounded-full', getConnectionDotClass(connectionStatus))} />
             </div>
           </div>
 
           {/* Message list */}
-          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+          <div className="relative min-h-0 flex-1">
+          <div ref={messageListContainerRef} className="h-full overflow-y-auto overscroll-contain bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
-                  <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-9 object-contain" />
+                  <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-9 object-contain dark:invert" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{t('assistant.welcome.greeting')}</p>
@@ -247,7 +363,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     {t('assistant.welcome.intro')}
                   </p>
                 </div>
-                <div className="flex flex-col gap-1.5 w-full max-w-xs">
+                {/* Same chip style as the drawer's starter prompts. */}
+                <div className="flex max-w-sm flex-wrap justify-center gap-2">
                   {[
                     t('assistant.welcome.suggestions.library'),
                     t('assistant.welcome.suggestions.payment'),
@@ -256,57 +373,91 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     <button
                       key={suggestion}
                       type="button"
-                      className="rounded-lg border border-border/50 bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand/5 hover:text-foreground"
+                      className="rounded-full border border-brand/15 bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-[color,background-color,border-color] duration-200 hover:border-brand/30 hover:bg-brand/5 hover:text-foreground"
                       onClick={() => handleQuickAction(suggestion)}
                     >
                       {suggestion}
                     </button>
                   ))}
                 </div>
+                {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
+                <p className="text-[11px] text-muted-foreground">
+                  {t('assistant.welcome.freeTier')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => setByokOpen(true)}
+                    className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                  >
+                    {t('assistant.welcome.changeModel')}
+                  </button>
+                </p>
+                {/* Study-mode notice (regular sessions render nothing) */}
+                <PilotSessionNotice />
               </div>
             ) : (
+            <>
+            {/* Study-mode notice (regular sessions render nothing) */}
+            <PilotSessionNotice className="mb-3" />
             <MessageList
               messages={messages}
-              isTyping={isGenerating}
+              isTyping={isGenerating && !hasLiveSpecDrivenRun}
+              typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
               showTimeStamps={false}
-              messageOptions={(message: ChatKitMessage) => {
-                const meta = messageMeta[message.id];
-                if (!meta?.badge) return {};
-                return {
-                  actions: (
-                    <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
-                  ),
-                };
-              }}
+              messageOptions={messageOptions}
             />
+            </>
             )}
 
-            {/* Progress indicator */}
-            {progressMessage && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                <Loader2 className="size-3 animate-spin" />
-                <span>{progressMessage}</span>
-              </div>
-            )}
+            {/* Progress indicator — evolving step list so long operations
+                visibly show motion. Clears automatically on completion. */}
 
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
-              <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+              <QuickActions actions={lastMeta.suggestedActions} onAction={handleSuggestedAction} />
             )}
+
+            {/* Limit reached / auth error → offer the user their own key */}
+            {lastMeta?.needsApiKey && (
+              <div className="mt-2 flex justify-start">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-lg bg-brand text-brand-foreground hover:bg-brand-dark"
+                  onClick={() => setByokOpen(true)}
+                >
+                  <KeyRound className="size-3.5" />
+                  Add your API key
+                </Button>
+              </div>
+            )}
+          </div>
+          {/* Scroll-to-bottom — shown while the user has scrolled up;
+              streaming no longer force-follows their position */}
+          {showScrollToBottom && (
+            <button
+              type="button"
+              aria-label="Scroll to bottom"
+              onClick={scrollMessagesToBottom}
+              className="absolute bottom-3 right-4 z-10 rounded-full border border-border/60 bg-background/95 p-2 text-muted-foreground shadow-md backdrop-blur transition-colors hover:bg-muted hover:text-foreground animate-in fade-in-0 slide-in-from-bottom-1"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+          )}
           </div>
 
           {/* Input + status */}
           <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md">
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                 <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
-                <span className="text-[10px] text-muted-foreground/30">|</span>
-                <span className="text-[10px] text-muted-foreground/50">{t('assistant.messageCount', { count: messages.length })}</span>
-              </div>
+              <span
+                className={cn('font-mono text-[11px] tracking-wide', rateLimitColor)}
+                title={t('assistant.rateLimitTooltip', { limit: 8 })}
+              >
+                {rateLimitStatus.requestsLastMinute}/8
+              </span>
             </div>
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
               {({ files, setFiles }) => (
@@ -329,25 +480,29 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
         {/* ── FAB toggle button ── */}
         <Button
+          ref={toggleRef}
           type="button"
           size="icon"
+          aria-expanded={isVisible}
+          aria-controls="assistant-widget-panel"
           className={cn(
-            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            'group relative size-14 rounded-2xl border bg-card/70 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95',
             isVisible
               ? 'border-brand/20 ring-1 ring-brand/15'
-              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
+              // Phones: the drawer's "Describe your app" pill is the entry point; the FAB would sit on top of it.
+              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5 max-sm:hidden',
           )}
           onClick={() => setIsVisible((p) => !p)}
           title={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
           aria-label={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
         >
           {isVisible ? (
-            <X className="size-5 transition-transform duration-200 group-hover:rotate-90" />
+            <X className="size-5 transition-transform duration-200 [@media(hover:hover)]:group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 dark:invert [@media(hover:hover)]:group-hover:scale-110" />
               {connectionStatus === 'connected' && (
-                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
               )}
             </>
           )}
@@ -382,6 +537,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Bring-your-own-key dialog ── */}
+      <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
+
+      {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
+          opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );
 };

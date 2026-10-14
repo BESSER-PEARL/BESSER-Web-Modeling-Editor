@@ -2,7 +2,13 @@ import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
+import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
+import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
+
+/** The toast's own icon carries the status; drop the emoji the backend prefixes ("✅ Diagram is valid"). */
+const stripStatusEmoji = (text: string): string =>
+  text.replace(/^\s*(?:✅|❌|⚠️?|ℹ️?)\s*/u, '');
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -55,7 +61,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         toast.info(i18n.t('validation.toasts.diagramEmpty'), {
           position: 'top-right',
           autoClose: 4000,
-          theme: 'dark',
         });
       }
       return { isValid: true, errors: [] };
@@ -66,13 +71,15 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       toast.loading(i18n.t('validation.toasts.validating'), {
         toastId: VALIDATION_TOAST_ID,
         position: "top-right",
-        theme: "dark",
         autoClose: false,
         closeOnClick: false,
         closeButton: false,
         draggable: false
       });
     }
+
+    // Agent models leave the editor through the single shared helper (components + transitions).
+    const modelToSend = model?.type === 'AgentDiagram' ? prepareAgentModelForBackend(model) : model;
 
     // Call unified validation endpoint with timeout
     const controller = new AbortController();
@@ -86,7 +93,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         },
         body: JSON.stringify({
           title: diagramTitle,
-          model: model
+          model: modelToSend
         }),
         signal: controller.signal,
       });
@@ -131,7 +138,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
 
     // Show validation errors
     if (!suppressToasts && result.errors && result.errors.length > 0) {
-      const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + result.errors.join("\n\n");
+      const errorMessage = `${i18n.t('validation.toasts.errorsLabel')}\n\n` + result.errors.map(stripStatusEmoji).join("\n\n");
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: false,
@@ -140,7 +147,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "dark",
         style: {
           ...longToastStyle
         }
@@ -149,7 +155,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
     // Show warnings
     if (!suppressToasts && result.warnings && result.warnings.length > 0) {
-      const warningMessage = `⚠️ ${i18n.t('validation.toasts.warningsLabel')}\n\n` + result.warnings.join("\n\n");
+      const warningMessage = `${i18n.t('validation.toasts.warningsLabel')}\n\n` + result.warnings.map(stripStatusEmoji).join("\n\n");
       toast.warning(warningMessage, {
         position: "top-right",
         autoClose: false,
@@ -158,7 +164,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "dark",
         style: {
           ...longToastStyle
         }
@@ -167,7 +172,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
     // Show valid OCL constraints
     if (!suppressToasts && result.valid_constraints && result.valid_constraints.length > 0) {
-      const validMessage = `✅ ${i18n.t('validation.toasts.validConstraintsLabel')}\n\n` + result.valid_constraints.join("\n\n");
+      const validMessage = `${i18n.t('validation.toasts.validConstraintsLabel')}\n\n` + result.valid_constraints.map(stripStatusEmoji).join("\n\n");
       toast.success(validMessage, {
         position: "top-right",
         autoClose: false,
@@ -176,7 +181,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "dark",
         style: {
           ...longToastStyle
         }
@@ -185,7 +189,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
     // Show invalid OCL constraints
     if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
-      const invalidMessage = `❌ ${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.join("\n\n");
+      const invalidMessage = `${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.map(stripStatusEmoji).join("\n\n");
       toast.error(invalidMessage, {
         position: "top-right",
         autoClose: false,
@@ -194,7 +198,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "dark",
         style: {
           ...longToastStyle
         }
@@ -205,10 +208,9 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     if (!suppressToasts && result.ocl_message &&
         (!result.valid_constraints || result.valid_constraints.length === 0) &&
         (!result.invalid_constraints || result.invalid_constraints.length === 0)) {
-      toast.info(result.ocl_message, {
+      toast.info(stripStatusEmoji(result.ocl_message), {
         position: "top-right",
         autoClose: 5000,
-        theme: "dark"
       });
     }
     
@@ -216,7 +218,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     const hasWarnings = result.warnings && result.warnings.length > 0;
     const hasInvalidConstraints = result.invalid_constraints && result.invalid_constraints.length > 0;
     if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0) && !hasWarnings && !hasInvalidConstraints) {
-      toast.success(result.message || `✅ ${i18n.t('validation.toasts.diagramValid')}`, {
+      toast.success(stripStatusEmoji(result.message || i18n.t('validation.toasts.diagramValid')), {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -224,7 +226,6 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-        theme: "dark"
       });
     }
     
@@ -234,10 +235,12 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     console.error('Error during validation:', error);
     if (!suppressToasts) {
       toast.dismiss(VALIDATION_TOAST_ID);
-      toast.error(i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') }), {
+      const message = isNetworkError(error)
+        ? describeNetworkError(error)
+        : i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') });
+      toast.error(message, {
         position: "top-right",
         autoClose: 5000,
-        theme: "dark"
       });
     }
     return { 

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Z_INDEX } from '../../../../shared/constants/z-index';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PaletteDropdownProps {
   palettes: string[][];
@@ -7,102 +8,41 @@ interface PaletteDropdownProps {
   onChange: (paletteIndex: number) => void;
 }
 
-export const PaletteDropdown: React.FC<PaletteDropdownProps> = ({ palettes, value, onChange }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+const Swatches: React.FC<{ colors: string[] }> = ({ colors }) => (
+  <span className="flex gap-0.5" aria-hidden="true">
+    {colors.map((color, i) => (
+      <span key={i} className="inline-block size-[18px] rounded-[3px] border border-border" style={{ background: color }} />
+    ))}
+  </span>
+);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+export const PaletteDropdown: React.FC<PaletteDropdownProps> = ({ palettes, value, onChange }) => {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState(value);
 
   return (
-    <div ref={ref} style={{ position: 'relative', width: 180 }}>
-      <div
-        style={{
-          border: '1px solid #ccc',
-          borderRadius: 4,
-          padding: '6px 10px',
-          background: '#fff',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: 32,
-        }}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <div style={{ display: 'flex', gap: 2 }}>
-          {palettes[value].map((color, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-block',
-                width: 18,
-                height: 18,
-                background: color,
-                borderRadius: 3,
-                border: '1px solid #eee',
-              }}
-            />
-          ))}
-        </div>
-        <span style={{ marginLeft: 'auto', color: '#888', fontSize: 14 }}>▼</span>
-      </div>
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '110%',
-            left: 0,
-            width: '100%',
-            background: '#fff',
-            border: '1px solid #ccc',
-            borderRadius: 4,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            zIndex: Z_INDEX.DROPDOWN,
-            padding: 4,
-          }}
-        >
-          {palettes.map((palette, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                padding: '4px 6px',
-                cursor: 'pointer',
-                background: idx === value ? '#f0f0f0' : 'transparent',
-                borderRadius: 3,
-                marginBottom: 2,
-              }}
-              onClick={() => {
-                onChange(idx);
-                setOpen(false);
-              }}
-            >
-              {palette.map((color, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: 'inline-block',
-                    width: 18,
-                    height: 18,
-                    background: color,
-                    borderRadius: 3,
-                    border: '1px solid #eee',
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <Select
+      value={String(selected)}
+      onValueChange={(next) => {
+        const idx = Number(next);
+        setSelected(idx);
+        onChange(idx);
+      }}
+    >
+      <SelectTrigger className="h-8 w-[180px] px-2.5" aria-label={t('editors.gui.colorPalette')}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {palettes.map((palette, idx) => (
+          <SelectItem
+            key={idx}
+            value={String(idx)}
+            aria-label={t('editors.gui.colorPaletteOption', { index: idx + 1 })}
+          >
+            <Swatches colors={palette} />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

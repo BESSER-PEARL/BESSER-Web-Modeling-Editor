@@ -1,11 +1,14 @@
-import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
-import React, { useEffect, useRef, useContext, useCallback } from 'react';
+import { AgentComponentType, ApollonEditor, LineageProvider, UMLModel, diagramBridge } from '@besser/wme';
+import React, { useEffect, useRef, useContext, useCallback, useMemo } from 'react';
+import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
+import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
+import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
   selectActiveDiagram,
@@ -13,8 +16,15 @@ import {
   selectEditorRevision,
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
+  selectProject,
+  selectPerspectives,
+  openDiagramThunk,
+  selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
+import { isAgenticModeEnabled } from '../../../shared/perspectives';
+import { useAgentDiagramLinker } from '../../inter-diagram/useAgentDiagramLinker';
+import { useElementPickerProvider } from '../../inter-diagram/useElementPickerProvider';
 
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,8 +39,16 @@ export const ApollonEditorComponent: React.FC = () => {
   const editorRevision = useAppSelector(selectEditorRevision);
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
+  const project = useAppSelector(selectProject);
+  const nnDiagrams = useAppSelector(selectNNDiagrams);
+  const agenticEnabled = isAgenticModeEnabled(useAppSelector(selectPerspectives));
+  const agenticEnabledRef = useRef(agenticEnabled);
+  agenticEnabledRef.current = agenticEnabled;
   const { setEditor } = useContext(ApollonEditorContext);
-  const { i18n } = useTranslation();
+  // Element id to select after the next editor rebuild (set by
+  // the lineage provider's onShowSource; consumed by the setup effect).
+  const pendingSelectionRef = useRef<string | null>(null);
+  const { t, i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
   localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
 
@@ -40,20 +58,86 @@ export const ApollonEditorComponent: React.FC = () => {
   reduxDiagramRef.current = reduxDiagram;
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  // Agent-diagram linker held in a ref so the setup effect can
+  // register it on the freshly-created editor without taking it as a
+  // dependency (which would force editor recreation on every linker
+  // identity change). Pass editorRef so the linker can read the editor's
+  // in-memory model and flush pending edits before the Define click
+  // triggers a diagram switch.
+  const linker = useAgentDiagramLinker(editorRef);
+  const linkerRef = useRef(linker);
+  linkerRef.current = linker;
 
-  const destroyEditorDeferred = useCallback((editor: ApollonEditor) => {
-    return new Promise<void>((resolve) => {
-      // Defer destroy to avoid React unmount race warnings during render transitions.
-      setTimeout(() => {
+  // Host-side element-picker provider (cross-diagram `realizes`).
+  const elementPicker = useElementPickerProvider();
+  const elementPickerRef = useRef(elementPicker);
+  elementPickerRef.current = elementPicker;
+
+  // Lineage provider for derived diagrams: resolves a derived element to its
+  // source element and opens the source diagram with that element selected.
+  const lineageProvider = useMemo<LineageProvider | null>(() => {
+    const lineage = reduxDiagram?.derivedFrom;
+    if (!project || !reduxDiagram || !lineage) return null;
+    const sourceDiagrams = project.diagrams[lineage.sourceDiagramType] ?? [];
+    const sourceIndex = sourceDiagrams.findIndex((d) => d.id === lineage.sourceDiagramId);
+    if (sourceIndex < 0) return null;
+    const sourceDiagram = sourceDiagrams[sourceIndex];
+    const elementMapping = project.elementLineage?.[reduxDiagram.id] ?? {};
+    // Only UML source models can name the source element; for others the
+    // link falls back to diagram-level wording.
+    const sourceModel = isUMLModel(sourceDiagram.model) ? sourceDiagram.model : null;
+
+    return {
+      resolveSource: (derivedId: string) => {
+        const srcElId = elementMapping[derivedId];
+        if (!srcElId) return null;
+        const srcEl = sourceModel?.elements[srcElId] ?? sourceModel?.relationships[srcElId];
+        return {
+          sourceElementId: srcElId,
+          sourceDiagramTitle: sourceDiagram.title,
+          sourceDiagramType: lineage.sourceDiagramType,
+          sourceElementName: srcEl?.name,
+          sourceElementType: srcEl?.type,
+        };
+      },
+      onShowSource: async (resolved) => {
+        // Selected by the setup effect once the source diagram's editor is mounted.
+        pendingSelectionRef.current = resolved.sourceElementId;
         try {
-          editor.destroy();
-        } catch (error) {
-          console.warn('Error destroying editor:', error);
-        } finally {
-          resolve();
+          await dispatch(openDiagramThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex })).unwrap();
+        } catch (err) {
+          console.error('[lineage] opening the source diagram failed:', err);
+          pendingSelectionRef.current = null;
+          toast.error(t('editors.diagramTabs.lineage.openFailed'));
         }
-      }, 0);
-    });
+      },
+    };
+  }, [dispatch, project, reduxDiagram, t]);
+  const lineageProviderRef = useRef(lineageProvider);
+  lineageProviderRef.current = lineageProvider;
+
+  // Destroys run one after another, and a new editor waits for all of them: a late
+  // destroy of an old instance otherwise removes DOM the next instance is mounted into
+  // (rapid revision bumps, e.g. "New diagram tab", left a blank canvas).
+  const pendingDestroyRef = useRef<Promise<void>>(Promise.resolve());
+  const destroyEditorDeferred = useCallback((editor: ApollonEditor) => {
+    const run = pendingDestroyRef.current.then(
+      () =>
+        new Promise<void>((resolve) => {
+          // Defer destroy to avoid React unmount race warnings during render transitions.
+          setTimeout(() => {
+            try {
+              editor.destroy();
+            } catch (error) {
+              console.warn('Error destroying editor:', error);
+            } finally {
+              resolve();
+            }
+          }, 0);
+        }),
+    );
+    pendingDestroyRef.current = run;
+    return run;
   }, []);
 
   // Cleanup function
@@ -65,7 +149,10 @@ export const ApollonEditorComponent: React.FC = () => {
     }
     const editor = editorRef.current;
     editorRef.current = null;
-    if (!editor) return;
+    if (!editor) {
+      await pendingDestroyRef.current;
+      return;
+    }
     // Unsubscribe from model changes before destroying
     if (modelSubscriptionRef.current !== null) {
       editor.unsubscribeFromModelChange(modelSubscriptionRef.current);
@@ -82,9 +169,35 @@ export const ApollonEditorComponent: React.FC = () => {
     diagramBridge.setAgentPlatform(platform);
   }, [reduxDiagram]);
 
+  // Single writer of the agent component lists in diagramBridge (like the diagram
+  // references below): state/transition popups read LLM/GUI/RAG/intent names from it.
+  // Runs whenever the active diagram changes, including edits made in the agent
+  // components panel (which persist to storage and flow back through Redux).
+  useEffect(() => {
+    const components = Object.values(getAgentComponents(reduxDiagram));
+    const ofType = (type: AgentComponentType) => components.filter((component) => (component.type as string) === type);
+    const named = (type: AgentComponentType) => ofType(type).filter((component) => component.name);
+
+    diagramBridge.setAgentGUIs(
+      ofType(AgentComponentType.AgentGUI)
+        .map((gui) => ({ name: gui.gui_id || gui.id, gui_id: gui.gui_id || '', is_form: !!gui.is_form })),
+    );
+    diagramBridge.setAgentIntents(
+      named(AgentComponentType.AgentIntent).map((intent) => ({ name: String(intent.name), id: intent.id })),
+    );
+    diagramBridge.setAgentLLMs(
+      named(AgentComponentType.AgentLLM).map((llm) => ({
+        name: String(llm.name),
+        provider: String(llm.provider || '').toLowerCase(),
+      })),
+    );
+    diagramBridge.setAgentRAGs(named(AgentComponentType.AgentRagElement).map((rag) => ({ name: String(rag.name) })));
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
+    const neuralNetworkDiagrams = nnDiagrams ?? [];
 
     const stateMachines = smDiagrams
       .filter(d => d.id && d.title)
@@ -94,9 +207,14 @@ export const ApollonEditorComponent: React.FC = () => {
       .filter(d => d.id && d.title)
       .map(d => ({ id: d.id, name: d.title }));
 
+    const neuralNetworks = neuralNetworkDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
     diagramBridge.setStateMachineDiagrams(stateMachines);
     diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-  }, [stateMachineDiagrams, quantumCircuitDiagrams]);
+    diagramBridge.setNeuralNetworkDiagrams(neuralNetworks);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams, nnDiagrams]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -143,7 +261,11 @@ export const ApollonEditorComponent: React.FC = () => {
       const currentOptions = optionsRef.current;
       const currentDiagram = reduxDiagramRef.current;
 
-      const nextEditor = new ApollonEditor(containerRef.current, { ...currentOptions, locale: localeRef.current });
+      const nextEditor = new ApollonEditor(containerRef.current, {
+        ...currentOptions,
+        locale: localeRef.current,
+        agenticEnabled: agenticEnabledRef.current,
+      });
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
@@ -156,6 +278,23 @@ export const ApollonEditorComponent: React.FC = () => {
         nextEditor.model = currentDiagram.model;
       }
 
+      // If a lineage click-through requested a source-element
+      // selection, apply it now that the new editor is mounted and the
+      // model is loaded.
+      if (pendingSelectionRef.current) {
+        const elementId = pendingSelectionRef.current;
+        pendingSelectionRef.current = null;
+        // Small delay so the editor's internal model state has fully
+        // settled after the .model setter triggers recreateEditor.
+        setTimeout(() => {
+          try {
+            nextEditor.select({ elements: { [elementId]: true }, relationships: { [elementId]: true } });
+          } catch (error) {
+            console.warn('[lineage] selecting the source element failed:', error);
+          }
+        }, 50);
+      }
+
       // Subscribe to model changes (debounced to avoid excessive localStorage writes on every keystroke)
       modelSubscriptionRef.current = nextEditor.subscribeToModelChange((model: UMLModel) => {
         if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
@@ -164,11 +303,61 @@ export const ApollonEditorComponent: React.FC = () => {
         }, 300);
       });
 
+      // Register the host providers on the new editor. This has to happen
+      // here: the effects below run before this async setup finishes, so
+      // they only cover later identity changes of an already-mounted editor.
+      nextEditor.setAgentDiagramLinker(linkerRef.current);
+      nextEditor.setLineageProvider(lineageProviderRef.current);
+      nextEditor.setElementPickerProvider(elementPickerRef.current);
+
       setEditor!(nextEditor);
+
+      // If the assistant just injected a freshly generated class diagram, let
+      // ELK arrange it now that this new editor instance has the model loaded.
+      // Setting `model` above triggers recreateEditor(), which rebuilds the
+      // store + auto-layout saga and re-arms nextRender; we MUST await that
+      // before dispatching autoLayout, otherwise the layout action fires before
+      // the saga is listening and is silently dropped. Guards bail if the
+      // editor was swapped/destroyed in the meantime.
+      if (consumeAutoLayoutRequest()) {
+        try {
+          await nextEditor.nextRender;
+          if (runId === setupRunRef.current && editorRef.current === nextEditor) {
+            nextEditor.autoLayout();
+          }
+        } catch (error) {
+          console.warn('[ApollonEditorComponent] auto-layout failed:', error);
+        }
+      }
     };
 
     setupEditor().catch(notifyError('Editor setup'));
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
+
+  // Show or hide the agentic BPMN controls when the perspectives change.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      editor.agenticEnabled = agenticEnabled;
+    } catch (error) {
+      console.warn('Failed to update the agentic controls:', error);
+    }
+  }, [agenticEnabled]);
+
+  // Re-register the host providers on the mounted editor when their identity
+  // changes (initial registration happens in the setup effect above).
+  useEffect(() => {
+    editorRef.current?.setLineageProvider(lineageProvider);
+  }, [lineageProvider]);
+
+  useEffect(() => {
+    editorRef.current?.setElementPickerProvider(elementPicker);
+  }, [elementPicker]);
+
+  useEffect(() => {
+    editorRef.current?.setAgentDiagramLinker(linker);
+  }, [linker]);
 
   return (
     <div

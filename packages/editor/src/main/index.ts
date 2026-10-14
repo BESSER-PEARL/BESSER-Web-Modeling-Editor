@@ -26,6 +26,10 @@ export { layoutModel } from './services/layouter/model-layout';
 // These utilities help with backward compatibility and cross-version support
 export * from './compat/helpers';
 
+// Export the class-diagram association navigability rules (legacy defaults,
+// "at least one navigable end", composition part end always navigable)
+export * from './packages/common/uml-association/uml-association-navigability';
+
 // Export the diagram bridge service
 // Handles communication between different parts of the editor and external integrations
 export * from './services/diagram-bridge';
@@ -39,19 +43,66 @@ export * from './services/settings/settings-service';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 
+// Export the BPMN common attribute types and helpers, including the agentic
+// BPMN attributes (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) and the
+// governance DSL generator.
+export * from './packages/bpmn/common/types';
+export * from './packages/bpmn/common/governance-dsl';
+
+// Export the agentic Component-diagram stereotype vocabulary (mirrors the
+// BESSER `uml_component/agentic.py` enums) and its token helpers.
+export * from './packages/common/agentic/agentic-tokens';
+
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import
 // from tests and from consumer webapps.
 export * from './packages/common/uml-association/multiplicity';
 
 // Export the agent-model normalizer (flat → canonical nested transition shape).
-// Pure function, used by the webapp to normalize models that bypass the editor
+// plus the agent-components migration (elements / legacy agentComponents → components).
+// Pure functions, used by the webapp to normalize models that bypass the editor
 // (e.g. agentBaseModels snapshots written straight to localStorage).
-export { normalizeAgentModel } from './packages/agent-state-diagram/normalize-agent-model';
+export { normalizeAgentModel, normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
+
+// Agent element / component type names, so consumers don't re-declare the string constants.
+export { AgentElementType, AgentRelationshipType, AgentComponentType } from './packages/agent-state-diagram';
+
+// Default predefined type of a new agent transition ('auto'), so model
+// generators emit the same transition the editor creates.
+export { NEW_TRANSITION_PREDEFINED_TYPE } from './packages/agent-state-diagram/agent-state-transition/agent-state-transition';
+
+// Export the canonical LLM provider list so the webapp derives its dropdown,
+// its stored-config union, and its localStorage whitelist from one array
+// instead of re-declaring the key set in every consumer.
+export {
+  AGENT_LLM_PROVIDERS,
+  LEGACY_AGENT_LLM_PROVIDER_ALIASES,
+  ACCEPTED_AGENT_LLM_PROVIDERS,
+  NON_CHAT_AGENT_LLM_PROVIDERS,
+  isAcceptedAgentLLMProvider,
+  canonicalizeAgentLLMProvider,
+} from './packages/agent-state-diagram/agent-llm/agent-llm';
+export type {
+  AgentLLMProviderType,
+  LegacyAgentLLMProviderType,
+} from './packages/agent-state-diagram/agent-llm/agent-llm';
 
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript
 export type { Patch } from './services/patcher';
+
+// Public type for the agent-diagram linker callback object; the host
+// implements this and passes it to `editor.setAgentDiagramLinker`.
+export type { AgentDiagramLinker } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+
+// Public types for the cross-diagram element-picker provider; the host
+// implements `ElementPickerProvider` and passes it to
+// `editor.setElementPickerProvider` (see `useElementPickerProvider`).
+export type { ElementPickerProvider, PickableElement } from './components/element-picker/ElementPickerContext';
+
+// Public types for the derived-element lineage provider; the host implements
+// `LineageProvider` and passes it to `editor.setLineageProvider`.
+export type { LineageProvider, ResolvedSource } from './components/lineage/LineageContext';
 
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions
@@ -60,3 +111,7 @@ export type { UMLModelCompat } from './compat';
 // Export the supported-locale enum so consumers (the webapp language selector)
 // can drive the editor's UI language via the `locale` setter.
 export { Locale } from './services/editor/editor-types';
+
+// Export the port direction enum used by the public relationship typings, so
+// consumers that build models can type `source.direction` / `target.direction`.
+export { Direction } from './services/uml-element/uml-element-port';

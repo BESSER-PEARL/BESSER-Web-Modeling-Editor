@@ -8,3 +8,4 @@ export { useCircuitIO, useKeyboardShortcuts } from './useCircuitIO';
 export { useCircuitEditor } from './useCircuitEditor';
 export type { CircuitEditorState } from './useCircuitEditor';
 export { useCircuitKeyboard } from './useCircuitKeyboard';
+export { useArmedGate } from './useArmedGate';

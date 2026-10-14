@@ -8,14 +8,14 @@ interface DeployResultDialogProps {
   open: boolean;
   deploymentResult: DeployToGitHubResult | null;
   onOpenChange: (open: boolean) => void;
-  onOpenExternal: (url: string) => void;
+  /** Unused: the actions are now real links. Kept so existing callers compile. */
+  onOpenExternal?: (url: string) => void;
 }
 
 export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
   open,
   deploymentResult,
   onOpenChange,
-  onOpenExternal,
 }) => {
   const { t } = useTranslation();
   // Redeploys reuse the existing render.yaml suffix so the live frontend URL
@@ -54,14 +54,14 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
         </DialogHeader>
         {deploymentResult && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-              <p className="font-medium">
+            <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+              <p className="break-all font-medium">
                 {deploymentResult.owner}/{deploymentResult.repo_name}
               </p>
               <p className="text-xs">{t('deploy.result.filesUploaded', { count: deploymentResult.files_uploaded })}</p>
             </div>
             {isRedeploy && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
                 <p className="font-medium">{t('deploy.result.notSeeingChanges')}</p>
                 <p className="mt-1 text-xs">
                   {t('deploy.result.manualSyncIntro')}{' '}
@@ -71,28 +71,23 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               </div>
             )}
             {primaryUrl && (
-              <Button
-                className="w-full bg-brand text-brand-foreground hover:bg-brand-dark"
-                onClick={() => onOpenExternal(primaryUrl)}
-              >
-                {primaryLabel}
+              <Button asChild className="w-full">
+                <a href={primaryUrl} target="_blank" rel="noopener noreferrer">
+                  {primaryLabel}
+                </a>
               </Button>
             )}
             {isRedeploy && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => onOpenExternal('https://dashboard.render.com/blueprints')}
-              >
-                {t('deploy.result.openBlueprint')}
+              <Button asChild variant="outline" className="w-full">
+                <a href="https://dashboard.render.com/blueprints" target="_blank" rel="noopener noreferrer">
+                  {t('deploy.result.openBlueprint')}
+                </a>
               </Button>
             )}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => onOpenExternal(deploymentResult.repo_url)}
-            >
-              {t('deploy.result.viewRepo')}
+            <Button asChild variant="outline" className="w-full">
+              <a href={deploymentResult.repo_url} target="_blank" rel="noopener noreferrer">
+                {t('deploy.result.viewRepo')}
+              </a>
             </Button>
           </div>
         )}

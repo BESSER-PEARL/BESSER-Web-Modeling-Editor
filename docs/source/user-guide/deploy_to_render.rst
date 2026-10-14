@@ -37,7 +37,7 @@ Because the source lives in your GitHub repo, every redeploy is just another
 push, and Render rebuilds automatically.
 
 Deploying step by step
----------------------
+----------------------
 
 1. Build your project in the editor. For a web app you need a **Class diagram**
    and a **GUI diagram**; for a chatbot you need an **Agent diagram**.
@@ -61,7 +61,7 @@ Deploying step by step
      services.
 
 Environment variables and secrets
---------------------------------
+---------------------------------
 
 Some services need configuration you should not commit to GitHub. The generated
 ``render.yaml`` declares these as secrets you fill in on Render's side rather

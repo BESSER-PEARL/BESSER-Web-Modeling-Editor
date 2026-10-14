@@ -79,5 +79,35 @@ export const extractSpecPosition = (spec: any): DiagramPosition | undefined => {
   };
 };
 
+interface PlacedElement {
+  bounds: { x: number; y: number; width: number; height: number };
+}
+
+/**
+ * Shift element bounds so the centre of the content's bounding box sits on the
+ * origin. The canvas draws elements inside <svg x="50%" y="50%">, so model
+ * coordinate (0,0) is the visual centre of the canvas; content pinned to
+ * x>=0 / y>=0 would land in the bottom-right quadrant. Flow geometry is a
+ * placeholder the layouter recomputes, so only element bounds move.
+ * Returns the content size, or null when there are no elements.
+ */
+export const centerElementsOnOrigin = (
+  elements: Record<string, PlacedElement>,
+): { width: number; height: number } | null => {
+  const placed = Object.values(elements);
+  if (!placed.length) return null;
+  const minX = Math.min(...placed.map((e) => e.bounds.x));
+  const minY = Math.min(...placed.map((e) => e.bounds.y));
+  const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
+  const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
+  const offsetX = -(minX + maxX) / 2;
+  const offsetY = -(minY + maxY) / 2;
+  placed.forEach((e) => {
+    e.bounds.x += offsetX;
+    e.bounds.y += offsetY;
+  });
+  return { width: maxX - minX, height: maxY - minY };
+};
+
 // Re-export from shared module
 export { generateUniqueId } from '../shared-types';

@@ -51,23 +51,13 @@ describe('webapp i18n locale parity', () => {
       expect(extra, `extra keys in ${code}`).toEqual([]);
     });
 
-    it(`"${code}" coverage (missing keys allowed — fall back to English)`, () => {
+    // Full-parity gate: only runs (and asserts) when I18N_REQUIRE_COMPLETE=1.
+    // Otherwise it is skipped, never a green no-op. Missing keys fall back to
+    // English at runtime, so they are optional outside this explicit gate.
+    it.runIf(REQUIRE_COMPLETE)(`"${code}" is fully translated (all English keys present)`, () => {
       const keys = new Set(flatten(dict as Record<string, unknown>));
       const missing = enKeys.filter((k) => !keys.has(k));
-      if (missing.length && !REQUIRE_COMPLETE) {
-        const coverage = (((enKeys.length - missing.length) / enKeys.length) * 100).toFixed(1);
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[i18n] "${code}" is ${coverage}% translated (${missing.length} keys fall back to English). ` +
-            `Optional to complete; the BESSER team can fill and review them.`,
-        );
-      }
-      // Only a hard failure when full parity is explicitly required.
-      if (REQUIRE_COMPLETE) {
-        expect(missing, `missing keys in ${code}`).toEqual([]);
-      } else {
-        expect(missing.length).toBeGreaterThanOrEqual(0);
-      }
+      expect(missing, `missing keys in ${code}`).toEqual([]);
     });
   }
 });

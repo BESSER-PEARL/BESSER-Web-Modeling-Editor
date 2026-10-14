@@ -10,6 +10,7 @@ import { styled } from '../../components/theme/styles';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../utils/actions/actions';
+import { LineageSourceLink } from '../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
   display: flex;
@@ -57,6 +58,8 @@ class DefaultPopupComponent extends Component<Props, State> {
           textColor
           fillColor
         />
+        {/* Self-gating: only renders for derived elements. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }

@@ -10,9 +10,12 @@
  *  - The isGenerating timeout safety net
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AssistantActionPayload } from '../services';
+
+/** How many recent progress steps to keep visible during a long operation. */
+const MAX_PROGRESS_STEPS = 4;
 
 /* ------------------------------------------------------------------ */
 /*  Debug timing (shared with orchestrator)                            */
@@ -74,6 +77,37 @@ const toKitMessage = (
   ...extras,
 });
 
+type SetMessages = React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
+
+/** Append buffered chunks to their streaming messages (one state update). */
+export const applyStreamChunks = (
+  prev: ChatKitMessage[],
+  pending: Map<string, string>,
+): ChatKitMessage[] => {
+  let next = prev;
+  pending.forEach((text, streamId) => {
+    const last = next[next.length - 1];
+    if (last && last.id === streamId && last.role === 'assistant') {
+      next = [...next.slice(0, -1), { ...last, content: last.content + text, isStreaming: true }];
+    } else {
+      next = [
+        ...next,
+        { id: streamId, role: 'assistant' as const, content: text, isStreaming: true, createdAt: new Date() },
+      ];
+    }
+  });
+  return next;
+};
+
+const scheduleFrame = (cb: () => void): (() => void) => {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    const id = window.requestAnimationFrame(cb);
+    return () => window.cancelAnimationFrame(id);
+  }
+  const id = setTimeout(cb, 16);
+  return () => clearTimeout(id);
+};
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -86,6 +120,13 @@ export interface UseStreamingResponseReturn {
   progressMessage: string;
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
   /**
+   * The recent sequence of progress steps (most-recent last), capped to the
+   * last few. Surfaces render these as an evolving step list so long
+   * operations visibly show motion instead of a single flickering line.
+   * Clears automatically when `progressMessage` is cleared.
+   */
+  progressSteps: string[];
+  /**
    * Handle streaming-related action payloads (stream_start, stream_chunk,
    * stream_done, progress). Returns `true` if the payload was handled,
    * `false` if it should be processed by the orchestrator.
@@ -94,10 +135,14 @@ export interface UseStreamingResponseReturn {
     payload: AssistantActionPayload,
     setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>,
   ) => boolean;
-  /** Register the onTyping handler on the assistant client. */
+  /**
+   * Register the onTyping handler on the (shared) assistant client. Returns an
+   * unsubscribe so a surface can detach just its own typing handler on unmount
+   * without tearing down the shared client's other subscribers.
+   */
   registerTypingHandler: (
-    assistantClient: { onTyping: (cb: (typing: boolean) => void) => void },
-  ) => void;
+    assistantClient: { onTyping: (cb: (typing: boolean) => void) => () => void },
+  ) => () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -108,23 +153,67 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState('');
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
+
+  /* ---- progress-step accumulation ----
+   * Mirror `progressMessage` into a short, capped list so the user sees the
+   * SEQUENCE of steps ("Thinking… → Generating classes… → Building
+   * attributes…") rather than one line that vanishes the instant the next
+   * arrives. Driven off `progressMessage` so EVERY clear site (stream_done,
+   * onMessage, stopGenerating, clearConversation, the task-queue error path,
+   * and injections) resets the steps for free — no extra wiring needed. */
+  useEffect(() => {
+    if (!progressMessage) {
+      setProgressSteps((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    setProgressSteps((prev) => {
+      if (prev[prev.length - 1] === progressMessage) return prev; // ignore repeats
+      return [...prev, progressMessage].slice(-MAX_PROGRESS_STEPS);
+    });
+  }, [progressMessage]);
 
   /* ---- isGenerating timeout safety net ---- */
 
   useEffect(() => {
     if (!isGenerating) return;
+    // 300s: an AI-designed GUI legitimately runs ~80-140s — the old 120s
+    // cap made the typing indicator vanish mid-generation. This is only the
+    // stuck-spinner safety net; real completion clears it much earlier.
     const timeout = setTimeout(() => {
       setIsGenerating(false);
-    }, 120_000);
+    }, 300_000);
     return () => clearTimeout(timeout);
   }, [isGenerating]);
+
+  /* ---- stream_chunk batching ----
+   * Tokens arrive far faster than the screen refreshes. Buffer them and apply
+   * at most one conversation update per animation frame, so a streamed reply
+   * re-renders the chat once per frame instead of once per token. */
+  const pendingChunksRef = useRef(new Map<string, string>());
+  const cancelFlushRef = useRef<(() => void) | null>(null);
+  const flushSetMessagesRef = useRef<SetMessages | null>(null);
+
+  const flushChunks = () => {
+    cancelFlushRef.current?.();
+    cancelFlushRef.current = null;
+    const pending = pendingChunksRef.current;
+    const setMessages = flushSetMessagesRef.current;
+    if (pending.size === 0 || !setMessages) return;
+    pendingChunksRef.current = new Map();
+    setMessages((prev) => applyStreamChunks(prev, pending));
+  };
+
+  // Never drop buffered tokens when the surface unmounts mid-stream.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => flushChunks(), []);
 
   /* ---- handler registration ---- */
 
   const registerTypingHandler = (
-    assistantClient: { onTyping: (cb: (typing: boolean) => void) => void },
-  ) => {
-    assistantClient.onTyping((typing) => {
+    assistantClient: { onTyping: (cb: (typing: boolean) => void) => () => void },
+  ): (() => void) => {
+    return assistantClient.onTyping((typing) => {
       setIsGenerating((prev) => (prev === typing ? prev : typing));
     });
   };
@@ -148,25 +237,10 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     if (payload.action === 'stream_chunk') {
       const { streamId, chunk } = payload as Record<string, any>;
       if (typeof streamId !== 'string' || typeof chunk !== 'string') return true;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && last.id === streamId && last.role === 'assistant') {
-          return [
-            ...prev.slice(0, -1),
-            { ...last, content: last.content + chunk, isStreaming: true },
-          ];
-        }
-        return [
-          ...prev,
-          {
-            id: streamId,
-            role: 'assistant' as const,
-            content: chunk,
-            isStreaming: true,
-            createdAt: new Date(),
-          },
-        ];
-      });
+      const pending = pendingChunksRef.current;
+      pending.set(streamId, (pending.get(streamId) ?? '') + chunk);
+      flushSetMessagesRef.current = setMessages;
+      if (!cancelFlushRef.current) cancelFlushRef.current = scheduleFrame(flushChunks);
       setStreamingMessageId(streamId);
       return true;
     }
@@ -174,8 +248,16 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     if (payload.action === 'stream_done') {
       const { streamId, fullText } = payload as Record<string, any>;
       if (typeof streamId !== 'string') return true;
-      setMessages((prev) =>
-        prev.map((msg) =>
+      // Land any buffered tokens first so the order chunk -> done holds.
+      flushChunks();
+      setMessages((prev) => {
+        // A stream_done replayed after a reconnect may be all that arrived.
+        if (!prev.some((msg) => msg.id === streamId)) {
+          return typeof fullText === 'string' && fullText
+            ? [...prev, { id: streamId, role: 'assistant' as const, content: fullText, isStreaming: false, createdAt: new Date() }]
+            : prev;
+        }
+        return prev.map((msg) =>
           msg.id === streamId
             ? {
                 ...msg,
@@ -183,8 +265,8 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
                 isStreaming: false,
               }
             : msg,
-        ),
-      );
+        );
+      });
       setStreamingMessageId(null);
       setProgressMessage('');
 
@@ -224,6 +306,7 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     setStreamingMessageId,
     progressMessage,
     setProgressMessage,
+    progressSteps,
     handleStreamingAction,
     registerTypingHandler,
   };

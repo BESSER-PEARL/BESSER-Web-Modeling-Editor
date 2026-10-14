@@ -82,7 +82,7 @@ export abstract class GRUAttribute extends NNComponentAttribute implements IGRUA
 export class NameAttributeGRU extends GRUAttribute {
   type: UMLElementType = NNElementType.NameAttributeGRU;
   constructor(values?: DeepPartial<IGRUAttribute>) {
-    super({ attributeName: 'name', value: 'GRU_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'gru_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -162,6 +162,81 @@ export class InputReusedAttributeGRU extends GRUAttribute {
   constructor(values?: DeepPartial<IGRUAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class BiasAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.BiasAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'bias', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HxSourceAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.HxSourceAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'hx_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenStateVarAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.HiddenStateVarAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'hidden_state_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenUnusedAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.HiddenUnusedAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'hidden_unused', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptSourceAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptSourceAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'hidden_subscript_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptTargetAttributeGRU extends GRUAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptTargetAttributeGRU;
+  constructor(values?: DeepPartial<IGRUAttribute>) {
+    super({ attributeName: 'hidden_subscript_target', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

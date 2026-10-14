@@ -5,6 +5,7 @@ import { ApollonMode, ApollonView, EditorActionTypes, EditorState } from './edit
 const initialState: EditorState = {
   readonly: false,
   colorEnabled: false,
+  agenticEnabled: false,
   enablePopups: true,
   enableCopyPasteToClipboard: false,
   mode: ApollonMode.Exporting,

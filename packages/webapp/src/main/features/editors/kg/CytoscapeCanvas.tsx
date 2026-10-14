@@ -1029,5 +1029,7 @@ function defaultLabelFor(nodeType: KGNodeType): string {
     case 'property': return 'property';
     case 'literal': return 'literal';
     case 'blank': return '_:b';
+    case 'nodeConstraint': return 'NodeConstraint';
+    case 'propertyConstraint': return 'PropertyConstraint';
   }
 }

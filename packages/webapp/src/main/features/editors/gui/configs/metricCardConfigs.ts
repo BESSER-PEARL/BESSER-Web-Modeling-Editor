@@ -1,5 +1,6 @@
 import { MetricCardComponent } from '../widgets/MetricCardComponent';
 import { getClassOptions } from '../diagram-helpers';
+import { getAggregationOptions } from './chartConfigs';
 import i18n from '@/main/shared/i18n';
 
 // Format options for metric display.
@@ -45,8 +46,8 @@ export const getMetricCardConfig = (): MetricCardConfig => ({
     { type: 'text', label: i18n.t('editors.gui.traits.metricTitle'), name: 'metric-title', value: 'Metric Title', changeProp: 1 },
     { type: 'select', label: i18n.t('editors.gui.traits.dataSource'), name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
     { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
-    // TODO: Uncomment when backend aggregation is ready
-    // { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: 'sum', options: getAggregationOptions(), changeProp: 1 },
+    // No default: the generated app then sums the data field, or counts the records without one
+    { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: '', options: getAggregationOptions(), changeProp: 1 },
     { type: 'select', label: i18n.t('editors.gui.traits.format'), name: 'format', value: 'number', options: getFormatOptions(), changeProp: 1 },
     { type: 'color', label: i18n.t('editors.gui.traits.valueColor'), name: 'value-color', value: '#2c3e50', changeProp: 1 },
     { type: 'number', label: i18n.t('editors.gui.traits.valueSize'), name: 'value-size', value: 32, changeProp: 1 },

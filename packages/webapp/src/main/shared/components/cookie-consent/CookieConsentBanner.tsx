@@ -83,7 +83,7 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
       onClick={onToggle}
       className={cn(
         'relative h-6 w-11 rounded-full border transition-colors',
-        enabled ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 bg-slate-300 dark:border-slate-600 dark:bg-slate-700',
+        enabled ? 'border-success bg-success' : 'border-slate-300 bg-slate-300 dark:border-slate-600 dark:bg-slate-700',
         disabled && 'cursor-not-allowed opacity-60',
       )}
     >
@@ -164,7 +164,7 @@ const CookieSettingsContent: React.FC<{
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">{t('shared.cookie.settings.essentialTitle')}</p>
-              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+              <Badge variant="secondary" size="sm" className="uppercase tracking-wide">
                 {t('shared.cookie.settings.requiredBadge')}
               </Badge>
             </div>
@@ -202,10 +202,22 @@ export const CookieConsentBanner: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  // Wait until no dialog is open (e.g. the first-run landing), so the banner never covers it.
+  // Analytics stay declined while consent is pending, so deferring the banner is safe.
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const check = () => setDialogOpen(Boolean(document.querySelector('[role="dialog"][data-state="open"]')));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-state'] });
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   useEffect(() => {
     const forceBanner = new URLSearchParams(window.location.search).get('force_cookies') === '1';
@@ -273,9 +285,10 @@ export const CookieConsentBanner: React.FC = () => {
     <>
       {isMounted &&
         isVisible &&
+        !dialogOpen &&
         createPortal(
           <div className="pointer-events-none fixed inset-x-0 bottom-3 flex justify-center px-3" style={{ zIndex: Z_INDEX.OVERLAY }}>
-            <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-2xl backdrop-blur">
+            <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-elevation-3 backdrop-blur">
               <div className="flex flex-col gap-2.5 p-3.5">
                 <div className="flex items-start gap-2.5">
                   <span className="rounded-md bg-primary/10 p-1.5 text-primary">
@@ -283,7 +296,7 @@ export const CookieConsentBanner: React.FC = () => {
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground">{t('shared.cookie.banner.title')}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       {t('shared.cookie.banner.subtitle')}
                     </p>
                   </div>
@@ -293,25 +306,25 @@ export const CookieConsentBanner: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto px-0 text-[11px] text-primary hover:bg-transparent hover:text-primary/80"
+                    className="h-auto px-0 text-xs text-primary hover:bg-transparent hover:text-primary/80"
                     onClick={() => setShowDetails((previous) => !previous)}
                   >
                     {showDetails ? (
-                      <ChevronDown className="mr-1 size-3.5" />
+                      <ChevronDown className="size-3.5" />
                     ) : (
-                      <ChevronRight className="mr-1 size-3.5" />
+                      <ChevronRight className="size-3.5" />
                     )}
                     {showDetails ? t('shared.cookie.banner.hideDetails') : t('shared.cookie.banner.details')}
                   </Button>
 
                   <div className="flex items-center gap-1.5">
-                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={handleDecline}>
+                    <Button size="sm" variant="outline" className="px-3" onClick={handleDecline}>
                       {t('shared.cookie.banner.decline')}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 px-2.5 text-xs"
+                      className="px-3"
                       onClick={() => {
                         setIsVisible(false);
                         setShowSettings(true);
@@ -319,18 +332,18 @@ export const CookieConsentBanner: React.FC = () => {
                     >
                       {t('shared.cookie.banner.settings')}
                     </Button>
-                    <Button size="sm" className="h-8 px-3 text-xs" onClick={handleAccept}>
+                    <Button size="sm" className="px-3" onClick={handleAccept}>
                       {t('shared.cookie.banner.accept')}
                     </Button>
                   </div>
                 </div>
 
                 {showDetails && (
-                  <div className="rounded-md border border-border/70 bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+                  <div className="rounded-md border border-border/70 bg-muted/30 p-2.5 text-xs text-muted-foreground">
                     <ul className="flex flex-col gap-1.5">
                       {detailRows.map((row) => (
                         <li key={row} className="flex items-start gap-1.5">
-                          <Check className="mt-0.5 size-3 text-emerald-500" />
+                          <Check className="mt-0.5 size-3 text-success" />
                           <span>{row}</span>
                         </li>
                       ))}
@@ -338,7 +351,7 @@ export const CookieConsentBanner: React.FC = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="mt-1.5 h-auto p-0 text-[11px]"
+                      className="mt-1.5 h-auto p-0 text-xs"
                       onClick={() => setShowPrivacy(true)}
                     >
                       {t('shared.cookie.banner.privacyPolicy')}
@@ -406,7 +419,7 @@ export const PrivacySettingsButton: React.FC = () => {
   return (
     <>
       <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setShowSettings(true)}>
-        <Shield className="mr-1 size-3.5" />
+        <Shield className="size-3.5" />
         {t('shared.cookie.settingsButton')}
       </Button>
 
