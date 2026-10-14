@@ -3210,7 +3210,11 @@
         "nodesFragment_other": "{{count}} Knoten",
         "relationsFragment_one": "{{count}} Beziehung",
         "relationsFragment_other": "{{count}} Beziehungen",
-        "counts": "{{nodes}} · {{relations}}"
+        "counts": "{{nodes}} · {{relations}}",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "undoTooltip": "Rückgängig (Ctrl+Z)",
+        "redoTooltip": "Wiederholen (Ctrl+Y)"
       },
       "canvasControls": {
         "autoLayout": "Automatisches Layout",

@@ -27,6 +27,8 @@ export interface CanvasKeyDeps {
   exitConnectMode: () => void;
   /** Hand the selection to the editor, which confirms before deleting. */
   requestDelete: (selection: CanvasSelection) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 function isTextEntry(el: Element | null): boolean {
@@ -51,6 +53,20 @@ export function createCanvasKeyHandlers(deps: CanvasKeyDeps) {
 
     // Everything below acts on the canvas, so it needs the canvas's focus.
     if (!active || !container.contains(active)) return;
+
+    // Undo / redo. In a text field these belong to the browser (they undo
+    // typing), which the early return above already guarantees.
+    if (ev.ctrlKey || ev.metaKey) {
+      const k = ev.key.toLowerCase();
+      if (k === 'z' && !ev.shiftKey) {
+        deps.undo();
+        ev.preventDefault();
+      } else if (k === 'y' || (k === 'z' && ev.shiftKey)) {
+        deps.redo();
+        ev.preventDefault();
+      }
+      return;
+    }
 
     if (ev.key === ' ') {
       // Prevent the auto-repeats too, or holding Space to pan scrolls the page.

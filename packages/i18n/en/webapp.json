@@ -3210,7 +3210,11 @@
         "nodesFragment_other": "{{count}} nodes",
         "relationsFragment_one": "{{count}} relation",
         "relationsFragment_other": "{{count}} relations",
-        "counts": "{{nodes}} · {{relations}}"
+        "counts": "{{nodes}} · {{relations}}",
+        "undo": "Undo",
+        "redo": "Redo",
+        "undoTooltip": "Undo (Ctrl+Z)",
+        "redoTooltip": "Redo (Ctrl+Y)"
       },
       "canvasControls": {
         "autoLayout": "Auto layout",

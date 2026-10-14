@@ -62,3 +62,36 @@ export function pruneSelection(selection: KgSelection, model: KnowledgeGraphData
     }
   }
 }
+
+/**
+ * Which nodes are on the canvas after undo / redo swapped the model.
+ *
+ * Visibility is not part of the history (toggling it is never an undo step), so
+ * the current set is kept where it still makes sense: nodes the restored model
+ * no longer has are dropped, and nodes that were absent before and are back now
+ * (undoing a deletion) become visible, so that undo visibly restores them. A
+ * node that existed throughout and is hidden stays hidden. New arrivals stop at
+ * `hardLimit`, and `hidden` (vocabulary nodes kept off the canvas) never get in.
+ *
+ * Returns the same array when nothing changed.
+ */
+export function reconcileVisibleIds(
+  previous: KnowledgeGraphData,
+  restored: KnowledgeGraphData,
+  visibleIds: string[],
+  { hardLimit, hidden }: { hardLimit: number; hidden: ReadonlySet<string> },
+): string[] {
+  const restoredIds = new Set(restored.nodes.map((n) => n.id));
+  const previousIds = new Set(previous.nodes.map((n) => n.id));
+  const kept = visibleIds.filter((id) => restoredIds.has(id));
+
+  const result = [...kept];
+  for (const node of restored.nodes) {
+    if (result.length >= hardLimit) break;
+    if (previousIds.has(node.id) || hidden.has(node.id)) continue;
+    result.push(node.id);
+  }
+
+  const unchanged = result.length === visibleIds.length && result.every((id, i) => id === visibleIds[i]);
+  return unchanged ? visibleIds : result;
+}

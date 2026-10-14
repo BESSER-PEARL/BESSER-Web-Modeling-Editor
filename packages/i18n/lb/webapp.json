@@ -3210,7 +3210,11 @@
         "nodesFragment_other": "{{count}} Knuetpunkten",
         "relationsFragment_one": "{{count}} Relatioun",
         "relationsFragment_other": "{{count}} Relatiounen",
-        "counts": "{{nodes}} · {{relations}}"
+        "counts": "{{nodes}} · {{relations}}",
+        "undo": "Réckgängeg maachen",
+        "redo": "Widderhuelen",
+        "undoTooltip": "Réckgängeg maachen (Ctrl+Z)",
+        "redoTooltip": "Widderhuelen (Ctrl+Y)"
       },
       "canvasControls": {
         "autoLayout": "Automatesch Uerdnung",

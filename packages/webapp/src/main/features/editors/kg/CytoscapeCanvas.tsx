@@ -12,11 +12,14 @@ import type { KnowledgeGraphLayout } from '../../../shared/types/project';
 import { isEdgeAllowed, explainEdgeRejection } from './edge-rules';
 import { createCanvasKeyHandlers } from './canvasKeys';
 import {
+  coalesceToNextTick,
   cyToModel,
   filterVisible,
   mergeWithFullModel,
   modelToElements,
   newNodeElement,
+  nodesToReposition,
+  type CanvasChangeOptions,
 } from './canvasModel';
 import { defaultPredicateFor } from './edge-defaults';
 
@@ -184,7 +187,13 @@ interface CytoscapeCanvasProps {
    *  delete) do not re-run the layout. */
   layout: KnowledgeGraphLayout;
   connectMode: ConnectMode;
-  onChange: (next: KnowledgeGraphData) => void;
+  /** `options.undoable === false` marks a change the user did not make (the
+   *  automatic layout of a freshly loaded graph), which must not become an undo
+   *  step. Everything else on the canvas is the user's. */
+  onChange: (next: KnowledgeGraphData, options?: CanvasChangeOptions) => void;
+  /** Ctrl/Cmd+Z and Ctrl+Y / Ctrl+Shift+Z while the canvas has focus. */
+  onUndo?: () => void;
+  onRedo?: () => void;
   onSelect: (sel: KgSelection) => void;
   onExitConnectMode?: () => void;
   /** Called when the canvas wants to reveal a set of node ids (e.g. after
@@ -210,6 +219,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       layout,
       connectMode,
       onChange,
+      onUndo,
+      onRedo,
       onSelect,
       onExitConnectMode,
       onRevealNodes,
@@ -231,6 +242,10 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     nonVisualizableIdsRef.current = nonVisualizableIds ?? new Set();
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
+    const onUndoRef = useRef(onUndo);
+    onUndoRef.current = onUndo;
+    const onRedoRef = useRef(onRedo);
+    onRedoRef.current = onRedo;
     const onSelectRef = useRef(onSelect);
     onSelectRef.current = onSelect;
     const connectModeRef = useRef<ConnectMode>(connectMode);
@@ -473,7 +488,10 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         else if (gesture.rejection) onRelationRejectedRef.current?.(gesture.rejection);
       });
 
-      cy.on('dragfreeon', 'node', () => emitChangeFromCy(cy));
+      // Dragging several selected nodes ends with one event per node. That is
+      // one user action, so it is emitted once: one change, one undo step.
+      const emitAfterDrag = coalesceToNextTick(() => emitChangeFromCy(cy));
+      cy.on('dragfreeon', 'node', emitAfterDrag);
       cy.on('remove', () => emitChangeFromCy(cy));
 
       // Consolidated selection emitter — batches the per-element select /
@@ -578,6 +596,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         // The canvas removes nothing itself: deleting is destructive, so the
         // editor confirms with the user first and then edits the model.
         requestDelete: (selection) => onRequestDeleteRef.current?.(selection),
+        undo: () => onUndoRef.current?.(),
+        redo: () => onRedoRef.current?.(),
       });
       window.addEventListener('keydown', onKey);
       window.addEventListener('keyup', onKeyUp);
@@ -655,6 +675,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           clearTimeout(selectionEmitHandle);
           selectionEmitHandle = null;
         }
+        emitAfterDrag.cancel();
         try { eh.destroy(); } catch { /* ignore */ }
         cy.destroy();
         cyRef.current = null;
@@ -684,7 +705,24 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       // already meaningful. Missing/stacked positions (first mount after a
       // layout change) must trigger a relayout even when structure is
       // unchanged.
-      if (sameNodes && sameEdges && !needsLayout) return;
+      if (sameNodes && sameEdges && !needsLayout) {
+        // Nothing structural changed, but the model may still hold other
+        // positions than the canvas shows: that is what undoing a drag or a
+        // layout looks like. Move the nodes there (without echoing the move
+        // back as a user edit).
+        const moves = nodesToReposition(current.nodes, visible.nodes);
+        if (moves.length > 0) {
+          suppressEventsRef.current = true;
+          try {
+            cy.batch(() => {
+              for (const m of moves) cy.getElementById(m.id).position({ x: m.x, y: m.y });
+            });
+          } finally {
+            suppressEventsRef.current = false;
+          }
+        }
+        return;
+      }
 
       const chosen = layoutRef.current;
 
@@ -709,12 +747,15 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       cy.layout({ name: 'preset' } as any).run();
       if (!needsLayout) return;
 
+      // This runs because the graph has no usable positions (first display after
+      // a load): an automatic layout, not something the user did, so it must
+      // not become an undo step.
       const persist = () => {
         fitAll(cy);
         const canvas = cyToModel(cy, modelRef.current);
         const visibleSet = new Set(visibleIdsRef.current);
         const merged = mergeWithFullModel(modelRef.current, canvas, visibleSet);
-        onChangeRef.current(merged);
+        onChangeRef.current(merged, { undoable: false });
       };
 
       if (chosen === 'grid') {

@@ -251,3 +251,61 @@ export function newNodeElement(
   const [element] = modelToElements({ version: '1.0.0', nodes: [node], edges: [] });
   return { ...element, position: { x: position.x, y: position.y } };
 }
+
+/** Positions closer than this (in model units) count as equal. Cytoscape and the
+ *  stored model round-trip positions through floats, and moving a node for a
+ *  sub-pixel difference would only add noise. */
+const POSITION_TOLERANCE = 0.5;
+
+/**
+ * Nodes whose position on the canvas differs from the one `wanted` holds. Used
+ * after the model was replaced from outside without any structural change (an
+ * undo of a drag or of a layout): the canvas then has to be told to move them.
+ * Matched by id; a node without a usable wanted position, or not on the canvas,
+ * is left out.
+ */
+export function nodesToReposition(
+  onCanvas: readonly KGNodeData[],
+  wanted: readonly KGNodeData[],
+): Array<{ id: string; x: number; y: number }> {
+  const shown = new Map(onCanvas.map((n) => [n.id, n.position]));
+  const out: Array<{ id: string; x: number; y: number }> = [];
+  for (const node of wanted) {
+    const target = node.position;
+    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) continue;
+    if (!shown.has(node.id)) continue;
+    const current = shown.get(node.id);
+    const same =
+      current &&
+      Math.abs(current.x - target.x) <= POSITION_TOLERANCE &&
+      Math.abs(current.y - target.y) <= POSITION_TOLERANCE;
+    if (!same) out.push({ id: node.id, x: target.x, y: target.y });
+  }
+  return out;
+}
+
+/** `fn`, run once after a burst of calls instead of once per call. Dragging
+ *  several selected nodes ends with one event per node; as a single user action
+ *  it must be a single undo step. */
+export function coalesceToNextTick(fn: () => void): (() => void) & { cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const run = () => {
+    if (timer !== null) return;
+    timer = setTimeout(() => {
+      timer = null;
+      fn();
+    }, 0);
+  };
+  run.cancel = () => {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  };
+  return run;
+}
+
+/** Extra information a canvas change carries to the editor. */
+export interface CanvasChangeOptions {
+  /** `false` for a change the user did not make (an automatic layout): it
+   *  updates the model but is not an undo step. Default `true`. */
+  undoable?: boolean;
+}

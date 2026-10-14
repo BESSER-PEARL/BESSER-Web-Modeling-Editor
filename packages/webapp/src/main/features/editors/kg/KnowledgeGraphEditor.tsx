@@ -17,7 +17,8 @@ import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector'
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
 import { deleteSelectionFromModel } from './delete-selection';
-import { pruneSelection, sameKgContent } from './modelSync';
+import { pruneSelection, reconcileVisibleIds, sameKgContent } from './modelSync';
+import type { CanvasChangeOptions } from './canvasModel';
 import * as kgFocus from '../../../shared/kg/kgFocus';
 import {
   collectHiddenMetaIds,
@@ -27,6 +28,7 @@ import {
 } from './meta-vocab';
 import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from '../../../shared/kg/node-priority';
 import { useProject } from '../../../app/hooks/useProject';
+import { useUndoRedo } from '../../../shared/hooks/useUndoRedo';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../../shared/utils/download';
 import {
@@ -38,6 +40,10 @@ import {
   isKnowledgeGraphData,
 } from '../../../shared/types/project';
 import type { KnowledgeGraphData } from './types';
+
+/** Undo steps kept. Each step is a whole copy of the graph, and an imported
+ *  ontology can be large, so this is well under the hook's default of 100. */
+const UNDO_STEPS = 30;
 
 const EMPTY_KG: KnowledgeGraphData = {
   type: 'KnowledgeGraphDiagram',
@@ -103,7 +109,19 @@ export const KnowledgeGraphEditor: React.FC = () => {
     return EMPTY_KG;
   }, [currentProject?.id]);
 
-  const [model, setModel] = useState<KnowledgeGraphData>(() => loadFromStorage());
+  // The model lives in an undo history. `initialModel` is read once and kept:
+  // the hook restarts its history if its initial state changes. Loading another
+  // graph goes through `resetModel`, which also starts a fresh history.
+  const [initialModel] = useState<KnowledgeGraphData>(() => loadFromStorage());
+  const {
+    state: model,
+    setState: setModelState,
+    reset: resetModel,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useUndoRedo<KnowledgeGraphData>(initialModel, undefined, { maxHistory: UNDO_STEPS });
   const [selection, setSelection] = useState<KgSelection>(null);
   // Selection the user asked to delete with Delete/Backspace, held until the
   // confirmation dialog is answered. `null` = no prompt open.
@@ -219,7 +237,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
     const external = currentDiagram?.model;
     if (isKnowledgeGraphData(external)) {
       if (!sameKgContent(external, modelRef.current)) {
-        setModel(external);
+        resetModel(external);
         // Same diagram, changed from outside: keep the selection if it is still there.
         setSelection((prev) => (switchedDiagram ? null : pruneSelection(prev, external)));
         const soft = getKgSoftLimit(external.settings);
@@ -231,7 +249,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
       return;
     }
     const fresh = loadFromStorage();
-    setModel(fresh);
+    resetModel(fresh);
     setSelection(null);
     const soft = getKgSoftLimit(fresh.settings);
     const hard = getKgHardLimit(fresh.settings);
@@ -266,7 +284,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
     }, 400);
   }, [currentProject?.id]);
 
-  const handleChange = useCallback((next: KnowledgeGraphData) => {
+  const handleChange = useCallback((next: KnowledgeGraphData, options?: CanvasChangeOptions) => {
     // Compute the new visibleIds list and any overflow BEFORE we call setState,
     // so the toast fires exactly once (React may re-execute setState updaters
     // in StrictMode, which would double-fire a toast placed inside the setter).
@@ -324,9 +342,43 @@ export const KnowledgeGraphEditor: React.FC = () => {
       nextVisibleIds.length === prevVisible.length &&
       nextVisibleIds.every((id, i) => id === prevVisible[i]);
     if (!sameVisible) setVisibleIds(nextVisibleIds);
-    setModel(next);
+    // What the user did is an undo step; an automatic layout is not.
+    setModelState(next, { record: options?.undoable !== false });
     scheduleSave();
-  }, [scheduleSave]);
+  }, [scheduleSave, setModelState]);
+
+  // Undo / redo swap the whole model. Visibility is not part of the history, so
+  // once the swapped model is in, the visible set and the selection are brought
+  // in line with it (see reconcileVisibleIds / pruneSelection). `previousModelRef`
+  // is the model before the latest change, which tells which nodes are new again.
+  const navigatingHistoryRef = useRef(false);
+  const previousModelRef = useRef(model);
+  useEffect(() => {
+    const previous = previousModelRef.current;
+    previousModelRef.current = model;
+    if (!navigatingHistoryRef.current) return;
+    navigatingHistoryRef.current = false;
+    setVisibleIds((visible) =>
+      reconcileVisibleIds(previous, model, visible, {
+        hardLimit: hardLimitRef.current,
+        hidden: collectHiddenMetaIds(model.nodes, getKgShowMetaVocab(model.settings)),
+      }),
+    );
+    setSelection((selected) => pruneSelection(selected, model));
+    scheduleSave();
+  }, [model, scheduleSave]);
+
+  const handleUndo = useCallback(() => {
+    if (!canUndo) return;
+    navigatingHistoryRef.current = true;
+    undo();
+  }, [canUndo, undo]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+    navigatingHistoryRef.current = true;
+    redo();
+  }, [canRedo, redo]);
 
   const clearSelection = useCallback(() => {
     setSelection(null);
@@ -517,6 +569,10 @@ export const KnowledgeGraphEditor: React.FC = () => {
           nodeCount={displayModel.nodes.length}
           edgeCount={displayModel.edges.length}
           hiddenCount={hiddenCount}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
           onOpenSettings={handleOpenSettings}
           onExportHtml={() => {
             const title = currentDiagram?.title ?? 'knowledge-graph';
@@ -563,6 +619,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
             layout={layout}
             connectMode={connectMode}
             onChange={handleChange}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             onSelect={setSelection}
             onExitConnectMode={() => setConnectMode('off')}
             onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}

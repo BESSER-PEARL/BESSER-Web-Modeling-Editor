@@ -3210,7 +3210,11 @@
         "nodesFragment_other": "{{count}} nodos",
         "relationsFragment_one": "{{count}} relación",
         "relationsFragment_other": "{{count}} relaciones",
-        "counts": "{{nodes}} · {{relations}}"
+        "counts": "{{nodes}} · {{relations}}",
+        "undo": "Deshacer",
+        "redo": "Rehacer",
+        "undoTooltip": "Deshacer (Ctrl+Z)",
+        "redoTooltip": "Rehacer (Ctrl+Y)"
       },
       "canvasControls": {
         "autoLayout": "Diseño automático",

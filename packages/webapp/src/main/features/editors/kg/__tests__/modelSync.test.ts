@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pruneSelection, sameKgContent } from '../modelSync';
+import { pruneSelection, reconcileVisibleIds, sameKgContent } from '../modelSync';
 import type { KnowledgeGraphData } from '../types';
 
 const model = (over: Partial<KnowledgeGraphData> = {}): KnowledgeGraphData => ({
@@ -73,5 +73,44 @@ describe('pruneSelection', () => {
     const selection = { kind: 'node', id: 'a' } as const;
 
     expect(pruneSelection(selection, m)).toBe(selection);
+  });
+});
+
+describe('reconcileVisibleIds (after undo / redo swaps the model)', () => {
+  const nodes = (...ids: string[]) => ids.map((id) => ({ id, nodeType: 'class' as const, label: id }));
+  const kg = (...ids: string[]): KnowledgeGraphData => ({ ...model(), nodes: nodes(...ids), edges: [] });
+  const opts = { hardLimit: 100, hidden: new Set<string>() };
+
+  it('keeps what was visible and still exists, in order', () => {
+    expect(reconcileVisibleIds(kg('a', 'b', 'c'), kg('a', 'b', 'c'), ['c', 'a'], opts)).toEqual(['c', 'a']);
+  });
+
+  it('drops nodes the restored model no longer has (undoing an addition)', () => {
+    expect(reconcileVisibleIds(kg('a', 'b', 'new'), kg('a', 'b'), ['a', 'new'], opts)).toEqual(['a']);
+  });
+
+  it('shows nodes that came back (undoing a deletion)', () => {
+    expect(reconcileVisibleIds(kg('a'), kg('a', 'b', 'c'), ['a'], opts)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('does not reveal nodes the user hid that were never removed', () => {
+    // b exists both before and after, and is not visible: it stays hidden.
+    expect(reconcileVisibleIds(kg('a', 'b'), kg('a', 'b', 'c'), ['a'], opts)).toEqual(['a', 'c']);
+  });
+
+  it('stops at the hard limit', () => {
+    expect(reconcileVisibleIds(kg('a'), kg('a', 'b', 'c', 'd'), ['a'], { ...opts, hardLimit: 3 })).toEqual(['a', 'b', 'c']);
+  });
+
+  it('never shows vocabulary nodes that are meant to stay off the canvas', () => {
+    const hidden = new Set(['owl:Class']);
+
+    expect(reconcileVisibleIds(kg('a'), kg('a', 'owl:Class', 'b'), ['a'], { ...opts, hidden })).toEqual(['a', 'b']);
+  });
+
+  it('is a no-op when nothing came or went', () => {
+    const visible = ['a', 'b'];
+
+    expect(reconcileVisibleIds(kg('a', 'b'), kg('a', 'b'), visible, opts)).toBe(visible);
   });
 });

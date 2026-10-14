@@ -38,27 +38,67 @@ vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
 }));
 
 // ── Children that need a browser canvas or a lot of context ────────────────
+const moveA = (model: any, x: number) => ({
+  ...model,
+  nodes: model.nodes.map((n: any) => (n.id === 'a' ? { ...n, position: { x, y: x } } : n)),
+});
 vi.mock('../CytoscapeCanvas', () => ({
-  CytoscapeCanvas: React.forwardRef<unknown, any>(({ model, onSelect, onChange }, _ref) => (
+  CytoscapeCanvas: React.forwardRef<unknown, any>(({ model, visibleIds, onSelect, onChange, onUndo, onRedo }, _ref) => (
     <div>
       <button data-testid="select-a" onClick={() => onSelect({ kind: 'node', id: 'a' })} />
+      <button data-testid="select-n3" onClick={() => onSelect({ kind: 'node', id: 'n3' })} />
+      <button data-testid="drag-a" onClick={() => onChange(moveA(model, 5))} />
+      <button data-testid="drag-a-again" onClick={() => onChange(moveA(model, 9))} />
       <button
-        data-testid="drag-a"
-        onClick={() =>
-          onChange({ ...model, nodes: model.nodes.map((n: any) => (n.id === 'a' ? { ...n, position: { x: 5, y: 5 } } : n)) })
-        }
+        data-testid="auto-layout"
+        onClick={() => onChange(moveA(model, 70), { undoable: false })}
       />
+      <button
+        data-testid="add-n3"
+        onClick={() => onChange({ ...model, nodes: [...model.nodes, { id: 'n3', nodeType: 'class', label: 'N3' }] })}
+      />
+      <button data-testid="key-undo" onClick={() => onUndo?.()} />
+      <button data-testid="key-redo" onClick={() => onRedo?.()} />
+      <div data-testid="canvas-nodes">{model.nodes.map((n: any) => n.id).join(',')}</div>
+      <div data-testid="canvas-visible">{visibleIds.join(',')}</div>
+      <div data-testid="canvas-a-x">{String(model.nodes.find((n: any) => n.id === 'a')?.position?.x ?? '')}</div>
     </div>
   )),
 }));
 vi.mock('../KnowledgeGraphNodeList', () => ({
-  KnowledgeGraphNodeList: ({ onToggle }: any) => <button data-testid="hide-b" onClick={() => onToggle('b', false)} />,
+  KnowledgeGraphNodeList: ({ onToggle }: any) => (
+    <>
+      <button data-testid="hide-b" onClick={() => onToggle('b', false)} />
+      <button data-testid="show-b" onClick={() => onToggle('b', true)} />
+    </>
+  ),
 }));
 vi.mock('../KnowledgeGraphInspector', () => ({
-  KnowledgeGraphInspector: ({ selection }: any) => <div data-testid="selection">{JSON.stringify(selection)}</div>,
+  KnowledgeGraphInspector: ({ selection, model, onChange }: any) => (
+    <div>
+      <div data-testid="selection">{JSON.stringify(selection)}</div>
+      <button
+        data-testid="inspector-delete-a"
+        onClick={() =>
+          onChange({
+            ...model,
+            nodes: model.nodes.filter((n: any) => n.id !== 'a'),
+            edges: model.edges.filter((e: any) => e.source !== 'a' && e.target !== 'a'),
+          })
+        }
+      />
+    </div>
+  ),
 }));
 vi.mock('../KnowledgeGraphPalette', () => ({ KnowledgeGraphPalette: () => null }));
-vi.mock('../KnowledgeGraphToolbar', () => ({ KnowledgeGraphToolbar: () => null }));
+vi.mock('../KnowledgeGraphToolbar', () => ({
+  KnowledgeGraphToolbar: ({ canUndo, canRedo, onUndo, onRedo }: any) => (
+    <div>
+      <button data-testid="undo" disabled={!canUndo} onClick={onUndo} />
+      <button data-testid="redo" disabled={!canRedo} onClick={onRedo} />
+    </div>
+  ),
+}));
 vi.mock('../KgCanvasControls', () => ({ KgCanvasControls: () => null }));
 vi.mock('../KgDeleteConfirmDialog', () => ({ KgDeleteConfirmDialog: () => null }));
 
@@ -151,5 +191,200 @@ describe('KnowledgeGraphEditor: the store echoing back a saved model', () => {
     });
 
     expect(selectionShown()).toBeNull();
+  });
+});
+
+// ── Undo / redo ─────────────────────────────────────────────────────────────
+
+const click = (id: string) => fireEvent.click(screen.getByTestId(id));
+const text = (id: string) => screen.getByTestId(id).textContent;
+const savedModel = () => store.diagram!.model as KnowledgeGraphData;
+
+describe('KnowledgeGraphEditor: undo and redo', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    store.diagram = diagramOf({ ...MODEL, nodes: [{ ...MODEL.nodes[0], position: { x: 1, y: 1 } }, MODEL.nodes[1]] });
+    render(
+      <MemoryRouter>
+        <Harness />
+      </MemoryRouter>,
+    );
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('starts with nothing to undo or redo', () => {
+    expect(screen.getByTestId('undo')).toBeDisabled();
+    expect(screen.getByTestId('redo')).toBeDisabled();
+  });
+
+  it('undoes and redoes a change made on the canvas, moving the node back', () => {
+    click('drag-a');
+    expect(text('canvas-a-x')).toBe('5');
+    expect(screen.getByTestId('undo')).toBeEnabled();
+
+    click('undo');
+    expect(text('canvas-a-x')).toBe('1');
+    expect(screen.getByTestId('undo')).toBeDisabled();
+    expect(screen.getByTestId('redo')).toBeEnabled();
+
+    click('redo');
+    expect(text('canvas-a-x')).toBe('5');
+    expect(screen.getByTestId('redo')).toBeDisabled();
+  });
+
+  it('is reachable from the canvas keyboard shortcuts', () => {
+    click('drag-a');
+
+    click('key-undo');
+    expect(text('canvas-a-x')).toBe('1');
+    click('key-redo');
+    expect(text('canvas-a-x')).toBe('5');
+  });
+
+  it('steps back through several changes one at a time', () => {
+    click('drag-a');
+    click('drag-a-again');
+    expect(text('canvas-a-x')).toBe('9');
+
+    click('undo');
+    expect(text('canvas-a-x')).toBe('5');
+    click('undo');
+    expect(text('canvas-a-x')).toBe('1');
+  });
+
+  it('does not count an automatic layout as a step, yet keeps its result', () => {
+    click('auto-layout');
+
+    expect(text('canvas-a-x')).toBe('70');
+    expect(screen.getByTestId('undo')).toBeDisabled();
+  });
+
+  it('keeps earlier steps when an automatic layout happens in between', () => {
+    click('drag-a');
+    click('auto-layout');
+
+    click('undo');
+
+    expect(text('canvas-a-x')).toBe('1');
+  });
+
+  it('drops the redo branch once something new is done after an undo', () => {
+    click('drag-a');
+    click('undo');
+    expect(screen.getByTestId('redo')).toBeEnabled();
+
+    click('drag-a-again');
+
+    expect(screen.getByTestId('redo')).toBeDisabled();
+  });
+
+  it('does not make showing or hiding a node an undo step', () => {
+    click('hide-b');
+    click('show-b');
+
+    expect(screen.getByTestId('undo')).toBeDisabled();
+  });
+
+  describe('which nodes are on the canvas afterwards', () => {
+    it('undoing an addition removes the node from the canvas', () => {
+      click('add-n3');
+      expect(text('canvas-visible')).toBe('a,b,n3');
+
+      click('undo');
+
+      expect(text('canvas-nodes')).toBe('a,b');
+      expect(text('canvas-visible')).toBe('a,b');
+    });
+
+    it('undoing a deletion brings the node and its place on the canvas back', () => {
+      click('inspector-delete-a');
+      expect(text('canvas-nodes')).toBe('b');
+      expect(text('canvas-visible')).toBe('b');
+
+      click('undo');
+
+      expect(text('canvas-nodes')).toBe('a,b');
+      expect(text('canvas-visible')).toBe('b,a');
+    });
+
+    it('leaves a node the user hid hidden', () => {
+      click('hide-b');
+      click('drag-a');
+
+      click('undo');
+
+      expect(text('canvas-visible')).toBe('a');
+    });
+  });
+
+  it('clears a selection whose node the undo removed', () => {
+    click('add-n3');
+    click('select-n3');
+    expect(selectionShown()).toEqual({ kind: 'node', id: 'n3' });
+
+    click('undo');
+
+    expect(selectionShown()).toBeNull();
+  });
+
+  it('keeps a selection that still exists', () => {
+    click('select-a');
+    click('drag-a');
+
+    click('undo');
+
+    expect(selectionShown()).toEqual({ kind: 'node', id: 'a' });
+  });
+
+  it('saves the undone graph', () => {
+    click('drag-a');
+    advanceSave();
+    expect(savedModel().nodes[0].position).toEqual({ x: 5, y: 5 });
+
+    click('undo');
+    advanceSave();
+
+    expect(savedModel().nodes[0].position).toEqual({ x: 1, y: 1 });
+  });
+
+  it('keeps its history when the store hands back the editor\'s own save', () => {
+    click('drag-a');
+    advanceSave();
+
+    expect(screen.getByTestId('undo')).toBeEnabled();
+    click('undo');
+    expect(text('canvas-a-x')).toBe('1');
+  });
+
+  it('starts over when another diagram is loaded', () => {
+    click('drag-a');
+    expect(screen.getByTestId('undo')).toBeEnabled();
+
+    act(() => {
+      store.diagram = { ...diagramOf({ ...MODEL, nodes: [MODEL.nodes[1]], edges: [] }), id: 'another-diagram' };
+      store.notify();
+    });
+
+    expect(screen.getByTestId('undo')).toBeDisabled();
+    expect(screen.getByTestId('redo')).toBeDisabled();
+    expect(text('canvas-nodes')).toBe('b');
+  });
+
+  it('starts over when something else replaces the graph, so an undo cannot undo it', () => {
+    click('drag-a');
+
+    act(() => {
+      store.diagram = diagramOf({ ...MODEL, edges: [] });
+      store.notify();
+    });
+
+    expect(screen.getByTestId('undo')).toBeDisabled();
+  });
+
+  it('does nothing when asked to undo with nothing to undo', () => {
+    click('key-undo');
+    click('key-redo');
+
+    expect(text('canvas-a-x')).toBe('1');
   });
 });

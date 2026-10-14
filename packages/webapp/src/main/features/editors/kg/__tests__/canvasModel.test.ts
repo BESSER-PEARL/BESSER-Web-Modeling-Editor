@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import cytoscape from 'cytoscape';
 import {
+  coalesceToNextTick,
   cyToModel,
   displayLabel,
   filterVisible,
   mergeWithFullModel,
   modelToElements,
   newNodeElement,
+  nodesToReposition,
 } from '../canvasModel';
 import type { KGEdgeData, KGNodeData, KnowledgeGraphData } from '../types';
 
@@ -224,5 +226,83 @@ describe('mergeWithFullModel', () => {
     const merged = mergeWithFullModel(full, canvas, visible);
 
     expect(merged.edges).toEqual([]);
+  });
+});
+
+describe('nodesToReposition', () => {
+  const at = (id: string, x: number, y: number) => node({ id, nodeType: 'class' }, x, y);
+
+  it('lists the nodes whose position differs between the canvas and the model', () => {
+    const onCanvas = [at('a', 0, 0), at('b', 10, 10), at('c', 20, 20)];
+    const wanted = [at('a', 0, 0), at('b', 50, 60), at('c', 20, 20)];
+
+    expect(nodesToReposition(onCanvas, wanted)).toEqual([{ id: 'b', x: 50, y: 60 }]);
+  });
+
+  it('is empty when the canvas already matches, so nothing is touched', () => {
+    const nodes = [at('a', 1, 2), at('b', 3, 4)];
+
+    expect(nodesToReposition(nodes, nodes)).toEqual([]);
+  });
+
+  it('ignores sub-pixel differences from rounding', () => {
+    expect(nodesToReposition([at('a', 10, 10)], [at('a', 10.2, 9.9)])).toEqual([]);
+  });
+
+  it('matches nodes by id, not by order', () => {
+    const onCanvas = [at('a', 0, 0), at('b', 1, 1)];
+    const wanted = [at('b', 1, 1), at('a', 9, 9)];
+
+    expect(nodesToReposition(onCanvas, wanted)).toEqual([{ id: 'a', x: 9, y: 9 }]);
+  });
+
+  it('skips nodes the model has no usable position for, and nodes the canvas does not show', () => {
+    const onCanvas = [at('a', 0, 0)];
+    const wanted = [node({ id: 'a', nodeType: 'class' }), at('elsewhere', 5, 5), { ...at('a', 0, 0), position: { x: NaN, y: 0 } }];
+
+    expect(nodesToReposition(onCanvas, wanted)).toEqual([]);
+  });
+});
+
+describe('coalesceToNextTick', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('turns a burst of calls into one call after the burst', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const run = coalesceToNextTick(fn);
+
+    run();
+    run();
+    run();
+    expect(fn).not.toHaveBeenCalled();
+    vi.runAllTimers();
+
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls again for the next burst', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const run = coalesceToNextTick(fn);
+
+    run();
+    vi.runAllTimers();
+    run();
+    vi.runAllTimers();
+
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('can be cancelled, e.g. when the canvas is torn down', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const run = coalesceToNextTick(fn);
+
+    run();
+    run.cancel();
+    vi.runAllTimers();
+
+    expect(fn).not.toHaveBeenCalled();
   });
 });

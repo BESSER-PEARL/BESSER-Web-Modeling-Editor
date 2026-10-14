@@ -3210,7 +3210,11 @@
         "nodesFragment_other": "{{count}} nodes",
         "relationsFragment_one": "{{count}} relació",
         "relationsFragment_other": "{{count}} relacions",
-        "counts": "{{nodes}} · {{relations}}"
+        "counts": "{{nodes}} · {{relations}}",
+        "undo": "Desfés",
+        "redo": "Refés",
+        "undoTooltip": "Desfés (Ctrl+Z)",
+        "redoTooltip": "Refés (Ctrl+Y)"
       },
       "canvasControls": {
         "autoLayout": "Disposició automàtica",

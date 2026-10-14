@@ -25,6 +25,8 @@ function setup(overrides: Partial<Parameters<typeof createCanvasKeyHandlers>[0]>
     getConnectMode: vi.fn(() => 'off' as const),
     exitConnectMode: vi.fn(),
     requestDelete: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
     ...overrides,
   };
   return { deps, ...createCanvasKeyHandlers(deps) };
@@ -164,5 +166,70 @@ describe('Escape', () => {
     onKeyDown(key('Escape'));
 
     expect(deps.exitConnectMode).not.toHaveBeenCalled();
+  });
+});
+
+describe('undo and redo', () => {
+  it.each([
+    ['Ctrl+Z', { key: 'z', ctrlKey: true }],
+    ['Cmd+Z', { key: 'z', metaKey: true }],
+  ])('%s undoes while the canvas has focus', (_name, init) => {
+    const { deps, onKeyDown } = setup();
+    container.focus();
+    const ev = key(init.key, init);
+
+    onKeyDown(ev);
+
+    expect(deps.undo).toHaveBeenCalledTimes(1);
+    expect(deps.redo).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it.each([
+    ['Ctrl+Y', { key: 'y', ctrlKey: true }],
+    ['Ctrl+Shift+Z', { key: 'Z', ctrlKey: true, shiftKey: true }],
+    ['Cmd+Shift+Z', { key: 'Z', metaKey: true, shiftKey: true }],
+  ])('%s redoes while the canvas has focus', (_name, init) => {
+    const { deps, onKeyDown } = setup();
+    container.focus();
+    const ev = key(init.key, init);
+
+    onKeyDown(ev);
+
+    expect(deps.redo).toHaveBeenCalledTimes(1);
+    expect(deps.undo).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it('leaves Ctrl+Z to the browser in a text field, where it undoes typing', () => {
+    const { deps, onKeyDown } = setup();
+    insideInput.focus();
+    const ev = key('z', { ctrlKey: true });
+
+    onKeyDown(ev);
+
+    expect(deps.undo).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(false);
+  });
+
+  it('leaves Ctrl+Z alone on a button elsewhere', () => {
+    const { deps, onKeyDown } = setup();
+    outsideButton.focus();
+
+    onKeyDown(key('z', { ctrlKey: true }));
+
+    expect(deps.undo).not.toHaveBeenCalled();
+  });
+
+  it('ignores a plain Z and other Ctrl shortcuts', () => {
+    const { deps, onKeyDown } = setup();
+    container.focus();
+
+    onKeyDown(key('z'));
+    onKeyDown(key('c', { ctrlKey: true }));
+    onKeyDown(key('y'));
+
+    expect(deps.undo).not.toHaveBeenCalled();
+    expect(deps.redo).not.toHaveBeenCalled();
   });
 });
