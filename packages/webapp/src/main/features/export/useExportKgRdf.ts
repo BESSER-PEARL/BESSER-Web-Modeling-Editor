@@ -6,31 +6,18 @@ import { useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { exportKgRdf, kgApiErrorMessage, type KgRdfFormat, type KgRdfVocab } from '../../shared/api/knowledgeGraph';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';
 import type { BesserProject } from '../../shared/types/project';
 
-export type KgRdfFormat = 'owl' | 'ttl';
-/** Which constraint vocabularies to emit alongside the domain triples.
- *  Mirrors the backend `vocab` parameter on `/export-kg-rdf/{fmt}`. */
-export type KgRdfVocab = 'owl' | 'shacl' | 'both';
+export type { KgRdfFormat, KgRdfVocab };
 
 const FALLBACK_FILENAME_BY_FORMAT: Record<KgRdfFormat, string> = {
   owl: 'knowledge_graph.owl',
   ttl: 'knowledge_graph.ttl',
 };
-
-function extractFilename(contentDisposition: string | null, fallback: string): string {
-  if (!contentDisposition) return fallback;
-  const patterns = [/filename="([^"]+)"/, /filename=([^;\s]+)/];
-  for (const pattern of patterns) {
-    const match = contentDisposition.match(pattern);
-    if (match) return match[1];
-  }
-  return fallback;
-}
 
 export const useExportKgRdf = () => {
   const { t } = useTranslation();
@@ -51,39 +38,19 @@ export const useExportKgRdf = () => {
       }
 
       try {
-        const response = await fetch(`${BACKEND_URL}/export-kg-rdf/${format}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-            vocab,
-          }),
-        });
+        const { blob, filename: serverFilename } = await exportKgRdf({ diagram: kgDiagram, format, vocab });
+        const fallback = kgDiagram.title
+          ? `${kgDiagram.title.toLowerCase().replace(/\s+/g, '_')}.${format}`
+          : FALLBACK_FILENAME_BY_FORMAT[format];
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
-          toast.error(errorData.detail || `HTTP ${response.status}`);
-          return;
-        }
-
-        const blob = await response.blob();
-        const fallback =
-          (kgDiagram.title
-            ? `${kgDiagram.title.toLowerCase().replace(/\s+/g, '_')}.${format}`
-            : FALLBACK_FILENAME_BY_FORMAT[format]);
-        const filename = extractFilename(response.headers.get('Content-Disposition'), fallback);
-
-        downloadFile({ file: blob, filename });
+        downloadFile({ file: blob, filename: serverFilename ?? fallback });
         // Composed from two keys rather than concatenating an English
         // clause onto a translated one.
         const vocabSuffix =
           vocab === 'both' ? '' : t('export.kg.toasts.vocabSuffix', { vocab: vocab.toUpperCase() });
         toast.success(t('export.kg.toasts.exportCompleted', { format: format.toUpperCase(), suffix: vocabSuffix }));
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('export.kg.toasts.failed');
-        toast.error(message);
+        toast.error(kgApiErrorMessage(error, t, t('export.kg.toasts.failed')));
       }
     },
     [downloadFile, t],

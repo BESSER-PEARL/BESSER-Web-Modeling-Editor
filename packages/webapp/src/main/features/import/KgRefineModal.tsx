@@ -36,7 +36,7 @@ import { Label } from '@/components/ui/label';
 import { useOpenAIApiKey } from '../../shared/hooks/useOpenAIApiKey';
 import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPreflightIssueRow';
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
-import type { KgIssue, KgPreflightReport } from './useKgPreflight';
+import type { KgIssue, KgPreflightReport } from '../../shared/api/knowledgeGraph';
 import { useKgConsistencyCheck } from './useKgConsistencyCheck';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';

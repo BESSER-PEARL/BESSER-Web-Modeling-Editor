@@ -3676,6 +3676,9 @@
         "generated": "S'ha generat {{diagram}} a partir del graf de coneixement.",
         "conversionFailed": "La conversió del KG ha fallat.",
         "failedTitle": "La conversió KG → UML ha fallat"
+      },
+      "api": {
+        "timedOut": "La petició ha trigat massa i s'ha cancel·lat. Torneu-ho a provar."
       }
     }
   },

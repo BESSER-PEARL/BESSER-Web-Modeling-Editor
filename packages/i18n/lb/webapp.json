@@ -3676,6 +3676,9 @@
         "generated": "{{diagram}} aus dem Knowledge Graph generéiert.",
         "conversionFailed": "D'KG-Ëmwandlung ass feelgeschloen.",
         "failedTitle": "KG → UML Ëmwandlung feelgeschloen"
+      },
+      "api": {
+        "timedOut": "D'Ufro huet ze laang gedauert an ass ofgebrach ginn. Probéiert w.e.g. nach eng Kéier."
       }
     }
   },

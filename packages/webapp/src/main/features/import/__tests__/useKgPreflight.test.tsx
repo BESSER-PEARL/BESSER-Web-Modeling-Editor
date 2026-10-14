@@ -1,6 +1,7 @@
 /* @vitest-environment jsdom */
 import { renderHook, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { toast } from 'react-toastify';
 
 import { useKgPreflight } from '../useKgPreflight';
 
@@ -85,5 +86,31 @@ describe('useKgPreflight', () => {
     expect(returned).toBeNull();
     expect(result.current.status).toBe('error');
     expect(result.current.report).toBeNull();
+  });
+
+  it("shows the backend's explanation to the user when the request fails", async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ detail: 'Invalid knowledge graph: duplicate node id n1' }),
+    } as unknown as Response);
+
+    const { result } = renderHook(() => useKgPreflight());
+    await act(async () => {
+      await result.current.runPreflight();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Invalid knowledge graph: duplicate node id n1');
+  });
+
+  it('rejects an answer that is not a report', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ nope: 1 }) } as unknown as Response);
+
+    const { result } = renderHook(() => useKgPreflight());
+    await act(async () => {
+      await result.current.runPreflight();
+    });
+
+    expect(result.current.status).toBe('error');
   });
 });

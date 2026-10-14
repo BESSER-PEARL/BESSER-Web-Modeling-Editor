@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 
 import { KgPreflightIssueRow } from '../KgPreflightIssueRow';
-import type { KgIssue } from '../useKgPreflight';
+import type { KgIssue } from '../../../shared/api/knowledgeGraph';
 
 const _issue = (overrides: Partial<KgIssue> = {}): KgIssue => ({
   id: 'i1',

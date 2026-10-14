@@ -14,7 +14,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../shared/i18n';
 
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { kgApiErrorMessage, kgToClassDiagram } from '../../shared/api/knowledgeGraph';
 import { useAppDispatch } from '../../app/store/hooks';
 import {
   addDiagramThunk,
@@ -44,8 +44,6 @@ export interface KgConvertOptions {
    *  When omitted, the conversion proceeds without showing a gate (back-compat). */
   onConsistencyIssues?: (report: ConsistencyReport) => Promise<'proceed' | 'cancel'>;
 }
-
-const ENDPOINT = '/kg-to-class-diagram';
 
 const TARGET_DIAGRAM_TYPE: SupportedDiagramType = 'ClassDiagram';
 
@@ -120,36 +118,17 @@ export const useKgToUmlConversion = () => {
         } catch (err) {
           // The check is advisory — if the endpoint fails we surface a toast
           // and continue with the conversion rather than blocking the user.
-          const message = err instanceof Error ? err.message : t('import.kg.toUml.consistencyCheckFailed');
+          const message = kgApiErrorMessage(err, t, t('import.kg.toUml.consistencyCheckFailed'));
           toast.warn(t('import.kg.toUml.consistencyCheckSkipped', { message }));
         }
       }
 
       try {
-        const body: Record<string, unknown> = {
-          id: kgDiagram.id,
-          title: kgDiagram.title,
-          model: kgDiagram.model,
-        };
-        if (options.resolutions && options.resolutions.length) {
-          body.resolutions = options.resolutions;
-        }
-        if (options.kgSignature) {
-          body.kgSignature = options.kgSignature;
-        }
-
-        const response = await fetch(`${BACKEND_URL}${ENDPOINT}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+        const data = await kgToClassDiagram({
+          diagram: kgDiagram,
+          resolutions: options.resolutions,
+          kgSignature: options.kgSignature,
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
         if (!data?.model || !data?.diagramType) {
           throw new Error(t('import.kg.toUml.invalidResponse'));
         }
@@ -179,7 +158,7 @@ export const useKgToUmlConversion = () => {
 
         toast.success(t('import.kg.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY) }));
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.toUml.conversionFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.toUml.conversionFailed'));
         dispatch(displayError(t('import.kg.toUml.failedTitle'), message));
         toast.error(message);
       }

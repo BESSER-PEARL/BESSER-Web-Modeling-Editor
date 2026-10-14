@@ -10,7 +10,7 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { importOwl, kgApiErrorMessage } from '../../shared/api/knowledgeGraph';
 import { useAppDispatch } from '../../app/store/hooks';
 import { addDiagramThunk, bumpEditorRevision, switchDiagramIndexThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
@@ -123,21 +123,7 @@ export const useImportOwlToKg = () => {
 
   const runImport = useCallback(async (file: File) => {
     try {
-      const formData = new FormData();
-      formData.append('owl_file', file);
-
-      const response = await fetch(`${BACKEND_URL}/import-owl`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Could not parse error response' }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
+      const data = await importOwl(file);
       if (!data || !data.model || !Array.isArray(data.model.nodes) || !Array.isArray(data.model.edges)) {
         throw new Error(t('import.kg.owl.invalidJson'));
       }
@@ -180,7 +166,7 @@ export const useImportOwlToKg = () => {
         canAddTab: (currentProject.diagrams[KG_TYPE]?.length ?? 0) < MAX_DIAGRAMS_PER_TYPE,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t('import.kg.owl.unknownError');
+      const errorMessage = kgApiErrorMessage(error, t, t('import.kg.owl.unknownError'));
       dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
       toast.error(errorMessage);
     }

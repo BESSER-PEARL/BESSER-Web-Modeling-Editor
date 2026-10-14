@@ -32,9 +32,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import type { KgIssue } from './useKgPreflight';
+import type { KgDecision, KgIssue } from '../../shared/api/knowledgeGraph';
 
-export type RowDecision = 'accept' | 'skip';
+export type RowDecision = KgDecision;
 
 export type RowRouting = 'recommended' | 'llm';
 

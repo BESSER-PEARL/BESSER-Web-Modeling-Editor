@@ -11,31 +11,8 @@ import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { analyzeKg, kgApiErrorMessage, type KgPreflightReport } from '../../shared/api/knowledgeGraph';
 import { getActiveKgDiagram } from './useKgToUmlConversion';
-
-export interface KgAction {
-  key: string;
-  parameters: Record<string, unknown>;
-  label: string;
-}
-
-export interface KgIssue {
-  id: string;
-  code: string;
-  description: string;
-  affectedNodeIds: string[];
-  affectedEdgeIds: string[];
-  recommendedAction: KgAction | null;
-  skipAction: KgAction | null;
-}
-
-export interface KgPreflightReport {
-  kgSignature: string;
-  diagramType: string;
-  issueCount: number;
-  issues: KgIssue[];
-}
 
 export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -48,27 +25,10 @@ export const useKgPreflight = () => {
     async (): Promise<KgPreflightReport | null> => {
       const active = getActiveKgDiagram();
       if (!active) return null;
-      const { diagram: kgDiagram } = active;
 
       setStatus('loading');
       try {
-        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-
-        const data = (await response.json()) as KgPreflightReport;
+        const data = await analyzeKg(active.diagram);
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.preflight.invalidResponse'));
         }
@@ -76,14 +36,13 @@ export const useKgPreflight = () => {
         setStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.preflight.failed');
-        toast.error(message);
+        toast.error(kgApiErrorMessage(error, t, t('import.kg.preflight.failed')));
         setStatus('error');
         setReport(null);
         return null;
       }
     },
-    [],
+    [t],
   );
 
   const reset = useCallback(() => {

@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import type { KgRdfFormat, KgRdfVocab } from './useExportKgRdf';
+import type { KgRdfFormat, KgRdfVocab } from '../../shared/api/knowledgeGraph';
 import { CONSTRAINT_BY_KIND } from '../../shared/kg/constraint-catalog';
 import type { KGNodeData } from '../../shared/types/project';
 

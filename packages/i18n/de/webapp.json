@@ -3676,6 +3676,9 @@
         "generated": "{{diagram}} aus dem Knowledge Graph erzeugt.",
         "conversionFailed": "Die KG-Umwandlung ist fehlgeschlagen.",
         "failedTitle": "KG → UML Umwandlung fehlgeschlagen"
+      },
+      "api": {
+        "timedOut": "Die Anfrage hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es erneut."
       }
     }
   },

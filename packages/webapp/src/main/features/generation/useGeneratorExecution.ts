@@ -74,7 +74,7 @@ import {
 } from '../../shared/utils/buildWebAppVersions';
 import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
 import { useKgPreflight } from '../import/useKgPreflight';
-import type { KgIssue } from '../import/useKgPreflight';
+import type { KgIssue } from '../../shared/api/knowledgeGraph';
 import * as kgFocus from '../../shared/kg/kgFocus';
 import { useExportKgRdf } from '../export/useExportKgRdf';
 

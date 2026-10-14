@@ -3676,6 +3676,9 @@
         "generated": "{{diagram}} généré à partir du graphe de connaissances.",
         "conversionFailed": "Échec de la conversion du KG.",
         "failedTitle": "Échec de la conversion KG → UML"
+      },
+      "api": {
+        "timedOut": "La requête a pris trop de temps et a été annulée. Veuillez réessayer."
       }
     }
   },

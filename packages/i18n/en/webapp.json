@@ -3676,6 +3676,9 @@
         "generated": "Generated {{diagram}} from Knowledge Graph.",
         "conversionFailed": "KG conversion failed.",
         "failedTitle": "KG → UML conversion failed"
+      },
+      "api": {
+        "timedOut": "The request took too long and was cancelled. Please try again."
       }
     }
   },

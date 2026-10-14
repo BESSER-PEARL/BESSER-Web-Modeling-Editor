@@ -143,6 +143,46 @@ class ApiClient {
       clearTimeout(timeoutId);
     }
   }
+
+  /**
+   * POST JSON and receive a file together with its response headers (e.g.
+   * `Content-Disposition`, which carries the server-chosen file name).
+   *
+   * Unlike {@link downloadBlob}, a failure raises an {@link ApiError} carrying
+   * the server's `{"detail": ...}` explanation instead of a generic message.
+   */
+  async downloadFile(
+    endpoint: string,
+    data: unknown,
+    options?: ApiRequestOptions,
+  ): Promise<{ blob: Blob; headers: Headers }> {
+    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
+    const timeoutMs = timeoutOverride ?? this.timeout;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...fetchOptions,
+        method: 'POST',
+        body: JSON.stringify(data),
+        signal: controller.signal,
+        headers: {
+          ...fetchOptions.headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new ApiError(response.status, error.detail || 'Download failed');
+      }
+
+      return { blob: await response.blob(), headers: response.headers };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 /** Typed error class carrying the HTTP status code. */

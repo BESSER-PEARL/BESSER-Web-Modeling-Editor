@@ -11,7 +11,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { BACKEND_URL } from '../../shared/constants/constant';
+import {
+  analyzeKg,
+  applyKgRefinement,
+  classifyOrphansWithLlm,
+  kgApiErrorMessage,
+  llmCleanKg,
+  type KgIssue,
+  type KgPendingOrphanClassification,
+  type KgPreflightReport,
+} from '../../shared/api/knowledgeGraph';
 import { useAppDispatch } from '../../app/store/hooks';
 import {
   bumpEditorRevision,
@@ -19,15 +28,11 @@ import {
 } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { getActiveKgDiagram } from './useKgToUmlConversion';
-import type { KgIssue, KgPreflightReport } from './useKgPreflight';
 import type { RowDecision } from './KgPreflightIssueRow';
 
 export type RefineStatus = 'idle' | 'loading' | 'success' | 'error';
 
-export interface PendingOrphanClassification {
-  nodeIds: string[];
-  kgSignature: string;
-}
+export type PendingOrphanClassification = KgPendingOrphanClassification;
 
 export interface ApplyStaticResult {
   pendingOrphanClassification: PendingOrphanClassification | null;
@@ -80,21 +85,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       setStaticStatus('loading');
       try {
-        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-          }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        const data = (await response.json()) as KgPreflightReport;
+        const data = await analyzeKg(kgDiagram);
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.preflight.invalidResponse'));
         }
@@ -102,7 +93,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         setStaticStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.refine.staticFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.refine.staticFailed'));
         toast.error(message);
         setStaticStatus('error');
         setStaticReport(null);
@@ -121,27 +112,12 @@ export const useKgRefine = (): UseKgRefineReturn => {
       if (!active) return null;
       const { diagram: kgDiagram } = active;
       try {
-        const body = {
-          id: kgDiagram.id,
-          title: kgDiagram.title,
-          model: kgDiagram.model,
+        const data = await applyKgRefinement({
+          diagram: kgDiagram,
           source: 'static',
           kgSignature,
           resolutions: decisions,
-        };
-        const response = await fetch(
-          `${BACKEND_URL}/apply-kg-refinement`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          },
-        );
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        const data = await response.json();
+        });
         if (!data?.model) {
           throw new Error(t('import.kg.refine.applyNoModel'));
         }
@@ -153,7 +129,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
           newKgSignature: data.kgSignature,
         };
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.refine.applyFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.refine.applyFailed'));
         dispatch(displayError(t('import.kg.refine.failedTitle'), message));
         toast.error(message);
         return null;
@@ -181,27 +157,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       setLlmStatus('loading');
       try {
-        const formData = new FormData();
-        formData.append(
-          'diagram',
-          JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-          }),
-        );
-        formData.append('description', desc);
-        formData.append('api_key', key);
-
-        const response = await fetch(`${BACKEND_URL}/llm-clean-kg`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        const data = (await response.json()) as KgPreflightReport;
+        const data = await llmCleanKg({ diagram: kgDiagram, description: desc, apiKey: key });
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.refine.invalidLlmResponse'));
         }
@@ -209,7 +165,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         setLlmStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.refine.aiFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.refine.aiFailed'));
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
@@ -247,29 +203,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       setLlmStatus('loading');
       try {
-        const formData = new FormData();
-        formData.append(
-          'diagram',
-          JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-            kgSignature,
-          }),
-        );
-        formData.append('description', desc);
-        formData.append('api_key', key);
-        formData.append('node_ids', JSON.stringify(nodeIds));
-
-        const response = await fetch(`${BACKEND_URL}/classify-orphans-with-llm`, {
-          method: 'POST',
-          body: formData,
+        const data = await classifyOrphansWithLlm({
+          diagram: kgDiagram,
+          description: desc,
+          apiKey: key,
+          nodeIds,
+          kgSignature,
         });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        const data = (await response.json()) as KgPreflightReport;
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.refine.invalidOrphanResponse'));
         }
@@ -277,7 +217,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         setLlmStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.refine.orphanFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.refine.orphanFailed'));
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
@@ -297,25 +237,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
       if (!active) return false;
       const { diagram: kgDiagram } = active;
       try {
-        const body = {
-          id: kgDiagram.id,
-          title: kgDiagram.title,
-          model: kgDiagram.model,
+        const data = await applyKgRefinement({
+          diagram: kgDiagram,
           source: 'llm',
           kgSignature,
-          llmIssues: issues,
           resolutions: decisions,
-        };
-        const response = await fetch(`${BACKEND_URL}/apply-kg-refinement`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          llmIssues: issues,
         });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        const data = await response.json();
         if (!data?.model) {
           throw new Error(t('import.kg.refine.applyNoModel'));
         }
@@ -324,7 +252,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         toast.success(t('import.kg.refine.refined'));
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('import.kg.refine.applyLlmFailed');
+        const message = kgApiErrorMessage(error, t, t('import.kg.refine.applyLlmFailed'));
         dispatch(displayError(t('import.kg.refine.failedTitle'), message));
         toast.error(message);
         return false;
