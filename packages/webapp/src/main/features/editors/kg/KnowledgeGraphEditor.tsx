@@ -17,6 +17,7 @@ import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector'
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
 import { deleteSelectionFromModel } from './delete-selection';
+import { pruneSelection, sameKgContent } from './modelSync';
 import * as kgFocus from './kgFocus';
 import {
   collectHiddenMetaIds,
@@ -73,12 +74,6 @@ function seedVisibleIds(
   }
   const candidates = model.nodes.filter((n) => !hiddenMetaIds.has(n.id));
   return pickNodeIdsByPriority(candidates, Math.min(softLimit, hardLimit));
-}
-
-function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
 }
 
 function safeFilename(name: string | undefined): string {
@@ -205,13 +200,28 @@ export const KnowledgeGraphEditor: React.FC = () => {
   }, [displayModel.nodes, visibleIds]);
   const hiddenCount = Math.max(0, displayModel.nodes.length - visibleNodeCount);
 
-  // Reload when the active project / diagram index changes.
+  // Reload when the active project / diagram index changes, or when something
+  // other than this editor replaces the model.
+  //
+  // Our own debounced save comes back through here too, and it carries
+  // `settings.visibleIds` that the local model does not hold (visibility is
+  // React state, written into the settings only on save). That echo must not be
+  // mistaken for an outside change: `sameKgContent` ignores `visibleIds`, so
+  // toggling visibility or the first save after an edit no longer resets the
+  // model, the visible set and the selection.
+  const diagramKey = `${currentProject?.id ?? ''}:${currentDiagram?.id ?? ''}`;
+  const prevDiagramKeyRef = useRef(diagramKey);
   useEffect(() => {
+    // A different diagram is a different graph: ids may coincide by accident,
+    // so never carry a selection across.
+    const switchedDiagram = prevDiagramKeyRef.current !== diagramKey;
+    prevDiagramKeyRef.current = diagramKey;
     const external = currentDiagram?.model;
     if (isKnowledgeGraphData(external)) {
-      if (JSON.stringify(external) !== JSON.stringify(modelRef.current)) {
+      if (!sameKgContent(external, modelRef.current)) {
         setModel(external);
-        setSelection(null);
+        // Same diagram, changed from outside: keep the selection if it is still there.
+        setSelection((prev) => (switchedDiagram ? null : pruneSelection(prev, external)));
         const soft = getKgSoftLimit(external.settings);
         const hard = getKgHardLimit(external.settings);
         prevSoftLimitRef.current = soft;
@@ -228,7 +238,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
     prevSoftLimitRef.current = soft;
     const freshMeta = collectHiddenMetaIds(fresh.nodes, getKgShowMetaVocab(fresh.settings));
     setVisibleIds(seedVisibleIds(fresh, soft, hard, freshMeta));
-  }, [currentProject?.id, currentDiagram, loadFromStorage]);
+  }, [currentProject?.id, currentDiagram, diagramKey, loadFromStorage]);
 
   // One debounced save pipeline for BOTH model (nodes/edges/settings) and
   // the visible-id selection, so the user's selection survives remounts.
