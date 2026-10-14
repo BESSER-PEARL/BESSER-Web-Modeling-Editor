@@ -2,7 +2,12 @@
  *  The output opens in any modern browser and renders the same graph the
  *  user sees in the editor — drag, pan, zoom, and select all work via
  *  Cytoscape's built-in defaults. Cytoscape and fcose load from a CDN so
- *  the file stays small (~5–20 KB). */
+ *  the file stays small (~5–20 KB).
+ *
+ *  The exported file runs on the recipient's machine with whatever labels the
+ *  author typed in it, so everything that reaches it is treated as hostile:
+ *  data is embedded with every markup character escaped, messages are written
+ *  as text, and the CDN scripts are pinned and integrity-checked. */
 
 /** Chrome rendered by the exported file's own runtime. The template can't call
  *  `t()` -- it runs standalone, outside the app -- so the caller resolves these
@@ -32,14 +37,44 @@ interface BuildArgs {
   lang: string;
 }
 
-const CYTOSCAPE_CDN = 'https://cdn.jsdelivr.net/npm/cytoscape@3.33.2/dist/cytoscape.umd.js';
-const FCOSE_CDN = 'https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/dist/cytoscape-fcose.umd.js';
+export interface CdnScript {
+  url: string;
+  /** Subresource-integrity hash of exactly that file. */
+  integrity: string;
+}
 
-/** Inline a value as a JSON literal inside a `<script>` tag. The `</`
- *  escape prevents an attacker-controlled label from prematurely closing
- *  the script element. */
+/** The viewer's libraries, in load order: fcose is a UMD bundle that expects
+ *  `coseBase`, which in turn expects `layoutBase`, as globals. Each is pinned to
+ *  an exact version with its integrity hash, so a compromised or changed CDN
+ *  file is refused instead of run. The versions are the ones the editor itself
+ *  installs; a test compares every hash with the installed file and fails after
+ *  an upgrade until these are updated. */
+export const CDN_SCRIPTS: readonly CdnScript[] = [
+  {
+    url: 'https://cdn.jsdelivr.net/npm/cytoscape@3.34.3/dist/cytoscape.umd.js',
+    integrity: 'sha384-9JjlirG5QFu0QsJOmmMpYIs4HmjkL9bL4Osqwnxg0kS7XdcREDmc4b8ZOWxis3k3',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/npm/layout-base@2.0.1/layout-base.js',
+    integrity: 'sha384-5E2lB9AIGE6LRCnOOSTnZRlYZFZ01iMeN2fw97Z1r4Z/kXALxKw2AC+ZzQqoeDsG',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/npm/cose-base@2.2.0/cose-base.js',
+    integrity: 'sha384-RswRBkrMsPUYpJLbZ1CVA08zbNzAkykE2oGJTujBwfjWNdfxv2WVjLJNqv1LhAOp',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/cytoscape-fcose.js',
+    integrity: 'sha384-uk5Wbjq1+KqUdHO30w7N7GrEGdzBhaJeW9o/ANF6v9+yx3M/cBmoX51C000JNCUf',
+  },
+];
+
+/** Inline a value as a JSON literal inside a `<script>` tag. Every character
+ *  the HTML parser could act on is written as a \u escape (still the same
+ *  string to JavaScript): `</script>` would close the block, and `<!--` followed
+ *  by `<script` switches the parser into a mode that swallows the closing tag.
+ *  U+2028/U+2029 are escaped as well, for older engines. */
 function inlineJson(value: unknown): string {
-  return JSON.stringify(value).replace(/<\//g, '<\\/');
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
 function escapeHtml(text: string): string {
@@ -85,8 +120,7 @@ export function buildStandaloneHtml({
     padding: 1rem; text-align: center; color: #991b1b;
   }
 </style>
-<script src="${CYTOSCAPE_CDN}"></script>
-<script src="${FCOSE_CDN}"></script>
+${CDN_SCRIPTS.map((s) => `<script src="${s.url}" integrity="${s.integrity}" crossorigin="anonymous"></script>`).join('\n')}
 </head>
 <body>
 <div id="cy"></div>
@@ -94,7 +128,13 @@ export function buildStandaloneHtml({
 (function () {
   var container = document.getElementById('cy');
   function showError(msg) {
-    container.innerHTML = '<div class="kg-error">' + msg + '</div>';
+    // Text, never markup: the message can carry an error from the page or a
+    // translation, and neither is trusted.
+    var box = document.createElement('div');
+    box.className = 'kg-error';
+    box.textContent = msg;
+    container.textContent = '';
+    container.appendChild(box);
   }
   try {
     if (typeof cytoscape !== 'function') {
