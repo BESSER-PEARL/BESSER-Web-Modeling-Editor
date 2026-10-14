@@ -1,3 +1,5 @@
+import { KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY } from './types';
+
 /** Color per KG node type — palette swatches and canvas nodes stay in sync. */
 export const KG_NODE_COLORS: Record<string, { fill: string; border: string; text: string }> = {
   class:              { fill: '#2563eb', border: '#1d4ed8', text: '#ffffff' },
@@ -12,11 +14,7 @@ export const KG_NODE_COLORS: Record<string, { fill: string; border: string; text
 /** Predicate IRIs used internally to wire constraint nodes to their targets
  *  and to each other. Stylesheet selectors render these edges as dashed so
  *  they read as "constraint connection" rather than as domain edges. */
-const KG_CONSTRAINT_EDGE_IRIS = [
-  'http://besser.local/kg#constraintTargetClass',
-  'http://besser.local/kg#constraintTargetProperty',
-  'http://www.w3.org/ns/shacl#property',
-];
+const KG_CONSTRAINT_EDGE_IRIS = [KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY];
 
 // Typed as `any[]` because the `Stylesheet` type alias isn't reachable under
 // the `export = cytoscape` pattern — `cytoscape.StylesheetStyle` / `StylesheetCSS`

@@ -27,7 +27,8 @@ import type {
   KGNodeType,
   KGConstraintSpec,
 } from './types';
-import { KG_NODE_TYPES } from './types';
+import { KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_NODE_TYPES, KG_SH_PROPERTY } from './types';
+import { uuid } from '../../../shared/utils/uuid';
 import { edgeRuleReason, nodeTypeLabel } from './i18n-keys';
 import { KG_NODE_COLORS } from './stylesheet';
 import { KgShapeIcon } from './KgShapeIcon';
@@ -73,11 +74,7 @@ type Draft = NodeDraft | EdgeDraft | null;
 
 const DATALIST_ID = 'kg-inspector-predicates';
 
-function makeRandomId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? (crypto as Crypto).randomUUID()
-    : Math.random().toString(36).slice(2);
-}
+const makeRandomId = uuid;
 
 function newEdgeId(): string {
   return `edge:${makeRandomId()}`;
@@ -408,8 +405,8 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               const newEdgeIdValue = newEdgeId();
               const edgeIri =
                 nodeType === 'nodeConstraint'
-                  ? 'http://besser.local/kg#constraintTargetClass'
-                  : 'http://besser.local/kg#constraintTargetProperty';
+                  ? KG_CONSTRAINT_TARGET_CLASS
+                  : KG_CONSTRAINT_TARGET_PROPERTY;
               const next: KnowledgeGraphData = {
                 ...afterDraft,
                 nodes: [
@@ -750,14 +747,12 @@ const AttachedConstraints: React.FC<{
   ) => void;
 }> = ({ ownerNode, model, onAddConstraint }) => {
   const { t } = useTranslation();
-  const CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
-  const CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
   // For a class: collect NodeConstraints pointing at this class; for a
   // property: collect PropertyConstraints pointing at this property. Used to
   // render chips so the user knows what's already attached.
   const attached = useMemo(() => {
     const isClass = ownerNode.nodeType === 'class';
-    const targetIri = isClass ? CONSTRAINT_TARGET_CLASS : CONSTRAINT_TARGET_PROPERTY;
+    const targetIri = isClass ? KG_CONSTRAINT_TARGET_CLASS : KG_CONSTRAINT_TARGET_PROPERTY;
     return model.edges
       .filter((e) => e.iri === targetIri && e.target === ownerNode.id)
       .map((e) => model.nodes.find((n) => n.id === e.source))
@@ -1039,14 +1034,14 @@ interface ConstraintPredicateOption {
 const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPredicateOption[]>> = {
   nodeConstraint: [
     {
-      iri: 'http://besser.local/kg#constraintTargetClass',
+      iri: KG_CONSTRAINT_TARGET_CLASS,
       label: 'constraintTargetClass',
       targetTypes: ['class'],
       description: 'Apply this NodeConstraint to a class.',
       descriptionKey: 'editors.kg.inspector.constraintPredicates.targetClass',
     },
     {
-      iri: 'http://www.w3.org/ns/shacl#property',
+      iri: KG_SH_PROPERTY,
       label: 'property',
       targetTypes: ['propertyConstraint'],
       description: 'Group a PropertyConstraint under this NodeConstraint (sh:property).',
@@ -1055,7 +1050,7 @@ const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPred
   ],
   propertyConstraint: [
     {
-      iri: 'http://besser.local/kg#constraintTargetProperty',
+      iri: KG_CONSTRAINT_TARGET_PROPERTY,
       label: 'constraintTargetProperty',
       targetTypes: ['property'],
       description: 'Apply this PropertyConstraint to a property.',

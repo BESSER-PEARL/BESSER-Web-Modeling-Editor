@@ -14,7 +14,7 @@
  *  for legibility.
  */
 
-import React, { useState } from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -275,7 +275,8 @@ const RefPicker: React.FC<{
   const candidates: KGNodeData[] = model.nodes.filter(
     (n) => n.nodeType === nodeType && n.id !== ownerNodeId,
   );
-  const datalistId = `nested-ref-${Math.random().toString(36).slice(2, 8)}`;
+  // Stable across renders (a random id here changed on every render).
+  const datalistId = `nested-ref-${useId()}`;
   const selected = candidates.find((n) => n.id === value);
 
   return (

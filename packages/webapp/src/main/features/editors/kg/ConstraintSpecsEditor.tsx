@@ -20,7 +20,7 @@
  *  `valueShape` here.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Plus, Search, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
@@ -682,7 +682,8 @@ const IriPicker: React.FC<{
   placeholder?: string;
   onChange: (v: string) => void;
 }> = ({ value, options, placeholder, onChange }) => {
-  const datalistId = `iri-list-${Math.random().toString(36).slice(2, 8)}`;
+  // Stable across renders (a random id here changed on every render).
+  const datalistId = `iri-list-${useId()}`;
   return (
     <>
       <Input
