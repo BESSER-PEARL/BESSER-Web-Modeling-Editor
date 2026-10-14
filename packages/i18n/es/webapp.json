@@ -3152,7 +3152,8 @@
           "langTag": "etiqueta de idioma (p. ej. en)",
           "enabled": "activado",
           "disabled": "desactivado",
-          "editorComingSoon": "El editor para «{{shape}}» estará disponible pronto: el valor se conserva tal cual."
+          "editorComingSoon": "El editor para «{{shape}}» estará disponible pronto: el valor se conserva tal cual.",
+          "noMatches": "Ninguna restricción coincide con la búsqueda."
         },
         "validation": {
           "minMaxCardinality": "minCardinality ({{min}}) no debe superar maxCardinality ({{max}}).",

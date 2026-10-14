@@ -3152,7 +3152,8 @@
           "langTag": "Sproochtag (z. B. en)",
           "enabled": "aktivéiert",
           "disabled": "desaktivéiert",
-          "editorComingSoon": "En Editeur fir \"{{shape}}\" kënnt geschwë — de Wäert bleift onverännert."
+          "editorComingSoon": "En Editeur fir \"{{shape}}\" kënnt geschwë — de Wäert bleift onverännert.",
+          "noMatches": "Keng Contrainte passt zur Sich."
         },
         "validation": {
           "minMaxCardinality": "minCardinality ({{min}}) däerf maxCardinality ({{max}}) net iwwerschreiden.",

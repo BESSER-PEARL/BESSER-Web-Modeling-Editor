@@ -3,6 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, EyeOff, Plus, Search, Trash2, Undo2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -744,18 +752,6 @@ const AttachedConstraints: React.FC<{
   const { t } = useTranslation();
   const CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
   const CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
-
   // For a class: collect NodeConstraints pointing at this class; for a
   // property: collect PropertyConstraints pointing at this property. Used to
   // render chips so the user knows what's already attached.
@@ -788,64 +784,55 @@ const AttachedConstraints: React.FC<{
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('editors.kg.inspector.attachedConstraints.heading', { count: attached.length })}
         </Label>
-        <div ref={menuRef} className="relative">
+        {ownerNode.nodeType === 'property' ? (
+          // A property has only one thing to constrain, so there is no menu.
           <Button
             variant="ghost"
             size="sm"
             className="h-7 gap-1 px-2 text-xs"
-            onClick={() => {
-              if (ownerNode.nodeType === 'property') {
-                onAddConstraint('propertyConstraint');
-              } else {
-                setMenuOpen((o) => !o);
-              }
-            }}
+            onClick={() => onAddConstraint('propertyConstraint')}
           >
             <Plus className="size-3.5" />
             {t('editors.kg.inspector.attachedConstraints.add')}
           </Button>
-          {menuOpen && ownerNode.nodeType === 'class' && (
-            <div className="absolute right-0 z-50 mt-1 w-72 rounded-md border bg-popover text-popover-foreground shadow-md">
-              <button
-                type="button"
-                className="block w-full px-3 py-1.5 text-left text-xs hover:bg-muted/60"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onAddConstraint('nodeConstraint');
-                }}
-              >
-                <div className="font-medium">
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs">
+                <Plus className="size-3.5" />
+                {t('editors.kg.inspector.attachedConstraints.add')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuItem className="flex-col items-start gap-0 text-xs" onSelect={() => onAddConstraint('nodeConstraint')}>
+                <span className="font-medium">
                   {t('editors.kg.inspector.attachedConstraints.constrainThisClass')}
-                </div>
-                <div className="text-muted-foreground">
+                </span>
+                <span className="text-muted-foreground">
                   {t('editors.kg.inspector.attachedConstraints.constrainThisClassHint')}
-                </div>
-              </button>
-              <div className="border-t" />
-              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('editors.kg.inspector.attachedConstraints.constrainAProperty')}
-              </div>
+              </DropdownMenuLabel>
               {propertiesOfClass.length === 0 && (
-                <div className="px-3 py-1.5 text-xs italic text-muted-foreground">
+                <div className="px-2 py-1.5 text-xs italic text-muted-foreground">
                   {t('editors.kg.inspector.attachedConstraints.noPropertiesInDomain')}
                 </div>
               )}
               {propertiesOfClass.map((prop) => (
-                <button
+                <DropdownMenuItem
                   key={prop.id}
-                  type="button"
-                  className="block w-full px-3 py-1.5 text-left text-xs hover:bg-muted/60"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onAddConstraint('propertyConstraint', prop.id);
-                  }}
+                  className="text-xs"
+                  onSelect={() => onAddConstraint('propertyConstraint', prop.id)}
                 >
                   {prop.label || prop.id}
-                </button>
+                </DropdownMenuItem>
               ))}
-            </div>
-          )}
-        </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       {attached.length > 0 ? (
         <ul className="flex flex-wrap gap-1">

@@ -3152,7 +3152,8 @@
           "langTag": "lang tag (e.g. en)",
           "enabled": "enabled",
           "disabled": "disabled",
-          "editorComingSoon": "Editor for \"{{shape}}\" coming soon — value preserved as-is."
+          "editorComingSoon": "Editor for \"{{shape}}\" coming soon — value preserved as-is.",
+          "noMatches": "No constraints match your search."
         },
         "validation": {
           "minMaxCardinality": "minCardinality ({{min}}) must not exceed maxCardinality ({{max}}).",

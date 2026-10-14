@@ -25,6 +25,14 @@ import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Plus, Search, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -852,16 +860,16 @@ const ConstraintPicker: React.FC<{
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // Click-outside dismissal.
+  // Typing should filter as soon as the menu opens, so the search field gets
+  // focus rather than the menu itself. The menu takes focus when it mounts,
+  // hence the tick.
   useEffect(() => {
     if (!open) return;
-    const handle = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    const id = setTimeout(() => searchRef.current?.focus(), 0);
+    return () => clearTimeout(id);
   }, [open]);
 
   const grouped: Record<ConstraintCategory, ConstraintCatalogEntry[]> = useMemo(() => {
@@ -887,64 +895,74 @@ const ConstraintPicker: React.FC<{
   }, [catalog, query, t]);
 
   return (
-    <div ref={containerRef} className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-8 w-full justify-start gap-1 text-xs"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <Plus className="size-3.5" />
-        {t('editors.kg.constraints.editor.addConstraint')}
-      </Button>
-      {open && (
-        <div className="absolute left-0 z-50 mt-1 w-80 rounded-md border bg-popover text-popover-foreground shadow-md">
-          <div className="flex items-center gap-2 border-b px-2 py-1.5">
-            <Search className="size-3.5 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('editors.kg.constraints.editor.searchPlaceholder')}
-              className="h-7 border-0 px-0 text-sm shadow-none focus-visible:ring-0"
-              autoFocus
-            />
-          </div>
-          <div className="max-h-80 overflow-y-auto py-1">
-            {CATEGORY_ORDER.map((cat) => {
-              const entries = grouped[cat];
-              if (entries.length === 0) return null;
-              return (
-                <div key={cat} className="py-1">
-                  <div className="px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {categoryLabel(t, cat, CATEGORY_LABELS[cat])}
-                  </div>
-                  <ul>
-                    {entries.map((entry) => (
-                      <li key={entry.kind}>
-                        <button
-                          type="button"
-                          title={`${catalogDescription(t, entry)}\n\n${[entry.owlTerm, entry.shaclTerm].filter(Boolean).join(' / ')}`}
-                          className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs hover:bg-muted/60"
-                          onClick={() => {
-                            onPick(entry);
-                            setOpen(false);
-                            setQuery('');
-                          }}
-                        >
-                          <span className="flex-1">{catalogLabel(t, entry)}</span>
-                          <span className="rounded bg-purple-100 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-purple-800 dark:bg-purple-900/40 dark:text-purple-200">
-                            {entry.vocab.join('+').toUpperCase()}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setQuery('');
+      }}
+    >
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 w-full justify-start gap-1 text-xs">
+          <Plus className="size-3.5" />
+          {t('editors.kg.constraints.editor.addConstraint')}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-80 p-0">
+        <div className="flex items-center gap-2 border-b px-2 py-1.5">
+          <Search className="size-3.5 text-muted-foreground" />
+          <Input
+            ref={searchRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // The menu would treat letters as type-ahead and swallow them.
+              // Only Escape (closes) and ArrowDown (into the list) are the menu's.
+              if (e.key === 'Escape') return;
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                listRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+                return;
+              }
+              e.stopPropagation();
+            }}
+            placeholder={t('editors.kg.constraints.editor.searchPlaceholder')}
+            aria-label={t('editors.kg.constraints.editor.searchPlaceholder')}
+            className="h-7 border-0 px-0 text-sm shadow-none focus-visible:ring-0"
+          />
         </div>
-      )}
-    </div>
+        <div ref={listRef} className="max-h-80 overflow-y-auto py-1">
+          {CATEGORY_ORDER.map((cat) => {
+            const entries = grouped[cat];
+            if (entries.length === 0) return null;
+            return (
+              <DropdownMenuGroup key={cat} className="py-1">
+                <DropdownMenuLabel className="px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {categoryLabel(t, cat, CATEGORY_LABELS[cat])}
+                </DropdownMenuLabel>
+                {entries.map((entry) => (
+                  <DropdownMenuItem
+                    key={entry.kind}
+                    title={`${catalogDescription(t, entry)}\n\n${[entry.owlTerm, entry.shaclTerm].filter(Boolean).join(' / ')}`}
+                    className="gap-2 px-2 py-1 text-xs"
+                    onSelect={() => onPick(entry)}
+                  >
+                    <span className="flex-1">{catalogLabel(t, entry)}</span>
+                    <span className="rounded bg-purple-100 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-purple-800 dark:bg-purple-900/40 dark:text-purple-200">
+                      {entry.vocab.join('+').toUpperCase()}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
+            );
+          })}
+          {CATEGORY_ORDER.every((cat) => grouped[cat].length === 0) && (
+            <div className="px-3 py-2 text-xs italic text-muted-foreground">
+              {t('editors.kg.constraints.editor.noMatches')}
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };

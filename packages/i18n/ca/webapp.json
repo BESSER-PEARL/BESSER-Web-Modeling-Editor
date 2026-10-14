@@ -3152,7 +3152,8 @@
           "langTag": "etiqueta d'idioma (p. ex. en)",
           "enabled": "activat",
           "disabled": "desactivat",
-          "editorComingSoon": "L'editor per a «{{shape}}» arribarà aviat: el valor es conserva tal com és."
+          "editorComingSoon": "L'editor per a «{{shape}}» arribarà aviat: el valor es conserva tal com és.",
+          "noMatches": "Cap restricció coincideix amb la cerca."
         },
         "validation": {
           "minMaxCardinality": "minCardinality ({{min}}) no ha de superar maxCardinality ({{max}}).",
