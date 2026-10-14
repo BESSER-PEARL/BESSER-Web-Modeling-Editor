@@ -10,6 +10,7 @@ import type { ConnectMode } from './KnowledgeGraphToolbar';
 import type { KgSelection } from './KnowledgeGraphInspector';
 import type { KnowledgeGraphLayout } from '../../../shared/types/project';
 import { isEdgeAllowed, explainEdgeRejection } from './edge-rules';
+import { createCanvasKeyHandlers } from './canvasKeys';
 import {
   cyToModel,
   filterVisible,
@@ -558,53 +559,32 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         expandNeighbors(evt.target);
       });
 
-      // Esc exits connect mode.
-      // Space held = temporarily enable panning (plain drag is otherwise
-      // used for box-selecting multiple elements).
-      const onKey = (ev: KeyboardEvent) => {
-        if (!containerRef.current) return;
-        const active = document.activeElement;
-        if (
-          active &&
-          (active.tagName === 'INPUT' ||
-            active.tagName === 'TEXTAREA' ||
-            (active as HTMLElement).isContentEditable)
-        ) {
-          return;
-        }
-        if (ev.key === ' ' && !ev.repeat) {
-          cy.userPanningEnabled(true);
-          ev.preventDefault();
-          return;
-        }
-        if (ev.key === 'Escape') {
-          if (connectModeRef.current !== 'off') {
-            onExitConnectMode?.();
-            ev.preventDefault();
-          }
-          return;
-        }
-        if (ev.key === 'Delete' || ev.key === 'Backspace') {
+      // Esc exits connect mode; Space held = temporarily enable panning (plain
+      // drag is otherwise used for box-selecting); Delete/Backspace asks the
+      // editor to delete the selection. Which of these the canvas may take
+      // depends on focus, see canvasKeys.ts.
+      const { onKeyDown: onKey, onKeyUp } = createCanvasKeyHandlers({
+        getContainer: () => containerRef.current,
+        setPanning: (on) => cy.userPanningEnabled(on),
+        getSelection: () => {
           const sel = cy.$(':selected');
-          if (sel.nonempty()) {
-            // Hand the selection to the editor rather than removing it here —
-            // it confirms with the user first (same prompt as the inspector's
-            // delete button) and only then edits the model.
-            onRequestDeleteRef.current?.({
-              nodeIds: sel.nodes().map((n) => String(n.id())),
-              edgeIds: sel.edges().map((e) => String(e.id())),
-            });
-            ev.preventDefault();
-          }
-        }
-      };
-      const onKeyUp = (ev: KeyboardEvent) => {
-        if (ev.key === ' ') {
-          cy.userPanningEnabled(false);
-        }
-      };
+          return {
+            nodeIds: sel.nodes().map((n) => String(n.id())),
+            edgeIds: sel.edges().map((e) => String(e.id())),
+          };
+        },
+        getConnectMode: () => connectModeRef.current,
+        exitConnectMode: () => onExitConnectMode?.(),
+        // The canvas removes nothing itself: deleting is destructive, so the
+        // editor confirms with the user first and then edits the model.
+        requestDelete: (selection) => onRequestDeleteRef.current?.(selection),
+      });
       window.addEventListener('keydown', onKey);
       window.addEventListener('keyup', onKeyUp);
+      // The shortcuts above only fire while the canvas has focus, so a tap on
+      // it must give it focus (a <canvas> inside a tabIndex container does not
+      // always get it from the browser).
+      cy.on('tapstart', () => containerRef.current?.focus({ preventScroll: true }));
 
       // Right-click drag pans the canvas. Implemented at the container DOM
       // level — Cytoscape's `userPanningEnabled` only governs left-button
