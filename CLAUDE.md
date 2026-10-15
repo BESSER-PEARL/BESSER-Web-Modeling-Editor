@@ -74,7 +74,7 @@ Webapp (`packages/webapp/src/main/`):
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation}/` | One feature module each |
 | `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
-| `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the form body |
+| `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
 | `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
 | `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
@@ -242,8 +242,9 @@ Full reference: `docs/source/reference/environment.rst`.
     the light one, and its CDN scripts are pinned with integrity hashes that a test checks against the installed
     packages — after upgrading cytoscape/fcose, update `CDN_SCRIPTS`
   - backend calls go through `shared/api/knowledgeGraph.ts`; the AI tabs use the shared LLM key
-    (`llmKeyStorage`) and accept OpenAI keys only; the convert/refine dialogs are driven by
-    `features/import/useKgFlows.ts`, RDF export is a section of the Export dialog
+    (`llmKeyStorage`) and send it with its provider (Anthropic, OpenAI, Mistral or Nebius; PIA and local keys
+    need a custom endpoint the server will not open, so they are refused); the convert/refine dialogs are
+    driven by `features/import/useKgFlows.ts`, RDF export is a section of the Export dialog
 
 ## Cross-Repo Workflow
 1. Commit and push frontend changes on a branch here

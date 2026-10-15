@@ -18,6 +18,7 @@ import {
   kgApiErrorMessage,
   llmCleanKg,
   type KgIssue,
+  type KgLlmCredentials,
   type KgPendingOrphanClassification,
   type KgPreflightReport,
 } from '../../shared/api/knowledgeGraph';
@@ -52,10 +53,10 @@ export interface UseKgRefineReturn {
   // LLM tab
   llmStatus: RefineStatus;
   llmReport: KgPreflightReport | null;
-  runLlmFullCleanup: (description: string, apiKey: string) => Promise<KgPreflightReport | null>;
+  runLlmFullCleanup: (description: string, credentials: KgLlmCredentials) => Promise<KgPreflightReport | null>;
   runLlmOrphanClassification: (
     description: string,
-    apiKey: string,
+    credentials: KgLlmCredentials,
     nodeIds: string[],
     kgSignature: string,
   ) => Promise<KgPreflightReport | null>;
@@ -139,13 +140,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
   );
 
   const runLlmFullCleanup = useCallback(
-    async (description: string, apiKey: string): Promise<KgPreflightReport | null> => {
+    async (description: string, credentials: KgLlmCredentials): Promise<KgPreflightReport | null> => {
       const active = getActiveKgDiagram();
       if (!active) return null;
       const { diagram: kgDiagram } = active;
 
       const desc = (description || '').trim();
-      const key = (apiKey || '').trim();
+      const key = (credentials.apiKey || '').trim();
       if (!key) {
         toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;
@@ -153,7 +154,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
 
       setLlmStatus('loading');
       try {
-        const data = await llmCleanKg({ diagram: kgDiagram, description: desc, apiKey: key });
+        const data = await llmCleanKg({
+          diagram: kgDiagram,
+          description: desc,
+          credentials: { ...credentials, apiKey: key },
+        });
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.refine.invalidLlmResponse'));
         }
@@ -174,7 +179,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
   const runLlmOrphanClassification = useCallback(
     async (
       description: string,
-      apiKey: string,
+      credentials: KgLlmCredentials,
       nodeIds: string[],
       kgSignature: string,
     ): Promise<KgPreflightReport | null> => {
@@ -183,7 +188,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const { diagram: kgDiagram } = active;
 
       const desc = (description || '').trim();
-      const key = (apiKey || '').trim();
+      const key = (credentials.apiKey || '').trim();
       if (!key) {
         toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;
@@ -198,7 +203,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         const data = await classifyOrphansWithLlm({
           diagram: kgDiagram,
           description: desc,
-          apiKey: key,
+          credentials: { ...credentials, apiKey: key },
           nodeIds,
           kgSignature,
         });

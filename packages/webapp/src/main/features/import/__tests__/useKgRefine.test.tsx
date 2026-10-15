@@ -34,6 +34,9 @@ vi.mock('../useKgToUmlConversion', () => ({
 import { ApiError } from '../../../shared/api/api-client';
 import { useKgRefine } from '../useKgRefine';
 
+/** The user's key, as the modal hands it over. */
+const creds = (apiKey: string, provider: 'openai' | 'anthropic' = 'openai') => ({ provider, apiKey });
+
 const REPORT = { kgSignature: 'sig', diagramType: 'ClassDiagram', issueCount: 0, issues: [] };
 
 beforeEach(() => {
@@ -47,7 +50,7 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      expect(await result.current.runLlmFullCleanup('a library', '  ')).toBeNull();
+      expect(await result.current.runLlmFullCleanup('a library', creds('  '))).toBeNull();
     });
 
     expect(api.llmCleanKg).not.toHaveBeenCalled();
@@ -59,13 +62,13 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      await result.current.runLlmFullCleanup('   ', 'sk-key');
+      await result.current.runLlmFullCleanup('   ', creds('sk-key'));
     });
 
     expect(api.llmCleanKg).toHaveBeenCalledWith({
       diagram: expect.objectContaining({ id: 'd1' }),
       description: '',
-      apiKey: 'sk-key',
+      credentials: { provider: 'openai', apiKey: 'sk-key' },
     });
     expect(result.current.llmStatus).toBe('success');
   });
@@ -75,16 +78,31 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      await result.current.runLlmFullCleanup('  a library  ', '  sk-key  ');
+      await result.current.runLlmFullCleanup('  a library  ', creds('  sk-key  '));
     });
 
     expect(api.llmCleanKg).toHaveBeenCalledWith({
       diagram: expect.objectContaining({ id: 'd1' }),
       description: 'a library',
-      apiKey: 'sk-key',
+      credentials: { provider: 'openai', apiKey: 'sk-key' },
     });
     expect(result.current.llmStatus).toBe('success');
     expect(result.current.llmReport).toEqual(REPORT);
+  });
+
+  it('passes the key\'s provider and the user\'s model choice on to the request', async () => {
+    api.llmCleanKg.mockResolvedValue(REPORT);
+    const { result } = renderHook(() => useKgRefine());
+
+    await act(async () => {
+      await result.current.runLlmFullCleanup('a library', { ...creds('sk-ant', 'anthropic'), model: 'claude-haiku-4-5' });
+    });
+
+    expect(api.llmCleanKg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentials: { provider: 'anthropic', apiKey: 'sk-ant', model: 'claude-haiku-4-5' },
+      }),
+    );
   });
 
   it("shows the backend's own message when the upstream call fails", async () => {
@@ -92,7 +110,7 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      expect(await result.current.runLlmFullCleanup('a library', 'sk-key')).toBeNull();
+      expect(await result.current.runLlmFullCleanup('a library', creds('sk-key'))).toBeNull();
     });
 
     expect(toast.error).toHaveBeenCalledWith('The language-model service failed. Please try again later.');
@@ -105,7 +123,7 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      await result.current.runLlmFullCleanup('a library', 'sk-key');
+      await result.current.runLlmFullCleanup('a library', creds('sk-key'));
     });
 
     const shown = toast.error.mock.calls[0][0] as string;
@@ -118,7 +136,7 @@ describe('runLlmFullCleanup', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      expect(await result.current.runLlmFullCleanup('a library', 'sk-key')).toBeNull();
+      expect(await result.current.runLlmFullCleanup('a library', creds('sk-key'))).toBeNull();
     });
 
     expect(result.current.llmStatus).toBe('error');
@@ -130,7 +148,7 @@ describe('runLlmOrphanClassification', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      expect(await result.current.runLlmOrphanClassification('a library', 'sk-key', [], 'sig')).toBeNull();
+      expect(await result.current.runLlmOrphanClassification('a library', creds('sk-key'), [], 'sig')).toBeNull();
     });
 
     expect(api.classifyOrphansWithLlm).not.toHaveBeenCalled();
@@ -141,13 +159,13 @@ describe('runLlmOrphanClassification', () => {
     const { result } = renderHook(() => useKgRefine());
 
     await act(async () => {
-      await result.current.runLlmOrphanClassification('a library', 'sk-key', ['n1', 'n2'], 'sig');
+      await result.current.runLlmOrphanClassification('a library', creds('sk-key'), ['n1', 'n2'], 'sig');
     });
 
     expect(api.classifyOrphansWithLlm).toHaveBeenCalledWith({
       diagram: expect.objectContaining({ id: 'd1' }),
       description: 'a library',
-      apiKey: 'sk-key',
+      credentials: { provider: 'openai', apiKey: 'sk-key' },
       nodeIds: ['n1', 'n2'],
       kgSignature: 'sig',
     });

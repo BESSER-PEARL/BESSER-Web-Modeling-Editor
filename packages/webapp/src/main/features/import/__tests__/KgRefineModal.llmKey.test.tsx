@@ -1,8 +1,10 @@
 /* @vitest-environment jsdom */
 /**
  * The AI tab uses the app's one shared key store (llmKeyStorage) instead of a
- * private input. The AI endpoints call OpenAI, so only an OpenAI key can be
- * used; any other saved key is explained and the shared key dialog is offered.
+ * private input. The AI endpoints take an Anthropic, OpenAI, Mistral or Nebius
+ * key and send it with its provider; a key for a provider that needs a custom
+ * endpoint (PIA, local) cannot be used, so it is explained and the shared key
+ * dialog is offered.
  */
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -54,35 +56,62 @@ describe('KgRefineModal AI tab: the key comes from the shared store', () => {
     expect(document.querySelector('input[type="password"]')).toBeNull();
   });
 
-  it('asks for an OpenAI key when none is saved, and cannot analyze without one', () => {
+  it('asks for a key when none is saved, and cannot analyze without one', () => {
     renderAiTab();
     describe_('a library system');
 
-    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent('needs an OpenAI API key');
+    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent('needs an API key');
     expect(analyze()).toBeDisabled();
   });
 
-  it('explains that another provider\'s saved key does not work here', () => {
-    save('anthropic', 'sk-ant-assistant-key');
+  it.each([
+    ['local', 'Local (self-hosted)'],
+    ['pia', 'PIA (LIST)'],
+  ])("explains that a %s key does not work here: it needs a custom endpoint", (provider, label) => {
+    save(provider, 'sk-custom-endpoint-key');
     renderAiTab();
     describe_('a library system');
 
-    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent('Anthropic (Claude)');
-    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent('OpenAI keys only');
+    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent(label);
+    expect(screen.getByTestId('kg-refine-key-missing')).toHaveTextContent('cannot use');
     expect(analyze()).toBeDisabled();
   });
 
-  it('uses a saved OpenAI key without ever showing it', () => {
-    save('openai', OPENAI_KEY);
+  it.each([
+    ['openai', 'OpenAI (GPT)'],
+    ['anthropic', 'Anthropic (Claude)'],
+    ['mistral', 'Mistral'],
+    ['nebius', 'Nebius Token Factory'],
+  ])('uses a saved %s key, with its provider, without ever showing it', (provider, label) => {
+    save(provider, OPENAI_KEY);
     const { container } = renderAiTab();
     describe_('  a library system ');
 
-    expect(screen.getByTestId('kg-refine-key-ready')).toBeInTheDocument();
+    expect(screen.getByTestId('kg-refine-key-ready')).toHaveTextContent(label);
     expect(container.ownerDocument.body.innerHTML).not.toContain(OPENAI_KEY);
     expect(analyze()).toBeEnabled();
 
     fireEvent.click(analyze());
-    expect(refine.runLlmFullCleanup).toHaveBeenCalledWith('  a library system ', OPENAI_KEY);
+    expect(refine.runLlmFullCleanup).toHaveBeenCalledWith('  a library system ', {
+      provider,
+      apiKey: OPENAI_KEY,
+      model: undefined,
+    });
+  });
+
+  it("sends the model the user chose in the key dialog", () => {
+    save('anthropic', 'sk-ant-key');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5');
+    renderAiTab();
+    describe_('a library system');
+
+    fireEvent.click(analyze());
+
+    expect(refine.runLlmFullCleanup).toHaveBeenCalledWith('a library system', {
+      provider: 'anthropic',
+      apiKey: 'sk-ant-key',
+      model: 'claude-haiku-4-5',
+    });
   });
 
   it('needs a description even with a key', () => {
@@ -92,24 +121,27 @@ describe('KgRefineModal AI tab: the key comes from the shared store', () => {
     expect(analyze()).toBeDisabled();
   });
 
-  it('lets the user add an OpenAI key through the shared dialog, then use it', () => {
+  it('lets the user add a key through the shared dialog, then use it', () => {
     renderAiTab();
     describe_('a library system');
 
     fireEvent.click(screen.getByTestId('kg-refine-add-key'));
     const dialog = screen.getByText(/replaces the key saved before/i).closest('[role="dialog"]') as HTMLElement;
-    expect((document.getElementById('llm-key-provider') as HTMLSelectElement).value).toBe('openai');
+    expect((document.getElementById('llm-key-provider') as HTMLSelectElement).value).toBe('anthropic');
 
-    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, { target: { value: OPENAI_KEY } });
+    // The dialog infers the provider from the key's prefix, so an Anthropic-style key stays on Anthropic.
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-new-key-123' },
+    });
     fireEvent.click(within(dialog).getByRole('button', { name: /^save$/i }));
 
-    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('openai');
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('anthropic');
     expect(screen.getByTestId('kg-refine-key-ready')).toBeInTheDocument();
     expect(analyze()).toBeEnabled();
   });
 
-  it('warns in the dialog that saving replaces the assistant\'s key', () => {
-    save('anthropic', 'sk-ant-assistant-key');
+  it("warns in the dialog that saving replaces the assistant's key", () => {
+    save('local', 'sk-custom-endpoint-key');
     renderAiTab();
 
     fireEvent.click(screen.getByTestId('kg-refine-add-key'));
@@ -117,7 +149,7 @@ describe('KgRefineModal AI tab: the key comes from the shared store', () => {
     expect(screen.getByText(/replaces the key saved before/i)).toBeInTheDocument();
   });
 
-  it('can change an OpenAI key that is already saved', () => {
+  it('can change a key that is already saved', () => {
     save('openai', OPENAI_KEY);
     renderAiTab();
 

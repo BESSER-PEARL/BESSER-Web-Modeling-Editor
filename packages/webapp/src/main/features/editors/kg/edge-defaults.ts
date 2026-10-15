@@ -15,7 +15,7 @@ const RDFS_SUBCLASS_OF = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
  *
  *  Two things depend on getting this right:
  *  - Constraint links (`nodeConstraint` / `propertyConstraint` sources) must
- *    carry their internal `besser.local` IRI or the preflight reports the
+ *    carry their internal BESSER-namespace IRI or the preflight reports the
  *    constraint as unattached.
  *  - `individual → class` and `class → class` default to rdf:type /
  *    rdfs:subClassOf so the orphan detector and the consistency check have a

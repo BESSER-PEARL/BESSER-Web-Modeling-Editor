@@ -279,7 +279,11 @@ describe('KgRefineModal — partial-apply UX', () => {
       expect(analyze).toBeEnabled();
 
       fireEvent.click(analyze);
-      expect(mock.runLlmFullCleanup).toHaveBeenCalledWith('', 'sk-openai-key');
+      expect(mock.runLlmFullCleanup).toHaveBeenCalledWith('', {
+        provider: 'openai',
+        apiKey: 'sk-openai-key',
+        model: undefined,
+      });
     } finally {
       window.sessionStorage.clear();
     }

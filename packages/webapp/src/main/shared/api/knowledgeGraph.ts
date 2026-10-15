@@ -51,8 +51,7 @@ export interface KgPreflightReport {
   issues: KgIssue[];
 }
 
-/** Backend `KGConsistencyReportResponse` (camelCase envelope, snake_case issue
- *  fields, as the backend sends it). Declared with the project types. */
+/** Backend `KGConsistencyReportResponse`. Declared with the project types. */
 export type KgConsistencyReport = ConsistencyReport;
 
 /** Backend `KGPendingOrphanClassification`. */
@@ -144,22 +143,46 @@ export const applyKgRefinement = ({
     resolutions,
   });
 
+/** Providers the KG LLM endpoints accept a user key for (the backend's `KGLLMProvider`).
+ *  A key for any other (PIA, a local endpoint) needs a custom base URL, which the
+ *  server refuses to open on a user's behalf. */
+export const KG_LLM_PROVIDERS = ['anthropic', 'openai', 'mistral', 'nebius'] as const;
+export type KgLlmProvider = (typeof KG_LLM_PROVIDERS)[number];
+
+export const isKgLlmProvider = (provider: string): provider is KgLlmProvider =>
+  (KG_LLM_PROVIDERS as readonly string[]).includes(provider);
+
+/** The user's own LLM key, and where it belongs. */
+export interface KgLlmCredentials {
+  provider: KgLlmProvider;
+  /** Travels in the JSON body only, never in the URL. */
+  apiKey: string;
+  /** The user's explicit model choice; omitted, the backend uses the provider's default. */
+  model?: string;
+}
+
 export interface LlmCleanKgRequest {
   diagram: KgDiagramRef;
   /** What the system is, in the user's words. Optional: when blank the model infers the domain from the graph. */
   description?: string;
-  /** The user's OpenAI key. Travels in the form body only, never in the URL. */
-  apiKey: string;
+  credentials: KgLlmCredentials;
 }
 
+/** The body fields both LLM endpoints share (the backend's `KGLLMRequest`). */
+const llmBody = ({ description, credentials }: Pick<LlmCleanKgRequest, 'description' | 'credentials'>) => ({
+  ...(description?.trim() ? { description } : {}),
+  provider: credentials.provider,
+  api_key: credentials.apiKey,
+  ...(credentials.model ? { llm_model: credentials.model } : {}),
+});
+
 /** Ask the LLM to review the whole graph. */
-export const llmCleanKg = ({ diagram, description, apiKey }: LlmCleanKgRequest): Promise<KgPreflightReport> => {
-  const form = new FormData();
-  form.append('diagram', JSON.stringify(diagramBody(diagram)));
-  if (description?.trim()) form.append('description', description);
-  form.append('api_key', apiKey);
-  return apiClient.upload<KgPreflightReport>('/llm-clean-kg', form, { timeout: LLM_TIMEOUT_MS });
-};
+export const llmCleanKg = ({ diagram, description, credentials }: LlmCleanKgRequest): Promise<KgPreflightReport> =>
+  apiClient.post<KgPreflightReport>(
+    '/llm-clean-kg',
+    { diagram: diagramBody(diagram), ...llmBody({ description, credentials }) },
+    { timeout: LLM_TIMEOUT_MS },
+  );
 
 export interface ClassifyOrphansRequest extends LlmCleanKgRequest {
   nodeIds: string[];
@@ -170,17 +193,19 @@ export interface ClassifyOrphansRequest extends LlmCleanKgRequest {
 export const classifyOrphansWithLlm = ({
   diagram,
   description,
-  apiKey,
+  credentials,
   nodeIds,
   kgSignature,
-}: ClassifyOrphansRequest): Promise<KgPreflightReport> => {
-  const form = new FormData();
-  form.append('diagram', JSON.stringify({ ...diagramBody(diagram), kgSignature }));
-  if (description?.trim()) form.append('description', description);
-  form.append('api_key', apiKey);
-  form.append('node_ids', JSON.stringify(nodeIds));
-  return apiClient.upload<KgPreflightReport>('/classify-orphans-with-llm', form, { timeout: LLM_TIMEOUT_MS });
-};
+}: ClassifyOrphansRequest): Promise<KgPreflightReport> =>
+  apiClient.post<KgPreflightReport>(
+    '/classify-orphans-with-llm',
+    {
+      diagram: { ...diagramBody(diagram), kgSignature },
+      ...llmBody({ description, credentials }),
+      node_ids: nodeIds,
+    },
+    { timeout: LLM_TIMEOUT_MS },
+  );
 
 /** Parse an OWL / RDF-XML / Turtle file into a Knowledge Graph model. */
 export const importOwl = (file: File): Promise<KgDiagramResponse<KnowledgeGraphData>> => {

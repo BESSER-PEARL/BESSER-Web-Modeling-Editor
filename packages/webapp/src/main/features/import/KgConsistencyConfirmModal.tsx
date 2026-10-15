@@ -70,9 +70,9 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
                 className={`px-3 py-2 text-sm ${tone}`}
                 data-testid={`kg-consistency-confirm-issue-${issue.id}`}
               >
-                {issue.constraint_label ? (
+                {issue.constraintLabel ? (
                   <>
-                    <div className="font-medium">{issue.constraint_label}</div>
+                    <div className="font-medium">{issue.constraintLabel}</div>
                     <div className="mt-0.5 text-[11px] text-muted-foreground">{issue.message}</div>
                   </>
                 ) : (
@@ -82,13 +82,13 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
                   <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide">
                     {issue.severity}
                   </span>
-                  {issue.spec_kind && (
+                  {issue.specKind && (
                     <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-900 dark:bg-purple-900 dark:text-purple-100">
-                      {issue.spec_kind}
+                      {issue.specKind}
                     </span>
                   )}
-                  {issue.affected_node_ids.length > 0 && (
-                    <span className="truncate">{t('import.kg.consistency.onNode', { nodeId: issue.affected_node_ids[0] })}</span>
+                  {issue.affectedNodeIds.length > 0 && (
+                    <span className="truncate">{t('import.kg.consistency.onNode', { nodeId: issue.affectedNodeIds[0] })}</span>
                   )}
                 </div>
               </li>

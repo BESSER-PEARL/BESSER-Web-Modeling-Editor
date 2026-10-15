@@ -15,6 +15,7 @@ import {
   exportKgRdf,
   filenameFromContentDisposition,
   importOwl,
+  isKgLlmProvider,
   kgApiErrorMessage,
   kgToClassDiagram,
   llmCleanKg,
@@ -94,43 +95,72 @@ describe('JSON calls', () => {
 });
 
 describe('LLM calls', () => {
-  it('llmCleanKg sends the key in the form body, never in the URL, and waits long enough', async () => {
-    await llmCleanKg({ diagram, description: 'a library', apiKey: KEY });
+  const credentials = { provider: 'anthropic', apiKey: KEY } as const;
 
-    const [endpoint, , options] = client.upload.mock.calls[0];
+  it('llmCleanKg posts JSON with the provider and key, never in the URL, and waits long enough', async () => {
+    await llmCleanKg({ diagram, description: 'a library', credentials });
+
+    const [endpoint, body, options] = client.post.mock.calls[0];
     expect(endpoint).toBe('/llm-clean-kg');
     expect(endpoint).not.toContain(KEY);
-    expect(uploadedForm()).toMatchObject({ description: 'a library', api_key: KEY });
-    expect(JSON.parse(uploadedForm().diagram as string)).toMatchObject({ id: 'd1', title: 'People' });
+    expect(body).toEqual({
+      diagram: { id: 'd1', title: 'People', model: diagram.model },
+      description: 'a library',
+      provider: 'anthropic',
+      api_key: KEY,
+    });
     // The backend lets its upstream call take 120 s; the browser must outlast that.
     expect(options.timeout).toBeGreaterThan(120_000);
+  });
+
+  it.each(['anthropic', 'openai', 'mistral', 'nebius'] as const)('sends the %s provider along with its key', async (provider) => {
+    await llmCleanKg({ diagram, credentials: { provider, apiKey: KEY } });
+
+    expect(client.post.mock.calls[0][1]).toMatchObject({ provider, api_key: KEY });
+  });
+
+  it('sends the model only when the user chose one, and a blank description not at all', async () => {
+    await llmCleanKg({ diagram, description: '   ', credentials: { ...credentials, model: 'claude-haiku-4-5' } });
+    await llmCleanKg({ diagram, credentials });
+
+    const [chosen, defaulted] = client.post.mock.calls.map((c) => c[1]);
+    expect(chosen).toMatchObject({ llm_model: 'claude-haiku-4-5' });
+    expect(chosen).not.toHaveProperty('description');
+    expect(defaulted).not.toHaveProperty('llm_model');
   });
 
   it('classifyOrphansWithLlm adds the node ids and the signature', async () => {
     await classifyOrphansWithLlm({
       diagram,
       description: 'a library',
-      apiKey: KEY,
+      credentials,
       nodeIds: ['n1', 'n2'],
       kgSignature: 'sig',
     });
 
-    const [endpoint, , options] = client.upload.mock.calls[0];
+    const [endpoint, body, options] = client.post.mock.calls[0];
     expect(endpoint).toBe('/classify-orphans-with-llm');
     expect(endpoint).not.toContain(KEY);
-    expect(JSON.parse(uploadedForm().node_ids as string)).toEqual(['n1', 'n2']);
-    expect(JSON.parse(uploadedForm().diagram as string).kgSignature).toBe('sig');
-    expect(uploadedForm().api_key).toBe(KEY);
+    expect(body.node_ids).toEqual(['n1', 'n2']);
+    expect(body.diagram.kgSignature).toBe('sig');
+    expect(body).toMatchObject({ provider: 'anthropic', api_key: KEY, description: 'a library' });
     expect(options.timeout).toBeGreaterThan(120_000);
   });
 
-  it('never puts the key anywhere except the form field', async () => {
-    await llmCleanKg({ diagram, description: 'd', apiKey: KEY });
+  it('never puts the key anywhere except the api_key field', async () => {
+    await llmCleanKg({ diagram, description: 'd', credentials });
 
-    const [endpoint, form, options] = client.upload.mock.calls[0];
+    const [endpoint, body, options] = client.post.mock.calls[0];
     expect(JSON.stringify([endpoint, options])).not.toContain(KEY);
-    const others = [...(form as FormData).entries()].filter(([name]) => name !== 'api_key');
+    const others: Record<string, unknown> = { ...body };
+    delete others.api_key;
     expect(JSON.stringify(others)).not.toContain(KEY);
+  });
+
+  it('accepts exactly the providers the backend accepts a user key for', () => {
+    for (const ok of ['anthropic', 'openai', 'mistral', 'nebius']) expect(isKgLlmProvider(ok)).toBe(true);
+    // PIA and local need a custom base URL, which the server refuses to open.
+    for (const no of ['pia', 'local', 'free', 'gemini']) expect(isKgLlmProvider(no)).toBe(false);
   });
 });
 

@@ -6,7 +6,7 @@
 //                For ORPHAN_NODE_NO_CLASS_LINK issues, "skip" defers the orphan
 //                set to LLM classification; the apply response carries
 //                pendingOrphanClassification which auto-switches to the AI tab.
-//   - AI:       phase 'input' (optional context; the OpenAI key comes from the
+//   - AI:       phase 'input' (optional context; the LLM key comes from the
 //                shared key store) → phase 'review'.
 //                When the AI tab was reached from issues the Automatic tab
 //                routed here, the model infers the domain from the graph and the
@@ -42,7 +42,7 @@ import { LlmKeyDialog, PROVIDER_OPTIONS } from '../../shared/components/byok/Llm
 import { readLlmKey, type LlmKey } from '../../shared/services/llmKeyStorage';
 import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPreflightIssueRow';
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
-import type { KgIssue, KgPreflightReport } from '../../shared/api/knowledgeGraph';
+import { isKgLlmProvider, type KgIssue, type KgLlmCredentials, type KgPreflightReport } from '../../shared/api/knowledgeGraph';
 import { useKgConsistencyCheck } from './useKgConsistencyCheck';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';
@@ -158,11 +158,15 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   initialTab,
 }) => {
   const { t } = useTranslation();
-  // The one shared key (sessionStorage). The AI endpoints call OpenAI, so only
-  // an OpenAI key can be used; anything else gets an explanation and the dialog.
+  // The one shared key (sessionStorage). The AI endpoints take an Anthropic,
+  // OpenAI, Mistral or Nebius key; a key for a provider that needs a custom
+  // endpoint (PIA, local) cannot be used, and gets an explanation and the dialog.
   const [llmKey, setLlmKey] = useState<LlmKey | null>(() => readLlmKey());
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
-  const apiKey = llmKey?.provider === 'openai' ? llmKey.apiKey : '';
+  const credentials: KgLlmCredentials | null =
+    llmKey && isKgLlmProvider(llmKey.provider) && llmKey.apiKey.trim()
+      ? { provider: llmKey.provider, apiKey: llmKey.apiKey, model: llmKey.model }
+      : null;
   const savedKeyProviderLabel = llmKey
     ? (PROVIDER_OPTIONS.find((p) => p.value === llmKey.provider)?.label ?? llmKey.provider)
     : '';
@@ -382,15 +386,16 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   };
 
   const handleLlmAnalyze = async () => {
+    if (!credentials) return;
     if (pendingOrphan) {
       await refine.runLlmOrphanClassification(
         description,
-        apiKey,
+        credentials,
         pendingOrphan.nodeIds,
         pendingOrphan.kgSignature,
       );
     } else {
-      await refine.runLlmFullCleanup(description, apiKey);
+      await refine.runLlmFullCleanup(description, credentials);
     }
     // Phase transition is driven by the effect above when a report arrives.
   };
@@ -452,7 +457,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   const contextOptional = Boolean(pendingOrphan) || llmDeferredIds.length > 0;
   const canAnalyzeLlm =
     (contextOptional || description.trim().length > 0) &&
-    apiKey.trim().length > 0 &&
+    credentials !== null &&
     refine.llmStatus !== 'loading';
 
   const tabButton = (key: TabKey, label: string, badge?: string) => (
@@ -753,7 +758,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                             : issue.severity === 'warning'
                               ? 'border-l-4 border-l-amber-500'
                               : 'border-l-4 border-l-sky-500';
-                        const hasTargets = issue.affected_node_ids.length > 0;
+                        const hasTargets = issue.affectedNodeIds.length > 0;
                         return (
                           <li
                             key={issue.id}
@@ -762,9 +767,9 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1">
-                                {issue.constraint_label ? (
+                                {issue.constraintLabel ? (
                                   <>
-                                    <div className="font-medium">{issue.constraint_label}</div>
+                                    <div className="font-medium">{issue.constraintLabel}</div>
                                     <div className="mt-0.5 text-[11px] text-muted-foreground">
                                       {issue.message}
                                     </div>
@@ -776,15 +781,15 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                                   <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide">
                                     {issue.severity}
                                   </span>
-                                  {issue.spec_kind && (
+                                  {issue.specKind && (
                                     <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-900 dark:bg-purple-900 dark:text-purple-100">
-                                      {issue.spec_kind}
+                                      {issue.specKind}
                                     </span>
                                   )}
                                   {hasTargets && (
                                     <span className="truncate">
                                       {t('import.kg.consistency.onNode', {
-                                        nodeId: issue.affected_node_ids[0],
+                                        nodeId: issue.affectedNodeIds[0],
                                       })}
                                     </span>
                                   )}
@@ -802,12 +807,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                                     // violated (with maxNeighbors:15 the focus
                                     // helper then pulls in the linked
                                     // class / property / NodeConstraint chain).
-                                    const ids = [...issue.affected_node_ids];
+                                    const ids = [...issue.affectedNodeIds];
                                     if (
-                                      issue.constraint_node_id &&
-                                      !ids.includes(issue.constraint_node_id)
+                                      issue.constraintNodeId &&
+                                      !ids.includes(issue.constraintNodeId)
                                     ) {
-                                      ids.push(issue.constraint_node_id);
+                                      ids.push(issue.constraintNodeId);
                                     }
                                     onFocusNodes(ids);
                                     onClose();
@@ -890,12 +895,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     {contextOptional ? t('import.kg.refine.contextHint') : t('import.kg.refine.systemDescriptionHint')}
                   </p>
                 </div>
-                {apiKey ? (
+                {credentials ? (
                   <div
                     data-testid="kg-refine-key-ready"
                     className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
                   >
-                    <span>{t('import.kg.refine.usingOpenAiKey')}</span>
+                    <span>{t('import.kg.refine.usingKey', { provider: savedKeyProviderLabel })}</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -913,7 +918,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     <span>
                       {llmKey
                         ? t('import.kg.refine.otherProviderKey', { provider: savedKeyProviderLabel })
-                        : t('import.kg.refine.openAiKeyRequired')}
+                        : t('import.kg.refine.keyRequired')}
                     </span>
                     <Button
                       variant="outline"
@@ -921,7 +926,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       onClick={() => setKeyDialogOpen(true)}
                       data-testid="kg-refine-add-key"
                     >
-                      {t('import.kg.refine.addOpenAiKey')}
+                      {t('import.kg.refine.addKey')}
                     </Button>
                   </div>
                 )}
@@ -1033,7 +1038,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         <LlmKeyDialog
           open={keyDialogOpen}
           onOpenChange={setKeyDialogOpen}
-          preferProvider="openai"
+          preferProvider={credentials ? undefined : 'anthropic'}
           preferKeyEntry
           showRunBudget={false}
           description={t('import.kg.refine.keyDialogDescription')}

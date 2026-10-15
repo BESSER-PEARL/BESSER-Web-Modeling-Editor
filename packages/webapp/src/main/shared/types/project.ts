@@ -170,8 +170,8 @@ export interface KGEdgeData {
  *  NodeConstraint / PropertyConstraint nodes to their targets and to each
  *  other; the RDF exporter knows to filter them and substitute the
  *  vocabulary-appropriate predicates. */
-export const KG_CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
-export const KG_CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
+export const KG_CONSTRAINT_TARGET_CLASS = 'http://besser-pearl.org/kg#constraintTargetClass';
+export const KG_CONSTRAINT_TARGET_PROPERTY = 'http://besser-pearl.org/kg#constraintTargetProperty';
 export const KG_SH_PROPERTY = 'http://www.w3.org/ns/shacl#property';
 
 export type KnowledgeGraphLayout = 'concentric' | 'fcose' | 'grid';
@@ -235,14 +235,14 @@ export interface ConsistencyIssue {
   code: string;
   severity: 'info' | 'warning' | 'violation';
   message: string;
-  affected_node_ids: string[];
-  affected_edge_ids: string[];
-  constraint_node_id: string | null;
-  spec_kind: string | null;
-  path_iri: string | null;
+  affectedNodeIds: string[];
+  affectedEdgeIds: string[];
+  constraintNodeId: string | null;
+  specKind: string | null;
+  pathIri: string | null;
   /** Short human-readable summary of the violated constraint, e.g.
    *  "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
-  constraint_label: string | null;
+  constraintLabel: string | null;
 }
 
 export interface ConsistencyReport {
