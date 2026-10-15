@@ -140,6 +140,8 @@ interface OnboardingHook {
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
+  /** The app's dialog state, created at the root because some dialogs render there (Knowledge Graph). */
+  dialogs: ReturnType<typeof useDialogStates>;
   /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
   onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
@@ -186,6 +188,7 @@ const isModelEmpty = (model: unknown): boolean => {
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   children,
+  dialogs,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
@@ -330,7 +333,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setIsKeyboardShortcutsOpen,
     isCommandPaletteOpen,
     setIsCommandPaletteOpen,
-  } = useDialogStates();
+  } = dialogs;
 
   // Global keyboard shortcut listener: ? or Ctrl+/ opens the shortcuts overlay
   const openKeyboardShortcuts = useCallback(() => setIsKeyboardShortcutsOpen(true), [setIsKeyboardShortcutsOpen]);

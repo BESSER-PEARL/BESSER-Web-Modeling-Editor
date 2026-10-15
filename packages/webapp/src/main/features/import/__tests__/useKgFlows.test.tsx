@@ -31,7 +31,11 @@ vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
   getPostHog: () => ({ capture: mocks.capture }),
 }));
 
+import { useDialogStates } from '../../../app/shell/hooks/useDialogStates';
 import { useKgFlows } from '../useKgFlows';
+
+/** The flow hook wired to the real dialog state, as the app root wires it. */
+const useFlows = () => useKgFlows(useDialogStates().kgDialogs);
 
 const REPORT = (issueCount: number) => ({ kgSignature: 'sig-1', diagramType: 'ClassDiagram', issueCount, issues: [] });
 const CONSISTENCY_REPORT = { issues: [], issueCount: 2, severityCounts: {}, kgSignature: 'sig-1', inferenceUsed: 'rdfs' } as any;
@@ -44,7 +48,7 @@ beforeEach(() => {
 describe('convertToClassDiagram', () => {
   it('does nothing when the preflight could not run', async () => {
     mocks.runPreflight.mockResolvedValue(null);
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await act(async () => result.current.convertToClassDiagram());
 
@@ -54,7 +58,7 @@ describe('convertToClassDiagram', () => {
 
   it('converts straight away when the preflight is clean, passing the consistency gate along', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(0));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await act(async () => result.current.convertToClassDiagram());
 
@@ -67,7 +71,7 @@ describe('convertToClassDiagram', () => {
 
   it('opens Refine in convert mode, without converting, when the preflight found issues', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(3));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await act(async () => result.current.convertToClassDiagram());
 
@@ -77,7 +81,7 @@ describe('convertToClassDiagram', () => {
 
   it('converts when the cleaned graph is confirmed in the Refine dialog', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(3));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
     await act(async () => result.current.convertToClassDiagram());
 
     act(() => result.current.refineModalProps.onConvert('sig-after-cleaning'));
@@ -91,7 +95,7 @@ describe('convertToClassDiagram', () => {
   it('reports itself as busy only while it runs', async () => {
     let finish: () => void = () => {};
     mocks.runPreflight.mockReturnValue(new Promise((resolve) => { finish = () => resolve(REPORT(0)); }));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     let pending: Promise<void> = Promise.resolve();
     act(() => { pending = result.current.convertToClassDiagram(); });
@@ -104,7 +108,7 @@ describe('convertToClassDiagram', () => {
   it('is not busy any more when the conversion throws', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(0));
     mocks.runConversion.mockRejectedValue(new Error('boom'));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await act(async () => { await result.current.convertToClassDiagram().catch(() => {}); });
 
@@ -127,7 +131,7 @@ describe('the consistency gate', () => {
   };
 
   it('opens with the report while the conversion waits for the user', async () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await askGate(result);
 
@@ -135,7 +139,7 @@ describe('the consistency gate', () => {
   });
 
   it('lets the conversion proceed', async () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
     const { decision } = await askGate(result);
 
     await act(async () => result.current.consistencyConfirmModalProps.onProceed());
@@ -145,7 +149,7 @@ describe('the consistency gate', () => {
   });
 
   it('cancels the conversion', async () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
     const { decision } = await askGate(result);
 
     await act(async () => result.current.consistencyConfirmModalProps.onCancel());
@@ -155,8 +159,20 @@ describe('the consistency gate', () => {
     expect(result.current.refineModalProps.open).toBe(false);
   });
 
+  it('cancels a gate that is still waiting when another one opens, instead of leaving it hanging', async () => {
+    const { result } = renderHook(() => useFlows());
+    const first = await askGate(result);
+
+    const second = await askGate(result);
+
+    await expect(first.decision()).resolves.toBe('cancel');
+    expect(result.current.consistencyConfirmModalProps.open).toBe(true);
+    await act(async () => result.current.consistencyConfirmModalProps.onProceed());
+    await expect(second.decision()).resolves.toBe('proceed');
+  });
+
   it('cancels the conversion and sends the user to the Consistency tab of Refine', async () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
     const { decision } = await askGate(result);
 
     await act(async () => result.current.consistencyConfirmModalProps.onOpenRefine());
@@ -167,9 +183,35 @@ describe('the consistency gate', () => {
   });
 });
 
+describe('the dialog state is the app\'s, not the hook\'s', () => {
+  /** What the app root does: one `useDialogStates`, handed to the flow hook. */
+  const useBoth = () => {
+    const dialogs = useDialogStates();
+    return { dialogs, flows: useKgFlows(dialogs.kgDialogs) };
+  };
+
+  it('opening Refine is visible in the shared dialog state', () => {
+    const { result } = renderHook(() => useBoth());
+
+    act(() => result.current.flows.openRefine());
+
+    expect(result.current.dialogs.kgDialogs.isKgRefineOpen).toBe(true);
+  });
+
+  it('the consistency gate is visible there too, without the resolver, which is not state', async () => {
+    const { result } = renderHook(() => useBoth());
+    mocks.runPreflight.mockResolvedValue(REPORT(0));
+    mocks.runConversion.mockImplementation(({ onConsistencyIssues }) => { void onConsistencyIssues(CONSISTENCY_REPORT); return new Promise(() => {}); });
+
+    await act(async () => { void result.current.flows.convertToClassDiagram(); });
+
+    expect(result.current.dialogs.kgDialogs.kgConsistencyGate).toEqual({ open: true, report: CONSISTENCY_REPORT });
+  });
+});
+
 describe('openRefine', () => {
   it('opens Refine on its first tab, not in convert mode', () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     act(() => result.current.openRefine());
 
@@ -178,7 +220,7 @@ describe('openRefine', () => {
 
   it('closing Refine resets the mode and the tab', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(0));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
     mocks.runConversion.mockImplementation(({ onConsistencyIssues }) => { void onConsistencyIssues(CONSISTENCY_REPORT); return new Promise(() => {}); });
     await act(async () => { void result.current.convertToClassDiagram(); });
     await act(async () => result.current.consistencyConfirmModalProps.onOpenRefine());
@@ -192,7 +234,7 @@ describe('openRefine', () => {
 
 describe('Fix in KG', () => {
   it('brings the affected nodes and their neighbours onto the canvas', () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     act(() => result.current.refineModalProps.onFixInKg({ affectedNodeIds: ['a', 'b'] } as any));
 
@@ -200,7 +242,7 @@ describe('Fix in KG', () => {
   });
 
   it('does nothing for an issue that names no node', () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     act(() => result.current.refineModalProps.onFixInKg({ affectedNodeIds: [] } as any));
     act(() => result.current.refineModalProps.onFocusNodes([]));
@@ -209,7 +251,7 @@ describe('Fix in KG', () => {
   });
 
   it('focuses an explicit node list too', () => {
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     act(() => result.current.refineModalProps.onFocusNodes(['x']));
 
@@ -220,7 +262,7 @@ describe('Fix in KG', () => {
 describe('analytics', () => {
   it('records which flow was used, with the size of the graph', async () => {
     mocks.runPreflight.mockResolvedValue(REPORT(0));
-    const { result } = renderHook(() => useKgFlows());
+    const { result } = renderHook(() => useFlows());
 
     await act(async () => result.current.convertToClassDiagram());
     act(() => result.current.openRefine());

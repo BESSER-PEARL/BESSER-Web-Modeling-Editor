@@ -3,30 +3,26 @@
 // it on its own. They used to live inside useGeneratorExecution, which put the
 // open/close state of three modals into the generic code-generation hook.
 //
-// This hook owns that state and returns the props for the two modals the app
-// renders (KgRefineModal, KgConsistencyConfirmModal).
-import { useCallback, useState } from 'react';
+// The open/close state of those dialogs lives with the app's other dialog
+// state (`useDialogStates`) and arrives here as `dialogs`. This hook drives it
+// and returns the props for the two modals the app renders (KgRefineModal,
+// KgConsistencyConfirmModal). The one thing it keeps itself is the consistency
+// gate's promise resolver, which is not render state.
+import { useCallback, useRef, useState } from 'react';
 
 import * as kgFocus from '../../shared/kg/kgFocus';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import type { KgIssue } from '../../shared/api/knowledgeGraph';
+import { CLOSED_KG_GATE, type KgDialogState } from '../../shared/kg/dialogState';
 import type { ConsistencyReport } from '../../shared/types/project';
 import { isKnowledgeGraphData } from '../../shared/types/project';
 import { getActiveKgDiagram, useKgToUmlConversion } from './useKgToUmlConversion';
 import { useKgPreflight } from './useKgPreflight';
 
-type RefineTab = 'static' | 'consistency' | 'llm';
 type GateDecision = 'proceed' | 'cancel';
 
 /** How many first-degree neighbours "Fix in KG" brings onto the canvas. */
 const FOCUS_MAX_NEIGHBORS = 15;
-
-interface ConsistencyGate {
-  open: boolean;
-  report: ConsistencyReport | null;
-  resolve: ((decision: GateDecision) => void) | null;
-}
-const CLOSED_GATE: ConsistencyGate = { open: false, report: null, resolve: null };
 
 function trackFlow(flow: 'kg_to_class' | 'kg_refine'): void {
   const model = getActiveKgDiagram()?.diagram?.model;
@@ -38,24 +34,43 @@ function trackFlow(flow: 'kg_to_class' | 'kg_refine'): void {
   });
 }
 
-export function useKgFlows() {
+export function useKgFlows(dialogs: KgDialogState) {
+  const {
+    isKgRefineOpen,
+    setIsKgRefineOpen,
+    isKgConvertMode,
+    setIsKgConvertMode,
+    kgRefineInitialTab,
+    setKgRefineInitialTab,
+    kgConsistencyGate,
+    setKgConsistencyGate,
+  } = dialogs;
   const runConversion = useKgToUmlConversion();
   const { runPreflight } = useKgPreflight();
 
-  const [refineOpen, setRefineOpen] = useState(false);
-  // "Convert mode": the refine modal was opened because the preflight found
-  // issues; it calls onConvert once the graph is clean.
-  const [convertMode, setConvertMode] = useState(false);
-  const [refineInitialTab, setRefineInitialTab] = useState<RefineTab | undefined>(undefined);
   // Pre-conversion consistency gate: the conversion awaits the user's choice,
-  // which the modal's buttons deliver through `resolve`.
-  const [gate, setGate] = useState<ConsistencyGate>(CLOSED_GATE);
+  // which the modal's buttons deliver through this resolver.
+  const gateResolve = useRef<((decision: GateDecision) => void) | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+
+  const closeGate = useCallback(
+    (decision: GateDecision) => {
+      gateResolve.current?.(decision);
+      gateResolve.current = null;
+      setKgConsistencyGate(CLOSED_KG_GATE);
+    },
+    [setKgConsistencyGate],
+  );
 
   const onConsistencyIssues = useCallback(
     (report: ConsistencyReport): Promise<GateDecision> =>
-      new Promise((resolve) => setGate({ open: true, report, resolve })),
-    [],
+      new Promise((resolve) => {
+        // A gate still waiting for an answer is abandoned, not left hanging.
+        gateResolve.current?.('cancel');
+        gateResolve.current = resolve;
+        setKgConsistencyGate({ open: true, report });
+      }),
+    [setKgConsistencyGate],
   );
 
   /** Graph -> class diagram: preflight, then convert (after the consistency
@@ -70,56 +85,49 @@ export function useKgFlows() {
         await runConversion({ kgSignature: report.kgSignature, onConsistencyIssues });
         return;
       }
-      setConvertMode(true);
+      setIsKgConvertMode(true);
     } finally {
       setIsConverting(false);
     }
-  }, [runPreflight, runConversion, onConsistencyIssues]);
+  }, [runPreflight, runConversion, onConsistencyIssues, setIsKgConvertMode]);
 
   const openRefine = useCallback(() => {
     trackFlow('kg_refine');
-    setRefineOpen(true);
-  }, []);
+    setIsKgRefineOpen(true);
+  }, [setIsKgRefineOpen]);
 
   const focusNodes = useCallback((ids: string[]) => {
     if (ids.length > 0) kgFocus.focus(ids, { maxNeighbors: FOCUS_MAX_NEIGHBORS });
   }, []);
 
   const refineModalProps = {
-    open: refineOpen || convertMode,
+    open: isKgRefineOpen || isKgConvertMode,
     onClose: () => {
-      setRefineOpen(false);
-      setConvertMode(false);
-      setRefineInitialTab(undefined);
+      setIsKgRefineOpen(false);
+      setIsKgConvertMode(false);
+      setKgRefineInitialTab(undefined);
     },
     onFixInKg: (issue: KgIssue) => focusNodes(issue?.affectedNodeIds ?? []),
     onFocusNodes: focusNodes,
-    convertMode,
+    convertMode: isKgConvertMode,
     onConvert: (kgSignature: string) => {
       void runConversion({ kgSignature, onConsistencyIssues });
     },
-    initialTab: refineInitialTab,
+    initialTab: kgRefineInitialTab,
   };
 
   const consistencyConfirmModalProps = {
-    open: gate.open,
-    report: gate.report,
+    open: kgConsistencyGate.open,
+    report: kgConsistencyGate.report,
     onOpenRefine: () => {
       // Not converting after all: send the user to the Refine dialog's
       // Consistency tab instead.
-      gate.resolve?.('cancel');
-      setGate(CLOSED_GATE);
-      setRefineInitialTab('consistency');
-      setRefineOpen(true);
+      closeGate('cancel');
+      setKgRefineInitialTab('consistency');
+      setIsKgRefineOpen(true);
     },
-    onProceed: () => {
-      gate.resolve?.('proceed');
-      setGate(CLOSED_GATE);
-    },
-    onCancel: () => {
-      gate.resolve?.('cancel');
-      setGate(CLOSED_GATE);
-    },
+    onProceed: () => closeGate('proceed'),
+    onCancel: () => closeGate('cancel'),
   };
 
   return { convertToClassDiagram, openRefine, isConverting, refineModalProps, consistencyConfirmModalProps };

@@ -23,6 +23,7 @@ import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
 import { useKgFlows } from '../features/import/useKgFlows';
 import { useKgRouting } from './hooks/useKgRouting';
+import { useDialogStates } from './shell/hooks/useDialogStates';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
@@ -162,7 +163,8 @@ function AppContentInner() {
   // diagram, and refining. They are not code generation, so they stay out of
   // useGeneratorExecution; the Generate menu and the Quality Check button
   // reach them from here.
-  const kgFlows = useKgFlows();
+  const dialogs = useDialogStates();
+  const kgFlows = useKgFlows(dialogs.kgDialogs);
   const { onGenerate, onQualityCheck } = useKgRouting({
     isKgContext,
     kg: kgFlows,
@@ -187,6 +189,7 @@ function AppContentInner() {
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
+        dialogs={dialogs}
         onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
