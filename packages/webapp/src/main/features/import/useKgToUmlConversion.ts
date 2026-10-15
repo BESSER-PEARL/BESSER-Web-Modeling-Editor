@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../shared/i18n';
 
 import { kgApiErrorMessage, kgToClassDiagram } from '../../shared/api/knowledgeGraph';
+import { reportKgWarnings } from '../../shared/kg/reportKgWarnings';
 import { useAppDispatch } from '../../app/store/hooks';
 import {
   addDiagramThunk,
@@ -55,23 +56,6 @@ const TITLE_SUFFIX = 'Class Diagram';
 
 /** Localised display name for the same diagram, used in toasts only. */
 const DIAGRAM_TYPE_KEY = 'diagramTypes.ClassDiagram';
-
-/**
- * Surface unique warning codes from the backend response as toast warnings,
- * one per code, so users see anomalies (UNDECLARED_CLASS, BLANK_SKIPPED, …)
- * without being spammed when many edges trigger the same code.
- */
-function reportWarnings(warnings: unknown): void {
-  if (!Array.isArray(warnings)) return;
-  const seen = new Set<string>();
-  for (const warning of warnings as Array<Record<string, unknown>>) {
-    const code = typeof warning?.code === 'string' ? warning.code : '';
-    if (!code || seen.has(code)) continue;
-    seen.add(code);
-    const message = typeof warning?.message === 'string' ? warning.message : code;
-    toast.warn(message, { toastId: `kg-conv-${code}` });
-  }
-}
 
 /**
  * Look up the currently-active KnowledgeGraphDiagram. Returns ``null`` and
@@ -133,7 +117,7 @@ export const useKgToUmlConversion = () => {
           throw new Error(t('import.kg.toUml.invalidResponse'));
         }
 
-        reportWarnings(data.warnings);
+        reportKgWarnings(data.warnings, 'kg-conv');
 
         const baseTitle = kgDiagram.title || project.name || 'KG';
         const newTitle = `${baseTitle} (${TITLE_SUFFIX})`;

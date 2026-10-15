@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { importOwl, kgApiErrorMessage } from '../../shared/api/knowledgeGraph';
+import { reportKgWarnings } from '../../shared/kg/reportKgWarnings';
 import { useAppDispatch } from '../../app/store/hooks';
 import { addDiagramThunk, bumpEditorRevision, switchDiagramIndexThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
@@ -127,6 +128,8 @@ export const useImportOwlToKg = () => {
       if (!data || !data.model || !Array.isArray(data.model.nodes) || !Array.isArray(data.model.edges)) {
         throw new Error(t('import.kg.owl.invalidJson'));
       }
+      // Constructs the importer had to skip (e.g. a SHACL count that is not a number).
+      reportKgWarnings(data.warnings, 'kg-import');
 
       const currentProject = ProjectStorageRepository.getCurrentProject();
       if (!currentProject) {
