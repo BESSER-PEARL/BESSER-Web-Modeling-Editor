@@ -150,6 +150,50 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
   });
 
+  describe('preferProvider', () => {
+    const providerSelect = () => document.getElementById('llm-key-provider') as HTMLSelectElement;
+
+    it('opens on the preferred provider when no key is saved', () => {
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" />);
+
+      expect(providerSelect().value).toBe('openai');
+    });
+
+    it('opens on the preferred provider even when a key for another one is saved', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" />);
+
+      expect(providerSelect().value).toBe('openai');
+    });
+
+    it('saves a key for the preferred provider, replacing the saved one', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+      const onSaved = vi.fn();
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" onSaved={onSaved} />);
+
+      fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+        target: { value: 'sk-openai-key' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+      expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-openai-key');
+      expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('openai');
+      expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openai', apiKey: 'sk-openai-key' }));
+    });
+
+    it('changes nothing for callers that do not ask', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+
+      render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+      expect(providerSelect().value).toBe('anthropic');
+    });
+  });
+
   it('offers Nebius Token Factory with the Qwen3-30B-A3B endpoint preselectable', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
 

@@ -8,6 +8,7 @@ import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/typ
 import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
   AGENT_ROUTE_ITEMS,
+  KG_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
   ROUTE_ITEMS,
   UML_ITEMS,
@@ -50,6 +51,34 @@ const SidebarTooltip: React.FC<{ label: string; collapsed: boolean; children: Re
   );
 };
 
+/** A nested link under a diagram button (agent simulation, agent settings, KG
+ *  settings): indented and smaller while the sidebar is open. */
+const SidebarSubItem: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  isCollapsed: boolean;
+  isSidebarExpanded: boolean;
+  isDarkTheme: boolean;
+}> = ({ label, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme }) => (
+  <SidebarTooltip label={label} collapsed={isCollapsed}>
+    <button
+      type="button"
+      className={`${navButtonClass(active, isSidebarExpanded, isDarkTheme)} ${
+        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
+      }`}
+      onClick={onClick}
+      title={isSidebarExpanded ? label : undefined}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+    >
+      {icon}
+      {isSidebarExpanded && <span>{label}</span>}
+    </button>
+  </SidebarTooltip>
+);
+
 /** Diagram count shown next to the label when more than 1 diagram exists. */
 function labelWithCount(label: string, count: number): string {
   return count > 1 ? `${label} (${count})` : label;
@@ -87,12 +116,24 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onTestAgent,
 }) => {
   const { t } = useTranslation();
-  // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
-  const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
+  // When a non-UML editor (GUI / Quantum / KG) is active, no UML button should appear selected
+  const isNonUmlActive =
+    activeDiagramType === 'GUINoCodeDiagram' ||
+    activeDiagramType === 'QuantumCircuitDiagram' ||
+    activeDiagramType === 'KnowledgeGraphDiagram';
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
   const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
   const agentContainerClass = showAgentSubItems ? 'rounded-xl bg-foreground/[0.03] p-1 dark:bg-white/[0.03]' : '';
+
+  const isKgEditorActive = locationPath === '/' && activeDiagramType === 'KnowledgeGraphDiagram';
+  const isKgSubRouteActive = KG_ROUTE_ITEMS.some((item) => item.path === locationPath);
+  const showKgSubItems = isKgEditorActive || isKgSubRouteActive;
+  const kgContainerClass = showKgSubItems
+    ? isDarkTheme
+      ? 'rounded-xl border border-sky-500/30 bg-sky-500/10 p-1'
+      : 'rounded-xl border border-primary/30 bg-primary/10 p-1'
+    : '';
 
   // Pre-compute diagram count info for all diagram types
   const countMap = useMemo(() => {
@@ -118,6 +159,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   );
 
   const isCollapsed = !isSidebarExpanded;
+  const subItemProps = { isCollapsed, isSidebarExpanded, isDarkTheme };
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -166,43 +208,24 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
               {showAgentSubItems && (
               <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
                 {onTestAgent && (
-                  <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
-                    <button
-                      type="button"
-                      className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
-                        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                      }`}
-                      onClick={onTestAgent}
-                      title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
-                      aria-label={t('agentSimulation.sidebar.simulateAgent')}
-                      aria-current={locationPath === '/agent-simulation' ? 'page' : undefined}
-                    >
-                      <FlaskConical className="size-4" />
-                      {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
-                    </button>
-                  </SidebarTooltip>
+                  <SidebarSubItem
+                    label={t('agentSimulation.sidebar.simulateAgent')}
+                    icon={<FlaskConical className="size-4" />}
+                    active={locationPath === '/agent-simulation'}
+                    onClick={onTestAgent}
+                    {...subItemProps}
+                  />
                 )}
-                {AGENT_ROUTE_ITEMS.map((routeItem) => {
-                  const isActiveSubItem = locationPath === routeItem.path;
-                  const routeLabel = t(routeItem.labelKey);
-                  return (
-                    <SidebarTooltip key={routeItem.path} label={routeLabel} collapsed={isCollapsed}>
-                      <button
-                        type="button"
-                        className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
-                          isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                        }`}
-                        onClick={() => onNavigate(routeItem.path)}
-                        title={isSidebarExpanded ? routeLabel : undefined}
-                        aria-label={routeLabel}
-                        aria-current={isActiveSubItem ? 'page' : undefined}
-                      >
-                        {routeItem.icon}
-                        {isSidebarExpanded && <span>{routeLabel}</span>}
-                      </button>
-                    </SidebarTooltip>
-                  );
-                })}
+                {AGENT_ROUTE_ITEMS.map((routeItem) => (
+                  <SidebarSubItem
+                    key={routeItem.path}
+                    label={t(routeItem.labelKey)}
+                    icon={routeItem.icon}
+                    active={locationPath === routeItem.path}
+                    onClick={() => onNavigate(routeItem.path)}
+                    {...subItemProps}
+                  />
+                ))}
               </div>
               )}
             </div>
@@ -213,21 +236,58 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
           const active = locationPath === '/' && activeDiagramType === item.type;
           const count = countMap[item.type] ?? 0;
           const displayLabel = labelWithCount(t(item.labelKey), count);
+          const isKgItem = item.type === 'KnowledgeGraphDiagram';
 
+          if (!isKgItem) {
+            return (
+              <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
+                <button
+                  type="button"
+                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                  onClick={() => onSwitchDiagramType(item.type)}
+                  title={isSidebarExpanded ? displayLabel : undefined}
+                  aria-label={displayLabel}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.icon}
+                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
+                </button>
+              </SidebarTooltip>
+            );
+          }
+
+          // KG item: wrap in the shared sub-item container and render
+          // KG_ROUTE_ITEMS underneath — mirrors the Agent treatment.
           return (
-            <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
-              <button
-                type="button"
-                className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-                onClick={() => onSwitchDiagramType(item.type)}
-                title={isSidebarExpanded ? displayLabel : undefined}
-                aria-label={displayLabel}
-                aria-current={active ? 'page' : undefined}
-              >
-                {item.icon}
-                {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
-              </button>
-            </SidebarTooltip>
+            <div key={item.type} className={kgContainerClass}>
+              <SidebarTooltip label={displayLabel} collapsed={isCollapsed}>
+                <button
+                  type="button"
+                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                  onClick={() => onSwitchDiagramType(item.type)}
+                  title={isSidebarExpanded ? displayLabel : undefined}
+                  aria-label={displayLabel}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.icon}
+                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
+                </button>
+              </SidebarTooltip>
+              {showKgSubItems && (
+                <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
+                  {KG_ROUTE_ITEMS.map((routeItem) => (
+                    <SidebarSubItem
+                      key={routeItem.path}
+                      label={t(routeItem.labelKey)}
+                      icon={routeItem.icon}
+                      active={locationPath === routeItem.path}
+                      onClick={() => onNavigate(routeItem.path)}
+                      {...subItemProps}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
 

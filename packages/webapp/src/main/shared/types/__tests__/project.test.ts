@@ -97,7 +97,7 @@ describe('ensureProjectMigrated v4 → v5', () => {
 
   it('hides the new Component and Deployment types in a project with chosen perspectives', () => {
     const migrated = ensureProjectMigrated(v4Project({ AgentDiagram: false }));
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
     expect(migrated.settings.perspectives.DeploymentDiagram).toBe(false);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
@@ -119,6 +119,51 @@ describe('ensureProjectMigrated v4 → v5', () => {
     const migrated = ensureProjectMigrated(project);
     expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
     expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+});
+
+describe('ensureProjectMigrated v5 → v6', () => {
+  const v5Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    project.schemaVersion = 5;
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.KnowledgeGraphDiagram;
+    // A saved v5 map predates the KG type, so it has no KnowledgeGraphDiagram key.
+    const { KnowledgeGraphDiagram: _kg, ...saved } = project.settings.perspectives;
+    project.settings.perspectives = { ...saved, ...perspectives } as BesserProject['settings']['perspectives'];
+    return project;
+  };
+
+  it('adds the Knowledge Graph diagram and hides it where perspectives were already chosen', () => {
+    const migrated = ensureProjectMigrated(v5Project({ AgentDiagram: false }));
+    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.diagrams.KnowledgeGraphDiagram).toHaveLength(1);
+    expect(migrated.currentDiagramIndices.KnowledgeGraphDiagram).toBe(0);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
+    expect(isPerspectiveVisible(migrated.settings.perspectives, 'KnowledgeGraphDiagram')).toBe(false);
+    // Every other choice is untouched.
+    expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+
+  it('keeps an explicit Knowledge Graph choice saved while the editor was a branch', () => {
+    const migrated = ensureProjectMigrated(v5Project({ KnowledgeGraphDiagram: true }));
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  it('shows the Knowledge Graph type in a project that never had saved perspectives', () => {
+    const project = v5Project({});
+    project.schemaVersion = 3;
+    delete (project.settings as { perspectives?: unknown }).perspectives;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  it('leaves a new project untouched', () => {
+    const migrated = ensureProjectMigrated(createDefaultProject('Fresh', '', 'me'));
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
   });
 });
 
@@ -265,6 +310,16 @@ describe('preset helpers', () => {
     expect(isPresetActive(data, map)).toBe(true);
     const fullApp = PERSPECTIVES.find((p) => p.key === 'fullApp')!;
     expect(isPresetActive(fullApp, map)).toBe(false);
+  });
+
+  it('isPresetActive matches the Knowledge Engineer preset for Class+Object+KG', () => {
+    const map = perspectivesFromDiagramList(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    const knowledge = PERSPECTIVES.find((p) => p.key === 'knowledge')!;
+    expect(knowledge.diagrams).toEqual(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    expect(isPresetActive(knowledge, map)).toBe(true);
+    // The Data preset is a strict subset, so it must not also read as active.
+    const data = PERSPECTIVES.find((p) => p.key === 'data')!;
+    expect(isPresetActive(data, map)).toBe(false);
   });
 
   it('perspectivesFromDiagramList enables exactly the listed types', () => {

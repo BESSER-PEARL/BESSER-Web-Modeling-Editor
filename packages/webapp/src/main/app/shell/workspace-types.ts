@@ -17,6 +17,18 @@ export type GeneratorType =
   | 'pytorch'
   | 'tensorflow'
   | 'bpmn'
-  | 'test_case';
+  | 'test_case'
+  | 'kg_to_class';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'bpmn' | 'none';
+export type GeneratorMenuMode =
+  | 'class'
+  | 'object'
+  | 'user'
+  | 'statemachine'
+  | 'agent'
+  | 'gui'
+  | 'quantum'
+  | 'nn'
+  | 'bpmn'
+  | 'kg'
+  | 'none';

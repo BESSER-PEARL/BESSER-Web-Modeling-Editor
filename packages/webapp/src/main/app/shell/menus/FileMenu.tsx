@@ -13,6 +13,7 @@ import {
   Github,
   Image,
   LayoutTemplate,
+  Network,
   Share2,
   Upload,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ interface FileMenuProps {
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
 }
 
@@ -64,6 +66,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
 }) => {
   const { t } = useTranslation();
@@ -144,6 +147,12 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
             <FileInput className="mr-2 size-4" />
             {t('menu.file.importBpmnDiagram')}
+          </DropdownMenuItem>
+        )}
+        {activeDiagramType === 'KnowledgeGraphDiagram' && (
+          <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            <Network className="mr-2 size-4" />
+            {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>

@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   Repeat2,
   Settings,
+  Share2,
   SlidersHorizontal,
   User,
   Workflow,
@@ -68,6 +69,11 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     generators: ['pytorch', 'tensorflow'],
     label: '2 generators',
   },
+  KnowledgeGraphDiagram: {
+    // Converts to a class diagram; RDF export is in the Export dialog.
+    generators: ['kg_to_class'],
+    label: 'Converts to class diagram',
+  },
 };
 
 // Re-export for backwards compatibility
@@ -101,6 +107,7 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; labelKey: s
 
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; labelKey: string; icon: React.ReactNode }> = [
   { type: 'GUINoCodeDiagram', label: 'GUI', labelKey: 'nav.diagram.gui', icon: <PanelsTopLeft className="size-4" /> },
+  { type: 'KnowledgeGraphDiagram', label: 'KG', labelKey: 'nav.diagram.kg', icon: <Share2 className="size-4" /> },
   { type: 'QuantumCircuitDiagram', label: 'Quantum', labelKey: 'nav.diagram.quantum', icon: <Atom className="size-4" /> },
 ];
 
@@ -115,6 +122,10 @@ export const AGENT_ROUTE_ITEMS = [
   { path: '/agent-components', label: 'Components', labelKey: 'nav.route.agentComponents', icon: <Blocks className="size-4" /> },
   { path: '/agent-config', label: 'Agent Customization', labelKey: 'nav.route.agentCustomization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
+] as const;
+
+export const KG_ROUTE_ITEMS = [
+  { path: '/kg-settings', label: 'KG Settings', labelKey: 'nav.route.kgSettings', icon: <SlidersHorizontal className="size-4" /> },
 ] as const;
 
 export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> }] as const;
