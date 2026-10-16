@@ -39,8 +39,11 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
     aria-live="polite"
   >
     {/* App logo */}
-    <img src="/images/logo-light.png" alt="BESSER" className="h-8 w-auto dark:hidden" />
-    <img src="/images/logo.png" alt="BESSER" className="hidden h-8 w-auto dark:block" />
+    <img
+      src="/images/logo.png"
+      alt="BESSER"
+      className="h-8 w-auto opacity-60 brightness-0 dark:invert"
+    />
 
     {/* Animated progress bar */}
     <div className="h-1 w-48 overflow-hidden rounded-full bg-muted">

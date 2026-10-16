@@ -89,13 +89,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             aria-label={t('topbar.openProjectHub')}
             className="group flex shrink-0 items-center rounded-md p-0 text-left transition-opacity duration-150 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2"
           >
-            {/* logo.png has white parts for dark grounds; light mode takes the ink-and-teal variant. */}
             <img
-              src={isDarkTheme ? '/images/logo.png' : '/images/logo-light.png'}
+              src="/images/logo.png"
               alt="BESSER"
-              width={isDarkTheme ? 151 : 174}
+              width={151}
               height={40}
-              className="h-8 w-auto sm:h-10"
+              className={`h-8 w-auto sm:h-10 ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
             />
           </button>
           <div className="hidden min-w-0 items-center gap-1.5 lg:flex">

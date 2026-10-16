@@ -259,4 +259,17 @@ describe('WorkspaceSidebar', () => {
 
     expect(screen.queryByLabelText('Collapse sidebar')).toBeNull();
   });
+
+  it('links to the GitHub repository in a new tab, below Settings', () => {
+    render(<WorkspaceSidebar {...defaultProps()} />);
+
+    const nav = screen.getByRole('navigation', { name: 'Editors' });
+    const star = within(nav).getByRole('link', { name: 'Star on GH' });
+    expect(star).toHaveAttribute('href', 'https://github.com/BESSER-PEARL/BESSER');
+    expect(star).toHaveAttribute('target', '_blank');
+    expect(star).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const settings = within(nav).getByRole('button', { name: 'Settings' });
+    expect(settings.compareDocumentPosition(star) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

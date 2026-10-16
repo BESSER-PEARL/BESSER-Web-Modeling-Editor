@@ -43,6 +43,7 @@
     "editors": "Editors",
     "collapseSidebar": "Replega la barra lateral",
     "expandSidebar": "Desplega la barra lateral",
+    "starOnGitHub": "Estrella a GH",
     "diagram": {
       "class": "Classe",
       "object": "Objecte",

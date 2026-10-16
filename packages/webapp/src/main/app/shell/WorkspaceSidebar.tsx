@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
@@ -15,6 +15,8 @@ import {
   SidebarToggleIcon,
   navButtonClass,
 } from './workspace-navigation';
+
+const GITHUB_REPO_URL = 'https://github.com/BESSER-PEARL/BESSER';
 
 interface WorkspaceSidebarProps {
   isDarkTheme: boolean;
@@ -310,6 +312,19 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             </SidebarTooltip>
           );
         })}
+
+        <SidebarTooltip label={t('nav.starOnGitHub')} collapsed={isCollapsed}>
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={navButtonClass(false, isSidebarExpanded, isDarkTheme)}
+            aria-label={t('nav.starOnGitHub')}
+          >
+            <Star className="size-4 shrink-0 transition-colors duration-150 group-hover:fill-amber-400 group-hover:text-amber-500" />
+            {isSidebarExpanded && <span className="min-w-0 truncate">{t('nav.starOnGitHub')}</span>}
+          </a>
+        </SidebarTooltip>
         </nav>
 
         {onToggleExpanded && (
