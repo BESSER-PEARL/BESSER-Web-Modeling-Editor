@@ -231,8 +231,16 @@ describe('kgApiErrorMessage', () => {
     );
   });
 
+  it("shows the message of a rejected thunk's serialized error", () => {
+    // `.unwrap()` throws `{ name, message }`, not an Error instance.
+    expect(kgApiErrorMessage({ name: 'Error', message: 'Failed to save project' }, t, 'fallback')).toBe(
+      'Failed to save project',
+    );
+  });
+
   it('falls back when there is nothing to show', () => {
     expect(kgApiErrorMessage('boom', t, 'fallback')).toBe('fallback');
+    expect(kgApiErrorMessage({ name: 'Error' }, t, 'fallback')).toBe('fallback');
     expect(kgApiErrorMessage(new Error(''), t, 'fallback')).toBe('fallback');
   });
 });

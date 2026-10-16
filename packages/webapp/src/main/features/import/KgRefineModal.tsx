@@ -534,7 +534,10 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       <p className="mt-1 text-xs">
                         <Trans
                           i18nKey="import.kg.refine.clickConvert"
-                          values={{ diagram: diagramLabel }}
+                          values={{
+                            diagram: diagramLabel,
+                            action: t('import.kg.refine.convertTo', { diagram: diagramLabel }),
+                          }}
                           components={{ action: <strong /> }}
                         />
                       </p>

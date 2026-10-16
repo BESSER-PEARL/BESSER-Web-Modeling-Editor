@@ -86,7 +86,7 @@
       "importProjectFile": "Fichier de projet (.json / .py)…",
       "fromSpreadsheet": "Depuis un tableur…",
       "fromGithub": "Depuis GitHub…",
-      "importKgOwl": "Importer un KG (OWL)"
+      "importKgOwl": "Importer un KG"
     },
     "generate": {
       "title": "Générer",

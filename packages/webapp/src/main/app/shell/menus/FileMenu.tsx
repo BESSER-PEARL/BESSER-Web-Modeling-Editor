@@ -13,6 +13,7 @@ import {
   Github,
   Image,
   LayoutTemplate,
+  Network,
   Share2,
   Upload,
 } from 'lucide-react';
@@ -150,6 +151,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         )}
         {activeDiagramType === 'KnowledgeGraphDiagram' && (
           <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            <Network className="mr-2 size-4" />
             {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}

@@ -279,5 +279,12 @@ export const exportKgRdf = async ({
 export function kgApiErrorMessage(error: unknown, t: TFunction, fallback: string): string {
   if (error instanceof DOMException && error.name === 'TimeoutError') return t('import.kg.api.timedOut');
   if (error instanceof Error && error.message) return error.message;
+  // A rejected Redux thunk's `.unwrap()` throws a serialized error: a plain
+  // `{ name, message }` object, not an `Error`. Without this its message was
+  // dropped and every storage failure read as the generic fallback.
+  if (typeof error === 'object' && error !== null) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message) return message;
+  }
   return fallback;
 }

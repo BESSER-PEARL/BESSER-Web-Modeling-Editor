@@ -562,7 +562,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
           metaVocabCount={hiddenMetaIds.size}
         />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <KnowledgeGraphToolbar
           connectMode={connectMode}
           onConnectModeChange={setConnectMode}
@@ -592,7 +592,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
             downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
           }}
         />
-        <div className="relative flex-1">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           {focusedTargetIds && (
             <div
               data-testid="kg-focus-banner"

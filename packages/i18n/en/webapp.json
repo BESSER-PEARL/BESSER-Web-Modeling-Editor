@@ -86,7 +86,7 @@
       "importGroupClassDiagram": "Class Diagram from",
       "importImage": "Image…",
       "importKnowledgeGraph": "Knowledge Graph…",
-      "importKgOwl": "Import KG (OWL)"
+      "importKgOwl": "Import KG"
     },
     "generate": {
       "title": "Generate",

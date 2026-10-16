@@ -86,7 +86,7 @@
       "importProjectFile": "Fitxer de projecte (.json / .py)…",
       "fromSpreadsheet": "Des d’un full de càlcul…",
       "fromGithub": "Des de GitHub…",
-      "importKgOwl": "Importa un KG (OWL)"
+      "importKgOwl": "Importa un KG"
     },
     "generate": {
       "title": "Genera",

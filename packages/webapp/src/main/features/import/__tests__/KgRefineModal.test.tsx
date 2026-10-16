@@ -328,6 +328,10 @@ describe('KgRefineModal — partial-apply UX', () => {
     await waitFor(() => {
       expect(screen.getByTestId('kg-refine-convert-ready')).toBeInTheDocument();
     });
+    // The hint names the button it points at; it used to read "[object Object]".
+    expect(screen.getByTestId('kg-refine-convert-ready')).toHaveTextContent(
+      'Click Convert to Class Diagram to generate the Class Diagram.',
+    );
     const convert = screen.getByTestId('kg-refine-convert');
     expect(convert).toHaveTextContent('Convert to Class Diagram');
 
