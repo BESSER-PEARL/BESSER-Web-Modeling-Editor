@@ -21,8 +21,14 @@ vi.mock('../../services/storage/migrate-uml-v3-to-v4', async (importOriginal) =>
 });
 
 const toastError = vi.fn();
+const toastWarning = vi.fn();
 vi.mock('react-toastify', () => ({
-  toast: { error: (...a: unknown[]) => toastError(...a), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
+  toast: {
+    error: (...a: unknown[]) => toastError(...a),
+    warning: (...a: unknown[]) => toastWarning(...a),
+    success: vi.fn(),
+    info: vi.fn(),
+  },
 }));
 
 const v3ClassModel = () => ({
@@ -60,6 +66,7 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
   beforeEach(() => {
     localStorage.clear();
     toastError.mockClear();
+    toastWarning.mockClear();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -86,11 +93,24 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
     expect((store.getState().workspace.activeDiagram!.model as any).elements).toBeDefined();
   });
 
-  it('importing a project whose diagram cannot migrate is rejected and nothing is stored', async () => {
+  // Like a local load: the project is imported, the diagram stays v3
+  // (read-only) and a warning names it, instead of rejecting the project.
+  it('importing a project whose diagram cannot migrate keeps that diagram read-only and names it', async () => {
     const envelope = { project: projectWithV3Class(), exportedAt: new Date().toISOString(), version: '2.0.0' };
     const file = new File([JSON.stringify(envelope)], 'project.json', { type: 'application/json' });
 
-    await expect(importProjectFromJson(file)).rejects.toThrow(/Library/);
+    const imported = await importProjectFromJson(file);
+
+    const stored = ProjectStorageRepository.loadProject(imported.id)!;
+    expect((getActiveDiagram(stored, 'ClassDiagram')!.model as any).elements).toBeDefined();
+    expect(toastWarning).toHaveBeenCalledTimes(1);
+    expect(String(toastWarning.mock.calls[0]?.[0])).toContain('Library');
+  });
+
+  it('importing a genuinely invalid file is still rejected and nothing is stored', async () => {
+    const file = new File([JSON.stringify({ hello: 'world' })], 'project.json', { type: 'application/json' });
+
+    await expect(importProjectFromJson(file)).rejects.toThrow();
     expect(ProjectStorageRepository.getAllProjects()).toHaveLength(0);
   });
 

@@ -2914,12 +2914,12 @@
       "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
       "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden",
       "unsupportedFileTypeBpmn": "Nicht unterstützter Dateityp. Bitte wählen Sie eine .json-, .py- oder .bpmn-Datei.",
-      "projectFailed": "Projekt konnte nicht importiert werden: {{detail}}",
-      "diagramNotConverted": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden."
+      "projectFailed": "Projekt konnte nicht importiert werden: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",
-      "unnamedElement": "(unbenannt)"
+      "unnamedElement": "(unbenannt)",
+      "diagramReadOnly": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden. Es wurde schreibgeschützt importiert; Ihre Datei bleibt unverändert."
     },
     "toasts": {
       "migratedFromV3": "Diagramm beim Import vom v3-Schema auf v4 migriert.",

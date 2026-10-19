@@ -2914,12 +2914,12 @@
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error",
       "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
-      "projectFailed": "No se pudo importar el proyecto: {{detail}}",
-      "diagramNotConverted": "No se pudo convertir el diagrama «{{title}}» al formato actual."
+      "projectFailed": "No se pudo importar el proyecto: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
-      "unnamedElement": "(sin nombre)"
+      "unnamedElement": "(sin nombre)",
+      "diagramReadOnly": "No se pudo convertir el diagrama «{{title}}» al formato actual. Se ha importado en modo de solo lectura; tu archivo no se modifica."
     },
     "toasts": {
       "migratedFromV3": "Diagrama migrado del esquema v3 al v4 durante la importación.",

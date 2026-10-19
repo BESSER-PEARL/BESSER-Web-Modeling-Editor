@@ -2914,12 +2914,12 @@
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
-      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}",
-      "diagramNotConverted": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn."
+      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
-      "unnamedElement": "(ouni Numm)"
+      "unnamedElement": "(ouni Numm)",
+      "diagramReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et gouf just ze liesen importéiert; Äre Fichier bleift onverännert."
     },
     "toasts": {
       "migratedFromV3": "Diagramm beim Import vum v3-Schema op v4 migréiert.",

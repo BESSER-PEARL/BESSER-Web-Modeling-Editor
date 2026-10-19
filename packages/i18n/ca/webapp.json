@@ -2914,12 +2914,12 @@
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
       "unsupportedFileTypeBpmn": "Tipus de fitxer no compatible. Selecciona un fitxer .json, .py o .bpmn.",
-      "projectFailed": "No s’ha pogut importar el projecte: {{detail}}",
-      "diagramNotConverted": "No s'ha pogut convertir el diagrama «{{title}}» al format actual."
+      "projectFailed": "No s’ha pogut importar el projecte: {{detail}}"
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",
-      "unnamedElement": "(sense nom)"
+      "unnamedElement": "(sense nom)",
+      "diagramReadOnly": "No s'ha pogut convertir el diagrama «{{title}}» al format actual. S'ha importat en mode de només lectura; el fitxer no es modifica."
     },
     "toasts": {
       "migratedFromV3": "Diagrama migrat de l'esquema v3 al v4 durant la importació.",

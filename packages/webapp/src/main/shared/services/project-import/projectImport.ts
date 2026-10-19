@@ -116,13 +116,17 @@ function migrateOldWebappProject(data: any): BesserProject {
   // time so the project is stored in its final shape (the load-time
   // `migrateProjectToV5` would also lift them, but only after storing). GUI
   // ({pages}) and quantum ({cols}) models fail isV3UMLModel and pass through
-  // untouched. A migrator throw deliberately propagates so the import is
-  // rejected loudly instead of storing a project that lies about its schema.
+  // untouched. A model that cannot migrate stays v3 and is imported
+  // read-only, like on a local load (`storeImportedProject` warns).
   let liftedV3Count = 0;
   const liftV3Model = (diagram: any, diagramType: SupportedDiagramType): void => {
     if (diagram && isV3UMLModel(diagram.model)) {
-      diagram.model = migrateUMLModelV3ToV4(diagram.model, diagramType);
-      liftedV3Count += 1;
+      try {
+        diagram.model = migrateUMLModelV3ToV4(diagram.model, diagramType);
+        liftedV3Count += 1;
+      } catch (error) {
+        console.warn(`[import] Diagram "${diagram.title}" (${diagramType}) stays v3 (read-only):`, error);
+      }
     }
   };
 
@@ -367,18 +371,17 @@ interface ImportedPersonalization {
 // Store imported project using the project storage system
 /**
  * Migrate an imported project to the current schema (v3 models lifted to v4)
- * and store it; returns the stored project. Storing it migrated means it is
- * never kept as v3, and no pre-migration backup is taken of a file the user
- * still has.
+ * and store it; returns the stored project. Only a model that cannot migrate
+ * is kept as v3 (read-only); no pre-migration backup is taken of a file the
+ * user still has.
  */
 function storeImportedProject(imported: BesserProject, personalization?: ImportedPersonalization): BesserProject {
   const project = ensureProjectMigrated(imported);
-  // Like the other import paths: reject a file whose v3 diagrams cannot be
-  // migrated instead of storing them read-only.
-  for (const type of ALL_DIAGRAM_TYPES) {
-    const failed = (project.diagrams[type] ?? []).find((d) => d && isV3UMLModel(d.model));
-    if (failed) throw new Error(i18n.t('import.errors.diagramNotConverted', { title: failed.title }));
-  }
+  // Like a local load: a v3 diagram that cannot migrate is kept and opens
+  // read-only (editor and save thunk guard it); the user is told which one.
+  const unconverted = ALL_DIAGRAM_TYPES.flatMap((type) =>
+    (project.diagrams[type] ?? []).filter((d) => d && isV3UMLModel(d.model)),
+  );
   project.name = uniqueProjectName(project.name);
   normalizeEdgeHandles(project);
 
@@ -407,6 +410,11 @@ function storeImportedProject(imported: BesserProject, personalization?: Importe
   }
 
   ProjectStorageRepository.saveProject(project);
+  for (const d of unconverted) {
+    toast.warning(i18n.t('import.warnings.diagramReadOnly', { title: d.title }), {
+      toastId: `import-v3-${d.id}`,
+    });
+  }
 
   if (personalization) {
     LocalStorageRepository.mergeImportedPersonalization(personalization);

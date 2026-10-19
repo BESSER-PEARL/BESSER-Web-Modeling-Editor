@@ -17,9 +17,10 @@ import {
 // so the const below is initialized first (same pattern as
 // features/import/__tests__/useImportDiagram.test.ts).
 const toastInfo = vi.fn();
+const toastWarning = vi.fn();
 vi.mock('react-toastify', () => ({
   toast: {
-    warning: vi.fn(),
+    warning: (...args: any[]) => toastWarning(...args),
     error: vi.fn(),
     success: vi.fn(),
     info: (...args: any[]) => toastInfo(...args),
@@ -254,6 +255,7 @@ describe('importProjectFromJson legacy format migration', () => {
   beforeEach(() => {
     localStorage.clear();
     toastInfo.mockClear();
+    toastWarning.mockClear();
   });
 
   it('migrates v3 models in old-webapp exports to v4 before stamping the current schema version', async () => {
@@ -308,19 +310,19 @@ describe('importProjectFromJson legacy format migration', () => {
     expect(toastInfo).not.toHaveBeenCalled();
   });
 
-  it('rejects and stores nothing when a v3 model fails migration', async () => {
+  it('imports an old-webapp project whose v3 model fails migration, keeping that diagram v3 (read-only)', async () => {
     // An attribute row with a non-string name still throws in the converter
     // (malformed rows it can recognise are skipped instead).
     const corrupt = v3ClassModel();
     corrupt.elements['el-1'].attributes = ['a-1'];
     corrupt.elements['a-1'] = { id: 'a-1', type: 'ClassAttribute', name: 5, owner: 'el-1' };
 
-    await expect(
-      importProjectFromJson(envelopeFile(oldWebappEnvelope(corrupt))),
-    ).rejects.toThrow(/Failed to import project/);
+    const project = await importProjectFromJson(envelopeFile(oldWebappEnvelope(corrupt)));
 
-    // Nothing was persisted: no latest-project pointer, no project entry.
-    expect(localStorage.getItem(localStorageLatestProject)).toBeNull();
+    const stored = ProjectStorageRepository.loadProject(project.id)!;
+    expect(stored.diagrams.ClassDiagram[0].model).toMatchObject({ elements: corrupt.elements });
+    expect(toastWarning).toHaveBeenCalledTimes(1);
+    expect(String(toastWarning.mock.calls[0]?.[0])).toContain('Legacy Class');
   });
 
   // An imported v3 project used to stay stored as v3 (and get a _v3backup on
