@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-// @ts-ignore
 import * as jsyaml from 'js-yaml';
 import { getActiveDiagram } from '../../../shared/types/project';
 import type { BesserProject } from '../../../shared/types/project';
