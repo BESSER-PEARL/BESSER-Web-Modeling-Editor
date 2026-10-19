@@ -292,6 +292,26 @@ describe("palette insert writes creation-time data", () => {
     expect(nodes.map((n) => n.data.name)).toEqual(["Class1", "Class2"])
   })
 
+  // Live: two dropped states were both "State", so the backend rejected the
+  // diagram ("Duplicated state") and project B-UML export failed with 400.
+  it.each([
+    ["State", UMLDiagramType.StateMachineDiagram, ["State", "State2"]],
+    ["component", UMLDiagramType.ComponentDiagram, ["Component", "Component2"]],
+    ["deploymentNode", UMLDiagramType.DeploymentDiagram, ["Deployment Node", "Deployment Node2"]],
+  ])("a second %s from the palette gets a suffixed name", (type, diagramType, expected) => {
+    const nodes = insert(type, diagramType, 2)
+    expect(nodes.map((n) => n.data.name)).toEqual(expected)
+  })
+
+  it.each([
+    ["objectName", "book_1", "book_2"],
+    ["UserModelName", "personal_Information_1", "personal_Information_2"],
+  ])("a second palette %s keeps a valid identifier with the next number", (type, name, expected) => {
+    const node = (id: string): Node => ({ id, type, position: { x: 0, y: 0 }, data: { name } })
+    expect(withNumberedPaletteName(node("new"), [node("old")]).data.name).toBe(expected)
+    expect(withNumberedPaletteName(node("new"), []).data.name).toBe(name)
+  })
+
   // Live repro: a freshly dropped Conv2D layer carried only `name`; its
   // mandatory kernel_dim / out_channels / ... appeared only once its panel
   // was opened, so validation failed for layers never opened.

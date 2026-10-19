@@ -11,8 +11,9 @@ export const needsUniqueName = (type: string | undefined): boolean =>
   !!type && UNIQUE_NAME_TYPES.has(type)
 
 /**
- * Named node types whose pasted copy gets a numeric suffix. A digit suffix
- * keeps a valid object identifier valid (book_1 -> book_2, order -> order2).
+ * Named node types whose pasted copy (or second palette drop) gets a numeric
+ * suffix. A digit suffix keeps a valid object identifier valid
+ * (book_1 -> book_2, order -> order2).
  */
 const COPY_UNIQUE_NAME_TYPES: ReadonlySet<string> = new Set([
   ...UNIQUE_NAME_TYPES,
@@ -64,14 +65,22 @@ export const nextFreeCopyName = (name: string, taken: ReadonlySet<string>) => {
 const withName = (node: Node, name: string): Node =>
   nameOf(node) === name ? node : { ...node, data: { ...node.data, name } }
 
-/** A freshly created palette element gets a numbered name (Class1, Class2, ...). */
+/**
+ * A freshly created palette element gets a free name: classes and agent
+ * states are numbered (Class1, Class2, ...); the other named kinds keep their
+ * default when free, else take the next number, as on paste.
+ */
 export const withNumberedPaletteName = (
   node: Node,
   existing: readonly Node[]
 ): Node => {
   const name = nameOf(node)
-  if (!name || !needsUniqueName(node.type)) return node
-  return withName(node, nextNumberedName(name, takenNames(node.type!, existing)))
+  if (!name || !node.type) return node
+  if (needsUniqueName(node.type)) {
+    return withName(node, nextNumberedName(name, takenNames(node.type, existing)))
+  }
+  if (!COPY_UNIQUE_NAME_TYPES.has(node.type)) return node
+  return withName(node, nextFreeCopyName(name, takenNames(node.type, existing)))
 }
 
 /**
