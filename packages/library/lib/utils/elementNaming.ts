@@ -10,6 +10,24 @@ const UNIQUE_NAME_TYPES: ReadonlySet<string> = new Set(["class", "AgentState"])
 export const needsUniqueName = (type: string | undefined): boolean =>
   !!type && UNIQUE_NAME_TYPES.has(type)
 
+/**
+ * Named node types whose pasted copy gets a numeric suffix. A digit suffix
+ * keeps a valid object identifier valid (book_1 -> book_2, order -> order2).
+ */
+const COPY_UNIQUE_NAME_TYPES: ReadonlySet<string> = new Set([
+  ...UNIQUE_NAME_TYPES,
+  "objectName",
+  "State",
+  "component",
+  "componentSubsystem",
+  "componentInterface",
+  "deploymentNode",
+  "deploymentComponent",
+  "deploymentArtifact",
+  "deploymentInterface",
+  "UserModelName",
+])
+
 const nameOf = (node: Node): string | undefined => {
   const name = (node.data as { name?: unknown } | undefined)?.name
   return typeof name === "string" && name !== "" ? name : undefined
@@ -154,7 +172,7 @@ export const withUniqueCopyNames = (
       return renamed
     }
     const name = nameOf(node)
-    if (!name || !needsUniqueName(node.type)) return node
+    if (!name || !node.type || !COPY_UNIQUE_NAME_TYPES.has(node.type)) return node
     let names = taken.get(node.type!)
     if (!names) {
       names = takenNames(node.type!, existing)

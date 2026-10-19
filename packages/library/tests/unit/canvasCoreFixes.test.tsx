@@ -244,6 +244,29 @@ describe("element naming", () => {
     )
     expect(pasted.map((n) => n.data.name)).toEqual(["Book2", "Book3"])
   })
+
+  // Live: pasting an object, state, component, deployment or user node kept
+  // the original name, so the diagram held two elements with one name.
+  it.each([
+    ["objectName", "book_1", "book_2"],
+    ["State", "Idle", "Idle2"],
+    ["component", "Billing", "Billing2"],
+    ["componentSubsystem", "Core", "Core2"],
+    ["deploymentNode", "Server", "Server2"],
+    ["deploymentComponent", "Api", "Api2"],
+    ["deploymentArtifact", "app", "app2"],
+    ["UserModelName", "alice", "alice2"],
+  ])("a pasted %s copy gets a suffixed name", (type, name, expected) => {
+    const node = (id: string): Node => ({ id, type, position: { x: 0, y: 0 }, data: { name } })
+    const [pasted] = withUniqueCopyNames([node("p")], [node("o")])
+    expect(pasted.data.name).toBe(expected)
+  })
+
+  it("a pasted object copy keeps a valid identifier name", () => {
+    const node = (id: string, name: string): Node => ({ id, type: "objectName", position: { x: 0, y: 0 }, data: { name } })
+    const [pasted] = withUniqueCopyNames([node("p", "order")], [node("o", "order")])
+    expect(pasted.data.name).toMatch(/^[A-Za-z_][A-Za-z0-9_]*$/)
+  })
 })
 
 describe("palette insert writes creation-time data", () => {
