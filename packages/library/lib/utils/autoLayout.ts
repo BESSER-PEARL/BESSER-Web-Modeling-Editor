@@ -73,11 +73,63 @@ export type { HandleSide } from "./autoLayoutHandles"
 
 // ELK is ~1.3 MB, so it is loaded on first layout instead of shipping in the entry chunk.
 let elkModule: Promise<typeof import("elkjs/lib/elk.bundled.js")> | null = null
-const createElk = async (): Promise<ElkInstance> => {
+const mainThreadElk = async (): Promise<ElkInstance> => {
   elkModule ??= import("elkjs/lib/elk.bundled.js")
   const { default: ELK } = await elkModule
   return new ELK()
 }
+
+// One shared worker; `failed` settles if it cannot load (CSP, missing chunk),
+// since elk-api would otherwise wait for its answer forever.
+let workerElk: Promise<{ elk: ElkInstance; failed: Promise<null> }> | null = null
+let workerBroken = false
+const getWorkerElk = () =>
+  (workerElk ??= import("elkjs/lib/elk-api.js").then(({ default: ELK }) => {
+    let markFailed!: () => void
+    const failed = new Promise<null>((resolve) => {
+      markFailed = () => {
+        workerBroken = true
+        resolve(null)
+      }
+    })
+    const elk = new ELK({
+      workerFactory: () => {
+        const worker = new Worker(new URL("./elk.worker.ts", import.meta.url), {
+          type: "module",
+        })
+        worker.addEventListener("error", markFailed)
+        return worker
+      },
+    })
+    return { elk, failed }
+  }))
+
+/**
+ * ELK in a Web Worker where the platform has one, so a large layout does not
+ * freeze the page; on the main thread under node / jsdom (headless export,
+ * tests) or when the worker fails to load.
+ */
+const createElk = async (): Promise<Pick<ElkInstance, "layout">> => ({
+  layout: async (graph) => {
+    if (typeof Worker !== "undefined" && !workerBroken) {
+      const { elk, failed } = await getWorkerElk()
+      const laid = await Promise.race([elk.layout(graph), failed])
+      if (laid) return laid
+    }
+    return (await mainThreadElk()).layout(graph)
+  },
+})
+
+/**
+ * Stress majorization costs O(n^2) per iteration: the full budget suits small
+ * graphs, larger ones get fewer iterations and a looser convergence bound.
+ */
+const stressBudget = (nodeCount: number) => ({
+  "elk.stress.iterationLimit": String(
+    Math.max(60, Math.min(400, Math.round(12000 / Math.max(1, nodeCount))))
+  ),
+  "elk.stress.epsilon": nodeCount > 50 ? "0.001" : "0.0001",
+})
 
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 100
@@ -1539,8 +1591,7 @@ const compactPipeline = async (
       layoutOptions: {
         "elk.algorithm": "stress",
         "elk.stress.desiredEdgeLength": "260",
-        "elk.stress.epsilon": "0.0001",
-        "elk.stress.iterationLimit": "400",
+        ...stressBudget(children.length),
         "elk.separateConnectedComponents": "true",
         "elk.spacing.componentComponent": "90",
         "elk.aspectRatio": "1.6",
