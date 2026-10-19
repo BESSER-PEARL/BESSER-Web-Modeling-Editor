@@ -504,42 +504,31 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   }
 
   /**
-   * Generate a display name for a relationship
-   * Used when the relationship doesn't have an explicit name
+   * Name for an object link whose association has no explicit name. The link
+   * becomes a B-UML named element, so the result holds no spaces or hyphens.
    */
   getRelationshipDisplayName(
     relationship: IAssociationInfo,
     sourceObjectName?: string,
     targetObjectName?: string
   ): string {
-    // If the relationship has a name, use it
     if (relationship.name && relationship.name.trim()) {
       return relationship.name
     }
 
-    // Create a name from the association role names
-    const sourceRole = relationship.source?.role
-    const targetRole = relationship.target?.role
-    const sourceMultiplicity = relationship.source?.multiplicity
-    const targetMultiplicity = relationship.target?.multiplicity
-
-    // If we have role names and they're not empty, use them
-    if (sourceRole && targetRole && sourceRole.trim() && targetRole.trim()) {
-      return `${sourceRole}-${targetRole}`
+    const toName = (s: string) => s.trim().replace(/[^\p{L}\p{N}_]+/gu, "_")
+    const sourceRole = relationship.source?.role?.trim()
+    const targetRole = relationship.target?.role?.trim()
+    if (sourceRole && targetRole) {
+      return `${toName(sourceRole)}_${toName(targetRole)}`
     }
 
-    // If we have multiplicities, use them as a fallback
-    if (sourceMultiplicity && targetMultiplicity) {
-      return `${sourceMultiplicity}-${targetMultiplicity}`
+    // Multiplicities ("1", "0..*") are not names, so they are not used.
+    if (sourceObjectName?.trim() && targetObjectName?.trim()) {
+      return `${toName(sourceObjectName)}_${toName(targetObjectName)}`
     }
 
-    // Fallback to object names if available
-    if (sourceObjectName && targetObjectName) {
-      return `${sourceObjectName}-${targetObjectName}`
-    }
-
-    // Final fallback
-    return `Association-${relationship.id.substring(0, 8)}`
+    return `Association_${toName(relationship.id.substring(0, 8))}`
   }
 
   /**
