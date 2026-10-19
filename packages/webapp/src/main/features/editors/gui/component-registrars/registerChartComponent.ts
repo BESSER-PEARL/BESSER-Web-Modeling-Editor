@@ -5,6 +5,7 @@ import { ChartConfig } from '../configs/chartConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
 import registerSeriesManagerTrait from '../traits/registerSeriesManagerTrait';
+import { unmountReactRootLater } from './unmountReactRootLater';
 
 /**
  * Build chart props from attributes - extracted to avoid duplication
@@ -189,10 +190,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
         (this as any).__reactRoot.render(React.createElement(config.component, props));
       },
       removed() {
-        if ((this as any).__reactRoot) {
-          (this as any).__reactRoot.unmount();
-          (this as any).__reactRoot = null;
-        }
+        unmountReactRootLater(this as any);
       },
     },
     isComponent: (el: any) => {

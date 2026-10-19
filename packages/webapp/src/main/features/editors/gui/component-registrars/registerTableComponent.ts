@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { TableConfig } from '../configs/tableConfig';
 import { getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { unmountReactRootLater } from './unmountReactRootLater';
 
 /**
  * Build table props from attributes
@@ -282,10 +283,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
         (this as any).__reactRoot.render(React.createElement(config.component, props));
       },
       removed() {
-        if ((this as any).__reactRoot) {
-          (this as any).__reactRoot.unmount();
-          (this as any).__reactRoot = null;
-        }
+        unmountReactRootLater(this as any);
       },
     },
     isComponent: (el: any) => {
