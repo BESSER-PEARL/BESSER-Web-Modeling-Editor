@@ -211,6 +211,20 @@ describe('assistant BPMN: governance policy', () => {
     expect(byName(model, 'Merge').data.governanceDsl).toContain('ConsensusPolicy MergePolicy {');
   });
 
+  it('add_gateway expands a policy keyword like modify_node does', () => {
+    for (const changes of [{ governancePolicy: 'consensus' }, { governanceDsl: 'consensus' }]) {
+      const model = modify(convert(), 'add_gateway', { nodeName: 'Vote' }, {
+        gatewayType: 'parallel',
+        isAgentic: true,
+        owner: 'Reviewer Agents',
+        ...changes,
+      });
+      const vote = byName(model, 'Vote');
+      expect(vote.data.governanceDsl).toContain('ConsensusPolicy');
+      expect(vote.data.governanceDsl).not.toBe('consensus');
+    }
+  });
+
   it('keeps a full DSL text unchanged', () => {
     const text = 'Scopes:\n    Tasks:\n        Merge\nConsensusPolicy P {\n    Scope: Merge\n}';
     expect(byName(convert({ governanceDsl: text }), 'Merge').data.governanceDsl).toBe(text);

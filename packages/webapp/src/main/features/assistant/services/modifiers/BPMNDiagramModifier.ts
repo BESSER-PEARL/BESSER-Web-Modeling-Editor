@@ -319,7 +319,12 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const name = m.target.nodeName || m.changes.name || '';
     const lane = this.ownerLane(model, m.changes.owner);
     const data = { gatewayType, ...bpmnGatewayAgenticData(m.changes) };
-    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnGateway', name, data, m.target.nodeId, lane));
+    const node = this.buildNode(model, 'bpmnGateway', name, data, m.target.nodeId, lane);
+    ModifierHelpers.addNode(model, node);
+    // Expand a policy keyword ("consensus") like modify_node does.
+    if (typeof node.data.governanceDsl === 'string') {
+      node.data.governanceDsl = resolveGovernanceDsl(node.data.governanceDsl, node.id, model);
+    }
     return model;
   }
 
