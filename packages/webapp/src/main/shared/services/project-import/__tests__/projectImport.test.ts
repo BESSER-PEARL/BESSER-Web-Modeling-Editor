@@ -404,3 +404,22 @@ describe('importProjectFromBUML', () => {
     ]);
   });
 });
+
+// Live: "Import failed: Failed to import project: Unexpected token ..." —
+// a doubled prefix and a raw parser error in the toast.
+describe('importProjectFromJson failure messages', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([
+    ['not JSON', '{"project": ', 'The file is not valid JSON.'],
+    ['an unknown structure', '{"hello": "world"}', 'The file is not a BESSER project or diagram export.'],
+  ])('%s: one clear sentence, details only in the console', async (_label, content, message) => {
+    const file = new File([content], 'project.json', { type: 'application/json' });
+    await expect(importProjectFromJson(file)).rejects.toThrow(new Error(message));
+    expect(console.error).toHaveBeenCalled();
+  });
+});

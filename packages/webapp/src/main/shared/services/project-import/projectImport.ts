@@ -473,6 +473,8 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   }
 }
 
+const UNSUPPORTED_STRUCTURE = 'Invalid project file format - unsupported structure';
+
 // Import from JSON file
 export async function importProjectFromJson(file: File): Promise<BesserProject> {
   return new Promise((resolve, reject) => {
@@ -621,14 +623,18 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
           resolve(importedProject);
         } else {
-          throw new Error('Invalid project file format - unsupported structure');
+          throw new Error(UNSUPPORTED_STRUCTURE);
         }
       } catch (error) {
+        // The user gets one sentence; the parser / converter detail stays here.
         console.error('JSON import failed:', error);
-        // Surface the underlying error (e.g. a v3 → v4 migration failure)
-        // instead of blaming the JSON syntax for every rejection.
-        const detail = error instanceof Error && error.message ? error.message : 'Invalid JSON format';
-        reject(new Error(i18n.t('import.errors.projectFailed', { detail })));
+        const key =
+          error instanceof SyntaxError
+            ? 'import.errors.invalidJson'
+            : error instanceof Error && error.message === UNSUPPORTED_STRUCTURE
+              ? 'import.errors.unsupportedProjectFile'
+              : 'import.errors.projectUnreadable';
+        reject(new Error(i18n.t(key)));
       }
     };
 

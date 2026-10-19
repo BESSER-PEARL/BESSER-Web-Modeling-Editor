@@ -2917,7 +2917,9 @@
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
       "unsupportedFileTypeBpmn": "Tipus de fitxer no compatible. Selecciona un fitxer .json, .py o .bpmn.",
-      "projectFailed": "No s’ha pogut importar el projecte: {{detail}}"
+      "invalidJson": "El fitxer no és un JSON vàlid.",
+      "unsupportedProjectFile": "El fitxer no és una exportació de projecte o de diagrama de BESSER.",
+      "projectUnreadable": "No s'ha pogut llegir el projecte d'aquest fitxer."
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",

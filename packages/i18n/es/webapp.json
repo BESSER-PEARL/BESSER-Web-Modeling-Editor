@@ -2917,7 +2917,9 @@
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error",
       "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
-      "projectFailed": "No se pudo importar el proyecto: {{detail}}"
+      "invalidJson": "El archivo no es un JSON válido.",
+      "unsupportedProjectFile": "El archivo no es una exportación de proyecto o diagrama de BESSER.",
+      "projectUnreadable": "No se pudo leer el proyecto de este archivo."
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",

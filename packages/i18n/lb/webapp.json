@@ -2917,7 +2917,9 @@
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
-      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}"
+      "invalidJson": "D'Datei ass kee gültege JSON.",
+      "unsupportedProjectFile": "D'Datei ass keen Export vun engem BESSER-Projet oder -Diagramm.",
+      "projectUnreadable": "De Projet an dëser Datei konnt net gelies ginn."
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
