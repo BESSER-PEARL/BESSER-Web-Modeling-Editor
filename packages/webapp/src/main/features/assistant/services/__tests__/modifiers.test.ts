@@ -453,6 +453,30 @@ describe('ObjectDiagramModifier', () => {
       expect(objects[0].data.attributes).toEqual([]);
     });
   });
+
+  describe('modify_object', () => {
+    const withObject = () => {
+      const model = makeEmptyModel('ObjectDiagram');
+      return modifier.applyModification(model, {
+        action: 'add_object',
+        target: { objectName: 'book1' },
+        changes: { objectName: 'book1', className: 'Book' },
+      });
+    };
+
+    // Live: the agent sent `changes.objectName` and the rename was ignored.
+    it.each([
+      ['objectName', { objectName: 'novel1' }],
+      ['name', { name: 'novel1' }],
+    ])('renames the object from changes.%s', (_label, changes) => {
+      const result = modifier.applyModification(withObject(), {
+        action: 'modify_object',
+        target: { objectName: 'book1' },
+        changes,
+      });
+      expect(nodesByType(result, 'objectName').map((n) => n.data.name)).toEqual(['novel1']);
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

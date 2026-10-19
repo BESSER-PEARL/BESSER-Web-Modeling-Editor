@@ -191,8 +191,10 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const { objectId, objectName } = modification.target;
     const node = (objectId ? ModifierHelpers.findNodeById(model, objectId) : undefined) ||
       (objectName ? this.findObjectNodeByName(model, objectName) : undefined);
-    if (node && modification.changes.name) {
-      (node.data as any).name = modification.changes.name;
+    // The agent has sent the new name as `objectName` as well as `name`.
+    const newName = modification.changes.name || modification.changes.objectName;
+    if (node && newName) {
+      (node.data as any).name = newName;
     }
     return model;
   }
