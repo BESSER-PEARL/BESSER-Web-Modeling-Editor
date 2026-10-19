@@ -393,8 +393,6 @@ export interface ModelDiff {
   addedRelationships: number;
 }
 
-const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
-
 /**
  * Compare two models structurally.
  *
@@ -405,25 +403,17 @@ const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
  * real before/after is the only description that cannot lie.
  */
 export function summarizeModelDiff(before: any, after: any): ModelDiff {
-  // v4 models: every classifier is a `class` node, relationships are edges.
-  // v3 models (legacy snapshots): `elements` / `relationships` records.
+  // Every classifier is a `class` node, relationships are edges. A v3 model
+  // never gets here: the assistant refuses to modify an unmigrated diagram.
   const classNames = (model: any): Map<string, string> => {
     const out = new Map<string, string>();
-    if (Array.isArray(model?.nodes)) {
-      for (const node of model.nodes) {
-        if (node?.type === 'class') out.set(node.id, node.data?.name ?? node.id);
-      }
-      return out;
-    }
-    for (const [id, el] of Object.entries((model?.elements ?? {}) as Record<string, any>)) {
-      if (el && CLASS_LIKE.includes(el.type)) out.set(id, el.name ?? id);
+    for (const node of Array.isArray(model?.nodes) ? model.nodes : []) {
+      if (node?.type === 'class') out.set(node.id, node.data?.name ?? node.id);
     }
     return out;
   };
   const relationshipIds = (model: any): Set<string> =>
-    Array.isArray(model?.edges)
-      ? new Set(model.edges.map((e: any) => e?.id).filter(Boolean))
-      : new Set(Object.keys(model?.relationships ?? {}));
+    new Set((Array.isArray(model?.edges) ? model.edges : []).map((e: any) => e?.id).filter(Boolean));
 
   const b = classNames(before);
   const a = classNames(after);
