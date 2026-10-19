@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { generateUUID } from "@/utils"
 import type { Node, Edge } from "@xyflow/react"
 import { CANVAS } from "@/constants"
@@ -252,10 +251,10 @@ export function remapRowReferences<T>(data: T, idMap: Map<string, string>): T {
   return (changed ? result : data) as T
 }
 
-export const createNewNodeDataWithNewIds = (
-  originalNodeData: any,
+export const createNewNodeDataWithNewIds = <T>(
+  originalNodeData: T,
   idMap: Map<string, string> = new Map()
-) => {
+): T => {
   if (!originalNodeData) return originalNodeData
   return remapRowReferences(
     remintNestedChildIds(originalNodeData, idMap),

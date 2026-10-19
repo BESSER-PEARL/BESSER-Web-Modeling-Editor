@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { IPoint } from "../edges/Connection"
 
 export type V3Selection = {
@@ -172,7 +171,7 @@ export type V3Assessment = {
   elementType: string
   score: number
   feedback?: string
-  dropInfo?: any
+  dropInfo?: object
   label?: string
   labelColor?: string
   correctionStatus?: {
