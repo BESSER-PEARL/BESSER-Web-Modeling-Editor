@@ -17,8 +17,13 @@
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+import { LAYOUT_COLUMNS, LAYOUT_START_X, LAYOUT_START_Y } from '../shared/layoutUtils';
 
 type BodyRow = { id: string; name: string };
+
+const CODE_BLOCK_WIDTH = 200;
+const CODE_BLOCK_HEIGHT = 150;
+const CODE_BLOCK_GAP = 60;
 
 export class StateMachineConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -136,25 +141,34 @@ export class StateMachineConverter implements DiagramConverter {
       }
     });
 
-    // Create code blocks if present
+    // Code blocks go in rows below the states: the states may carry the
+    // agent's own positions, which the grid does not know about.
     if (systemSpec.codeBlocks) {
-      for (const codeBlock of systemSpec.codeBlocks) {
-        const codeBlockPos = this.positionGenerator.getNextPosition();
+      const left = nodes.length ? Math.min(...nodes.map((n) => n.position.x)) : LAYOUT_START_X;
+      const top = nodes.length
+        ? Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0))) + CODE_BLOCK_GAP
+        : LAYOUT_START_Y;
+      systemSpec.codeBlocks.forEach((codeBlock: any, i: number) => {
+        const column = i % LAYOUT_COLUMNS;
+        const row = Math.floor(i / LAYOUT_COLUMNS);
         const codeBlockId = generateUniqueId('codeblock');
         nodes.push({
           id: codeBlockId,
           type: 'StateCodeBlock' as any,
-          position: { x: codeBlockPos.x, y: codeBlockPos.y },
-          width: 200,
-          height: 150,
-          measured: { width: 200, height: 150 },
+          position: {
+            x: left + column * (CODE_BLOCK_WIDTH + CODE_BLOCK_GAP),
+            y: top + row * (CODE_BLOCK_HEIGHT + CODE_BLOCK_GAP),
+          },
+          width: CODE_BLOCK_WIDTH,
+          height: CODE_BLOCK_HEIGHT,
+          measured: { width: CODE_BLOCK_WIDTH, height: CODE_BLOCK_HEIGHT },
           data: {
             name: codeBlock.name || 'Code',
             code: codeBlock.code || '',
             language: codeBlock.language || 'python',
           },
         });
-      }
+      });
     }
 
     return model;

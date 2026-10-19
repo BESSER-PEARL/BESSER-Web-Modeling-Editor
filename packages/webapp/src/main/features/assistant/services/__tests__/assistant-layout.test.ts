@@ -206,3 +206,38 @@ describe('assistant components, subsystems and deployment components carry a ste
     expect(stereotypes(deployment)).toEqual([['Worker', 'solution']]);
   });
 });
+
+describe('assistant state machines keep code blocks clear of the states', () => {
+  type Box = { position: { x: number; y: number }; width?: number; height?: number };
+  const overlaps = (a: Box, b: Box) =>
+    a.position.x < b.position.x + (b.width ?? 0) &&
+    b.position.x < a.position.x + (a.width ?? 0) &&
+    a.position.y < b.position.y + (b.height ?? 0) &&
+    b.position.y < a.position.y + (a.height ?? 0);
+
+  // Live (shots 102/105): code blocks went on the grid while the states kept
+  // the agent's positions, so blocks covered states.
+  it.each([
+    ['agent-positioned states', true],
+    ['grid-placed states', false],
+  ])('%s: no code block overlaps a state or another block', (_label, positioned) => {
+    const names = ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled'];
+    const model = new StateMachineConverter().convertCompleteSystem({
+      states: names.map((stateName, i) => ({
+        stateName,
+        ...(positioned && { position: { x: -940 + (i % 2) * 360, y: -600 + i * 120 } }),
+      })),
+      transitions: [],
+      codeBlocks: names.map((n) => ({ name: n, code: `class ${n}: pass` })),
+    }) as BESSERModel;
+    const nodes = (model as any).nodes as Array<Box & { type: string }>;
+    const blocks = nodes.filter((n) => n.type === 'StateCodeBlock');
+    const others = nodes.filter((n) => n.type !== 'StateCodeBlock');
+    expect(blocks).toHaveLength(5);
+    for (const block of blocks) {
+      for (const other of [...others, ...blocks.filter((b) => b !== block)]) {
+        expect(overlaps(block, other)).toBe(false);
+      }
+    }
+  });
+});
