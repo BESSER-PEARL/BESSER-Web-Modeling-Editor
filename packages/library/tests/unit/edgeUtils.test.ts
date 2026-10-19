@@ -734,7 +734,7 @@ describe("simplifySvgPath", () => {
   })
 
   it("rounds zero decimals", () => {
-    const result = simplifySvgPath("M 1.7,2.3 L 3.5,4.5", 0)
+    const result = simplifySvgPath("M 1.7,2.3 L 3.5,4.5")
     expect(result).toBe("M 2 2 L 4 5")
   })
 })

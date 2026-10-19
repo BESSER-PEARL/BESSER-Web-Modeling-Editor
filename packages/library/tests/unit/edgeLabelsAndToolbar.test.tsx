@@ -57,7 +57,7 @@ const renderAgentEdge = (data: Record<string, unknown>, nodes: Node[]) => {
                   targetY={130}
                   sourcePosition={Position.Bottom}
                   targetPosition={Position.Top}
-                  data={data}
+                  data={data as never}
                 />
               </svg>
             </ReactFlowProvider>

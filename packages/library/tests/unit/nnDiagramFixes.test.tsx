@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest"
+import type { ComponentProps } from "react"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Node } from "@xyflow/react"
@@ -84,7 +85,7 @@ describe("NN layer card label", () => {
     const Conv1D = makeNNLayerComponent("Conv1DLayer", "Conv1D", "#E3F2FD")
     const data = { name: "conv1d_layer" }
     const { container } = withStores(
-      <Conv1D {...({ id: "node-1", width: 90, height: 100, data } as never)} />,
+      <Conv1D {...({ id: "node-1", width: 90, height: 100, data } as unknown as ComponentProps<typeof Conv1D>)} />,
       [layer("Conv1DLayer", data)]
     )
     const text = container.querySelector("svg text")!
@@ -96,7 +97,7 @@ describe("NN layer card label", () => {
     const Plain = makeNNLayerComponent("PlainKind", "Plain", "#FFF3E0")
     const data = { name: "x" }
     const { container } = withStores(
-      <Plain {...({ id: "node-1", width: 90, height: 100, data } as never)} />,
+      <Plain {...({ id: "node-1", width: 90, height: 100, data } as unknown as ComponentProps<typeof Plain>)} />,
       [layer("PlainKind", data)]
     )
     expect(container.querySelector("svg text")!.getAttribute("fill")).toBe(
@@ -108,7 +109,7 @@ describe("NN layer card label", () => {
     const Norm = makeNNLayerComponent("LayerNormalizationLayer", "LayerNorm")
     const data = { name: "layernorm_layer" }
     const { container } = withStores(
-      <Norm {...({ id: "node-1", width: 90, height: 100, data } as never)} />,
+      <Norm {...({ id: "node-1", width: 90, height: 100, data } as unknown as ComponentProps<typeof Norm>)} />,
       [layer("LayerNormalizationLayer", data)]
     )
     const text = container.querySelector("svg text")!

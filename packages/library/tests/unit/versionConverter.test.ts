@@ -14,12 +14,13 @@ import {
   migrateObjectDiagramV3ToV4,
 } from "@/utils/versionConverter"
 import { ClassType } from "@/types/nodes/enums"
+import type { V3DiagramFormat, V3UMLModel } from "@/utils/v3Typings"
 
 // ---------------------------------------------------------------------------
 // Helpers to build minimal valid V3 / V2 / V4 fixtures
 // ---------------------------------------------------------------------------
 
-function makeV3Model(overrides: Record<string, unknown> = {}) {
+function makeV3Model(overrides: Record<string, unknown> = {}): V3UMLModel {
   return {
     version: "3.0.0",
     type: "ClassDiagram",
@@ -29,10 +30,10 @@ function makeV3Model(overrides: Record<string, unknown> = {}) {
     relationships: {} as Record<string, unknown>,
     assessments: {} as Record<string, unknown>,
     ...overrides,
-  }
+  } as unknown as V3UMLModel
 }
 
-function makeV3Wrapped(overrides: Record<string, unknown> = {}) {
+function makeV3Wrapped(overrides: Record<string, unknown> = {}): V3DiagramFormat {
   return {
     id: "diagram-1",
     title: "Test Diagram",
@@ -65,7 +66,9 @@ function makeV3Relationship(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function makeV2Data(overrides: Record<string, unknown> = {}) {
+type V2DiagramFormat = Parameters<typeof convertV2ToV4>[0]
+
+function makeV2Data(overrides: Record<string, unknown> = {}): V2DiagramFormat {
   return {
     version: "2.0.0",
     type: "ClassDiagram",
@@ -75,7 +78,7 @@ function makeV2Data(overrides: Record<string, unknown> = {}) {
     relationships: [] as unknown[],
     assessments: [] as unknown[],
     ...overrides,
-  }
+  } as unknown as V2DiagramFormat
 }
 
 function makeV4Model(overrides: Record<string, unknown> = {}) {
@@ -546,7 +549,7 @@ describe("convertV3ToV4", () => {
     // on import. The v4 ObjectName node no longer surfaces a `methods`
     // field — the legacy expectation has been replaced with a check
     // that the field is either missing or empty.
-    expect((nd.methods ?? []).length).toBe(0)
+    expect(((nd.methods as unknown[] | undefined) ?? []).length).toBe(0)
   })
 
   // --- Class stereotype mapping ---
@@ -764,7 +767,7 @@ describe("convertV3ToV4", () => {
 
   it("handles missing assessments gracefully", () => {
     const model = makeV3Model()
-    delete (model as Record<string, unknown>).assessments
+    delete (model as unknown as Record<string, unknown>).assessments
     const data = { id: "d1", title: "T", model }
     const result = convertV3ToV4(data)
     expect(result.assessments).toEqual({})
@@ -1185,7 +1188,7 @@ describe("convertV2ToV4", () => {
 
   it("handles V2 with missing interactive", () => {
     const v2 = makeV2Data()
-    delete (v2 as Record<string, unknown>).interactive
+    delete (v2 as unknown as Record<string, unknown>).interactive
     // Should not throw
     const result = convertV2ToV4(v2)
     expect(result.version).toBe("4.0.0")
@@ -1193,9 +1196,9 @@ describe("convertV2ToV4", () => {
 
   it("handles V2 with missing elements/relationships/assessments", () => {
     const v2 = makeV2Data()
-    delete (v2 as Record<string, unknown>).elements
-    delete (v2 as Record<string, unknown>).relationships
-    delete (v2 as Record<string, unknown>).assessments
+    delete (v2 as unknown as Record<string, unknown>).elements
+    delete (v2 as unknown as Record<string, unknown>).relationships
+    delete (v2 as unknown as Record<string, unknown>).assessments
     const result = convertV2ToV4(v2)
     expect(result.nodes).toEqual([])
     expect(result.edges).toEqual([])
@@ -1257,19 +1260,19 @@ describe("isV2Format", () => {
 
   it("returns false for missing version", () => {
     const d = makeV2Data()
-    delete (d as Record<string, unknown>).version
+    delete (d as unknown as Record<string, unknown>).version
     expect(isV2Format(d)).toBeFalsy()
   })
 
   it("returns false for missing size", () => {
     const d = makeV2Data()
-    delete (d as Record<string, unknown>).size
+    delete (d as unknown as Record<string, unknown>).size
     expect(isV2Format(d)).toBeFalsy()
   })
 
   it("returns false for missing type", () => {
     const d = makeV2Data()
-    delete (d as Record<string, unknown>).type
+    delete (d as unknown as Record<string, unknown>).type
     expect(isV2Format(d)).toBeFalsy()
   })
 })
@@ -1361,7 +1364,7 @@ describe("isV4Format", () => {
 
   it("returns false when version is missing", () => {
     const d = makeV4Model()
-    delete (d as Record<string, unknown>).version
+    delete (d as unknown as Record<string, unknown>).version
     expect(isV4Format(d)).toBeFalsy()
   })
 

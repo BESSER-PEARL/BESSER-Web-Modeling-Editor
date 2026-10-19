@@ -14,7 +14,7 @@ vi.mock("@/App", async (importOriginal) => ({
   AppWithProvider: () => null,
 }))
 
-type Internals = BesserEditor & {
+type Internals = Pick<BesserEditor, keyof BesserEditor> & {
   diagramStore: {
     getState: () => {
       nodes: Node[]
@@ -39,7 +39,7 @@ const mount = () => {
   act(() => {
     editor = new BesserEditor(el, { type: UMLDiagramType.ClassDiagram })
   })
-  return editor as Internals
+  return editor as unknown as Internals
 }
 
 const classNode = (id: string, x: number, y: number) => ({

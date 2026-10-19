@@ -78,7 +78,7 @@ describe("renameIntentInTransitions", () => {
 
 describe("transition inspector: missing intent", () => {
   it("flags an intent that is not defined", () => {
-    diagramBridge.setAgentIntents([{ name: "hello" }])
+    diagramBridge.setAgentIntents([{ name: "hello", id: "i-hello" }])
     renderWith(<AgentDiagramEdgeEditPanel elementId="t1" />, [], [
       transition("greet"),
     ])
@@ -87,7 +87,7 @@ describe("transition inspector: missing intent", () => {
   })
 
   it("stays quiet for an existing intent", () => {
-    diagramBridge.setAgentIntents([{ name: "greet" }])
+    diagramBridge.setAgentIntents([{ name: "greet", id: "i-greet" }])
     renderWith(<AgentDiagramEdgeEditPanel elementId="t1" />, [], [
       transition("greet"),
     ])

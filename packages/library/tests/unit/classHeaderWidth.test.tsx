@@ -3,6 +3,7 @@
  * with the regular-weight font, so the node came out too narrow.
  */
 import { describe, it, expect, vi } from "vitest"
+import type { ComponentProps } from "react"
 import { render } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Node } from "@xyflow/react"
@@ -58,7 +59,7 @@ describe("Class header width", () => {
                     width: node.width,
                     height: node.height,
                     data: node.data,
-                  } as never)}
+                  } as unknown as ComponentProps<typeof Class>)}
                 />
               </ReactFlowProvider>
             </AssessmentSelectionStoreContext.Provider>

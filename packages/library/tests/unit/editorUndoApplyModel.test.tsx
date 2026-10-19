@@ -14,7 +14,7 @@ vi.mock("@/App", async (importOriginal) => ({
   AppWithProvider: () => null,
 }))
 
-type Internals = BesserEditor & {
+type Internals = Pick<BesserEditor, keyof BesserEditor> & {
   diagramStore: {
     getState: () => {
       nodes: Node[]
@@ -36,7 +36,7 @@ const mount = () => {
   act(() => {
     editor = new BesserEditor(el, { type: UMLDiagramType.ClassDiagram })
   })
-  return editor as Internals
+  return editor as unknown as Internals
 }
 
 const classNode = (id: string, x = 0, y = 0): Node => ({
@@ -59,7 +59,7 @@ const modelOf = (...ids: string[]): UMLModel =>
     assessments: {},
   }) as unknown as UMLModel
 
-const ids = (e: BesserEditor) => e.model.nodes.map((n) => n.id).sort()
+const ids = (e: Pick<BesserEditor, "model">) => e.model.nodes.map((n) => n.id).sort()
 
 describe("BesserEditor.applyModel", () => {
   // The assistant / scaffold / user-profile form replaced the model through

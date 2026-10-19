@@ -19,7 +19,7 @@ import {
   registerConnectionRule,
   evaluateConnectionRules,
 } from "@/services/connectionRules"
-import { canConnectEndpoints } from "@/utils/bpmnConstraints"
+import { canConnectEndpoints, type MinimalNodeForConnect } from "@/utils/bpmnConstraints"
 import { diagramBridge } from "@/services/diagramBridge"
 
 /**
@@ -50,11 +50,13 @@ const classDiagramData = {
   ],
 }
 
-const obj = (id: string, classId?: string) => ({
-  id,
-  type: "objectName",
-  data: classId ? { name: id, classId } : { name: id },
-})
+// `MinimalNodeForConnect.data` is a weak type; object rows carry other fields.
+const obj = (id: string, classId?: string) =>
+  ({
+    id,
+    type: "objectName",
+    data: classId ? { name: id, classId } : { name: id },
+  }) as unknown as MinimalNodeForConnect
 
 // No direct `localStorage` access — unavailable in this jsdom env;
 // the bridge guards its own persistence.

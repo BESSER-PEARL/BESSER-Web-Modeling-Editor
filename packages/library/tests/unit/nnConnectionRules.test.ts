@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from "vitest"
 import { nnConnectionRule } from "@/services/connectionRules"
-import { canConnectEndpoints } from "@/utils/bpmnConstraints"
+import { canConnectEndpoints, type MinimalNodeForConnect } from "@/utils/bpmnConstraints"
 import type {
   MinimalRuleEdge,
   MinimalRuleNode,
@@ -156,7 +156,7 @@ describe("nnConnectionRule — Configuration singleton", () => {
 describe("canConnectEndpoints — NN rules ride the shared pipeline", () => {
   it("vetoes a dataset → layer drag end-to-end", () => {
     expect(
-      canConnectEndpoints(NODES, "train-1", "conv-1", undefined, [])
+      canConnectEndpoints(NODES as MinimalNodeForConnect[], "train-1", "conv-1", undefined, [])
     ).toBe(false)
   })
 
@@ -170,14 +170,14 @@ describe("canConnectEndpoints — NN rules ride the shared pipeline", () => {
       },
     ]
     expect(
-      canConnectEndpoints(NODES, "config-2", "container-1", undefined, edges)
+      canConnectEndpoints(NODES as MinimalNodeForConnect[], "config-2", "container-1", undefined, edges)
     ).toBe(false)
     expect(
-      canConnectEndpoints(NODES, "config-2", "container-2", undefined, edges)
+      canConnectEndpoints(NODES as MinimalNodeForConnect[], "config-2", "container-2", undefined, edges)
     ).toBe(true)
   })
 
   it("defaults to no edge list (endpoint-only callers keep working)", () => {
-    expect(canConnectEndpoints(NODES, "config-1", "container-1")).toBe(true)
+    expect(canConnectEndpoints(NODES as MinimalNodeForConnect[], "config-1", "container-1")).toBe(true)
   })
 })

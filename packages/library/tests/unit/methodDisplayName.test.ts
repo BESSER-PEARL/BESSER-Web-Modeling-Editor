@@ -20,7 +20,7 @@ describe("formatDisplayName for method rows", () => {
         name: "find",
         attributeType: "Book",
         visibility: "public",
-        parameters: [{ id: "p", name: "title", parameterType: "str" }],
+        parameters: [{ name: "title", parameterType: "str" }],
       })
     ).toBe("+ find(title: str): Book")
     expect(method({ name: "count()", attributeType: "int", visibility: "public" })).toBe(

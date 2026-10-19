@@ -383,7 +383,7 @@ describe("rendered edges", () => {
         targetPosition={Position.Left}
         sourceHandleId="right"
         targetHandleId="left"
-        data={edge.data}
+        data={edge.data as never}
         selected
       />,
       [node("red", 0, 0), node("green", 400, 150)],
@@ -423,7 +423,7 @@ describe("rendered edges", () => {
         targetPosition={Position.Left}
         sourceHandleId="right"
         targetHandleId="left"
-        data={data}
+        data={data as never}
       />,
       nodes,
       [edge]

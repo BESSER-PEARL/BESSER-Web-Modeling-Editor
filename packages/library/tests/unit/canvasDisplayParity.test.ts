@@ -155,7 +155,7 @@ describe("BPMN subprocess default is collapsed (develop isExpanded = false)", ()
       { id: "sp", type: "bpmnSubprocess", data: {} },
       { id: "t", type: "bpmnTask", parentId: "sp", data: {} },
     ])
-    expect(out.find((n) => n.id === "t")!.hidden).toBe(true)
+    expect((out.find((n) => n.id === "t") as { hidden?: boolean }).hidden).toBe(true)
   })
 
   it("still shows the children of an explicitly expanded subprocess", () => {
@@ -163,6 +163,6 @@ describe("BPMN subprocess default is collapsed (develop isExpanded = false)", ()
       { id: "sp", type: "bpmnSubprocess", data: { isExpanded: true } },
       { id: "t", type: "bpmnTask", parentId: "sp", data: {} },
     ])
-    expect(out.find((n) => n.id === "t")!.hidden).toBeFalsy()
+    expect((out.find((n) => n.id === "t") as { hidden?: boolean }).hidden).toBeFalsy()
   })
 })

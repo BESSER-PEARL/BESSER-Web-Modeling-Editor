@@ -5,6 +5,7 @@
  * Fixing template ships it.
  */
 import { afterEach, describe, expect, it } from "vitest"
+import type { ComponentProps } from "react"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import * as Y from "yjs"
 import { Position, ReactFlowProvider, type Edge, type Node } from "@xyflow/react"
@@ -112,7 +113,7 @@ const renderState = (data: Record<string, unknown>, height = 90) => {
             style={{ transform: "translate(0px, 0px)", width: 250, height }}
           >
             <AgentState
-              {...({ id: node.id, width: 250, height, data: node.data } as never)}
+              {...({ id: node.id, width: 250, height, data: node.data } as unknown as ComponentProps<typeof AgentState>)}
             />
           </div>
         </div>
@@ -213,7 +214,7 @@ const renderEdge = (data: Record<string, unknown>, targetY = 300) => {
                 targetY={targetY}
                 sourcePosition={Position.Bottom}
                 targetPosition={Position.Top}
-                data={data}
+                data={data as never}
               />
             </g>
           </svg>

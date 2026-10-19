@@ -34,7 +34,7 @@ function makeNode(overrides: Partial<BesserNode>): BesserNode {
 }
 
 function makeEdge(
-  overrides: Partial<BesserEdge> & { type: string }
+  overrides: Omit<Partial<BesserEdge>, "type"> & { type: string }
 ): BesserEdge {
   return overrides as unknown as BesserEdge
 }

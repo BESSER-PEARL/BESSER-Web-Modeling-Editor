@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
+import type { ComponentProps } from "react"
 import { act, cleanup, render } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Node } from "@xyflow/react"
@@ -67,7 +68,7 @@ describe("NN unique naming", () => {
                 {(["a", "b"] as const).map((id) => (
                   <Linear
                     key={id}
-                    {...({ id, width: 90, height: 100, data: { name: "fc" } } as never)}
+                    {...({ id, width: 90, height: 100, data: { name: "fc" } } as unknown as ComponentProps<typeof Linear>)}
                   />
                 ))}
               </ReactFlowProvider>

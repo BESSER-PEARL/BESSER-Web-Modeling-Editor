@@ -5,6 +5,7 @@
  * row-count table height).
  */
 import { describe, it, expect } from "vitest"
+import type { ComponentProps } from "react"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Node } from "@xyflow/react"
@@ -69,7 +70,7 @@ const renderNode = (node: Node) => {
                   width: node.width,
                   height: node.height,
                   data: node.data,
-                } as never)}
+                } as unknown as ComponentProps<typeof UserModelName>)}
               />
             </ReactFlowProvider>
           </AssessmentSelectionStoreContext.Provider>

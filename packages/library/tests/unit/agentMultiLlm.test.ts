@@ -23,11 +23,8 @@ import {
   migrateAgentDiagramV3ToV4,
   normalizeV4Model,
 } from "@/utils/versionConverter"
-import type {
-  AgentLLMNodeProps,
-  AgentStateNodeProps,
-  UMLModel,
-} from "@/types"
+import type { AgentLLMNodeProps, AgentStateNodeProps } from "@/types"
+import type { UMLModel } from "@/typings"
 
 /* ────────────────────────────── fixtures ───────────────────────────── */
 
