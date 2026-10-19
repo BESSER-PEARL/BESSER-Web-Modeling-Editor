@@ -25,6 +25,7 @@ import {
   applyNavigabilityToggle,
   canToggleNavigability,
   normalizeAssociationType,
+  normalizeEdgeNavigability,
   resolveAssociationNavigability,
   supportsNavigability,
 } from "@/utils/uml-association-navigability"
@@ -277,7 +278,9 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         if (e.id !== elementId) return e
         // Each end's multiplicity, role and navigability belong to the
         // class at that end, so they swap together with the endpoints.
-        const d = (e.data ?? {}) as Partial<CustomEdgeProps>
+        // Normalizing first makes implicit (legacy) flags explicit.
+        const edge = normalizeEdgeNavigability(e)
+        const d = (edge.data ?? {}) as Partial<CustomEdgeProps>
         const swapped: Record<string, unknown> = { ...d }
         const pairs = [
           ["sourceMultiplicity", "targetMultiplicity"],
@@ -291,14 +294,15 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           else delete swapped[b]
         }
         if (Array.isArray(d.points)) swapped.points = [...d.points].reverse()
-        return {
-          ...e,
-          source: e.target,
-          sourceHandle: e.targetHandle,
-          target: e.source,
-          targetHandle: e.sourceHandle,
+        // The swapped flags may break a rule (a composition's part end).
+        return normalizeEdgeNavigability({
+          ...edge,
+          source: edge.target,
+          sourceHandle: edge.targetHandle,
+          target: edge.source,
+          targetHandle: edge.sourceHandle,
           data: swapped,
-        }
+        })
       })
     )
   }
