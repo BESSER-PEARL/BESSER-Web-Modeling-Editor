@@ -415,6 +415,9 @@ const rectsKey = (rs: LayoutRect[]) => rs.map((r) => `${r.x},${r.y},${r.width},$
 const routeCache = new Map<string, { points: LayoutPoint[]; area: Box; areaKey: string }>()
 const ROUTE_CACHE_LIMIT = 5000
 
+/** Last detour per pair of ports and end rects, kept while a node is dragged. */
+const lastDetour = new Map<string, LayoutPoint[]>()
+
 /** Clearance the router keeps around nodes (its default margin). */
 const ROUTER_MARGIN = 14
 
@@ -430,7 +433,9 @@ export const routeBetweenPorts = (
   sRect: LayoutRect,
   tRect: LayoutRect,
   obstacles: LayoutRect[] | ObstacleSet,
-  zShift = 0
+  zShift = 0,
+  /** While nodes are dragged (their rects): keep a detour none of them crosses. */
+  moving?: readonly LayoutRect[]
 ): LayoutPoint[] => {
   const set = Array.isArray(obstacles) ? obstacleSet(obstacles) : obstacles
   // Obstacles near the route only (keeps the router grid tiny).
@@ -447,11 +452,20 @@ export const routeBetweenPorts = (
     return simplifyOrthogonal(simple)
   }
 
+  const endsKey = [s.x, s.y, ss, t.x, t.y, ts, rectsKey([sRect, tRect])].join("|")
+  const kept = moving ? lastDetour.get(endsKey) : undefined
+  if (kept && !routeCrosses(kept, moving!.filter((r) => r !== sRect && r !== tRect))) {
+    return kept.map((p) => ({ ...p }))
+  }
+
   const othersSet = new Set(others)
   const outside = (area: Box) => nearby(set, sRect, tRect, area).filter((r) => !othersSet.has(r))
-  const key = [s.x, s.y, ss, t.x, t.y, ts, rectsKey([sRect, tRect]), rectsKey(others)].join("|")
+  const key = [endsKey, rectsKey(others)].join("|")
   const cached = routeCache.get(key)
-  if (cached && rectsKey(outside(cached.area)) === cached.areaKey) return cached.points.map((p) => ({ ...p }))
+  if (cached && rectsKey(outside(cached.area)) === cached.areaKey) {
+    lastDetour.set(endsKey, cached.points)
+    return cached.points.map((p) => ({ ...p }))
+  }
 
   const ends = containsRect(sRect, tRect) || containsRect(tRect, sRect) ? [] : [sRect, tRect]
   const request = { id: "r", source: { point: s, side: ss }, target: { point: t, side: ts } }
@@ -476,6 +490,8 @@ export const routeBetweenPorts = (
         (routeOrthogonalEdges([], [request]).get("r") ?? simplifyOrthogonal(orthogonalize([s, t])))
   if (routeCache.size >= ROUTE_CACHE_LIMIT) routeCache.clear()
   routeCache.set(key, { points, area, areaKey: rectsKey(outside(area)) })
+  if (lastDetour.size >= ROUTE_CACHE_LIMIT) lastDetour.clear()
+  lastDetour.set(endsKey, points)
   return points
 }
 
@@ -923,7 +939,9 @@ export const computePortGeometry = (
   rects: Map<string, LayoutRect>,
   edges: PortEdgeInput[],
   obstacles: LayoutRect[] = [...rects.values()],
-  shapes?: ReadonlyMap<string, NodeShape>
+  shapes?: ReadonlyMap<string, NodeShape>,
+  /** Rects of the nodes being dragged: detours they do not cross are kept. */
+  moving?: readonly LayoutRect[]
 ): Map<string, PortGeometry> => {
   const states: EdgeState[] = []
   // Self-loops per node, by edge id (independent of the edge order).
@@ -1166,7 +1184,7 @@ export const computePortGeometry = (
       const tail = elbowTo(tp, st.target.side, last).reverse()
       points = simplifyOrthogonal(orthogonalize([sp, ...head, ...st.bends, ...tail, tp]))
     } else {
-      points = routeBetweenPorts(sp, st.source.side, tp, st.target.side, st.sRect, st.tRect, set, zShift.get(st))
+      points = routeBetweenPorts(sp, st.source.side, tp, st.target.side, st.sRect, st.tRect, set, zShift.get(st), moving)
     }
     if (points.length < 2 || !samePoint(points[0], sp)) points = [sp, ...points]
     if (!samePoint(points[points.length - 1], tp)) points = [...points, tp]

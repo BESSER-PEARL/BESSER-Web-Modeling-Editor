@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from "vitest"
 import { bpmnFlowConnectionRule } from "@/services/connectionRules"
-import { canConnectEndpoints } from "@/utils/bpmnConstraints"
+import { canConnectEndpoints, type MinimalNodeForConnect } from "@/utils/bpmnConstraints"
 import type { MinimalRuleNode } from "@/services/connectionRules"
 
 const node = (id: string, type: string): MinimalRuleNode => ({
@@ -74,14 +74,14 @@ describe("bpmnFlowConnectionRule — legality", () => {
 
 describe("canConnectEndpoints — BPMN rules ride the shared pipeline", () => {
   it("allows a legal task → task drag end-to-end", () => {
-    expect(canConnectEndpoints(NODES, "task-1", "task-2")).toBe(true)
+    expect(canConnectEndpoints(NODES as MinimalNodeForConnect[], "task-1", "task-2")).toBe(true)
   })
 
   it("vetoes an illegal data-node ↔ data-node drag end-to-end", () => {
-    expect(canConnectEndpoints(NODES, "data-1", "data-2")).toBe(false)
+    expect(canConnectEndpoints(NODES as MinimalNodeForConnect[], "data-1", "data-2")).toBe(false)
   })
 
   it("leaves non-BPMN pairs unaffected", () => {
-    expect(canConnectEndpoints(NODES, "class-1", "class-2")).toBe(true)
+    expect(canConnectEndpoints(NODES as MinimalNodeForConnect[], "class-1", "class-2")).toBe(true)
   })
 })

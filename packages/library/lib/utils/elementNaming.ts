@@ -56,13 +56,103 @@ export const withNumberedPaletteName = (
   return withName(node, nextNumberedName(name, takenNames(node.type!, existing)))
 }
 
+/**
+ * NN node types the backend resolves by name among their siblings (layers
+ * within one NN, containers at the top level). `NNReference` names another
+ * NN, so it may repeat.
+ */
+const NN_NAMED_TYPES: ReadonlySet<string> = new Set([
+  "Conv1DLayer",
+  "Conv2DLayer",
+  "Conv3DLayer",
+  "PoolingLayer",
+  "RNNLayer",
+  "LSTMLayer",
+  "GRULayer",
+  "LinearLayer",
+  "FlattenLayer",
+  "EmbeddingLayer",
+  "DropoutLayer",
+  "LayerNormalizationLayer",
+  "BatchNormalizationLayer",
+  "TensorOp",
+  "Configuration",
+  "TrainingDataset",
+  "TestDataset",
+  "NNContainer",
+])
+
+/**
+ * First free NN name among the same-kind siblings (same `parentId`) of a
+ * node: `Conv2D` -> `Conv2D2` -> `Conv2D3` (v3 `createMandatoryAttributes`).
+ * `parentId` defaults to that of the `selfId` node.
+ */
+export function nextUniqueNNLayerName(
+  baseName: string,
+  nodeType: string,
+  nodes: ReadonlyArray<{
+    id: string
+    type?: string
+    parentId?: string
+    data?: { name?: string }
+  }>,
+  selfId?: string,
+  parentId = nodes.find((n) => n.id === selfId)?.parentId
+): string {
+  const taken = new Set(
+    nodes
+      .filter(
+        (n) =>
+          n.id !== selfId && n.type === nodeType && n.parentId === parentId
+      )
+      .map((n) => (n.data && typeof n.data.name === "string" ? n.data.name : ""))
+      .filter((s) => s !== "")
+  )
+  if (!taken.has(baseName)) return baseName
+  let i = 2
+  while (taken.has(`${baseName}${i}`)) i += 1
+  return `${baseName}${i}`
+}
+
+/** Renames an NN node, keeping `attributes.name` (what the backend reads) in step. */
+const withNNName = (node: Node, name: string): Node => {
+  if (nameOf(node) === name) return node
+  const data = node.data as Record<string, unknown> & {
+    attributes?: Record<string, unknown>
+  }
+  const attributes =
+    data.attributes && "name" in data.attributes
+      ? { ...data.attributes, name }
+      : data.attributes
+  return {
+    ...node,
+    data: { ...data, name, ...(attributes !== undefined && { attributes }) },
+  }
+}
+
+/** A newly created NN node gets a name unique among its siblings. */
+export const withUniqueNNName = (node: Node, existing: readonly Node[]): Node => {
+  const name = nameOf(node)
+  if (!name || !node.type || !NN_NAMED_TYPES.has(node.type)) return node
+  return withNNName(
+    node,
+    nextUniqueNNLayerName(name, node.type, existing, node.id, node.parentId)
+  )
+}
+
 /** Pasted copies get the next free name where theirs is already taken. */
 export const withUniqueCopyNames = (
   pasted: readonly Node[],
   existing: readonly Node[]
 ): Node[] => {
   const taken = new Map<string, Set<string>>()
+  const placed: Node[] = [...existing]
   return pasted.map((node) => {
+    if (node.type && NN_NAMED_TYPES.has(node.type)) {
+      const renamed = withUniqueNNName(node, placed)
+      placed.push(renamed)
+      return renamed
+    }
     const name = nameOf(node)
     if (!name || !needsUniqueName(node.type)) return node
     let names = taken.get(node.type!)

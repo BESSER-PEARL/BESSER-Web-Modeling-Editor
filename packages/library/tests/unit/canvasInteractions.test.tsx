@@ -142,6 +142,26 @@ describe("canvas keyboard shortcuts", () => {
     expect(pos()).toEqual({ x: 110, y: 150 })
   })
 
+  // Review finding: selecting a container and its child moved the child
+  // twice (once with its parent, once by its own relative position).
+  it("an arrow nudge moves a selected child only with its selected ancestor", () => {
+    const { diagram } = setup(<Shortcuts />, [
+      classNode("Pool", 0, 0, true),
+      { ...classNode("Lane", 0, 0), parentId: "Pool" },
+      { ...classNode("Task", 20, 20, true), parentId: "Lane" },
+      classNode("Other", 400, 0),
+      { ...classNode("Free", 50, 50, true), parentId: "Other" },
+    ])
+    press(document.body, "ArrowRight")
+    const pos = (id: string) =>
+      diagram.getState().nodes.find((n) => n.id === id)!.position
+    expect(pos("Pool")).toEqual({ x: 10, y: 0 })
+    expect(pos("Lane")).toEqual({ x: 0, y: 0 })
+    expect(pos("Task")).toEqual({ x: 20, y: 20 })
+    // A selected child whose parent is not selected still moves.
+    expect(pos("Free")).toEqual({ x: 60, y: 50 })
+  })
+
   it("an arrow nudge on a focused node stops React Flow from moving it again", () => {
     setup(<Shortcuts />, [classNode("A", 100, 100, true)])
     const rfNode = mountElement(

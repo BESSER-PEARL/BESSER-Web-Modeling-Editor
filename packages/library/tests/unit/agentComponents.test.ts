@@ -28,7 +28,8 @@ import {
   normalizeAgentTransitionData,
 } from "@/utils/normalizeAgentModel"
 import { resolveReplyType, withActionType } from "@/utils/agentActions"
-import type { AgentStateNodeProps, UMLModel } from "@/types"
+import type { AgentStateNodeProps } from "@/types"
+import type { UMLModel } from "@/typings"
 
 const node = (id: string, type: string, data: Record<string, unknown>, extra = {}) => ({
   id,

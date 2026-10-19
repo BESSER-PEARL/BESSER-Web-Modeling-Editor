@@ -2033,9 +2033,8 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         Class inspector. Per user direction, OCL constraints are
         edited only via the dedicated sticky-note node
         (`ClassOCLConstraint`) and its `ClassOCLConstraintEditPanel`.
-        Any constraints already collapsed onto `data.oclConstraints`
-        by the v3→v4 migrator are still preserved on the data and
-        round-trip cleanly — they're just not exposed in this UI.
+        Rows collapsed onto `data.oclConstraints` by the v3→v4 migrator
+        are lifted into such nodes on load (`liftClassOCLConstraintRows`).
       */}
     </Box>
   )

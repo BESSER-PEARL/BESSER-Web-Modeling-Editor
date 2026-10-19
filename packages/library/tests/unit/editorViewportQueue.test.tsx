@@ -15,7 +15,7 @@ vi.mock("@/utils/autoLayout", async (importOriginal) => ({
   computeAutoLayout: async (nodes: Node[], edges: unknown[]) => ({ nodes: [...nodes], edges: [...edges] }),
 }))
 
-type Internals = BesserEditor & {
+type Internals = Pick<BesserEditor, keyof BesserEditor> & {
   diagramStore: { getState: () => { nodes: Node[] } }
   setReactFlowInstance: (instance: ReactFlowInstance) => void
 }
@@ -40,7 +40,7 @@ const mount = () => {
     editor = new BesserEditor(el, { type: UMLDiagramType.ClassDiagram })
   })
   el.appendChild(pane)
-  return editor as Internals
+  return editor as unknown as Internals
 }
 
 const model = (): UMLModel =>

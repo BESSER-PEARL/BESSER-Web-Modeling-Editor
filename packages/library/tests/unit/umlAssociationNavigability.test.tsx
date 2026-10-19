@@ -324,6 +324,25 @@ describe("ClassEdgeEditPanel navigability checkboxes", () => {
     renderPanel([edge("ClassInheritance")])
     expect(screen.queryByTestId("source-navigable")).toBeNull()
   })
+
+  // Review finding: the flip swapped the flags raw, so a composition whose
+  // whole end was not navigable came out with a non-navigable part end.
+  it("flips a composition without breaking the part-end rule", () => {
+    const store = renderPanel([edge("ClassComposition", true, false)])
+    fireEvent.click(screen.getByLabelText("Flip source / target"))
+    const flipped = current(store)
+    expect([flipped.source, flipped.target]).toEqual(["b", "a"])
+    expect(flags(flipped)).toEqual([true, true])
+  })
+
+  it("flips a legacy ClassUnidirectional keeping the arrow on the same class", () => {
+    const store = renderPanel([edge("ClassUnidirectional")])
+    fireEvent.click(screen.getByLabelText("Flip source / target"))
+    const flipped = current(store)
+    expect(flipped.type).toBe("ClassBidirectional")
+    // Class "b" (now the source) stays the navigable end.
+    expect(flags(flipped)).toEqual([true, false])
+  })
 })
 
 describe("user metamodel associations", () => {

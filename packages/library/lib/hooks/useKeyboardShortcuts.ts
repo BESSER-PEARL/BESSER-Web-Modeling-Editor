@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react"
-import { useReactFlow, useStoreApi, type XYPosition } from "@xyflow/react"
+import {
+  useReactFlow,
+  useStoreApi,
+  type Node,
+  type XYPosition,
+} from "@xyflow/react"
 import {
   useDiagramStore,
   useDiagramStoreApi,
@@ -257,9 +262,23 @@ export const useKeyboardShortcuts = () => {
           const dy = key === "ArrowUp" ? -step : key === "ArrowDown" ? step : 0
           const { nodes, selectedElementIds } = diagramStoreApi.getState()
           const selected = new Set(selectedElementIds)
+          // A child moves with a selected ancestor (positions are
+          // parent-relative); nudging it as well would move it twice. Edge
+          // bends follow the move as they do on drag (useStepPathEdge).
+          const byId = new Map(nodes.map((n) => [n.id, n]))
+          const hasSelectedAncestor = (node: Node) => {
+            const seen = new Set<string>()
+            let parentId = node.parentId
+            while (parentId && !seen.has(parentId)) {
+              if (selected.has(parentId)) return true
+              seen.add(parentId)
+              parentId = byId.get(parentId)?.parentId
+            }
+            return false
+          }
           setNodes(
             nodes.map((n) =>
-              selected.has(n.id)
+              selected.has(n.id) && !hasSelectedAncestor(n)
                 ? {
                     ...n,
                     position: { x: n.position.x + dx, y: n.position.y + dy },

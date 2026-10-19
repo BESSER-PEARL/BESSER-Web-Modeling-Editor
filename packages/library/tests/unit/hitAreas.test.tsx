@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest"
-// @ts-expect-error -- Node types are not part of the test tsconfig.
 import { existsSync, readFileSync } from "node:fs"
 import { render } from "@testing-library/react"
 

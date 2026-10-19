@@ -14,6 +14,7 @@
  *  - NN cards use the theme fill (readable in dark mode).
  */
 import { describe, it, expect, vi } from "vitest"
+import type { ComponentProps } from "react"
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Edge, type Node } from "@xyflow/react"
@@ -351,11 +352,11 @@ describe("BPMN task name wraps when a type icon is shown", () => {
 
 describe("NN cards use the theme fill", () => {
   const nodeProps = (id: string, data: Record<string, unknown>, w = 200, h = 160) =>
-    ({ id, width: w, height: h, data, type: "x" }) as never
+    ({ id, width: w, height: h, data, type: "x" }) as unknown
 
   it("NNReference", () => {
     const { container } = renderWith(
-      <NNReference {...nodeProps("r", { name: "ref" }, 120, 40)} />,
+      <NNReference {...(nodeProps("r", { name: "ref" }, 120, 40) as ComponentProps<typeof NNReference>)} />,
       [{ id: "r", type: "NNReference", position: { x: 0, y: 0 }, data: { name: "ref" } }]
     )
     const card = container.querySelector("rect[stroke-dasharray]")!
@@ -364,7 +365,7 @@ describe("NN cards use the theme fill", () => {
 
   it("NNContainer", () => {
     const { container } = renderWith(
-      <NNContainer {...nodeProps("c", { name: "Net" })} />,
+      <NNContainer {...(nodeProps("c", { name: "Net" }) as ComponentProps<typeof NNContainer>)} />,
       [{ id: "c", type: "NNContainer", position: { x: 0, y: 0 }, data: { name: "Net" } }]
     )
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
@@ -377,7 +378,7 @@ describe("NN cards use the theme fill", () => {
   it("layer cards keep their kind colour with text readable in dark mode", () => {
     // 50px high: too small for the icon, so the plain card rect is drawn.
     const { container } = renderWith(
-      <TensorOp {...nodeProps("op", { name: "op", attributes: {} }, 160, 50)} />,
+      <TensorOp {...(nodeProps("op", { name: "op", attributes: {} }, 160, 50) as ComponentProps<typeof TensorOp>)} />,
       [{ id: "op", type: "TensorOp", position: { x: 0, y: 0 }, data: { name: "op" } }]
     )
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>

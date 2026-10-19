@@ -363,7 +363,7 @@ describe("agent transition to a deleted intent", () => {
         targetY={40}
         sourcePosition={Position.Right}
         targetPosition={Position.Left}
-        data={data}
+        data={data as never}
       />,
       [node("a", 0, 0), node("b", 400, 0)],
       [edge]

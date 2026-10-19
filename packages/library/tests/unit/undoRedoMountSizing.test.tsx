@@ -41,10 +41,11 @@ afterEach(cleanup)
 const ICON_SVG =
   "<svg xmlns='http://www.w3.org/2000/svg'><rect width='4' height='4'/></svg>"
 
-const NODE_COMPONENTS: Record<string, ComponentType<never>> = {
-  ObjectName: ObjectName as ComponentType<never>,
-  UserModelName: UserModelName as ComponentType<never>,
-  class: Class as ComponentType<never>,
+type AnyNode = ComponentType<Record<string, unknown>>
+const NODE_COMPONENTS: Record<string, AnyNode> = {
+  ObjectName: ObjectName as unknown as AnyNode,
+  UserModelName: UserModelName as unknown as AnyNode,
+  class: Class as unknown as AnyNode,
 }
 
 /** Renders every store node with its real component, like the canvas does. */
@@ -62,7 +63,7 @@ const Canvas = ({ store }: { store: StoreApi<DiagramStore> }) => {
               width: node.width,
               height: node.height,
               data: node.data,
-            } as never)}
+            })}
           />
         )
       })}

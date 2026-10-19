@@ -15,8 +15,9 @@ export default defineConfig({
       formats: ["es"],
       cssFileName: "style",
     },
-    // Do not externalize React: bundle everything so consumers don't need React installed
+    // React is a peer dependency: the host app's copy is the only one.
     rollupOptions: {
+      external: [/^react(\/.*)?$/, /^react-dom(\/.*)?$/],
       output: {
         assetFileNames: "assets/[name][extname]",
         entryFileNames: "index.js",
@@ -32,7 +33,7 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "lib"),
     },
-    dedupe: ["react", "react-dom", "@emotion/react", "@emotion/styled"],
+    dedupe: ["@emotion/react", "@emotion/styled"],
   },
   esbuild: { drop: ["console", "debugger"] },
 })

@@ -12,7 +12,7 @@ vi.mock("@/App", () => ({ AppWithProvider: () => null }))
  * `subscribeToAssessmentChange` and `getScaleFactor`.
  */
 
-type TestEditor = BesserEditor & {
+type TestEditor = Pick<BesserEditor, keyof BesserEditor> & {
   diagramStore: {
     getState: () => {
       setNodes: (fn: (n: unknown[]) => unknown[]) => void
@@ -47,7 +47,7 @@ const mount = (scale?: number) => {
       ...(scale !== undefined && { scale }),
     })
   })
-  return editor as TestEditor
+  return editor as unknown as TestEditor
 }
 
 describe("BesserEditor v3 API parity", () => {

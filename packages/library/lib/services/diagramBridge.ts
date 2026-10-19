@@ -212,7 +212,17 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     if (!data) {
       return []
     }
+    const relatedClassIds = this.relatedClassIds(classId, data, new Set())
+    return this.getAvailableClasses().filter((cls) => relatedClassIds.has(cls.id))
+  }
 
+  /** `getRelatedClasses` by id; `visited` stops an inheritance cycle. */
+  private relatedClassIds(
+    classId: string,
+    data: IClassDiagramData,
+    visited: Set<string>
+  ): Set<string> {
+    visited.add(classId)
     // Only consider relationships that are not inheritance
     const relatedClassIds = new Set<string>()
     for (const rel of data.edges || []) {
@@ -239,15 +249,18 @@ export class DiagramBridgeService implements IDiagramBridgeService {
 
     // Check for inheritance relationships where classId is the source (child)
     for (const rel of data.edges || []) {
-      if (rel?.type === STEREOTYPE_INHERITANCE && rel.source === classId && rel.target) {
-        const inheritedRelated = this.getRelatedClasses(rel.target)
-        inheritedRelated.forEach((cls) => relatedClassIds.add(cls.id))
+      if (
+        rel?.type === STEREOTYPE_INHERITANCE &&
+        rel.source === classId &&
+        rel.target &&
+        !visited.has(rel.target)
+      ) {
+        this.relatedClassIds(rel.target, data, visited).forEach((id) =>
+          relatedClassIds.add(id)
+        )
       }
     }
-
-    // Map related class IDs to IClassInfo objects
-    const allClasses = this.getAvailableClasses()
-    return allClasses.filter((cls) => relatedClassIds.has(cls.id))
+    return relatedClassIds
   }
 
   /**

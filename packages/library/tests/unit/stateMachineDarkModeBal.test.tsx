@@ -1,4 +1,5 @@
 import { afterEach, describe, it, expect } from "vitest"
+import type { ComponentProps } from "react"
 import { act, render, renderHook, waitFor } from "@testing-library/react"
 import * as Y from "yjs"
 import { ReactFlowProvider, type Node } from "@xyflow/react"
@@ -56,7 +57,7 @@ describe("Final state marker", () => {
   it("the ring gap uses the canvas background, not white", () => {
     const { container } = renderNode(
       <StateFinalNode
-        {...({ id: "f", width: 30, height: 30, data: {} } as never)}
+        {...({ id: "f", width: 30, height: 30, data: {} } as unknown as ComponentProps<typeof StateFinalNode>)}
       />,
       { id: "f", type: "StateFinalNode", position: { x: 0, y: 0 }, data: {} }
     )
@@ -65,7 +66,7 @@ describe("Final state marker", () => {
   })
 
   it("the palette preview's ring is theme-aware too", () => {
-    const { container } = render(<StateFinalNodeSVG width={30} height={30} />)
+    const { container } = render(<StateFinalNodeSVG id="preview" width={30} height={30} />)
     const [outer] = Array.from(container.querySelectorAll("circle"))
     expect(outer.getAttribute("fill")).toContain("--besser-background")
   })
@@ -76,7 +77,7 @@ describe("Code block header", () => {
     const data = { name: "code", code: "x", language }
     return renderNode(
       <StateCodeBlock
-        {...({ id: "c", width: 200, height: 120, data } as never)}
+        {...({ id: "c", width: 200, height: 120, data } as unknown as ComponentProps<typeof StateCodeBlock>)}
       />,
       { id: "c", type: "StateCodeBlock", position: { x: 0, y: 0 }, data }
     )

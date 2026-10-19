@@ -92,6 +92,17 @@ export function snapshotLightPalette(
   if (isDark && palette["--besser-accent-lift"] === undefined) {
     palette["--besser-accent-lift"] = "0%"
   }
+  // A host that themes by writing the palette inline on the root (the
+  // webapp's theme switcher) keeps its dark literals through the flip; use
+  // the light defaults for those. Token-based values (`hsl(var(--x))`)
+  // already follow the flipped flags.
+  if (isDark) {
+    for (const cssVar of Object.keys(palette)) {
+      const inline = root.style.getPropertyValue(cssVar).trim()
+      const light = CSS_VARIABLE_FALLBACKS[cssVar]
+      if (inline && light && !inline.includes("var(")) palette[cssVar] = light
+    }
+  }
   return palette
 }
 

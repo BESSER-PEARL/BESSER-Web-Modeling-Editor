@@ -22,7 +22,10 @@ import { log } from "../logger"
 import { translate, useTranslation } from "@/i18n"
 import { Locale } from "@/typings"
 import { createNewNodeDataWithNewIds } from "@/utils/copyPasteUtils"
-import { withNumberedPaletteName } from "@/utils/elementNaming"
+import {
+  withNumberedPaletteName,
+  withUniqueNNName,
+} from "@/utils/elementNaming"
 import { withMandatoryNNDefaults } from "@/utils/nnMandatoryDefaults"
 import { orderParentsFirst } from "@/utils/bpmnContainment"
 
@@ -198,11 +201,15 @@ export const getClickInsertPosition = (
 
 /**
  * Creation-time data of a palette element: NN layers get their mandatory
- * attribute defaults, classes / agent states a numbered name (Class1, ...).
+ * attribute defaults and a name unique among their siblings, classes /
+ * agent states a numbered name (Class1, ...).
  */
 export const finalizeNewNode = (node: Node, nodes: readonly Node[]): Node =>
-  withNumberedPaletteName(
-    { ...node, data: withMandatoryNNDefaults(node.type ?? "", node.data) },
+  withUniqueNNName(
+    withNumberedPaletteName(
+      { ...node, data: withMandatoryNNDefaults(node.type ?? "", node.data) },
+      nodes
+    ),
     nodes
   )
 

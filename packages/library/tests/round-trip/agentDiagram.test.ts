@@ -139,21 +139,21 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
 
     // Shape #2 — canonical custom.
     const t2 = v4.edges.find((e) => e.id === "trans-shape2")!
-    expect((t2.data as { transitionType: string }).transitionType).toBe(
+    expect((t2.data as unknown as { transitionType: string }).transitionType).toBe(
       "custom"
     )
     expect(
-      (t2.data as { custom: { event: string; condition: string[] } }).custom
+      (t2.data as unknown as { custom: { event: string; condition: string[] } }).custom
         .event
     ).toBe("ReceiveTextEvent")
     expect(
-      (t2.data as { custom: { event: string; condition: string[] } }).custom
+      (t2.data as unknown as { custom: { event: string; condition: string[] } }).custom
         .condition[0]
     ).toBe("len(msg) > 0")
 
     // Shape #3 — flat predefined with variable/operator/targetValue.
     const t3 = v4.edges.find((e) => e.id === "trans-shape3")!
-    expect((t3.data as { transitionType: string }).transitionType).toBe(
+    expect((t3.data as unknown as { transitionType: string }).transitionType).toBe(
       "predefined"
     )
     const t3pre = (t3.data as AgentTransitionData).predefined
@@ -556,7 +556,7 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
     expect(data.bodies![0].replyType).toBe("text")
     // Body row should land in the non-fallback section since the
     // source type was AgentStateBody (not the fallback variant).
-    expect(data.bodies![0].kind).not.toBe("fallback")
+    expect((data.bodies![0] as { kind?: string }).kind).not.toBe("fallback")
   })
 
   it("normalizes a floating AgentStateFallbackBody onto fallback section", () => {

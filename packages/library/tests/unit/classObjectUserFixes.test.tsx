@@ -4,6 +4,7 @@
  * names the live symptom it pins.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import type { ComponentProps } from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
 import * as Y from "yjs"
 import type { Edge, Node } from "@xyflow/react"
@@ -364,7 +365,7 @@ describe("user-model rows that embed the criterion in their name", () => {
             >
               <ReactFlowProvider>
                 <UserModelName
-                  {...({ id: "u1", width: 200, height: 120, data } as never)}
+                  {...({ id: "u1", width: 200, height: 120, data } as unknown as ComponentProps<typeof UserModelName>)}
                 />
               </ReactFlowProvider>
             </AssessmentSelectionStoreContext.Provider>

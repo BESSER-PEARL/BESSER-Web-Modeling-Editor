@@ -65,7 +65,8 @@
     "lint:fix": "eslint --fix .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "@chenglou/pretext": "0.0.6",
@@ -81,8 +82,6 @@
     "@xyflow/react": "12.3.6",
     "elkjs": "^0.11.1",
     "lucide-react": "^0.542.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
     "uuid": "11.0.3",
     "yjs": "13.6.20",
     "zustand": "5.0.3"
@@ -99,10 +98,16 @@
     "eslint-plugin-react": "7.37.2",
     "globals": "15.13.0",
     "jsdom": "28.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "typescript": "5.7.2",
     "typescript-eslint": "8.18.1",
     "vite": "6.4.2",
     "vite-plugin-dts": "4.3.0",
     "vitest": "4.1.2"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

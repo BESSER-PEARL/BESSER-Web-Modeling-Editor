@@ -73,11 +73,63 @@ export type { HandleSide } from "./autoLayoutHandles"
 
 // ELK is ~1.3 MB, so it is loaded on first layout instead of shipping in the entry chunk.
 let elkModule: Promise<typeof import("elkjs/lib/elk.bundled.js")> | null = null
-const createElk = async (): Promise<ElkInstance> => {
+const mainThreadElk = async (): Promise<ElkInstance> => {
   elkModule ??= import("elkjs/lib/elk.bundled.js")
   const { default: ELK } = await elkModule
   return new ELK()
 }
+
+// One shared worker; `failed` settles if it cannot load (CSP, missing chunk),
+// since elk-api would otherwise wait for its answer forever.
+let workerElk: Promise<{ elk: ElkInstance; failed: Promise<null> }> | null = null
+let workerBroken = false
+const getWorkerElk = () =>
+  (workerElk ??= import("elkjs/lib/elk-api.js").then(({ default: ELK }) => {
+    let markFailed!: () => void
+    const failed = new Promise<null>((resolve) => {
+      markFailed = () => {
+        workerBroken = true
+        resolve(null)
+      }
+    })
+    const elk = new ELK({
+      workerFactory: () => {
+        const worker = new Worker(new URL("./elk.worker.ts", import.meta.url), {
+          type: "module",
+        })
+        worker.addEventListener("error", markFailed)
+        return worker
+      },
+    })
+    return { elk, failed }
+  }))
+
+/**
+ * ELK in a Web Worker where the platform has one, so a large layout does not
+ * freeze the page; on the main thread under node / jsdom (headless export,
+ * tests) or when the worker fails to load.
+ */
+const createElk = async (): Promise<Pick<ElkInstance, "layout">> => ({
+  layout: async (graph) => {
+    if (typeof Worker !== "undefined" && !workerBroken) {
+      const { elk, failed } = await getWorkerElk()
+      const laid = await Promise.race([elk.layout(graph), failed])
+      if (laid) return laid
+    }
+    return (await mainThreadElk()).layout(graph)
+  },
+})
+
+/**
+ * Stress majorization costs O(n^2) per iteration: the full budget suits small
+ * graphs, larger ones get fewer iterations and a looser convergence bound.
+ */
+const stressBudget = (nodeCount: number) => ({
+  "elk.stress.iterationLimit": String(
+    Math.max(60, Math.min(400, Math.round(12000 / Math.max(1, nodeCount))))
+  ),
+  "elk.stress.epsilon": nodeCount > 50 ? "0.001" : "0.0001",
+})
 
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 100
@@ -1539,8 +1591,7 @@ const compactPipeline = async (
       layoutOptions: {
         "elk.algorithm": "stress",
         "elk.stress.desiredEdgeLength": "260",
-        "elk.stress.epsilon": "0.0001",
-        "elk.stress.iterationLimit": "400",
+        ...stressBudget(children.length),
         "elk.separateConnectedComponents": "true",
         "elk.spacing.componentComponent": "90",
         "elk.aspectRatio": "1.6",
@@ -2098,6 +2149,56 @@ export const computeAutoLayout = async (
     result.edges.filter((e, i) => e !== edges[i]).map((e) => e.id)
   )
   return recenter(nodes, result, touched)
+}
+
+type Diagram = { nodes: Node[]; edges: Edge[] }
+
+/**
+ * Applies a layout computed from `before` to the `current` diagram: the
+ * layout is async, so the user may have edited meanwhile. Elements that still
+ * exist get the laid-out geometry and keep their current data; elements added
+ * meanwhile stay as they are and deleted ones stay deleted. A node moved to
+ * another parent, or an edge reconnected, keeps its current geometry.
+ */
+export const mergeLayoutResult = (
+  before: Diagram,
+  layouted: Diagram,
+  current: Diagram
+): Diagram => {
+  const oldNodes = new Map(before.nodes.map((n) => [n.id, n]))
+  const laidNodes = new Map(layouted.nodes.map((n) => [n.id, n]))
+  const nodes = current.nodes.map((node) => {
+    const old = oldNodes.get(node.id)
+    const laid = laidNodes.get(node.id)
+    if (!old || !laid) return node
+    if (node === old) return laid
+    if (node.parentId !== old.parentId) return node
+    return {
+      ...node,
+      position: laid.position,
+      width: laid.width,
+      height: laid.height,
+      ...(laid.measured && { measured: laid.measured }),
+    }
+  })
+  const oldEdges = new Map(before.edges.map((e) => [e.id, e]))
+  const laidEdges = new Map(layouted.edges.map((e) => [e.id, e]))
+  const edges = current.edges.map((edge) => {
+    const old = oldEdges.get(edge.id)
+    const laid = laidEdges.get(edge.id)
+    if (!old || !laid) return edge
+    if (edge === old) return laid
+    if (edge.source !== old.source || edge.target !== old.target) return edge
+    const data: Record<string, unknown> = { ...edge.data, points: laid.data?.points }
+    if (laid.data?.isManuallyLayouted === undefined) delete data.isManuallyLayouted
+    return {
+      ...edge,
+      sourceHandle: laid.sourceHandle,
+      targetHandle: laid.targetHandle,
+      data,
+    }
+  })
+  return { nodes, edges }
 }
 
 /**

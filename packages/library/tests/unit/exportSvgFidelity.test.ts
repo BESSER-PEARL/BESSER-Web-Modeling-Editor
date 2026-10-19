@@ -127,6 +127,31 @@ describe("export palette", () => {
     expect(document.documentElement.classList.contains("dark")).toBe(true)
   })
 
+  // Review finding: the webapp's theme switcher writes the dark palette
+  // inline on the root; literal dark values (#888, #ffffff) survived the
+  // theme-flag flip and leaked into the always-light export.
+  it("does not leak dark literals a host wrote inline on the root", () => {
+    const root = document.documentElement
+    root.setAttribute("data-theme", "dark")
+    root.classList.add("dark")
+    root.style.setProperty("--besser-secondary", "#888")
+    root.style.setProperty("--besser-background-inverse", "#ffffff")
+    root.style.setProperty("--besser-background", "hsl(var(--card))")
+
+    const palette = snapshotLightPalette()
+
+    expect(palette["--besser-secondary"]).toBe("#6c757d")
+    expect(palette["--besser-background-inverse"]).toBe("#000000")
+    // Token-based values follow the flipped theme flags.
+    expect(palette["--besser-background"]).toBe("hsl(var(--card))")
+    expect(root.style.getPropertyValue("--besser-secondary")).toBe("#888")
+    for (const v of ["--besser-secondary", "--besser-background-inverse", "--besser-background"]) {
+      root.style.removeProperty(v)
+    }
+    root.removeAttribute("data-theme")
+    root.classList.remove("dark")
+  })
+
   it("embeds the palette of the export mount, not the live root, in standalone svgs", () => {
     document.documentElement.style.setProperty("--besser-background", "#111111")
     const container = mountViewport(SHAPED_NODE)

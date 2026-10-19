@@ -36,8 +36,8 @@ import type {
   AgentStateNodeProps,
   AgentToolNodeProps,
   AgentWorkspaceNodeProps,
-  UMLModel,
 } from "@/types"
+import type { UMLModel } from "@/typings"
 
 /* ────────────────────────────── fixtures ───────────────────────────── */
 
