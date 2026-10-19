@@ -71,7 +71,7 @@ describe('aggregateProfilePersonalization', () => {
     expect(specs[0]).toMatchObject({ source: 'profile', label: 'User' });
   });
 
-  it('maps presentation language and style onto agentLanguage/agentStyle', () => {
+  it('maps presentation language and style onto agentLanguage/conversationalTone', () => {
     const { configuration } = aggregateProfilePersonalization(
       modelWith({
         userSpec: {
@@ -80,7 +80,7 @@ describe('aggregateProfilePersonalization', () => {
       }),
     );
     expect(configuration.agentLanguage).toBe('french');
-    expect(configuration.agentStyle).toBe('formal');
+    expect(configuration.conversationalTone).toBe('formal');
     expect(configuration.languageComplexity).toBe('simple');
   });
 

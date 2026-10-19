@@ -20,7 +20,8 @@ export type PersonalizationFieldKey =
   | 'presentation.color'
   | 'presentation.contrast'
   | 'presentation.language'
-  | 'presentation.style'
+  | 'presentation.conversationalTone'
+  | 'presentation.explanationStyle'
   | 'presentation.languageComplexity'
   | 'presentation.sentenceLength'
   | 'presentation.useAbbreviations'
@@ -38,7 +39,8 @@ export const ALL_PERSONALIZATION_FIELDS: PersonalizationFieldKey[] = [
   'presentation.color',
   'presentation.contrast',
   'presentation.language',
-  'presentation.style',
+  'presentation.conversationalTone',
+  'presentation.explanationStyle',
   'presentation.languageComplexity',
   'presentation.sentenceLength',
   'presentation.useAbbreviations',

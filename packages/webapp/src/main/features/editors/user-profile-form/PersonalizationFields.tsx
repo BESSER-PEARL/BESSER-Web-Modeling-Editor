@@ -14,7 +14,7 @@ import type {
   UserPersonalizationSpec,
   UserPresentationSpec,
 } from '@besser/wme';
-import { isPersonalizationSpecEmpty } from '@besser/wme';
+import { EXPLANATION_STYLE_OPTIONS, EXPLANATION_STYLE_HELP, isPersonalizationSpecEmpty } from '@besser/wme';
 import { ChevronRight, Info, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -243,17 +243,38 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
                 ))}
               </select>
             </Row>
-            <Row label="Style">
+            <Row label="Conversational tone">
               <select
                 className={selectClass}
-                value={presentation.style ?? CONTENT_DEFAULT}
-                onChange={(e) => patchPresentation({ style: (e.target.value || undefined) as UserPresentationSpec['style'] })}
+                aria-label="Conversational tone"
+                title="How the agent addresses the user."
+                value={presentation.conversationalTone ?? presentation.style ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ conversationalTone: (e.target.value || undefined) as UserPresentationSpec['conversationalTone'], style: undefined })}
               >
-                {['original', 'formal', 'informal'].map((v) => (
+                {['original', 'formal', 'informal', 'friendly', 'technical'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
               </select>
             </Row>
+            <Row label="Explanation style">
+              <select
+                className={selectClass}
+                aria-label="Explanation style"
+                title={EXPLANATION_STYLE_HELP}
+                value={presentation.explanationStyle ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ explanationStyle: e.target.value as UserPresentationSpec['explanationStyle'] })}
+              >
+                {EXPLANATION_STYLE_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </Row>
+            <p className="py-1 text-[11px] text-muted-foreground">
+              {EXPLANATION_STYLE_HELP}{' '}
+              {presentation.explanationStyle && presentation.explanationStyle !== 'original' && (
+                <>Example: {EXPLANATION_STYLE_OPTIONS.find((option) => option.value === presentation.explanationStyle)?.example}</>
+              )}
+            </p>
             <Row label="Language complexity">
               <select
                 className={selectClass}

@@ -159,3 +159,14 @@ describe('collectPersonalizationConflicts', () => {
     expect(errors[0]).toMatch(/inputModalities/i);
   });
 });
+
+
+it('detects explanation style conflicts and treats saved style as conversational tone', () => {
+  const model = buildModel({
+    user: makeBox('user', 'User', [], { presentation: { style: 'formal', explanationStyle: 'direct' } }),
+    skill: makeBox('skill', 'Skill', [], { presentation: { conversationalTone: 'formal', explanationStyle: 'narrative' } }),
+  }, { link: makeLink('link', 'user', 'skill') }) as any;
+  expect(collectPersonalizationConflicts(model)).toEqual([expect.stringContaining('explanationStyle')]);
+  model.elements.skill.personalization.presentation.conversationalTone = 'informal';
+  expect(collectPersonalizationConflicts(model)).toHaveLength(2);
+});

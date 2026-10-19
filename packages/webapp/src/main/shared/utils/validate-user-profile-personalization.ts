@@ -47,7 +47,9 @@ function extractLeafFields(spec: UserPersonalizationSpec): Map<FieldPath, Normal
     if (presentation.color !== undefined && presentation.color !== '') set('presentation.color', presentation.color);
     if (presentation.contrast !== undefined) set('presentation.contrast', presentation.contrast);
     if (presentation.language !== undefined) set('presentation.language', presentation.language);
-    if (presentation.style !== undefined) set('presentation.style', presentation.style);
+    const tone = presentation.conversationalTone ?? presentation.style;
+    if (tone !== undefined) set('presentation.conversationalTone', tone);
+    if (presentation.explanationStyle !== undefined) set('presentation.explanationStyle', presentation.explanationStyle);
     if (presentation.languageComplexity !== undefined) set('presentation.languageComplexity', presentation.languageComplexity);
     if (presentation.sentenceLength !== undefined) set('presentation.sentenceLength', presentation.sentenceLength);
     if (presentation.useAbbreviations !== undefined) set('presentation.useAbbreviations', presentation.useAbbreviations);

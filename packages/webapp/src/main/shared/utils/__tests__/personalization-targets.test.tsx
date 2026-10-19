@@ -7,6 +7,7 @@ import {
   isPersonalizationSpecEmpty,
   type UserPersonalizationSpec,
 } from '../../../../../../editor/src/main/packages/user-modeling/personalization-spec';
+import { PersonalizationFields } from '../../../features/editors/user-profile-form/PersonalizationFields';
 import { aggregateProfilePersonalization } from '../personalization-aggregation';
 import { UMLUserModelName } from '../../../../../../editor/src/main/packages/user-modeling/uml-user-model-name/uml-user-model-name';
 
@@ -180,4 +181,40 @@ describe('independent agent and GUI personalization', () => {
     delete (model.elements.user.personalization as any).presentation;
     expect(aggregateProfilePersonalization(model as any).configuration).toEqual({});
   });
+});
+
+
+describe('agent tone and explanation presentation', () => {
+  for (const editor of ['canvas', 'form']) {
+    it(`edits independent fields and migrates saved tone in the ${editor} editor`, () => {
+      function Editor() {
+        const [spec, setSpec] = useState<UserPersonalizationSpec | undefined>({
+          presentation: { style: 'formal' }, content: { adaptContentToUserProfile: false },
+        });
+        return <ThemeProvider theme={{ color: { graylight: '#ccc' } }}>
+          {editor === 'canvas'
+            ? <PersonalizationEditor value={spec} onChange={setSpec} defaultOpen />
+            : <PersonalizationFields value={spec} onChange={setSpec} />}
+          <output data-testid="presentation-spec">{JSON.stringify(spec)}</output>
+        </ThemeProvider>;
+      }
+      render(<Editor />);
+      expect(screen.getByLabelText('Conversational tone')).toHaveValue('formal');
+      fireEvent.change(screen.getByLabelText('Explanation style'), { target: { value: 'narrative' } });
+      expect(screen.getByText(/Example: Imagine approaching/)).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Conversational tone'), { target: { value: 'informal' } });
+      const saved = JSON.parse(screen.getByTestId('presentation-spec').textContent!);
+      expect(saved).toEqual({
+        presentation: { conversationalTone: 'informal', explanationStyle: 'narrative' },
+        content: { adaptContentToUserProfile: false },
+      });
+      const element = new UMLUserModelName({ className: 'User', personalization: saved });
+      const reloaded = new UMLUserModelName(JSON.parse(JSON.stringify(element.serialize())));
+      expect(aggregateProfilePersonalization({ elements: { user: reloaded.serialize() } } as any).configuration)
+        .toEqual({ conversationalTone: 'informal', explanationStyle: 'narrative', adaptContentToUserProfile: false });
+      fireEvent.change(screen.getByLabelText('Explanation style'), { target: { value: 'original' } });
+      expect(JSON.parse(screen.getByTestId('presentation-spec').textContent!).presentation)
+        .toEqual({ conversationalTone: 'informal' });
+    });
+  }
 });

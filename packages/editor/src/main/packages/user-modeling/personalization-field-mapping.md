@@ -13,7 +13,7 @@ explicit GUI rules are applied after the LLM result, so they take priority.
 Rule-based variants start from the Base page and preserve its structure and
 bindings. Their snapshots are used by the existing profile-version generation.
 
-GUI **Content → Adapt content to this user profile** enables a generic semantic
+GUI **Content â†’ Adapt content to this user profile** enables a generic semantic
 adaptation pass. The backend supplies the full selected profile and the page's
 text grouped by component to an LLM, which reviews each component and changes
 only content relevant to explicit profile needs. Unrelated content is kept.
@@ -26,7 +26,7 @@ so those explicit presentation choices also apply to the adapted content.
 Enable **Apply defined GUI personalization rules** in the page variant panel;
 this checkbox works independently of **Auto-personalize with AI** and Agent rules.
 
-GUI **Content → Summarize long content** adds a short, easy-to-understand summary
+GUI **Content â†’ Summarize long content** adds a short, easy-to-understand summary
 above prose blocks of at least 150 whitespace-separated words. Summaries use two
 or three short sentences, up to 80 words, with a heading in the source language.
 The full text and its markup remain available below the summary. This rule can
@@ -36,7 +36,7 @@ dynamic templates, code, and stored data are excluded. Existing generated
 summaries are recognized to avoid duplicates. The backend creates the summary
 components; the LLM returns only heading and text strings.
 
-GUI **Modality → Read text aloud** marks the profile's text blocks for listening.
+GUI **Modality â†’ Read text aloud** marks the profile's text blocks for listening.
 Applying defined GUI rules shows inline **Play/Pause** and **Stop** controls below
 enabled text blocks and summaries. Clicking Play generates and plays that block's preview.
 These DOM controls do not become saved model components. Defined GUI rules are
@@ -69,11 +69,11 @@ GUI **Sentence length** offers the agent's Original, concise, and verbose choice
 It uses the same backend LLM helper, after translation and simplification, and
 can also be applied alone. Original skips the sentence-length rewrite.
 
-GUI **Text complexity → Simple text** optimizes modeled wording for the simplest
-clear language that retains its meaning, using A1–A2 vocabulary as a target.
+GUI **Text complexity â†’ Simple text** optimizes modeled wording for the simplest
+clear language that retains its meaning, using A1â€“A2 vocabulary as a target.
 The GUI prompt follows W3C cognitive accessibility guidance on everyday words,
 short sentences, clear actions, and consistent labels. It asks for further
-simplification even when wording already meets A1–A2, while preserving facts,
+simplification even when wording already meets A1â€“A2, while preserving facts,
 conditions, and exceptions. This is a rewriting objective, not a WCAG assessment.
 Enable **Apply defined GUI
 personalization rules** when creating a page variant; the general AI option can
@@ -106,19 +106,19 @@ The taxonomy follows Conrardy et al. [ICWE 2026], which defines four personaliza
 
 | Dimension | Definition | Fields |
 |-----------|-----------|--------|
-| **Presentation** | Adapts *how* content is delivered without changing its meaning — covers both linguistic style choices and visual/auditory form | `language`, `style`, `languageComplexity`, `sentenceLength`, `useAbbreviations`, `size`, `font`, `lineSpacing`, `alignment`, `color`, `contrast` |
+| **Presentation** | Adapts *how* content is delivered without changing its meaning â€” covers both linguistic style choices and visual/auditory form | `language`, `conversationalTone`, `explanationStyle`, `languageComplexity`, `sentenceLength`, `useAbbreviations`, `size`, `font`, `lineSpacing`, `alignment`, `color`, `contrast` |
 | **Modality** | Adapts the input/output channels used for interaction | `inputModalities`, `outputModalities`, `voiceGender`, `voiceSpeed` |
-| **Content** | Adapts *what* is shown or done — i.e. the semantics of the interaction. Currently limited to a single boolean that enables the full semantic adaptation pipeline | `adaptContentToUserProfile` |
+| **Content** | Adapts *what* is shown or done â€” i.e. the semantics of the interaction. Currently limited to a single boolean that enables the full semantic adaptation pipeline | `adaptContentToUserProfile` |
 
 ### `content.adaptContentToUserProfile`
 
-When enabled, the agent tailors the semantic substance of its responses to this user profile — e.g. surfacing profile-relevant examples, omitting topics not relevant to the user, or emphasising information that matches their background. This is a semantic change to *what* the agent says, as opposed to presentation fields which only affect *how* it says it. The adaptation is driven by an LLM that receives the full user profile as context at both design time (rewriting hardcoded responses) and runtime (via a context prompt).
+When enabled, the agent tailors the semantic substance of its responses to this user profile â€” e.g. surfacing profile-relevant examples, omitting topics not relevant to the user, or emphasising information that matches their background. This is a semantic change to *what* the agent says, as opposed to presentation fields which only affect *how* it says it. The adaptation is driven by an LLM that receives the full user profile as context at both design time (rewriting hardcoded responses) and runtime (via a context prompt).
 
 ---
 
 ## Element-to-Field Mapping
 
-### `User` — root profile element
+### `User` â€” root profile element
 
 **Recommended: all fields**
 
@@ -184,12 +184,12 @@ The root `User` box is the top-level profile specification for an entire user se
 | `presentation.languageComplexity` | Cognitive disabilities benefit from simpler language |
 | `presentation.sentenceLength` | Short sentences reduce cognitive load |
 | `presentation.useAbbreviations` | Avoid abbreviations that increase cognitive load |
-| `modality.inputModalities` | Motor impairments → voice input; hearing impairments → text-only input |
-| `modality.outputModalities` | Visual impairments → audio output; hearing impairments → text-only output |
+| `modality.inputModalities` | Motor impairments â†’ voice input; hearing impairments â†’ text-only input |
+| `modality.outputModalities` | Visual impairments â†’ audio output; hearing impairments â†’ text-only output |
 | `modality.voiceSpeed` | Slower speech aids comprehension for cognitive or hearing disabilities |
 | `content.adaptContentToUserProfile` | Content can be semantically filtered (e.g. no exercise recommendations involving affected body parts) |
 
-**Not recommended:** `presentation.language` and `presentation.style` (not disability-driven), `modality.voiceGender` (not an accessibility parameter).
+**Not recommended:** `presentation.language` and `presentation.conversationalTone` (not disability-driven), `modality.voiceGender` (not an accessibility parameter).
 
 ---
 
@@ -201,7 +201,7 @@ The root `User` box is the top-level profile specification for an entire user se
 |-------|-----------|
 | `content.adaptContentToUserProfile` | Religious/cultural context can require avoiding or prioritising certain recommendations; this is a semantic content adaptation |
 
-**Not recommended:** `presentation.language` — language should be modelled explicitly via a `Language` element, not inferred from religion. `presentation.style`, visual settings, modality, and voice settings are not directly inferred from cultural/religious identity. `languageComplexity` and `sentenceLength` are skill/education concerns.
+**Not recommended:** `presentation.language` â€” language should be modelled explicitly via a `Language` element, not inferred from religion. `presentation.conversationalTone`, visual settings, modality, and voice settings are not directly inferred from cultural/religious identity. `languageComplexity` and `sentenceLength` are skill/education concerns.
 
 ---
 
@@ -217,12 +217,34 @@ The root `User` box is the top-level profile specification for an entire user se
 | `content.adaptContentToUserProfile` | Nationality provides cultural/contextual information relevant to *what* the agent says; age informs age-appropriate content |
 
 **Not recommended:**
-- `presentation.language` — nationality is not a proxy for language; if language preference matters, model it explicitly with a `Language` element.
-- `modality.voiceGender` — voice gender should not be inferred from the `gender` attribute without explicit user preference; no default personalization is applied for gender.
-- `presentation.style`, deep visual settings (font, line spacing, contrast), and modality channel fields are not directly driven by personal information.
+- `presentation.language` â€” nationality is not a proxy for language; if language preference matters, model it explicitly with a `Language` element.
+- `modality.voiceGender` â€” voice gender should not be inferred from the `gender` attribute without explicit user preference; no default personalization is applied for gender.
+- `presentation.conversationalTone`, deep visual settings (font, line spacing, contrast), and modality channel fields are not directly driven by personal information.
 
 ---
 
 ## Adding a New Element Type
 
-If a new element type is added to the user model, add an entry to `personalization-field-config.ts` in the `ELEMENT_SUGGESTED_FIELDS` map. Until an entry is added, the editor falls back to showing **all** fields for that element type — nothing breaks, but the UX is unfiltered.
+If a new element type is added to the user model, add an entry to `personalization-field-config.ts` in the `ELEMENT_SUGGESTED_FIELDS` map. Until an entry is added, the editor falls back to showing **all** fields for that element type â€” nothing breaks, but the UX is unfiltered.
+
+
+### Conversational tone and explanation style
+
+Agent Presentation distinguishes `conversationalTone` (how the agent addresses
+someone) from `explanationStyle` (how it presents information). Explanation choices
+are Original, Direct, Step-by-step, and Narrative. Both dimensions preserve facts
+and the core message; semantic adaptation remains in Content. Narrative framing
+must not invent events or details, and practical answers such as opening hours
+remain direct when storytelling adds no value. These options apply to the agent;
+GUI personalization is independent.
+
+Examples: Direct: ?The fortress protected the city.? Step-by-step: ?First, select a
+ticket. Then, confirm your booking.? Narrative: ?Imagine approaching the city: the
+fortress stands before you, protecting the people inside.?
+
+New profile edits store `presentation.conversationalTone` and
+`presentation.explanationStyle`; generation payloads use `conversationalTone` and
+`explanationStyle`. Existing profile `presentation.style` and backend `agentStyle`
+values remain readable, with the new tone field taking precedence when both exist.
+Explanation style is available at the profile level and through Show all options;
+it is not inferred automatically from age, gender, or other individual criteria.

@@ -91,5 +91,7 @@ export type {
 } from './packages/user-modeling/personalization-spec';
 export {
   isUserPersonalizationSpec,
+  EXPLANATION_STYLE_OPTIONS,
+  EXPLANATION_STYLE_HELP,
   isPersonalizationSpecEmpty,
 } from './packages/user-modeling/personalization-spec';

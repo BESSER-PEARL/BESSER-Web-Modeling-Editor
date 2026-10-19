@@ -8,6 +8,8 @@ import {
   UserModalitySpec,
   UserPersonalizationSpec,
   UserPresentationSpec,
+  EXPLANATION_STYLE_OPTIONS,
+  EXPLANATION_STYLE_HELP,
   isPersonalizationSpecEmpty,
 } from '../personalization-spec';
 import { ALL_PERSONALIZATION_FIELDS, PersonalizationFieldKey } from './personalization-field-config';
@@ -506,7 +508,8 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
   const hasActiveValue = (key: PersonalizationFieldKey): boolean => {
     switch (key) {
       case 'presentation.language': return !!presentation.language && presentation.language !== 'original';
-      case 'presentation.style': return !!presentation.style && presentation.style !== 'original';
+      case 'presentation.conversationalTone': return !!(presentation.conversationalTone ?? presentation.style) && (presentation.conversationalTone ?? presentation.style) !== 'original';
+      case 'presentation.explanationStyle': return !!presentation.explanationStyle && presentation.explanationStyle !== 'original';
       case 'presentation.languageComplexity': return !!presentation.languageComplexity && presentation.languageComplexity !== 'original';
       case 'presentation.sentenceLength': return !!presentation.sentenceLength && presentation.sentenceLength !== 'original';
       case 'presentation.useAbbreviations': return !!presentation.useAbbreviations;
@@ -538,7 +541,7 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
 
   // Section-level visibility: hide a section entirely when none of its fields would render.
   const section1Visible = (
-    ['presentation.language', 'presentation.style', 'presentation.languageComplexity',
+    ['presentation.language', 'presentation.conversationalTone', 'presentation.explanationStyle', 'presentation.languageComplexity',
      'presentation.sentenceLength', 'presentation.useAbbreviations',
      'presentation.size', 'presentation.font', 'presentation.lineSpacing',
      'presentation.alignment', 'presentation.contrast', 'presentation.color'] as PersonalizationFieldKey[]
@@ -608,18 +611,43 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                     </Select>
                   </Row>
                 )}
-                {isVisible('presentation.style') && (
+                {isVisible('presentation.conversationalTone') && (
                   <Row>
-                    <RowLabel>Style</RowLabel>
+                    <RowLabel>Conversational tone</RowLabel>
                     <Select
-                      value={presentation.style ?? CONTENT_DEFAULT}
-                      onChange={(e) => patchPresentation({ style: (e.target.value || undefined) as UserPresentationSpec['style'] })}
+                      aria-label="Conversational tone"
+                      title="How the agent addresses the user."
+                      value={presentation.conversationalTone ?? presentation.style ?? CONTENT_DEFAULT}
+                      onChange={(e) => patchPresentation({ conversationalTone: (e.target.value || undefined) as UserPresentationSpec['conversationalTone'], style: undefined })}
                     >
-                      {['original', 'formal', 'informal'].map((v) => (
+                      {['original', 'formal', 'informal', 'friendly', 'technical'].map((v) => (
                         <option key={v} value={v}>{v === 'original' ? 'Original' : v}</option>
                       ))}
                     </Select>
                   </Row>
+                )}
+                {isVisible('presentation.explanationStyle') && (
+                  <>
+                    <Row>
+                      <RowLabel>Explanation style</RowLabel>
+                      <Select
+                        aria-label="Explanation style"
+                        title={EXPLANATION_STYLE_HELP}
+                        value={presentation.explanationStyle ?? CONTENT_DEFAULT}
+                        onChange={(e) => patchPresentation({ explanationStyle: e.target.value as UserPresentationSpec['explanationStyle'] })}
+                      >
+                        {EXPLANATION_STYLE_OPTIONS.map(({ value, label }) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </Select>
+                    </Row>
+                    <ButtonDescription>
+                      {EXPLANATION_STYLE_HELP}{' '}
+                      {presentation.explanationStyle && presentation.explanationStyle !== 'original' && (
+                        <>Example: {EXPLANATION_STYLE_OPTIONS.find((option) => option.value === presentation.explanationStyle)?.example}</>
+                      )}
+                    </ButtonDescription>
+                  </>
                 )}
                 {isVisible('presentation.languageComplexity') && (
                   <Row>

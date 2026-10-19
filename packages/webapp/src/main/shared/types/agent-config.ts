@@ -35,7 +35,8 @@ export interface AgentConfigurationPayload {
   outputModalities: string[];
   agentPlatform: string;
   responseTiming: string;
-  agentStyle: string;
+  conversationalTone: 'original' | 'formal' | 'informal' | 'friendly' | 'technical';
+  explanationStyle: 'original' | 'direct' | 'step-by-step' | 'narrative';
   llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never>;
   languageComplexity: AgentLanguageComplexity;
   sentenceLength: AgentSentenceLength;

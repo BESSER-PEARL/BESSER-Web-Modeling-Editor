@@ -41,7 +41,9 @@ export interface RecommendPersonalizationDialogProps {
 // Maps backend field paths (from recommendedChanges) to UserPersonalizationSpec locations
 const FIELD_TO_SPEC: Record<string, { section: 'presentation' | 'modality' | 'content'; key: string }> = {
   'presentation.agentLanguage':        { section: 'presentation', key: 'language' },
-  'presentation.agentStyle':           { section: 'presentation', key: 'style' },
+  'presentation.conversationalTone':   { section: 'presentation', key: 'conversationalTone' },
+  'presentation.explanationStyle':     { section: 'presentation', key: 'explanationStyle' },
+  'presentation.agentStyle':           { section: 'presentation', key: 'conversationalTone' },
   'presentation.languageComplexity':   { section: 'presentation', key: 'languageComplexity' },
   'presentation.sentenceLength':       { section: 'presentation', key: 'sentenceLength' },
   'presentation.useAbbreviations':     { section: 'presentation', key: 'useAbbreviations' },
@@ -60,7 +62,9 @@ const FIELD_TO_SPEC: Record<string, { section: 'presentation' | 'modality' | 'co
 
 const FIELD_LABELS: Record<string, string> = {
   'presentation.agentLanguage':        'Language',
-  'presentation.agentStyle':           'Style',
+  'presentation.conversationalTone':   'Conversational tone',
+  'presentation.explanationStyle':     'Explanation style',
+  'presentation.agentStyle':           'Conversational tone',
   'presentation.languageComplexity':   'Language Complexity',
   'presentation.sentenceLength':       'Sentence Length',
   'presentation.useAbbreviations':     'Use Abbreviations',

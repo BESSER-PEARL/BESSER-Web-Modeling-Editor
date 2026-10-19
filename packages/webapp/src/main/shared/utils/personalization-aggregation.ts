@@ -61,7 +61,9 @@ const applySpec = (config: AggregatedConfiguration, spec: UserPersonalizationSpe
     if (presentation.contrast !== undefined) style.contrast = presentation.contrast;
     if (Object.keys(style).length) config.interfaceStyle = style;
     if (presentation.language !== undefined) config.agentLanguage = presentation.language;
-    if (presentation.style !== undefined) config.agentStyle = presentation.style;
+    const tone = presentation.conversationalTone ?? presentation.style;
+    if (tone !== undefined) config.conversationalTone = tone;
+    if (presentation.explanationStyle !== undefined) config.explanationStyle = presentation.explanationStyle;
     if (presentation.languageComplexity !== undefined) config.languageComplexity = presentation.languageComplexity;
     if (presentation.sentenceLength !== undefined) config.sentenceLength = presentation.sentenceLength;
     if (presentation.useAbbreviations !== undefined) config.useAbbreviations = presentation.useAbbreviations;
