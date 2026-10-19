@@ -15,31 +15,10 @@
  *     entries in the top-level `model.components` map (no position).
  */
 
-import { AgentComponentType } from '@besser/wme';
+import { AgentComponentType, REPLY_TYPE_TO_ACTION_TYPE } from '@besser/wme';
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { createEmptyV4Model, directionToHandle, estimateAgentNodeWidth } from '../shared/v4Builders';
-
-/** Maps the editor's `replyType` values to metamodel action class names (`actionType`). */
-export const REPLY_TYPE_TO_ACTION_TYPE: Record<string, string> = {
-  text: 'TextReplyAction',
-  llm: 'LLMReplyAction',
-  llm_chat: 'LLMChatAction',
-  rag: 'RAGReplyAction',
-  db_reply: 'DBAction',
-  code: 'CustomCodeAction',
-  web_crawl_llm: 'WebCrawlLLMAction',
-  ws_markdown: 'WebSocketReplyMarkdownAction',
-  ws_html: 'WebSocketReplyHTMLAction',
-  ws_speech: 'WebSocketReplySpeechAction',
-  ws_options: 'WebSocketReplyOptionsAction',
-  ws_location: 'WebSocketReplyLocationAction',
-  ws_file: 'WebSocketReplyFileAction',
-  ws_image: 'WebSocketReplyImageAction',
-  ws_dataframe: 'WebSocketReplyDataframeAction',
-  ws_plotly: 'WebSocketReplyPlotlyAction',
-  gui_reply: 'GUIReplyAction',
-};
 
 /** One inline AgentState action row (v4 `data.bodies[]` / `data.fallbackBodies[]`). */
 export type AgentBodyRow = { id: string; name: string; replyType: string; actionType: string; [field: string]: unknown };
