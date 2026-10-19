@@ -2723,7 +2723,7 @@ function extractV3AgentComponents(
 }
 
 export type V3ConversionOptions = {
-  /** Diagram type the caller expects; fills a missing `type`, wins over a different one. */
+  /** Diagram type the caller expects; fills a missing `type`, a different one throws. */
   expectedType?: string
   /** Receives one message per skipped or repaired entry. Without it they are logged. */
   warnings?: string[]
@@ -2795,8 +2795,8 @@ function sanitizeV3Model(
       warn(`Model type missing; using ${expected}.`)
       type = expected
     } else if (normalized !== expected) {
-      warn(`Model type ${type} does not match ${expected}; using ${expected}.`)
-      type = expected
+      // A different diagram kind, not a typo: fail so the caller keeps it read-only.
+      throw new Error(`Model type ${type} does not match ${expected}.`)
     }
   }
 

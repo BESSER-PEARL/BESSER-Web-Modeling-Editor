@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   convertV3ToV4,
+  migrateBpmnDiagramV3ToV4,
   migrateClassDiagramV3ToV4,
 } from "@/utils/versionConverter"
 
@@ -112,13 +113,26 @@ describe("per-type migrators take the expected type", () => {
     expect(warnings.length).toBeGreaterThan(0)
   })
 
-  it("a mismatched model.type is restamped with a warning", () => {
+  // An ObjectDiagram stored in the ClassDiagram slot is a different model,
+  // not a typo: it must fail (read-only path), not be silently converted.
+  it("a mismatched model.type fails the migration", () => {
     const m = classModel()
     m.type = "ObjectDiagram"
+    expect(() => migrateClassDiagramV3ToV4(toV3(m), { warnings: [] })).toThrow(
+      /ObjectDiagram/
+    )
+    expect(() =>
+      convertV3ToV4(toV3(m), { expectedType: "ClassDiagram", warnings: [] })
+    ).toThrow(/ObjectDiagram/)
+  })
+
+  it("the legacy BPMN alias still migrates as BPMNDiagram", () => {
     const warnings: string[] = []
-    const v4 = migrateClassDiagramV3ToV4(toV3(m), { warnings })
-    expect(v4.type).toBe("ClassDiagram")
-    expect(v4.nodes).toHaveLength(2)
-    expect(warnings.join(" ")).toContain("ObjectDiagram")
+    const v4 = migrateBpmnDiagramV3ToV4(
+      toV3({ ...classModel(), type: "BPMN", elements: {}, relationships: {} }),
+      { warnings }
+    )
+    expect(v4.type).toBe("BPMNDiagram")
+    expect(warnings).toEqual([])
   })
 })
