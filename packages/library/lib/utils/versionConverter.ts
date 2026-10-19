@@ -838,7 +838,7 @@ function collapseV3LayerAttributes(
   // backend read) plus any `owner`-linked child.
   const children = layer
     ? collectV3ClassifierChildren(layer, allElements)
-    : Object.values(allElements).filter((c) => c.owner === layerId)
+    : v3ChildrenOf(layerId, allElements)
   const schema = getLayerSchema(layerKind)
   for (const child of children) {
     // Primary key: the v3 element `type` (e.g. `KernelDimAttributeConv2D`).
@@ -869,6 +869,28 @@ function collapseV3LayerAttributes(
     out[key] = coerced
   }
   return out
+}
+
+// Owner id -> owned elements (in table order), built once per element table so
+// child lookups stay linear in the diagram size.
+const v3ChildIndex = new WeakMap<object, Map<string, V3UMLElement[]>>()
+
+function v3ChildrenOf(
+  ownerId: string,
+  allElements: Record<string, V3UMLElement>
+): V3UMLElement[] {
+  let index = v3ChildIndex.get(allElements)
+  if (!index) {
+    index = new Map()
+    for (const element of Object.values(allElements)) {
+      if (!element?.owner) continue
+      const list = index.get(element.owner)
+      if (list) list.push(element)
+      else index.set(element.owner, [element])
+    }
+    v3ChildIndex.set(allElements, index)
+  }
+  return index.get(ownerId) ?? []
 }
 
 /**
@@ -905,9 +927,7 @@ function collectV3ClassifierChildren(
       if (typeof id === "string") push(allElements[id])
     }
   }
-  Object.values(allElements).forEach((child) => {
-    if (child.owner === element.id) push(child)
-  })
+  v3ChildrenOf(element.id, allElements).forEach(push)
   return out
 }
 
@@ -1075,9 +1095,8 @@ function convertV3NodeDataToV4(
         // node's `data.icon` SVG body. Find the icon child by walking
         // `allElements` for an ObjectIcon owned by this node.
         ...(() => {
-          const iconChild = Object.values(allElements).find(
-            (child) =>
-              child.owner === element.id && child.type === "ObjectIcon"
+          const iconChild = v3ChildrenOf(element.id, allElements).find(
+            (child) => child.type === "ObjectIcon"
           ) as { icon?: string } | undefined
           return iconChild?.icon ? { icon: iconChild.icon } : {}
         })(),
@@ -1088,31 +1107,29 @@ function convertV3NodeDataToV4(
     case "CommunicationObject": {
       const attributes: Array<{ id: string; name: string }> = []
       const methods: Array<{ id: string; name: string }> = []
-      Object.values(allElements).forEach((childElement) => {
-        if (childElement.owner === element.id) {
-          if (childElement.type === "ObjectAttribute") {
-            attributes.push({
-              id: childElement.id,
-              name: childElement.name,
-              ...(childElement.fillColor && {
-                fillColor: childElement.fillColor,
-              }),
-              ...(childElement.textColor && {
-                textColor: childElement.textColor,
-              }),
-            })
-          } else if (childElement.type === "ObjectMethod") {
-            methods.push({
-              id: childElement.id,
-              name: childElement.name,
-              ...(childElement.fillColor && {
-                fillColor: childElement.fillColor,
-              }),
-              ...(childElement.textColor && {
-                textColor: childElement.textColor,
-              }),
-            })
-          }
+      v3ChildrenOf(element.id, allElements).forEach((childElement) => {
+        if (childElement.type === "ObjectAttribute") {
+          attributes.push({
+            id: childElement.id,
+            name: childElement.name,
+            ...(childElement.fillColor && {
+              fillColor: childElement.fillColor,
+            }),
+            ...(childElement.textColor && {
+              textColor: childElement.textColor,
+            }),
+          })
+        } else if (childElement.type === "ObjectMethod") {
+          methods.push({
+            id: childElement.id,
+            name: childElement.name,
+            ...(childElement.fillColor && {
+              fillColor: childElement.fillColor,
+            }),
+            ...(childElement.textColor && {
+              textColor: childElement.textColor,
+            }),
+          })
         }
       })
       const communicationData: CommunicationObjectNodeProps = {
@@ -1361,12 +1378,8 @@ function convertV3NodeDataToV4(
             }
           })
         }
-        Object.values(allElements).forEach((child) => {
-          if (
-            child.type === kind &&
-            child.owner === element.id &&
-            !seen.has(child.id)
-          ) {
+        v3ChildrenOf(element.id, allElements).forEach((child) => {
+          if (child.type === kind && !seen.has(child.id)) {
             out.push(v3RowToV4(child))
           }
         })
@@ -1565,9 +1578,7 @@ function convertV3NodeDataToV4(
       const ownedByType = (
         type: "AgentStateBody" | "AgentStateFallbackBody"
       ): V3UMLElement[] =>
-        Object.values(allElements).filter(
-          (c) => c.owner === element.id && c.type === type
-        )
+        v3ChildrenOf(element.id, allElements).filter((c) => c.type === type)
       const orderedBodies: V3UMLElement[] =
         Array.isArray(e.bodies) && e.bodies.length > 0
           ? (e.bodies
@@ -1852,11 +1863,8 @@ function convertV3NodeDataToV4(
         fillColor?: string
         textColor?: string
       }> = []
-      Object.values(allElements).forEach((childElement) => {
-        if (
-          childElement.owner === element.id &&
-          childElement.type === "UserModelAttribute"
-        ) {
+      v3ChildrenOf(element.id, allElements).forEach((childElement) => {
+        if (childElement.type === "UserModelAttribute") {
           const c = childElement as V3UMLElement & {
             attributeType?: string
             defaultValue?: unknown
@@ -1907,9 +1915,8 @@ function convertV3NodeDataToV4(
         ...(e.className && { className: e.className }),
         ...(e.description && { description: e.description }),
         ...(() => {
-          const iconChild = Object.values(allElements).find(
-            (c) =>
-              c.owner === element.id && c.type === "UserModelIcon"
+          const iconChild = v3ChildrenOf(element.id, allElements).find(
+            (c) => c.type === "UserModelIcon"
           ) as { icon?: string } | undefined
           // v3 `UMLUserModelName.serialize` stores the icon CHILD's id in
           // `icon`; the SVG body lives on the UserModelIcon child (same as
@@ -2684,9 +2691,7 @@ function extractV3AgentComponents(
   // component and make sure `bodies` lists the owned training sentences.
   for (const component of Object.values(components)) {
     if (component.type !== "AgentIntent") continue
-    const owned = Object.values(elements).filter(
-      (child) => child?.owner === component.id
-    )
+    const owned = v3ChildrenOf(component.id, elements)
     const description = owned.find(
       (child) => child.type === "AgentIntentDescription"
     )
