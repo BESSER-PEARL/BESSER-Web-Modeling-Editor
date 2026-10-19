@@ -679,6 +679,9 @@ export const addAndSwitchDiagramThunk = createAsyncThunk(
     ProjectStorageRepository.withoutNotify(() => {
       result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
       if (result) {
+        // A tab of another type also switches the active type, or the editor
+        // remounts as the old type and saves into its tab.
+        ProjectStorageRepository.switchDiagramType(project.id, diagramType);
         ProjectStorageRepository.switchDiagramIndex(project.id, diagramType, result.index);
         if (initialModel) {
           // Overwrite the just-created empty model with the caller-
@@ -703,6 +706,9 @@ export const addAndSwitchDiagramThunk = createAsyncThunk(
     if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    if (diagramType !== state.workspace.activeDiagramType) {
+      await setupBridgeForActiveDiagram(project, diagram, diagramType);
+    }
     return { diagramType, index: newIndex, diagram };
   },
 );
@@ -989,6 +995,11 @@ const workspaceSlice = createSlice({
             state.project.diagrams[diagramType].push(diagram);
           }
           state.project.currentDiagramIndices[diagramType] = index;
+          state.project.currentDiagramType = diagramType;
+        }
+        if (state.activeDiagramType !== diagramType) {
+          state.activeDiagramType = diagramType;
+          state.editorOptions = deriveEditorOptions(state.editorOptions, diagramType);
         }
         state.activeDiagram = diagram;
         state.activeDiagramIndex = index;
