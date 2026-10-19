@@ -1,0 +1,88 @@
+import React from 'react';
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import { render, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createDefaultProject, getActiveDiagram } from '../../../../shared/types/project';
+import { workspaceReducer, type WorkspaceState } from '../../../../app/store/workspaceSlice';
+import { BesserEditorProvider } from '../besser-editor-context';
+import { BesserEditorComponent } from '../BesserEditorComponent';
+
+const created: Array<{ options: Record<string, unknown> }> = [];
+
+vi.mock('@besser/wme', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@besser/wme')>();
+  class FakeEditor {
+    nextRender = Promise.resolve();
+    model: unknown = undefined;
+    constructor(_container: HTMLElement, public options: Record<string, unknown>) {
+      created.push(this);
+    }
+    subscribeToModelChange() {
+      return 1;
+    }
+    unsubscribeFromModelChange() {}
+    setAgentDiagramLinker() {}
+    setLineageProvider() {}
+    setElementPickerProvider() {}
+    destroy() {}
+  }
+  return { ...actual, BesserEditor: FakeEditor };
+});
+
+const toastError = vi.fn();
+vi.mock('react-toastify', () => ({
+  toast: { error: (...a: unknown[]) => toastError(...a), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+const mount = (model: unknown) => {
+  const project = createDefaultProject('P', '', '');
+  const diagram = getActiveDiagram(project, 'ClassDiagram')!;
+  diagram.title = 'Library';
+  diagram.model = model as any;
+  const initial = workspaceReducer(undefined, { type: '@@init' });
+  const workspace: WorkspaceState = {
+    ...initial,
+    project,
+    activeDiagramType: 'ClassDiagram',
+    activeDiagramIndex: 0,
+    activeDiagram: diagram,
+    editorRevision: 1,
+  };
+  const store = configureStore({ reducer: { workspace: workspaceReducer }, preloadedState: { workspace } });
+  render(
+    <Provider store={store}>
+      <BesserEditorProvider value={{ setEditor: () => {} }}>
+        <BesserEditorComponent />
+      </BesserEditorProvider>
+    </Provider>,
+  );
+};
+
+describe('BesserEditorComponent with a v3 model that failed to migrate', () => {
+  afterEach(() => {
+    created.length = 0;
+    toastError.mockClear();
+  });
+
+  it('opens the editor read-only and names the diagram in an error toast', async () => {
+    mount({
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      elements: { c1: { id: 'c1', name: 'Ship', type: 'Class', owner: null } },
+      relationships: {},
+    });
+
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(created[0].options.readonly).toBe(true);
+    expect(String(toastError.mock.calls[0]?.[0])).toContain('Library');
+  });
+
+  it('opens a v4 diagram editable and silently', async () => {
+    mount({ version: '4.0.0', id: '', title: '', type: 'ClassDiagram', nodes: [], edges: [], assessments: {} });
+
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(created[0].options.readonly).toBeFalsy();
+    expect(toastError).not.toHaveBeenCalled();
+  });
+});

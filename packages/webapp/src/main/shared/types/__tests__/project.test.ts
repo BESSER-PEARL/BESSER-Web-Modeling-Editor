@@ -511,10 +511,17 @@ describe('migrateProjectToV5 atomicity', () => {
 
   it('leaves schemaVersion at 4 when ANY diagram migration throws', () => {
     const project = v4Project();
-    // Two v3 diagrams; one is well-formed, one will throw because its
-    // type field is an unknown diagram kind that the migrator rejects.
+    // Two v3 diagrams; one is well-formed, one throws while its element
+    // table is read (a mismatched type no longer fails: it is restamped).
     project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
-    project.diagrams.ObjectDiagram[0].model = v3Model('NotARealDiagramType') as any;
+    project.diagrams.ObjectDiagram[0].model = {
+      ...v3Model('ObjectDiagram'),
+      elements: {
+        get o1() {
+          throw new Error('unreadable element');
+        },
+      },
+    } as any;
 
     const result = migrateProjectToV5(project);
     // Partial migration must NOT bump the version — the next launch

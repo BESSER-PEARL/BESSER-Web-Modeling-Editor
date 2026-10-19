@@ -309,10 +309,11 @@ describe('importProjectFromJson legacy format migration', () => {
   });
 
   it('rejects and stores nothing when a v3 model fails migration', async () => {
-    // v3 detector fires (elements + relationships) but the model in the
-    // ClassDiagram bucket claims to be an ObjectDiagram — the per-type
-    // migrator throws on the mismatch.
-    const corrupt = { ...v3ClassModel(), type: 'ObjectDiagram' };
+    // An attribute row with a non-string name still throws in the converter
+    // (malformed rows it can recognise are skipped instead).
+    const corrupt = v3ClassModel();
+    corrupt.elements['el-1'].attributes = ['a-1'];
+    corrupt.elements['a-1'] = { id: 'a-1', type: 'ClassAttribute', name: 5, owner: 'el-1' };
 
     await expect(
       importProjectFromJson(envelopeFile(oldWebappEnvelope(corrupt))),

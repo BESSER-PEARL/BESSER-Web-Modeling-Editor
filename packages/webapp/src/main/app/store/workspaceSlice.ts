@@ -14,6 +14,7 @@ import {
   defaultPerspectivesAllEnabled,
   isPerspectiveVisible,
   isUMLModel,
+  isV3UMLModel,
   toSupportedDiagramType,
   toUMLDiagramType,
   getActiveDiagram,
@@ -23,6 +24,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
 import { getUserMetaModelV4 } from '@besser/wme';
+import i18n from '../../shared/i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -300,6 +302,11 @@ export const updateDiagramModelThunk = createAsyncThunk(
 
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
+    // A diagram whose v3 model could not be migrated is read-only: never
+    // overwrite the only copy of the user's data.
+    if (updates.model !== undefined && isV3UMLModel(current.model)) {
+      throw new Error(i18n.t('editors.legacyDiagram.saveRefused', { title: current.title }));
+    }
     let updatedUpdates = updates;
     // For AgentDiagram: when the editor fires a canvas model-change it only carries
     // canvas elements (no components). Preserve the existing model.components so

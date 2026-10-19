@@ -2786,6 +2786,10 @@
       "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
       "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
       "enable": "{{label}} aktivieren"
+    },
+    "legacyDiagram": {
+      "openedReadOnly": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden. Es ist schreibgeschützt geöffnet und Ihre gespeicherte Version bleibt unverändert.",
+      "saveRefused": "Das Diagramm „{{title}}“ liegt in einem alten Format vor, das nicht konvertiert werden konnte, daher kann es nicht geändert werden."
     }
   },
   "feedback": {
@@ -2910,7 +2914,8 @@
       "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
       "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden",
       "unsupportedFileTypeBpmn": "Nicht unterstützter Dateityp. Bitte wählen Sie eine .json-, .py- oder .bpmn-Datei.",
-      "projectFailed": "Projekt konnte nicht importiert werden: {{detail}}"
+      "projectFailed": "Projekt konnte nicht importiert werden: {{detail}}",
+      "diagramNotConverted": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden."
     },
     "warnings": {
       "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",

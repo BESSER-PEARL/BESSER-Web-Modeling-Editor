@@ -2786,6 +2786,10 @@
       "messagePlural": "Ce projet utilise {{labels}}, mais ces perspectives sont masquées.",
       "messageSingular": "Ce projet utilise {{labels}}, mais cette perspective est masquée.",
       "enable": "Activer {{label}}"
+    },
+    "legacyDiagram": {
+      "openedReadOnly": "Le diagramme « {{title}} » n'a pas pu être converti au format actuel. Il est ouvert en lecture seule et votre version enregistrée reste inchangée.",
+      "saveRefused": "Le diagramme « {{title}} » utilise un ancien format qui n'a pas pu être converti ; il ne peut donc pas être modifié."
     }
   },
   "feedback": {
@@ -2910,7 +2914,8 @@
       "invalidFromBackend": "Diagramme non valide renvoyé par le backend",
       "couldNotParseError": "Impossible d'analyser la réponse d'erreur",
       "unsupportedFileTypeBpmn": "Type de fichier non pris en charge. Veuillez sélectionner un fichier .json, .py ou .bpmn.",
-      "projectFailed": "Échec de l’import du projet : {{detail}}"
+      "projectFailed": "Échec de l’import du projet : {{detail}}",
+      "diagramNotConverted": "Le diagramme « {{title}} » n'a pas pu être converti au format actuel."
     },
     "warnings": {
       "danglingAgentRef": "L'élément « {{name}} » référence un comportement d'agent absent de ce projet. Utilisez « Définir le comportement de l'agent » sur cet élément pour en créer un nouveau.",

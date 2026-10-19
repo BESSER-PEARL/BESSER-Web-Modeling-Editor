@@ -373,6 +373,12 @@ interface ImportedPersonalization {
  */
 function storeImportedProject(imported: BesserProject, personalization?: ImportedPersonalization): BesserProject {
   const project = ensureProjectMigrated(imported);
+  // Like the other import paths: reject a file whose v3 diagrams cannot be
+  // migrated instead of storing them read-only.
+  for (const type of ALL_DIAGRAM_TYPES) {
+    const failed = (project.diagrams[type] ?? []).find((d) => d && isV3UMLModel(d.model));
+    if (failed) throw new Error(i18n.t('import.errors.diagramNotConverted', { title: failed.title }));
+  }
   project.name = uniqueProjectName(project.name);
   normalizeEdgeHandles(project);
 

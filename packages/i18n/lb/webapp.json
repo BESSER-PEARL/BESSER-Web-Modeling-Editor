@@ -2786,6 +2786,10 @@
       "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
       "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
       "enable": "{{label}} aktivéieren"
+    },
+    "legacyDiagram": {
+      "openedReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et ass just ze liesen opgemaach an Är gespäichert Versioun bleift onverännert.",
+      "saveRefused": "D'Diagramm „{{title}}“ ass an engem alen Format, dat net konvertéiert konnt ginn, dofir kann et net geännert ginn."
     }
   },
   "feedback": {
@@ -2910,7 +2914,8 @@
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
-      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}"
+      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}",
+      "diagramNotConverted": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn."
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",

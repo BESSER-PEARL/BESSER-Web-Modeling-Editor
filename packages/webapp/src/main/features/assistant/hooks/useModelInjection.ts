@@ -40,6 +40,8 @@ export function describeCollateralRemoval(classNames: string[]): string {
 }
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
+import { getActiveDiagram, isV3UMLModel } from '../../../shared/types/project';
+import i18n from '../../../shared/i18n';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
 
@@ -476,6 +478,13 @@ export function useModelInjection({
       // Direct converter/modifier + Redux path (no editor dependency!)
       if (!applied && targetIsUml) {
         const currentModel = currentModelRef.current;
+        // An unmigrated v3 diagram is read-only; the agent must not replace it.
+        if (isV3UMLModel(currentModel)) {
+          const title = currentProjectRef.current
+            ? getActiveDiagram(currentProjectRef.current, targetDiagramType as SupportedDiagramType)?.title
+            : undefined;
+          throw new Error(i18n.t('editors.legacyDiagram.saveRefused', { title: title ?? targetDiagramType }));
+        }
         if (currentModel) {
           pushUndoSnapshot(currentModel, `Before ${command.action}`);
         }

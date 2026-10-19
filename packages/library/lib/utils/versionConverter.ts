@@ -2717,10 +2717,96 @@ function extractV3AgentComponents(
   return components
 }
 
-export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
+export type V3ConversionOptions = {
+  /** Diagram type the caller expects; fills a missing `type`, wins over a different one. */
+  expectedType?: string
+  /** Receives one message per skipped or repaired entry. Without it they are logged. */
+  warnings?: string[]
+}
+
+/**
+ * Drop the entries a v3 table can hold that no converter step can read
+ * (null rows, rows without a `type`, relationships without both ends, null
+ * path points) and settle the model type, so one bad row does not fail the
+ * whole diagram.
+ */
+function sanitizeV3Model(
+  raw: V3UMLModel,
+  options: V3ConversionOptions
+): V3UMLModel {
+  const warn = (message: string) => {
+    if (options.warnings) options.warnings.push(message)
+    else log.warn(`[convertV3ToV4] ${message}`)
+  }
+  const isObject = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object"
+
+  const elements: Record<string, V3UMLElement> = {}
+  for (const [key, element] of Object.entries(raw.elements ?? {})) {
+    if (!isObject(element) || typeof element.type !== "string") {
+      warn(`Skipped element "${key}": not an element with a type.`)
+      continue
+    }
+    elements[key] =
+      typeof element.id === "string" ? element : { ...element, id: key }
+  }
+
+  const relationships: Record<string, V3UMLRelationship> = {}
+  for (const [key, rel] of Object.entries(raw.relationships ?? {})) {
+    const endsOk =
+      isObject(rel) &&
+      typeof rel.type === "string" &&
+      isObject(rel.source) &&
+      typeof rel.source.element === "string" &&
+      isObject(rel.target) &&
+      typeof rel.target.element === "string"
+    if (!endsOk) {
+      warn(`Skipped relationship "${key}": missing type, source or target.`)
+      continue
+    }
+    let fixed = (
+      typeof rel.id === "string" ? rel : { ...rel, id: key }
+    ) as V3UMLRelationship
+    if (fixed.path != null && !Array.isArray(fixed.path)) {
+      warn(`Dropped the invalid path of relationship "${key}".`)
+      fixed = { ...fixed, path: [] }
+    } else if (Array.isArray(fixed.path)) {
+      const points = fixed.path.filter(
+        (p) => isObject(p) && typeof p.x === "number" && typeof p.y === "number"
+      )
+      if (points.length !== fixed.path.length) {
+        warn(`Dropped invalid path points of relationship "${key}".`)
+        fixed = { ...fixed, path: points }
+      }
+    }
+    relationships[key] = fixed
+  }
+
+  let type = raw.type as string | undefined
+  const expected = options.expectedType
+  if (expected) {
+    const normalized = type === "BPMN" ? "BPMNDiagram" : type
+    if (!type) {
+      warn(`Model type missing; using ${expected}.`)
+      type = expected
+    } else if (normalized !== expected) {
+      warn(`Model type ${type} does not match ${expected}; using ${expected}.`)
+      type = expected
+    }
+  }
+
+  return { ...raw, type: type as V3UMLModel["type"], elements, relationships }
+}
+
+export function convertV3ToV4(
+  v3Data: V3DiagramFormat | V3UMLModel,
+  options: V3ConversionOptions = {}
+): UMLModel {
   // Support both wrapped and flat V3 shapes
-  const model: V3UMLModel =
-    (v3Data as V3DiagramFormat).model || (v3Data as V3UMLModel)
+  const model: V3UMLModel = sanitizeV3Model(
+    (v3Data as V3DiagramFormat).model || (v3Data as V3UMLModel),
+    options
+  )
   const id = (v3Data as V3DiagramFormat).id || "converted-diagram-" + Date.now()
   const title = (v3Data as V3DiagramFormat).title || ""
 
@@ -2955,9 +3041,10 @@ export function isV4Format(input: unknown): input is UMLModel {
  * constraint collapse, legacy-name fallback parse).
  */
 export function migrateClassDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "ClassDiagram" })
   if (v4.type !== "ClassDiagram") {
     throw new Error(
       `migrateClassDiagramV3ToV4: expected ClassDiagram, got ${v4.type}`
@@ -2975,9 +3062,10 @@ export function migrateClassDiagramV3ToV4(
  * (CallActivity), and swimlanes.
  */
 export function migrateBpmnDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "BPMNDiagram" })
   if (v4.type !== "BPMNDiagram") {
     throw new Error(
       `migrateBpmnDiagramV3ToV4: expected BPMNDiagram, got ${v4.type}`
@@ -2995,9 +3083,10 @@ export function migrateBpmnDiagramV3ToV4(
  * and `attributeId` / `value` onto each attribute row.
  */
 export function migrateObjectDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "ObjectDiagram" })
   if (v4.type !== "ObjectDiagram") {
     throw new Error(
       `migrateObjectDiagramV3ToV4: expected ObjectDiagram, got ${v4.type}`
@@ -3021,9 +3110,10 @@ export function migrateObjectDiagramV3ToV4(
  * `parentId` reproduces directly without re-implementing reorder/auto-grow.
  */
 export function migrateStateMachineDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "StateMachineDiagram" })
   if (v4.type !== "StateMachineDiagram") {
     throw new Error(
       `migrateStateMachineDiagramV3ToV4: expected StateMachineDiagram, got ${v4.type}`
@@ -3053,9 +3143,10 @@ export function migrateStateMachineDiagramV3ToV4(
  *    editor renders `dbCustomName ?? ragDatabaseName`.
  */
 export function migrateAgentDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "AgentDiagram" })
   if (v4.type !== "AgentDiagram") {
     throw new Error(
       `migrateAgentDiagramV3ToV4: expected AgentDiagram, got ${v4.type}`
@@ -3077,9 +3168,10 @@ export function migrateAgentDiagramV3ToV4(
  * with `ObjectName.classId`.
  */
 export function migrateUserDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "UserDiagram" })
   if (v4.type !== "UserDiagram") {
     throw new Error(
       `migrateUserDiagramV3ToV4: expected UserDiagram, got ${v4.type}`
@@ -4576,9 +4668,10 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
  * backend processor uses the same convention.
  */
 export function migrateNNDiagramV3ToV4(
-  data: V3DiagramFormat | V3UMLModel
+  data: V3DiagramFormat | V3UMLModel,
+  options: Omit<V3ConversionOptions, "expectedType"> = {}
 ): UMLModel {
-  const v4 = convertV3ToV4(data)
+  const v4 = convertV3ToV4(data, { ...options, expectedType: "NNDiagram" })
   if (v4.type !== "NNDiagram") {
     throw new Error(
       `migrateNNDiagramV3ToV4: expected NNDiagram, got ${v4.type}`

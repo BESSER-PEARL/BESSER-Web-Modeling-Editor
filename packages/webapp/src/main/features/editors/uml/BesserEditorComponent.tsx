@@ -14,7 +14,7 @@ import {
   takePendingLineageSelection,
 } from './pendingLineageSelection';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { isUMLModel, SupportedDiagramType } from '../../../shared/types/project';
+import { isUMLModel, isV3UMLModel, SupportedDiagramType } from '../../../shared/types/project';
 import type { RootState } from '../../../app/store/store';
 import {
   updateDiagramModelThunk,
@@ -344,8 +344,18 @@ export const BesserEditorComponent: React.FC = () => {
         diagramIndex: setupState.activeDiagramIndex,
       };
 
+      // A v3 model that failed to migrate cannot be shown; open read-only
+      // so no edit can replace it (the save thunk refuses too).
+      const legacyV3 = !!currentDiagram?.model && isV3UMLModel(currentDiagram.model);
+      if (legacyV3) {
+        toast.error(t('editors.legacyDiagram.openedReadOnly', { title: currentDiagram?.title ?? '' }), {
+          toastId: `legacy-v3-${currentDiagram?.id}`,
+        });
+      }
+
       const nextEditor = new BesserEditor(containerRef.current, {
         ...currentOptions,
+        ...(legacyV3 && { readonly: true }),
         locale: localeRef.current,
         agenticEnabled: agenticEnabledRef.current,
       });
@@ -438,6 +448,7 @@ export const BesserEditorComponent: React.FC = () => {
     setEditor,
     store,
     bindingMatchesCurrentState,
+    t,
   ]);
 
   // Show or hide the agentic BPMN controls when the perspectives change.

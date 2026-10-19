@@ -83,6 +83,8 @@ export function normalizeUmlModelSnapshot<T>(model: T): T {
 export function migrateUMLModelV3ToV4(
   model: any,
   diagramType?: SupportedDiagramType,
+  /** Collects the entries the converter skipped or repaired. */
+  warnings?: string[],
 ): UMLModel {
   // Prefer caller-provided bucket type — it's the most reliable signal
   // because the wrapping ProjectDiagram knows which array the model lives in.
@@ -97,36 +99,36 @@ export function migrateUMLModelV3ToV4(
   let migrated: UMLModel;
   switch (type) {
     case 'ClassDiagram':
-      migrated = migrateClassDiagramV3ToV4(model);
+      migrated = migrateClassDiagramV3ToV4(model, { warnings });
       break;
     case 'ObjectDiagram':
-      migrated = migrateObjectDiagramV3ToV4(model);
+      migrated = migrateObjectDiagramV3ToV4(model, { warnings });
       break;
     case 'StateMachineDiagram':
-      migrated = migrateStateMachineDiagramV3ToV4(model);
+      migrated = migrateStateMachineDiagramV3ToV4(model, { warnings });
       break;
     case 'AgentDiagram':
-      migrated = migrateAgentDiagramV3ToV4(model);
+      migrated = migrateAgentDiagramV3ToV4(model, { warnings });
       break;
     case 'UserDiagram':
-      migrated = migrateUserDiagramV3ToV4(model);
+      migrated = migrateUserDiagramV3ToV4(model, { warnings });
       break;
     case 'NNDiagram':
-      migrated = migrateNNDiagramV3ToV4(model);
+      migrated = migrateNNDiagramV3ToV4(model, { warnings });
       break;
     // The project bucket key is `BPMN`; the on-the-wire diagram type the old
     // editor (smart-generator `UMLDiagramType.BPMN`) stored in `model.type`
     // is `BPMNDiagram` — a single-diagram import only has the latter.
     case 'BPMN':
     case 'BPMNDiagram':
-      migrated = migrateBpmnDiagramV3ToV4(model);
+      migrated = migrateBpmnDiagramV3ToV4(model, { warnings });
       break;
     default:
       // The remaining v3 diagram types the v3 editor could emit
       // (ActivityDiagram, UseCaseDiagram, …) have no BESSER-specific
       // lifting; the generic converter handles them.
       if (typeof type === 'string' && GENERIC_V3_DIAGRAM_TYPES.has(type)) {
-        migrated = convertV3ToV4(model);
+        migrated = convertV3ToV4(model, { expectedType: type, warnings });
         break;
       }
       throw new Error(
