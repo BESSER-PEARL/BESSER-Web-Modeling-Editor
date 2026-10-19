@@ -1,6 +1,10 @@
 import { useCallback } from "react"
 import type { XYPosition } from "@xyflow/react"
-import { useDiagramStore, useDiagramStoreApi } from "@/store/context"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  useMetadataStore,
+} from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { sortNodesTopologically } from "@/utils"
 import { log } from "../logger"
@@ -25,6 +29,14 @@ const isClipboardData = (value: unknown): value is ClipboardData =>
   !!value &&
   Array.isArray((value as ClipboardData).nodes) &&
   Array.isArray((value as ClipboardData).edges)
+
+/**
+ * A copy from another diagram type would insert node / edge types the target
+ * diagram cannot render or export. Payloads from builds that did not record
+ * the type are accepted.
+ */
+const isForeignPayload = (data: ClipboardData, diagramType: string) =>
+  !!data.diagramType && data.diagramType !== diagramType
 
 const canUseClipboard = () => !!navigator.clipboard && window.isSecureContext
 
@@ -81,6 +93,7 @@ export const useSelectionForCopyPaste = () => {
         setEdges: state.setEdges,
       }))
     )
+  const diagramType = useMetadataStore((state) => state.diagramType)
   // Live state in the callbacks keeps them stable across drag frames.
   const storeApi = useDiagramStoreApi()
 
@@ -109,8 +122,10 @@ export const useSelectionForCopyPaste = () => {
   /** The current selection as a clipboard payload (null when empty). */
   const selectionPayload = useCallback((): ClipboardData | null => {
     const { selectedElementIds: ids, nodes, edges } = storeApi.getState()
-    return ids.length > 0 ? createClipboardData(ids, nodes, edges) : null
-  }, [storeApi])
+    return ids.length > 0
+      ? { ...createClipboardData(ids, nodes, edges), diagramType }
+      : null
+  }, [storeApi, diagramType])
 
   const copySelectedElements = useCallback(async () => {
     const data = selectionPayload()
@@ -132,6 +147,12 @@ export const useSelectionForCopyPaste = () => {
       try {
         const clipboardData = payload ?? (await readPastePayload())
         if (!isClipboardData(clipboardData)) return false
+        if (isForeignPayload(clipboardData, diagramType)) {
+          log.warn(
+            `Paste refused: copied from a ${clipboardData.diagramType}, not a ${diagramType}`
+          )
+          return false
+        }
 
         let materialized = materializeClipboardData(clipboardData, pasteCount)
         if (anchor) {
@@ -197,7 +218,7 @@ export const useSelectionForCopyPaste = () => {
         return false
       }
     },
-    [storeApi, setNodes, setEdges, setSelectedElementsId]
+    [storeApi, diagramType, setNodes, setEdges, setSelectedElementsId]
   )
 
   /** Ctrl+D: pastes a copy of the selection without touching the clipboard. */

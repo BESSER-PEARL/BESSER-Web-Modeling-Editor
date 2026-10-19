@@ -4,6 +4,8 @@ import type { Node, Edge } from "@xyflow/react"
 import { CANVAS } from "@/constants"
 
 export interface ClipboardData {
+  /** Diagram type the copy came from; paste refuses a different type. */
+  diagramType?: string
   nodes: Node[]
   edges: Edge[]
   // Informational only; paste derives nesting from `parentId`. Optional so
