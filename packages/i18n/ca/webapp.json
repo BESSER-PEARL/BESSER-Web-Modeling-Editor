@@ -2789,7 +2789,10 @@
     },
     "legacyDiagram": {
       "openedReadOnly": "No s'ha pogut convertir el diagrama «{{title}}» al format actual. S'ha obert en mode de només lectura i la versió desada no es modifica.",
-      "saveRefused": "El diagrama «{{title}}» té un format antic que no s'ha pogut convertir, per tant no es pot modificar."
+      "saveRefused": "El diagrama «{{title}}» té un format antic que no s'ha pogut convertir, per tant no es pot modificar.",
+      "readOnlyTitle": "Aquest diagrama és de només lectura",
+      "readOnlyBody": "«{{title}}» es va desar en un format antic que no s'ha pogut convertir, de manera que no es pot mostrar ni editar aquí. La versió desada no es modifica.",
+      "readOnlyRecover": "Per recuperar-lo, torna a importar el fitxer original. Un projecte convertit en carregar-se també conserva una còpia de seguretat prèvia a la migració a l'emmagatzematge d'aquest navegador."
     }
   },
   "feedback": {

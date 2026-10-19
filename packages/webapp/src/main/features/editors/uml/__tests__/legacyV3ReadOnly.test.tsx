@@ -1,7 +1,7 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultProject, getActiveDiagram } from '../../../../shared/types/project';
 import { workspaceReducer, type WorkspaceState } from '../../../../app/store/workspaceSlice';
@@ -78,11 +78,28 @@ describe('BesserEditorComponent with a v3 model that failed to migrate', () => {
     expect(String(toastError.mock.calls[0]?.[0])).toContain('Library');
   });
 
+  // Live: once the toast faded the read-only diagram was a blank canvas with
+  // no explanation.
+  it('keeps a notice on the canvas that names the diagram and how to recover it', async () => {
+    mount({
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      elements: { c1: { id: 'c1', name: 'Ship', type: 'Class', owner: null } },
+      relationships: {},
+    });
+
+    const notice = await screen.findByTestId('legacy-diagram-notice');
+    expect(notice.textContent).toContain('Library');
+    expect(notice.textContent).toMatch(/read-only/i);
+    expect(notice.textContent).toMatch(/import the original file again/i);
+  });
+
   it('opens a v4 diagram editable and silently', async () => {
     mount({ version: '4.0.0', id: '', title: '', type: 'ClassDiagram', nodes: [], edges: [], assessments: {} });
 
     await waitFor(() => expect(created).toHaveLength(1));
     expect(created[0].options.readonly).toBeFalsy();
     expect(toastError).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('legacy-diagram-notice')).toBeNull();
   });
 });

@@ -2789,7 +2789,10 @@
     },
     "legacyDiagram": {
       "openedReadOnly": "Le diagramme « {{title}} » n'a pas pu être converti au format actuel. Il est ouvert en lecture seule et votre version enregistrée reste inchangée.",
-      "saveRefused": "Le diagramme « {{title}} » utilise un ancien format qui n'a pas pu être converti ; il ne peut donc pas être modifié."
+      "saveRefused": "Le diagramme « {{title}} » utilise un ancien format qui n'a pas pu être converti ; il ne peut donc pas être modifié.",
+      "readOnlyTitle": "Ce diagramme est en lecture seule",
+      "readOnlyBody": "« {{title}} » a été enregistré dans un ancien format qui n'a pas pu être converti ; il ne peut donc pas être affiché ni modifié ici. Votre version enregistrée reste inchangée.",
+      "readOnlyRecover": "Pour le récupérer, importez de nouveau le fichier d'origine. Un projet converti au chargement conserve aussi une sauvegarde d'avant la migration dans le stockage de ce navigateur."
     }
   },
   "feedback": {

@@ -2789,7 +2789,10 @@
     },
     "legacyDiagram": {
       "openedReadOnly": "Diagram \"{{title}}\" could not be converted to the current format. It is open read-only and your saved version is kept unchanged.",
-      "saveRefused": "Diagram \"{{title}}\" is in an old format that could not be converted, so it cannot be changed."
+      "saveRefused": "Diagram \"{{title}}\" is in an old format that could not be converted, so it cannot be changed.",
+      "readOnlyTitle": "This diagram is read-only",
+      "readOnlyBody": "\"{{title}}\" was saved in an older format that could not be converted, so it cannot be shown or edited here. Your saved version is kept unchanged.",
+      "readOnlyRecover": "To recover it, import the original file again. A project converted on load also keeps a pre-migration backup in this browser's storage."
     }
   },
   "feedback": {

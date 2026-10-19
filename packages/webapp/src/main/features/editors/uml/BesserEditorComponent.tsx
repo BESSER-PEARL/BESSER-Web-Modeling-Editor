@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useContext, useCallback, useMemo } from 'reac
 import { useStore } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react';
 
 import { toEditorLocale } from '../../../shared/i18n/languages';
 import { BesserEditorContext } from './besser-editor-context';
@@ -476,11 +477,34 @@ export const BesserEditorComponent: React.FC = () => {
     editorRef.current?.setAgentDiagramLinker(linker);
   }, [linker]);
 
+  // The editor cannot draw a v3 model, so the read-only canvas is blank:
+  // explain why and how to recover, after the toast has gone.
+  const legacyV3Title =
+    reduxDiagram?.model && isV3UMLModel(reduxDiagram.model) ? (reduxDiagram.title ?? '') : null;
+
   return (
-    <div
-      ref={containerRef}
-      className="flex flex-col grow overflow-hidden w-full h-full min-h-0"
-      style={{ backgroundColor: 'var(--besser-background, #ffffff)' }}
-    />
+    <div className="relative flex h-full min-h-0 w-full grow flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex flex-col grow overflow-hidden w-full h-full min-h-0"
+        style={{ backgroundColor: 'var(--besser-background, #ffffff)' }}
+      />
+      {legacyV3Title !== null && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+          <div
+            role="status"
+            data-testid="legacy-diagram-notice"
+            className="pointer-events-auto max-w-md rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm dark:border-amber-800/60 dark:bg-amber-950/60 dark:text-amber-100"
+          >
+            <p className="flex items-center gap-2 font-semibold">
+              <Lock className="size-4 shrink-0" aria-hidden />
+              {t('editors.legacyDiagram.readOnlyTitle')}
+            </p>
+            <p className="mt-2">{t('editors.legacyDiagram.readOnlyBody', { title: legacyV3Title })}</p>
+            <p className="mt-2 text-amber-800 dark:text-amber-200">{t('editors.legacyDiagram.readOnlyRecover')}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

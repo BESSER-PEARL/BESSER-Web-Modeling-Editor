@@ -2789,7 +2789,10 @@
     },
     "legacyDiagram": {
       "openedReadOnly": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden. Es ist schreibgeschützt geöffnet und Ihre gespeicherte Version bleibt unverändert.",
-      "saveRefused": "Das Diagramm „{{title}}“ liegt in einem alten Format vor, das nicht konvertiert werden konnte, daher kann es nicht geändert werden."
+      "saveRefused": "Das Diagramm „{{title}}“ liegt in einem alten Format vor, das nicht konvertiert werden konnte, daher kann es nicht geändert werden.",
+      "readOnlyTitle": "Dieses Diagramm ist schreibgeschützt",
+      "readOnlyBody": "„{{title}}“ wurde in einem älteren Format gespeichert, das nicht konvertiert werden konnte, und kann hier daher weder angezeigt noch bearbeitet werden. Ihre gespeicherte Version bleibt unverändert.",
+      "readOnlyRecover": "Um es wiederherzustellen, importieren Sie die Originaldatei erneut. Ein beim Laden konvertiertes Projekt behält außerdem eine Sicherung von vor der Migration im Speicher dieses Browsers."
     }
   },
   "feedback": {

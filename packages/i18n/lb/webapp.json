@@ -2789,7 +2789,10 @@
     },
     "legacyDiagram": {
       "openedReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et ass just ze liesen opgemaach an Är gespäichert Versioun bleift onverännert.",
-      "saveRefused": "D'Diagramm „{{title}}“ ass an engem alen Format, dat net konvertéiert konnt ginn, dofir kann et net geännert ginn."
+      "saveRefused": "D'Diagramm „{{title}}“ ass an engem alen Format, dat net konvertéiert konnt ginn, dofir kann et net geännert ginn.",
+      "readOnlyTitle": "Dëst Diagramm ass just ze liesen",
+      "readOnlyBody": "„{{title}}“ gouf an engem ale Format gespäichert, dat net konvertéiert konnt ginn, dofir kann et hei weder ugewise nach geännert ginn. Är gespäichert Versioun bleift onverännert.",
+      "readOnlyRecover": "Fir et erëmzekréien, importéiert d'Originaldatei nach eng Kéier. E Projet, deen beim Lueden konvertéiert gouf, behält och eng Sécherheetskopie vu virun der Migratioun am Späicher vun dësem Browser."
     }
   },
   "feedback": {
