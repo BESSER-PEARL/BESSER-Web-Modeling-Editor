@@ -983,6 +983,13 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   const model = diagram.model;
   if (!model) return false;
 
+  // An unmigrated v3 model (kept read-only) is content: exports must keep it.
+  if (isV3UMLModel(model)) {
+    const { elements, relationships } = model as { elements?: unknown; relationships?: unknown };
+    const size = (table: unknown) => (table && typeof table === 'object' ? Object.keys(table).length : 0);
+    return size(elements) > 0 || size(relationships) > 0;
+  }
+
   if (isUMLModel(model)) {
     const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;

@@ -1,7 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDefaultProject, getActiveDiagram, type BesserProject } from '../project';
+import {
+  createDefaultProject,
+  diagramHasContent,
+  findHiddenReferencedPerspectives,
+  getActiveDiagram,
+  type BesserProject,
+} from '../project';
+import { buildExportableProjectPayload, buildProjectPayloadForBackend } from '../../utils/projectExportUtils';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { importProjectFromJson } from '../../services/project-import/projectImport';
 import { updateDiagramModelThunk, workspaceReducer, type WorkspaceState } from '../../../app/store/workspaceSlice';
@@ -158,5 +165,32 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
     expect(chat).toContain('Library');
     expect(chat).not.toMatch(/\.\./);
     expect(chat).not.toMatch(/rephras/i);
+  });
+
+  // Live: the read-only diagram counted as empty, so the hidden-perspective
+  // banner did not offer it and re-exporting the project silently dropped it.
+  it('counts as content: offered when hidden and exported unchanged', () => {
+    const project = projectWithV3Class();
+    const diagram = getActiveDiagram(project, 'ClassDiagram')!;
+    expect(diagramHasContent(diagram)).toBe(true);
+
+    project.settings.perspectives = { ...project.settings.perspectives, ClassDiagram: false };
+    expect(findHiddenReferencedPerspectives(project)).toContain('ClassDiagram');
+
+    const exported = buildExportableProjectPayload(project);
+    expect(exported.diagrams.ClassDiagram?.map((d) => d.model)).toEqual([v3ClassModel()]);
+  });
+
+  it('is left out of backend requests, which read v4 only', () => {
+    const project = projectWithV3Class();
+    const payload = buildProjectPayloadForBackend(project) as { diagrams: Record<string, unknown[]> };
+    expect(payload.diagrams.ClassDiagram).toBeUndefined();
+  });
+
+  it('an empty v3 model is still empty', () => {
+    const project = projectWithV3Class();
+    const diagram = getActiveDiagram(project, 'ClassDiagram')!;
+    diagram.model = { ...v3ClassModel(), elements: {}, relationships: {} } as any;
+    expect(diagramHasContent(diagram)).toBe(false);
   });
 });
