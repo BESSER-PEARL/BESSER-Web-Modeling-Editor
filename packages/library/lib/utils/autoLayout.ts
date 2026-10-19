@@ -2151,6 +2151,56 @@ export const computeAutoLayout = async (
   return recenter(nodes, result, touched)
 }
 
+type Diagram = { nodes: Node[]; edges: Edge[] }
+
+/**
+ * Applies a layout computed from `before` to the `current` diagram: the
+ * layout is async, so the user may have edited meanwhile. Elements that still
+ * exist get the laid-out geometry and keep their current data; elements added
+ * meanwhile stay as they are and deleted ones stay deleted. A node moved to
+ * another parent, or an edge reconnected, keeps its current geometry.
+ */
+export const mergeLayoutResult = (
+  before: Diagram,
+  layouted: Diagram,
+  current: Diagram
+): Diagram => {
+  const oldNodes = new Map(before.nodes.map((n) => [n.id, n]))
+  const laidNodes = new Map(layouted.nodes.map((n) => [n.id, n]))
+  const nodes = current.nodes.map((node) => {
+    const old = oldNodes.get(node.id)
+    const laid = laidNodes.get(node.id)
+    if (!old || !laid) return node
+    if (node === old) return laid
+    if (node.parentId !== old.parentId) return node
+    return {
+      ...node,
+      position: laid.position,
+      width: laid.width,
+      height: laid.height,
+      ...(laid.measured && { measured: laid.measured }),
+    }
+  })
+  const oldEdges = new Map(before.edges.map((e) => [e.id, e]))
+  const laidEdges = new Map(layouted.edges.map((e) => [e.id, e]))
+  const edges = current.edges.map((edge) => {
+    const old = oldEdges.get(edge.id)
+    const laid = laidEdges.get(edge.id)
+    if (!old || !laid) return edge
+    if (edge === old) return laid
+    if (edge.source !== old.source || edge.target !== old.target) return edge
+    const data: Record<string, unknown> = { ...edge.data, points: laid.data?.points }
+    if (laid.data?.isManuallyLayouted === undefined) delete data.isManuallyLayouted
+    return {
+      ...edge,
+      sourceHandle: laid.sourceHandle,
+      targetHandle: laid.targetHandle,
+      data,
+    }
+  })
+  return { nodes, edges }
+}
+
 /**
  * Lays out a v4 `UMLModel` and returns a NEW model. Pure and fully awaitable
  * — no editor instance, no React Flow, no DOM — so it can run under node /

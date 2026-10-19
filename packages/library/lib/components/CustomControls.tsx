@@ -17,6 +17,7 @@ import { Check } from "lucide-react"
 import { inspectorTheme } from "@/styles/inspector-theme"
 import {
   computeAutoLayout,
+  mergeLayoutResult,
   getAutoLayoutStrategies,
   type AutoLayoutStrategy,
 } from "@/utils/autoLayout"
@@ -120,14 +121,16 @@ export const CustomControls = () => {
   const currentStrategy = lastStrategy.get(diagramType) ?? strategies[0]
 
   const handleAutoLayout = async (strategy: AutoLayoutStrategy = currentStrategy) => {
-    const { nodes, edges } = diagramStoreApi.getState()
+    const before = diagramStoreApi.getState()
     if (isLayouting || !hasNodes) return
     setIsLayouting(true)
     try {
       lastStrategy.set(diagramType, strategy)
-      const layouted = await computeAutoLayout(nodes, edges, diagramType, { strategy })
-      // One store write → one undo step.
-      setNodesAndEdges(layouted.nodes, layouted.edges)
+      const layouted = await computeAutoLayout(before.nodes, before.edges, diagramType, { strategy })
+      // Merged into the live diagram (edits made while ELK ran survive);
+      // one store write → one undo step.
+      const merged = mergeLayoutResult(before, layouted, diagramStoreApi.getState())
+      setNodesAndEdges(merged.nodes, merged.edges)
       window.requestAnimationFrame(() => fitView({ duration: 300, padding: 0.1 }))
     } finally {
       setIsLayouting(false)

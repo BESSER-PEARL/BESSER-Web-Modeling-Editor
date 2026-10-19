@@ -16,7 +16,11 @@ import {
   getRenderedDiagramBounds,
   normalizeV4Model,
 } from "./utils"
-import { computeAutoLayout, type AutoLayoutOptions } from "./utils/autoLayout"
+import {
+  computeAutoLayout,
+  mergeLayoutResult,
+  type AutoLayoutOptions,
+} from "./utils/autoLayout"
 import { normalizeAgentComponents } from "./utils/agentComponents"
 import { hardenImportedModel } from "./utils/importHardening"
 import { liftClassOCLConstraintRows } from "./utils/oclConstraintRows"
@@ -1051,11 +1055,19 @@ export class BesserEditor {
    * when the layout has been applied; a no-op for an empty diagram.
    */
   public async autoLayout(options: AutoLayoutOptions = {}): Promise<void> {
-    const { nodes, edges, setNodesAndEdges } = this.diagramStore.getState()
-    if (nodes.length === 0) return
+    const before = this.diagramStore.getState()
+    if (before.nodes.length === 0) return
     const { diagramType } = this.metadataStore.getState()
-    const layouted = await computeAutoLayout(nodes, edges, diagramType, options)
-    setNodesAndEdges(layouted.nodes, layouted.edges)
+    const layouted = await computeAutoLayout(
+      before.nodes,
+      before.edges,
+      diagramType,
+      options
+    )
+    // Merged into the live diagram: edits made while ELK ran survive.
+    const current = this.diagramStore.getState()
+    const merged = mergeLayoutResult(before, layouted, current)
+    current.setNodesAndEdges(merged.nodes, merged.edges)
     const instance = this.reactFlowInstance
     if (instance && typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
