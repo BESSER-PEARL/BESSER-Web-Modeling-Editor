@@ -80,8 +80,9 @@ const mainThreadElk = async (): Promise<ElkInstance> => {
 }
 
 // One shared worker; `failed` settles if it cannot load (CSP, missing chunk),
-// since elk-api would otherwise wait for its answer forever.
-let workerElk: Promise<{ elk: ElkInstance; failed: Promise<null> }> | null = null
+// since elk-api would otherwise wait for its answer forever. Resolves to null
+// when `new Worker` itself throws (SecurityError).
+let workerElk: Promise<{ elk: ElkInstance; failed: Promise<null> } | null> | null = null
 let workerBroken = false
 const getWorkerElk = () =>
   (workerElk ??= import("elkjs/lib/elk-api.js").then(({ default: ELK }) => {
@@ -92,16 +93,21 @@ const getWorkerElk = () =>
         resolve(null)
       }
     })
-    const elk = new ELK({
-      workerFactory: () => {
-        const worker = new Worker(new URL("./elk.worker.ts", import.meta.url), {
-          type: "module",
-        })
-        worker.addEventListener("error", markFailed)
-        return worker
-      },
-    })
-    return { elk, failed }
+    try {
+      const elk = new ELK({
+        workerFactory: () => {
+          const worker = new Worker(new URL("./elk.worker.ts", import.meta.url), {
+            type: "module",
+          })
+          worker.addEventListener("error", markFailed)
+          return worker
+        },
+      })
+      return { elk, failed }
+    } catch {
+      workerBroken = true
+      return null
+    }
   }))
 
 /**
@@ -112,8 +118,8 @@ const getWorkerElk = () =>
 const createElk = async (): Promise<Pick<ElkInstance, "layout">> => ({
   layout: async (graph) => {
     if (typeof Worker !== "undefined" && !workerBroken) {
-      const { elk, failed } = await getWorkerElk()
-      const laid = await Promise.race([elk.layout(graph), failed])
+      const worker = await getWorkerElk()
+      const laid = worker && (await Promise.race([worker.elk.layout(graph), worker.failed]))
       if (laid) return laid
     }
     return (await mainThreadElk()).layout(graph)

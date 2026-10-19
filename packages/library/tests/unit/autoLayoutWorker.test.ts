@@ -89,6 +89,28 @@ describe("auto-layout ELK runs off the main thread", () => {
     expect(result.nodes.some((n, i) => n.position !== nodes[i].position)).toBe(true)
   })
 
+  // A CSP / SecurityError makes `new Worker` throw; the rejected promise must
+  // not stay cached and fail every later layout.
+  it("falls back to the main thread, every time, when `new Worker` throws", async () => {
+    let constructed = 0
+    vi.stubGlobal(
+      "Worker",
+      class {
+        constructor() {
+          constructed += 1
+          throw new DOMException("blocked", "SecurityError")
+        }
+      }
+    )
+    const { computeAutoLayout } = await import("@/utils/autoLayout")
+    const { nodes, edges } = classes(3)
+    const first = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    const second = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    expect(first.nodes).toHaveLength(3)
+    expect(second.nodes).toHaveLength(3)
+    expect(constructed).toBe(1)
+  })
+
   it("scales the compact stress budget down with the graph size", async () => {
     vi.stubGlobal("Worker", FakeWorker)
     const { computeAutoLayout } = await import("@/utils/autoLayout")
