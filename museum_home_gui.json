@@ -1,0 +1,1144 @@
+{
+  "project": {
+    "type": "Project",
+    "schemaVersion": 4,
+    "owner": "BESSER User",
+    "currentDiagramType": "GUINoCodeDiagram",
+    "currentDiagramIndices": {
+      "ClassDiagram": 0,
+      "ObjectDiagram": 0,
+      "StateMachineDiagram": 0,
+      "AgentDiagram": 0,
+      "NNDiagram": 0,
+      "UserDiagram": 0,
+      "GUINoCodeDiagram": 0,
+      "QuantumCircuitDiagram": 0
+    },
+    "settings": {
+      "defaultDiagramType": "ClassDiagram",
+      "autoSave": true,
+      "collaborationEnabled": false,
+      "perspectives": {
+        "ClassDiagram": true,
+        "ObjectDiagram": false,
+        "StateMachineDiagram": false,
+        "AgentDiagram": true,
+        "UserDiagram": false,
+        "GUINoCodeDiagram": true,
+        "QuantumCircuitDiagram": false,
+        "NNDiagram": false
+      }
+    },
+    "id": "938ce65e-e59c-40ac-b8b3-2fd4b2b08826",
+    "name": "Luxembourg Museum Home",
+    "description": "Museum landing page recreated from mockup (GrapesJS GUI model)",
+    "createdAt": "2026-10-19T00:00:00.000Z",
+    "diagrams": {
+      "GUINoCodeDiagram": [
+        {
+          "id": "0cd87c81-1331-40ad-9157-9af1c04ca5ca",
+          "title": "Museum Home",
+          "model": {
+            "pages": [
+              {
+                "name": "Home",
+                "frames": [
+                  {
+                    "component": {
+                      "type": "wrapper",
+                      "stylable": [
+                        "background",
+                        "background-color",
+                        "background-image",
+                        "background-repeat",
+                        "background-attachment",
+                        "background-position",
+                        "background-size"
+                      ],
+                      "components": [
+                        {
+                          "tagName": "div",
+                          "attributes": {
+                            "id": "ibn7x"
+                          },
+                          "components": [
+                            {
+                              "tagName": "header",
+                              "attributes": {
+                                "id": "ipf91"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "id6nc"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "iujzd"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "M"
+                                        }
+                                      ],
+                                      "type": "text"
+                                    },
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "ie8gx"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Luxembourg Museum"
+                                        }
+                                      ],
+                                      "type": "text"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "if10e"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Visitor information · Luxembourg"
+                                    }
+                                  ],
+                                  "type": "text"
+                                }
+                              ]
+                            },
+                            {
+                              "tagName": "main",
+                              "attributes": {
+                                "id": "ijqwx"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "section",
+                                  "attributes": {
+                                    "id": "i1u33"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "ij8ht"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "idhod"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Discover the museum"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "h1",
+                                          "attributes": {
+                                            "id": "izdoc"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Welcome to the Luxembourg Museum."
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "p",
+                                          "attributes": {
+                                            "id": "i9is0"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Explore Luxembourg City's past through a model of its historic fortress and an exhibit about the city's tram network. Plan your visit and discover what to see."
+                                            }
+                                          ],
+                                          "type": "text"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "idn58"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "img",
+                                          "type": "image",
+                                          "attributes": {
+                                            "src": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20600%20300%22%3E%3Crect%20width%3D%22600%22%20height%3D%22300%22%20fill%3D%22%23d5e3dc%22/%3E%3Crect%20x%3D%2260%22%20width%3D%22450%22%20height%3D%22300%22%20fill%3D%22%23bfd4ca%22/%3E%3Crect%20x%3D%2260%22%20y%3D%2236%22%20width%3D%22450%22%20height%3D%225%22%20fill%3D%22%238aa99a%22/%3E%3Cg%20fill%3D%22%23b5d2cb%22%20stroke%3D%22%23f1ece0%22%20stroke-width%3D%2210%22%3E%3Cpath%20d%3D%22M95%20200V90a52%2052%200%200%201%20104%200v110z%22/%3E%3Cpath%20d%3D%22M232%20200V90a52%2052%200%200%201%20104%200v110z%22/%3E%3Cpath%20d%3D%22M370%20200V90a52%2052%200%200%201%20104%200v110z%22/%3E%3C/g%3E%3Crect%20x%3D%2260%22%20y%3D%22205%22%20width%3D%22450%22%20height%3D%2295%22%20fill%3D%22%23d6c9b0%22/%3E%3Crect%20x%3D%2295%22%20y%3D%22215%22%20width%3D%22140%22%20height%3D%2252%22%20fill%3D%22%235d7a6e%22/%3E%3Crect%20x%3D%22330%22%20y%3D%22205%22%20width%3D%22170%22%20height%3D%2256%22%20fill%3D%22%236b8579%22/%3E%3Cpolygon%20points%3D%22165%2C215%20225%2C195%20170%2C175%20115%2C195%22%20fill%3D%22%23c9a77a%22/%3E%3Crect%20x%3D%22140%22%20y%3D%22170%22%20width%3D%2240%22%20height%3D%2230%22%20fill%3D%22%238aa17c%22/%3E%3Crect%20x%3D%22355%22%20y%3D%22130%22%20width%3D%22130%22%20height%3D%2270%22%20rx%3D%2210%22%20fill%3D%22%238f2f2f%22/%3E%3Cg%20fill%3D%22%23b5d2cb%22%3E%3Crect%20x%3D%22365%22%20y%3D%22140%22%20width%3D%2235%22%20height%3D%2226%22%20rx%3D%223%22/%3E%3Crect%20x%3D%22405%22%20y%3D%22140%22%20width%3D%2235%22%20height%3D%2226%22%20rx%3D%223%22/%3E%3Crect%20x%3D%22445%22%20y%3D%22140%22%20width%3D%2232%22%20height%3D%2226%22%20rx%3D%223%22/%3E%3C/g%3E%3Ccircle%20cx%3D%22385%22%20cy%3D%22204%22%20r%3D%229%22%20fill%3D%22%232b2b2b%22/%3E%3Ccircle%20cx%3D%22455%22%20cy%3D%22204%22%20r%3D%229%22%20fill%3D%22%232b2b2b%22/%3E%3C/svg%3E",
+                                            "alt": "Illustration of the exhibition",
+                                            "id": "ixg9e"
+                                          }
+                                        },
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "i9lgm"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Illustration of the exhibition"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "i5v2s"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "h2",
+                                      "attributes": {
+                                        "id": "ixtpl"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Explore the exhibition"
+                                        }
+                                      ],
+                                      "type": "text"
+                                    },
+                                    {
+                                      "tagName": "span",
+                                      "attributes": {
+                                        "id": "ipft7"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "One room · Two exhibits"
+                                        }
+                                      ],
+                                      "type": "text"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "ih5dn"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "article",
+                                      "attributes": {
+                                        "id": "iuvw5"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "ieh60"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "01 · City history"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "h3",
+                                          "attributes": {
+                                            "id": "ikvj5"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "The Fortress Model"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "p",
+                                          "attributes": {
+                                            "id": "i0ce9"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "See a scale model of Luxembourg City's historic walls, gates and bastions. Many of the fortifications were dismantled in the nineteenth century."
+                                            }
+                                          ],
+                                          "type": "text"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "tagName": "article",
+                                      "attributes": {
+                                        "id": "ib3wk"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "i3efr"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "02 · Transport history"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "h3",
+                                          "attributes": {
+                                            "id": "i4edt"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "The Historic Tram"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "p",
+                                          "attributes": {
+                                            "id": "i2syw"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Learn how trams once connected the city centre with nearby neighbourhoods, disappeared as transport changed, and later returned to Luxembourg City."
+                                            }
+                                          ],
+                                          "type": "text"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "ibeny"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "ij08x"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "h3",
+                                          "attributes": {
+                                            "id": "isipz"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "Plan your visit"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "ilqsa"
+                                          },
+                                          "components": [
+                                            {
+                                              "tagName": "div",
+                                              "attributes": {
+                                                "id": "ii19r"
+                                              },
+                                              "components": [
+                                                {
+                                                  "tagName": "div",
+                                                  "attributes": {
+                                                    "id": "iz5fk"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "Opening hours"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                },
+                                                {
+                                                  "tagName": "div",
+                                                  "attributes": {
+                                                    "id": "i2z9r"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "10:00–18:00"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "tagName": "div",
+                                              "attributes": {
+                                                "id": "iooa5"
+                                              },
+                                              "components": [
+                                                {
+                                                  "tagName": "div",
+                                                  "attributes": {
+                                                    "id": "i0wyo"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "Admission"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                },
+                                                {
+                                                  "tagName": "div",
+                                                  "attributes": {
+                                                    "id": "ijflj"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "€10 standard · €6 reduced"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "tagName": "div",
+                                      "attributes": {
+                                        "id": "ij8gx"
+                                      },
+                                      "components": [
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "iui6d"
+                                          },
+                                          "components": [
+                                            {
+                                              "type": "textnode",
+                                              "content": "↗"
+                                            }
+                                          ],
+                                          "type": "text"
+                                        },
+                                        {
+                                          "tagName": "div",
+                                          "attributes": {
+                                            "id": "ivdga"
+                                          },
+                                          "components": [
+                                            {
+                                              "tagName": "h3",
+                                              "attributes": {
+                                                "id": "i39zz"
+                                              },
+                                              "components": [
+                                                {
+                                                  "type": "textnode",
+                                                  "content": "Find your way"
+                                                }
+                                              ],
+                                              "type": "text"
+                                            },
+                                            {
+                                              "tagName": "p",
+                                              "attributes": {
+                                                "id": "in2kh"
+                                              },
+                                              "components": [
+                                                {
+                                                  "type": "textnode",
+                                                  "content": "Use the main entrance stairs or the accessible lift. In the exhibition room, the Fortress Model is "
+                                                },
+                                                {
+                                                  "tagName": "strong",
+                                                  "attributes": {
+                                                    "id": "izzg4"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "on your left"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                },
+                                                {
+                                                  "type": "textnode",
+                                                  "content": " and the Historic Tram is "
+                                                },
+                                                {
+                                                  "tagName": "strong",
+                                                  "attributes": {
+                                                    "id": "izdme"
+                                                  },
+                                                  "components": [
+                                                    {
+                                                      "type": "textnode",
+                                                      "content": "on your right"
+                                                    }
+                                                  ],
+                                                  "type": "text"
+                                                },
+                                                {
+                                                  "type": "textnode",
+                                                  "content": ". The exit is straight ahead, with stairs or an accessibility platform."
+                                                }
+                                              ],
+                                              "type": "text"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "tagName": "footer",
+                              "attributes": {
+                                "id": "iq4k7"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "i344t"
+                                  },
+                                  "components": [
+                                    {
+                                      "tagName": "strong",
+                                      "attributes": {
+                                        "id": "i4hh5"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Luxembourg Museum"
+                                        }
+                                      ],
+                                      "type": "text"
+                                    },
+                                    {
+                                      "type": "textnode",
+                                      "content": " · Fictional study museum"
+                                    }
+                                  ],
+                                  "type": "text"
+                                },
+                                {
+                                  "tagName": "div",
+                                  "attributes": {
+                                    "id": "ifjgv"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Need help? museum@luxembourg.lu"
+                                    }
+                                  ],
+                                  "type": "text"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "head": {
+                        "type": "head"
+                      },
+                      "docEl": {
+                        "tagName": "html"
+                      }
+                    },
+                    "id": "ij8b7"
+                  }
+                ],
+                "id": "itfq7",
+                "route_path": "/home"
+              }
+            ],
+            "styles": [
+              {
+                "selectors": [
+                  "#iujzd"
+                ],
+                "style": {
+                  "width": "44px",
+                  "height": "44px",
+                  "background": "#1c3d32",
+                  "color": "#fff",
+                  "border-radius": "10px",
+                  "display": "flex",
+                  "align-items": "center",
+                  "justify-content": "center",
+                  "font-family": "Georgia, 'Times New Roman', serif",
+                  "font-size": "26px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ie8gx"
+                ],
+                "style": {
+                  "font-size": "13px",
+                  "font-weight": "800",
+                  "letter-spacing": "1.5px",
+                  "text-transform": "uppercase",
+                  "color": "#1c3d32",
+                  "line-height": "1.2",
+                  "width": "110px"
+                }
+              },
+              {
+                "selectors": [
+                  "#id6nc"
+                ],
+                "style": {
+                  "display": "flex",
+                  "align-items": "center",
+                  "gap": "12px"
+                }
+              },
+              {
+                "selectors": [
+                  "#if10e"
+                ],
+                "style": {
+                  "font-size": "13px",
+                  "font-weight": "600",
+                  "letter-spacing": "1px",
+                  "text-transform": "uppercase",
+                  "color": "#4d5f57"
+                }
+              },
+              {
+                "selectors": [
+                  "#ipf91"
+                ],
+                "style": {
+                  "display": "flex",
+                  "justify-content": "space-between",
+                  "align-items": "center",
+                  "padding": "19px 66px",
+                  "border-bottom": "1px solid #e7e6dc"
+                }
+              },
+              {
+                "selectors": [
+                  "#idhod"
+                ],
+                "style": {
+                  "font-size": "12px",
+                  "font-weight": "700",
+                  "letter-spacing": "1.5px",
+                  "text-transform": "uppercase",
+                  "color": "#1f6b57",
+                  "margin-bottom": "22px"
+                }
+              },
+              {
+                "selectors": [
+                  "#izdoc"
+                ],
+                "style": {
+                  "font-family": "Georgia, 'Times New Roman', serif",
+                  "font-size": "52px",
+                  "font-weight": "400",
+                  "line-height": "1.12",
+                  "color": "#1c3d32",
+                  "margin": "0 0 28px 0",
+                  "letter-spacing": "-1px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i9is0"
+                ],
+                "style": {
+                  "font-size": "17px",
+                  "line-height": "1.65",
+                  "color": "#4d5f57",
+                  "margin": "0",
+                  "max-width": "560px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ij8ht"
+                ],
+                "style": {
+                  "flex": "1",
+                  "min-width": "320px",
+                  "max-width": "580px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i9lgm"
+                ],
+                "style": {
+                  "position": "absolute",
+                  "left": "12px",
+                  "bottom": "12px",
+                  "background": "#fff",
+                  "padding": "7px 9px",
+                  "border-radius": "6px",
+                  "font-size": "13px",
+                  "font-weight": "600",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#ixg9e"
+                ],
+                "style": {
+                  "width": "100%",
+                  "height": "100%",
+                  "object-fit": "cover",
+                  "display": "block"
+                }
+              },
+              {
+                "selectors": [
+                  "#idn58"
+                ],
+                "style": {
+                  "flex": "1",
+                  "min-width": "320px",
+                  "max-width": "545px",
+                  "height": "294px",
+                  "position": "relative",
+                  "border-radius": "14px",
+                  "overflow": "hidden",
+                  "box-shadow": "0 10px 30px rgba(28,61,50,0.15)"
+                }
+              },
+              {
+                "selectors": [
+                  "#i1u33"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-wrap": "wrap",
+                  "justify-content": "space-between",
+                  "align-items": "center",
+                  "gap": "40px",
+                  "padding": "34px 0 36px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ixtpl"
+                ],
+                "style": {
+                  "font-family": "Georgia, 'Times New Roman', serif",
+                  "font-size": "27px",
+                  "font-weight": "400",
+                  "color": "#1c3d32",
+                  "margin": "0"
+                }
+              },
+              {
+                "selectors": [
+                  "#ipft7"
+                ],
+                "style": {
+                  "font-size": "13px",
+                  "color": "#4d5f57"
+                }
+              },
+              {
+                "selectors": [
+                  "#i5v2s"
+                ],
+                "style": {
+                  "display": "flex",
+                  "justify-content": "space-between",
+                  "align-items": "baseline",
+                  "margin": "16px 0 14px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ieh60"
+                ],
+                "style": {
+                  "font-size": "13px",
+                  "font-weight": "700",
+                  "letter-spacing": "1.5px",
+                  "text-transform": "uppercase",
+                  "color": "#1f6b57",
+                  "margin-bottom": "12px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ikvj5"
+                ],
+                "style": {
+                  "font-family": "Georgia, 'Times New Roman', serif",
+                  "font-size": "23px",
+                  "font-weight": "400",
+                  "color": "#1c3d32",
+                  "margin": "0 0 10px 0"
+                }
+              },
+              {
+                "selectors": [
+                  "#i0ce9"
+                ],
+                "style": {
+                  "font-size": "16px",
+                  "line-height": "1.5",
+                  "color": "#4d5f57",
+                  "margin": "0"
+                }
+              },
+              {
+                "selectors": [
+                  "#iuvw5"
+                ],
+                "style": {
+                  "flex": "1",
+                  "min-width": "300px",
+                  "background": "#f2f7f3",
+                  "border": "1px solid #dbe6df",
+                  "border-radius": "12px",
+                  "padding": "20px 24px 24px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i3efr"
+                ],
+                "style": {
+                  "font-size": "13px",
+                  "font-weight": "700",
+                  "letter-spacing": "1.5px",
+                  "text-transform": "uppercase",
+                  "color": "#1f6b57",
+                  "margin-bottom": "12px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i4edt"
+                ],
+                "style": {
+                  "font-family": "Georgia, 'Times New Roman', serif",
+                  "font-size": "23px",
+                  "font-weight": "400",
+                  "color": "#1c3d32",
+                  "margin": "0 0 10px 0"
+                }
+              },
+              {
+                "selectors": [
+                  "#i2syw"
+                ],
+                "style": {
+                  "font-size": "16px",
+                  "line-height": "1.5",
+                  "color": "#4d5f57",
+                  "margin": "0"
+                }
+              },
+              {
+                "selectors": [
+                  "#ib3wk"
+                ],
+                "style": {
+                  "flex": "1",
+                  "min-width": "300px",
+                  "background": "#f2f7f3",
+                  "border": "1px solid #dbe6df",
+                  "border-radius": "12px",
+                  "padding": "20px 24px 24px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ih5dn"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-wrap": "wrap",
+                  "gap": "15px"
+                }
+              },
+              {
+                "selectors": [
+                  "#isipz"
+                ],
+                "style": {
+                  "font-size": "16px",
+                  "font-weight": "700",
+                  "color": "#1c3d32",
+                  "margin": "0 0 14px 0"
+                }
+              },
+              {
+                "selectors": [
+                  "#iz5fk"
+                ],
+                "style": {
+                  "font-size": "12px",
+                  "font-weight": "700",
+                  "letter-spacing": "1px",
+                  "text-transform": "uppercase",
+                  "color": "#4d5f57",
+                  "margin-bottom": "8px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i2z9r"
+                ],
+                "style": {
+                  "font-size": "20px",
+                  "font-weight": "700",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#i0wyo"
+                ],
+                "style": {
+                  "font-size": "12px",
+                  "font-weight": "700",
+                  "letter-spacing": "1px",
+                  "text-transform": "uppercase",
+                  "color": "#4d5f57",
+                  "margin-bottom": "8px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ijflj"
+                ],
+                "style": {
+                  "font-size": "20px",
+                  "font-weight": "700",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#ilqsa"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-wrap": "wrap",
+                  "gap": "48px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ij08x"
+                ],
+                "style": {
+                  "background": "#e9f0ea",
+                  "border": "1px solid #d6e2da",
+                  "border-radius": "12px",
+                  "padding": "20px 24px",
+                  "flex": "1",
+                  "min-width": "300px"
+                }
+              },
+              {
+                "selectors": [
+                  "#iui6d"
+                ],
+                "style": {
+                  "width": "38px",
+                  "height": "38px",
+                  "border": "1.5px solid #1f6b57",
+                  "border-radius": "8px",
+                  "display": "flex",
+                  "align-items": "center",
+                  "justify-content": "center",
+                  "color": "#1f6b57",
+                  "font-size": "18px",
+                  "flex-shrink": "0"
+                }
+              },
+              {
+                "selectors": [
+                  "#i39zz"
+                ],
+                "style": {
+                  "font-size": "16px",
+                  "font-weight": "700",
+                  "color": "#1c3d32",
+                  "margin": "0 0 8px 0"
+                }
+              },
+              {
+                "selectors": [
+                  "#izzg4"
+                ],
+                "style": {
+                  "font-weight": "700",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#izdme"
+                ],
+                "style": {
+                  "font-weight": "700",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#in2kh"
+                ],
+                "style": {
+                  "font-size": "16px",
+                  "line-height": "1.5",
+                  "color": "#4d5f57",
+                  "margin": "0"
+                }
+              },
+              {
+                "selectors": [
+                  "#ij8gx"
+                ],
+                "style": {
+                  "background": "#e9f0ea",
+                  "border": "1px solid #d6e2da",
+                  "border-radius": "12px",
+                  "padding": "20px 24px",
+                  "flex": "1.7",
+                  "min-width": "340px",
+                  "display": "flex",
+                  "gap": "16px",
+                  "align-items": "flex-start"
+                }
+              },
+              {
+                "selectors": [
+                  "#ibeny"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-wrap": "wrap",
+                  "gap": "15px",
+                  "margin-top": "20px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ijqwx"
+                ],
+                "style": {
+                  "padding": "0 66px 34px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i4hh5"
+                ],
+                "style": {
+                  "font-weight": "700",
+                  "color": "#1c3d32"
+                }
+              },
+              {
+                "selectors": [
+                  "#iq4k7"
+                ],
+                "style": {
+                  "display": "flex",
+                  "justify-content": "space-between",
+                  "flex-wrap": "wrap",
+                  "gap": "8px",
+                  "padding": "18px 66px 100px",
+                  "border-top": "1px solid #e7e6dc",
+                  "font-size": "13px",
+                  "color": "#4d5f57"
+                }
+              },
+              {
+                "selectors": [
+                  "#ibn7x"
+                ],
+                "style": {
+                  "min-height": "100vh",
+                  "background": "#fefdf8",
+                  "font-family": "Inter, 'Segoe UI', Arial, sans-serif",
+                  "color": "#4d5f57"
+                }
+              },
+              {
+                "selectors": [
+                  "body"
+                ],
+                "style": {
+                  "margin": "0"
+                }
+              }
+            ],
+            "assets": [],
+            "symbols": [],
+            "version": "0.21.13"
+          },
+          "lastUpdate": "2026-10-19T00:00:00.000Z"
+        }
+      ]
+    }
+  },
+  "exportedAt": "2026-10-19T00:00:00.000Z",
+  "version": "2.0.0"
+}
