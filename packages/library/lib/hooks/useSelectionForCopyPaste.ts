@@ -27,6 +27,9 @@ import { emitBesserError } from "@/services/errors"
  */
 let copiedPayload: ClipboardData | null = null
 
+/** Gap between a selection and its Ctrl+D copy. */
+const DUPLICATE_GAP_PX = 40
+
 const isClipboardData = (value: unknown): value is ClipboardData =>
   !!value &&
   Array.isArray((value as ClipboardData).nodes) &&
@@ -239,11 +242,28 @@ export const useSelectionForCopyPaste = () => {
     [storeApi, diagramType, setNodes, setEdges, setSelectedElementsId, t]
   )
 
-  /** Ctrl+D: pastes a copy of the selection without touching the clipboard. */
+  /**
+   * Ctrl+D: pastes a copy of the selection without touching the clipboard,
+   * just right of the selection so it does not cover the original.
+   */
   const duplicateSelectedElements = useCallback(
     async (pasteCount: number = 1) => {
       const data = selectionPayload()
-      return data ? pasteElements(pasteCount, undefined, data) : false
+      if (!data) return false
+      const ids = new Set(data.nodes.map((n) => n.id))
+      const roots = data.nodes.filter((n) => !n.parentId || !ids.has(n.parentId))
+      if (roots.length === 0) return pasteElements(pasteCount, undefined, data)
+      const w = (n: Node) => n.width ?? n.measured?.width ?? 0
+      const h = (n: Node) => n.height ?? n.measured?.height ?? 0
+      const minX = Math.min(...roots.map((n) => n.position.x))
+      const maxX = Math.max(...roots.map((n) => n.position.x + w(n)))
+      const minY = Math.min(...roots.map((n) => n.position.y))
+      const maxY = Math.max(...roots.map((n) => n.position.y + h(n)))
+      const anchor = {
+        x: (minX + maxX) / 2 + (maxX - minX) + DUPLICATE_GAP_PX,
+        y: (minY + maxY) / 2,
+      }
+      return pasteElements(pasteCount, anchor, data)
     },
     [selectionPayload, pasteElements]
   )

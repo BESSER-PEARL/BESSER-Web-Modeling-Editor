@@ -169,3 +169,22 @@ describe("initial agent state on paste", () => {
     expect((target.diagram.getState().nodes[0].data as { initial?: boolean }).initial).toBe(true)
   })
 })
+
+describe("duplicate placement", () => {
+  // Live: Ctrl+D put the copy 20 px from the original, on top of it.
+  it("places the copy clear of the original", async () => {
+    const { diagram, api } = mountEditor(UMLDiagramType.ClassDiagram, [node("Book", "class")])
+    select(diagram, ["Book"])
+    await act(async () => {
+      await api.current.duplicateSelectedElements(1)
+    })
+    const [original, copy] = diagram.getState().nodes
+    expect(diagram.getState().nodes).toHaveLength(2)
+    const overlaps =
+      copy.position.x < original.position.x + 160 &&
+      original.position.x < copy.position.x + 160 &&
+      copy.position.y < original.position.y + 100 &&
+      original.position.y < copy.position.y + 100
+    expect(overlaps).toBe(false)
+  })
+})
