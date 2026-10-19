@@ -217,7 +217,8 @@ export async function validateDiagram(
           }
         });
       }
-      return { isValid: false, errors: errorData.errors || ['Validation failed'] };
+      // The backend reports model errors with a 200, so any non-2xx is the check failing.
+      return { isValid: false, errors: errorData.errors || ['Validation failed'], checkFailed: true };
     }
     
     const result = await response.json();
