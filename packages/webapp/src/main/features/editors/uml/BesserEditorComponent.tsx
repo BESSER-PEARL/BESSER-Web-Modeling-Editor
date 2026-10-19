@@ -369,6 +369,11 @@ export const BesserEditorComponent: React.FC = () => {
         return;
       }
 
+      // Library notices meant for the user; the other kinds are internal warnings.
+      nextEditor.subscribeToBesserErrors((err) => {
+        if (err.kind === 'pasteRefused') toast.info(err.message, { toastId: 'paste-refused' });
+      });
+
       // Load diagram model if available (only UML models)
       if (currentDiagram?.model && isUMLModel(currentDiagram.model)) {
         nextEditor.model = currentDiagram.model;

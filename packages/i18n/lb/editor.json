@@ -1096,7 +1096,8 @@
     "delete": "Läschen",
     "addConnectedObject": "Verbonnent Objet derbäisetzen",
     "swapEnds": "Enner tauschen",
-    "style": "Stil"
+    "style": "Stil",
+    "pasteRefusedOtherType": "Elementer, déi aus engem aneren Diagrammtyp kopéiert goufen, kënnen hei net agefüügt ginn."
   },
   "zoomPane": {
     "zoomIn": "Vergréisseren",

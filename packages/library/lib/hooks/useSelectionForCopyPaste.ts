@@ -17,6 +17,8 @@ import {
 } from "@/utils/copyPasteUtils"
 import { centerPastedOn, withUniqueCopyNames } from "@/utils/elementNaming"
 import { CANVAS } from "@/constants"
+import { useTranslation } from "@/i18n"
+import { emitBesserError } from "@/services/errors"
 
 /**
  * Last copied / cut payload. Paste falls back to it when the system
@@ -98,6 +100,7 @@ export const useSelectionForCopyPaste = () => {
       }))
     )
   const diagramType = useMetadataStore((state) => state.diagramType)
+  const { t } = useTranslation()
   // Live state in the callbacks keeps them stable across drag frames.
   const storeApi = useDiagramStoreApi()
 
@@ -155,6 +158,10 @@ export const useSelectionForCopyPaste = () => {
           log.warn(
             `Paste refused: copied from a ${clipboardData.diagramType}, not a ${diagramType}`
           )
+          emitBesserError({
+            kind: "pasteRefused",
+            message: t("actions.pasteRefusedOtherType"),
+          })
           return false
         }
 
@@ -229,7 +236,7 @@ export const useSelectionForCopyPaste = () => {
         return false
       }
     },
-    [storeApi, diagramType, setNodes, setEdges, setSelectedElementsId]
+    [storeApi, diagramType, setNodes, setEdges, setSelectedElementsId, t]
   )
 
   /** Ctrl+D: pastes a copy of the selection without touching the clipboard. */

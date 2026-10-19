@@ -8,7 +8,7 @@ import { workspaceReducer, type WorkspaceState } from '../../../../app/store/wor
 import { BesserEditorProvider } from '../besser-editor-context';
 import { BesserEditorComponent } from '../BesserEditorComponent';
 
-const created: Array<{ options: Record<string, unknown> }> = [];
+const created: Array<{ options: Record<string, unknown>; errorListeners: Array<(e: unknown) => void> }> = [];
 
 vi.mock('@besser/wme', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@besser/wme')>();
@@ -18,8 +18,13 @@ vi.mock('@besser/wme', async (importOriginal) => {
     constructor(_container: HTMLElement, public options: Record<string, unknown>) {
       created.push(this);
     }
+    errorListeners: Array<(e: unknown) => void> = [];
     subscribeToModelChange() {
       return 1;
+    }
+    subscribeToBesserErrors(callback: (e: unknown) => void) {
+      this.errorListeners.push(callback);
+      return 2;
     }
     unsubscribeFromModelChange() {}
     setAgentDiagramLinker() {}
@@ -31,8 +36,14 @@ vi.mock('@besser/wme', async (importOriginal) => {
 });
 
 const toastError = vi.fn();
+const toastInfo = vi.fn();
 vi.mock('react-toastify', () => ({
-  toast: { error: (...a: unknown[]) => toastError(...a), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
+  toast: {
+    error: (...a: unknown[]) => toastError(...a),
+    warning: vi.fn(),
+    success: vi.fn(),
+    info: (...a: unknown[]) => toastInfo(...a),
+  },
 }));
 
 const mount = (model: unknown) => {
@@ -63,6 +74,7 @@ describe('BesserEditorComponent with a v3 model that failed to migrate', () => {
   afterEach(() => {
     created.length = 0;
     toastError.mockClear();
+    toastInfo.mockClear();
   });
 
   it('opens the editor read-only and names the diagram in an error toast', async () => {
@@ -101,5 +113,17 @@ describe('BesserEditorComponent with a v3 model that failed to migrate', () => {
     expect(created[0].options.readonly).toBeFalsy();
     expect(toastError).not.toHaveBeenCalled();
     expect(screen.queryByTestId('legacy-diagram-notice')).toBeNull();
+  });
+
+  // Live: a cross-type paste was refused silently.
+  it('shows one toast for the library paste-refused notice and none for internal warnings', async () => {
+    mount({ version: '4.0.0', id: '', title: '', type: 'ClassDiagram', nodes: [], edges: [], assessments: {} });
+    await waitFor(() => expect(created[0]?.errorListeners).toHaveLength(1));
+
+    created[0].errorListeners[0]({ kind: 'pasteRefused', message: 'Cannot paste here.' });
+    created[0].errorListeners[0]({ kind: 'diagramBridge.extractClasses', message: 'Malformed payload' });
+
+    expect(toastInfo).toHaveBeenCalledTimes(1);
+    expect(toastInfo.mock.calls[0][0]).toBe('Cannot paste here.');
   });
 });

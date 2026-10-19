@@ -1096,7 +1096,8 @@
     "delete": "Delete",
     "addConnectedObject": "Add connected object",
     "swapEnds": "Swap ends",
-    "style": "Style"
+    "style": "Style",
+    "pasteRefusedOtherType": "Elements copied from another diagram type can't be pasted here."
   },
   "zoomPane": {
     "zoomIn": "Zoom in",

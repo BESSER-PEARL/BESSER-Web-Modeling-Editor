@@ -15,6 +15,7 @@ import { createMetadataStore } from "@/store/metadataStore"
 import { createPopoverStore } from "@/store/popoverStore"
 import { useSelectionForCopyPaste } from "@/hooks/useSelectionForCopyPaste"
 import { UMLDiagramType } from "@/types"
+import { addBesserErrorListener, type BesserError } from "@/services/errors"
 
 type CopyPaste = ReturnType<typeof useSelectionForCopyPaste>
 
@@ -81,6 +82,25 @@ describe("cross-diagram paste", () => {
     })
     expect(pasted).toBe(false)
     expect(target.diagram.getState().nodes.map((n) => n.type)).toEqual(["State"])
+  })
+
+  // Live: the refusal was silent, so the paste looked broken.
+  it("tells the user why a cross-type paste was refused", async () => {
+    const source = mountEditor(UMLDiagramType.ClassDiagram, [node("Book", "class")])
+    select(source.diagram, ["Book"])
+    await act(async () => {
+      await source.api.current.copySelectedElements()
+    })
+    const target = mountEditor(UMLDiagramType.StateMachineDiagram, [])
+    const notices: BesserError[] = []
+    const stop = addBesserErrorListener((e) => notices.push(e))
+    await act(async () => {
+      await target.api.current.pasteElements(1)
+    })
+    stop()
+    expect(notices).toEqual([
+      { kind: "pasteRefused", message: "Elements copied from another diagram type can't be pasted here." },
+    ])
   })
 
   it("refuses a foreign payload read from the system clipboard (another tab)", async () => {

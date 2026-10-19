@@ -1096,7 +1096,8 @@
     "delete": "Supprimer",
     "addConnectedObject": "Ajouter un objet connecté",
     "swapEnds": "Inverser les extrémités",
-    "style": "Style"
+    "style": "Style",
+    "pasteRefusedOtherType": "Les éléments copiés depuis un autre type de diagramme ne peuvent pas être collés ici."
   },
   "zoomPane": {
     "zoomIn": "Zoom avant",

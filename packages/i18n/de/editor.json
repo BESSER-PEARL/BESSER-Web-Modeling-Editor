@@ -1096,7 +1096,8 @@
     "delete": "Löschen",
     "addConnectedObject": "Verbundenes Objekt hinzufügen",
     "swapEnds": "Enden tauschen",
-    "style": "Stil"
+    "style": "Stil",
+    "pasteRefusedOtherType": "Elemente aus einem anderen Diagrammtyp können hier nicht eingefügt werden."
   },
   "zoomPane": {
     "zoomIn": "Vergrößern",

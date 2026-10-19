@@ -1096,7 +1096,8 @@
     "delete": "Elimina",
     "addConnectedObject": "Afegeix un objecte connectat",
     "swapEnds": "Intercanvia els extrems",
-    "style": "Estil"
+    "style": "Estil",
+    "pasteRefusedOtherType": "Els elements copiats d'un altre tipus de diagrama no es poden enganxar aquí."
   },
   "zoomPane": {
     "zoomIn": "Apropa",
