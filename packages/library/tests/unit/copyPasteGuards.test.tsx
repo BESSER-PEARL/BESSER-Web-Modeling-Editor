@@ -115,3 +115,37 @@ describe("cross-diagram paste", () => {
     expect(target.diagram.getState().nodes.map((n) => n.type)).toEqual(["class"])
   })
 })
+
+describe("initial agent state on paste", () => {
+  // Review finding: duplicating the initial AgentState left two states with
+  // `data.initial: true`, while the inspector treats the flag as single-select.
+  it("clears `initial` on the copy when the diagram already has one", async () => {
+    const { diagram, api } = mountEditor(UMLDiagramType.AgentDiagram, [
+      node("Start", "AgentState", { initial: true }),
+    ])
+    select(diagram, ["Start"])
+    await act(async () => {
+      await api.current.duplicateSelectedElements(1)
+    })
+    const initials = diagram
+      .getState()
+      .nodes.filter((n) => (n.data as { initial?: boolean }).initial === true)
+    expect(initials.map((n) => n.id)).toEqual(["Start"])
+    expect(diagram.getState().nodes).toHaveLength(2)
+  })
+
+  it("keeps `initial` when pasting into a diagram without an initial state", async () => {
+    const source = mountEditor(UMLDiagramType.AgentDiagram, [
+      node("Start", "AgentState", { initial: true }),
+    ])
+    select(source.diagram, ["Start"])
+    await act(async () => {
+      await source.api.current.copySelectedElements()
+    })
+    const target = mountEditor(UMLDiagramType.AgentDiagram, [])
+    await act(async () => {
+      await target.api.current.pasteElements(1)
+    })
+    expect((target.diagram.getState().nodes[0].data as { initial?: boolean }).initial).toBe(true)
+  })
+})
