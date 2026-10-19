@@ -1,8 +1,8 @@
 /**
  * BPMN Diagram Converter
  * Converts a simplified BPMN process spec (nodes + flows, optionally grouped
- * into pools/lanes) emitted by the modeling agent into the Apollon
- * BPMNDiagram model.
+ * into pools/lanes, plus data objects linked to nodes as inputs or outputs)
+ * emitted by the modeling agent into the Apollon BPMNDiagram model.
  *
  * Agentic task / gateway / lane fields are kept when the spec supplies them;
  * the converter never infers agentic semantics on its own. Output shape
@@ -49,6 +49,18 @@ interface SpecFlow {
   source?: string; // node id
   target?: string; // node id
   name?: string; // optional edge label (branch condition)
+  isDataAssociation?: boolean; // set here for data-object links, never by the agent
+}
+
+interface SpecDataObject {
+  id?: string;
+  name?: string;
+}
+
+interface SpecDataAssociation {
+  dataObject?: string; // data object id
+  node?: string; // id of the node that reads or produces it
+  direction?: string; // 'input' | 'output'
 }
 
 interface SpecLane {
@@ -86,6 +98,8 @@ const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/b
 const EVENT_SIZE = 40;
 const TASK_W = 140;
 const TASK_H = 60;
+const DATA_W = 40; // matches the editor's BPMNDataObject preview
+const DATA_H = 60;
 
 // Pool/lane geometry constants matching the editor's own BPMNPool/BPMNSwimlane
 // classes (packages/editor/.../bpmn-pool/bpmn-pool.ts) and the reference
@@ -144,10 +158,64 @@ export class BPMNDiagramConverter implements DiagramConverter {
     // line up visually across pools/lanes, matching the reference templates. ---
     const layerOf = this.computeLayers(nodes, flows);
 
+    // Data objects join the layout after layering, so they never shift the
+    // process columns.
+    const { dataNodes, dataFlows } = this.collectDataObjects(systemSpec, nodes, layerOf);
+    const allNodes = [...nodes, ...dataNodes];
+    const allFlows = [...flows, ...dataFlows];
+
     if (pools.length === 0) {
-      return this.layoutFlat(nodes, flows, layerOf);
+      return this.layoutFlat(allNodes, allFlows, layerOf);
     }
-    return this.layoutWithPools(nodes, flows, pools, layerOf);
+    return this.layoutWithPools(allNodes, allFlows, pools, layerOf);
+  }
+
+  /**
+   * Turns `dataObjects` + `dataAssociations` into layout nodes and data
+   * association flows. A data object takes the column, pool and lane of the
+   * first node it is linked to, so it is stacked below that node.
+   */
+  private collectDataObjects(
+    systemSpec: any,
+    nodes: StableNode[],
+    layerOf: Record<string, number>,
+  ): { dataNodes: StableNode[]; dataFlows: SpecFlow[] } {
+    const rawObjects: SpecDataObject[] = Array.isArray(systemSpec?.dataObjects) ? systemSpec.dataObjects : [];
+    const rawAssociations: SpecDataAssociation[] = Array.isArray(systemSpec?.dataAssociations)
+      ? systemSpec.dataAssociations
+      : [];
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+    const taken = new Set(nodes.map((n) => n.id));
+    const dataNodes: StableNode[] = [];
+    const dataFlows: SpecFlow[] = [];
+
+    rawObjects.forEach((obj) => {
+      const id = typeof obj.id === 'string' ? obj.id.trim() : '';
+      if (!id || taken.has(id)) return;
+      taken.add(id);
+      const links = rawAssociations.filter(
+        (a) => a.dataObject === id && typeof a.node === 'string' && nodeById.has(a.node),
+      );
+      const anchor = links.length ? nodeById.get(String(links[0].node)) : undefined;
+      layerOf[id] = anchor ? (layerOf[anchor.id] ?? 0) : 0;
+      dataNodes.push({
+        id,
+        name: typeof obj.name === 'string' ? obj.name : '',
+        type: 'dataObject',
+        poolId: anchor?.poolId,
+        laneId: anchor?.laneId,
+      });
+      links.forEach((a) => {
+        const isInput = a.direction !== 'output';
+        dataFlows.push({
+          source: isInput ? id : a.node,
+          target: isInput ? a.node : id,
+          name: '',
+          isDataAssociation: true,
+        });
+      });
+    });
+    return { dataNodes, dataFlows };
   }
 
   // ------------------------------------------------------------------
@@ -384,8 +452,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
   ): void {
     const apollonType = this.normalizeType(n.type);
     const isTask = apollonType === 'BPMNTask';
-    const w = isTask ? TASK_W : EVENT_SIZE;
-    const h = isTask ? TASK_H : EVENT_SIZE;
+    const isData = apollonType === 'BPMNDataObject';
+    const w = isTask ? TASK_W : isData ? DATA_W : EVENT_SIZE;
+    const h = isTask ? TASK_H : isData ? DATA_H : EVENT_SIZE;
     const apollonId = generateUniqueId('bpmn');
     idMap[n.id] = apollonId;
 
@@ -423,6 +492,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
           ? { governanceDsl: n.governanceDsl }
           : {}),
       };
+    } else if (isData) {
+      elements[apollonId] = base;
     } else {
       // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
       const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';
@@ -453,8 +524,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
     const relId = generateUniqueId('flow');
     let { sourceDir, targetDir } = this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
 
-    let flowType: 'sequence' | 'message' = 'sequence';
-    if (poolIndexOf) {
+    let flowType: 'sequence' | 'message' | 'data association' = f.isDataAssociation ? 'data association' : 'sequence';
+    if (poolIndexOf && !f.isDataAssociation) {
       const sPool = poolIndexOf[String(f.source)];
       const tPool = poolIndexOf[String(f.target)];
       if (sPool !== undefined && tPool !== undefined && sPool !== tPool) {
@@ -507,6 +578,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     if (t === 'endevent' || t === 'end' || t === 'endnode') return 'BPMNEndEvent';
     if (t === 'intermediateevent' || t === 'intermediate') return 'BPMNIntermediateEvent';
     if (t === 'gateway' || t === 'gate') return 'BPMNGateway';
+    if (t === 'dataobject') return 'BPMNDataObject';
     return 'BPMNTask'; // default: any unrecognized node is a task
   }
 

@@ -408,3 +408,134 @@ describe('BPMNDiagramModifier', () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Data objects (BESSER-PEARL/BESSER#627): inputs a task uses / outputs it
+// produces used to be dropped because neither the spec nor the modifier had a
+// way to carry them.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('BPMN data objects', () => {
+  const converter = new BPMNDiagramConverter();
+  const modifier = new BPMNDiagramModifier();
+
+  const battery = {
+    nodes: [
+      { id: 'start', type: 'startEvent', name: 'Cell production started' },
+      { id: 'mixing', type: 'task', name: 'Mixing' },
+      { id: 'coating', type: 'task', name: 'Coating' },
+      { id: 'end', type: 'endEvent', name: 'Cell ready' },
+    ],
+    flows: [
+      { source: 'start', target: 'mixing' },
+      { source: 'mixing', target: 'coating' },
+      { source: 'coating', target: 'end' },
+    ],
+    dataObjects: [
+      { id: 'binder', name: 'Binder' },
+      { id: 'solvent', name: 'Solvent' },
+      { id: 'slurry', name: 'Slurry' },
+      { id: 'notes', name: 'Process Notes' },
+    ],
+    dataAssociations: [
+      { dataObject: 'binder', node: 'mixing', direction: 'input' },
+      { dataObject: 'solvent', node: 'mixing', direction: 'input' },
+      { dataObject: 'slurry', node: 'mixing', direction: 'output' },
+      { dataObject: 'slurry', node: 'coating', direction: 'input' },
+    ],
+  };
+
+  function byName(model: BESSERModel, name: string): any {
+    return Object.values(model.elements).find((el: any) => el.name === name);
+  }
+
+  it('emits a BPMNDataObject per data object, including unlinked ones', () => {
+    const result = converter.convertCompleteSystem(battery);
+    const dataObjects = elementsByType(result, 'BPMNDataObject') as any[];
+    expect(dataObjects.map((d) => d.name).sort()).toEqual(['Binder', 'Process Notes', 'Slurry', 'Solvent']);
+    expect(dataObjects[0].bounds.width).toBe(40);
+    expect(dataObjects[0].bounds.height).toBe(60);
+  });
+
+  it('links them with data associations in the right direction', () => {
+    const result = converter.convertCompleteSystem(battery);
+    const flows = Object.values(result.relationships) as any[];
+    const data = flows.filter((f) => f.flowType === 'data association');
+    expect(flows.filter((f) => f.flowType === 'sequence')).toHaveLength(3);
+    expect(data).toHaveLength(4);
+
+    const mixing = byName(result, 'Mixing').id;
+    const binder = byName(result, 'Binder').id;
+    const slurry = byName(result, 'Slurry').id;
+    const pairs = data.map((f) => [f.source.element, f.target.element]);
+    expect(pairs).toContainEqual([binder, mixing]); // input: data object -> task
+    expect(pairs).toContainEqual([mixing, slurry]); // output: task -> data object
+  });
+
+  it('stacks a data object in the column of the task it belongs to', () => {
+    const result = converter.convertCompleteSystem(battery);
+    const mixing = byName(result, 'Mixing');
+    const binder = byName(result, 'Binder');
+    const coating = byName(result, 'Coating');
+    expect(binder.bounds.x).toBe(mixing.bounds.x);
+    expect(binder.bounds.y).toBeGreaterThan(mixing.bounds.y);
+    // Data objects do not push the process to extra columns.
+    expect(coating.bounds.x - mixing.bounds.x).toBe(220);
+  });
+
+  it('places a data object in the lane of its task', () => {
+    const result = converter.convertCompleteSystem({
+      nodes: [
+        { id: 'take', type: 'task', name: 'Take Order', poolId: 'shop', laneId: 'clerk' },
+        { id: 'bake', type: 'task', name: 'Bake Pizza', poolId: 'shop', laneId: 'chef' },
+      ],
+      flows: [{ source: 'take', target: 'bake' }],
+      pools: [{ id: 'shop', name: 'Shop', lanes: [{ id: 'clerk', name: 'Clerk' }, { id: 'chef', name: 'Chef' }] }],
+      dataObjects: [{ id: 'recipe', name: 'Recipe' }],
+      dataAssociations: [{ dataObject: 'recipe', node: 'bake', direction: 'input' }],
+    });
+    const chef = byName(result, 'Chef');
+    const recipe = byName(result, 'Recipe');
+    expect(recipe.bounds.y).toBeGreaterThanOrEqual(chef.bounds.y);
+    expect(recipe.bounds.y + recipe.bounds.height).toBeLessThanOrEqual(chef.bounds.y + chef.bounds.height);
+    const flow = (Object.values(result.relationships) as any[]).find((f) => f.source.element === recipe.id);
+    expect(flow.flowType).toBe('data association');
+  });
+
+  it('add_data_object creates a data object that add_flow links as a data association', () => {
+    let model = makeEmptyBPMNModel();
+    model.elements['task1'] = {
+      id: 'task1',
+      type: 'BPMNTask',
+      name: 'Mixing',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 140, height: 60 },
+      taskType: 'default',
+      marker: 'none',
+    };
+    model = modifier.applyModification(model, { action: 'add_data_object', target: { nodeName: 'Binder' }, changes: {} });
+    model = modifier.applyModification(model, {
+      action: 'add_flow',
+      target: {},
+      changes: { source: 'Binder', target: 'task1' },
+    });
+    model = modifier.applyModification(model, { action: 'add_data_object', target: { nodeName: 'Slurry' }, changes: {} });
+    model = modifier.applyModification(model, {
+      action: 'add_flow',
+      target: {},
+      changes: { source: 'Mixing', target: 'Slurry' },
+    });
+
+    const binder = byName(model, 'Binder');
+    expect(binder.type).toBe('BPMNDataObject');
+    const flows = Object.values(model.relationships) as any[];
+    expect(flows).toHaveLength(2);
+    expect(flows.every((f) => f.flowType === 'data association')).toBe(true);
+    expect(flows[0].source.element).toBe(binder.id);
+    expect(flows[1].target.element).toBe(byName(model, 'Slurry').id);
+  });
+
+  it('canHandle add_data_object', () => {
+    expect(modifier.canHandle('add_data_object')).toBe(true);
+  });
+});

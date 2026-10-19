@@ -20,7 +20,10 @@ const BPMN_NODE_TYPES = [
   'BPMNCallActivity',
   'BPMNSubprocess',
   'BPMNTransaction',
+  'BPMNDataObject',
+  'BPMNDataStore',
 ];
+const DATA_ELEMENT_TYPES = new Set(['BPMNDataObject', 'BPMNDataStore']);
 const EVENT_ELEMENT_TYPES = new Set(['BPMNStartEvent', 'BPMNEndEvent', 'BPMNIntermediateEvent']);
 const TASK_TYPES = new Set(['default', 'user', 'service', 'send', 'receive', 'manual', 'business-rule', 'script']);
 const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-based', 'complex']);
@@ -59,6 +62,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
       'add_task',
       'add_gateway',
       'add_event',
+      'add_data_object',
       'add_flow',
       'modify_node',
       'remove_flow',
@@ -82,6 +86,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
         return this.addGateway(updated, modification);
       case 'add_event':
         return this.addEvent(updated, modification);
+      case 'add_data_object':
+        return this.addDataObject(updated, modification);
       case 'add_flow':
         return this.addFlow(updated, modification);
       case 'modify_node':
@@ -204,6 +210,19 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  private addDataObject(model: BESSERModel, m: ModelModification): BESSERModel {
+    const { x, y } = this.nextPosition(model);
+    const id = m.target.nodeId || ModifierHelpers.generateUniqueId('bpmn');
+    model.elements[id] = {
+      id,
+      type: 'BPMNDataObject',
+      name: m.target.nodeName || m.changes.name || '',
+      owner: this.ownerLane(model, m.changes.owner),
+      bounds: { x, y, width: 40, height: 60 },
+    };
+    return model;
+  }
+
   private addFlow(model: BESSERModel, m: ModelModification): BESSERModel {
     const sourceId = this.resolveNode(model, m.changes.source);
     const targetId = this.resolveNode(model, m.changes.target);
@@ -211,12 +230,18 @@ export class BPMNDiagramModifier implements DiagramModifier {
       throw new Error('Could not locate source or target node for the BPMN flow.');
     }
 
-    // The model agent never provides flowType. Infer ordinary BPMN sequence/message
-    // rendering from the actual WME ownership hierarchy instead.
+    // The model agent never provides flowType. A data object or store at either
+    // end makes it a data association; otherwise infer sequence/message from
+    // the actual WME ownership hierarchy.
+    const isDataAssociation = (
+      DATA_ELEMENT_TYPES.has((model.elements[sourceId] as BPMNNodeRecord).type)
+      || DATA_ELEMENT_TYPES.has((model.elements[targetId] as BPMNNodeRecord).type)
+    );
     const sourcePoolId = this.findOwningPoolForNode(model, sourceId);
     const targetPoolId = this.findOwningPoolForNode(model, targetId);
     const isCrossPool = (
-      sourcePoolId !== null
+      !isDataAssociation
+      && sourcePoolId !== null
       && targetPoolId !== null
       && sourcePoolId !== targetPoolId
     );
@@ -247,7 +272,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
       source: { element: sourceId, direction: sourceDirection },
       target: { element: targetId, direction: targetDirection },
       isManuallyLayouted: false,
-      flowType: isCrossPool ? 'message' : 'sequence',
+      flowType: isDataAssociation ? 'data association' : isCrossPool ? 'message' : 'sequence',
       isDefault: false,
     };
     return model;
