@@ -687,8 +687,10 @@ const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
  * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
  * because their models are not UMLModels.
  *
- * A diagram that throws keeps its v3 model, and the next load retries it: the
- * lift is decided per model, not by `schemaVersion`. The 5 stamp below does
+ * A diagram that throws keeps its v3 model, and the next page load retries it:
+ * the lift is decided per model, not by `schemaVersion`. Within a page load a
+ * failed diagram (same id and lastUpdate) is not retried, since loadProject
+ * runs on most renders. The 5 stamp below does
  * not gate that retry (`ensureProjectMigrated` stamps 6 regardless). The
  * editor opens a v3 diagram read-only and `updateDiagramModelThunk` refuses to
  * overwrite it. Failures and skipped malformed entries are logged with the
@@ -697,6 +699,9 @@ const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
  * Derived diagrams that were in sync with a lifted source are restamped with
  * the source's v4 hash, so the lift itself does not read as "source changed".
  */
+/** `${id}@${lastUpdate}` of diagrams whose lift failed in this page load. */
+const failedV3Lifts = new Set<string>();
+
 export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
   // No early return on `schemaVersion >= 5`: whether a diagram needs the
   // lift is decided per model (`isV3UMLModel` — `version` "3.x" or an
@@ -711,6 +716,11 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
     const diagrams = project.diagrams[type] ?? [];
     for (const d of diagrams) {
       if (d.model && isV3UMLModel(d.model)) {
+        const liftKey = `${d.id}@${d.lastUpdate}`;
+        if (failedV3Lifts.has(liftKey)) {
+          allSucceeded = false;
+          continue;
+        }
         const warnings: string[] = [];
         try {
           const legacyHash = hashLegacyV3Model(d.model);
@@ -719,9 +729,10 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
         } catch (err) {
           // Keep v3 model in place on failure.
           allSucceeded = false;
+          failedV3Lifts.add(liftKey);
           // eslint-disable-next-line no-console
           console.warn(
-            `[migrateProjectToV5] Failed to migrate diagram "${d.title}" (${type}, id=${d.id}); it stays v3 (read-only) and the next load retries.`,
+            `[migrateProjectToV5] Failed to migrate diagram "${d.title}" (${type}, id=${d.id}); it stays v3 (read-only) and the next page load retries.`,
             err,
           );
         }

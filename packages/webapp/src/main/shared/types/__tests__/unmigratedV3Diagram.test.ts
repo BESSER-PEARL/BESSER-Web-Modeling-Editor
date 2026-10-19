@@ -16,12 +16,16 @@ import { useModelInjection } from '../../../features/assistant/hooks/useModelInj
 
 // A v3 model marked `failMe` makes the migrator throw, standing in for any
 // v3 data the converter still cannot lift.
+const failedAttempts = vi.hoisted(() => ({ count: 0 }));
 vi.mock('../../services/storage/migrate-uml-v3-to-v4', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services/storage/migrate-uml-v3-to-v4')>();
   return {
     ...actual,
     migrateUMLModelV3ToV4: (model: any, ...rest: any[]) => {
-      if (model?.failMe) throw new Error('cannot migrate');
+      if (model?.failMe) {
+        failedAttempts.count += 1;
+        throw new Error('cannot migrate');
+      }
       return (actual.migrateUMLModelV3ToV4 as any)(model, ...rest);
     },
   };
@@ -192,5 +196,22 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
     const diagram = getActiveDiagram(project, 'ClassDiagram')!;
     diagram.model = { ...v3ClassModel(), elements: {}, relationships: {} } as any;
     expect(diagramHasContent(diagram)).toBe(false);
+  });
+
+  // Live: ~1,000 identical "Failed to migrate" warnings in 2 s, because every
+  // loadProject (called on most renders) retried the same failing diagram.
+  it('a failing diagram is attempted and logged once per session, not on every load', () => {
+    const project = projectWithV3Class();
+    localStorage.setItem(`besser_project_${project.id}`, JSON.stringify(project));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    failedAttempts.count = 0;
+
+    for (let i = 0; i < 50; i++) {
+      const loaded = ProjectStorageRepository.loadProject(project.id)!;
+      expect((getActiveDiagram(loaded, 'ClassDiagram')!.model as any).elements).toBeDefined();
+    }
+
+    expect(failedAttempts.count).toBe(1);
+    expect(warn.mock.calls.filter(([m]) => String(m).includes('Failed to migrate'))).toHaveLength(1);
   });
 });
