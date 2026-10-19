@@ -472,15 +472,39 @@ describe('BPMN data objects', () => {
     expect(pairs).toContainEqual([mixing, slurry]); // output: task -> data object
   });
 
-  it('stacks a data object in the column of the task it belongs to', () => {
+  it('puts a task\'s data objects side by side in a row centered under it', () => {
     const result = converter.convertCompleteSystem(battery);
-    const mixing = byName(result, 'Mixing');
-    const binder = byName(result, 'Binder');
-    const coating = byName(result, 'Coating');
-    expect(binder.bounds.x).toBe(mixing.bounds.x);
-    expect(binder.bounds.y).toBeGreaterThan(mixing.bounds.y);
-    // Data objects do not push the process to extra columns.
-    expect(coating.bounds.x - mixing.bounds.x).toBe(220);
+    const mixing = byName(result, 'Mixing').bounds;
+    const row = ['Binder', 'Solvent', 'Slurry'].map((n) => byName(result, n).bounds);
+    expect(new Set(row.map((b) => b.y)).size).toBe(1);
+    expect(row[0].y).toBeGreaterThanOrEqual(mixing.y + mixing.height);
+    const left = Math.min(...row.map((b) => b.x));
+    const right = Math.max(...row.map((b) => b.x + b.width));
+    expect((left + right) / 2).toBeCloseTo(mixing.x + mixing.width / 2);
+    // Labels (twice the shape width, centered) of neighbours must not overlap.
+    const xs = row.map((b) => b.x).sort((a, b) => a - b);
+    expect(xs[1] - xs[0]).toBeGreaterThanOrEqual(80);
+    // The next task still sits to the right, clear of the row.
+    expect(byName(result, 'Coating').bounds.x).toBeGreaterThan(right);
+  });
+
+  it('staggers a second row so its associations pass between the first row', () => {
+    const result = converter.convertCompleteSystem({
+      nodes: [{ id: 'mixing', type: 'task', name: 'Mixing' }],
+      flows: [],
+      dataObjects: ['A', 'B', 'C', 'D'].map((n) => ({ id: n, name: n })),
+      dataAssociations: ['A', 'B', 'C', 'D'].map((n) => ({ dataObject: n, node: 'mixing', direction: 'input' })),
+    });
+    const first = ['A', 'B', 'C'].map((n) => byName(result, n).bounds);
+    const d = byName(result, 'D').bounds;
+    expect(d.y).toBeGreaterThan(first[0].y);
+    const centre = d.x + d.width / 2;
+    expect(first.every((b) => centre < b.x || centre > b.x + b.width)).toBe(true);
+  });
+
+  it('leaves the layout of a process without data objects unchanged', () => {
+    const result = converter.convertCompleteSystem({ nodes: battery.nodes, flows: battery.flows });
+    expect(byName(result, 'Coating').bounds.x - byName(result, 'Mixing').bounds.x).toBe(220);
   });
 
   it('places a data object in the lane of its task', () => {

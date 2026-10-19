@@ -50,6 +50,7 @@ interface SpecFlow {
   target?: string; // node id
   name?: string; // optional edge label (branch condition)
   isDataAssociation?: boolean; // set here for data-object links, never by the agent
+  dataObjectIsSource?: boolean; // input association: data object -> node
 }
 
 interface SpecDataObject {
@@ -80,6 +81,14 @@ interface SpecPool {
 }
 
 type StableNode = SpecNode & { id: string };
+type DataPlan = {
+  objects: Array<{ id: string; name: string; anchor?: string }>;
+  flows: SpecFlow[];
+  /** Vertical distance between node rows: ROW_GAP plus room for data objects. */
+  rowGap: number;
+  /** Horizontal distance between layers: COL_GAP, wider when a data row needs it. */
+  colGap: number;
+};
 type Pool = {
   id: string;
   name: string;
@@ -100,6 +109,12 @@ const TASK_W = 140;
 const TASK_H = 60;
 const DATA_W = 40; // matches the editor's BPMNDataObject preview
 const DATA_H = 60;
+const DATA_GAP = 30; // between a node and the row of its data objects
+// The editor wraps a data object's name at twice its width, centered under it.
+const DATA_LABEL_W = 2 * DATA_W;
+const DATA_PITCH = DATA_LABEL_W; // labels of neighbours touch but never overlap
+const DATA_ROW_GAP = 50; // a two-line label under each row
+const DATA_PER_ROW = 3;
 
 // Pool/lane geometry constants matching the editor's own BPMNPool/BPMNSwimlane
 // classes (packages/editor/.../bpmn-pool/bpmn-pool.ts) and the reference
@@ -158,71 +173,109 @@ export class BPMNDiagramConverter implements DiagramConverter {
     // line up visually across pools/lanes, matching the reference templates. ---
     const layerOf = this.computeLayers(nodes, flows);
 
-    // Data objects join the layout after layering, so they never shift the
-    // process columns.
-    const { dataNodes, dataFlows } = this.collectDataObjects(systemSpec, nodes, layerOf);
-    const allNodes = [...nodes, ...dataNodes];
-    const allFlows = [...flows, ...dataFlows];
+    const data = this.collectDataObjects(systemSpec, nodes);
 
     if (pools.length === 0) {
-      return this.layoutFlat(allNodes, allFlows, layerOf);
+      return this.layoutFlat(nodes, flows, layerOf, data);
     }
-    return this.layoutWithPools(allNodes, allFlows, pools, layerOf);
+    return this.layoutWithPools(nodes, flows, pools, layerOf, data);
   }
 
   /**
-   * Turns `dataObjects` + `dataAssociations` into layout nodes and data
-   * association flows. A data object takes the column, pool and lane of the
-   * first node it is linked to, so it is stacked below that node.
+   * Reads `dataObjects` + `dataAssociations`. Each data object is anchored to
+   * the first node it is linked to and is placed under it once the process
+   * is laid out (see placeDataObjects); the rows are spaced to leave room.
    */
-  private collectDataObjects(
-    systemSpec: any,
-    nodes: StableNode[],
-    layerOf: Record<string, number>,
-  ): { dataNodes: StableNode[]; dataFlows: SpecFlow[] } {
+  private collectDataObjects(systemSpec: any, nodes: StableNode[]): DataPlan {
     const rawObjects: SpecDataObject[] = Array.isArray(systemSpec?.dataObjects) ? systemSpec.dataObjects : [];
     const rawAssociations: SpecDataAssociation[] = Array.isArray(systemSpec?.dataAssociations)
       ? systemSpec.dataAssociations
       : [];
-    const nodeById = new Map(nodes.map((n) => [n.id, n]));
-    const taken = new Set(nodes.map((n) => n.id));
-    const dataNodes: StableNode[] = [];
-    const dataFlows: SpecFlow[] = [];
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const taken = new Set(nodeIds);
+    const objects: DataPlan['objects'] = [];
+    const flows: SpecFlow[] = [];
+    const perAnchor: Record<string, number> = {};
 
     rawObjects.forEach((obj) => {
       const id = typeof obj.id === 'string' ? obj.id.trim() : '';
       if (!id || taken.has(id)) return;
       taken.add(id);
       const links = rawAssociations.filter(
-        (a) => a.dataObject === id && typeof a.node === 'string' && nodeById.has(a.node),
+        (a) => a.dataObject === id && typeof a.node === 'string' && nodeIds.has(a.node),
       );
-      const anchor = links.length ? nodeById.get(String(links[0].node)) : undefined;
-      layerOf[id] = anchor ? (layerOf[anchor.id] ?? 0) : 0;
-      dataNodes.push({
-        id,
-        name: typeof obj.name === 'string' ? obj.name : '',
-        type: 'dataObject',
-        poolId: anchor?.poolId,
-        laneId: anchor?.laneId,
-      });
+      const anchor = links.length ? String(links[0].node) : undefined;
+      if (anchor) perAnchor[anchor] = (perAnchor[anchor] ?? 0) + 1;
+      objects.push({ id, name: typeof obj.name === 'string' ? obj.name : '', anchor });
       links.forEach((a) => {
         const isInput = a.direction !== 'output';
-        dataFlows.push({
+        flows.push({
           source: isInput ? id : a.node,
           target: isInput ? a.node : id,
           name: '',
           isDataAssociation: true,
+          dataObjectIsSource: isInput,
         });
       });
     });
-    return { dataNodes, dataFlows };
+
+    const most = Math.max(0, ...Object.values(perAnchor));
+    const dataRows = Math.ceil(most / DATA_PER_ROW);
+    const rowGap = dataRows ? ROW_GAP + DATA_GAP + dataRows * (DATA_H + DATA_ROW_GAP) : ROW_GAP;
+    // Widest data row plus half a pitch for a staggered second row, and a margin.
+    const rowSpan = Math.min(most, DATA_PER_ROW) * DATA_PITCH + (dataRows > 1 ? DATA_PITCH / 2 : 0);
+    const colGap = Math.max(COL_GAP, rowSpan + 40);
+    return { objects, flows, rowGap, colGap };
+  }
+
+  /**
+   * Places each node's data objects in rows centered under it; unlinked ones
+   * go below everything. Every other row is shifted by half a pitch so its
+   * associations pass between the data objects above instead of through them.
+   */
+  private placeDataObjects(data: DataPlan, elements: Record<string, any>, idMap: Record<string, string>): void {
+    if (!data.objects.length) return;
+    const groups = new Map<string, DataPlan['objects']>();
+    data.objects.forEach((obj) => {
+      const key = obj.anchor && idMap[obj.anchor] ? obj.anchor : '';
+      groups.set(key, [...(groups.get(key) ?? []), obj]);
+    });
+    const placed = Object.values(elements).map((el) => el.bounds);
+    const left = Math.min(...placed.map((b) => b.x));
+    const bottom = Math.max(...placed.map((b) => b.y + b.height));
+
+    groups.forEach((objs, anchorId) => {
+      const anchor = anchorId ? elements[idMap[anchorId]] : undefined;
+      const top = anchor ? anchor.bounds.y + anchor.bounds.height + DATA_GAP : bottom + DATA_GAP;
+      objs.forEach((obj, i) => {
+        const row = Math.floor(i / DATA_PER_ROW);
+        const inRow = Math.min(DATA_PER_ROW, objs.length - row * DATA_PER_ROW);
+        const rowWidth = (inRow - 1) * DATA_PITCH + DATA_W;
+        const stagger = row % 2 ? DATA_PITCH / 2 : 0;
+        const rowLeft = (anchor ? anchor.bounds.x + (anchor.bounds.width - rowWidth) / 2 : left) + stagger;
+        const apollonId = generateUniqueId('bpmn');
+        idMap[obj.id] = apollonId;
+        elements[apollonId] = {
+          id: apollonId,
+          name: obj.name,
+          type: 'BPMNDataObject',
+          owner: anchor?.owner ?? null,
+          bounds: {
+            x: rowLeft + (i % DATA_PER_ROW) * DATA_PITCH,
+            y: top + row * (DATA_H + DATA_ROW_GAP),
+            width: DATA_W,
+            height: DATA_H,
+          },
+        };
+      });
+    });
   }
 
   // ------------------------------------------------------------------
   // Flat process (no pools) — original algorithm, unchanged.
   // ------------------------------------------------------------------
 
-  private layoutFlat(nodes: StableNode[], flows: SpecFlow[], layerOf: Record<string, number>) {
+  private layoutFlat(nodes: StableNode[], flows: SpecFlow[], layerOf: Record<string, number>, data: DataPlan) {
     const elements: Record<string, any> = {};
     const relationships: Record<string, any> = {};
     const idMap: Record<string, string> = {}; // spec id -> apollon id
@@ -236,12 +289,13 @@ export class BPMNDiagramConverter implements DiagramConverter {
     nodes.forEach((n) => {
       const layer = layerOf[n.id] ?? 0;
       const row = byLayer[layer].indexOf(n.id);
-      const x = layer * COL_GAP;
-      const y = row * ROW_GAP;
+      const x = layer * data.colGap;
+      const y = row * data.rowGap;
       this.emitNodeElement(n, x, y, elements, idMap);
     });
+    this.placeDataObjects(data, elements, idMap);
 
-    flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
+    [...flows, ...data.flows].forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
 
     // --- Center the content on the origin (0,0) ---
     centerElementsOnOrigin(elements);
@@ -255,8 +309,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       version: '3.0.0',
       type: 'BPMNDiagram',
       size: {
-        width: Math.max(600, (maxLayer + 1) * COL_GAP),
-        height: Math.max(320, maxRows * ROW_GAP),
+        width: Math.max(600, (maxLayer + 1) * data.colGap),
+        height: Math.max(320, maxRows * data.rowGap),
       },
       interactive: { elements: {}, relationships: {} },
       elements,
@@ -269,7 +323,13 @@ export class BPMNDiagramConverter implements DiagramConverter {
   // Collaboration diagram (pools/lanes present).
   // ------------------------------------------------------------------
 
-  private layoutWithPools(nodes: StableNode[], flows: SpecFlow[], pools: Pool[], layerOf: Record<string, number>) {
+  private layoutWithPools(
+    nodes: StableNode[],
+    flows: SpecFlow[],
+    pools: Pool[],
+    layerOf: Record<string, number>,
+    data: DataPlan,
+  ) {
     const elements: Record<string, any> = {};
     const relationships: Record<string, any> = {};
     const idMap: Record<string, string> = {}; // spec id -> apollon id
@@ -333,8 +393,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
     // --- Column width shared by every pool so they visually align ---
     const layerValues = Object.values(layerOf);
     const maxLayer = layerValues.length ? Math.max(...layerValues) : 0;
-    const contentWidth = (maxLayer + 1) * COL_GAP;
-    const poolWidth = Math.max(400, POOL_HEADER_WIDTH + contentWidth + COL_GAP / 2);
+    const contentWidth = (maxLayer + 1) * data.colGap;
+    const poolWidth = Math.max(400, POOL_HEADER_WIDTH + contentWidth + data.colGap / 2);
 
     // --- Stack pools top-to-bottom; lanes stack top-to-bottom within a pool ---
     let cursorY = 0;
@@ -346,7 +406,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       let laneCursorY = poolY;
       bands.forEach((band) => {
         const rows = maxRowsOf[band.key] || 1;
-        const bandHeight = Math.max(BAND_MIN_HEIGHT, rows * ROW_GAP + BAND_V_PADDING * 2);
+        const bandHeight = Math.max(BAND_MIN_HEIGHT, rows * data.rowGap + BAND_V_PADDING * 2);
         bandOriginY[band.key] = laneCursorY;
         laneCursorY += bandHeight;
       });
@@ -374,7 +434,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
             x: POOL_HEADER_WIDTH,
             y: bandOriginY[band.key],
             width: poolWidth - POOL_HEADER_WIDTH,
-            height: Math.max(BAND_MIN_HEIGHT, (maxRowsOf[band.key] || 1) * ROW_GAP + BAND_V_PADDING * 2),
+            height: Math.max(BAND_MIN_HEIGHT, (maxRowsOf[band.key] || 1) * data.rowGap + BAND_V_PADDING * 2),
           },
           isAgentic: lane.isAgentic === true,
           role: lane.role,
@@ -416,8 +476,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const layer = layerOf[n.id] ?? 0;
       const bandY = bandOriginY[bandKeyOf[n.id]] ?? 0;
       const row = rowOf[n.id] ?? 0;
-      const x = POOL_HEADER_WIDTH + layer * COL_GAP;
-      const y = bandY + BAND_V_PADDING + row * ROW_GAP;
+      const x = POOL_HEADER_WIDTH + layer * data.colGap;
+      const y = bandY + BAND_V_PADDING + row * data.rowGap;
       const owner = n.poolId && n.laneId ? laneIdMap[`${n.poolId}::${n.laneId}`] ?? null : null;
       const reviewerLaneId = resolveLaneRef(n.reflectionReviewerLaneId, n.poolId);
       this.emitNodeElement(n, x, y, elements, idMap, owner, reviewerLaneId);
@@ -431,7 +491,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const L = layerOf[n.id] ?? 0;
       (byLayer[L] ||= []).push(n.id);
     });
-    flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships, poolIndexOf));
+    this.placeDataObjects(data, elements, idMap);
+    [...flows, ...data.flows].forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships, poolIndexOf));
 
     return this.finalizeModel(elements, relationships);
   }
@@ -452,9 +513,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
   ): void {
     const apollonType = this.normalizeType(n.type);
     const isTask = apollonType === 'BPMNTask';
-    const isData = apollonType === 'BPMNDataObject';
-    const w = isTask ? TASK_W : isData ? DATA_W : EVENT_SIZE;
-    const h = isTask ? TASK_H : isData ? DATA_H : EVENT_SIZE;
+    const w = isTask ? TASK_W : EVENT_SIZE;
+    const h = isTask ? TASK_H : EVENT_SIZE;
     const apollonId = generateUniqueId('bpmn');
     idMap[n.id] = apollonId;
 
@@ -492,8 +552,6 @@ export class BPMNDiagramConverter implements DiagramConverter {
           ? { governanceDsl: n.governanceDsl }
           : {}),
       };
-    } else if (isData) {
-      elements[apollonId] = base;
     } else {
       // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
       const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';
@@ -522,7 +580,11 @@ export class BPMNDiagramConverter implements DiagramConverter {
     if (!sourceId || !targetId) return; // skip dangling refs
 
     const relId = generateUniqueId('flow');
-    let { sourceDir, targetDir } = this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
+    let { sourceDir, targetDir } = f.isDataAssociation
+      ? f.dataObjectIsSource
+        ? { sourceDir: 'Up', targetDir: 'Down' }
+        : { sourceDir: 'Down', targetDir: 'Up' }
+      : this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
 
     let flowType: 'sequence' | 'message' | 'data association' = f.isDataAssociation ? 'data association' : 'sequence';
     if (poolIndexOf && !f.isDataAssociation) {
@@ -578,7 +640,6 @@ export class BPMNDiagramConverter implements DiagramConverter {
     if (t === 'endevent' || t === 'end' || t === 'endnode') return 'BPMNEndEvent';
     if (t === 'intermediateevent' || t === 'intermediate') return 'BPMNIntermediateEvent';
     if (t === 'gateway' || t === 'gate') return 'BPMNGateway';
-    if (t === 'dataobject') return 'BPMNDataObject';
     return 'BPMNTask'; // default: any unrecognized node is a task
   }
 
