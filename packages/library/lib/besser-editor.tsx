@@ -19,6 +19,7 @@ import {
 import { computeAutoLayout, type AutoLayoutOptions } from "./utils/autoLayout"
 import { normalizeAgentComponents } from "./utils/agentComponents"
 import { hardenImportedModel } from "./utils/importHardening"
+import { liftClassOCLConstraintRows } from "./utils/oclConstraintRows"
 import { createOffscreenExportContainer } from "./utils/exportContainer"
 import { inlineSvgImages, snapshotLightPalette } from "./utils/exportUtils"
 import { UMLDiagramType } from "./types"
@@ -365,7 +366,7 @@ export class BesserEditor {
     // crashed the old editor's SVG export).
     // Same contract-neutral load hardening as `set model`.
     model = normalizeAgentComponents(
-      normalizeV4Model(hardenImportedModel(model))
+      liftClassOCLConstraintRows(normalizeV4Model(hardenImportedModel(model)))
     )
     diagramStore.getState().setNodesAndEdges(model.nodes, model.edges)
     diagramStore.getState().setAssessments(model.assessments)
@@ -696,7 +697,7 @@ export class BesserEditor {
     // / resizing flags, guard edges with null `data` or missing `points`)
     // so the normalizers below never dereference a malformed edge.
     const normalized = this.prepareAgentModel(
-      normalizeV4Model(hardenImportedModel(model))
+      liftClassOCLConstraintRows(normalizeV4Model(hardenImportedModel(model)))
     )
     const { nodes, edges, assessments, interactive } = normalized
 
@@ -722,7 +723,7 @@ export class BesserEditor {
    */
   public applyModel(model: Besser.UMLModel): void {
     const normalized = this.prepareAgentModel(
-      normalizeV4Model(hardenImportedModel(model))
+      liftClassOCLConstraintRows(normalizeV4Model(hardenImportedModel(model)))
     )
     const { nodes, edges, assessments, interactive } = normalized
     const state = this.diagramStore.getState()
