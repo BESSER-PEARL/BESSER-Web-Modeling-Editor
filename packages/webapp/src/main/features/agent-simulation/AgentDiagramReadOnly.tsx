@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BesserEditor, BesserMode, UMLDiagramType, type UMLModel } from '@besser/wme';
 import { Bot, ChevronDown, ChevronUp } from 'lucide-react';
@@ -120,6 +120,29 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     return entries;
   }, [stdoutLines]);
 
+  // Push the latest state + transition highlight into the editor (once it is ready).
+  const applyHighlight = useCallback(() => {
+    const editor = editorRef.current;
+    const model = diagramRef.current?.model;
+    if (!isReadyRef.current || !editor || !model || !isUMLModel(model)) return;
+    const state = currentStateRef.current;
+
+    if (prevCurrentStateRef.current !== state) {
+      activeTransitionIdRef.current = findTransitionEdgeId(model, prevCurrentStateRef.current, state);
+      prevCurrentStateRef.current = state;
+    }
+    const activeTransitionId = activeTransitionIdRef.current;
+    editor.model = buildHighlightedModel(model, state, activeTransitionId);
+    const stateId = findStateNodeId(model, state);
+    if (stateId) editor.fitToElements([stateId]);
+
+    if (styleElRef.current) {
+      styleElRef.current.textContent = activeTransitionId
+        ? `.react-flow__edge[data-id="${CSS.escape(activeTransitionId)}"] { filter: drop-shadow(0 0 4px ${ACTIVE_TRANSITION_STROKE}cc); }`
+        : '';
+    }
+  }, []);
+
   // Create a read-only React Flow editor on mount (readonly hides the palette; no popups).
   useEffect(() => {
     if (!containerRef.current) return;
@@ -142,6 +165,11 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     void editor.ready.then(() => {
       if (editorRef.current !== editor) return;
       isReadyRef.current = true;
+      // Updates that arrived while the editor was loading were skipped.
+      if (currentStateRef.current !== initState || diagramRef.current?.model !== origModel) {
+        applyHighlight();
+        return;
+      }
       // Bring the initial state into view, as develop's scrollToState did.
       const stateId = umlModel && initState ? findStateNodeId(umlModel, initState) : null;
       if (stateId) editor.fitToElements([stateId]);
@@ -174,25 +202,8 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
 
   // Update state + transition highlight when the current state (or the diagram) changes.
   useEffect(() => {
-    if (!isReadyRef.current || !editorRef.current) return;
-    const model = diagram?.model;
-    if (!model || !isUMLModel(model)) return;
-
-    if (prevCurrentStateRef.current !== currentState) {
-      activeTransitionIdRef.current = findTransitionEdgeId(model, prevCurrentStateRef.current, currentState);
-      prevCurrentStateRef.current = currentState;
-    }
-    const activeTransitionId = activeTransitionIdRef.current;
-    editorRef.current.model = buildHighlightedModel(model, currentState, activeTransitionId);
-    const stateId = findStateNodeId(model, currentState);
-    if (stateId) editorRef.current.fitToElements([stateId]);
-
-    if (styleElRef.current) {
-      styleElRef.current.textContent = activeTransitionId
-        ? `.react-flow__edge[data-id="${CSS.escape(activeTransitionId)}"] { filter: drop-shadow(0 0 4px ${ACTIVE_TRANSITION_STROKE}cc); }`
-        : '';
-    }
-  }, [currentState, diagram]);
+    applyHighlight();
+  }, [currentState, diagram, applyHighlight]);
 
   const hasModel = diagram?.model && isUMLModel(diagram.model);
 
