@@ -3,6 +3,7 @@ import {
   convertV3ToV4,
   migrateBpmnDiagramV3ToV4,
   migrateClassDiagramV3ToV4,
+  migrateStateMachineDiagramV3ToV4,
 } from "@/utils/versionConverter"
 
 type Row = Record<string, unknown>
@@ -135,4 +136,33 @@ describe("per-type migrators take the expected type", () => {
     expect(v4.type).toBe("BPMNDiagram")
     expect(warnings).toEqual([])
   })
+})
+
+// Live (V3Malformed import): a state whose `bodies` was the string "x" threw
+// "orderedIds.forEach is not a function" and failed the whole diagram.
+describe("non-array child-id lists", () => {
+  it.each(["bodies", "fallbackBodies", "attributes", "methods"])(
+    "a non-array %s is dropped with a warning, the rest converts",
+    (field) => {
+      const model = {
+        version: "3.0.0",
+        type: "StateMachineDiagram",
+        size: { width: 800, height: 600 },
+        interactive: { elements: {}, relationships: {} },
+        assessments: {},
+        elements: {
+          s1: {
+            id: "s1", name: "Red", type: "State", owner: null,
+            bounds: { x: 0, y: 0, width: 160, height: 100 },
+            [field]: "x",
+          },
+        },
+        relationships: {},
+      }
+      const warnings: string[] = []
+      const v4 = migrateStateMachineDiagramV3ToV4(toV3(model as never), { warnings })
+      expect(v4.nodes.map((n) => (n.data as { name?: string }).name)).toEqual(["Red"])
+      expect(warnings.join(" ")).toContain(field)
+    }
+  )
 })

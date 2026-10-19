@@ -2729,6 +2729,9 @@ export type V3ConversionOptions = {
   warnings?: string[]
 }
 
+/** Element fields that hold ordered child ids. */
+const CHILD_ID_LISTS = ["attributes", "methods", "bodies", "fallbackBodies"] as const
+
 /**
  * Drop the entries a v3 table can hold that no converter step can read
  * (null rows, rows without a `type`, relationships without both ends, null
@@ -2752,8 +2755,16 @@ function sanitizeV3Model(
       warn(`Skipped element "${key}": not an element with a type.`)
       continue
     }
-    elements[key] =
+    let fixed = (
       typeof element.id === "string" ? element : { ...element, id: key }
+    ) as V3UMLElement & Record<string, unknown>
+    for (const field of CHILD_ID_LISTS) {
+      if (fixed[field] != null && !Array.isArray(fixed[field])) {
+        warn(`Dropped the invalid ${field} list of element "${key}".`)
+        fixed = { ...fixed, [field]: undefined }
+      }
+    }
+    elements[key] = fixed
   }
 
   const relationships: Record<string, V3UMLRelationship> = {}
