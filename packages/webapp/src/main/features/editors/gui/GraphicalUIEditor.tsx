@@ -25,6 +25,7 @@ import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import i18n from '@/main/shared/i18n';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
+import { READABILITY_FONT_STYLESHEETS } from '@/main/shared/utils/gui-personalization';
 
 // Personalization variant data lives on live GrapesJS page objects (set via
 // page.set(...) in setupPageSystem.ts). It must survive into the STORED GUI
@@ -469,7 +470,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
 
     showOffsets: true,
     canvas: {
-      styles: [],
+      styles: [...READABILITY_FONT_STYLESHEETS],
       scripts: [],
     },
   });

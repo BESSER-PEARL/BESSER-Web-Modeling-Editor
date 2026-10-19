@@ -1,6 +1,6 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
-import { isReadAloudVariant, setupGuiReadAloudControls } from './guiReadAloudControls';
+import { isReadAloudVariant, setPageReadAloud, setupGuiReadAloudControls } from './guiReadAloudControls';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
 import {
@@ -775,6 +775,11 @@ function updatePagesList(editor: Editor) {
               <path d="M12,12A4,4 0 1,0 8,8A4,4 0 0,0 12,12M12,14C9.33,14 4,15.33 4,18V20H20V18C20,15.33 14.67,14 12,14M19,8V5H17V8H14V10H17V13H19V10H22V8Z" />
             </svg>
           </button>
+          <button class="gjs-page-btn read-aloud-btn" title="${isReadAloudVariant(page) ? 'Disable' : 'Enable'} read aloud" aria-label="Toggle read aloud" aria-pressed="${isReadAloudVariant(page)}" style="${isReadAloudVariant(page) ? 'color:#1d4ed8;' : ''}">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M3,9V15H7L12,20V4L7,9M16.5,12A4.5,4.5 0 0,0 14,7.97V16.02C15.5,15.29 16.5,13.77 16.5,12M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23Z" />
+            </svg>
+          </button>
           ${variants.length > 0 ? `
           <select class="gjs-page-variants-select" title="Switch variant" aria-label="Switch variant" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
             <option value="">Base</option>
@@ -834,6 +839,26 @@ function updatePagesList(editor: Editor) {
         if (newPage) {
           editor.Pages.select(newPage);
         }
+        updatePagesList(editor);
+      });
+
+      // Read aloud toggle: works on the live canvas of Base or the active variant,
+      // regardless of any user model. Only the selected page has a mounted canvas.
+      item.querySelector('.read-aloud-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (editor.Pages.getSelected()?.getId() !== page.getId()) editor.Pages.select(page);
+        const enable = !isReadAloudVariant(page);
+        setPageReadAloud(page, enable);
+        const activeId = getActiveVariantId(page);
+        if (activeId) {
+          const all = getPageVariants(page);
+          const idx = all.findIndex((v) => v.id === activeId);
+          if (idx >= 0) {
+            all[idx] = { ...all[idx], readAloudEnabled: enable };
+            setPageVariants(page, all);
+          }
+        }
+        saveActiveLive(editor, page);
         updatePagesList(editor);
       });
 

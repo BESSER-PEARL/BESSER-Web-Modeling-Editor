@@ -3,9 +3,35 @@ import { requestGuiAudio } from './guiAudio';
 
 const CONTROL_ATTRIBUTE = 'data-besser-read-aloud-preview';
 
+const isMarked = (attrs: any) => attrs?.['data-besser-read-aloud'] === 'true' || attrs?.['data-besser-read-aloud'] === true;
+const isTextComponent = (component: any) =>
+  component.get?.('type') === 'text' || ['p', 'blockquote', 'article'].includes(String(component.get?.('tagName') ?? '').toLowerCase());
+
+/** True when the live canvas of the page carries at least one read-aloud marker. */
+function liveReadAloudRequested(page: any): boolean {
+  const visit = (component: any): boolean =>
+    isMarked(component.getAttributes?.()) || !!component.components?.()?.some?.(visit);
+  const main = page?.getMainComponent?.();
+  return !!main && visit(main);
+}
+
+/**
+ * Toggle read-aloud on the live canvas of a page (Base or active variant), independent of any
+ * user profile. Marks/unmarks text blocks with the same attribute personalization uses.
+ */
+export function setPageReadAloud(page: any, enabled: boolean) {
+  const visit = (component: any) => {
+    if (enabled && isTextComponent(component)) component.addAttributes?.({ 'data-besser-read-aloud': 'true' });
+    else if (!enabled && isMarked(component.getAttributes?.())) component.removeAttributes?.('data-besser-read-aloud');
+    component.components?.()?.forEach?.(visit);
+  };
+  const main = page?.getMainComponent?.();
+  if (main) visit(main);
+}
+
 export function isReadAloudVariant(page: any): boolean {
   const activeId = page?.get?.('besserActiveVariantId');
-  if (!activeId) return false;
+  if (!activeId) return liveReadAloudRequested(page);
   try {
     const raw = page.get('besserPageVariants');
     const variants = typeof raw === 'string' ? JSON.parse(raw) : raw;

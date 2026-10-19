@@ -60,7 +60,18 @@ const FONT_FAMILIES: Record<NonNullable<UserGuiPresentationSpec['font']>, string
   neutral: 'system-ui, sans-serif',
   grotesque: '"Helvetica Neue", Helvetica, Arial, sans-serif',
   condensed: '"Arial Narrow", "Roboto Condensed", sans-serif',
+  // Readability-oriented fonts; web fonts are loaded via READABILITY_FONT_STYLESHEETS.
+  hyperlegible: '"Atkinson Hyperlegible", Verdana, sans-serif',
+  lexend: 'Lexend, Verdana, sans-serif',
+  dyslexia: 'OpenDyslexic, "Comic Sans MS", Verdana, sans-serif',
+  verdana: 'Verdana, Tahoma, sans-serif',
 };
+
+/** Stylesheets providing the web fonts above (used by the GUI canvas). */
+export const READABILITY_FONT_STYLESHEETS = [
+  'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;700&display=swap',
+  'https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic/index.css',
+];
 
 const CONTRAST_PALETTES = {
   high: { color: '#000000', background: '#ffffff' },

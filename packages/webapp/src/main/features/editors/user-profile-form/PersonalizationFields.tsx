@@ -302,7 +302,7 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
                 onChange={(e) => patchPresentation({ font: (e.target.value || undefined) as UserPresentationSpec['font'] })}
               >
                 <option value="">none</option>
-                {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed'].map((f) => (
+                {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed', 'hyperlegible', 'lexend', 'dyslexia', 'verdana'].map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
