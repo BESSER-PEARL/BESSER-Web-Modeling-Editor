@@ -213,6 +213,9 @@ const createMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+/** The target is an unmigrated v3 diagram, which stays read-only. */
+class ReadOnlyDiagramError extends Error {}
+
 const toKitMessage = (
   role: 'user' | 'assistant',
   content: string,
@@ -483,7 +486,7 @@ export function useModelInjection({
           const title = currentProjectRef.current
             ? getActiveDiagram(currentProjectRef.current, targetDiagramType as SupportedDiagramType)?.title
             : undefined;
-          throw new Error(i18n.t('editors.legacyDiagram.saveRefused', { title: title ?? targetDiagramType }));
+          throw new ReadOnlyDiagramError(i18n.t('editors.legacyDiagram.saveRefused', { title: title ?? targetDiagramType }));
         }
         if (currentModel) {
           pushUndoSnapshot(currentModel, `Before ${command.action}`);
@@ -818,9 +821,11 @@ export function useModelInjection({
       setProgressMessage('');
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
+      // Rephrasing cannot help with a read-only diagram.
+      const advice = error instanceof ReadOnlyDiagramError ? '' : ' Try rephrasing your request.';
       const errMsg = toKitMessage(
         'assistant',
-        `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`,
+        `I wasn't able to apply that change \u2014 ${errorMessage.replace(/\.+$/, '')}.${advice}`,
         { isError: true },
       );
       setMessages((prev) => [...prev, errMsg]);

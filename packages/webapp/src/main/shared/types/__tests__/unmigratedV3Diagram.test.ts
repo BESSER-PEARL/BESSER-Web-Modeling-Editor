@@ -121,6 +121,7 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
       dispatched.push(action);
       return { unwrap: () => Promise.resolve(action) };
     });
+    const setMessages = vi.fn();
     const { result } = renderHook(() =>
       useModelInjection({
         dispatch: dispatch as any,
@@ -130,7 +131,7 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
         currentProjectRef: { current: project },
         currentDiagramTypeRef: { current: 'ClassDiagram' },
         switchDiagramRef: { current: () => Promise.resolve(true) },
-        setMessages: vi.fn(),
+        setMessages,
         setMessageMeta: vi.fn(),
         setProgressMessage: vi.fn(),
       }),
@@ -147,5 +148,15 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
 
     expect(dispatched).toEqual([]);
     expect(String(toastError.mock.calls[0]?.[0])).toContain('Library');
+    // Live: "cannot be changed.. Try rephrasing your request." Rephrasing
+    // cannot help with a read-only diagram.
+    const chat = setMessages.mock.calls
+      .map(([update]) => (typeof update === 'function' ? update([]) : update))
+      .flat()
+      .map((m: { content: string }) => m.content)
+      .join(' ');
+    expect(chat).toContain('Library');
+    expect(chat).not.toMatch(/\.\./);
+    expect(chat).not.toMatch(/rephras/i);
   });
 });
