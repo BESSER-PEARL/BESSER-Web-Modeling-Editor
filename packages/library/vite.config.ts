@@ -4,6 +4,9 @@ import dts from "vite-plugin-dts"
 import { resolve } from "path"
 
 export default defineConfig({
+  // Relative asset URLs: the ELK worker must resolve next to the consumer's
+  // copy of dist, not at the host origin's /assets/.
+  base: "./",
   // entryRoot pins the .d.ts layout to lib/: the translation bundles are
   // imported from ../i18n, which would otherwise widen the computed root.
   plugins: [react(), dts({ include: ["lib"], entryRoot: "lib" })],
