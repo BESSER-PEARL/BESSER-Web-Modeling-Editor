@@ -76,6 +76,22 @@ const markerLengths = (edge: Edge, erNotation: boolean): [number, number] => {
   return [endMarkerLength(start), endMarkerLength(end, !!assoc?.arrowBeforeEndMarker)]
 }
 
+/** Rects of the nodes being dragged, with their descendants; undefined when none. */
+const movingRects = (
+  nodes: readonly Node[],
+  rects: Map<string, LayoutRect>
+): LayoutRect[] | undefined => {
+  const parentOf = new Map(nodes.map((n) => [n.id, n.parentId]))
+  const dragged = new Set(nodes.filter((n) => n.dragging).map((n) => n.id))
+  if (dragged.size === 0) return undefined
+  const moves = (id: string | undefined, depth = 0): boolean =>
+    !!id && depth < 32 && (dragged.has(id) || moves(parentOf.get(id), depth + 1))
+  return nodes.flatMap((n) => {
+    const rect = rects.get(n.id)
+    return rect && moves(n.id) ? [rect] : []
+  })
+}
+
 export const computeFloatingLayout = (
   nodes: readonly Node[],
   edges: readonly Edge[],
@@ -121,7 +137,8 @@ export const computeFloatingLayout = (
       data: e.data as never,
     })),
     obstacles,
-    shapes
+    shapes,
+    movingRects(nodes, rects)
   )
   const er = !!options.erNotation
   const mult = (v: unknown) => {
