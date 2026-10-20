@@ -323,6 +323,8 @@ export function useModelInjection({
       const switched = await switchDiagramRef.current(targetType);
       if (!switched) return false;
       await waitForSwitchRender();
+      // Never write the model into whatever diagram happens to be open instead.
+      if (currentDiagramTypeRef.current !== targetType) return false;
     }
 
     // Step 2: switch to the specific tab if diagramId is provided

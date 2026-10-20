@@ -6,8 +6,8 @@
  *
  * Two action vocabularies are accepted:
  *   - the BPMN-specific one the modeling agent emits (`add_task`,
- *     `add_gateway`, `add_event`, `add_flow`, `modify_node`, `remove_flow`,
- *     `remove_element`) with `target.nodeId` / `target.nodeName` /
+ *     `add_gateway`, `add_event`, `add_data_object`, `add_flow`, `modify_node`,
+ *     `remove_flow`, `remove_element`) with `target.nodeId` / `target.nodeName` /
  *     `target.flowId`, and
  *   - the generic state-machine-style one (`add_state`, `modify_state`,
  *     `add_transition`, `remove_transition`) with `target.stateId` /
@@ -24,8 +24,9 @@
  * Node references may be a node id (the agent emits stable ids) or a display
  * name; an id hit always wins over a name match. Tasks, gateways, events and
  * the activity containers (call activity, sub-process, transaction) are all
- * valid flow endpoints; the flow subtype is resolved from its endpoints via
- * the library's `resolveBpmnEdgeType`.
+ * valid flow endpoints, and a flow to or from a data object or data store is a
+ * data association; the flow subtype is resolved from its endpoints via the
+ * library's `resolveBpmnEdgeType`.
  *
  * New nodes are placed to the right of existing content (BPMN reads
  * left-to-right); flows carry no route points, the editor routes them. A
@@ -54,7 +55,10 @@ const BPMN_NODE_TYPES = [
   'bpmnCallActivity',
   'bpmnSubprocess',
   'bpmnTransaction',
+  'bpmnDataObject',
+  'bpmnDataStore',
 ];
+const DATA_NODE_TYPES = new Set(['bpmnDataObject', 'bpmnDataStore']);
 const EVENT_NODE_TYPES = new Set(['bpmnStartEvent', 'bpmnEndEvent', 'bpmnIntermediateEvent']);
 const TASK_TYPES = new Set([
   'default', 'user', 'service', 'send', 'receive', 'manual', 'business-rule', 'businessRule', 'script',
@@ -64,6 +68,8 @@ const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-base
 const TASK_W = 140;
 const TASK_H = 60;
 const EVENT_SIZE = 40;
+const DATA_W = 40; // the editor's bpmnDataObject palette size
+const DATA_H = 60;
 const POOL_HEADER_WIDTH = 40;
 const POOL_GAP = 40;
 const LANE_HEIGHT = 150;
@@ -79,6 +85,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
       'add_task',
       'add_gateway',
       'add_event',
+      'add_data_object',
       'add_flow',
       'modify_node',
       'remove_flow',
@@ -106,6 +113,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
         return this.addGateway(updated, modification);
       case 'add_event':
         return this.addEvent(updated, modification);
+      case 'add_data_object':
+        return this.addDataObject(updated, modification);
       case 'add_state':
         return this.addNode(updated, modification);
       case 'add_flow':
@@ -236,8 +245,9 @@ export class BPMNDiagramModifier implements DiagramModifier {
     lane?: BesserNode,
   ): BesserNode {
     const isSmall = EVENT_NODE_TYPES.has(type) || type === 'bpmnGateway';
-    const width = isSmall ? EVENT_SIZE : TASK_W;
-    const height = isSmall ? EVENT_SIZE : TASK_H;
+    const isData = type === 'bpmnDataObject';
+    const width = isData ? DATA_W : isSmall ? EVENT_SIZE : TASK_W;
+    const height = isData ? DATA_H : isSmall ? EVENT_SIZE : TASK_H;
     const node: BesserNode = {
       id: this.newNodeId(model, proposedId),
       type: type as any,
@@ -339,6 +349,13 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  private addDataObject(model: BESSERModel, m: ModelModification): BESSERModel {
+    const name = m.target.nodeName || m.changes.name || '';
+    const lane = this.ownerLane(model, m.changes.owner);
+    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnDataObject', name, {}, m.target.nodeId, lane));
+    return model;
+  }
+
   /** Generic `add_state`: the BPMN node kind is inferred from `changes.stateType`. */
   private addNode(model: BESSERModel, m: ModelModification): BESSERModel {
     const changes = m.changes;
@@ -419,10 +436,13 @@ export class BPMNDiagramModifier implements DiagramModifier {
       throw new Error('Could not locate source or target node for the BPMN flow.');
     }
     const name = m.changes.label || m.changes.name || '';
-    // The agent never sends a flow kind: a flow across pools is a message flow.
+    // The agent never sends a flow kind: a flow to or from a data object or
+    // store is a data association, and any other flow across pools is a
+    // message flow.
+    const isDataAssociation = DATA_NODE_TYPES.has(source.type) || DATA_NODE_TYPES.has(target.type);
     const sourcePool = this.owningPool(model, source);
     const targetPool = this.owningPool(model, target);
-    const crossPool = !!sourcePool && !!targetPool && sourcePool.id !== targetPool.id;
+    const crossPool = !isDataAssociation && !!sourcePool && !!targetPool && sourcePool.id !== targetPool.id;
     const downward = crossPool && (sourcePool.position?.y || 0) <= (targetPool.position?.y || 0);
     const edge: BesserEdge = {
       id: ModifierHelpers.generateUniqueId('flow'),

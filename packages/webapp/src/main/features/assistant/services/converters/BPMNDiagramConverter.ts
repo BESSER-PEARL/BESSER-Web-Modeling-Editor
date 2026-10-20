@@ -2,8 +2,8 @@
  * BPMN Diagram Converter (v4-native)
  *
  * Converts a simplified BPMN process spec (nodes + flows, optionally grouped
- * into pools/lanes) emitted by the modeling agent straight into the canonical
- * v4 shape ({ version: '4.0.0', type: 'BPMNDiagram', nodes[], edges[] }).
+ * into pools/lanes, plus data objects linked to nodes as inputs or outputs)
+ * emitted by the modeling agent straight into the canonical v4 shape ({ version: '4.0.0', type: 'BPMNDiagram', nodes[], edges[] }).
  *
  * Re-targets develop's v3 (elements/relationships) BPMNDiagramConverter to the
  * React-Flow migration's v4 nodes/edges:
@@ -59,6 +59,19 @@ interface SpecFlow {
   target?: string; // node id
   name?: string; // optional edge label (branch condition)
   isDefault?: boolean; // default sequence flow marker
+  isDataAssociation?: boolean; // set here for data-object links, never by the agent
+  dataObjectIsSource?: boolean; // input association: data object -> node
+}
+
+interface SpecDataObject {
+  id?: string;
+  name?: string;
+}
+
+interface SpecDataAssociation {
+  dataObject?: string; // data object id
+  node?: string; // id of the node that reads or produces it
+  direction?: string; // 'input' | 'output'
 }
 
 interface SpecLane extends BpmnAgenticSpec {
@@ -74,12 +87,32 @@ interface SpecPool {
 
 type StableNode = SpecNode & { id: string };
 type Pool = { id: string; name: string; lanes: Array<SpecLane & { id: string; name: string }> };
+type DataPlan = {
+  objects: Array<{ id: string; name: string; anchor?: string }>;
+  flows: SpecFlow[];
+  /** Vertical distance between node rows: ROW_GAP plus room for data objects. */
+  rowGap: number;
+  /** Horizontal distance between layers: COL_GAP, wider when a data row needs it. */
+  colGap: number;
+};
+/** The node a band's flow nodes are parented to, with its canvas origin. */
+type BandParent = { id: string; absX: number; absY: number; lane?: { type: string; data: Record<string, unknown> } };
+/** A laid-out flow node in canvas coordinates, with the parent it was placed in. */
+type Placement = { x: number; y: number; width: number; height: number; parent?: BandParent };
 
 const COL_GAP = 220; // horizontal distance between layers
 const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/band
 const EVENT_SIZE = 40;
 const TASK_W = 140;
 const TASK_H = 60;
+const DATA_W = 40; // matches the editor's bpmnDataObject palette preview
+const DATA_H = 60;
+const DATA_GAP = 30; // between a node and the row of its data objects
+// The editor wraps a data object's name at twice its width, centered under it.
+const DATA_LABEL_W = 2 * DATA_W;
+const DATA_PITCH = DATA_LABEL_W; // labels of neighbours touch but never overlap
+const DATA_ROW_GAP = 50; // a two-line label under each row
+const DATA_PER_ROW = 3;
 
 // Pool/lane geometry constants (mirrors develop's converter + the reference
 // templates) so the first paint looks like a hand-laid-out diagram.
@@ -102,7 +135,7 @@ function sizeForType(type: string): { width: number; height: number } {
     case 'bpmnGateway':
       return { width: EVENT_SIZE, height: EVENT_SIZE };
     case 'bpmnDataObject':
-      return { width: 40, height: 50 };
+      return { width: DATA_W, height: DATA_H };
     case 'bpmnDataStore':
       return { width: 50, height: 50 };
     case 'bpmnAnnotation':
@@ -173,10 +206,12 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     const layerOf = this.computeLayers(nodes, flows);
 
+    const data = this.collectDataObjects(systemSpec, nodes);
+
     if (pools.length === 0) {
-      this.layoutFlat(nodes, flows, layerOf, model);
+      this.layoutFlat(nodes, flows, layerOf, model, data);
     } else {
-      this.layoutWithPools(nodes, flows, pools, layerOf, model);
+      this.layoutWithPools(nodes, flows, pools, layerOf, model, data);
     }
 
     // Expanded once every flow exists: the DSL lists the block's agent lanes.
@@ -184,6 +219,104 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     centerNodesOnOrigin(model);
     return model;
+  }
+
+  /**
+   * Reads `dataObjects` + `dataAssociations`. Each data object is anchored to
+   * the first node it is linked to and is placed under it once the process
+   * is laid out (see placeDataObjects); the rows are spaced to leave room.
+   */
+  private collectDataObjects(systemSpec: any, nodes: StableNode[]): DataPlan {
+    const rawObjects: SpecDataObject[] = Array.isArray(systemSpec?.dataObjects) ? systemSpec.dataObjects : [];
+    const rawAssociations: SpecDataAssociation[] = Array.isArray(systemSpec?.dataAssociations)
+      ? systemSpec.dataAssociations
+      : [];
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const taken = new Set(nodeIds);
+    const objects: DataPlan['objects'] = [];
+    const flows: SpecFlow[] = [];
+    const perAnchor: Record<string, number> = {};
+
+    rawObjects.forEach((obj) => {
+      const id = typeof obj.id === 'string' ? obj.id.trim() : '';
+      if (!id || taken.has(id)) return;
+      taken.add(id);
+      const links = rawAssociations.filter(
+        (a) => a.dataObject === id && typeof a.node === 'string' && nodeIds.has(a.node),
+      );
+      const anchor = links.length ? String(links[0].node) : undefined;
+      if (anchor) perAnchor[anchor] = (perAnchor[anchor] ?? 0) + 1;
+      objects.push({ id, name: typeof obj.name === 'string' ? obj.name : '', anchor });
+      links.forEach((a) => {
+        const isInput = a.direction !== 'output';
+        flows.push({
+          source: isInput ? id : a.node,
+          target: isInput ? a.node : id,
+          name: '',
+          isDataAssociation: true,
+          dataObjectIsSource: isInput,
+        });
+      });
+    });
+
+    const most = Math.max(0, ...Object.values(perAnchor));
+    const dataRows = Math.ceil(most / DATA_PER_ROW);
+    const rowGap = dataRows ? ROW_GAP + DATA_GAP + dataRows * (DATA_H + DATA_ROW_GAP) : ROW_GAP;
+    // Widest data row plus half a pitch for a staggered second row, and a margin.
+    const rowSpan = Math.min(most, DATA_PER_ROW) * DATA_PITCH + (dataRows > 1 ? DATA_PITCH / 2 : 0);
+    const colGap = Math.max(COL_GAP, rowSpan + 40);
+    return { objects, flows, rowGap, colGap };
+  }
+
+  /**
+   * Places each node's data objects in rows centered under it, in the same
+   * lane or pool; unlinked ones go below everything. Every other row is
+   * shifted by half a pitch so its associations pass between the data objects
+   * above instead of through them.
+   */
+  private placeDataObjects(
+    data: DataPlan,
+    placed: Record<string, Placement>,
+    idMap: Record<string, string>,
+    typeMap: Record<string, string>,
+    model: Record<string, any>,
+  ): void {
+    if (!data.objects.length) return;
+    const groups = new Map<string, DataPlan['objects']>();
+    data.objects.forEach((obj) => {
+      const key = obj.anchor && placed[obj.anchor] ? obj.anchor : '';
+      groups.set(key, [...(groups.get(key) ?? []), obj]);
+    });
+    // Top-level nodes (pools, or the flow nodes of a flat process) bound the layout.
+    const topLevel: BesserNode[] = model.nodes.filter((n: BesserNode) => !n.parentId);
+    const left = Math.min(...topLevel.map((n) => n.position.x));
+    const bottom = Math.max(...topLevel.map((n) => n.position.y + (n.height ?? 0)));
+
+    groups.forEach((objs, anchorId) => {
+      const anchor = anchorId ? placed[anchorId] : undefined;
+      const top = anchor ? anchor.y + anchor.height + DATA_GAP : bottom + DATA_GAP;
+      objs.forEach((obj, i) => {
+        const row = Math.floor(i / DATA_PER_ROW);
+        const inRow = Math.min(DATA_PER_ROW, objs.length - row * DATA_PER_ROW);
+        const rowWidth = (inRow - 1) * DATA_PITCH + DATA_W;
+        const stagger = row % 2 ? DATA_PITCH / 2 : 0;
+        const rowLeft = (anchor ? anchor.x + (anchor.width - rowWidth) / 2 : left) + stagger;
+        const absX = rowLeft + (i % DATA_PER_ROW) * DATA_PITCH;
+        const absY = top + row * (DATA_H + DATA_ROW_GAP);
+        const nodeId = generateUniqueId('bpmn');
+        idMap[obj.id] = nodeId;
+        typeMap[obj.id] = 'bpmnDataObject';
+        const parent = anchor?.parent?.id ? anchor.parent : undefined;
+        if (parent) {
+          const relative = clampIntoLaneBody({ x: absX - parent.absX, y: absY - parent.absY }, parent.lane);
+          const node = this.buildNode(nodeId, 'bpmnDataObject', obj.name, relative.x, relative.y, {});
+          node.parentId = parent.id;
+          model.nodes.push(node);
+        } else {
+          model.nodes.push(this.buildNode(nodeId, 'bpmnDataObject', obj.name, absX, absY, {}));
+        }
+      });
+    });
   }
 
   // ------------------------------------------------------------------
@@ -195,9 +328,11 @@ export class BPMNDiagramConverter implements DiagramConverter {
     flows: SpecFlow[],
     layerOf: Record<string, number>,
     model: Record<string, any>,
+    data: DataPlan,
   ): void {
     const idMap: Record<string, string> = {}; // spec id -> node id
     const typeMap: Record<string, string> = {}; // spec id -> v4 node type
+    const placed: Record<string, Placement> = {};
 
     const byLayer: Record<number, string[]> = {};
     nodes.forEach((n) => {
@@ -208,16 +343,19 @@ export class BPMNDiagramConverter implements DiagramConverter {
     nodes.forEach((n) => {
       const layer = layerOf[n.id] ?? 0;
       const row = byLayer[layer].indexOf(n.id);
-      const x = layer * COL_GAP;
-      const y = row * ROW_GAP;
+      const x = layer * data.colGap;
+      const y = row * data.rowGap;
       const type = this.normalizeType(n.type);
       const nodeId = generateUniqueId('bpmn');
       idMap[n.id] = nodeId;
       typeMap[n.id] = type;
-      model.nodes.push(this.buildNode(nodeId, type, n.name ?? '', x, y, n));
+      const node = this.buildNode(nodeId, type, n.name ?? '', x, y, n);
+      model.nodes.push(node);
+      placed[n.id] = { x, y, width: node.width ?? 0, height: node.height ?? 0 };
     });
+    this.placeDataObjects(data, placed, idMap, typeMap, model);
 
-    flows.forEach((f) => this.emitFlow(f, idMap, typeMap, layerOf, byLayer, model));
+    [...flows, ...data.flows].forEach((f) => this.emitFlow(f, idMap, typeMap, layerOf, byLayer, model));
   }
 
   // ------------------------------------------------------------------
@@ -230,9 +368,11 @@ export class BPMNDiagramConverter implements DiagramConverter {
     pools: Pool[],
     layerOf: Record<string, number>,
     model: Record<string, any>,
+    data: DataPlan,
   ): void {
     const idMap: Record<string, string> = {}; // spec id -> node id
     const typeMap: Record<string, string> = {}; // spec id -> v4 node type
+    const placed: Record<string, Placement> = {};
 
     type Band = { key: string; nodeIds: string[] };
     const poolIndexOf: Record<string, number> = {}; // spec node id -> pool stacking order
@@ -288,15 +428,12 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     const layerValues = Object.values(layerOf);
     const maxLayer = layerValues.length ? Math.max(...layerValues) : 0;
-    const contentWidth = (maxLayer + 1) * COL_GAP;
-    const poolWidth = Math.max(400, POOL_HEADER_WIDTH + contentWidth + COL_GAP / 2);
+    const contentWidth = (maxLayer + 1) * data.colGap;
+    const poolWidth = Math.max(400, POOL_HEADER_WIDTH + contentWidth + data.colGap / 2);
 
     // Parent node + absolute origin for every band, so contained nodes can be
     // positioned RELATIVE to their React-Flow parent.
-    const bandParent: Record<
-      string,
-      { id: string; absX: number; absY: number; lane?: { type: string; data: Record<string, unknown> } }
-    > = {};
+    const bandParent: Record<string, BandParent> = {};
     const laneIdMap: Record<string, string> = {}; // `${poolId}::${laneId}` -> lane node id
 
     let cursorY = 0;
@@ -307,7 +444,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const bandOriginY: Record<string, number> = {};
       bands.forEach((band) => {
         const rows = maxRowsOf[band.key] || 1;
-        const bandHeight = Math.max(BAND_MIN_HEIGHT, rows * ROW_GAP + BAND_V_PADDING * 2);
+        const bandHeight = Math.max(BAND_MIN_HEIGHT, rows * data.rowGap + BAND_V_PADDING * 2);
         bandOriginY[band.key] = laneCursorY;
         laneCursorY += bandHeight;
       });
@@ -321,7 +458,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
           const band = bands[i];
           const laneHeight = Math.max(
             BAND_MIN_HEIGHT,
-            (maxRowsOf[band.key] || 1) * ROW_GAP + BAND_V_PADDING * 2,
+            (maxRowsOf[band.key] || 1) * data.rowGap + BAND_V_PADDING * 2,
           );
           const laneAbsY = bandOriginY[band.key];
           const laneNodeId = generateUniqueId('bpmn');
@@ -382,8 +519,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const layer = layerOf[n.id] ?? 0;
       const row = rowOf[n.id] ?? 0;
       const parent = bandParent[bandKeyOf[n.id]];
-      const absX = POOL_HEADER_WIDTH + layer * COL_GAP;
-      const absY = (parent?.absY ?? 0) + BAND_V_PADDING + row * ROW_GAP;
+      const absX = POOL_HEADER_WIDTH + layer * data.colGap;
+      const absY = (parent?.absY ?? 0) + BAND_V_PADDING + row * data.rowGap;
       const type = this.normalizeType(n.type);
       const nodeId = generateUniqueId('bpmn');
       idMap[n.id] = nodeId;
@@ -396,8 +533,17 @@ export class BPMNDiagramConverter implements DiagramConverter {
         const node = this.buildNode(nodeId, type, n.name ?? '', relative.x, relative.y, n, reviewerLaneId);
         node.parentId = parent.id;
         model.nodes.push(node);
+        placed[n.id] = {
+          x: parent.absX + relative.x,
+          y: parent.absY + relative.y,
+          width: node.width ?? 0,
+          height: node.height ?? 0,
+          parent,
+        };
       } else {
-        model.nodes.push(this.buildNode(nodeId, type, n.name ?? '', absX, absY, n, reviewerLaneId));
+        const node = this.buildNode(nodeId, type, n.name ?? '', absX, absY, n, reviewerLaneId);
+        model.nodes.push(node);
+        placed[n.id] = { x: absX, y: absY, width: node.width ?? 0, height: node.height ?? 0 };
       }
     });
 
@@ -406,7 +552,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const L = layerOf[n.id] ?? 0;
       (byLayer[L] ||= []).push(n.id);
     });
-    flows.forEach((f) => this.emitFlow(f, idMap, typeMap, layerOf, byLayer, model, poolIndexOf));
+    this.placeDataObjects(data, placed, idMap, typeMap, model);
+    [...flows, ...data.flows].forEach((f) => this.emitFlow(f, idMap, typeMap, layerOf, byLayer, model, poolIndexOf));
   }
 
   // ------------------------------------------------------------------
@@ -479,8 +626,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
   /**
    * Emit a v4 flow edge without route points (the editor routes it). Cross-pool
-   * flows become message flows; every other pair resolves its subtype via
-   * `resolveBpmnEdgeType`.
+   * flows become message flows; every other pair (a data association included)
+   * resolves its subtype via `resolveBpmnEdgeType`.
    */
   private emitFlow(
     f: SpecFlow,
@@ -495,10 +642,14 @@ export class BPMNDiagramConverter implements DiagramConverter {
     const targetId = idMap[String(f.target)];
     if (!sourceId || !targetId) return; // skip dangling refs
 
-    let { sourceDir, targetDir } = this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
+    let { sourceDir, targetDir } = f.isDataAssociation
+      ? f.dataObjectIsSource
+        ? { sourceDir: 'Up', targetDir: 'Down' }
+        : { sourceDir: 'Down', targetDir: 'Up' }
+      : this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
 
     let edgeType = resolveBpmnEdgeType(typeMap[String(f.source)], typeMap[String(f.target)], 'BPMNSequenceFlow');
-    if (poolIndexOf) {
+    if (poolIndexOf && !f.isDataAssociation) {
       const sPool = poolIndexOf[String(f.source)];
       const tPool = poolIndexOf[String(f.target)];
       if (sPool !== undefined && tPool !== undefined && sPool !== tPool) {

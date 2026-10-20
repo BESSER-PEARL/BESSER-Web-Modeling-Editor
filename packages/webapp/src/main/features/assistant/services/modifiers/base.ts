@@ -181,6 +181,7 @@ export interface ModelModification {
     | 'add_task'
     | 'add_gateway'
     | 'add_event'
+    | 'add_data_object'
     | 'add_flow'
     | 'modify_node'
     | 'remove_flow'
