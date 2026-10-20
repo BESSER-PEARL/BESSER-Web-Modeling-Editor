@@ -19,7 +19,8 @@ export type GeneratorType =
   | 'forecaster'
   | 'bpmn'
   | 'test_case'
-  | 'kg_to_class';
+  | 'kg_to_class'
+  | 'alloy';
 
 export type GeneratorMenuMode =
   | 'class'
