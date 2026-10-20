@@ -1341,7 +1341,9 @@
       "importProjectSuccess": "Successfully imported project: {{name}}",
       "importModelFailed": "Failed to import model from GitHub",
       "starThanks": "Thanks for starring BESSER!",
-      "starFailed": "Failed to update star"
+      "starFailed": "Failed to update star",
+      "starPrompt": "Your code is ready. If BESSER saved you time, a ⭐ on GitHub helps others find it.",
+      "starPromptAction": "Star on GitHub"
     },
     "push": {
       "changeRepo": "Change Repository",
