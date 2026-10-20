@@ -1,5 +1,7 @@
 # BESSER Web Modeling Editor
 
+> ⭐ **Part of [BESSER](https://github.com/BESSER-PEARL/BESSER)**, the open-source low-code platform that turns models into working apps. If this project is useful to you, please [star the main repo](https://github.com/BESSER-PEARL/BESSER) too.
+
 BESSER Web Modeling Editor (WME) is the web-based diagram editor for the BESSER low-code platform. It lets you create
 and edit B-UML diagrams, describe what you want in plain language and have an AI assistant build it on the canvas, and
 run BESSER generators to turn a model into working code.
