@@ -85,6 +85,13 @@ errors including duplicate class names, invalid OCL constraint syntax, and
 structural model consistency. Validation results are displayed with specific
 error messages.
 
+On a class diagram, **Quality Check** opens a menu:
+
+- **Syntactic check**: the validation above.
+- **Semantic check**: searches for an instance of the class diagram that
+  satisfies all its OCL constraints, within increasingly larger bounds, and
+  shows its progress. "No instance within …" means that the bounds hold none.
+
 7. GitHub and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~
 

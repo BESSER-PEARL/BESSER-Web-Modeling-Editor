@@ -108,7 +108,13 @@ You can add Object Constraint Language (OCL) constraints to your model:
 1.  Drag the OCL shape onto the canvas.
 2.  Write constraints in the format ``Context "class_name" ...``.
 3.  Link them to classes with dotted lines.
-4.  Use the **Quality Check** button to validate the syntax.
+4.  Use **Quality Check > Syntactic check** to validate the syntax.
+5.  Use **Quality Check > Semantic check** to check that the constraints can all
+    hold together. The check searches, with the `Alloy Analyzer
+    <https://alloytools.org/>`_, for an instance of the class diagram within
+    increasingly larger bounds (objects per class, a range of integers). It
+    reports the instance found, "No instance within …" when the bounds hold none
+    (a larger instance might still exist), or that the search timed out.
 
 **Example:**
 
@@ -146,3 +152,4 @@ Class diagrams support generation for:
 *   Pydantic Models
 *   JSON Schema
 *   Smart Data Models
+*   Alloy Specification (**Generate > Formal Methods**)
