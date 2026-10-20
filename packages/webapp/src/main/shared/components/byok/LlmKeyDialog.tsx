@@ -14,6 +14,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, KeyRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -379,6 +380,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   showRunBudget = true,
   preferKeyEntry = false,
 }) => {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -722,7 +724,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="size-5" />
-            {title ?? 'Use your own API key'}
+            {title ?? t('assistant.chat.useOwnApiKey')}
           </DialogTitle>
           <DialogDescription>
             {description ?? (

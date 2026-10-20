@@ -20,7 +20,7 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
 
 interface TaggedAction {
   type: string;
-  payload?: { model?: { type: string; elements: Record<string, { type: string; name: string }> } };
+  payload?: { model?: { type: string; nodes: Array<{ type: string; data: { name: string } }> } };
 }
 
 const renderInjection = (diagramType: string, currentModel: unknown) => {
@@ -48,10 +48,8 @@ const renderInjection = (diagramType: string, currentModel: unknown) => {
   return { result, appliedModel, setMessages };
 };
 
-const elementNames = (model: { elements: Record<string, { type: string; name: string }> } | undefined, type: string) =>
-  Object.values(model?.elements ?? {})
-    .filter((el) => el.type === type)
-    .map((el) => el.name);
+const nodeNames = (model: { nodes: Array<{ type: string; data: { name: string } }> } | undefined, type: string) =>
+  (model?.nodes ?? []).filter((n) => n.type === type).map((n) => n.data.name);
 
 describe('useModelInjection for Component and Deployment diagrams', () => {
   beforeEach(() => {
@@ -74,7 +72,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     });
 
     expect(appliedModel()?.type).toBe('ComponentDiagram');
-    expect(elementNames(appliedModel(), 'Component')).toEqual(['Planner']);
+    expect(nodeNames(appliedModel(), 'component')).toEqual(['Planner']);
   });
 
   it('modifies a Component diagram', async () => {
@@ -98,7 +96,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
       });
     });
 
-    expect(elementNames(appliedModel(), 'Component').sort()).toEqual(['Planner', 'Reviewer']);
+    expect(nodeNames(appliedModel(), 'component').sort()).toEqual(['Planner', 'Reviewer']);
   });
 
   it('injects a complete Deployment diagram', async () => {
@@ -118,7 +116,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     });
 
     expect(appliedModel()?.type).toBe('DeploymentDiagram');
-    expect(elementNames(appliedModel(), 'DeploymentNode')).toEqual(['Server']);
+    expect(nodeNames(appliedModel(), 'deploymentNode')).toEqual(['Server']);
   });
 
   it('modifies a Deployment diagram', async () => {
@@ -143,6 +141,6 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
       });
     });
 
-    expect(elementNames(appliedModel(), 'DeploymentNode').sort()).toEqual(['Database host', 'Server']);
+    expect(nodeNames(appliedModel(), 'deploymentNode').sort()).toEqual(['Database host', 'Server']);
   });
 });

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { MetricCardConfig } from '../configs/metricCardConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions } from '../diagram-helpers';
+import { unmountReactRootLater } from './unmountReactRootLater';
 
 /**
  * Build metric card props from attributes
@@ -165,10 +166,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
         (this as any).__reactRoot.render(React.createElement(config.component, props));
       },
       removed() {
-        if ((this as any).__reactRoot) {
-          (this as any).__reactRoot.unmount();
-          (this as any).__reactRoot = null;
-        }
+        unmountReactRootLater(this as any);
       },
     },
     isComponent: (el: any) => {

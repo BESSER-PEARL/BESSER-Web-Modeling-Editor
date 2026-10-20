@@ -1,4 +1,6 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { migrateUMLModelV3ToV4, normalizeUmlModelSnapshot } from '../services/storage/migrate-uml-v3-to-v4';
+import { hashLegacyV3Model, hashUmlModel } from '../utils/lineageHash';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -14,7 +16,7 @@ export type SupportedDiagramType =
   | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 5;
+export const PROJECT_SCHEMA_VERSION = 6;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram',
@@ -325,12 +327,12 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
       return UMLDiagramType.UserDiagram;
+    case 'BPMN':
+      return UMLDiagramType.BPMN;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
-    case 'BPMN':
-      return UMLDiagramType.BPMN;
     default:
       return null;
   }
@@ -349,6 +351,15 @@ const generateUUID = (): string => {
     (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
   );
 };
+
+// The 4 meta-model classes of the retired UserDiagram seed template. Stored
+// projects can still carry that untouched template (see isUserDiagramSeedOnly).
+const DEFAULT_USER_META_CLASSES = [
+  'Personal_Information',
+  'Skill',
+  'Education',
+  'Disability',
+] as const;
 
 // Default diagram factory
 export const createEmptyDiagram = (
@@ -415,19 +426,21 @@ export const createEmptyDiagram = (
     };
   }
 
-  // For UML diagrams
+  // For UML diagrams (v4 shape). Every new diagram starts blank, as in develop:
+  // a seeded UserDiagram template was exported as empty objects once edited.
   return {
     id: generateUUID(),
     title,
     model: {
-      version: '3.0.0' as const,
+      version: '4.0.0' as const,
+      id: generateUUID(),
+      title,
       type,
-      size: { width: 1400, height: 740 },
-      elements: {},
-      relationships: {},
+      nodes: [],
+      edges: [],
       interactive: { elements: {}, relationships: {} },
       assessments: {},
-    },
+    } as UMLModel,
     lastUpdate: new Date().toISOString(),
   };
 };
@@ -540,11 +553,6 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
   }
 
-  // Add BPMN diagram if missing
-  if (!obj.diagrams.BPMN) {
-    obj.diagrams.BPMN = [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)];
-  }
-
   // Add NNDiagram if missing
   if (!obj.diagrams.NNDiagram) {
     obj.diagrams.NNDiagram = [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)];
@@ -555,9 +563,33 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj.diagrams.UserDiagram = [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)];
   }
 
+  // Add BPMN diagram if missing
+  if (!obj.diagrams.BPMN) {
+    obj.diagrams.BPMN = [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)];
+  }
+
   // Ensure index entry exists for UserDiagram
   if (obj.currentDiagramIndices.UserDiagram === undefined) {
     obj.currentDiagramIndices.UserDiagram = 0;
+  }
+
+  // Ensure index entry exists for BPMN
+  if (obj.currentDiagramIndices.BPMN === undefined) {
+    obj.currentDiagramIndices.BPMN = 0;
+  }
+
+  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
+  // Normalize to the new wire value so the diagram round-trips against the
+  // BESSER backend's `"<Name>Diagram"` convention. This is load-bearing even
+  // with the versionConverter.ts fix: it also catches diagrams already in v4
+  // shape (created by an earlier migration build before DiagramType.ts was
+  // fixed) whose `isV3UMLModel` check is false and thus never pass through
+  // `convertV3ToV4`.
+  for (const diagram of obj.diagrams.BPMN ?? []) {
+    const model = diagram.model as { type?: string } | undefined;
+    if (model && model.type === 'BPMN') {
+      model.type = UMLDiagramType.BPMN;
+    }
   }
 
   // Add ComponentDiagram / DeploymentDiagram if missing
@@ -575,7 +607,13 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   }
 
   // Read before the v4 migration below creates a perspectives map.
-  const hadPerspectives = !!obj.settings?.perspectives;
+  // Schema 5 had two meanings (v4 model lift / Component-Deployment perspectives);
+  // only the latter writes these perspective keys.
+  const hadComponentDeploymentKeys =
+    obj.settings?.perspectives?.ComponentDiagram !== undefined ||
+    obj.settings?.perspectives?.DeploymentDiagram !== undefined;
+  const hideComponentDeployment =
+    !!obj.settings?.perspectives && ((obj.schemaVersion ?? 0) < 5 || !hadComponentDeploymentKeys);
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
   if (!obj.schemaVersion || obj.schemaVersion < 2) {
@@ -587,44 +625,159 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migrateReferencesToIds(obj);
   }
 
-  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
-  // Normalize to the new wire value so the diagram round-trips against the
-  // BESSER backend's `"<Name>Diagram"` convention.
-  for (const diagram of obj.diagrams.BPMN ?? []) {
-    const model = diagram.model as { type?: string } | undefined;
-    if (model && model.type === 'BPMN') {
-      model.type = UMLDiagramType.BPMN;
-    }
-  }
-
   // Migrate v3 → v4: ensure settings.perspectives exists (all enabled by default)
   if (!obj.schemaVersion || obj.schemaVersion < 4) {
     obj = migratePerspectiveSettings(obj);
   }
 
-  // Migrate v4 → v5: Component and Deployment diagrams became project types
-  if (!obj.schemaVersion || obj.schemaVersion < 5) {
-    obj = migrateComponentDeploymentPerspectives(obj, hadPerspectives);
+  // Migrate v4 → v5: convert v3-shape UML models (elements/relationships) to v4 (nodes/edges).
+  // Un-gated: the per-diagram lift keys off each model's own shape/version,
+  // not the envelope's schemaVersion — a project stamped >= 5 can still
+  // carry v3 models (hand-edited exports, templates, a partial earlier
+  // migration). Cheap and idempotent on canonical v4 data.
+  obj = migrateProjectToV5(obj);
+
+  // Retrofit v3 personalized-variant snapshots. `migrateProjectToV5` walks
+  // only each diagram's `model`, never `config.personalizedVariants[].model`
+  // — and the shipped gym-agent template stamps `schemaVersion: 5` while
+  // carrying v3 variant snapshots, so a gated migration would never see
+  // them. `readAgentVariants` filters via the v4 `isUMLModel`, silently
+  // dropping v3 snapshots from the variant dropdown. Un-gated: idempotent
+  // and cheap on canonical v4 data.
+  retrofitAgentVariantSnapshots(obj);
+
+  // Migrate v5 → v6: Component and Deployment diagrams became project types
+  if (!obj.schemaVersion || obj.schemaVersion < 6) {
+    obj = migrateComponentDeploymentPerspectives(obj, hideComponentDeployment);
   }
 
   return obj;
 };
 
 /**
- * Migrate v4 → v5: ComponentDiagram and DeploymentDiagram became project
+ * Walk every AgentDiagram's inline `config.personalizedVariants` and lift any
+ * v3 variant snapshot to the canonical v4 shape. Mutates in place; returns
+ * nothing. Best-effort: a failed lift must never block the project load — the
+ * v3 snapshot stays in place (and stays invisible to the variant dropdown,
+ * exactly as before).
+ */
+const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
+  const agentDiagrams = project.diagrams?.AgentDiagram ?? [];
+  for (const d of agentDiagrams) {
+    const config = d?.config as Record<string, unknown> | undefined;
+    const variants = config?.personalizedVariants;
+    if (!Array.isArray(variants)) continue;
+    for (const variant of variants) {
+      if (!variant || typeof variant !== 'object') continue;
+      const candidate = variant as { model?: unknown };
+      if (candidate.model && isV3UMLModel(candidate.model)) {
+        try {
+          candidate.model = normalizeUmlModelSnapshot(candidate.model);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[retrofitAgentVariantSnapshots] lift failed', d.id, err);
+        }
+      }
+    }
+  }
+};
+
+/**
+ * Migrate v4 → v5: walk every per-diagram UML model and run the v3 → v4
+ * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
+ * because their models are not UMLModels.
+ *
+ * A diagram that throws keeps its v3 model, and the next page load retries it:
+ * the lift is decided per model, not by `schemaVersion`. Within a page load a
+ * failed diagram (same id and lastUpdate) is not retried, since loadProject
+ * runs on most renders. The 5 stamp below does
+ * not gate that retry (`ensureProjectMigrated` stamps 6 regardless). The
+ * editor opens a v3 diagram read-only and `updateDiagramModelThunk` refuses to
+ * overwrite it. Failures and skipped malformed entries are logged with the
+ * diagram title.
+ *
+ * Derived diagrams that were in sync with a lifted source are restamped with
+ * the source's v4 hash, so the lift itself does not read as "source changed".
+ */
+/** `${id}@${lastUpdate}` of diagrams whose lift failed in this page load. */
+const failedV3Lifts = new Set<string>();
+
+export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
+  // No early return on `schemaVersion >= 5`: whether a diagram needs the
+  // lift is decided per model (`isV3UMLModel` — `version` "3.x" or an
+  // `elements` table without a `nodes` array), so a project stamped 5+
+  // that still holds v3 models gets repaired too.
+  let allSucceeded = true;
+  // Lifted diagram id -> the hash the v3 editor computed over its v3 model.
+  const legacyHashes = new Map<string, string>();
+
+  for (const type of ALL_DIAGRAM_TYPES) {
+    if (type === 'GUINoCodeDiagram' || type === 'QuantumCircuitDiagram') continue;
+    const diagrams = project.diagrams[type] ?? [];
+    for (const d of diagrams) {
+      if (d.model && isV3UMLModel(d.model)) {
+        const liftKey = `${d.id}@${d.lastUpdate}`;
+        if (failedV3Lifts.has(liftKey)) {
+          allSucceeded = false;
+          continue;
+        }
+        const warnings: string[] = [];
+        try {
+          const legacyHash = hashLegacyV3Model(d.model);
+          d.model = migrateUMLModelV3ToV4(d.model, type, warnings);
+          legacyHashes.set(d.id, legacyHash);
+        } catch (err) {
+          // Keep v3 model in place on failure.
+          allSucceeded = false;
+          failedV3Lifts.add(liftKey);
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[migrateProjectToV5] Failed to migrate diagram "${d.title}" (${type}, id=${d.id}); it stays v3 (read-only) and the next page load retries.`,
+            err,
+          );
+        }
+        if (warnings.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(`[migrateProjectToV5] Diagram "${d.title}" (${type}, id=${d.id}) migrated with:`, warnings);
+        }
+      }
+    }
+  }
+
+  if (legacyHashes.size > 0) restampLiftedLineage(project, legacyHashes);
+
+  if (allSucceeded && !(project.schemaVersion >= 5)) {
+    project.schemaVersion = 5;
+  }
+  return project;
+};
+
+const restampLiftedLineage = (project: BesserProject, legacyHashes: Map<string, string>): void => {
+  const all = ALL_DIAGRAM_TYPES.flatMap((type) => project.diagrams[type] ?? []);
+  const byId = new Map(all.map((d) => [d.id, d]));
+  for (const d of all) {
+    const lineage = d.derivedFrom;
+    const source = lineage && byId.get(lineage.sourceDiagramId);
+    if (!lineage || !source || lineage.sourceModelHash !== legacyHashes.get(source.id)) continue;
+    d.derivedFrom = { ...lineage, sourceModelHash: hashUmlModel(source.model as UMLModel) };
+  }
+};
+
+/**
+ * Migrate v5 → v6: ComponentDiagram and DeploymentDiagram became project
  * diagram types. A project whose user already chose perspectives keeps its
  * sidebar unchanged, so both new types start hidden there; they can be enabled
  * in Project Settings (e.g. with the Multi-Agent preset).
  */
-const migrateComponentDeploymentPerspectives = (project: BesserProject, hadPerspectives: boolean): BesserProject => {
-  if (hadPerspectives && project.settings.perspectives) {
+const migrateComponentDeploymentPerspectives = (project: BesserProject, hide: boolean): BesserProject => {
+  if (hide && project.settings.perspectives) {
     project.settings.perspectives = {
       ...project.settings.perspectives,
       ComponentDiagram: false,
       DeploymentDiagram: false,
     };
   }
-  project.schemaVersion = 5;
+  project.schemaVersion = 6;
   return project;
 };
 
@@ -709,6 +862,40 @@ const migrateReferencesToIds = (project: BesserProject): BesserProject => {
   return project;
 };
 
+/**
+ * Keys a seeded UserDiagram attribute row may carry. Anything else (e.g. a
+ * user-entered `attributeValue`) means the template has been edited.
+ */
+const USER_SEED_ATTRIBUTE_KEYS = new Set(['id', 'name', 'attributeType', 'attributeId', 'attributeOperator']);
+
+/**
+ * True when a UserDiagram model contains only the pristine seed template
+ * produced by `buildUserDiagramSeedNodes`: no edges, and every node is a
+ * `UserModelName` card for one of the default meta-model classes (each at
+ * most once) whose attribute rows carry no user-entered values. Positions
+ * and generated ids are ignored — moving a card around is not content.
+ */
+export const isUserDiagramSeedOnly = (model: UMLModel): boolean => {
+  if (Array.isArray(model.edges) && model.edges.length > 0) return false;
+  const nodes = Array.isArray(model.nodes) ? model.nodes : [];
+  if (nodes.length === 0) return true;
+  const seen = new Set<string>();
+  for (const node of nodes as any[]) {
+    if (node?.type !== 'UserModelName') return false;
+    const data = node?.data ?? {};
+    const name = data.className ?? data.name;
+    if (!DEFAULT_USER_META_CLASSES.includes(name) || seen.has(name)) return false;
+    seen.add(name);
+    const attrs = Array.isArray(data.attributes) ? data.attributes : [];
+    for (const attr of attrs) {
+      if (!attr || typeof attr !== 'object') return false;
+      if (Object.keys(attr).some((key) => !USER_SEED_ATTRIBUTE_KEYS.has(key))) return false;
+      if (attr.attributeOperator !== undefined && attr.attributeOperator !== '==') return false;
+    }
+  }
+  return true;
+};
+
 export const isUMLModel = (model: unknown): model is UMLModel => {
   if (!model || typeof model !== 'object') {
     return false;
@@ -718,9 +905,28 @@ export const isUMLModel = (model: unknown): model is UMLModel => {
   return (
     typeof candidate.type === 'string' &&
     typeof candidate.version === 'string' &&
-    typeof candidate.elements === 'object' &&
-    typeof candidate.relationships === 'object'
+    Array.isArray(candidate.nodes) &&
+    Array.isArray(candidate.edges)
   );
+};
+
+/**
+ * Detect a v3 UMLModel (pre-migration). Used by the v3→v4 migrator to know
+ * whether a stored project diagram needs translation. v3 models have
+ * `elements` and `relationships` records; v4 has `nodes` and `edges` arrays.
+ */
+export const isV3UMLModel = (model: unknown): boolean => {
+  if (!model || typeof model !== 'object') return false;
+  const candidate = model as Record<string, unknown>;
+  // A model that already has a v4 `nodes` array is never re-lifted.
+  if (Array.isArray(candidate.nodes)) return false;
+  const elements = candidate.elements;
+  if (!elements || typeof elements !== 'object') return false;
+  // v3 shape: an `elements` id→element table (with or without
+  // `relationships`), or any `elements` holder that declares itself 3.x.
+  // (v2 used `elements` *arrays* and is not handled here.)
+  const version = candidate.version;
+  return !Array.isArray(elements) || (typeof version === 'string' && version.startsWith('3.'));
 };
 
 export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectData => {
@@ -788,15 +994,30 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   const model = diagram.model;
   if (!model) return false;
 
+  // An unmigrated v3 model (kept read-only) is content: exports must keep it.
+  if (isV3UMLModel(model)) {
+    const { elements, relationships } = model as { elements?: unknown; relationships?: unknown };
+    const size = (table: unknown) => (table && typeof table === 'object' ? Object.keys(table).length : 0);
+    return size(elements) > 0 || size(relationships) > 0;
+  }
+
   if (isUMLModel(model)) {
-    const hasElements = model.elements && Object.keys(model.elements).length > 0;
-    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
+    const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
+    const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
+    // Agent resources (Skills, Tools, LLMs, RAGs, SQL databases) live outside the canvas.
+    const components = (model as { components?: Record<string, unknown> }).components;
     const hasAgentComponents = model.type === UMLDiagramType.AgentDiagram &&
-      model.components && Object.keys(model.components).length > 0;
+      !!components && Object.keys(components).length > 0;
     const sqlDatabases = (diagram.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
     const hasSqlDatabases = model.type === UMLDiagramType.AgentDiagram &&
       Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
-    return !!(hasElements || hasRelationships || hasAgentComponents || hasSqlDatabases);
+    if (hasAgentComponents || hasSqlDatabases) return true;
+    if (!hasNodes && !hasEdges) return false;
+    // A UserDiagram still carrying nothing but the untouched meta-model seed
+    // template (`createEmptyDiagram`) has no user content, so treating it as
+    // empty keeps exports and backend payloads free of template noise.
+    if (model.type === UMLDiagramType.UserDiagram && isUserDiagramSeedOnly(model)) return false;
+    return true;
   }
 
   if (isGrapesJSProjectData(model)) {

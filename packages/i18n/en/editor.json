@@ -3,10 +3,14 @@
     "modeling": "Modeling",
     "interactive": "Interactive",
     "highlight": "Show interactive elements",
-    "iconMode": "Display Object Diagram in Icon Mode"
+    "iconMode": "Display Object Diagram in Icon Mode",
+    "model": "Model",
+    "selectElements": "Select Elements",
+    "highlightHint": "Click nodes or relationships to toggle whether they are interactive."
   },
   "popup": {
     "nn": {
+      "optionalAttributes": "optional attributes",
       "container": {
         "inputVariable": "Input Variable",
         "returnVariables": "Return Variables",
@@ -42,7 +46,8 @@
         "slice": "slice",
         "startPlaceholder": "start",
         "stopPlaceholder": "stop",
-        "stepPlaceholder": "step"
+        "stepPlaceholder": "step",
+        "reverted": "Reverted to {{value}}."
       },
       "help": {
         "split_sizes": "Either int (number of equal chunks, e.g. 3) or list (size per chunk, e.g. [2,3,5])",
@@ -159,7 +164,9 @@
         "anyGuiInteraction": "Any GUI interaction",
         "event": "Event",
         "conditions": "Conditions",
-        "addCondition": "Add condition"
+        "addCondition": "Add condition",
+        "missingIntentTag": "missing",
+        "missingIntent": "Intent \"{{name}}\" does not exist. Pick an intent or add it on the Components page."
       },
       "intent": {
         "name": "Intent Name",
@@ -216,7 +223,31 @@
       "definedInBal": "Method defined in BESSER Action Language code",
       "showEditor": "Show Editor",
       "implementation": "Implementation",
-      "hideCodeEditor": "Hide code editor"
+      "hideCodeEditor": "Hide code editor",
+      "implNone": "None (UML)",
+      "implCode": "Python Code",
+      "implStateMachine": "State Machine",
+      "implQuantumCircuit": "Quantum Circuit",
+      "implNeuralNetwork": "Neural Network",
+      "signaturePlaceholder": "method(param: type): returnType",
+      "returnType": "Return type",
+      "hideOptions": "Hide parameters, code & colors",
+      "showOptions": "Parameters, code & colors",
+      "rowOptions": "Method row options",
+      "deleteMethod": "Delete method",
+      "customReturnTypePlaceholder": "custom return type (free-text)",
+      "paramNamePlaceholder": "name",
+      "paramTypePlaceholder": "type",
+      "addParameterPlaceholder": "+ add parameter (name: type, Enter)",
+      "balBodyPlaceholder": "BAL method body…",
+      "pythonBodyPlaceholder": "Python method body…",
+      "name": "Method name",
+      "customReturnType": "Custom return type",
+      "paramName": "Parameter name",
+      "paramType": "Parameter type",
+      "deleteParameter": "Delete parameter",
+      "addParameter": "Add parameter",
+      "implementationType": "Implementation"
     },
     "classifier": {
       "createMethodWithCode": "Create method with code behaviour",
@@ -224,24 +255,173 @@
       "moveUp": "Move up",
       "codeButton": "Code",
       "newLiteralPlaceholder": "literal",
-      "newAttributePlaceholder": "+ attribute: str"
+      "newAttributePlaceholder": "+ attribute: str",
+      "addAttributePlaceholder": "+ Add attribute",
+      "addMethodPlaceholder": "+ Add method",
+      "newMethodPlaceholder": "+ method(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "literal name",
-      "namePlaceholder": "attribute name"
+      "namePlaceholder": "attribute name",
+      "shorthandPlaceholder": "+ attribute: type",
+      "hideOptions": "Hide options",
+      "showColors": "Show colors",
+      "showOptions": "Show flags, default & colors",
+      "rowOptions": "Attribute row options",
+      "deleteLiteral": "Delete literal",
+      "deleteAttribute": "Delete attribute",
+      "customTypePlaceholder": "custom type (free-text)",
+      "defaultValue": "Default value",
+      "defaultValueOptionalPlaceholder": "default value (optional)",
+      "visibility": "Visibility",
+      "literalName": "Literal name",
+      "name": "Attribute name",
+      "customType": "Custom type",
+      "type": "Attribute type"
     },
     "associationNamePlaceholder": "Association name",
     "literals": "Literals",
     "preset": "Preset",
     "presetPlaceholder": "Choose a preset…",
     "stereotype": "Stereotype",
+    "showStereotype": "Show stereotype",
     "label": "Label",
     "unnamed": "(unnamed)",
     "missingElement": "(missing)",
     "addTarget": "Add a target…",
     "lineage": "Lineage",
     "lineageSource": "Source:",
-    "lineageDerivedFrom": "Derived from"
+    "lineageDerivedFrom": "Derived from",
+    "class": {
+      "biAssociation": "Bi-Association",
+      "uniAssociation": "Uni-Association",
+      "inheritance": "Inheritance",
+      "endMultiplicity": "{{name}} Multiplicity",
+      "endRole": "{{name}} Role",
+      "erMultiplicityPlaceholder": "(1,1) or 1..1",
+      "classesDivider": "── classes ──",
+      "enumerationsDivider": "── enumerations ──",
+      "customType": "custom…",
+      "colors": "Colors",
+      "metadata": "Metadata",
+      "uriPlaceholder": "uri (e.g. https://example.com/MyClass)",
+      "iconPlaceholder": "icon (svg body or url)",
+      "addLiteral": "add literal",
+      "addAttribute": "add attribute",
+      "addMethod": "add method",
+      "addLiteralInputPlaceholder": "+ Add literal (Enter for auto-name)",
+      "addAttributeInputPlaceholder": "+ Add attribute (Enter for auto-name)",
+      "addMethodInputPlaceholder": "+ Add method (Enter)",
+      "icon": "Icon",
+      "stereotype": "Stereotype",
+      "enumerationRelationshipsWarning": "An enumeration cannot have relationships; other classes use it as an attribute type. Converting removes {{count}} relationship(s).",
+      "enumerationConvertConfirm": "Remove and convert"
+    },
+    "object": {
+      "colorResetHint": "{{label}} (right-click to reset)",
+      "selectLiteral": "— select literal —",
+      "slotNamePlaceholder": "name",
+      "typeInherited": "type inherited from class: {{type}}",
+      "deleteAttribute": "Delete attribute",
+      "extendsHint": "extends {{parents}}",
+      "attributeCount": "({{count}} attrs)",
+      "addAttributePlaceholder": "+ Add attribute (Enter)",
+      "noAssociationsHint": "No associations available — link source / target objects to classes first.",
+      "classLabel": "class",
+      "unlinked": "— Unlinked —",
+      "slotName": "Attribute name",
+      "objectName": "Object name",
+      "addAttribute": "Add attribute"
+    },
+    "user": {
+      "rowStyle": "Row style",
+      "deleteAttribute": "Delete attribute",
+      "selectPlaceholder": "— select —",
+      "stringValuePlaceholder": "value (will be quoted: \"…\")",
+      "valuePlaceholder": "value / default",
+      "metadata": "Metadata",
+      "operator": "operator",
+      "defaultValue": "default value",
+      "defaultValueQuoted": "default value (will be quoted: \"…\")",
+      "view": "Show on canvas as"
+    },
+    "communication": {
+      "direction": "Direction: {{direction}}",
+      "messagePlaceholder": "Message {{index}}",
+      "duplicateMessage": "Duplicate message",
+      "deleteMessage": "Delete message",
+      "addMessagePlaceholder": "+ Add Message",
+      "messageExists": "This message already exists"
+    },
+    "bpmn": {
+      "startType": "Start Type",
+      "intermediateType": "Intermediate Type",
+      "endType": "End Type",
+      "taskType": "Task Type",
+      "gatewayType": "Gateway Type",
+      "marker": "Marker",
+      "markerParallelMultiInstance": "Parallel multi instance",
+      "markerSequentialMultiInstance": "Sequential multi instance",
+      "markerLoop": "Loop",
+      "poolName": "Pool Name",
+      "moveLaneUp": "Move lane up",
+      "moveLaneDown": "Move lane down",
+      "deleteLane": "Delete lane",
+      "newLaneName": "New lane name",
+      "addLane": "Add Lane",
+      "controlFlow": "Control Flow",
+      "mergingNeedsDiverging": "Needs an agentic diverging gateway upstream",
+      "orphanedMergingGateway": "No agentic diverging gateway upstream: this gateway closes no collaboration block."
+    },
+    "state": {
+      "italic": "italic",
+      "underline": "underline",
+      "noBodyRows": "no body rows yet",
+      "noFallbackBodyRows": "no fallback body rows yet",
+      "deleteBody": "delete body",
+      "deleteFallbackBody": "delete fallback body",
+      "addBodyPlaceholder": "+ add body (Enter)",
+      "addFallbackBodyPlaceholder": "+ add fallback body (Enter)",
+      "fallbackActionPlaceholder": "fallback action",
+      "actionName": "action name",
+      "language": "language",
+      "code": "code",
+      "noOutgoingTransitions": "No outgoing transitions yet.",
+      "instanceName": "instance name",
+      "class": "class",
+      "unlinked": "— Unlinked —",
+      "eventHandlerPlaceholder": "event handler function name",
+      "removeParameter": "Remove parameter {{index}}",
+      "codeBlockName": "Function name (empty = from def)"
+    },
+    "useCase": {
+      "optionalAssociationLabel": "Optional label for association"
+    },
+    "deployment": {
+      "optionalAssociationLabel": "Optional label for association"
+    },
+    "petriNet": {
+      "arc": "Petri Net Arc"
+    },
+    "reachability": {
+      "arc": "Reachability Arc"
+    },
+    "syntaxTree": {
+      "relations": "Relations"
+    },
+    "sfc": {
+      "editTransition": "Edit Transition",
+      "condition": "Condition",
+      "conditionPlaceholder": "Enter transition condition",
+      "showCrossbar": "Show crossbar",
+      "negatedCondition": "Negated condition (overline)",
+      "actions": "Actions",
+      "idPlaceholder": "ID",
+      "addActionName": "+ Add action name"
+    },
+    "multiplicityInvalidER": "Use (min,max), e.g. (0,1), (1,N) — or 1, 0..1, 1..*",
+    "multiplicityInvalid": "Use e.g. 1, 0..1, *, 1..* or 2..5",
+    "associationNameHiddenHint": "Hidden on the canvas. Turn on “Show Association Names” in Settings."
   },
   "assessment": {
     "assessment": "Assessment for",
@@ -419,6 +599,7 @@
       "BPMNDataAssociationFlow": "Data Association",
       "BPMNDefaultSequenceFlow": "Default flow",
       "BPMNDataObject": "Data Object",
+      "BPMNDataStore": "Data Store",
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Lane",
       "BPMNSwimlanes": "Lanes",
@@ -451,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Merging",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Role",
-      "BPMNAgentRolePlaceholder": "e.g. solution"
+      "BPMNAgentRolePlaceholder": "e.g. solution",
+      "BPMNReflectionMode": "Reflection"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -476,12 +658,18 @@
       "TrainingDataset": "Training Dataset",
       "TestDataset": "Test Dataset",
       "Datasets": "NN Datasets",
-      "Comments": "Comments"
+      "Comments": "Comments",
+      "SectionStructure": "NN Structure",
+      "SectionLayers": "NN Layers",
+      "SectionTensorOps": "NN TensorOps",
+      "SectionConfiguration": "NN Configuration"
     },
     "OCLConstraint": {
       "Constraint": "OCL Constraint",
       "DescriptionPlaceholder": "e.g. Be sure to choose a realistic age",
-      "DescriptionLabel": "Description (shown to end-users when validation fails) Optional"
+      "DescriptionLabel": "Description (shown to end-users when validation fails) Optional",
+      "expressionPlaceholder": "OCL expression…",
+      "descriptionOptionalPlaceholder": "Description (optional)"
     },
     "StateDiagram": {
       "StateTransition": "Transition",
@@ -775,7 +963,29 @@
       "webCrawlNamePrefix": "Crawl:",
       "A2ASendTo": "Send to",
       "A2AReceiveFrom": "Receive from",
-      "A2APeer": "peer"
+      "A2APeer": "peer",
+      "stateName": "name",
+      "italic": "italic",
+      "underline": "underline",
+      "initialState": "Initial state",
+      "flipTransition": "Flip source / target",
+      "transitionName": "name",
+      "parameters": "parameters",
+      "initTransition": "Init Transition",
+      "deleteInitTransition": "Delete init transition",
+      "intentDescriptionPlaceholder": "Description of what this intent represents",
+      "noTrainingPhrases": "no training phrases yet",
+      "trainingPhrasePlaceholder": "e.g. hello",
+      "deleteTrainingPhrase": "delete training phrase",
+      "card": {
+        "initial": "initial",
+        "state": "state",
+        "reasoning": "reasoning",
+        "fallback": "fallback",
+        "maxSteps": "≤ {{count}} steps",
+        "planning": "planning",
+        "defaultLlm": "default"
+      }
     },
     "UserDiagram": {
       "UserModelName": "User",
@@ -791,7 +1001,21 @@
     "add": "Add",
     "remove": "Remove",
     "width": "Width",
-    "height": "Height"
+    "height": "Height",
+    "edgeType": "Edge Type",
+    "edgeLabel": "Edge Label",
+    "flipSourceTarget": "Flip source / target",
+    "source": "Source",
+    "target": "Target",
+    "type": "Type",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "none": "None",
+    "label": "Label",
+    "value": "Value",
+    "dragToReorder": "Drag to reorder",
+    "addLowercase": "add",
+    "back": "Back"
   },
   "stylePane": {
     "enterUri": "Enter URI…",
@@ -815,6 +1039,13 @@
     "default": "Default",
     "enterNumber": "Enter number…",
     "derived": "Derived",
+    "rowTextColor": "Row text color",
+    "rowFillColor": "Row fill color",
+    "rowStyle": "Row style (colors + icon)",
+    "rowColors": "Row colors",
+    "toggleColorSettings": "Toggle color settings",
+    "enterNodeName": "Enter node name",
+    "rightClickToReset": "{{label}} (right-click to reset)",
     "colors": {
       "red": "Red",
       "orange": "Orange",
@@ -837,21 +1068,58 @@
   },
   "propertiesPanel": {
     "close": "Close",
+    "closeEditor": "Close editor",
     "resize": "Resize properties panel"
+  },
+  "toolbar": {
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Y or Ctrl+Shift+Z)",
+    "autoLayout": "Auto-layout diagram",
+    "autoLayoutOptions": "Auto-layout options",
+    "autoLayoutStrategy": {
+      "hierarchical": "Hierarchical",
+      "compact": "Compact",
+      "horizontal": "Left to right",
+      "vertical": "Top to bottom"
+    },
+    "resetZoom": "Reset zoom to 100%",
+    "minimap": "Minimap",
+    "attachAssociationClass": "Attach association class"
+  },
+  "comment": {
+    "link": "Comment Link"
   },
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
     "addConnectedObject": "Add connected object",
     "swapEnds": "Swap ends",
-    "style": "Style"
+    "style": "Style",
+    "pasteRefusedOtherType": "Elements copied from another diagram type can't be pasted here."
   },
   "zoomPane": {
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "autoLayout": "Auto-layout"
+    "autoLayout": "Auto-layout",
+    "fitView": "Fit view"
   },
   "sidebar": {
-    "resize": "Resize palette"
+    "resize": "Resize palette",
+    "palette": "Element palette"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Enumerations can't be connected; use them as attribute types instead.",
+      "objectNoAssociation": "These objects' classes have no association in the class diagram.",
+      "nnEndpoint": "Datasets and configurations connect only to an NN container.",
+      "nnConfigurationTaken": "This NN container already has a configuration.",
+      "bpmnCrossPool": "Sequence flows can't cross pools, and this element can't send message flows.",
+      "bpmnIllegalFlow": "BPMN doesn't allow a flow between these elements.",
+      "bpmnMessageSamePool": "End events can't start a flow and start events can't receive one; message flows only connect different pools.",
+      "stateCodeBlock": "Code blocks aren't connected; reference them by name from a state body or a transition.",
+      "stateFinalOutgoing": "A final state ends the state machine; no transition leaves it.",
+      "stateInitialIncoming": "The initial state only starts the state machine; no transition enters it.",
+      "generic": "These elements can't be connected."
+    }
   }
 }

@@ -1,6 +1,6 @@
 /**
  * GUI (No-Code) Diagram Converter
- * Converts simplified GUI component specifications to Apollon-compatible format.
+ * Converts simplified GUI component specifications to BESSER WME format.
  *
  * GUINoCodeDiagram elements represent visual UI components (pages, sections,
  * buttons, inputs, etc.) that the GrapesJS-based editor can consume.  The

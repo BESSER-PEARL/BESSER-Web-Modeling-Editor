@@ -9,8 +9,9 @@
  *  - `undoAvailable` state
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { layoutModel } from '@besser/wme';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
 import type { InjectionCommand, UMLModelingService, ClassSpec, ModelModification } from '../services';
@@ -18,9 +19,13 @@ import {
   updateDiagramModelThunk,
   switchDiagramIndexThunk,
   addDiagramThunk,
+  addAndSwitchDiagramThunk,
   bumpEditorRevision,
+  updateDiagramReferencesThunk,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+import { applyModelToEditor } from '../services/UMLModelingService';
+import { fitEditorAroundAssistantPanel, isAssistantPanelOpen } from './panelAwareViewport';
 
 /** User-facing notice for a modification batch that only partly applied. */
 export function describeSkippedChanges(appliedCount: number, skipped: string[]): string {
@@ -33,9 +38,10 @@ export function describeCollateralRemoval(classNames: string[]): string {
   return `This change also removed ${classNames.join(', ')}, which you did not ask to delete. ` +
     'Check the diagram before continuing.';
 }
-import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
+import { getActiveDiagram, isV3UMLModel } from '../../../shared/types/project';
+import i18n from '../../../shared/i18n';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
 
@@ -54,12 +60,51 @@ type ModelBounds = {
   height: number;
 };
 
-function getModelBounds(model: any): ModelBounds | null {
-  const elements = Object.values((model?.elements || {}) as Record<string, any>);
-  if (!elements.length) return null;
+/**
+ * Absolute canvas rectangles of every node in a v4 model. Child nodes
+ * (`parentId`, e.g. BPMN lanes inside a pool, tasks inside a lane) store
+ * their position RELATIVE to the parent, so walk the parent chain to get
+ * canvas coordinates before measuring.
+ */
+function absoluteNodeRects(model: any): Array<{ x: number; y: number; width: number; height: number }> {
+  const nodes: any[] = Array.isArray(model?.nodes) ? model.nodes : [];
+  if (!nodes.length) return [];
+  const byId = new Map<string, any>(nodes.map((n) => [n.id, n]));
+  const absCache = new Map<string, { x: number; y: number }>();
 
-  const xs = elements.flatMap((e: any) => [e.bounds?.x ?? 0, (e.bounds?.x ?? 0) + (e.bounds?.width ?? 0)]);
-  const ys = elements.flatMap((e: any) => [e.bounds?.y ?? 0, (e.bounds?.y ?? 0) + (e.bounds?.height ?? 0)]);
+  const absPosition = (node: any, depth = 0): { x: number; y: number } => {
+    const cached = absCache.get(node.id);
+    if (cached) return cached;
+    let x = node.position?.x ?? 0;
+    let y = node.position?.y ?? 0;
+    const parent = node.parentId ? byId.get(node.parentId) : undefined;
+    if (parent && depth < 64) {
+      const p = absPosition(parent, depth + 1);
+      x += p.x;
+      y += p.y;
+    }
+    const abs = { x, y };
+    absCache.set(node.id, abs);
+    return abs;
+  };
+
+  return nodes.map((n) => {
+    const { x, y } = absPosition(n);
+    return {
+      x,
+      y,
+      width: n.width ?? n.measured?.width ?? 0,
+      height: n.height ?? n.measured?.height ?? 0,
+    };
+  });
+}
+
+function getModelBounds(model: any): ModelBounds | null {
+  const rects = absoluteNodeRects(model);
+  if (!rects.length) return null;
+
+  const xs = rects.flatMap((r) => [r.x, r.x + r.width]);
+  const ys = rects.flatMap((r) => [r.y, r.y + r.height]);
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
   const maxX = Math.max(...xs);
@@ -78,23 +123,49 @@ function getModelBounds(model: any): ModelBounds | null {
 }
 
 /**
- * Scroll the editor canvas so the content bounding-box centre is visible.
- * The editor's inner SVG places model coordinate (0,0) at exactly
- * (scrollWidth/2, scrollHeight/2) of the StyledEditor scroll container
- * (tagged data-editor-scroll="1").  For content centred near the origin
- * (all AI-generated models after the §1.1 centering fix) this keeps the
- * diagram in view without a manual pan.
+ * Bring the injected content into view once the editor has rendered it, in
+ * the part of the canvas the open assistant panel leaves visible (see
+ * `panelAwareViewport`). After an `editorRevision` bump pass the editor being
+ * replaced as `staleEditor`: the fit waits (up to ~3 s) for its successor,
+ * whose own post-load fit it then replaces.
+ *
+ * The editor is resolved when the timer fires: the assistant handlers keep
+ * the first render's `handleInjection`, whose captured editor is stale.
  */
-function centerEditorViewport(model: any, delayMs = 200): void {
-  setTimeout(() => {
-    const sc = document.querySelector('[data-editor-scroll="1"]') as HTMLElement | null;
-    if (!sc) return;
-    const bounds = getModelBounds(model);
-    const cx = bounds?.centerX ?? 0;
-    const cy = bounds?.centerY ?? 0;
-    sc.scrollLeft = Math.max(0, (sc.scrollWidth - sc.clientWidth) / 2 + cx);
-    sc.scrollTop = Math.max(0, (sc.scrollHeight - sc.clientHeight) / 2 + cy);
-  }, delayMs);
+function centerEditorViewport(getEditor: () => any, staleEditor?: unknown, delayMs = 200): void {
+  let waits = 0;
+  const fit = () => {
+    const editor = getEditor();
+    if (staleEditor && editor === staleEditor && ++waits < 15) {
+      setTimeout(fit, 200);
+      return;
+    }
+    fitEditorAroundAssistantPanel(editor).catch((error) => {
+      console.warn('[useModelInjection] Could not re-center the editor viewport:', error);
+    });
+  };
+  setTimeout(fit, delayMs);
+}
+
+/** ELK-arrange a freshly generated class diagram; the unarranged model if layout fails. */
+async function layoutGeneratedClassDiagram(model: any): Promise<any> {
+  try {
+    return await layoutModel(model);
+  } catch (error) {
+    console.warn('[useModelInjection] Auto-layout of the generated diagram failed:', error);
+    return model;
+  }
+}
+
+/** Diagram types the agent builds from the ACTIVE class tab (and that store a reference to one). */
+const BUILT_FROM_ACTIVE_CLASS_DIAGRAM = new Set(['ObjectDiagram', 'GUINoCodeDiagram']);
+
+/** Id of the class tab the agent read: the active one, as in its project snapshot. */
+function activeClassDiagramId(project: any): string | undefined {
+  const tabs: ProjectDiagram[] | undefined = project?.diagrams?.ClassDiagram;
+  if (!Array.isArray(tabs) || tabs.length === 0) return undefined;
+  const index = project?.currentDiagramIndices?.ClassDiagram ?? 0;
+  return (tabs[index] ?? tabs[0])?.id;
 }
 
 const UML_DIAGRAM_TYPES = new Set([
@@ -141,6 +212,9 @@ const createMessageId = (): string => {
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+/** The target is an unmigrated v3 diagram, which stays read-only. */
+class ReadOnlyDiagramError extends Error {}
 
 const toKitMessage = (
   role: 'user' | 'assistant',
@@ -214,6 +288,8 @@ export function useModelInjection({
   onModelApplied,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
 
   /* ---- undo state sync ---- */
 
@@ -229,6 +305,16 @@ export function useModelInjection({
     const diagrams = (project.diagrams as Record<string, ProjectDiagram[]>)[diagramType];
     if (!Array.isArray(diagrams)) return -1;
     return diagrams.findIndex((d: ProjectDiagram) => d.id === diagramId);
+  };
+
+  /** The live editor when it already shows the target diagram, else null. */
+  const mountedEditorFor = (diagramType: string, diagramId?: string): any => {
+    const live = editorRef.current;
+    if (typeof live?.applyModel !== 'function' || currentDiagramTypeRef.current !== diagramType) return null;
+    if (!diagramId) return live;
+    const project = currentProjectRef.current;
+    const index = project?.currentDiagramIndices?.[diagramType as SupportedDiagramType] ?? 0;
+    return findDiagramIndexById(diagramType, diagramId) === index ? live : null;
   };
 
   const ensureTargetDiagramReady = async (targetType?: string, targetDiagramId?: string): Promise<boolean> => {
@@ -288,6 +374,30 @@ export function useModelInjection({
     }
   };
 
+  const linkToClassDiagram = async (
+    diagramType: string,
+    classDiagramId: string | undefined,
+    createdTab: { index: number; diagram: ProjectDiagram } | null,
+  ): Promise<void> => {
+    if (!classDiagramId) return;
+    const project = currentProjectRef.current;
+    const diagramIndex = createdTab?.index ?? project?.currentDiagramIndices?.[diagramType];
+    const diagram: ProjectDiagram | undefined =
+      createdTab?.diagram ?? project?.diagrams?.[diagramType]?.[diagramIndex];
+    if (typeof diagramIndex !== 'number' || diagram?.references?.ClassDiagram === classDiagramId) return;
+    try {
+      await dispatch(
+        updateDiagramReferencesThunk({
+          diagramType: diagramType as SupportedDiagramType,
+          diagramIndex,
+          references: { ClassDiagram: classDiagramId },
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.warn('[useModelInjection] Could not link the diagram to its class diagram:', error);
+    }
+  };
+
   /* ================================================================ */
   /*  handleInjection                                                  */
   /* ================================================================ */
@@ -300,49 +410,68 @@ export function useModelInjection({
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
       let appliedModel: any = null;
+      let createdTab: { index: number; diagram: ProjectDiagram } | null = null;
+      // Read before any tab switch: the class tab the agent's snapshot had active.
+      const sourceClassDiagramId = activeClassDiagramId(currentProjectRef.current);
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
+      //
+      // This path previously dispatched THREE editor-
+      // reinit-triggering actions for a single user-visible operation —
+      // `addDiagramThunk` (bump #1), `switchDiagramIndexThunk` (bump #2),
+      // and a manual `bumpEditorRevision()` after the model write
+      // (bump #3). Each bump destroys + recreates the BesserEditor.
+      //
+      // Strategy:
+      //  1. Convert the systemSpec to its UMLModel up-front (pure, no
+      //     dispatch).
+      //  2. Pass the seeded model through `addAndSwitchDiagramThunk`'s
+      //     `initialModel` — the thunk writes both the new diagram and
+      //     its initial model into storage BEFORE its reducer bumps
+      //     editorRevision once. The editor then sets up exactly once
+      //     with the seeded model in place.
+      //
+      // Net: one editor reinit per "new tab" assistant injection.
       if ((command as any).createNewTab) {
         try {
-          const tabResult = await dispatch(
-            addDiagramThunk({
-              diagramType: targetDiagramType as SupportedDiagramType,
-            }),
-          ).unwrap();
-          if (tabResult?.index !== undefined) {
-            await dispatch(
-              switchDiagramIndexThunk({
-                diagramType: targetDiagramType as SupportedDiagramType,
-                index: tabResult.index,
-              }),
-            ).unwrap();
-          }
+          let newModelForTab: any = null;
           if (command.systemSpec && typeof command.systemSpec === 'object') {
             const { ConverterFactory } = await import('../services/converters');
             const converter = ConverterFactory.getConverter(targetDiagramType as any);
-            const convertedModel = converter.convertCompleteSystem(command.systemSpec);
-            // This tab bypasses the GUI editor's load path, so mark agent text
-            // editable here too (no-op for UML models). See markTextEditable.
-            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
-            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
-            appliedModel = convertedModel;
+            newModelForTab = converter.convertCompleteSystem(command.systemSpec);
           } else if (command.model) {
-            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
-            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
-            appliedModel = command.model;
+            newModelForTab = command.model;
           }
-          // Freshly generated class diagram in a new tab -> let ELK arrange it
-          // once the new editor instance has the model.
-          if (targetDiagramType === 'ClassDiagram' && (command.systemSpec || command.model)) {
-            requestAutoLayoutOnNextSetup();
+          // This tab bypasses the GUI editor's load path, so mark agent text
+          // editable here too (no-op for UML models). See markTextEditable.
+          if (newModelForTab && targetDiagramType === 'GUINoCodeDiagram') {
+            markTextEditable(newModelForTab);
           }
-          dispatch(bumpEditorRevision());
+          // Freshly generated class diagram in a new tab -> ELK-arrange it
+          // before it is stored, so the new editor loads (and fits) the result.
+          if (targetDiagramType === 'ClassDiagram' && newModelForTab) {
+            newModelForTab = await layoutGeneratedClassDiagram(newModelForTab);
+          }
+
+          const created = await dispatch(
+            addAndSwitchDiagramThunk({
+              diagramType: targetDiagramType as SupportedDiagramType,
+              initialModel: newModelForTab ?? undefined,
+            }),
+          ).unwrap();
+          createdTab = created ? { index: created.index, diagram: created.diagram } : null;
           applied = true;
+          if (newModelForTab) appliedModel = newModelForTab;
+          if (targetIsUml && newModelForTab) centerEditorViewport(() => editorRef.current, editorRef.current);
         } catch (tabError) {
           console.error('[useModelInjection] New tab creation/injection failed:', tabError);
           throw tabError;
         }
       }
+
+      // Read before any tab switch: an edit to the diagram already on the
+      // canvas is applied in place, as one undoable step.
+      const liveEditor = !applied ? mountedEditorFor(targetDiagramType, command.diagramId) : null;
 
       if (!applied) {
         const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
@@ -354,11 +483,19 @@ export function useModelInjection({
       // Direct converter/modifier + Redux path (no editor dependency!)
       if (!applied && targetIsUml) {
         const currentModel = currentModelRef.current;
+        // An unmigrated v3 diagram is read-only; the agent must not replace it.
+        if (isV3UMLModel(currentModel)) {
+          const title = currentProjectRef.current
+            ? getActiveDiagram(currentProjectRef.current, targetDiagramType as SupportedDiagramType)?.title
+            : undefined;
+          throw new ReadOnlyDiagramError(i18n.t('editors.legacyDiagram.saveRefused', { title: title ?? targetDiagramType }));
+        }
         if (currentModel) {
           pushUndoSnapshot(currentModel, `Before ${command.action}`);
         }
 
         let newModel: any = null;
+        let staleEditor: unknown;
 
         switch (command.action) {
           case 'inject_complete_system':
@@ -411,9 +548,31 @@ export function useModelInjection({
                   applied = true;
                 }
               } else {
+                // v4-native fallback when the modeling service isn't ready:
+                // merge the converted {nodes, edges} fragment into the
+                // current model. (Dispatching the bare fragment as a whole
+                // model would blank the canvas.)
                 const { ConverterFactory } = await import('../services/converters');
                 const converter = ConverterFactory.getConverter(targetDiagramType as any);
-                newModel = converter.convertSingleElement(command.element);
+                const fragment = converter.convertSingleElement(command.element);
+                const base = currentModel
+                  ? JSON.parse(JSON.stringify(currentModel))
+                  : {
+                      version: '4.0.0',
+                      id: '',
+                      title: '',
+                      type: targetDiagramType,
+                      nodes: [],
+                      edges: [],
+                      assessments: {},
+                    };
+                newModel = {
+                  ...base,
+                  nodes: [...(Array.isArray(base.nodes) ? base.nodes : []), ...(fragment?.nodes ?? [])],
+                  edges: [...(Array.isArray(base.edges) ? base.edges : []), ...(fragment?.edges ?? [])],
+                  // AgentDiagram fragments carry off-canvas components (e.g. intents).
+                  ...(fragment?.components && { components: { ...(base.components ?? {}), ...fragment.components } }),
+                };
               }
             } else if (command.element) {
               throw new Error('inject_element payload is missing a recognizable element specification');
@@ -539,18 +698,31 @@ export function useModelInjection({
                   : 'Applied model modification',
             });
           } else {
-            await dispatch(updateDiagramModelThunk({ model: newModel }));
-            // A freshly generated complete class diagram should be ELK-arranged
-            // on the recreated editor. Incremental edits keep their positions.
+            // A freshly generated complete class diagram is ELK-arranged.
+            // Incremental edits keep their positions.
             if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
-              requestAutoLayoutOnNextSetup();
+              newModel = await layoutGeneratedClassDiagram(newModel);
             }
-            dispatch(bumpEditorRevision());
+            if (liveEditor && liveEditor === editorRef.current && modelingServiceRef.current) {
+              // The target is on the canvas: one undoable step (Ctrl+Z reverts it).
+              await modelingServiceRef.current.injectToEditor({
+                type: 'modification',
+                data: newModel,
+                message: typeof command.message === 'string' ? command.message : '',
+              });
+            } else {
+              // Another diagram (the tab was just switched): the editor is
+              // re-created from storage, which starts a fresh undo history.
+              staleEditor = editorRef.current;
+              await dispatch(updateDiagramModelThunk({ model: newModel }));
+              dispatch(bumpEditorRevision());
+            }
           }
           applied = true;
           appliedModel = newModel;
-          if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
-            centerEditorViewport(newModel);
+          // With the assistant panel open, any change may land behind it.
+          if (shouldCenterViewportAfterInjection(command, currentModel, newModel) || isAssistantPanelOpen()) {
+            centerEditorViewport(() => editorRef.current, staleEditor);
           }
         }
       }
@@ -598,6 +770,16 @@ export function useModelInjection({
         throw new Error('Assistant did not provide a valid update payload');
       }
 
+      // An object / GUI diagram built by the assistant came from the active
+      // class tab; record that, or the diagram shows (and generates against)
+      // the default first class tab instead.
+      if (
+        BUILT_FROM_ACTIVE_CLASS_DIAGRAM.has(targetDiagramType) &&
+        (createdTab || command.action === 'inject_complete_system')
+      ) {
+        await linkToClassDiagram(targetDiagramType, sourceClassDiagramId, createdTab);
+      }
+
       // Refresh undo state after successful injection
       refreshUndoState();
       setProgressMessage('');
@@ -641,9 +823,11 @@ export function useModelInjection({
       setProgressMessage('');
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
+      // Rephrasing cannot help with a read-only diagram.
+      const advice = error instanceof ReadOnlyDiagramError ? '' : ' Try rephrasing your request.';
       const errMsg = toKitMessage(
         'assistant',
-        `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`,
+        `I wasn't able to apply that change \u2014 ${errorMessage.replace(/\.+$/, '')}.${advice}`,
         { isError: true },
       );
       setMessages((prev) => [...prev, errMsg]);
@@ -659,7 +843,7 @@ export function useModelInjection({
 
     try {
       if (editor) {
-        editor.model = snapshot.model;
+        applyModelToEditor(editor, snapshot.model);
       }
       dispatch(updateDiagramModelThunk({ model: snapshot.model }));
 

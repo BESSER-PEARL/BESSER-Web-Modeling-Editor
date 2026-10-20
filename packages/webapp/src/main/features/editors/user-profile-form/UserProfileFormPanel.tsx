@@ -11,7 +11,7 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import type { ApollonEditor } from '@besser/wme';
+import type { BesserEditor } from '@besser/wme';
 import { X, Plus, Trash2, ChevronDown, ChevronRight, UserCircle2, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types
 interface UserProfileFormPanelProps {
   open: boolean;
   onClose: () => void;
-  editor: ApollonEditor | undefined;
+  editor: BesserEditor | undefined;
 }
 
 const fieldSelectClass =
@@ -352,7 +352,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
   return ReactDOM.createPortal(
     <div
       ref={panelRef}
-      className="pointer-events-auto fixed inset-y-0 right-0 flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card/95 shadow-elevation-3 backdrop-blur-sm"
+      className="pointer-events-auto fixed inset-y-0 right-0 flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card shadow-elevation-3"
       style={{ zIndex: Z_INDEX.POPOVER }}
     >
       {/* Header */}

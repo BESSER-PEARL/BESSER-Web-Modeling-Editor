@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
+import CodeMirror, { EditorView } from '@uiw/react-codemirror';
+import { yaml } from '@codemirror/lang-yaml';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,12 +10,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { getActiveDiagram } from '../../shared/types/project';
 import type { BesserProject } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-// @ts-ignore
-import CodeMirrorLib from 'codemirror';
-import 'codemirror/lib/codemirror.css';
-// @ts-ignore
-import 'codemirror/mode/yaml/yaml';
-// @ts-ignore
 import * as jsyaml from 'js-yaml';
 
 // ─────────────────────────────────────────────────────────────
@@ -408,7 +404,15 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
   // ── Initial values from diagram ───────────────────────────
   const initialForm = useMemo<AgentConfigFormData>(() => {
     const d = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : null;
-    if (d?.agentConfigForm) return d.agentConfigForm as unknown as AgentConfigFormData;
+    if (d?.agentConfigForm) {
+      // Forms saved before newer NLP provider keys existed lack them; backfill from defaults.
+      const stored = d.agentConfigForm as unknown as AgentConfigFormData;
+      return {
+        ...DEFAULT_AGENT_CONFIG_FORM,
+        ...stored,
+        nlp: { ...DEFAULT_AGENT_CONFIG_FORM.nlp, ...(stored.nlp ?? {}) },
+      };
+    }
     return DEFAULT_AGENT_CONFIG_FORM;
   }, [currentProject]);
 
@@ -459,76 +463,14 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
     setCustomYaml(value);
     persist(form, value);
     try {
-      if (value.trim()) (jsyaml as any).load(value);
+      if (value.trim()) jsyaml.load(value);
       setCustomYamlError(null);
     } catch (e: any) {
       setCustomYamlError(e.message ?? String(e));
     }
   }, [form, persist]);
 
-  // ── Raw YAML tab — read-only CodeMirror ──────────────────
-  const rawCmContainerRef = useRef<HTMLDivElement>(null);
-  const rawCmInstanceRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (activeTab !== 'raw' || !rawCmContainerRef.current || rawCmInstanceRef.current) return;
-    const cm = (CodeMirrorLib as any)(rawCmContainerRef.current, {
-      value: generatedYaml,
-      mode: 'yaml',
-      lineNumbers: true,
-      readOnly: true,
-      lineWrapping: true,
-      tabSize: 2,
-    });
-    rawCmInstanceRef.current = cm;
-    return () => {
-      if (rawCmInstanceRef.current) {
-        rawCmInstanceRef.current.getWrapperElement().remove();
-        rawCmInstanceRef.current = null;
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (rawCmInstanceRef.current && rawCmInstanceRef.current.getValue() !== generatedYaml) {
-      rawCmInstanceRef.current.setValue(generatedYaml);
-    }
-  }, [generatedYaml]);
-
-  // ── Custom YAML — editable CodeMirror ────────────────────
-  const customCmContainerRef = useRef<HTMLDivElement>(null);
-  const customCmInstanceRef = useRef<any>(null);
-  const updateCustomYamlRef = useRef(updateCustomYaml);
-  useEffect(() => { updateCustomYamlRef.current = updateCustomYaml; }, [updateCustomYaml]);
-
-  useEffect(() => {
-    if (activeTab !== 'form' || !customCmContainerRef.current || customCmInstanceRef.current) return;
-    const cm = (CodeMirrorLib as any)(customCmContainerRef.current, {
-      value: customYaml,
-      mode: 'yaml',
-      lineNumbers: true,
-      lineWrapping: true,
-      tabSize: 2,
-    });
-    cm.on('change', (instance: any) => {
-      updateCustomYamlRef.current(instance.getValue());
-    });
-    customCmInstanceRef.current = cm;
-    return () => {
-      if (customCmInstanceRef.current) {
-        customCmInstanceRef.current.getWrapperElement().remove();
-        customCmInstanceRef.current = null;
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (customCmInstanceRef.current && customCmInstanceRef.current.getValue() !== customYaml) {
-      customCmInstanceRef.current.setValue(customYaml);
-    }
-  }, [customYaml]);
+  const yamlExtensions = useMemo(() => [yaml(), EditorView.lineWrapping], []);
 
   // ── Section updaters ─────────────────────────────────────
   const setAgent = (v: Partial<AgentConfigFormData['agent']>) =>
@@ -778,10 +720,14 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
             <p className="text-[11px] text-muted-foreground/70">
               {t('agentConfig.yamlEditor.customDescription')}
             </p>
-            <div
-              ref={customCmContainerRef}
-              className="overflow-hidden rounded-md border border-input [&_.CodeMirror]:min-h-[80px] [&_.CodeMirror]:font-mono [&_.CodeMirror]:text-sm"
-            />
+            <div className="overflow-hidden rounded-md border border-input text-sm font-mono [&_.cm-editor]:min-h-[80px]">
+              <CodeMirror
+                value={customYaml}
+                extensions={yamlExtensions}
+                onChange={updateCustomYaml}
+                basicSetup={{ lineNumbers: true, tabSize: 2 }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -792,10 +738,15 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
           <p className="text-[11px] text-muted-foreground/70">
             {t('agentConfig.yamlEditor.rawDescription')}
           </p>
-          <div
-            ref={rawCmContainerRef}
-            className="overflow-hidden rounded-md border border-input [&_.CodeMirror]:min-h-[400px] [&_.CodeMirror]:font-mono [&_.CodeMirror]:text-sm [&_.CodeMirror]:bg-muted/30"
-          />
+          <div className="overflow-hidden rounded-md border border-input bg-muted/30 text-sm font-mono [&_.cm-editor]:min-h-[400px]">
+            <CodeMirror
+              value={generatedYaml}
+              extensions={yamlExtensions}
+              editable={false}
+              readOnly
+              basicSetup={{ lineNumbers: true, tabSize: 2 }}
+            />
+          </div>
         </div>
       )}
     </div>

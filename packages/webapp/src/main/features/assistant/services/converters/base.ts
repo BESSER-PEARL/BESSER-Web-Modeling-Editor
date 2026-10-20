@@ -1,8 +1,9 @@
 /**
  * Diagram Type Converters
- * Handles conversion from simplified specs to Apollon format for all diagram types
+ * Handles conversion from simplified specs to BESSER WME format for all diagram types
  */
 
+import type { BesserNode } from '@besser/wme';
 import { DiagramType } from '../shared-types';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from '../shared/layoutUtils';
 
@@ -14,7 +15,17 @@ export interface DiagramPosition {
 }
 
 /**
- * Base interface for all diagram converters
+ * Base interface for all diagram converters.
+ *
+ * UML converters (Class / Object / StateMachine / Agent) are v4-native:
+ *  - `convertSingleElement` returns a partial `{nodes: BesserNode[],
+ *    edges: BesserEdge[]}` fragment accepted by
+ *    `UMLModelingService.mergeElementIntoModel`,
+ *  - `convertCompleteSystem` returns a full canonical v4 model
+ *    (`{version: '4.0.0', type, nodes[], edges[], assessments}`) that
+ *    passes the webapp's `isUMLModel` guard and loads directly into the
+ *    editor.
+ * GUI / quantum converters keep their editor-specific shapes.
  */
 export interface DiagramConverter {
   getDiagramType(): DiagramType;
@@ -79,34 +90,42 @@ export const extractSpecPosition = (spec: any): DiagramPosition | undefined => {
   };
 };
 
-interface PlacedElement {
-  bounds: { x: number; y: number; width: number; height: number };
-}
-
 /**
- * Shift element bounds so the centre of the content's bounding box sits on the
- * origin. The canvas draws elements inside <svg x="50%" y="50%">, so model
- * coordinate (0,0) is the visual centre of the canvas; content pinned to
- * x>=0 / y>=0 would land in the bottom-right quadrant. Flow geometry is a
- * placeholder the layouter recomputes, so only element bounds move.
- * Returns the content size, or null when there are no elements.
+ * Shift a v4 model so the bounding box of its nodes is centred on the origin,
+ * which keeps the viewport-recentering in `useModelInjection` stable. Only
+ * top-level nodes move: children are positioned relative to their parent.
+ * Edges carry no route points; the editor routes them.
  */
-export const centerElementsOnOrigin = (
-  elements: Record<string, PlacedElement>,
-): { width: number; height: number } | null => {
-  const placed = Object.values(elements);
-  if (!placed.length) return null;
-  const minX = Math.min(...placed.map((e) => e.bounds.x));
-  const minY = Math.min(...placed.map((e) => e.bounds.y));
-  const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-  const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
+export const centerNodesOnOrigin = (model: { nodes?: BesserNode[] }): void => {
+  const nodes = Array.isArray(model.nodes) ? model.nodes : [];
+  if (!nodes.length) return;
+
+  const byId = new Map<string, BesserNode>(nodes.map((n) => [n.id, n]));
+  const absoluteOrigin = (node: BesserNode, depth = 0): { x: number; y: number } => {
+    const parent = node.parentId ? byId.get(node.parentId) : undefined;
+    if (!parent || depth > 64) return { x: node.position.x, y: node.position.y };
+    const p = absoluteOrigin(parent, depth + 1);
+    return { x: p.x + node.position.x, y: p.y + node.position.y };
+  };
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  nodes.forEach((n) => {
+    const { x, y } = absoluteOrigin(n);
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + (n.width ?? 0));
+    maxY = Math.max(maxY, y + (n.height ?? 0));
+  });
+
   const offsetX = -(minX + maxX) / 2;
   const offsetY = -(minY + maxY) / 2;
-  placed.forEach((e) => {
-    e.bounds.x += offsetX;
-    e.bounds.y += offsetY;
+  nodes.forEach((n) => {
+    if (n.parentId) return;
+    n.position = { x: n.position.x + offsetX, y: n.position.y + offsetY };
   });
-  return { width: maxX - minX, height: maxY - minY };
 };
 
 // Re-export from shared module

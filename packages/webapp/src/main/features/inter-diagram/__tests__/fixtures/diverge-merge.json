@@ -1,152 +1,308 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "diverge-merge",
+  "title": "diverge-merge",
   "type": "BPMNDiagram",
-  "size": { "width": 800, "height": 600 },
-  "elements": {
-    "pool-1": {
+  "nodes": [
+    {
       "id": "pool-1",
-      "name": "Repository",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 40, "width": 600, "height": 440 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 600,
+      "height": 440,
+      "measured": {
+        "width": 600,
+        "height": 440
+      },
+      "data": {
+        "name": "Repository"
+      }
     },
-    "lane-mgr": {
+    {
       "id": "lane-mgr",
-      "name": "Reviewer",
-      "type": "BPMNSwimlane",
-      "owner": "pool-1",
-      "bounds": { "x": 60, "y": 60, "width": 580, "height": 120 },
-      "isAgentic": true,
-      "role": "supervision",
-      "trustScore": 80
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 580,
+      "height": 120,
+      "measured": {
+        "width": 580,
+        "height": 120
+      },
+      "data": {
+        "name": "Reviewer",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 80
+      },
+      "parentId": "pool-1"
     },
-    "lane-wkr": {
+    {
       "id": "lane-wkr",
-      "name": "Coder",
-      "type": "BPMNSwimlane",
-      "owner": "pool-1",
-      "bounds": { "x": 60, "y": 200, "width": 580, "height": 120 },
-      "isAgentic": true,
-      "role": "solution",
-      "trustScore": 60
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 160
+      },
+      "width": 580,
+      "height": 120,
+      "measured": {
+        "width": 580,
+        "height": 120
+      },
+      "data": {
+        "name": "Coder",
+        "isAgentic": true,
+        "role": "solution",
+        "trustScore": 60
+      },
+      "parentId": "pool-1"
     },
-    "lane-main": {
+    {
       "id": "lane-main",
-      "name": "Maintainer",
-      "type": "BPMNSwimlane",
-      "owner": "pool-1",
-      "bounds": { "x": 60, "y": 340, "width": 580, "height": 120 },
-      "isAgentic": false,
-      "role": "solution",
-      "trustScore": 0
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 300
+      },
+      "width": 580,
+      "height": 120,
+      "measured": {
+        "width": 580,
+        "height": 120
+      },
+      "data": {
+        "name": "Maintainer",
+        "isAgentic": false,
+        "role": "solution",
+        "trustScore": 0
+      },
+      "parentId": "pool-1"
     },
-    "task-assign": {
+    {
       "id": "task-assign",
-      "name": "Assign bug",
-      "type": "BPMNTask",
-      "owner": "lane-mgr",
-      "bounds": { "x": 120, "y": 90, "width": 140, "height": 60 },
-      "isAgentic": true,
-      "collaborationMode": "role"
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 30
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Assign bug",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-mgr"
     },
-    "gw-diver": {
+    {
       "id": "gw-diver",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": "lane-mgr",
-      "bounds": { "x": 300, "y": 100, "width": 40, "height": 40 },
-      "isAgentic": true,
-      "gatewayRole": "diverging",
-      "mergingStrategy": "leader-driven",
-      "collaborationMode": "role"
+      "type": "bpmnGateway",
+      "position": {
+        "x": 240,
+        "y": 40
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "exclusive",
+        "isAgentic": true,
+        "gatewayRole": "diverging"
+      },
+      "parentId": "lane-mgr"
     },
-    "gw-merge": {
+    {
       "id": "gw-merge",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": "lane-mgr",
-      "bounds": { "x": 420, "y": 100, "width": 40, "height": 40 },
-      "isAgentic": true,
-      "gatewayRole": "merging",
-      "mergingStrategy": "leader-driven",
-      "collaborationMode": "role"
+      "type": "bpmnGateway",
+      "position": {
+        "x": 360,
+        "y": 40
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "exclusive",
+        "isAgentic": true,
+        "gatewayRole": "merging"
+      },
+      "parentId": "lane-mgr"
     },
-    "task-repro": {
+    {
       "id": "task-repro",
-      "name": "Reproduce and fix",
-      "type": "BPMNTask",
-      "owner": "lane-wkr",
-      "bounds": { "x": 300, "y": 230, "width": 140, "height": 60 },
-      "isAgentic": true,
-      "collaborationMode": "role"
+      "type": "bpmnTask",
+      "position": {
+        "x": 240,
+        "y": 30
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Reproduce and fix",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-wkr"
     },
-    "task-validate": {
+    {
       "id": "task-validate",
-      "name": "Validate",
-      "type": "BPMNTask",
-      "owner": "lane-main",
-      "bounds": { "x": 420, "y": 370, "width": 140, "height": 60 },
-      "isAgentic": false
+      "type": "bpmnTask",
+      "position": {
+        "x": 360,
+        "y": 30
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Validate",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": false
+      },
+      "parentId": "lane-main"
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {
-    "f1": {
+  ],
+  "edges": [
+    {
       "id": "f1",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 260, "y": 120, "width": 40, "height": 1 },
-      "path": [
-        { "x": 260, "y": 120 },
-        { "x": 300, "y": 120 }
-      ],
-      "source": { "element": "task-assign", "direction": "Right" },
-      "target": { "element": "gw-diver", "direction": "Left" }
+      "source": "task-assign",
+      "target": "gw-diver",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 240
+          },
+          {
+            "x": 560,
+            "y": 240
+          }
+        ]
+      }
     },
-    "f2": {
+    {
       "id": "f2",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 320, "y": 140, "width": 40, "height": 120 },
-      "path": [
-        { "x": 320, "y": 140 },
-        { "x": 360, "y": 260 }
-      ],
-      "source": { "element": "gw-diver", "direction": "Down" },
-      "target": { "element": "task-repro", "direction": "Left" }
+      "source": "gw-diver",
+      "target": "task-repro",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 640,
+            "y": 280
+          },
+          {
+            "x": 680,
+            "y": 400
+          }
+        ]
+      }
     },
-    "f3": {
+    {
       "id": "f3",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 360, "y": 140, "width": 80, "height": 120 },
-      "path": [
-        { "x": 360, "y": 260 },
-        { "x": 440, "y": 140 }
-      ],
-      "source": { "element": "task-repro", "direction": "Right" },
-      "target": { "element": "gw-merge", "direction": "Down" }
+      "source": "task-repro",
+      "target": "gw-merge",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 720,
+            "y": 400
+          },
+          {
+            "x": 800,
+            "y": 280
+          }
+        ]
+      }
     },
-    "f4": {
+    {
       "id": "f4",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 440, "y": 140, "width": 60, "height": 240 },
-      "path": [
-        { "x": 440, "y": 140 },
-        { "x": 480, "y": 400 }
-      ],
-      "source": { "element": "gw-merge", "direction": "Down" },
-      "target": { "element": "task-validate", "direction": "Left" }
+      "source": "gw-merge",
+      "target": "task-validate",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 880,
+            "y": 280
+          },
+          {
+            "x": 920,
+            "y": 540
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

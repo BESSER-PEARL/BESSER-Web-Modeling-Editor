@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
+import { BesserMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
@@ -14,6 +14,7 @@ import {
   defaultPerspectivesAllEnabled,
   isPerspectiveVisible,
   isUMLModel,
+  isV3UMLModel,
   toSupportedDiagramType,
   toUMLDiagramType,
   getActiveDiagram,
@@ -22,13 +23,14 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
-import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
+import { getUserMetaModelV4 } from '@besser/wme';
+import i18n from '../../shared/i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 export type EditorOptions = {
   type: UMLDiagramType;
-  mode?: ApollonMode;
+  mode?: BesserMode;
   readonly?: boolean;
   enablePopups?: boolean;
   enableCopyPaste?: boolean;
@@ -39,7 +41,7 @@ export type EditorOptions = {
 
 export const defaultEditorOptions: EditorOptions = {
   type: UMLDiagramType.ClassDiagram,
-  mode: ApollonMode.Modelling,
+  mode: BesserMode.Modelling,
   readonly: false,
   enablePopups: true,
   enableCopyPaste: true,
@@ -143,7 +145,12 @@ async function setupBridgeForActiveDiagram(
   } else if (diagramType === 'UserDiagram') {
     try {
       const { diagramBridge } = await import('@besser/wme');
-      diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
+      // Fix #4: feed the v4-shape `{nodes, edges}` view of
+      // the user meta-model. The raw `userMetaModel` JSON is the v3
+      // `{elements, relationships}` shape — passing it directly caused
+      // every bridge reader (`getAvailableClasses`, enum-literal lookups
+      // in `UserModelNameEditPanel`) to silently return `[]`.
+      diagramBridge.setClassDiagramData(getUserMetaModelV4() as unknown as UMLModel);
     } catch {
       /* bridge not available */
     }
@@ -165,7 +172,7 @@ export const loadProjectThunk = createAsyncThunk(
     // imported / template-loaded projects whose active diagram is a User
     // or Object diagram show the correct palette on first render.
     const activeDiagram = getActiveDiagram(project, project.currentDiagramType);
-    await setupBridgeForActiveDiagram(project, activeDiagram, project.currentDiagramType);
+    await setupBridgeForActiveDiagram(project, activeDiagram ?? null, project.currentDiagramType);
 
     return project;
   },
@@ -200,6 +207,24 @@ export const createProjectThunk = createAsyncThunk(
         initialDiagramType,
       );
     });
+
+    // Content-bleed-on-new-project: explicitly clear the singleton
+    // `diagramBridge` cache (including its localStorage backup) before
+    // priming it for the new project. Without this, the bridge keeps the
+    // *previous* project's ClassDiagram data — which surfaces as stale
+    // class options in ObjectDiagram/UserDiagram palettes and reference
+    // lookups inside the brand-new project. We then mirror
+    // `loadProjectThunk`'s setup call so a brand-new project's first
+    // active diagram has the correct (here: empty) bridge state.
+    try {
+      const { diagramBridge } = await import('@besser/wme');
+      diagramBridge.clearDiagramData();
+    } catch {
+      /* bridge not available */
+    }
+    const activeDiagram = getActiveDiagram(project, project.currentDiagramType);
+    await setupBridgeForActiveDiagram(project, activeDiagram ?? null, project.currentDiagramType);
+
     return project;
   },
 );
@@ -278,8 +303,13 @@ export const updateDiagramModelThunk = createAsyncThunk(
 
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
+    // A diagram whose v3 model could not be migrated is read-only: never
+    // overwrite the only copy of the user's data.
+    if (updates.model !== undefined && isV3UMLModel(current.model)) {
+      throw new Error(i18n.t('editors.legacyDiagram.saveRefused', { title: current.title }));
+    }
     let updatedUpdates = updates;
-    // For AgentDiagram: when Apollon fires a canvas model-change it only carries
+    // For AgentDiagram: when the editor fires a canvas model-change it only carries
     // canvas elements (no components). Preserve the existing model.components so
     // off-canvas components (intents, tools, RAGs …) are never wiped.
     if (activeDiagramType === 'AgentDiagram' && isUMLModel(updates.model) && isUMLModel(current.model)) {
@@ -345,6 +375,32 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
  * WITHOUT bumping editorRevision (no editor reinit).
  * Use after direct ProjectStorageRepository writes from editors
  * (GrapesJS, Quantum, Agent) that bypass Redux thunks.
+ *
+ * ## bumpEditorRevision contract
+ *
+ * This thunk DOES NOT bump `editorRevision`, by design. It exists for
+ * "metadata-only" project refreshes where the active editor's bound
+ * model has not changed (e.g. another diagram was renamed, an agent
+ * config was updated, perspective settings changed). Bumping the
+ * revision would tear down and recreate the BesserEditor, dropping
+ * unsaved edits and clearing undo history — neither of which is the
+ * intended side-effect of a "refresh metadata" call.
+ *
+ * If the caller's mutation DOES alter the body of the currently-
+ * active diagram's model (e.g. retrofitting nodes onto the live tab),
+ * the caller MUST dispatch `bumpEditorRevision()` AFTER this thunk's
+ * fulfilled action resolves. In development a warning is logged when the
+ * active diagram's model content changed and no bump followed by the next
+ * task, so the contract violation is surfaced instead of producing a
+ * silently stale canvas.
+ *
+ * Callers known to correctly pair a bump:
+ *   - AgentConfigurationPanel: bumps after applying agent profiles
+ *   - GraphicalUIEditor template injection: bumps after notifyChange
+ *
+ * Callers that intentionally do NOT bump (active model unchanged):
+ *   - PerspectiveSettingsDialog
+ *   - GitHubSidebar after pulling project metadata
  */
 export const refreshProjectStateThunk = createAsyncThunk(
   'workspace/refreshProjectState',
@@ -352,9 +408,48 @@ export const refreshProjectStateThunk = createAsyncThunk(
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) return null;
-    return ProjectStorageRepository.loadProject(project.id);
+    const activeType = state.workspace.activeDiagramType;
+    const activeIndex = state.workspace.activeDiagramIndex;
+    const loaded = ProjectStorageRepository.loadProject(project.id);
+    if (import.meta.env?.DEV && loaded) {
+      warnOnUnbumpedActiveModelChange(state.workspace, loaded, getState as () => { workspace: WorkspaceState });
+    }
+    return {
+      project: loaded,
+      activeType,
+      activeIndex,
+    };
   },
 );
+
+/**
+ * Development-only check of the bumpEditorRevision contract above: warns when
+ * the refresh rewrote the body of the diagram the editor shows and nothing
+ * bumped the revision by the next task. A freshly loaded project always has
+ * new object identities, so models are compared by content; a refresh that
+ * also changes which diagram is active (the Define-agent flow) is not one.
+ */
+const warnOnUnbumpedActiveModelChange = (
+  before: WorkspaceState,
+  loaded: BesserProject,
+  getState: () => { workspace: WorkspaceState },
+): void => {
+  const previous = before.activeDiagram;
+  const next = getActiveDiagram(loaded, loaded.currentDiagramType ?? before.activeDiagramType);
+  if (!previous || !next || previous.id !== next.id) return;
+  if (JSON.stringify(previous.model) === JSON.stringify(next.model)) return;
+  const revision = before.editorRevision;
+  setTimeout(() => {
+    if (getState().workspace.editorRevision !== revision) return;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[refreshProjectStateThunk] Active diagram model body changed but editorRevision was not bumped. ' +
+        "Callers that mutate the active diagram's model must dispatch bumpEditorRevision() " +
+        'after the refresh resolves; otherwise the canvas will keep rendering the stale model. ' +
+        'See refreshProjectStateThunk JSDoc.',
+    );
+  }, 0);
+};
 
 /**
  * Toggle a single modeling perspective (e.g. ClassDiagram, GUINoCodeDiagram)
@@ -540,6 +635,86 @@ export const addDiagramThunk = createAsyncThunk(
 );
 
 /**
+ * Combined add + switch in a single thunk.
+ *
+ * Background: the Assistant's "new tab" flow used to dispatch three
+ * separate actions — `addDiagramThunk` (bumps editorRevision once),
+ * `switchDiagramIndexThunk` (bumps a second time), and a manual
+ * `bumpEditorRevision` after writing the model. Each bump destroys and
+ * recreates the BesserEditor, so the editor was reinitialized three
+ * times for a single user-visible operation. This thunk performs both
+ * the create and the switch in storage, then emits a SINGLE
+ * `editorRevision` bump via its fulfilled reducer.
+ *
+ * Use this whenever a caller wants to create a diagram and immediately
+ * focus it — which is virtually every add-diagram path except the
+ * tabs strip's `+` button (which is fine as-is because it doesn't
+ * follow-up with a model write).
+ */
+export const addAndSwitchDiagramThunk = createAsyncThunk(
+  'workspace/addAndSwitchDiagram',
+  async (
+    { diagramType, title, initialModel }: {
+      diagramType: SupportedDiagramType;
+      title?: string;
+      /** Optional initial model to seed the new diagram with. When
+       * provided, the model is written to storage BEFORE the single
+       * editorRevision bump in the fulfilled reducer, so the editor
+       * sets up exactly once with the seeded model. */
+      initialModel?: ProjectDiagram['model'];
+    },
+    { getState },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    const existing = project.diagrams[diagramType] ?? [];
+    if (existing.length >= MAX_DIAGRAMS_PER_TYPE) {
+      throw new Error(
+        `Cannot add more ${diagramType}s: project limit of ${MAX_DIAGRAMS_PER_TYPE} reached.`,
+      );
+    }
+
+    let result: { index: number; diagram: ProjectDiagram } | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+      if (result) {
+        // A tab of another type also switches the active type, or the editor
+        // remounts as the old type and saves into its tab.
+        ProjectStorageRepository.switchDiagramType(project.id, diagramType);
+        ProjectStorageRepository.switchDiagramIndex(project.id, diagramType, result.index);
+        if (initialModel) {
+          // Overwrite the just-created empty model with the caller-
+          // provided one, BEFORE we return so the reducer reads the
+          // seeded diagram out of storage and the editor sees it on
+          // its first (and only) setup pass.
+          const seeded: ProjectDiagram = {
+            ...result.diagram,
+            model: initialModel,
+            lastUpdate: new Date().toISOString(),
+          };
+          ProjectStorageRepository.updateDiagram(
+            project.id,
+            diagramType,
+            seeded,
+            result.index,
+          );
+          result = { index: result.index, diagram: seeded };
+        }
+      }
+    });
+    if (!result) throw new Error('Failed to add diagram');
+
+    const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    if (diagramType !== state.workspace.activeDiagramType) {
+      await setupBridgeForActiveDiagram(project, diagram, diagramType);
+    }
+    return { diagramType, index: newIndex, diagram };
+  },
+);
+
+/**
  * Write an `ElementLineageMap` sidecar for a derived diagram.
  * Called by inter-diagram derivation hooks after the derived
  * diagram is added and its model is stamped.
@@ -652,7 +827,7 @@ const workspaceSlice = createSlice({
         });
       }
     },
-    changeEditorMode(state, action: PayloadAction<ApollonMode>) {
+    changeEditorMode(state, action: PayloadAction<BesserMode>) {
       state.editorOptions.mode = action.payload;
     },
     changeReadonlyMode(state, action: PayloadAction<boolean>) {
@@ -809,6 +984,36 @@ const workspaceSlice = createSlice({
         state.error = action.error.message || 'Failed to add diagram';
       })
 
+      // ── Add + switch diagram (single editor reinit) ──────────
+      .addCase(addAndSwitchDiagramThunk.fulfilled, (state, action) => {
+        const { diagramType, index, diagram } = action.payload;
+        if (state.project) {
+          const freshProject = ProjectStorageRepository.loadProject(state.project.id);
+          if (freshProject) {
+            state.project = freshProject;
+          } else {
+            console.warn('[workspaceSlice] addAndSwitchDiagramThunk: storage reload failed, falling back to manual push');
+            state.project.diagrams[diagramType].push(diagram);
+          }
+          state.project.currentDiagramIndices[diagramType] = index;
+          state.project.currentDiagramType = diagramType;
+        }
+        if (state.activeDiagramType !== diagramType) {
+          state.activeDiagramType = diagramType;
+          state.editorOptions = deriveEditorOptions(state.editorOptions, diagramType);
+        }
+        state.activeDiagram = diagram;
+        state.activeDiagramIndex = index;
+        // SINGLE editorRevision bump for the combined
+        // add + switch (vs. the previous 3 bumps when add, switch, and
+        // a manual bumpEditorRevision were dispatched separately).
+        state.editorRevision += 1;
+      })
+      .addCase(addAndSwitchDiagramThunk.rejected, (state, action) => {
+        console.error('addAndSwitchDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to add diagram';
+      })
+
       // ── Element lineage sidecar ────────────────────────────────
       .addCase(setElementLineageThunk.fulfilled, (state, action) => {
         if (!state.project) return;
@@ -896,8 +1101,8 @@ const workspaceSlice = createSlice({
 
       // ── Refresh project from storage (no revision bump) ─────
       .addCase(refreshProjectStateThunk.fulfilled, (state, action) => {
-        if (!action.payload) return;
-        const p = action.payload;
+        if (!action.payload || !action.payload.project) return;
+        const { project: p } = action.payload;
         state.project = p;
 
         // Sync activeDiagramType if storage has a different value
@@ -913,7 +1118,8 @@ const workspaceSlice = createSlice({
         }
 
         // Keep active diagram in sync without triggering editor reinit
-        state.activeDiagram = getActiveDiagram(p, state.activeDiagramType) ?? state.activeDiagram;
+        const nextActive = getActiveDiagram(p, state.activeDiagramType);
+        state.activeDiagram = nextActive ?? state.activeDiagram;
       })
       .addCase(refreshProjectStateThunk.rejected, (_state, action) => {
         console.error('refreshProjectStateThunk failed:', action.error.message);

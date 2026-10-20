@@ -8,7 +8,7 @@ This checklist wires an **existing** `UMLDiagramType` from the editor package in
 
 If you are adding a **brand-new** diagram type or DSL:
 
-- Extend the editor package first (`packages/editor`), including diagram type registration, elements, rendering, palette, and translations.
+- Extend the library package first (`packages/library`), including diagram type registration, node / edge components, inspector panels, and palette previews.
 - Add backend processing in the BESSER repository (`besser/utilities/web_modeling_editor/backend`).
 
 References:
@@ -262,7 +262,7 @@ Without the backend parser:
 ## Available UML Diagram Types
 
 The following `UMLDiagramType` values are available in `@besser/wme` (see
-`packages/editor/src/main/packages/diagram-type.ts`):
+`packages/library/lib/types/DiagramType.ts`):
 
 | Type | Value |
 |------|-------|

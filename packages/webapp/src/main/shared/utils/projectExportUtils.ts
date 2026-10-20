@@ -1,5 +1,13 @@
 import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent, isUMLModel } from '../types/project';
+import {
+  BesserProject,
+  ProjectDiagram,
+  SupportedDiagramType,
+  getActiveDiagram,
+  diagramHasContent,
+  isUMLModel,
+  isV3UMLModel,
+} from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
 import {
@@ -142,6 +150,18 @@ export const buildProjectPayloadForBackend = (
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
   const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
+
+  // The backend reads v4 only: an unmigrated (read-only) v3 diagram stays in
+  // the project file export but is left out of backend requests.
+  for (const [type, diagrams] of Object.entries(payload.diagrams)) {
+    const kept = diagrams.filter((d) => !isV3UMLModel(d.model));
+    if (kept.length === diagrams.length) continue;
+    const key = type as SupportedDiagramType;
+    const active = diagrams[payload.currentDiagramIndices[key] ?? 0];
+    if (kept.length) payload.diagrams[type] = kept;
+    else delete payload.diagrams[type];
+    payload.currentDiagramIndices[key] = Math.max(0, kept.indexOf(active));
+  }
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {

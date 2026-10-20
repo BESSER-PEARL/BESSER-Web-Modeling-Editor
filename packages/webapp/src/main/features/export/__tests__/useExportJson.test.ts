@@ -5,7 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
+import { BesserEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 
 import { createEmptyDiagram } from '../../../shared/types/project';
 import { _resetBesserVersionCacheForTests } from '../../../shared/services/besserVersion';
@@ -43,7 +43,7 @@ describe('useExportJSON', () => {
       ...createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram),
       model: { ...canvasModel, components: { [LLM.id]: LLM } as UMLModel['components'] },
     };
-    const editor = { model: canvasModel } as unknown as ApollonEditor;
+    const editor = { model: canvasModel } as unknown as BesserEditor;
 
     const { result } = renderHook(() => useExportJSON());
     await result.current(editor, diagram);
@@ -54,7 +54,7 @@ describe('useExportJSON', () => {
 
   it('records the BESSER and editor versions in a single-diagram export', async () => {
     const diagram = createEmptyDiagram('Library', UMLDiagramType.ClassDiagram);
-    const editor = { model: diagram.model } as unknown as ApollonEditor;
+    const editor = { model: diagram.model } as unknown as BesserEditor;
 
     const { result } = renderHook(() => useExportJSON());
     await result.current(editor, diagram);

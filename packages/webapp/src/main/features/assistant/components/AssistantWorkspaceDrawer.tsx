@@ -21,6 +21,7 @@ import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
+import { placeDrawerPill, type PillPlacement } from '../hooks/drawerPillPlacement';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
@@ -29,6 +30,7 @@ import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/st
 import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
+import { rateLimitToneClass } from './rateLimitTone';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -189,6 +191,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   const drawerRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
   const pillRef = useRef<HTMLDivElement | null>(null);
+  const pillRowRef = useRef<HTMLDivElement | null>(null);
   const dragHandleRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   // Last offset written to the sheet. The sheet transform and backdrop opacity
@@ -614,14 +617,67 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     };
   }, [isDragging]);
 
+  // Keep the pill clear of the canvas controls bar and the assistant button.
+  // Re-measured when the row or pill resizes, the window resizes, or the
+  // engine republishes the controls / properties-panel widths (CSS variables
+  // on <html>); again once the assistant button's 0.2 s slide has finished.
+  const [pillPlacement, setPillPlacement] = useState<PillPlacement | null>(null);
+  useLayoutEffect(() => {
+    const row = pillRowRef.current;
+    const pill = pillRef.current;
+    if (!row || !pill || typeof ResizeObserver === 'undefined') return;
+    const place = () => {
+      const rowRect = row.getBoundingClientRect();
+      if (rowRect.width === 0) return;
+      // Measure the pill's natural size and row position.
+      const { maxWidth, marginBottom } = pill.style;
+      pill.style.maxWidth = '';
+      pill.style.marginBottom = '';
+      const pillRect = pill.getBoundingClientRect();
+      pill.style.maxWidth = maxWidth;
+      pill.style.marginBottom = marginBottom;
+      const controls = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--besser-canvas-controls-right'),
+      );
+      const fab = document.querySelector('[aria-controls="assistant-widget-panel"]')?.getBoundingClientRect();
+      const next = placeDrawerPill({
+        row: { left: rowRect.left, right: rowRect.right, top: pillRect.top, bottom: pillRect.bottom },
+        pillWidth: pillRect.width,
+        controlsRight: Number.isFinite(controls) ? controls : null,
+        obstacle: fab && fab.width > 0 ? fab : null,
+      });
+      setPillPlacement((prev) =>
+        prev &&
+        prev.lift === next.lift &&
+        Math.abs(prev.left - next.left) < 0.5 &&
+        Math.abs(prev.maxWidth - next.maxWidth) < 0.5
+          ? prev
+          : next,
+      );
+    };
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      place();
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(place, 250);
+    };
+    schedule();
+    const resizeObserver = new ResizeObserver(schedule);
+    resizeObserver.observe(row);
+    const htmlObserver = new MutationObserver(schedule);
+    htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    window.addEventListener('resize', schedule);
+    return () => {
+      clearTimeout(settleTimer);
+      resizeObserver.disconnect();
+      htmlObserver.disconnect();
+      window.removeEventListener('resize', schedule);
+    };
+  }, [showTrigger, open, showOpenFace]);
+
   /* ---- Computed values ---- */
 
-  const rateLimitColor =
-    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
-      ? 'text-red-500'
-      : rateLimitStatus.requestsLastMinute >= 6
-        ? 'text-amber-500'
-        : 'text-muted-foreground';
+  const rateLimitColor = rateLimitToneClass(rateLimitStatus);
 
   /* ---- Render helpers ---- */
 
@@ -655,11 +711,29 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes.
           First in DOM order so Tab goes pill → sheet; z-index keeps it on top. */}
-      <div className={cn('pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center', !showTrigger && !open && 'hidden')}>
+      {/* Centered, but kept clear of the canvas controls bar and the assistant button, or lifted above the bar when too narrow (see pillPlacement);
+          18px from the bottom puts its centre on the controls bar's centre line. */}
+      <div
+        ref={pillRowRef}
+        className={cn(
+          'pointer-events-none absolute inset-x-0 bottom-[18px] z-[45] flex',
+          pillPlacement ? 'justify-start' : 'justify-center',
+          !showTrigger && !open && 'hidden',
+        )}
+      >
         <div
           ref={pillRef}
+          style={
+            pillPlacement
+              ? {
+                  marginLeft: pillPlacement.left,
+                  maxWidth: pillPlacement.maxWidth,
+                  marginBottom: pillPlacement.lift || undefined,
+                }
+              : undefined
+          }
           className={cn(
-            'pointer-events-auto flex h-9 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',
+            'pointer-events-auto flex h-9 min-w-0 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',
             'shadow-elevation-2 backdrop-blur-md',
             'transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
             'outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -685,7 +759,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           >
             {showOpenFace ? <ChevronDown className="size-3.5" /> : <Bot className="size-3.5" />}
           </span>
-          <span>
+          <span className="truncate">
             {showOpenFace ? t('assistant.drawer.labelOpen') : t('assistant.drawer.labelClosed')}
           </span>
         </div>
@@ -705,6 +779,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
       <section
         ref={drawerRef}
+        id="assistant-drawer-panel"
         className={cn(
           'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
           // iOS-style drawer curve (as in Vaul).

@@ -24,16 +24,18 @@ npm run test:e2e --workspace=webapp        # headless
 npm run test:e2e:ui --workspace=webapp     # interactive
 ```
 
-Auto-starts Vite on :8080 (`playwright.config.ts`); several specs also expect the
-backend on :9000. Each spec's top-of-file JSDoc comment is the authoritative
+Auto-starts Vite on :8080 (`playwright.config.ts`). Apart from the gated live smoke,
+no spec needs the backend: the ones that touch it mock their routes, and the rest
+run with it down. Shared project-hub helpers live in
+`helpers/project.ts`. Each spec's top-of-file JSDoc comment is the authoritative
 description; summarised here:
 
 | Spec | Scenario |
 |---|---|
-| `smoke.spec.ts` | App boots; Project Hub appears; create a blank project; shell + sidebar render; switch diagram type; header menus present. |
+| `smoke.spec.ts` | App boots; first-run "Model it / Describe it" chooser appears; create a blank project; shell + sidebar render; switch diagram type; header menus present. |
 | `project.spec.ts` | Project lifecycle: create with metadata, localStorage persistence across reload, reopen hub, list/switch projects, rename, import entry, hub back-button. |
 | `navigation.spec.ts` | Sidebar diagram-type icons load each editor; Settings nav; sidebar collapse/expand; File/Generate/Deploy/Help dropdowns; theme toggle. |
-| `class-diagram.spec.ts` | Class Diagram editor: canvas renders, create class via double-click, **Generate menu shows generator categories** (Web/Database/OOP/Schema), identity panel. |
+| `class-diagram.spec.ts` | Class Diagram editor: canvas renders, create a class by dragging it from the palette (stored as a v4 node, survives reload) and by clicking palette items, **Generate menu shows generator categories** (Web/Database/OOP/Schema), identity panel. |
 | `settings.spec.ts` | Project Settings: layout, edit name/description, toggle "Show Instanced Objects" / "Show Association Names", Export present, diagram-tab visibility. |
 | `er-notation.spec.ts` | Class-diagram notation UML↔ER toggle, persistence to `besser-standalone-settings`, survives reload, ER rendering (#508). |
 | `theme.spec.ts` | Dark/light toggle: `dark` class + `data-theme` on `<html>`, persistence, aria-label. |

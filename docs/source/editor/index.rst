@@ -3,7 +3,8 @@ Editors
 
 The BESSER Web Modeling Editor ships three specialized editors, each tailored to a
 different modeling domain. All editors share a common architecture based on the
-``ApollonEditor`` class and Redux state management.
+``BesserEditor`` class (from ``packages/library``) and Zustand state management on
+top of React Flow.
 
 **UML Editor**
    The core editor for structural modeling. Supports class diagrams, object diagrams,
@@ -20,7 +21,7 @@ different modeling domain. All editors share a common architecture based on the
 
 Shared services like the :doc:`diagram-bridge` enable cross-diagram data sharing
 (e.g., object diagrams referencing class diagram types). The :doc:`api` documents
-the public ``ApollonEditor`` interface available to all editors.
+the public ``BesserEditor`` interface available to all editors.
 
 .. toctree::
    :maxdepth: 2

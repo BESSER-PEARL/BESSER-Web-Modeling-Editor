@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { importProjectFromJson } from '../../services/project-import/projectImport';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -8,6 +8,7 @@ import {
   buildProjectExportEnvelope,
   ExportableProjectPayload,
 } from '../projectExportUtils';
+import { LocalStorageRepository } from '../../services/storage/local-storage-repository';
 import {
   createDefaultProject,
   createEmptyDiagram,
@@ -24,22 +25,24 @@ import {
 // Helpers
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Create a UML diagram that has at least one element (i.e. non-empty). */
+/** Create a UML diagram that has at least one node (i.e. non-empty, v4 shape). */
 const createNonEmptyUMLDiagram = (
   title: string,
   type: UMLDiagramType,
 ): ProjectDiagram => {
   const diagram = createEmptyDiagram(title, type);
   const model = diagram.model as any;
-  model.elements = {
-    'element-1': {
+  model.nodes = [
+    {
       id: 'element-1',
-      name: 'TestClass',
-      type: 'Class',
-      owner: null,
-      bounds: { x: 100, y: 100, width: 200, height: 100 },
+      type: 'class',
+      position: { x: 100, y: 100 },
+      width: 200,
+      height: 100,
+      measured: { width: 200, height: 100 },
+      data: { name: 'TestClass' },
     },
-  };
+  ];
   return diagram;
 };
 
@@ -66,22 +69,22 @@ const createNonEmptyQuantumDiagram = (title: string): ProjectDiagram => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('diagramHasContent', () => {
-  it('returns false for empty UML diagram (no elements, no relationships)', () => {
+  it('returns false for empty UML diagram (no nodes, no edges)', () => {
     const diagram = createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     expect(diagramHasContent(diagram)).toBe(false);
   });
 
-  it('returns true for UML diagram with elements', () => {
+  it('returns true for UML diagram with nodes', () => {
     const diagram = createNonEmptyUMLDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     expect(diagramHasContent(diagram)).toBe(true);
   });
 
-  it('returns true for UML diagram with only relationships', () => {
+  it('returns true for UML diagram with only edges', () => {
     const diagram = createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     const model = diagram.model as any;
-    model.relationships = {
-      'rel-1': { id: 'rel-1', type: 'ClassBidirectional' },
-    };
+    model.edges = [
+      { id: 'rel-1', type: 'ClassBidirectional', source: 'a', target: 'b', sourceHandle: '', targetHandle: '', data: { points: [] } },
+    ];
     expect(diagramHasContent(diagram)).toBe(true);
   });
 
@@ -327,7 +330,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       GUINoCodeDiagram: null,
       QuantumCircuitDiagram: null,
       NNDiagram: null,
-      BPMN: null,
+      BPMN: UMLDiagramType.BPMN,
     };
     const diagramTitles: Record<SupportedDiagramType, string> = {
       ClassDiagram: 'Class Diagram',
@@ -393,8 +396,8 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
 
     // 5. The original non-empty ClassDiagram content is preserved
     const classModel = restored.diagrams.ClassDiagram[0].model as any;
-    expect(classModel.elements).toBeDefined();
-    expect(Object.keys(classModel.elements).length).toBeGreaterThan(0);
+    expect(Array.isArray(classModel.nodes)).toBe(true);
+    expect(classModel.nodes.length).toBeGreaterThan(0);
   });
 
   it('fully empty project round-trips: export has no diagrams, import restores all empty', () => {
@@ -486,7 +489,7 @@ describe('buildProjectExportEnvelope', () => {
     project.diagrams.AgentDiagram = [agent];
 
     const bpmn = createNonEmptyUMLDiagram('Process', UMLDiagramType.BPMN);
-    (bpmn.model as any).elements['element-1'].agentDiagramRef = agent.id;
+    (bpmn.model as any).nodes[0].data.agentDiagramRef = agent.id;
     project.diagrams.BPMN = [bpmn];
     const derived = createNonEmptyUMLDiagram('Components', UMLDiagramType.ComponentDiagram);
     derived.derivedFrom = {
@@ -504,7 +507,7 @@ describe('buildProjectExportEnvelope', () => {
     const imported = await importProjectFromJson(file);
     expect((imported.diagrams.AgentDiagram[0].model as any).components).toEqual((agent.model as any).components);
     expect(imported.diagrams.AgentDiagram[0].agentConfigForm).toEqual(agent.agentConfigForm);
-    expect((imported.diagrams.BPMN[0].model as any).elements['element-1'].agentDiagramRef).toBe(agent.id);
+    expect((imported.diagrams.BPMN[0].model as any).nodes[0].data.agentDiagramRef).toBe(agent.id);
     expect(imported.diagrams.ComponentDiagram[0].derivedFrom).toEqual(derived.derivedFrom);
     expect(imported.elementLineage?.[derived.id]).toEqual(project.elementLineage[derived.id]);
     const reloaded = ProjectStorageRepository.loadProject(imported.id);
@@ -557,5 +560,85 @@ describe('buildProjectExportEnvelope', () => {
     // Sanity: filter actually applied
     expect(env.project.diagrams['ClassDiagram']).toBeDefined();
     expect(env.project.diagrams['StateMachineDiagram']).toBeUndefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// buildProjectExportEnvelope — personalization bundling
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('buildProjectExportEnvelope personalization bundling', () => {
+  const v4AgentModel = (id: string) => ({
+    version: '4.0.0',
+    id,
+    title: 'Agent',
+    type: 'AgentDiagram',
+    nodes: [],
+    edges: [],
+    assessments: {},
+  });
+
+  const seedPersonalization = () => {
+    LocalStorageRepository.saveAgentBaseModel('agent-diagram-1', v4AgentModel('base') as any);
+    LocalStorageRepository.saveUserProfile('Teen', {
+      version: '4.0.0',
+      id: 'profile-model',
+      title: 'Teen',
+      type: 'UserDiagram',
+      nodes: [],
+      edges: [],
+      assessments: {},
+    } as any);
+    const config = LocalStorageRepository.saveAgentConfiguration('Config', {} as any);
+    LocalStorageRepository.setActiveAgentConfigurationId(config.id);
+    const [profile] = LocalStorageRepository.getUserProfiles();
+    LocalStorageRepository.saveAgentProfileConfigurationMapping(profile, config);
+    return config;
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('attaches the five personalization fields when localStorage is populated', () => {
+    const config = seedPersonalization();
+    const project = createDefaultProject('Bundled', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project);
+
+    expect(env.agentConfigurations).toHaveLength(1);
+    expect(env.userProfiles).toHaveLength(1);
+    expect(env.agentProfileMappings).toHaveLength(1);
+    expect(env.activeAgentConfigurationId).toBe(config.id);
+    // agentBaseModels is keyed by AgentDiagram id.
+    expect(Object.keys(env.agentBaseModels!)).toEqual(['agent-diagram-1']);
+  });
+
+  it('omits every personalization field when localStorage is empty', () => {
+    const project = createDefaultProject('Empty', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project);
+
+    expect(env.agentConfigurations).toBeUndefined();
+    expect(env.userProfiles).toBeUndefined();
+    expect(env.agentProfileMappings).toBeUndefined();
+    expect(env.activeAgentConfigurationId).toBeUndefined();
+    expect(env.agentBaseModels).toBeUndefined();
+  });
+
+  it('omits personalization with includePersonalization: false (GitHub deploy privacy opt-out)', () => {
+    seedPersonalization();
+    const project = createDefaultProject('OptOut', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
+
+    expect(env.agentConfigurations).toBeUndefined();
+    expect(env.userProfiles).toBeUndefined();
+    expect(env.agentProfileMappings).toBeUndefined();
+    expect(env.activeAgentConfigurationId).toBeUndefined();
+    expect(env.agentBaseModels).toBeUndefined();
+    // The project payload itself is unaffected by the opt-out.
+    expect(env.project).toBeDefined();
+    expect(env.version).toBe('2.0.0');
   });
 });

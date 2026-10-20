@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { createBlankProject, openFreshApp, workspaceSidebar } from './helpers/project';
 
 /**
  * Class Diagram editor tests — verify creating classes, adding attributes,
@@ -6,25 +7,21 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Class Diagram', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
     await createBlankProject(page, 'ClassDiagram_E2E');
 
     // Ensure we are on the Class Diagram editor (default diagram type).
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // The Class button should already be active after project creation.
     const classButton = sidebar.getByRole('button', { name: /class/i });
-    await expect(classButton).toHaveClass(/border-brand/);
+    await expect(classButton).toHaveAttribute('aria-current', 'page');
   });
 
   test('editor canvas is rendered for class diagrams', async ({ page }) => {
-    // The ApollonEditorComponent renders a canvas area.
-    // Look for the editor root container — typically a div with the Apollon editor.
+    // The BesserEditorComponent renders a canvas area.
+    // Look for the editor root container — typically a div with the BESSER WME editor.
     const editorArea = page.locator('main');
     await expect(editorArea).toBeVisible();
 
@@ -32,30 +29,56 @@ test.describe('Class Diagram', () => {
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
   });
 
-  test('can create a class element via double-click on the canvas', async ({ page }) => {
-    // Wait for the editor to fully initialize.
+  test('can create a class by dragging it from the palette onto the canvas', async ({ page }) => {
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
 
-    // The Apollon editor canvas typically responds to double-click to create
-    // new elements. Double-click in the center of the main editor area.
-    const mainArea = page.locator('main');
-    const box = await mainArea.boundingBox();
-    if (!box) {
-      throw new Error('Could not determine the editor bounding box.');
+    const palette = page.getByRole('complementary', { name: 'Element palette' });
+    const classItem = palette.getByRole('button', { name: 'Class', exact: true }).first();
+    const pane = page.locator('.react-flow__pane');
+    const nodes = page.locator('.react-flow__node');
+    await expect(classItem).toBeVisible();
+    await expect(nodes).toHaveCount(0);
+
+    const from = await classItem.boundingBox();
+    const to = await pane.boundingBox();
+    if (!from || !to) {
+      throw new Error('Could not determine the palette / canvas bounding boxes.');
     }
 
-    await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+    // The palette drag is pointer-driven (DraggableGhost), not HTML5 DnD.
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+    await page.mouse.up();
 
-    // After a double-click, a new class element or an input field for naming
-    // should appear. We look for any text input or editable element that
-    // appeared within the editor area.
-    // Note: The exact interaction depends on the Apollon editor's behavior.
-    // This test verifies the interaction path works — a more specific assertion
-    // can be added once the exact DOM structure is confirmed.
-    await page.waitForTimeout(1_000);
+    await expect(nodes).toHaveCount(1);
+    await expect(nodes.first().getByText('Class1', { exact: true })).toBeVisible();
 
-    // Verify the editor area still renders without errors.
-    await expect(mainArea).toBeVisible();
+    // The new node reaches the stored project as a v4 React Flow node.
+    await expect
+      .poll(() => storedClassNodes(page), { timeout: 5_000 })
+      .toEqual([expect.objectContaining({ type: 'class', name: 'Class1' })]);
+
+    // ...and is rendered again from storage after a reload.
+    await page.reload();
+    await expect(page.locator('.react-flow__node')).toHaveCount(1, { timeout: 15_000 });
+    await expect(page.locator('.react-flow__node').getByText('Class1', { exact: true })).toBeVisible();
+  });
+
+  test('clicking a palette item inserts it on the canvas', async ({ page }) => {
+    await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
+
+    const palette = page.getByRole('complementary', { name: 'Element palette' });
+    const nodes = page.locator('.react-flow__node');
+    await expect(nodes).toHaveCount(0);
+
+    await palette.getByRole('button', { name: 'Class', exact: true }).first().click();
+    await palette.getByRole('button', { name: 'Class', exact: true }).first().click();
+
+    // Two inserts, numbered apart so they do not collide on name.
+    await expect(nodes).toHaveCount(2);
+    await expect(page.locator('.react-flow__node').getByText('Class1', { exact: true })).toBeVisible();
+    await expect(page.locator('.react-flow__node').getByText('Class2', { exact: true })).toBeVisible();
   });
 
   test('can open the generate menu from a class diagram', async ({ page }) => {
@@ -113,21 +136,12 @@ test.describe('Class Diagram', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
+/** `{type, name}` of each node in the active project's first stored ClassDiagram. */
+async function storedClassNodes(page: Page): Promise<{ type: string; name: unknown }[]> {
+  return page.evaluate(() => {
+    const id = localStorage.getItem('besser_latest_project');
+    const raw = id ? localStorage.getItem(`besser_project_${id}`) : null;
+    const nodes = raw ? JSON.parse(raw)?.diagrams?.ClassDiagram?.[0]?.model?.nodes : null;
+    return Array.isArray(nodes) ? nodes.map((n: any) => ({ type: n.type, name: n.data?.name })) : [];
+  });
 }

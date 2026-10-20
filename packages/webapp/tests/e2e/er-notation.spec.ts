@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createBlankProject, navigateToSettings, openFreshApp, workspaceSidebar } from './helpers/project';
 
 /**
  * ER-notation toggle tests — verify the Class Diagram Notation radio group
@@ -7,20 +8,12 @@ import { test, expect } from '@playwright/test';
  *
  * Rendering-level assertions (diamond at midpoint, underline on isId, hidden
  * methods compartment) are covered by manual browser verification — they
- * require interacting with the Apollon editor's internal model, which is not
+ * require interacting with the BESSER WME editor's internal model, which is not
  * exposed on `window` for the UML editor.
  */
 test.describe('ER Notation setting', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem(
-        'besser_analytics_consent',
-        JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }),
-      );
-    });
-    await page.reload();
+    await openFreshApp(page);
     await createBlankProject(page, 'ER_Notation_E2E');
   });
 
@@ -87,7 +80,7 @@ test.describe('ER Notation setting', () => {
     await navigateToSettings(page);
     await page.getByTestId('class-notation-er').click();
 
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await sidebar.getByRole('button', { name: /class/i }).click();
 
     // The Class editor returns; confirm no crash loader visible and main canvas is live.
@@ -95,29 +88,3 @@ test.describe('ER Notation setting', () => {
     await expect(page.locator('main')).toBeVisible();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers (duplicated from settings.spec.ts — kept local to avoid cross-file imports)
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}
-
-async function navigateToSettings(page: import('@playwright/test').Page) {
-  const sidebar = page.getByRole('complementary');
-  await expect(sidebar).toBeVisible({ timeout: 10_000 });
-  await sidebar.getByRole('button', { name: /settings/i }).click();
-  await expect(page.getByRole('heading', { name: /project settings/i })).toBeVisible({ timeout: 10_000 });
-}

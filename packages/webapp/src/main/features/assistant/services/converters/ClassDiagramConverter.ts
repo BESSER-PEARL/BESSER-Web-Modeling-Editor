@@ -1,10 +1,33 @@
 /**
- * Class Diagram Converter
- * Converts simplified class specifications to Apollon format
+ * Class Diagram Converter (v4-native)
+ *
+ * Converts simplified class specifications straight into the canonical v4
+ * shape ({version: '4.0.0', nodes[], edges[]}) — no v3 detour. Node/edge
+ * shapes are identical to what the editor produces:
+ *   - all classifiers are `node.type === 'class'` with `data.stereotype`
+ *     discriminating Class / AbstractClass / Interface / Enumeration,
+ *   - attributes / methods are inline ClassifierMember rows on
+ *     `node.data.attributes` / `node.data.methods`,
+ *   - relationships are edges with role / multiplicity on `edge.data`.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
+import { CLASS_STEREOTYPE, buildClassNode, classNodeHeight, createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+
+type ClassifierMemberRow = {
+  id: string;
+  name: string;
+  attributeType?: string;
+  visibility?: string;
+  isDerived?: boolean;
+  defaultValue?: unknown;
+  isOptional?: boolean;
+  code?: string;
+  implementationType?: string;
+  isExternalId?: boolean;
+};
 import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramConverter implements DiagramConverter {
@@ -14,61 +37,54 @@ export class ClassDiagramConverter implements DiagramConverter {
     return 'ClassDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }, classNames?: Set<string>) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+    classNames?: Set<string>,
+  ): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const pos = position || this.positionGenerator.getNextPosition();
     const classId = generateUniqueId('class');
-    
-    const baseHeight = 60;
-    const attrHeight = (spec.attributes?.length || 0) * 25 + (spec.attributes?.length > 0 ? 10 : 0);
-    const methodHeight = (spec.methods?.length || 0) * 25 + (spec.methods?.length > 0 ? 10 : 0);
-    const totalHeight = baseHeight + attrHeight + methodHeight;
-    
-    const classElement: any = {
-      type: "Class",
+
+    let stereotype: string | null = null;
+    if (spec.isAbstract) stereotype = CLASS_STEREOTYPE.Abstract;
+    else if (spec.isEnumeration) stereotype = CLASS_STEREOTYPE.Enumeration;
+    else if (spec.isInterface) stereotype = CLASS_STEREOTYPE.Interface;
+
+    const attributes = this.createAttributeRows(spec, classNames);
+    const methods = this.createMethodRows(spec);
+
+    const node = buildClassNode({
       id: classId,
       name: spec.className,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 220, height: totalHeight },
-      attributes: [] as string[],
-      methods: [] as string[]
-    };
+      stereotype,
+      x: pos.x,
+      y: pos.y,
+      width: 220,
+      height: classNodeHeight(attributes.length, methods.length),
+      extraData: {
+        attributes,
+        methods,
+        // Italic is a render-time hint for abstract classes / interfaces.
+        ...(stereotype === CLASS_STEREOTYPE.Abstract || stereotype === CLASS_STEREOTYPE.Interface ? { italic: true } : {}),
+      },
+    });
 
-    if (spec.isAbstract) {
-      classElement.type = 'AbstractClass';
-      classElement.italic = true;
-      classElement.stereotype = 'abstract';
-    }
-
-    if (spec.isEnumeration) {
-      classElement.type = 'Enumeration';
-      classElement.stereotype = 'enumeration';
-    }
-
-    if (spec.isInterface) {
-      classElement.type = 'Interface';
-      classElement.italic = true;
-      classElement.stereotype = 'interface';
-    }
-    
-    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames);
-    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x);
-    
-    classElement.attributes = Object.keys(attributes);
-    classElement.methods = Object.keys(methods);
-    
-    return {
-      class: classElement,
-      attributes,
-      methods
-    };
+    return { nodes: [node], edges: [] };
   }
 
   convertCompleteSystem(systemSpec: any) {
     this.positionGenerator.reset();
-    const allElements: Record<string, any> = {};
-    const allRelationships: Record<string, any> = {};
+    const model = createEmptyV4Model('ClassDiagram', systemSpec.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
     const classIdMap: Record<string, string> = {};
     const attachedClasses = new Set<string>();
+    // null = plain class; 'abstract' / 'enumeration' / 'interface' otherwise.
+    const stereotypeOf = (nodeId: string): string | null => {
+      const node = nodes.find((n) => n.id === nodeId);
+      const stereotype = (node?.data as { stereotype?: string } | undefined)?.stereotype;
+      return stereotype ? stereotype.toLowerCase() : null;
+    };
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -76,14 +92,12 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(classSpec, position, allClassNames);
-      classIdMap[classSpec.className] = completeElement.class.id;
-
-      allElements[completeElement.class.id] = completeElement.class;
-      Object.assign(allElements, completeElement.attributes);
-      Object.assign(allElements, completeElement.methods);
+      const { nodes: classNodes } = this.convertSingleElement(classSpec, position, allClassNames);
+      const classNode = classNodes[0];
+      classIdMap[classSpec.className] = classNode.id;
+      nodes.push(classNode);
     });
-    
+
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
@@ -93,89 +107,81 @@ export class ClassDiagramConverter implements DiagramConverter {
         // association: that would discard per-link fields in generated apps.
         if ((rel.type || 'Association').toLowerCase() !== 'association'
             || !sourceId || !targetId || !associationClassId
-            || allElements[sourceId].type === 'Enumeration'
-            || allElements[targetId].type === 'Enumeration'
-            || allElements[associationClassId].type !== 'Class'
+            || stereotypeOf(sourceId) === 'enumeration'
+            || stereotypeOf(targetId) === 'enumeration'
+            || stereotypeOf(associationClassId) !== null
             || associationClassId === sourceId || associationClassId === targetId
             || attachedClasses.has(associationClassId)) {
           throw new Error(`Invalid association-class attachment: ${rel.associationClass}`);
         }
         attachedClasses.add(associationClassId);
       }
-      
+
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
-        const relationship: any = {
+        const relationshipName = rel.name || '';
+
+        const edge: BesserEdge = {
           id: relId,
-          type: 'ClassBidirectional',
-          source: { 
-            element: sourceId,
-            direction: rel.sourceDirection || 'Left',
-            multiplicity: rel.sourceMultiplicity || '1',
-            role: rel.sourceRole || '',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
-          },
-          target: { 
-            element: targetId,
-            direction: rel.targetDirection || 'Right',
-            multiplicity: rel.targetMultiplicity || '1',
-            role: rel.name || '',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
-          },
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
-          name: rel.name || '',
-          path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
-          isManuallyLayouted: false
+          source: sourceId,
+          target: targetId,
+          type: 'ClassBidirectional' as any,
+          sourceHandle: directionToHandle(rel.sourceDirection, 'Left'),
+          targetHandle: directionToHandle(rel.targetDirection, 'Right'),
+          data: {
+            label: relationshipName,
+            ...(relationshipName && { name: relationshipName }),
+            sourceMultiplicity: rel.sourceMultiplicity || '1',
+            targetMultiplicity: rel.targetMultiplicity || '1',
+            sourceRole: rel.sourceRole || '',
+            targetRole: relationshipName,
+            isManuallyLayouted: false,
+            points: [],
+          } as any,
         };
-        applyAssistantRelationshipType(relationship, rel.type);
-        allRelationships[relId] = relationship;
+        // Type + explicit per-end navigability (data.sourceNavigable /
+        // data.targetNavigable); ClassUnidirectional is never produced.
+        applyAssistantRelationshipType(edge, rel.type);
+        edges.push(edge);
+
         if (associationClassId) {
-          // The editor and BUML converter already support a class-to-
-          // association link. Its target is the relationship, NOT an endpoint.
-          const linkId = generateUniqueId('classlink');
-          allRelationships[linkId] = {
-            id: linkId,
-            type: 'ClassLinkRel',
-            name: '',
-            owner: null,
-            source: { element: associationClassId, direction: 'Right', multiplicity: '', role: '' },
-            target: { element: relId, direction: 'Left', multiplicity: '', role: '' },
-            bounds: { x: 0, y: 0, width: 0, height: 0 },
-            path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-            isManuallyLayouted: false
-          };
+          // Association class: the canonical v4 ClassLinkRel anchors its
+          // source on the association EDGE id (see the library's
+          // `utils/associationClassLink.ts`), its target on the class node.
+          edges.push({
+            id: generateUniqueId('classlink'),
+            source: relId,
+            sourceHandle: 'Center',
+            target: associationClassId,
+            targetHandle: 'Up',
+            type: 'ClassLinkRel' as any,
+            data: { points: [] } as any,
+          });
         }
       }
     });
-    
-    this.createConstraints(systemSpec, classIdMap, allElements, allRelationships);
 
-    return {
-      version: "3.0.0",
-      type: "ClassDiagram",
-      size: { width: 1400, height: 740 },
-      elements: allElements,
-      relationships: allRelationships,
-      interactive: { elements: {}, relationships: {} },
-      assessments: {}
-    };
+    this.createConstraints(systemSpec, classIdMap, nodes, edges);
+
+    return model;
   }
 
   /**
-   * Persist the agent's OCL invariants as ClassOCLConstraint elements linked to
-   * their context class. Without this the agent's `constraints` reach the browser
-   * and are dropped, so business rules the user stated in prose ("guests must not
-   * exceed room capacity") never reach the generator.
+   * Persist the agent's OCL invariants as `ClassOCLConstraint` nodes linked to
+   * their context class by a `ClassOCLLink` edge. Without this the agent's
+   * `constraints` reach the browser and are dropped, so business rules the
+   * user stated in prose ("guests must not exceed room capacity") never reach
+   * the generator.
    *
-   * Invariants sharing a context are merged into one box, matching how the backend
-   * parses them (`_process_constraints` reads several `context ... inv ...` blocks
-   * out of a single element) and how the editor's own OCL boxes are authored.
+   * Invariants sharing a context are merged into one box (`data.expression`
+   * carries every `context ... inv ...` block), matching how the backend
+   * parses them and how the editor's own OCL boxes are authored.
    */
   private createConstraints(
     systemSpec: any,
     classIdMap: Record<string, string>,
-    allElements: Record<string, any>,
-    allRelationships: Record<string, any>
+    nodes: BesserNode[],
+    edges: BesserEdge[],
   ) {
     const constraints = systemSpec?.constraints;
     if (!Array.isArray(constraints) || constraints.length === 0) return;
@@ -191,118 +197,91 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     let index = 0;
     for (const [context, expressions] of byContext) {
-      const elementId = generateUniqueId('ocl');
-      allElements[elementId] = {
-        id: elementId,
-        name: '',
-        type: 'ClassOCLConstraint',
-        owner: null,
-        bounds: { x: -700, y: index * 170, width: 640, height: 130 },
-        description: '',
-        constraint: expressions.join('\n\n')
-      };
+      const nodeId = generateUniqueId('ocl');
+      nodes.push({
+        id: nodeId,
+        type: 'ClassOCLConstraint' as any,
+        position: { x: -700, y: index * 170 },
+        width: 640,
+        height: 130,
+        measured: { width: 640, height: 130 },
+        data: {
+          name: '',
+          expression: expressions.join('\n\n'),
+          description: '',
+        },
+      });
 
-      const linkId = generateUniqueId('ocllink');
-      allRelationships[linkId] = {
-        id: linkId,
-        name: '',
-        type: 'ClassOCLLink',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 0, height: 0 },
-        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-        source: { element: elementId, direction: 'Right', multiplicity: '', role: '' },
-        target: { element: classIdMap[context], direction: 'Left', multiplicity: '', role: '' },
-        isManuallyLayouted: false
-      };
+      edges.push({
+        id: generateUniqueId('ocllink'),
+        source: nodeId,
+        target: classIdMap[context],
+        type: 'ClassOCLLink' as any,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        data: { points: [] } as any,
+      });
       index++;
     }
   }
 
-  private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
-    const attributes: Record<string, any> = {};
-    let currentY = startY;
+  private createAttributeRows(spec: any, classNames?: Set<string>): ClassifierMemberRow[] {
+    const rows: ClassifierMemberRow[] = [];
 
     spec.attributes?.forEach((attr: any) => {
-      const attrId = generateUniqueId('attr');
-      const visibility = attr.visibility || 'public';
-      const normalizedType = normalizeType(attr.type, classNames);
-      
-      const attrElement: any = {
-        id: attrId,
+      const row: ClassifierMemberRow = {
+        id: generateUniqueId('attr'),
         name: attr.name,
-        type: "ClassAttribute",
-        owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
-        visibility: visibility,
-        attributeType: normalizedType,
+        attributeType: normalizeType(attr.type, classNames),
+        visibility: attr.visibility || 'public',
       };
 
-      if (attr.isDerived) {
-        attrElement.isDerived = true;
-      }
+      if (attr.isDerived) row.isDerived = true;
       if (attr.defaultValue !== undefined && attr.defaultValue !== null) {
-        attrElement.defaultValue = attr.defaultValue;
+        row.defaultValue = attr.defaultValue;
       }
-      if (attr.isOptional) {
-        attrElement.isOptional = true;
-      }
+      if (attr.isOptional) row.isOptional = true;
       // A natural identifier ("identified by its room number"): the agent
       // marks it and the SQLAlchemy generator emits unique=True for it.
-      if (attr.isExternalId) {
-        attrElement.isExternalId = true;
-      }
+      if (attr.isExternalId) row.isExternalId = true;
 
-      attributes[attrId] = attrElement;
-      
-      currentY += 25;
+      rows.push(row);
     });
-    
-    return { attributes, endY: currentY };
+
+    return rows;
   }
 
-  private createMethods(spec: any, classId: string, startY: number, startX: number) {
-    const methods: Record<string, any> = {};
-    let currentY = startY + ((spec.attributes?.length || 0) > 0 ? 10 : 0);
-    
+  private createMethodRows(spec: any): ClassifierMemberRow[] {
+    const rows: ClassifierMemberRow[] = [];
+
     spec.methods?.forEach((method: any) => {
-      const methodId = generateUniqueId('method');
-      const visibilitySymbol = method.visibility === 'public' ? '+' : 
-                             method.visibility === 'private' ? '-' : '#';
-      
       const paramStr = method.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
       const rawReturn = (method.returnType || 'void').replace(/^:+/, '');  // Strip leading colons
       const normalizedReturnType = normalizeType(rawReturn);
       // Strip any signature artifacts from the method name (LLM sometimes embeds params/return in name)
       const cleanMethodName = (method.name || 'method').replace(/\(.*\).*$/, '').trim();
 
-      // Use explicit new-format fields so Apollon's deserializer doesn't
-      // need to parse the signature string (which splits at the wrong colon).
-      const methodElement: any = {
-        id: methodId,
+      const row: ClassifierMemberRow = {
+        id: generateUniqueId('method'),
         name: `${cleanMethodName}(${paramStr})`,
-        type: "ClassMethod",
-        owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
-        visibility: method.visibility || 'public',
         attributeType: normalizedReturnType,
+        visibility: method.visibility || 'public',
       };
 
       if (method.code) {
-        methodElement.code = method.code;
+        row.code = method.code;
         if (!method.implementationType) {
-          methodElement.implementationType = 'code';
+          row.implementationType = 'code';
         }
       }
 
       if (method.implementationType) {
-        methodElement.implementationType = method.implementationType;
+        row.implementationType = method.implementationType;
       }
 
-      methods[methodId] = methodElement;
-      
-      currentY += 25;
+      rows.push(row);
     });
-    
-    return { methods, endY: currentY };
+
+    return rows;
   }
 }

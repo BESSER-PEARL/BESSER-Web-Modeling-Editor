@@ -5,43 +5,63 @@ This guide explains the internal structure of each package so you know where
 to find things and where your changes should go.
 
 
-Editor Package (``packages/editor``)
--------------------------------------
+Library Package (``packages/library``)
+--------------------------------------
 
-The editor is the core modeling engine. It is framework-independent (pure
-TypeScript + React) and published as ``@besser/wme`` on npm. The webapp embeds
-it, but external applications can use it directly.
+The editor library is the core modeling engine. Built on React Flow + Zustand,
+it is published as ``@besser/wme`` on npm. The webapp embeds it, but external
+applications can use it directly.
 
 .. code-block:: text
 
-   packages/editor/src/main/
-   ├── apollon-editor.ts        # Public API (ApollonEditor class)
-   ├── index.ts                 # npm entry point — re-exports public types
-   ├── packages/                # Diagram type implementations (one folder each)
-   │   ├── uml-class-diagram/   #   Class, AbstractClass, Interface, Enumeration, OCL
-   │   ├── uml-object-diagram/  #   Object instances, links
-   │   ├── uml-state-diagram/   #   States, transitions, initial/final nodes
-   │   ├── agent-state-diagram/ #   Agent states, intents, transitions
-   │   ├── common/              #   Shared element logic
-   │   ├── diagram-type.ts      #   Registry of all diagram types
-   │   ├── uml-element-type.ts  #   Registry of all element types
-   │   ├── uml-relationship-type.ts
-   │   ├── components.ts        #   Maps element types → React renderers
-   │   ├── uml-elements.ts      #   Maps element types → model classes
-   │   ├── compose-preview.ts   #   Maps diagram types → palette previews
-   │   └── popups.ts            #   Maps element types → property popups
-   ├── components/              # UI: sidebar, canvas, keyboard listeners, update pane
-   ├── scenes/                  # Top-level React trees (Application, Svg export)
+   packages/library/lib/
+   ├── besser-editor.tsx        # Public API (BesserEditor class)
+   ├── index.tsx                # npm entry point — re-exports public types
+   ├── nodes/                   # React Flow node components per diagram
+   │   ├── classDiagram/        #   Class, AbstractClass, Interface, Enumeration, OCL
+   │   ├── objectDiagram/       #   Object instances, links
+   │   ├── stateMachineDiagram/ #   States, transitions, initial/final nodes
+   │   ├── agentDiagram/        #   Agent states, intents, transitions
+   │   ├── nnDiagram/           #   NN container, layers, references
+   │   ├── userDiagram/         #   User-modelling nodes
+   │   ├── bpmn/                #   BPMN tasks, events, gateways, pools/lanes
+   │   ├── flowchart/           #   Flowchart shapes
+   │   └── common/              #   Shared node wrappers / handles
+   ├── edges/                   # React Flow edge renderers and connection logic
+   │   ├── edgeTypes/           #   ClassDiagramEdge, StateMachineDiagramEdge, …
+   │   ├── EdgeProps.ts         #   Shared edge data types
+   │   └── Connection.ts        #   Routing helpers
+   ├── components/
+   │   ├── inspectors/          # Property panels per diagram type
+   │   ├── popovers/            # PopoverManager + per-edge popovers
+   │   ├── svgs/                # Palette preview SVGs
+   │   ├── toolbars/            # Node / canvas toolbars
+   │   └── ui/                  # Shared inputs, dividers, dropdowns
+   ├── store/                   # Zustand stores
+   │   ├── diagramStore.ts      #   Nodes / edges / selection (Yjs-backed)
+   │   ├── metadataStore.ts     #   Diagram name, type, mode, view
+   │   ├── popoverStore.ts      #   Active popover / inspector state
+   │   ├── assessmentSelectionStore.ts
+   │   ├── alignmentGuidesStore.ts
+   │   └── context.tsx          #   React context providers + hooks
    ├── services/                # Domain logic (NO UI)
-   │   ├── diagram-bridge/      #   Cross-diagram data sharing
-   │   ├── uml-element/         #   Element CRUD, selection, movement
-   │   ├── uml-relationship/    #   Relationship CRUD
-   │   ├── patcher/             #   JSON Patch diffing of the model
-   │   ├── layouter/            #   Auto-layout algorithms
-   │   ├── undo/                #   Undo/redo stack
-   │   └── editor/              #   Editor lifecycle management
-   ├── components/i18n/         # Editor-side translation wiring
-   └── utils/                   # Pure utility functions
+   │   ├── diagramBridge.ts     #   Cross-diagram data sharing
+   │   ├── settingsService.ts   #   Application settings
+   │   ├── errors.ts            #   BesserError broadcast channel
+   │   └── userMetaModel/       #   User-Diagram reference metamodel
+   ├── sync/                    # Yjs collaboration adapter
+   ├── types/                   # DiagramType + per-node data shapes
+   ├── utils/                   # Pure utility functions
+   │   ├── versionConverter.ts  #   v3 → v4 migrator
+   │   ├── autoLayout.ts        #   ELK auto-layout (editor.autoLayout / layoutModel)
+   │   ├── helpers.ts           #   React Flow / B-UML adapters
+   │   ├── classifierMemberDisplay.ts
+   │   ├── multiplicity.ts
+   │   ├── typeNormalization.ts
+   │   └── layoutUtils.ts
+   ├── hooks/                   # React hooks (useConnect, useEdges, …)
+   ├── App.tsx                  # Top-level React Flow root
+   └── constants.ts             # Layout constants, palette sizes, grid snap
 
 Translation *strings* for both packages live outside the workspaces, in
 ``packages/i18n/<locale>/{editor,webapp}.json`` (``en``, ``lb``, ``de``, ``fr``,
@@ -49,15 +69,14 @@ Translation *strings* for both packages live outside the workspaces, in
 
 **Key patterns:**
 
-- Each diagram type folder contains: element model class, React component,
-  palette preview, and optionally a popup and relationship types.
-- The ``components.ts``, ``uml-elements.ts``, ``compose-preview.ts``, and
-  ``popups.ts`` files are registries — when you add a new element, you must
-  register it in all four.
-- Services use Redux for state management. The store is composed in
-  ``components/store/``.
-- The public API (``apollon-editor.ts``) is the ONLY stable interface.
-  Internal modules can change without notice.
+- Each diagram folder contains the node components plus an ``index.ts`` that
+  registers them under their v4 ``node.type`` strings. Edge renderers live in
+  ``edges/edgeTypes/``. Inspector panels live in
+  ``components/inspectors/<diagramType>/``.
+- The library uses Zustand for state management, not Redux. Stores are created
+  in ``store/`` and consumed via the context hooks in ``store/context.tsx``.
+- The public API (``besser-editor.tsx`` + ``index.tsx``) is the ONLY stable
+  interface. Internal modules can change without notice.
 
 
 Web Application (``packages/webapp``)
@@ -73,13 +92,14 @@ deployment.
    ├── app/                        # Application shell
    │   ├── application.tsx         #   Root component (routing, modals, layout)
    │   ├── shell/                  #   Top bar, sidebar, menus
-   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Help menus
+   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Community, Help menus
    │   │   ├── WorkspaceSidebar.tsx#     Diagram type navigation + settings
    │   │   ├── WorkspaceShell.tsx  #     Layout container
    │   │   └── menus/             #     Individual menu components
    │   │       ├── FileMenu.tsx
    │   │       ├── GenerateMenu.tsx
    │   │       ├── DeployMenu.tsx
+   │   │       ├── CommunityMenu.tsx
    │   │       ├── HelpMenu.tsx
    │   │       └── TopBarUtilities.tsx  # Quality Check, Theme, GitHub, Sync
    │   ├── store/                  #   Redux store
@@ -89,7 +109,10 @@ deployment.
    │   └── hooks/                  #   App-level React hooks
    ├── features/                   # Feature modules (one folder per feature)
    │   ├── editors/                #   Editor wrappers + diagram tab strip
-   │   │   └── uml/ApollonEditorComponent.tsx  # Main editor wrapper
+   │   │   ├── uml/BesserEditorComponent.tsx  # Main editor wrapper
+   │   │   ├── gui/                #     GrapesJS GUI editor
+   │   │   ├── quantum/            #     Quantum circuit editor
+   │   │   └── user-profile-form/  #     Form-based user-profile creator
    │   ├── project/                #   Project hub, settings, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment
@@ -135,19 +158,23 @@ exposes two small endpoints.
 .. code-block:: text
 
    packages/server/src/main/
-   ├── server.ts                          # Express setup, static hosting, Sentry
-   ├── routes.ts                          # Mounts /api
-   ├── resources/
-   │   ├── uml-agent-rate-limiter-resource.ts  # POST/DELETE /api/uml-agent/rate-limit/check
-   │   └── svg-export-resource.ts              # POST /api/svg
-   ├── services/
-   │   ├── conversion-service/            #   SVG conversion helpers
-   │   └── storage-service/               #   File-backed storage helper
-   ├── constants.ts                       # Paths to build/webapp
-   └── utils.ts                           # Shared helpers
+   ├── server.ts              # Express app setup, middleware, route mounting
+   ├── routes.ts              # API routes (/api/uml-agent/rate-limit, /api/svg)
+   ├── resources/             # Request handlers
+   │   ├── svg-export-resource.ts            #   Headless model → SVG (optional ELK auto-layout)
+   │   └── uml-agent-rate-limiter-resource.ts #   Assistant rate limiting
+   ├── services/              # Business logic
+   │   ├── conversion-service/ #   Renders a UML model to SVG with BesserEditor under jsdom
+   │   ├── storage-service/    #   File-system helpers
+   │   └── uml-agent/          #   Rate-limiter service
+   ├── constants.ts           # Port, storage paths
+   └── utils.ts               # Shared helpers
 
 **Key patterns:**
 
+- ``POST /api/svg`` accepts an editor JSON model (v4, or legacy v3 which is
+  lifted automatically) and returns ``{ svg, clip }``; pass
+  ``autoLayout: false`` to keep the incoming positions.
 - The server does NOT run code generation, validation, or GitHub OAuth — all of
   that is handled by the BESSER Python backend at ``BACKEND_URL``.
 - It does NOT talk to the modeling agent either; the browser opens that
@@ -189,21 +216,21 @@ Where Code Lives: Quick Lookup
    * - The BYOK / API-key dialog
      - ``webapp/src/main/shared/components/byok/LlmKeyDialog.tsx``
    * - An element's visual appearance
-     - ``editor/src/main/packages/<diagram-type>/<element>-component.tsx``
+     - ``library/lib/nodes/<diagramType>/<Node>.tsx`` (edges: ``library/lib/edges/edgeTypes/``)
    * - An element's data model
-     - ``editor/src/main/packages/<diagram-type>/<element>.ts``
+     - ``library/lib/types/nodes/NodeProps.ts``
    * - The palette for a diagram
-     - ``editor/src/main/packages/compose-preview.ts``
-   * - A property popup
-     - ``editor/src/main/packages/popups.ts``
+     - ``library/lib/components/svgs/nodes/<diagramType>/``
+   * - A property panel / popover
+     - ``library/lib/components/inspectors/<diagramType>/`` + ``library/lib/components/popovers/PopoverManager.tsx``
    * - Cross-diagram data (bridge)
-     - ``editor/src/main/services/diagram-bridge/``
+     - ``library/lib/services/diagramBridge.ts``
    * - Auto-layout
-     - ``editor/src/main/services/layouter/``
+     - ``library/lib/utils/autoLayout.ts``
    * - Undo/redo
-     - ``editor/src/main/services/undo/``
+     - ``library/lib/store/diagramStore.ts``
    * - Translations
-     - ``packages/i18n/<locale>/{editor,webapp}.json``
+     - ``packages/i18n/<locale>/webapp.json`` (webapp) and ``packages/i18n/<locale>/editor.json`` (library)
    * - Environment variables
      - ``webapp/src/main/shared/constants/constant.ts``
    * - Project data model
@@ -212,3 +239,5 @@ Where Code Lives: Quick Lookup
      - ``webapp/src/main/shared/services/storage/ProjectStorageRepository.ts``
    * - Browser project storage
      - ``webapp/src/main/shared/services/storage/``
+   * - Headless SVG export endpoint
+     - ``server/src/main/resources/svg-export-resource.ts``

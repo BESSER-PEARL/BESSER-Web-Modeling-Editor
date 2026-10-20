@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AgentComponentType } from '@besser/wme';
 import { ItemRow } from '../ui/ItemRow';
-import { NumberField, SelectField, TextField } from '../ui/fields';
+import { CheckboxField, NumberField, SelectField, TextField } from '../ui/fields';
 import { EmptyHint, SectionPage } from '../ui/SectionPage';
 import type { SectionProps } from './types';
 
@@ -105,6 +105,28 @@ export function RagsSection({ store, expandedId, toggle, expand }: SectionProps)
                 placeholder={t('agentComponents.rags.embeddingModelPlaceholder')}
               />
             </div>
+          )}
+          <CheckboxField
+            id={`rag-hybrid-${el.id}`}
+            label={t('agentComponents.rags.hybridRag')}
+            value={el.use_hybrid_rag === true}
+            onChange={v => updateComponent(el.id, { use_hybrid_rag: v })}
+          />
+          {el.use_hybrid_rag === true && (
+            <NumberField
+              id={`rag-bm25-${el.id}`}
+              label={t('agentComponents.rags.bm25Weight')}
+              value={typeof el.bm25_weight === 'number' ? el.bm25_weight : 0.6}
+              onChange={v => {
+                if (Number.isNaN(v)) return;
+                // Same bounds as the metamodel: strictly between 0 and 1.
+                updateComponent(el.id, { bm25_weight: Math.min(0.99, Math.max(0.01, v)) });
+              }}
+              min={0.01}
+              max={0.99}
+              step={0.05}
+              description={t('agentComponents.rags.bm25WeightDescription')}
+            />
           )}
         </ItemRow>
       ))}

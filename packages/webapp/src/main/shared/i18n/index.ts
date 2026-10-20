@@ -14,7 +14,7 @@ import ca from '../../../../../i18n/ca/webapp.json';
 /**
  * react-i18next initialisation for the webapp shell (everything outside the
  * diagramming canvas). The editor engine keeps its own lightweight i18n; the
- * two are kept in sync by `ApollonEditorComponent` reacting to `languageChanged`.
+ * two are kept in sync by `BesserEditorComponent` reacting to `languageChanged`.
  *
  * English is the source of truth and the fallback: any key missing from another
  * locale renders the English string, so partial translations never break the UI.

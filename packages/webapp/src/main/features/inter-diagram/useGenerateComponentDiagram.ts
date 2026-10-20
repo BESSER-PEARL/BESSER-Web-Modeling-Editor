@@ -11,8 +11,8 @@ import {
 import type { DiagramLineage } from '../../shared/types/project';
 import { normalizeStoredAgentModel } from '../../shared/utils/projectExportUtils';
 import { bpmnModelToComponentModel } from './bpmn-to-component';
-import { hashUmlModel } from '../../shared/utils/lineageHash';
 import type { DerivationResult } from './types';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 /**
  * Generate a Component diagram from the active BPMN diagram.

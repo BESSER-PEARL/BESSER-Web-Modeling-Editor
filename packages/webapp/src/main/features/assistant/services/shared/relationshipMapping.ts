@@ -4,11 +4,12 @@
  * editor relationship types plus per-end navigability.
  *
  * Plain associations are always emitted as `ClassBidirectional` with explicit
- * `source.navigable` / `target.navigable` flags; `ClassUnidirectional` is a
- * legacy type and is never produced. A "unidirectional" association points from
- * the source class to the target class, so only the target end is navigable.
- * Composition and aggregation keep both ends navigable, which also keeps the
- * part (source) end of a composition navigable as the editor requires.
+ * per-end navigability (v4: `edge.data.sourceNavigable` /
+ * `edge.data.targetNavigable`); `ClassUnidirectional` is a legacy type and is
+ * never produced. A "unidirectional" association points from the source class
+ * to the target class, so only the target end is navigable. Composition and
+ * aggregation keep both ends navigable, which also keeps the part (source) end
+ * of a composition navigable as the editor requires.
  */
 
 export interface RelationshipMapping {
@@ -41,19 +42,19 @@ export function mapAssistantRelationshipType(type: string | undefined | null): R
 }
 
 /**
- * Set a relationship's type and end navigability from an assistant type.
- * Non-association types drop any stale `navigable` flags.
+ * Set a v4 edge's type and end navigability (`data.sourceNavigable` /
+ * `data.targetNavigable`) from an assistant type. Non-association types drop
+ * any stale navigability flags. Mutates the edge in place.
  */
-export function applyAssistantRelationshipType(relationship: any, type: string | undefined | null): void {
+export function applyAssistantRelationshipType(edge: any, type: string | undefined | null): void {
   const mapping = mapAssistantRelationshipType(type);
-  relationship.type = mapping.type;
-  for (const end of ['source', 'target'] as const) {
-    const endObj = relationship[end];
-    if (!endObj) continue;
-    if (mapping.navigable) {
-      endObj.navigable = mapping.navigable[end];
-    } else {
-      delete endObj.navigable;
-    }
+  edge.type = mapping.type;
+  const data = (edge.data ??= {});
+  if (mapping.navigable) {
+    data.sourceNavigable = mapping.navigable.source;
+    data.targetNavigable = mapping.navigable.target;
+  } else {
+    delete data.sourceNavigable;
+    delete data.targetNavigable;
   }
 }

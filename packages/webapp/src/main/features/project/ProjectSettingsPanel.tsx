@@ -52,6 +52,7 @@ export const ProjectSettingsPanel: React.FC = () => {
     DIAGRAM_NAV_LABEL_KEY[type] ? t(DIAGRAM_NAV_LABEL_KEY[type]) : String(type).replace('Diagram', '');
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
+  const [showIconView, setShowIconView] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
   const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
@@ -92,6 +93,7 @@ export const ProjectSettingsPanel: React.FC = () => {
 
   useEffect(() => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
+    setShowIconView(settingsService.shouldShowIconView());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
     setClassNotation(settingsService.getClassNotation());
@@ -263,6 +265,23 @@ export const ProjectSettingsPanel: React.FC = () => {
                     onCheckedChange={(checked) => {
                       setShowInstancedObjects(checked);
                       settingsService.updateSetting('showInstancedObjects', checked);
+                    }}
+                  />
+                </label>
+                <Separator />
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">{t('project.settings.display.iconView')}</p>
+                    <p className="text-xs text-muted-foreground">{t('project.settings.display.iconViewDesc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand"
+                    checked={showIconView}
+                    data-testid="display-toggle-icon-view"
+                    onChange={(event) => {
+                      setShowIconView(event.target.checked);
+                      settingsService.updateSetting('showIconView', event.target.checked);
                     }}
                   />
                 </label>

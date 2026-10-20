@@ -1,0 +1,300 @@
+import { SVGComponentProps } from "@/types/SVG"
+
+/**
+ * Lightweight palette previews for NNDiagram. Each palette item
+ * mirrors the canvas card's basic shape — kind label header + a
+ * placeholder body — so the sidebar drag-source matches the dropped
+ * appearance closely enough for users to recognise the kind.
+ *
+ * Mirror the canvas card. restored
+ * the per-kind PNG icons in `_NNLayerBase.tsx`, the previews now also
+ * render the same `<image>` element + a `«kind»` stereotype header + the
+ * default `name`, so the drag source shown in the sidebar visually
+ * matches what lands on the canvas.
+ *
+ * Plain SVG; no themed wrappers (per `/CLAUDE.md` "Custom SVG
+ * Rendering" guidance).
+ */
+
+const NN_LAYER_ICON_BASE = "/images/nn-layers/"
+
+/**
+ * Build a palette preview component bound to a layer kind. Renders the
+ * canvas-style header (`«kind»` + `name`) plus the kind's PNG icon when
+ * one is registered.
+ */
+const buildLayerPreview = (
+  _kindLabel: string,
+  defaultName: string,
+  fill: string,
+  iconFile?: string
+) =>
+  function NNLayerPreviewSVG({
+    width,
+    height,
+    SIDEBAR_PREVIEW_SCALE,
+    svgAttributes,
+  }: SVGComponentProps) {
+    const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+    const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+    // v3 parity: NN layer previews mirror the canvas card — icon on top,
+    // layer name directly below the icon, no `«kindLabel»` stereotype
+    // band. Icon fills as much of the card as the layout allows.
+    const nameBandHeight = 22
+    const iconPad = 4
+    const availableIconHeight = Math.max(
+      0,
+      height - nameBandHeight - iconPad * 2
+    )
+    const iconSize = Math.min(width - iconPad * 2, availableIconHeight)
+    const showIcon = !!iconFile && iconSize >= 18
+    const iconX = (width - iconSize) / 2
+    const iconY = iconPad
+    const nameY = Math.min(height - 4, iconY + iconSize + 14)
+    return (
+      <svg
+        width={sw}
+        height={sh}
+        viewBox={`0 0 ${width} ${height}`}
+        overflow="visible"
+        {...svgAttributes}
+      >
+        {!showIcon && (
+          <rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            rx={6}
+            ry={6}
+            fill={fill}
+            stroke="var(--besser-primary-contrast, #000)"
+            strokeWidth={1.5}
+          />
+        )}
+        {showIcon && (
+          <image
+            href={`${NN_LAYER_ICON_BASE}${iconFile}`}
+            x={iconX}
+            y={iconY}
+            width={iconSize}
+            height={iconSize}
+            preserveAspectRatio="xMidYMid meet"
+          />
+        )}
+        <text
+          x={width / 2}
+          y={showIcon ? nameY : height / 2 + 5}
+          textAnchor="middle"
+          fontSize={13}
+          fontWeight="600"
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {defaultName}
+        </text>
+      </svg>
+    )
+  }
+
+export const Conv1DLayerSVG = buildLayerPreview(
+  "Conv1D",
+  "Conv1D",
+  "#FFF8E1",
+  "conv1d.png"
+)
+export const Conv2DLayerSVG = buildLayerPreview(
+  "Conv2D",
+  "Conv2D",
+  "#FFF8E1",
+  "conv2d.png"
+)
+export const Conv3DLayerSVG = buildLayerPreview(
+  "Conv3D",
+  "Conv3D",
+  "#FFF8E1",
+  "conv3d.png"
+)
+export const PoolingLayerSVG = buildLayerPreview(
+  "PoolingLayer",
+  "Pooling",
+  "#E0F7FA",
+  "pooling.png"
+)
+export const RNNLayerSVG = buildLayerPreview(
+  "RNNLayer",
+  "RNN",
+  "#E8EAF6",
+  "rnn.png"
+)
+export const LSTMLayerSVG = buildLayerPreview(
+  "LSTMLayer",
+  "LSTM",
+  "#E8EAF6",
+  "lstm.png"
+)
+export const GRULayerSVG = buildLayerPreview(
+  "GRULayer",
+  "GRU",
+  "#E8EAF6",
+  "gru.png"
+)
+export const LinearLayerSVG = buildLayerPreview(
+  "LinearLayer",
+  "Linear",
+  "#F3E5F5",
+  "linear.png"
+)
+export const FlattenLayerSVG = buildLayerPreview(
+  "FlattenLayer",
+  "Flatten",
+  "#F3E5F5",
+  "flatten.png"
+)
+export const EmbeddingLayerSVG = buildLayerPreview(
+  "EmbeddingLayer",
+  "Embedding",
+  "#F3E5F5",
+  "embedding.png"
+)
+export const DropoutLayerSVG = buildLayerPreview(
+  "DropoutLayer",
+  "Dropout",
+  "#F3E5F5",
+  "dropout.png"
+)
+export const LayerNormalizationLayerSVG = buildLayerPreview(
+  "LayerNormalizationLayer",
+  "LayerNorm",
+  "#E1F5FE",
+  "layernorm.png"
+)
+export const BatchNormalizationLayerSVG = buildLayerPreview(
+  "BatchNormalizationLayer",
+  "BatchNorm",
+  "#E1F5FE",
+  "batchnorm.png"
+)
+export const TensorOpSVG = buildLayerPreview(
+  "TensorOp",
+  "TensorOp",
+  "#FFF3E0",
+  "tensorop.png"
+)
+export const ConfigurationSVG = buildLayerPreview(
+  "Configuration",
+  "Configuration",
+  "#FCE4EC",
+  "configuration.png"
+)
+// Palette preview labels match the canvas default
+// `data.name` ("TrainingDataset" / "TestDataset") so the drag ghost reads
+// the same text as the dropped card. Previously the ghost showed "Training"
+// / "Test" and the dropped card grew to "TrainingDataset" / "TestDataset".
+export const TrainingDatasetSVG = buildLayerPreview(
+  "TrainingDataset",
+  "TrainingDataset",
+  "#E8F5E9",
+  "train_data.png"
+)
+export const TestDatasetSVG = buildLayerPreview(
+  "TestDataset",
+  "TestDataset",
+  "#FFEBEE",
+  "test_data.png"
+)
+
+export const NNContainerSVG: React.FC<SVGComponentProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  // UML-package style preview: tab on top-left with the name, plain
+  // body below. Matches the canvas renderer in `NNContainer.tsx`.
+  const tabHeight = 20
+  const tabWidth = Math.min(width - 8, 80)
+  const stroke = "var(--besser-primary-contrast, #000)"
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      {/* Tab */}
+      <rect
+        x={0}
+        y={0}
+        width={tabWidth}
+        height={tabHeight}
+        fill="var(--besser-background, #ffffff)"
+        stroke={stroke}
+        strokeWidth={1.5}
+      />
+      <text
+        x={tabWidth / 2}
+        y={tabHeight / 2 + 4}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight="600"
+        fill={stroke}
+      >
+        NNContainer
+      </text>
+      {/* Body */}
+      <rect
+        x={0}
+        y={tabHeight}
+        width={width}
+        height={height - tabHeight}
+        fill="var(--besser-background, #ffffff)"
+        stroke={stroke}
+        strokeWidth={1.5}
+      />
+    </svg>
+  )
+}
+
+export const NNReferenceSVG: React.FC<SVGComponentProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <rect
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        rx={4}
+        fill="var(--besser-background, #ffffff)"
+        stroke="var(--besser-primary-contrast, #000)"
+        strokeDasharray="4 2"
+        strokeWidth={1.2}
+      />
+      <text
+        x={width / 2}
+        y={height / 2 + 4}
+        textAnchor="middle"
+        fontSize={11}
+        fontStyle="italic"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        → Reference
+      </text>
+    </svg>
+  )
+}

@@ -3,10 +3,14 @@
     "modeling": "Modelado",
     "interactive": "Interactivo",
     "highlight": "Mostrar elementos interactivos",
-    "iconMode": "Mostrar diagrama de objetos en modo icono"
+    "iconMode": "Mostrar diagrama de objetos en modo icono",
+    "model": "Modelo",
+    "selectElements": "Seleccionar elementos",
+    "highlightHint": "Haz clic en elementos o relaciones para alternar si son interactivos."
   },
   "popup": {
     "nn": {
+      "optionalAttributes": "atributos opcionales",
       "container": {
         "inputVariable": "Variable de entrada",
         "returnVariables": "Variables de retorno",
@@ -42,7 +46,8 @@
         "slice": "segmento",
         "startPlaceholder": "inicio",
         "stopPlaceholder": "fin",
-        "stepPlaceholder": "paso"
+        "stepPlaceholder": "paso",
+        "reverted": "Restablecido a {{value}}."
       },
       "help": {
         "split_sizes": "Un entero (número de trozos iguales, p. ej. 3) o una lista (tamaño por trozo, p. ej. [2,3,5])",
@@ -159,7 +164,9 @@
         "anyGuiInteraction": "Cualquier interacción de GUI",
         "event": "Evento",
         "conditions": "Condiciones",
-        "addCondition": "Añadir condición"
+        "addCondition": "Añadir condición",
+        "missingIntentTag": "falta",
+        "missingIntent": "La intención \"{{name}}\" no existe. Elija una intención o añádala en la página Componentes."
       },
       "intent": {
         "name": "Nombre de la intención",
@@ -216,7 +223,31 @@
       "definedInBal": "Método definido en código BESSER Action Language",
       "showEditor": "Mostrar editor",
       "implementation": "Implementación",
-      "hideCodeEditor": "Ocultar el editor de código"
+      "hideCodeEditor": "Ocultar el editor de código",
+      "implNone": "Ninguna (UML)",
+      "implCode": "Código Python",
+      "implStateMachine": "Máquina de estados",
+      "implQuantumCircuit": "Circuito cuántico",
+      "implNeuralNetwork": "Red neuronal",
+      "signaturePlaceholder": "método(param: tipo): tipoRetorno",
+      "returnType": "Tipo de retorno",
+      "hideOptions": "Ocultar parámetros, código y colores",
+      "showOptions": "Parámetros, código y colores",
+      "rowOptions": "Opciones del método",
+      "deleteMethod": "Eliminar método",
+      "customReturnTypePlaceholder": "tipo de retorno personalizado (texto libre)",
+      "paramNamePlaceholder": "nombre",
+      "paramTypePlaceholder": "tipo",
+      "addParameterPlaceholder": "+ añadir parámetro (nombre: tipo, Intro)",
+      "balBodyPlaceholder": "Cuerpo del método BAL…",
+      "pythonBodyPlaceholder": "Cuerpo del método Python…",
+      "name": "Nombre del método",
+      "customReturnType": "Tipo de retorno personalizado",
+      "paramName": "Nombre del parámetro",
+      "paramType": "Tipo del parámetro",
+      "deleteParameter": "Eliminar parámetro",
+      "addParameter": "Añadir parámetro",
+      "implementationType": "Implementación"
     },
     "classifier": {
       "createMethodWithCode": "Crear método con comportamiento de código",
@@ -224,24 +255,173 @@
       "moveUp": "Mover arriba",
       "codeButton": "Código",
       "newLiteralPlaceholder": "literal",
-      "newAttributePlaceholder": "+ atributo: str"
+      "newAttributePlaceholder": "+ atributo: str",
+      "addAttributePlaceholder": "+ Añadir atributo",
+      "addMethodPlaceholder": "+ Añadir método",
+      "newMethodPlaceholder": "+ metodo(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "nombre del literal",
-      "namePlaceholder": "nombre del atributo"
+      "namePlaceholder": "nombre del atributo",
+      "shorthandPlaceholder": "+ atributo: tipo",
+      "hideOptions": "Ocultar opciones",
+      "showColors": "Mostrar colores",
+      "showOptions": "Mostrar propiedades, valor predeterminado y colores",
+      "rowOptions": "Opciones del atributo",
+      "deleteLiteral": "Eliminar literal",
+      "deleteAttribute": "Eliminar atributo",
+      "customTypePlaceholder": "tipo personalizado (texto libre)",
+      "defaultValue": "Valor predeterminado",
+      "defaultValueOptionalPlaceholder": "valor predeterminado (opcional)",
+      "visibility": "Visibilidad",
+      "literalName": "Nombre del literal",
+      "name": "Nombre del atributo",
+      "customType": "Tipo personalizado",
+      "type": "Tipo del atributo"
     },
     "associationNamePlaceholder": "Nombre de la asociación",
     "literals": "Literales",
     "preset": "Predefinido",
     "presetPlaceholder": "Elegir un predefinido…",
     "stereotype": "Estereotipo",
+    "showStereotype": "Mostrar estereotipo",
     "label": "Etiqueta",
     "unnamed": "(sin nombre)",
     "missingElement": "(no encontrado)",
     "addTarget": "Añadir un destino…",
     "lineage": "Procedencia",
     "lineageSource": "Origen:",
-    "lineageDerivedFrom": "Derivado de"
+    "lineageDerivedFrom": "Derivado de",
+    "class": {
+      "biAssociation": "Asociación bidireccional",
+      "uniAssociation": "Asociación unidireccional",
+      "inheritance": "Herencia",
+      "endMultiplicity": "Multiplicidad de {{name}}",
+      "endRole": "Rol de {{name}}",
+      "erMultiplicityPlaceholder": "(1,1) o 1..1",
+      "classesDivider": "── clases ──",
+      "enumerationsDivider": "── enumeraciones ──",
+      "customType": "personalizado…",
+      "colors": "Colores",
+      "metadata": "Metadatos",
+      "uriPlaceholder": "URI (p. ej. https://example.com/MyClass)",
+      "iconPlaceholder": "icono (contenido SVG o URL)",
+      "addLiteral": "añadir literal",
+      "addAttribute": "añadir atributo",
+      "addMethod": "añadir método",
+      "addLiteralInputPlaceholder": "+ Añadir literal (Intro para nombre automático)",
+      "addAttributeInputPlaceholder": "+ Añadir atributo (Intro para nombre automático)",
+      "addMethodInputPlaceholder": "+ Añadir método (Intro)",
+      "icon": "Icono",
+      "stereotype": "Estereotipo",
+      "enumerationRelationshipsWarning": "Una enumeración no puede tener relaciones; otras clases la usan como tipo de atributo. Al convertir se eliminan {{count}} relación(es).",
+      "enumerationConvertConfirm": "Eliminar y convertir"
+    },
+    "object": {
+      "colorResetHint": "{{label}} (clic derecho para restablecer)",
+      "selectLiteral": "— seleccionar literal —",
+      "slotNamePlaceholder": "nombre",
+      "typeInherited": "tipo heredado de la clase: {{type}}",
+      "deleteAttribute": "Eliminar atributo",
+      "extendsHint": "extiende {{parents}}",
+      "attributeCount": "({{count}} atr.)",
+      "addAttributePlaceholder": "+ Añadir atributo (Intro)",
+      "noAssociationsHint": "No hay asociaciones disponibles — vincule primero los objetos de origen / destino a clases.",
+      "classLabel": "clase",
+      "unlinked": "— Sin vincular —",
+      "slotName": "Nombre del atributo",
+      "objectName": "Nombre del objeto",
+      "addAttribute": "Añadir atributo"
+    },
+    "user": {
+      "rowStyle": "Estilo de fila",
+      "deleteAttribute": "Eliminar atributo",
+      "selectPlaceholder": "— seleccionar —",
+      "stringValuePlaceholder": "valor (irá entre comillas: \"…\")",
+      "valuePlaceholder": "valor / predeterminado",
+      "metadata": "Metadatos",
+      "operator": "operador",
+      "defaultValue": "valor predeterminado",
+      "defaultValueQuoted": "valor predeterminado (irá entre comillas: \"…\")",
+      "view": "Mostrar en el lienzo como"
+    },
+    "communication": {
+      "direction": "Dirección: {{direction}}",
+      "messagePlaceholder": "Mensaje {{index}}",
+      "duplicateMessage": "Mensaje duplicado",
+      "deleteMessage": "Eliminar mensaje",
+      "addMessagePlaceholder": "+ Añadir mensaje",
+      "messageExists": "Este mensaje ya existe"
+    },
+    "bpmn": {
+      "startType": "Tipo de inicio",
+      "intermediateType": "Tipo intermedio",
+      "endType": "Tipo de fin",
+      "taskType": "Tipo de tarea",
+      "gatewayType": "Tipo de compuerta",
+      "marker": "Marcador",
+      "markerParallelMultiInstance": "Multiinstancia paralela",
+      "markerSequentialMultiInstance": "Multiinstancia secuencial",
+      "markerLoop": "Bucle",
+      "poolName": "Nombre del pool",
+      "moveLaneUp": "Mover el carril arriba",
+      "moveLaneDown": "Mover el carril abajo",
+      "deleteLane": "Eliminar el carril",
+      "newLaneName": "Nombre del nuevo carril",
+      "addLane": "Añadir carril",
+      "controlFlow": "Flujo de control",
+      "mergingNeedsDiverging": "Requiere una compuerta divergente agéntica previa",
+      "orphanedMergingGateway": "No hay ninguna compuerta divergente agéntica previa: esta compuerta no cierra ningún bloque de colaboración."
+    },
+    "state": {
+      "italic": "cursiva",
+      "underline": "subrayado",
+      "noBodyRows": "aún no hay filas de cuerpo",
+      "noFallbackBodyRows": "aún no hay filas de cuerpo alternativo",
+      "deleteBody": "eliminar cuerpo",
+      "deleteFallbackBody": "eliminar cuerpo alternativo",
+      "addBodyPlaceholder": "+ añadir cuerpo (Intro)",
+      "addFallbackBodyPlaceholder": "+ añadir cuerpo alternativo (Intro)",
+      "fallbackActionPlaceholder": "acción alternativa",
+      "actionName": "nombre de la acción",
+      "language": "lenguaje",
+      "code": "código",
+      "noOutgoingTransitions": "Aún no hay transiciones salientes.",
+      "instanceName": "nombre de la instancia",
+      "class": "clase",
+      "unlinked": "— Sin vincular —",
+      "eventHandlerPlaceholder": "nombre de la función manejadora de eventos",
+      "removeParameter": "Eliminar el parámetro {{index}}",
+      "codeBlockName": "Nombre de la función (vacío = desde def)"
+    },
+    "useCase": {
+      "optionalAssociationLabel": "Etiqueta opcional para la asociación"
+    },
+    "deployment": {
+      "optionalAssociationLabel": "Etiqueta opcional para la asociación"
+    },
+    "petriNet": {
+      "arc": "Arco de la red de Petri"
+    },
+    "reachability": {
+      "arc": "Arco de alcanzabilidad"
+    },
+    "syntaxTree": {
+      "relations": "Relaciones"
+    },
+    "sfc": {
+      "editTransition": "Editar transición",
+      "condition": "Condición",
+      "conditionPlaceholder": "Introduce la condición de transición",
+      "showCrossbar": "Mostrar barra transversal",
+      "negatedCondition": "Condición negada (sobrerrayado)",
+      "actions": "Acciones",
+      "idPlaceholder": "ID",
+      "addActionName": "+ Añadir nombre de acción"
+    },
+    "multiplicityInvalidER": "Use (mín,máx), p. ej. (0,1), (1,N) — o 1, 0..1, 1..*",
+    "multiplicityInvalid": "Use p. ej. 1, 0..1, *, 1..* o 2..5",
+    "associationNameHiddenHint": "Oculto en el lienzo. Active «Mostrar nombres de asociación» en Configuración."
   },
   "assessment": {
     "assessment": "Evaluación de",
@@ -417,6 +597,7 @@
       "BPMNDataAssociationFlow": "Asociación de datos",
       "BPMNDefaultSequenceFlow": "Flujo predeterminado",
       "BPMNDataObject": "Objeto de datos",
+      "BPMNDataStore": "Almacén de datos",
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Carril",
       "BPMNSwimlanes": "Carriles",
@@ -451,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Convergente",
       "BPMNDefaultAgentTitle": "Agente",
       "BPMNAgentRole": "Rol",
-      "BPMNAgentRolePlaceholder": "p. ej. solution"
+      "BPMNAgentRolePlaceholder": "p. ej. solution",
+      "BPMNReflectionMode": "Reflexión"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -476,12 +658,18 @@
       "TrainingDataset": "Conjunto de datos de entrenamiento",
       "TestDataset": "Conjunto de datos de prueba",
       "Datasets": "Conjuntos de datos RN",
-      "Comments": "Comentarios"
+      "Comments": "Comentarios",
+      "SectionStructure": "Estructura RN",
+      "SectionLayers": "Capas RN",
+      "SectionTensorOps": "Operaciones tensoriales RN",
+      "SectionConfiguration": "Configuración RN"
     },
     "OCLConstraint": {
       "Constraint": "Restricción OCL",
       "DescriptionPlaceholder": "p. ej. Asegúrate de elegir una edad realista",
-      "DescriptionLabel": "Descripción (se muestra a los usuarios finales cuando falla la validación) Opcional"
+      "DescriptionLabel": "Descripción (se muestra a los usuarios finales cuando falla la validación) Opcional",
+      "expressionPlaceholder": "Expresión OCL…",
+      "descriptionOptionalPlaceholder": "Descripción (opcional)"
     },
     "StateDiagram": {
       "StateTransition": "Transición",
@@ -775,7 +963,29 @@
       "webCrawlNamePrefix": "Rastreo:",
       "A2ASendTo": "Enviar a",
       "A2AReceiveFrom": "Recibir de",
-      "A2APeer": "par"
+      "A2APeer": "par",
+      "stateName": "nombre",
+      "italic": "cursiva",
+      "underline": "subrayado",
+      "initialState": "Estado inicial",
+      "flipTransition": "Invertir origen / destino",
+      "transitionName": "nombre",
+      "parameters": "parámetros",
+      "initTransition": "Transición inicial",
+      "deleteInitTransition": "Eliminar transición inicial",
+      "intentDescriptionPlaceholder": "Descripción de lo que representa este intent",
+      "noTrainingPhrases": "aún no hay frases de entrenamiento",
+      "trainingPhrasePlaceholder": "p. ej. hola",
+      "deleteTrainingPhrase": "eliminar frase de entrenamiento",
+      "card": {
+        "initial": "inicial",
+        "state": "estado",
+        "reasoning": "razonamiento",
+        "fallback": "respaldo",
+        "maxSteps": "≤ {{count}} pasos",
+        "planning": "planificación",
+        "defaultLlm": "predeterminado"
+      }
     },
     "UserDiagram": {
       "UserModelName": "Usuario",
@@ -791,7 +1001,21 @@
     "add": "Añadir",
     "remove": "Eliminar",
     "width": "Ancho",
-    "height": "Alto"
+    "height": "Alto",
+    "edgeType": "Tipo de conexión",
+    "edgeLabel": "Etiqueta de la conexión",
+    "flipSourceTarget": "Invertir origen / destino",
+    "source": "Origen",
+    "target": "Destino",
+    "type": "Tipo",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "none": "Ninguno",
+    "label": "Etiqueta",
+    "value": "Valor",
+    "dragToReorder": "Arrastrar para reordenar",
+    "addLowercase": "añadir",
+    "back": "Atrás"
   },
   "stylePane": {
     "enterUri": "Introduce el URI…",
@@ -815,6 +1039,13 @@
     "default": "Predeterminado",
     "enterNumber": "Introduce un número…",
     "derived": "Derivado",
+    "rowTextColor": "Color de texto de la fila",
+    "rowFillColor": "Color de relleno de la fila",
+    "rowStyle": "Estilo de fila (colores + icono)",
+    "rowColors": "Colores de la fila",
+    "toggleColorSettings": "Mostrar/ocultar ajustes de color",
+    "enterNodeName": "Introduce el nombre del elemento",
+    "rightClickToReset": "{{label}} (clic derecho para restablecer)",
     "colors": {
       "red": "Rojo",
       "orange": "Naranja",
@@ -837,21 +1068,58 @@
   },
   "propertiesPanel": {
     "close": "Cerrar",
+    "closeEditor": "Cerrar el editor",
     "resize": "Cambiar el tamaño del panel de propiedades"
+  },
+  "toolbar": {
+    "undo": "Deshacer (Ctrl+Z)",
+    "redo": "Rehacer (Ctrl+Y o Ctrl+Mayús+Z)",
+    "autoLayout": "Organizar el diagrama automáticamente",
+    "autoLayoutOptions": "Opciones de organización automática",
+    "autoLayoutStrategy": {
+      "hierarchical": "Jerárquico",
+      "compact": "Compacto",
+      "horizontal": "De izquierda a derecha",
+      "vertical": "De arriba abajo"
+    },
+    "resetZoom": "Restablecer el zoom al 100%",
+    "minimap": "Minimapa",
+    "attachAssociationClass": "Asociar una clase de asociación"
+  },
+  "comment": {
+    "link": "Enlace de comentario"
   },
   "actions": {
     "edit": "Editar",
     "delete": "Eliminar",
     "addConnectedObject": "Añadir objeto conectado",
     "swapEnds": "Intercambiar extremos",
-    "style": "Estilo"
+    "style": "Estilo",
+    "pasteRefusedOtherType": "Los elementos copiados de otro tipo de diagrama no se pueden pegar aquí."
   },
   "zoomPane": {
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
-    "autoLayout": "Diseño automático"
+    "autoLayout": "Diseño automático",
+    "fitView": "Ajustar la vista"
   },
   "sidebar": {
-    "resize": "Cambiar el tamaño de la paleta"
+    "resize": "Cambiar el tamaño de la paleta",
+    "palette": "Paleta de elementos"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Las enumeraciones no se pueden conectar; úselas como tipos de atributo.",
+      "objectNoAssociation": "Las clases de estos objetos no tienen ninguna asociación en el diagrama de clases.",
+      "nnEndpoint": "Los conjuntos de datos y las configuraciones solo se conectan a un contenedor NN.",
+      "nnConfigurationTaken": "Este contenedor NN ya tiene una configuración.",
+      "bpmnCrossPool": "Los flujos de secuencia no pueden cruzar pools y este elemento no puede enviar flujos de mensajes.",
+      "bpmnIllegalFlow": "BPMN no permite un flujo entre estos elementos.",
+      "bpmnMessageSamePool": "Los eventos de fin no pueden iniciar un flujo y los de inicio no pueden recibirlo; los flujos de mensajes solo conectan pools distintos.",
+      "stateCodeBlock": "Los bloques de código no se conectan; haga referencia a ellos por su nombre desde el cuerpo de un estado o una transición.",
+      "stateFinalOutgoing": "Un estado final termina la máquina de estados; ninguna transición sale de él.",
+      "stateInitialIncoming": "El estado inicial solo inicia la máquina de estados; ninguna transición entra en él.",
+      "generic": "Estos elementos no se pueden conectar."
+    }
   }
 }

@@ -1,0 +1,515 @@
+import { AgentComponentType, BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import type { LineageProvider } from '@besser/wme';
+import React, { useEffect, useRef, useContext, useCallback, useMemo } from 'react';
+import { useStore } from 'react-redux';
+import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react';
+
+import { toEditorLocale } from '../../../shared/i18n/languages';
+import { BesserEditorContext } from './besser-editor-context';
+import { describeLineageSource } from './lineageSource';
+import {
+  clearPendingLineageSelection,
+  setPendingLineageSelection,
+  takePendingLineageSelection,
+} from './pendingLineageSelection';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { isUMLModel, isV3UMLModel, SupportedDiagramType } from '../../../shared/types/project';
+import type { RootState } from '../../../app/store/store';
+import {
+  updateDiagramModelThunk,
+  selectActiveDiagram,
+  selectEditorOptions,
+  selectEditorRevision,
+  selectStateMachineDiagrams,
+  selectQuantumCircuitDiagrams,
+  selectProject,
+  selectPerspectives,
+  openDiagramThunk,
+  selectNNDiagrams,
+} from '../../../app/store/workspaceSlice';
+import { notifyError } from '../../../shared/utils/notifyError';
+import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
+import { isAgenticModeEnabled } from '../../../shared/perspectives';
+import { useAgentDiagramLinker } from '../../inter-diagram/useAgentDiagramLinker';
+import { useElementPickerProvider } from '../../inter-diagram/useElementPickerProvider';
+
+/**
+ * Identifies the (project, diagram type, diagram index) tuple that the
+ * currently-mounted editor instance is bound to. Captured once at setup
+ * time and frozen for the editor's lifetime. Both the debounced save and
+ * the flush-on-cleanup path consult this against live Redux state before
+ * dispatching `updateDiagramModelThunk` — if the user has navigated to a
+ * different project (e.g. File > New Project) between scheduling and
+ * firing, the save targets the wrong project's diagram slot, which is
+ * how the StateMachine-then-new-project content-bleed regression
+ * manifested. Mismatched flushes are dropped instead.
+ */
+type EditorBinding = {
+  projectId: string | null;
+  diagramType: SupportedDiagramType;
+  diagramIndex: number;
+};
+
+export const BesserEditorComponent: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<BesserEditor | null>(null);
+  const modelSubscriptionRef = useRef<number | null>(null);
+  const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setupRunRef = useRef(0);
+  const lastHandledRevisionRef = useRef(0);
+  const editorBindingRef = useRef<EditorBinding | null>(null);
+  const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
+  const reduxDiagram = useAppSelector(selectActiveDiagram);
+  const options = useAppSelector(selectEditorOptions);
+  const editorRevision = useAppSelector(selectEditorRevision);
+  const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
+  const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
+  const project = useAppSelector(selectProject);
+  const nnDiagrams = useAppSelector(selectNNDiagrams);
+  const agenticEnabled = isAgenticModeEnabled(useAppSelector(selectPerspectives));
+  const agenticEnabledRef = useRef(agenticEnabled);
+  agenticEnabledRef.current = agenticEnabled;
+  const { setEditor } = useContext(BesserEditorContext);
+  const { t, i18n } = useTranslation();
+  const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
+  localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
+
+  // Stable refs so the setup effect can read current values without
+  // needing them in its dependency array (avoids destroy/recreate loops).
+  const reduxDiagramRef = useRef(reduxDiagram);
+  reduxDiagramRef.current = reduxDiagram;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  // Agent-diagram linker held in a ref so the setup effect can
+  // register it on the freshly-created editor without taking it as a
+  // dependency (which would force editor recreation on every linker
+  // identity change). Pass editorRef so the linker can read the editor's
+  // in-memory model and flush pending edits before the Define click
+  // triggers a diagram switch.
+  const linker = useAgentDiagramLinker(editorRef);
+  const linkerRef = useRef(linker);
+  linkerRef.current = linker;
+
+  // Host-side element-picker provider (cross-diagram `realizes`).
+  const elementPicker = useElementPickerProvider();
+  const elementPickerRef = useRef(elementPicker);
+  elementPickerRef.current = elementPicker;
+
+  // Lineage provider for derived diagrams: resolves a derived element to its
+  // source element and opens the source diagram with that element selected.
+  const lineageProvider = useMemo<LineageProvider | null>(() => {
+    const lineage = reduxDiagram?.derivedFrom;
+    if (!project || !reduxDiagram || !lineage) return null;
+    const sourceDiagrams = project.diagrams[lineage.sourceDiagramType] ?? [];
+    const sourceIndex = sourceDiagrams.findIndex((d) => d.id === lineage.sourceDiagramId);
+    if (sourceIndex < 0) return null;
+    const sourceDiagram = sourceDiagrams[sourceIndex];
+    const elementMapping = project.elementLineage?.[reduxDiagram.id] ?? {};
+    // Only UML source models can name the source element; for others the
+    // link falls back to diagram-level wording.
+    const sourceModel = isUMLModel(sourceDiagram.model) ? sourceDiagram.model : null;
+
+    return {
+      resolveSource: (derivedId: string) => {
+        const srcElId = elementMapping[derivedId];
+        if (!srcElId) return null;
+        const source = describeLineageSource(sourceModel, srcElId);
+        return {
+          sourceElementId: srcElId,
+          sourceDiagramTitle: sourceDiagram.title,
+          sourceDiagramType: lineage.sourceDiagramType,
+          sourceElementName: source.name,
+          sourceElementType: source.type,
+        };
+      },
+      onShowSource: async (resolved) => {
+        // Selected by the setup effect once the source diagram's editor is mounted.
+        setPendingLineageSelection(sourceDiagram.id, resolved.sourceElementId);
+        try {
+          await dispatch(openDiagramThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex })).unwrap();
+        } catch (err) {
+          console.error('[lineage] opening the source diagram failed:', err);
+          clearPendingLineageSelection();
+          toast.error(t('editors.diagramTabs.lineage.openFailed'));
+        }
+      },
+    };
+  }, [dispatch, project, reduxDiagram, t]);
+  const lineageProviderRef = useRef(lineageProvider);
+  lineageProviderRef.current = lineageProvider;
+
+  // Destroys run one after another, and a new editor waits for all of them: a late
+  // destroy of an old instance otherwise removes DOM the next instance is mounted into
+  // (rapid revision bumps, e.g. "New diagram tab", left a blank canvas).
+  const pendingDestroyRef = useRef<Promise<void>>(Promise.resolve());
+  const destroyEditorDeferred = useCallback((editor: BesserEditor) => {
+    const run = pendingDestroyRef.current.then(
+      () =>
+        new Promise<void>((resolve) => {
+          // Defer destroy to avoid React unmount race warnings during render transitions.
+          setTimeout(() => {
+            try {
+              editor.destroy();
+            } catch (error) {
+              console.warn('Error destroying editor:', error);
+            } finally {
+              resolve();
+            }
+          }, 0);
+        }),
+    );
+    pendingDestroyRef.current = run;
+    return run;
+  }, []);
+
+  // Returns true if the editor's captured binding still matches live
+  // Redux state. Used to gate save dispatches so a stale save from the
+  // previous diagram/project can't bleed into the freshly-loaded one.
+  const bindingMatchesCurrentState = useCallback((): boolean => {
+    const binding = editorBindingRef.current;
+    if (!binding) return false;
+    const { workspace } = store.getState();
+    return (
+      binding.projectId === (workspace.project?.id ?? null) &&
+      binding.diagramType === workspace.activeDiagramType &&
+      binding.diagramIndex === workspace.activeDiagramIndex
+    );
+  }, [store]);
+
+  // Flush any pending debounced save synchronously.
+  // Mirrors GraphicalUIEditor's flush-on-cleanup pattern so a rapid tab
+  // switch within the 300 ms debounce window doesn't drop the user's
+  // last keystroke.
+  //
+  // Content-bleed-on-new-project: only flush when the captured
+  // binding still matches live state. When `createProjectThunk` (or any
+  // other thunk that swaps the active project/diagram) runs while a
+  // debounced save is pending, the global Redux state has already moved
+  // on by the time we get here — dispatching `updateDiagramModelThunk`
+  // unguarded would write the old editor's model into the *new*
+  // project's diagram slot, leaving the canvas displaying stale content.
+  const flushPendingSave = useCallback(() => {
+    if (!debouncedSaveRef.current) return;
+    clearTimeout(debouncedSaveRef.current);
+    debouncedSaveRef.current = null;
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (!bindingMatchesCurrentState()) return;
+    try {
+      // editor.model is a synchronous getter on the current state — by
+      // dispatching the thunk inline (no await), we hand the latest model
+      // to Redux before destroy() rips the editor down.
+      dispatch(updateDiagramModelThunk({ model: editor.model }));
+    } catch (error) {
+      console.warn('Failed to flush pending UML save on cleanup:', error);
+    }
+  }, [dispatch, bindingMatchesCurrentState]);
+
+  // Cleanup function
+  const cleanupEditor = useCallback(async () => {
+    // Flush any pending debounced save before tearing the editor down.
+    // Without this, a keystroke within the last 300 ms of editing is lost.
+    flushPendingSave();
+    const editor = editorRef.current;
+    editorRef.current = null;
+    editorBindingRef.current = null;
+    if (!editor) {
+      await pendingDestroyRef.current;
+      return;
+    }
+    // Unsubscribe from model changes before destroying
+    if (modelSubscriptionRef.current !== null) {
+      editor.unsubscribeFromModelChange(modelSubscriptionRef.current);
+      modelSubscriptionRef.current = null;
+    }
+    await destroyEditorDeferred(editor);
+  }, [destroyEditorDeferred, flushPendingSave]);
+
+  // Keep the diagramBridge's agentPlatform in sync with the active diagram's config.
+  // This ensures editor popups read the correct platform even when the user hasn't
+  // visited the agent config panel in this session.
+  useEffect(() => {
+    const platform = (reduxDiagram?.config?.agentPlatform as string | undefined) ?? 'websocket';
+    diagramBridge.setAgentPlatform(platform);
+  }, [reduxDiagram]);
+
+  // Single writer of the agent component lists in diagramBridge: the AgentState /
+  // transition inspectors read LLM / GUI / RAG / intent names from it. Runs whenever
+  // the active diagram changes, including edits made on the agent Components page
+  // (which persist to storage and flow back through Redux). Components live in the
+  // stored diagram's `model.components` (legacy canvas nodes are normalized in).
+  useEffect(() => {
+    const components = Object.values(getAgentComponents(reduxDiagram));
+    const ofType = (type: AgentComponentType) => components.filter((component) => component.type === type);
+    const named = (type: AgentComponentType) => ofType(type).filter((component) => component.name);
+
+    diagramBridge.setAgentGUIs(
+      ofType(AgentComponentType.AgentGUI).map((gui) => ({
+        name: String(gui.gui_id || gui.name || gui.id),
+        gui_id: String(gui.gui_id || ''),
+        is_form: !!gui.is_form,
+      })),
+    );
+    diagramBridge.setAgentIntents(
+      named(AgentComponentType.AgentIntent).map((intent) => ({ name: String(intent.name), id: intent.id })),
+    );
+    diagramBridge.setAgentLLMs(
+      named(AgentComponentType.AgentLLM).map((llm) => ({
+        name: String(llm.name),
+        provider: String(llm.provider || '').toLowerCase(),
+      })),
+    );
+    diagramBridge.setAgentRAGs(named(AgentComponentType.AgentRagElement).map((rag) => ({ name: String(rag.name) })));
+  }, [reduxDiagram]);
+
+  useEffect(() => {
+    const smDiagrams = stateMachineDiagrams ?? [];
+    const qcDiagrams = quantumCircuitDiagrams ?? [];
+    const neuralNetworkDiagrams = nnDiagrams ?? [];
+
+    const stateMachines = smDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
+    const quantumCircuits = qcDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
+    diagramBridge.setStateMachineDiagrams(stateMachines);
+    // Targets for methods implemented by a neural network (`neuralNetworkId`).
+    const neuralNetworks = neuralNetworkDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
+    diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
+    diagramBridge.setNeuralNetworkDiagrams(neuralNetworks);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams, nnDiagrams]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setupRunRef.current += 1;
+      cleanupEditor().catch(notifyError('Editor cleanup'));
+      setEditor!(undefined);
+    };
+  }, [cleanupEditor, setEditor]);
+
+  // Keep the editor engine's UI language in sync with the app language.
+  // `set locale` updates the editor's UI language in place, model preserved.
+  useEffect(() => {
+    const handleLanguageChange = (lng: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      try {
+        editor.locale = toEditorLocale(lng);
+      } catch (error) {
+        console.warn('Failed to update editor locale:', error);
+      }
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
+
+  // Handle editor creation/recreation (initial load + diagram switches/templates).
+  // Only runs when editorRevision actually changes (not on every Redux update).
+  useEffect(() => {
+    if (editorRevision === 0 || editorRevision === lastHandledRevisionRef.current) return;
+
+    const setupEditor = async () => {
+      if (!containerRef.current) return;
+
+      lastHandledRevisionRef.current = editorRevision;
+      const runId = ++setupRunRef.current;
+
+      // Always destroy old editor before creating a new one
+      await cleanupEditor();
+      if (!containerRef.current || runId !== setupRunRef.current) return;
+
+      const currentOptions = optionsRef.current;
+      const currentDiagram = reduxDiagramRef.current;
+
+      // Capture the (project, diagram type, diagram index) identity that
+      // this editor instance is bound to. Used by `flushPendingSave` and
+      // the debounced subscriber to refuse writes when the user has
+      // navigated to a different project/diagram between when the save
+      // was scheduled and when it would have fired.
+      const setupState = store.getState().workspace;
+      editorBindingRef.current = {
+        projectId: setupState.project?.id ?? null,
+        diagramType: setupState.activeDiagramType,
+        diagramIndex: setupState.activeDiagramIndex,
+      };
+
+      // A v3 model that failed to migrate cannot be shown; open read-only
+      // so no edit can replace it (the save thunk refuses too).
+      const legacyV3 = !!currentDiagram?.model && isV3UMLModel(currentDiagram.model);
+      if (legacyV3) {
+        toast.error(t('editors.legacyDiagram.openedReadOnly', { title: currentDiagram?.title ?? '' }), {
+          toastId: `legacy-v3-${currentDiagram?.id}`,
+        });
+      }
+
+      const nextEditor = new BesserEditor(containerRef.current, {
+        ...currentOptions,
+        ...(legacyV3 && { readonly: true }),
+        locale: localeRef.current,
+        agenticEnabled: agenticEnabledRef.current,
+      });
+      editorRef.current = nextEditor;
+      await nextEditor.nextRender;
+      if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
+        // A newer setup (two quick revision bumps) or the unmount already took
+        // this editor out of editorRef and destroys it; destroying it here too
+        // would unobserve its Yjs maps twice.
+        return;
+      }
+
+      // Library notices meant for the user; the other kinds are internal warnings.
+      nextEditor.subscribeToBesserErrors((err) => {
+        if (err.kind === 'pasteRefused') toast.info(err.message, { toastId: 'paste-refused' });
+      });
+
+      // Load diagram model if available (only UML models)
+      if (currentDiagram?.model && isUMLModel(currentDiagram.model)) {
+        nextEditor.model = currentDiagram.model;
+      }
+
+      // Seed the cross-diagram bridge from the freshly-loaded ClassDiagram
+      // so the very first paint (before any user edits) has live data.
+      if (currentOptions.type === UMLDiagramType.ClassDiagram && isUMLModel(nextEditor.model)) {
+        try {
+          diagramBridge.setClassDiagramData(nextEditor.model);
+        } catch {
+          /* bridge not available */
+        }
+      }
+
+      // If a lineage click-through requested a source-element
+      // selection, apply it now that the new editor is mounted and the
+      // model is loaded.
+      const elementId = takePendingLineageSelection(currentDiagram?.id);
+      if (elementId) {
+        // Small delay so the editor's internal model state has fully
+        // settled after the model was applied.
+        setTimeout(() => {
+          try {
+            nextEditor.select([elementId]);
+          } catch (error) {
+            console.warn('[lineage] selecting the source element failed:', error);
+          }
+        }, 50);
+      }
+
+      // Subscribe to model changes.
+      // - Redux persistence is debounced (300 ms) to avoid excessive
+      //   localStorage writes on every keystroke.
+      // - The cross-diagram bridge (consumed by ObjectDiagram/UserDiagram
+      //   palettes) is updated SYNCHRONOUSLY on every model commit so it
+      //   never lags the live ClassDiagram editor. fix
+      //   for: previously the bridge was fed from a debounced
+      //   Redux selector in DiagramTabs.tsx, which trailed the editor by
+      //   one 300 ms window.
+      const isClassDiagram = currentOptions.type === UMLDiagramType.ClassDiagram;
+      modelSubscriptionRef.current = nextEditor.subscribeToModelChange((model: UMLModel) => {
+        if (isClassDiagram) {
+          try {
+            diagramBridge.setClassDiagramData(model);
+          } catch {
+            /* bridge not available */
+          }
+        }
+        if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+        debouncedSaveRef.current = setTimeout(() => {
+          debouncedSaveRef.current = null;
+          // Guard against the project being swapped (e.g. via
+          // `createProjectThunk` / `loadProjectThunk`) between the
+          // model change and the debounce firing. Without this check
+          // the dispatched thunk reads live Redux state and writes the
+          // stale model into the *new* project's matching slot.
+          if (!bindingMatchesCurrentState()) return;
+          dispatch(updateDiagramModelThunk({ model }));
+        }, 300);
+      });
+
+      // Register the host providers on the new editor. This has to happen
+      // here: the effects below run before this async setup finishes, so
+      // they only cover later identity changes of an already-mounted editor.
+      nextEditor.setAgentDiagramLinker(linkerRef.current);
+      nextEditor.setLineageProvider(lineageProviderRef.current);
+      nextEditor.setElementPickerProvider(elementPickerRef.current);
+
+      setEditor!(nextEditor);
+    };
+
+    setupEditor().catch(notifyError('Editor setup'));
+  }, [
+    editorRevision,
+    cleanupEditor,
+    dispatch,
+    setEditor,
+    store,
+    bindingMatchesCurrentState,
+    t,
+  ]);
+
+  // Show or hide the agentic BPMN controls when the perspectives change.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      editor.agenticEnabled = agenticEnabled;
+    } catch (error) {
+      console.warn('Failed to update the agentic controls:', error);
+    }
+  }, [agenticEnabled]);
+
+  // Re-register the host providers on the mounted editor when their identity
+  // changes (initial registration happens in the setup effect above).
+  useEffect(() => {
+    editorRef.current?.setLineageProvider(lineageProvider);
+  }, [lineageProvider]);
+
+  useEffect(() => {
+    editorRef.current?.setElementPickerProvider(elementPicker);
+  }, [elementPicker]);
+
+  useEffect(() => {
+    editorRef.current?.setAgentDiagramLinker(linker);
+  }, [linker]);
+
+  // The editor cannot draw a v3 model, so the read-only canvas is blank:
+  // explain why and how to recover, after the toast has gone.
+  const legacyV3Title =
+    reduxDiagram?.model && isV3UMLModel(reduxDiagram.model) ? (reduxDiagram.title ?? '') : null;
+
+  return (
+    <div className="relative flex h-full min-h-0 w-full grow flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex flex-col grow overflow-hidden w-full h-full min-h-0"
+        style={{ backgroundColor: 'var(--besser-background, #ffffff)' }}
+      />
+      {legacyV3Title !== null && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+          <div
+            role="status"
+            data-testid="legacy-diagram-notice"
+            className="pointer-events-auto max-w-md rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm dark:border-amber-800/60 dark:bg-amber-950/60 dark:text-amber-100"
+          >
+            <p className="flex items-center gap-2 font-semibold">
+              <Lock className="size-4 shrink-0" aria-hidden />
+              {t('editors.legacyDiagram.readOnlyTitle')}
+            </p>
+            <p className="mt-2">{t('editors.legacyDiagram.readOnlyBody', { title: legacyV3Title })}</p>
+            <p className="mt-2 text-amber-800 dark:text-amber-200">{t('editors.legacyDiagram.readOnlyRecover')}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

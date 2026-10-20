@@ -4,7 +4,7 @@
  * A user profile is modelled graphically as a `UserDiagram` (boxes + attribute
  * criteria + links). The form is a second view over that exact model. These
  * types describe the in-memory shape the form manipulates before it is
- * serialised back into an Apollon `UMLModel`.
+ * serialised back into a v4 `UMLModel` (`UserModelName` nodes + `UserModelLink` edges).
  */
 
 /** Comparison operators available for an attribute criterion (mirror the editor). */
@@ -43,6 +43,11 @@ export const isNumericType = (type?: string): boolean => (type ? NUMERIC_TYPES.h
 export interface Instance {
   /** Stable, deterministic local id used as a React key. */
   key: string;
+  /**
+   * Id of the canvas box backing this instance (set when parsed from, or first
+   * written to, the model), so later writes update that box in place.
+   */
+  nodeId?: string;
   className: string;
   classId?: string;
   icon?: string;

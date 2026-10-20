@@ -2,7 +2,7 @@ import type { MutableRefObject } from 'react';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import type { AgentDiagramLinker, ApollonEditor, UMLModel } from '@besser/wme';
+import type { AgentDiagramLinker, BesserEditor, UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import {
   addDiagramThunk,
@@ -47,13 +47,14 @@ function linkAgentDiagramInStorage(
   const bpmnIndex = project.diagrams.BPMN.findIndex((d) => d.id === bpmnDiagramId);
   const bpmn = project.diagrams.BPMN[bpmnIndex];
   if (!bpmn || !isUMLModel(bpmn.model)) return false;
-  const element = bpmn.model.elements[elementId];
-  if (!element || (element.type !== 'BPMNSwimlane' && element.type !== 'BPMNTask')) return false;
+  const element = bpmn.model.nodes.find((n) => n.id === elementId);
+  if (!element || (element.type !== 'bpmnSwimlane' && element.type !== 'bpmnTask')) return false;
 
-  const linkedElement = { ...element, agentDiagramRef: agentDiagramId };
   const linkedModel: UMLModel = {
     ...bpmn.model,
-    elements: { ...bpmn.model.elements, [elementId]: linkedElement },
+    nodes: bpmn.model.nodes.map((n) =>
+      n.id === elementId ? { ...n, data: { ...n.data, agentDiagramRef: agentDiagramId } } : n,
+    ),
   };
   project.diagrams.BPMN[bpmnIndex] = { ...bpmn, model: linkedModel, lastUpdate: new Date().toISOString() };
 
@@ -94,7 +95,7 @@ function linkAgentDiagramInStorage(
  *
  * Open (popup → `openByRef`): switch to the referenced Agent diagram.
  */
-export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor | null>): AgentDiagramLinker {
+export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor | null>): AgentDiagramLinker {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const activeDiagram = useAppSelector(selectActiveDiagram);
@@ -140,7 +141,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
         }
       }
 
-      const isLaneSource = sourceModel.elements[elementId]?.type === 'BPMNSwimlane';
+      const isLaneSource = sourceModel.nodes.find((n) => n.id === elementId)?.type === 'bpmnSwimlane';
       const derivation = isLaneSource ? laneToAgentModel(sourceModel, elementId) : null;
       if (derivation && !derivation.ok) {
         toast.warning(t(REFUSAL_MESSAGE_KEYS[derivation.reason]));
@@ -222,6 +223,6 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
     [dispatch, t],
   );
 
-  // ApollonEditorComponent re-registers the linker when this identity changes.
+  // BesserEditorComponent re-registers the linker when this identity changes.
   return useMemo(() => ({ isRefAlive, createForLane, openByRef }), [isRefAlive, createForLane, openByRef]);
 }

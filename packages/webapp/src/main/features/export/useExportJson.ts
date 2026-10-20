@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { ProjectDiagram } from '../../shared/types/project';
 import { prepareAgentModelForBackend, versionMetadata } from '../../shared/utils/projectExportUtils';
@@ -9,7 +9,7 @@ export const useExportJSON = () => {
   const downloadFile = useFileDownload();
 
   const exportJSON = useCallback(
-    async (editor: ApollonEditor, diagram: ProjectDiagram) => {
+    async (editor: BesserEditor, diagram: ProjectDiagram) => {
       const fileName = `${diagram.title}.json`;
       await loadBesserVersion();
       // An agent canvas snapshot carries no off-canvas components; re-attach them.

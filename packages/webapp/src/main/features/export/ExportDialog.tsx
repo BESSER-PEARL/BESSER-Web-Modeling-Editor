@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ import { selectActiveDiagram } from '../../app/store/workspaceSlice';
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editor?: ApollonEditor;
+  editor?: BesserEditor;
   currentDiagramTitle: string;
 }
 
