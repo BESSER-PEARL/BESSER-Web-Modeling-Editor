@@ -880,7 +880,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         // bouncing the user with "Switch to a UML diagram".
         const CLASS_MODEL_GENERATORS = [
           'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
-          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase', 'alloy',
         ];
         if ((isQuantumContext || isGuiContext || !editor)
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {

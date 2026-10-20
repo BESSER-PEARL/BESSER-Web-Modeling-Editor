@@ -119,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "In B-UML umwandeln"
+        "kgConvert": "In B-UML umwandeln",
+        "formalMethods": "Formale Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -134,7 +135,8 @@
         "userProfileJson": "Benutzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zeitreihen-Prognose",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikation"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",

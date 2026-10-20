@@ -119,7 +119,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Datos",
-        "kgConvert": "Convertir a B-UML"
+        "kgConvert": "Convertir a B-UML",
+        "formalMethods": "Métodos formales"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -134,7 +135,8 @@
         "userProfileJson": "JSON de perfil de usuario",
         "qiskitCode": "Código Qiskit",
         "forecaster": "Previsión de series temporales",
-        "kgToClassDiagram": "Diagrama de clases"
+        "kgToClassDiagram": "Diagrama de clases",
+        "alloySpecification": "Especificación Alloy"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",

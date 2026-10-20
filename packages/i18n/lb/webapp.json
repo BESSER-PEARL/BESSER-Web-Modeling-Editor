@@ -119,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "An B-UML ëmwandelen"
+        "kgConvert": "An B-UML ëmwandelen",
+        "formalMethods": "Formal Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -134,7 +135,8 @@
         "userProfileJson": "Benotzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zäitreien-Prognos",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikatioun"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",

@@ -119,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Data",
-        "kgConvert": "Convert to B-UML"
+        "kgConvert": "Convert to B-UML",
+        "formalMethods": "Formal Methods"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -134,7 +135,8 @@
         "userProfileJson": "User Profile JSON",
         "qiskitCode": "Qiskit Code",
         "forecaster": "Time-Series Forecaster",
-        "kgToClassDiagram": "Class Diagram"
+        "kgToClassDiagram": "Class Diagram",
+        "alloySpecification": "Alloy Specification"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",

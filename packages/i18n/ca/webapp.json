@@ -119,7 +119,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Dades",
-        "kgConvert": "Converteix a B-UML"
+        "kgConvert": "Converteix a B-UML",
+        "formalMethods": "Mètodes formals"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -134,7 +135,8 @@
         "userProfileJson": "JSON de perfil d'usuari",
         "qiskitCode": "Codi Qiskit",
         "forecaster": "Previsió de sèries temporals",
-        "kgToClassDiagram": "Diagrama de classes"
+        "kgToClassDiagram": "Diagrama de classes",
+        "alloySpecification": "Especificació Alloy"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
