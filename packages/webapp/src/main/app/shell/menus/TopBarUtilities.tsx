@@ -1,12 +1,18 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Moon, Star, Sun } from 'lucide-react';
+import { CheckCircle, ChevronDown, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { inputBaseClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
 import { GitHubMenu } from '../../../features/github/components/GitHubMenu';
 import type { AgentVariantOption } from '../topbar-types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
 
 interface TopBarUtilitiesProps {
@@ -24,6 +30,8 @@ interface TopBarUtilitiesProps {
   activeAgentVariantId?: string;
   onAgentVariantChange?: (variantId: string) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
+  /** When set, the quality check button opens a menu with the syntactic and semantic checks. */
+  onSemanticCheck?: () => Promise<void>;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
@@ -45,6 +53,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   activeAgentVariantId,
   onAgentVariantChange,
   onQualityCheck,
+  onSemanticCheck,
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
@@ -74,6 +83,22 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         ? 'bg-amber-500'
         : 'bg-slate-400';
 
+  const qualityButtonContent = (
+    <>
+      <CheckCircle className="size-4" aria-hidden="true" />
+      <span className="hidden 2xl:inline">{t('topbar.quality.title')}</span>
+      {qualityStateLabel && (
+        <span
+          aria-hidden="true"
+          className="hidden items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium xl:inline-flex"
+        >
+          <span className={`size-1.5 rounded-full ${qualityStateDotClass}`} />
+          <span>{qualityStateLabel}</span>
+        </span>
+      )}
+    </>
+  );
+
   return (
     <>
       {showAgentVariantSelector && (
@@ -96,7 +121,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         </div>
       )}
 
-      {showQualityCheck && (
+      {showQualityCheck && !onSemanticCheck && (
         <HeaderTooltip label={qualityLabel} hideFrom="2xl">
           <Button
             variant="ghost"
@@ -107,19 +132,30 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
             }}
             aria-label={qualityLabel}
           >
-            <CheckCircle className="size-4" aria-hidden="true" />
-            <span className="hidden 2xl:inline">{t('topbar.quality.title')}</span>
-            {qualityStateLabel && (
-              <span
-                aria-hidden="true"
-                className="hidden items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium xl:inline-flex"
-              >
-                <span className={`size-1.5 rounded-full ${qualityStateDotClass}`} />
-                <span>{qualityStateLabel}</span>
-              </span>
-            )}
+            {qualityButtonContent}
           </Button>
         </HeaderTooltip>
+      )}
+
+      {showQualityCheck && onSemanticCheck && (
+        <DropdownMenu>
+          <HeaderTooltip label={qualityLabel} hideFrom="2xl">
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={qualityLabel}>
+                {qualityButtonContent}
+                <ChevronDown className="hidden size-3 opacity-50 2xl:block" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+          </HeaderTooltip>
+          <DropdownMenuContent align="end" className="min-w-[170px]">
+            <DropdownMenuItem onSelect={() => void onQualityCheck()}>
+              {t('topbar.quality.syntacticCheck')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void onSemanticCheck()}>
+              {t('topbar.quality.semanticCheck')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <HeaderTooltip label={themeLabel}>

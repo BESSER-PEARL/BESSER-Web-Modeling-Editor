@@ -35,7 +35,9 @@
       "validated": "Validéiert",
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
-      "notValidated": "Net validéiert"
+      "notValidated": "Net validéiert",
+      "syntacticCheck": "Syntaktesch Prüfung",
+      "semanticCheck": "Semantesch Prüfung"
     },
     "more": "Méi",
     "linkToGithub": "Mat GitHub verbannen",
@@ -3922,6 +3924,14 @@
       "diagramValid": "Den Diagramm ass gülteg",
       "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
       "unknownError": "Onbekannte Feeler"
+    },
+    "semantic": {
+      "searching": "Sich no enger Instanz vum Klassendiagramm…",
+      "connectionLost": "D'Verbindung mam Server ass wärend der semantescher Prüfung verluer gaangen.",
+      "noResult": "D'semantesch Prüfung ass ouni Resultat eriwwer gaangen.",
+      "failed": "Semantesch Prüfung feelgeschloen: {{error}}",
+      "errorsLabel": "Feeler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

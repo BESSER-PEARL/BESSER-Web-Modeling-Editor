@@ -35,7 +35,9 @@
       "validated": "Validat",
       "issues": "Problemes",
       "needsRecheck": "Cal revisar-ho",
-      "notValidated": "No validat"
+      "notValidated": "No validat",
+      "syntacticCheck": "Comprovació sintàctica",
+      "semanticCheck": "Comprovació semàntica"
     },
     "more": "Més",
     "linkToGithub": "Vincula amb GitHub",
@@ -3922,6 +3924,14 @@
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
       "unknownError": "Error desconegut"
+    },
+    "semantic": {
+      "searching": "Cercant una instància del diagrama de classes…",
+      "connectionLost": "S'ha perdut la connexió amb el servidor durant la comprovació semàntica.",
+      "noResult": "La comprovació semàntica ha acabat sense cap resultat.",
+      "failed": "Ha fallat la comprovació semàntica: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Avisos:"
     }
   },
   "quantum": {

@@ -35,7 +35,9 @@
       "validated": "Validiert",
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
-      "notValidated": "Nicht validiert"
+      "notValidated": "Nicht validiert",
+      "syntacticCheck": "Syntaktische Prüfung",
+      "semanticCheck": "Semantische Prüfung"
     },
     "more": "Mehr",
     "linkToGithub": "Mit GitHub verknüpfen",
@@ -3922,6 +3924,14 @@
       "diagramValid": "Diagramm ist gültig",
       "validationErrorGeneric": "Validierungsfehler: {{error}}",
       "unknownError": "Unbekannter Fehler"
+    },
+    "semantic": {
+      "searching": "Suche nach einer Instanz des Klassendiagramms…",
+      "connectionLost": "Die Verbindung zum Server ist während der semantischen Prüfung abgebrochen.",
+      "noResult": "Die semantische Prüfung wurde ohne Ergebnis beendet.",
+      "failed": "Semantische Prüfung fehlgeschlagen: {{error}}",
+      "errorsLabel": "Fehler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

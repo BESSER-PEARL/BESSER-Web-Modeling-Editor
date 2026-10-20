@@ -35,7 +35,9 @@
       "validated": "Validated",
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
-      "notValidated": "Not validated"
+      "notValidated": "Not validated",
+      "syntacticCheck": "Syntactic check",
+      "semanticCheck": "Semantic check"
     },
     "more": "More",
     "repoState": {
@@ -3922,6 +3924,14 @@
       "diagramValid": "Diagram is valid",
       "validationErrorGeneric": "Validation error: {{error}}",
       "unknownError": "Unknown error"
+    },
+    "semantic": {
+      "searching": "Searching for an instance of the class diagram…",
+      "connectionLost": "The connection to the server was lost during the semantic check.",
+      "noResult": "The semantic check ended without a result.",
+      "failed": "Semantic check failed: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Warnings:"
     }
   },
   "quantum": {

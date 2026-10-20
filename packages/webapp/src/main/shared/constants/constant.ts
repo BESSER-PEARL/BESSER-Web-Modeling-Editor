@@ -203,6 +203,10 @@ export const sessionStorageSpecDrivenPushIntent = localStoragePrefix + 'smart_ge
 // straight to the GitHub repo picker (consuming-and-clearing this flag once).
 export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
 
+// Semantic check backend endpoints (derived from BACKEND_URL), streamed as SSE.
+export const SEMANTIC_CHECK_ENDPOINT = `${BACKEND_URL}/semantic-consistency-check`;
+export const GENERATE_OBJECT_DIAGRAM_ENDPOINT = `${BACKEND_URL}/generate-object-diagram`;
+
 // Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
 export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;
