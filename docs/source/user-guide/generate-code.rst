@@ -5,7 +5,8 @@ Generate code from a diagram
 This uses the **Generate** menu and does not need an AI key.
 
 1. Open the diagram you want to generate from.
-2. Click **Quality Check** and fix the model errors it reports.
+2. Click **Quality Check** (on a class diagram, **Quality Check > Syntactic
+   check**) and fix the model errors it reports.
 3. Open **Generate** and choose a target compatible with the diagram.
 4. Complete any generator settings and download the result.
 5. Read the generated project's run instructions before starting it locally.

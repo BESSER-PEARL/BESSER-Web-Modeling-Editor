@@ -80,8 +80,9 @@ you how many authors one book has.
 Check the model
 ---------------
 
-Click **Quality Check** in the top bar. Resolve any errors before continuing.
-For example, give two classes different names if the check reports a duplicate.
+Open **Quality Check** in the top bar and choose **Syntactic check**. Resolve
+any errors before continuing. For example, give two classes different names if
+the check reports a duplicate.
 
 Download code
 -------------
@@ -122,6 +123,8 @@ browser or after clearing site data.
 Next steps
 ----------
 
+* :doc:`../user-guide/diagrams/class-diagram`: add OCL constraints and check
+  that they can all hold with **Quality Check > Semantic check**.
 * :doc:`../user-guide/diagrams/gui-diagram`: add screens to the data model.
 * :doc:`../user-guide/ai-assistant`: describe changes in natural language.
 * :doc:`../user-guide/spec-driven-agent`: generate a customised application.

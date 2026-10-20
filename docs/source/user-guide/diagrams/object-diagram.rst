@@ -46,6 +46,17 @@ Double-click the link to:
 *   Modify the **link name**.
 *   Choose the **Association** this link instantiates.
 
+Generating Objects
+~~~~~~~~~~~~~~~~~~
+
+Next to the referenced class diagram, two buttons fill the object diagram:
+
+*   **Generate**: adds one object per class, with default attribute values.
+*   **Generate from constraints**: replaces the diagram with an instance of the
+    class diagram that satisfies its OCL constraints, searched for as in the
+    class diagram's semantic check. The editor asks before replacing a diagram
+    that is not empty.
+
 OCL Constraint Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
