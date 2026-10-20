@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
+import { markGitHubStarPromptDone } from '../../../shared/services/githubStarPrompt';
 
 interface UseGitHubStarOptions {
   isAuthenticated: boolean;
@@ -19,7 +20,13 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
     const controller = new AbortController();
     fetch(`${BACKEND_URL}/github/star/status?session_id=${githubSession}`, { signal: controller.signal })
       .then((res) => res.json())
-      .then((data) => { if (data.starred) setHasStarred(true); })
+      .then((data) => {
+        if (data.starred) {
+          setHasStarred(true);
+          // Already a stargazer: never ask after a generation.
+          markGitHubStarPromptDone();
+        }
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [isAuthenticated, githubSession]);
@@ -32,7 +39,10 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
       const res = await fetch(`${BACKEND_URL}/github/star?session_id=${githubSession}`, { method });
       if (res.ok) {
         setHasStarred(!hasStarred);
-        if (!hasStarred) toast.success(t('github.toasts.starThanks'));
+        if (!hasStarred) {
+          toast.success(t('github.toasts.starThanks'));
+          markGitHubStarPromptDone();
+        }
       }
     } catch {
       toast.error(t('github.toasts.starFailed'));

@@ -60,6 +60,11 @@ export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels
  */
 export const localStoragePreferredInterface = localStoragePrefix + 'preferred_interface';
 /**
+ * Set once the "star us on GitHub" prompt has been shown, or once the app
+ * learns the user already starred the repo. Keeps the prompt to one per browser.
+ */
+export const localStorageGitHubStarPrompted = localStoragePrefix + 'github_star_prompted';
+/**
  * @deprecated since v7.3.0 — kept for the cleanup migration only. Agent
  * runtime config (platform, intent-recognition technology, LLM
  * provider/model) now lives on the agent diagram itself
