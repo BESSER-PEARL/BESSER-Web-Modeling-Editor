@@ -61,7 +61,9 @@
       "validated": "Validé",
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
-      "notValidated": "Non validé"
+      "notValidated": "Non validé",
+      "syntacticCheck": "Vérification syntaxique",
+      "semanticCheck": "Vérification sémantique"
     },
     "more": "Plus",
     "linkToGithub": "Lier à GitHub",
@@ -3951,6 +3953,14 @@
       "diagramValid": "Le diagramme est valide",
       "validationErrorGeneric": "Erreur de validation : {{error}}",
       "unknownError": "Erreur inconnue"
+    },
+    "semantic": {
+      "searching": "Recherche d'une instance du diagramme de classes…",
+      "connectionLost": "La connexion au serveur a été perdue pendant la vérification sémantique.",
+      "noResult": "La vérification sémantique s'est terminée sans résultat.",
+      "failed": "Échec de la vérification sémantique : {{error}}",
+      "errorsLabel": "Erreurs :",
+      "warningsLabel": "Avertissements :"
     }
   },
   "quantum": {

@@ -156,6 +156,8 @@ interface WorkspaceShellProps {
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
+  /** Semantic check of the class diagram, offered next to the quality check on class diagrams. */
+  onSemanticCheck?: () => Promise<void>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating?: boolean;
@@ -201,6 +203,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onExportProject,
   onGenerate,
   onQualityCheck,
+  onSemanticCheck,
   showQualityCheck = false,
   generatorMode,
   isGenerating = false,
@@ -547,6 +550,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
     return result;
   });
+
+  const handleSemanticCheck = useStableCallback(async (): Promise<void> => {
+    await onSemanticCheck?.();
+  });
+  const semanticCheckAvailable = Boolean(onSemanticCheck) && currentProject?.currentDiagramType === 'ClassDiagram';
 
   const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
     if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
@@ -1182,6 +1190,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onShareAsGist={openGistDialog}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
+        onSemanticCheck={semanticCheckAvailable ? handleSemanticCheck : undefined}
         qualityCheckState={activeQualityCheckState}
         showAgentVariantSelector={currentProject?.currentDiagramType === 'AgentDiagram'}
         agentVariantOptions={agentVariantOptions}
