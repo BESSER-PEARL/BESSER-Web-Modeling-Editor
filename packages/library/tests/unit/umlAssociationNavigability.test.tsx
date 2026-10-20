@@ -343,6 +343,27 @@ describe("ClassEdgeEditPanel navigability checkboxes", () => {
     // Class "b" (now the source) stays the navigable end.
     expect(flags(flipped)).toEqual([true, false])
   })
+
+  it("heads each end section with the class name only", () => {
+    const store = createDiagramStore(new Y.Doc())
+    store.getState().setNodes(
+      ["a", "b"].map((id, i) => ({
+        id,
+        type: "class",
+        position: { x: i * 200, y: 0 },
+        data: { name: id === "a" ? "Order" : "Customer" },
+      }))
+    )
+    store.getState().setEdges([edge("ClassBidirectional", true, true)])
+    render(
+      <DiagramStoreContext.Provider value={store as StoreApi<DiagramStore>}>
+        <ClassEdgeEditPanel elementId="e" />
+      </DiagramStoreContext.Provider>
+    )
+    expect(screen.getByText("Order")).toBeDefined()
+    expect(screen.getByText("Customer")).toBeDefined()
+    expect(screen.queryByText(/^(Source|Target) —/)).toBeNull()
+  })
 })
 
 describe("user metamodel associations", () => {

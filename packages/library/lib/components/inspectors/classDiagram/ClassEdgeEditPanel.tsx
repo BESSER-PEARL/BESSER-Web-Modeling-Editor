@@ -396,11 +396,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         <>
           <DividerLine width="100%" />
           {/* Shared section header; #6: caption col 80 → 70. */}
-          <InspectorSectionHeader>
-            {t("popup.class.sourceEnd", "Source — {{name}}", {
-              name: sourceName,
-            })}
-          </InspectorSectionHeader>
+          <InspectorSectionHeader>{sourceName}</InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
               {t("popup.multiplicity", "Multiplicity")}
@@ -442,11 +438,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           {showsNavigability && renderNavigableRow("source")}
 
           <DividerLine width="100%" />
-          <InspectorSectionHeader>
-            {t("popup.class.targetEnd", "Target — {{name}}", {
-              name: targetName,
-            })}
-          </InspectorSectionHeader>
+          <InspectorSectionHeader>{targetName}</InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
               {t("popup.multiplicity", "Multiplicity")}

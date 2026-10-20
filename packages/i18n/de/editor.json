@@ -299,8 +299,6 @@
       "endMultiplicity": "Multiplizität von {{name}}",
       "endRole": "Rolle von {{name}}",
       "erMultiplicityPlaceholder": "(1,1) oder 1..1",
-      "sourceEnd": "Quelle — {{name}}",
-      "targetEnd": "Ziel — {{name}}",
       "classesDivider": "── Klassen ──",
       "enumerationsDivider": "── Aufzählungen ──",
       "customType": "benutzerdefiniert…",

@@ -299,8 +299,6 @@
       "endMultiplicity": "Multiplicité de {{name}}",
       "endRole": "Rôle de {{name}}",
       "erMultiplicityPlaceholder": "(1,1) ou 1..1",
-      "sourceEnd": "Source — {{name}}",
-      "targetEnd": "Cible — {{name}}",
       "classesDivider": "── classes ──",
       "enumerationsDivider": "── énumérations ──",
       "customType": "personnalisé…",
