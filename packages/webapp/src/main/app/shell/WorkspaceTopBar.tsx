@@ -58,6 +58,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onDeriveComponentDiagram,
   onDeriveDeploymentDiagram,
   onGenerateDockerCompose,
+  onIncrementalPreanalysis,
   projectNameDraft,
   onProjectNameDraftChange,
   onProjectRename,
@@ -140,6 +141,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onDeriveComponentDiagram={onDeriveComponentDiagram}
             onDeriveDeploymentDiagram={onDeriveDeploymentDiagram}
             onGenerateDockerCompose={onGenerateDockerCompose}
+            onIncrementalPreanalysis={onIncrementalPreanalysis}
           />
           {/* Below sm these fold into the More menu */}
           <div className="hidden sm:contents">

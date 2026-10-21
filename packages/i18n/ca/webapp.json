@@ -92,6 +92,18 @@
       "deriveComponentDiagram": "Genera el diagrama de components",
       "deriveDeploymentDiagram": "Genera el diagrama de desplegament",
       "generateDockerCompose": "Genera el Docker Compose",
+      "constraints": {
+        "title": "Restriccions",
+        "incrementalPreanalysis": "Preanàlisi incremental"
+      },
+      "preanalysis": {
+        "running": "S'està executant la preanàlisi incremental…",
+        "done": "Els esdeveniments que poden violar cada invariant queden desats.",
+        "none": "No hi ha invariants per analitzar.",
+        "failed": "La preanàlisi incremental ha fallat.",
+        "notClassDiagram": "La preanàlisi incremental s'aplica als diagrames de classes.",
+        "noDiagram": "No hi ha cap diagrama de classes obert."
+      },
       "groups": {
         "web": "Web",
         "database": "Base de dades",

@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
@@ -27,6 +27,8 @@ import {
   useGenerateDeploymentDiagram,
 } from '../../features/inter-diagram';
 import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
+import { ApollonEditorContext } from '../../features/editors/uml/apollon-editor-context';
+import { runIncrementalPreanalysis } from '../../shared/services/validation/incrementalPreanalysis';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
@@ -196,6 +198,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { editor } = useContext(ApollonEditorContext);
   const dispatch = useAppDispatch();
   const diagram = useAppSelector(selectActiveDiagram);
   const { currentProject, currentDiagramType, switchDiagramType, updateProject } = useProject();
@@ -683,6 +686,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     await generateDockerCompose();
   }, [generateDockerCompose]);
 
+  const [isPreanalyzing, setIsPreanalyzing] = useState(false);
+  const handleIncrementalPreanalysis = useCallback(async () => {
+    if (currentProject?.currentDiagramType !== 'ClassDiagram') {
+      toast.error(t('menu.generate.preanalysis.notClassDiagram'));
+      return;
+    }
+    setIsPreanalyzing(true);
+    try {
+      await runIncrementalPreanalysis(editor, diagram?.title || t('generation.defaultDiagramTitle'));
+    } finally {
+      setIsPreanalyzing(false);
+    }
+  }, [currentProject?.currentDiagramType, diagram?.title, editor, t]);
+
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
     void handleSwitchUml(type);
@@ -1084,7 +1101,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
-        isGenerating={isGenerating || isDockerComposing}
+        isGenerating={isGenerating || isDockerComposing || isPreanalyzing}
         isAuthenticated={isAuthenticated}
         username={username || undefined}
         githubLoading={githubLoading}
@@ -1128,6 +1145,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }
         onGenerateDockerCompose={
           isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleGenerateDockerCompose : undefined
+        }
+        onIncrementalPreanalysis={
+          currentProject?.currentDiagramType === 'ClassDiagram' ? handleIncrementalPreanalysis : undefined
         }
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}

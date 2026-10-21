@@ -21,9 +21,11 @@ import {
   Globe,
   Info,
   Layers,
+  ListTree,
   Loader2,
   type LucideIcon,
   Network,
+  ShieldCheck,
   Server,
   Workflow,
 } from 'lucide-react';
@@ -54,6 +56,7 @@ interface GenerateMenuProps {
   onDeriveComponentDiagram?: () => void;
   onDeriveDeploymentDiagram?: () => void;
   onGenerateDockerCompose?: () => void;
+  onIncrementalPreanalysis?: () => void;
 }
 
 /** Icons for top-level groups, keyed by the config's stable English label. */
@@ -150,6 +153,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   onDeriveComponentDiagram,
   onDeriveDeploymentDiagram,
   onGenerateDockerCompose,
+  onIncrementalPreanalysis,
 }) => {
   const { t } = useTranslation();
   const menuEntries = GENERATOR_MENU_CONFIG[mode];
@@ -179,6 +183,23 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
       </HeaderTooltip>
       <DropdownMenuContent className="w-72" align="end">
         {menuEntries.map((entry) => renderGeneratorMenuEntry(entry, onGenerate, t))}
+        {mode === 'class' && onIncrementalPreanalysis && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <ShieldCheck className="mr-2 size-4" />
+                {t('menu.generate.constraints.title')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent {...SUBMENU_OFFSETS}>
+                <DropdownMenuItem onClick={onIncrementalPreanalysis} disabled={isGenerating}>
+                  <ListTree className="mr-2 size-4" />
+                  {t('menu.generate.constraints.incrementalPreanalysis')}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </>
+        )}
         {mode === 'statemachine' && onSwitchDiagramType && (
           <>
             <DropdownMenuSeparator />

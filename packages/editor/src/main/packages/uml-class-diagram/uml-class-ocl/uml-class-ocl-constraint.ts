@@ -5,10 +5,34 @@ import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
 
+/** One structural event that may violate the invariant in this box. */
+export interface ViolatingEventRecord {
+  constraint?: string | null;
+  kind: string;
+  class?: string;
+  attribute?: string;
+  association?: string;
+  approximated?: boolean;
+}
+
 export interface IUMLClassOCLConstraint extends IUMLElement {
   constraint: string;
   /** Optional plain-language explanation surfaced when validation fails. */
   description?: string;
+  /** Events from the last incremental pre-analysis. Absent until that menu item runs. */
+  violatingEvents?: ViolatingEventRecord[];
+  /** Constraint text those events were computed from. */
+  violatingEventsSource?: string;
+}
+
+export function formatViolatingEvent(event: ViolatingEventRecord): string {
+  if (event.kind === 'UpdateAttribute') {
+    return `UpdateAttribute(${event.attribute ?? ''}, ${event.class ?? ''})`;
+  }
+  if (event.association) {
+    return `${event.kind}(${event.association})`;
+  }
+  return `${event.kind}(${event.class ?? ''})`;
 }
 
 export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstraint {
@@ -22,6 +46,8 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
   type: UMLElementType = UMLElementType.ClassOCLConstraint;
   constraint: string = '';
   description: string = '';
+  violatingEvents: ViolatingEventRecord[] = [];
+  violatingEventsSource?: string;
 
   private static readonly MIN_WIDTH = 160;
   private static readonly MIN_HEIGHT = 70;
@@ -35,14 +61,27 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
     if (values?.description !== undefined) {
       this.description = values.description;
     }
+    if (values?.violatingEvents) {
+      this.violatingEvents = values.violatingEvents as ViolatingEventRecord[];
+    }
+    if (values?.violatingEventsSource != null) {
+      this.violatingEventsSource = values.violatingEventsSource;
+    }
     this.adjustSizeToContent();
   }
 
   serialize() {
+    const analyzed = this.violatingEventsSource != null;
     return {
       ...super.serialize(),
       constraint: this.constraint,
       description: this.description,
+      ...(analyzed
+        ? {
+            violatingEvents: this.violatingEvents,
+            violatingEventsSource: this.violatingEventsSource,
+          }
+        : {}),
     };
   }
 
@@ -50,6 +89,8 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
     super.deserialize(values);
     this.constraint = values.constraint || '';
     this.description = values.description || '';
+    this.violatingEvents = Array.isArray(values.violatingEvents) ? values.violatingEvents : [];
+    this.violatingEventsSource = values.violatingEventsSource ?? undefined;
   }
 
   private wrapText(text: string, maxWidth: number): string[] {

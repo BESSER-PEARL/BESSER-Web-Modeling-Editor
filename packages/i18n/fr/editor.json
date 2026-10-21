@@ -481,7 +481,12 @@
     "OCLConstraint": {
       "Constraint": "Contrainte OCL",
       "DescriptionPlaceholder": "p. ex. Veillez à choisir un âge réaliste",
-      "DescriptionLabel": "Description (affichée aux utilisateurs finaux en cas d'échec de la validation) Facultatif"
+      "DescriptionLabel": "Description (affichée aux utilisateurs finaux en cas d'échec de la validation) Facultatif",
+      "ViolatingEventsLabel": "Événements susceptibles de la violer",
+      "ViolatingEventsEmpty": "Pas encore de préanalyse. Utilisez Générer, puis Contraintes, puis Préanalyse incrémentale.",
+      "ViolatingEventsStale": "Périmé. Le texte de la contrainte a changé après cette préanalyse.",
+      "ViolatingEventsNone": "Aucun événement analysé ne peut violer cet invariant.",
+      "ViolatingEventsApproximated": "approximatif"
     },
     "StateDiagram": {
       "StateTransition": "Transition",

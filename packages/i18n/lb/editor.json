@@ -481,7 +481,12 @@
     "OCLConstraint": {
       "Constraint": "OCL-Aschränkung",
       "DescriptionPlaceholder": "z. B. Vergewëssert Iech, en realisteschen Alter ze wielen",
-      "DescriptionLabel": "Beschreiwung (gëtt de Endbenotzer gewisen, wann d'Validéierung feelt) Optional"
+      "DescriptionLabel": "Beschreiwung (gëtt de Endbenotzer gewisen, wann d'Validéierung feelt) Optional",
+      "ViolatingEventsLabel": "Evenementer, déi se verletze kënnen",
+      "ViolatingEventsEmpty": "Nach keng Viranalyse. Benotzt Generéieren, dann Aschränkungen, dann Inkrementell Viranalyse.",
+      "ViolatingEventsStale": "Net méi aktuell. Den Aschränkungstext huet sech no dëser Viranalyse geännert.",
+      "ViolatingEventsNone": "Keen analyséiert Evenement kann dës Invariant verletzen.",
+      "ViolatingEventsApproximated": "ongeféier"
     },
     "StateDiagram": {
       "StateTransition": "Iwwergang",

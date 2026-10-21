@@ -481,7 +481,12 @@
     "OCLConstraint": {
       "Constraint": "Restricció OCL",
       "DescriptionPlaceholder": "p. ex. Assegureu-vos de triar una edat realista",
-      "DescriptionLabel": "Descripció (es mostra als usuaris finals quan falla la validació) Opcional"
+      "DescriptionLabel": "Descripció (es mostra als usuaris finals quan falla la validació) Opcional",
+      "ViolatingEventsLabel": "Esdeveniments que la poden violar",
+      "ViolatingEventsEmpty": "Encara no hi ha preanàlisi. Useu Generar, després Restriccions, després Preanàlisi incremental.",
+      "ViolatingEventsStale": "Desactualitzat. El text de la restricció ha canviat després d'aquesta preanàlisi.",
+      "ViolatingEventsNone": "Cap esdeveniment analitzat no pot violar aquesta invariant.",
+      "ViolatingEventsApproximated": "aproximat"
     },
     "StateDiagram": {
       "StateTransition": "Transició",

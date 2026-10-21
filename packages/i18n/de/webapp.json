@@ -92,6 +92,18 @@
       "deriveComponentDiagram": "Komponentendiagramm generieren",
       "deriveDeploymentDiagram": "Bereitstellungsdiagramm generieren",
       "generateDockerCompose": "Docker Compose generieren",
+      "constraints": {
+        "title": "Einschränkungen",
+        "incrementalPreanalysis": "Inkrementelle Voranalyse"
+      },
+      "preanalysis": {
+        "running": "Inkrementelle Voranalyse läuft…",
+        "done": "Die Ereignisse, die jede Invariante verletzen können, sind gespeichert.",
+        "none": "Es gibt keine Invarianten zum Analysieren.",
+        "failed": "Die inkrementelle Voranalyse ist fehlgeschlagen.",
+        "notClassDiagram": "Die inkrementelle Voranalyse gilt für Klassendiagramme.",
+        "noDiagram": "Es ist kein Klassendiagramm geöffnet."
+      },
       "groups": {
         "web": "Web",
         "database": "Datenbank",

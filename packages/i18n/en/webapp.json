@@ -92,6 +92,18 @@
       "deriveComponentDiagram": "Generate Component diagram",
       "deriveDeploymentDiagram": "Generate Deployment diagram",
       "generateDockerCompose": "Generate Docker Compose",
+      "constraints": {
+        "title": "Constraints",
+        "incrementalPreanalysis": "Incremental pre-analysis"
+      },
+      "preanalysis": {
+        "running": "Running incremental pre-analysis…",
+        "done": "Potentially violating events are stored on each invariant.",
+        "none": "No invariants were found to analyze.",
+        "failed": "Incremental pre-analysis failed.",
+        "notClassDiagram": "Incremental pre-analysis applies to class diagrams.",
+        "noDiagram": "No class diagram is open."
+      },
       "groups": {
         "web": "Web",
         "database": "Database",

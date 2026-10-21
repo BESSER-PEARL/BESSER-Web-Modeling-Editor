@@ -56,6 +56,7 @@ export interface WorkspaceTopBarProps {
   onDeriveComponentDiagram?: () => void;
   onDeriveDeploymentDiagram?: () => void;
   onGenerateDockerCompose?: () => void;
+  onIncrementalPreanalysis?: () => void;
   projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;

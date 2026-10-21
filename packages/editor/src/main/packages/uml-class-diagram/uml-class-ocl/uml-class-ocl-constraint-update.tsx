@@ -12,7 +12,11 @@ import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../../utils/actions/actions';
-import { ClassOCLConstraint, IUMLClassOCLConstraint } from './uml-class-ocl-constraint';
+import {
+  ClassOCLConstraint,
+  formatViolatingEvent,
+  IUMLClassOCLConstraint,
+} from './uml-class-ocl-constraint';
 
 const Flex = styled.div`
   display: flex;
@@ -63,6 +67,25 @@ const FieldLabel = styled.label`
   color: #6b7280;
 `;
 
+const EventNote = styled.p`
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6b7280;
+`;
+
+const StaleNote = styled(EventNote)`
+  color: #b45309;
+`;
+
+const EventList = styled.ul`
+  margin: 0;
+  padding-left: 18px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+`;
+
 type State = { colorOpen: boolean };
 
 class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
@@ -97,6 +120,7 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
               onChange={(e) => this.onUpdate({ description: e.target.value })}
               rows={2}
             />
+            {this.renderViolatingEvents(element)}
             <ButtonRow>
               <ColorButton onClick={this.toggleColor} />
               <Button color="link" tabIndex={-1} onClick={() => this.props.delete(element.id)}>
@@ -116,6 +140,39 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
       </div>
     );
   }
+  private renderViolatingEvents(element: ClassOCLConstraint) {
+    const translate = this.props.translate;
+    const events = element.violatingEvents ?? [];
+    const source = element.violatingEventsSource;
+    const analyzed = source != null;
+    const stale = analyzed && (element.constraint || '') !== source;
+    const names = new Set(events.map((event) => event.constraint).filter((name): name is string => !!name));
+
+    return (
+      <div>
+        <FieldLabel>{translate('packages.OCLConstraint.ViolatingEventsLabel')}</FieldLabel>
+        {!analyzed && (
+          <EventNote>{translate('packages.OCLConstraint.ViolatingEventsEmpty')}</EventNote>
+        )}
+        {stale && <StaleNote>{translate('packages.OCLConstraint.ViolatingEventsStale')}</StaleNote>}
+        {analyzed && events.length === 0 && (
+          <EventNote>{translate('packages.OCLConstraint.ViolatingEventsNone')}</EventNote>
+        )}
+        {events.length > 0 && (
+          <EventList>
+            {events.map((event, index) => (
+              <li key={`${event.kind}-${event.class ?? ''}-${event.attribute ?? ''}-${event.association ?? ''}-${index}`}>
+                {names.size > 1 && event.constraint ? `${event.constraint}: ` : ''}
+                {formatViolatingEvent(event)}
+                {event.approximated ? ` (${translate('packages.OCLConstraint.ViolatingEventsApproximated')})` : ''}
+              </li>
+            ))}
+          </EventList>
+        )}
+      </div>
+    );
+  }
+
   private onUpdate = (changes: Partial<Pick<IUMLClassOCLConstraint, 'constraint' | 'description'>>) => {
     const { element, update } = this.props;
     const currentBounds = element.bounds;

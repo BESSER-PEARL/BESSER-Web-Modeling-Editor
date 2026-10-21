@@ -92,6 +92,18 @@
       "deriveComponentDiagram": "Générer le diagramme de composants",
       "deriveDeploymentDiagram": "Générer le diagramme de déploiement",
       "generateDockerCompose": "Générer Docker Compose",
+      "constraints": {
+        "title": "Contraintes",
+        "incrementalPreanalysis": "Préanalyse incrémentale"
+      },
+      "preanalysis": {
+        "running": "Préanalyse incrémentale en cours…",
+        "done": "Les événements susceptibles de violer chaque invariant sont enregistrés.",
+        "none": "Aucun invariant à analyser.",
+        "failed": "La préanalyse incrémentale a échoué.",
+        "notClassDiagram": "La préanalyse incrémentale s'applique aux diagrammes de classes.",
+        "noDiagram": "Aucun diagramme de classes n'est ouvert."
+      },
       "groups": {
         "web": "Web",
         "database": "Base de données",

@@ -31,6 +31,27 @@ describe('GenerateMenu', () => {
       expect(item.querySelector('svg')).not.toBeNull();
     }
   });
+
+  it('offers incremental pre-analysis under Constraints on a class diagram', () => {
+    const onIncrementalPreanalysis = vi.fn();
+    withTooltips(
+      <GenerateMenu
+        mode="class"
+        isGenerating={false}
+        primaryGenerateClass=""
+        onGenerate={vi.fn()}
+        onIncrementalPreanalysis={onIncrementalPreanalysis}
+      />,
+    );
+    openMenu('Generate');
+    const constraints = screen.getByRole('menuitem', { name: 'Constraints' });
+    expect(constraints.querySelector('svg')).not.toBeNull();
+    fireEvent.click(constraints);
+    const action = screen.getByRole('menuitem', { name: 'Incremental pre-analysis' });
+    expect(action.querySelector('svg')).not.toBeNull();
+    fireEvent.click(action);
+    expect(onIncrementalPreanalysis).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('FileMenu', () => {

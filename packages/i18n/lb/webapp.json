@@ -92,6 +92,18 @@
       "deriveComponentDiagram": "Komponentendiagramm generéieren",
       "deriveDeploymentDiagram": "Deploymentdiagramm generéieren",
       "generateDockerCompose": "Docker Compose generéieren",
+      "constraints": {
+        "title": "Aschränkungen",
+        "incrementalPreanalysis": "Inkrementell Viranalyse"
+      },
+      "preanalysis": {
+        "running": "Inkrementell Viranalyse leeft…",
+        "done": "D'Evenementer, déi all Invariant verletze kënnen, sinn gespäichert.",
+        "none": "Et gëtt keng Invarianten ze analyséieren.",
+        "failed": "D'inkrementell Viranalyse ass feelgeschloen.",
+        "notClassDiagram": "D'inkrementell Viranalyse gëllt fir Klassendiagrammer.",
+        "noDiagram": "Et ass keen Klassendiagramm op."
+      },
       "groups": {
         "web": "Web",
         "database": "Datebank",

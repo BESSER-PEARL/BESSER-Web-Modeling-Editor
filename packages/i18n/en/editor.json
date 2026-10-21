@@ -481,7 +481,12 @@
     "OCLConstraint": {
       "Constraint": "OCL Constraint",
       "DescriptionPlaceholder": "e.g. Be sure to choose a realistic age",
-      "DescriptionLabel": "Description (shown to end-users when validation fails) Optional"
+      "DescriptionLabel": "Description (shown to end-users when validation fails) Optional",
+      "ViolatingEventsLabel": "Potentially violating events",
+      "ViolatingEventsEmpty": "No pre-analysis yet. Use Generate, then Constraints, then Incremental pre-analysis.",
+      "ViolatingEventsStale": "Out of date. The constraint text changed after this pre-analysis.",
+      "ViolatingEventsNone": "No analyzed event can violate this invariant.",
+      "ViolatingEventsApproximated": "approximate"
     },
     "StateDiagram": {
       "StateTransition": "Transition",
