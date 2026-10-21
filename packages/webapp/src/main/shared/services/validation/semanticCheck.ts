@@ -18,19 +18,14 @@ import { SseResponseTimeoutError, SseStallError, streamSse } from '../sse/sseCli
 
 /** An event of the semantic check stream. */
 export interface SemanticSearchEvent {
-  /** `true` when an instance was found, `false` when the bounds hold none, `null` otherwise. */
-  sat: boolean | null;
   /** Whether this is the last event of the stream. */
   done: boolean;
+  /** Whether an instance was found (last event only). */
   isValid?: boolean;
   /** What the backend is doing or found, e.g. "No instance within 5 objects per class, …". */
   message: string;
   errors?: string[];
   warnings?: string[];
-  /** Objects per class of the bounds searched. */
-  scope?: number;
-  /** Why no instance was found: the bounds hold none, or the Alloy Analyzer timed out. */
-  reason?: 'unsat' | 'timeout';
   /** The instance found, as an object diagram (`/generate-object-diagram` only). */
   object_model?: unknown;
 }
@@ -97,10 +92,8 @@ const LIST_TOAST_CLASS = 'max-h-[600px] overflow-auto whitespace-pre-line break-
 
 /** Shows the result of a semantic search, its `message` with its errors and warnings. */
 export function showSemanticSearchResult(event: SemanticSearchEvent): void {
-  if (event.sat === true) {
+  if (event.isValid) {
     toast.success(event.message);
-  } else if (event.reason) {
-    toast.warning(event.message);
   } else {
     toast.error(event.message);
   }

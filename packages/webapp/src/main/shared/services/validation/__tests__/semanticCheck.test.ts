@@ -20,8 +20,8 @@ vi.mock('../../sse/sseClient', async (importOriginal) => {
   };
 });
 
-const searching: SemanticSearchEvent = { sat: null, done: false, message: 'Searching within 5 objects per class...' };
-const found: SemanticSearchEvent = { sat: true, done: true, message: 'Instance found within 5 objects per class.' };
+const searching: SemanticSearchEvent = { done: false, message: 'Searching within 5 objects per class...' };
+const found: SemanticSearchEvent = { done: true, isValid: true, message: 'Instance found within 5 objects per class.' };
 
 /** Makes `streamSse` yield `events`, then end. */
 const streamOf = (...events: SemanticSearchEvent[]) =>
