@@ -2374,7 +2374,7 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
-      "generateFromConstraints": "Aus Constraints generieren",
+      "generateFromConstraints": "Semantische Generierung",
       "generateFromConstraintsTooltip": "Ersetzt dieses Objektdiagramm durch eine Instanz des referenzierten Klassendiagramms, die dessen OCL-Constraints erfüllt.",
       "searchingInstance": "Suche nach einer Instanz, die die Constraints erfüllt…",
       "replaceConfirmTitle": "Objektdiagramm ersetzen?",

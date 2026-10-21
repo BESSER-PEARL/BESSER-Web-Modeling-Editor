@@ -2374,7 +2374,7 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
-      "generateFromConstraints": "Aus de Constrainte generéieren",
+      "generateFromConstraints": "Semantesch Generatioun",
       "generateFromConstraintsTooltip": "Ersetzt dësen Objetdiagramm duerch eng Instanz vum referenzéierte Klassendiagramm, déi seng OCL-Constrainten erfëllt.",
       "searchingInstance": "Sich no enger Instanz, déi d'Constrainten erfëllt…",
       "replaceConfirmTitle": "Objetdiagramm ersetzen?",

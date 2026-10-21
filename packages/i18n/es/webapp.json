@@ -2374,7 +2374,7 @@
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
-      "generateFromConstraints": "Generar a partir de las restricciones",
+      "generateFromConstraints": "Generación semántica",
       "generateFromConstraintsTooltip": "Reemplaza este diagrama de objetos por una instancia del diagrama de clases referenciado que cumpla sus restricciones OCL.",
       "searchingInstance": "Buscando una instancia que cumpla las restricciones…",
       "replaceConfirmTitle": "¿Reemplazar el diagrama de objetos?",

@@ -2374,7 +2374,7 @@
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
-      "generateFromConstraints": "Genera a partir de les restriccions",
+      "generateFromConstraints": "Generació semàntica",
       "generateFromConstraintsTooltip": "Substitueix aquest diagrama d'objectes per una instància del diagrama de classes referenciat que compleixi les seves restriccions OCL.",
       "searchingInstance": "Cercant una instància que compleixi les restriccions…",
       "replaceConfirmTitle": "Substituir el diagrama d'objectes?",

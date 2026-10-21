@@ -2374,7 +2374,7 @@
       "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
       "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
       "generate": "Générer",
-      "generateFromConstraints": "Générer à partir des contraintes",
+      "generateFromConstraints": "Génération sémantique",
       "generateFromConstraintsTooltip": "Remplace ce diagramme d'objets par une instance du diagramme de classes référencé qui satisfait ses contraintes OCL.",
       "searchingInstance": "Recherche d'une instance qui satisfait les contraintes…",
       "replaceConfirmTitle": "Remplacer le diagramme d'objets ?",
