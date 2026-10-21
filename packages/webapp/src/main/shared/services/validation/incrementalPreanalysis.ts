@@ -27,6 +27,7 @@ export interface PreanalysisResponse {
 }
 
 const TOAST_ID = 'incremental-preanalysis';
+const WARNING_TOAST_ID = 'incremental-preanalysis-warnings';
 
 /**
  * Ask the backend which structural events may violate each invariant, then
@@ -46,6 +47,8 @@ export async function runIncrementalPreanalysis(
     return null;
   }
 
+  // A previous run's warning stays on screen (it does not auto-close). A new run replaces it.
+  toast.dismiss(WARNING_TOAST_ID);
   toast.loading(i18n.t('menu.generate.preanalysis.running'), {
     toastId: TOAST_ID,
     position: 'top-right',
@@ -73,7 +76,11 @@ export async function runIncrementalPreanalysis(
     }
     toast.dismiss(TOAST_ID);
     if (result.warnings && result.warnings.length > 0) {
-      toast.warning(result.warnings.join('\n'), { position: 'top-right', autoClose: false });
+      toast.warning(result.warnings.join('\n'), {
+        toastId: WARNING_TOAST_ID,
+        position: 'top-right',
+        autoClose: false,
+      });
     }
     toast.success(
       result.constraints.length > 0
