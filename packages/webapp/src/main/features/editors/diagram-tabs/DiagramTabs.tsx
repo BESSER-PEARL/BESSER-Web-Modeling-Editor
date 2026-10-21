@@ -235,7 +235,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         toast.update(toastId, { render: event.message });
       });
       toast.dismiss(toastId);
-      if (result.sat !== true) {
+      if (!result.isValid) {
         showSemanticSearchResult(result);
         return;
       }
