@@ -184,6 +184,21 @@ describe('KnowledgeGraphEditor: the store echoing back a saved model', () => {
     expect(selectionShown()).toBeNull();
   });
 
+  it('shows a graph something else stored (a Refine KG apply) without being remounted', () => {
+    // The refine hooks only dispatch updateDiagramModelThunk; they do not bump
+    // editorRevision, so the new model must reach the canvas through the store.
+    act(() => {
+      store.diagram = diagramOf({
+        ...MODEL,
+        nodes: [...MODEL.nodes, { id: 'n3', nodeType: 'class', label: 'N3' }],
+      });
+      store.notify();
+    });
+
+    expect(text('canvas-nodes')).toBe('a,b,n3');
+    expect(text('canvas-visible').split(',')).toContain('n3');
+  });
+
   it('clears the selection when something else replaces the model and the node is gone', () => {
     act(() => {
       store.diagram = diagramOf({ ...MODEL, nodes: [MODEL.nodes[1]], edges: [] });

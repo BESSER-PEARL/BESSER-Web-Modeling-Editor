@@ -5,8 +5,9 @@
 //   - LLM (AI) tab → /llm-clean-kg or /classify-orphans-with-llm + apply via /apply-kg-refinement
 //
 // Both apply legs return a cleaned KG; this hook dispatches
-// ``updateDiagramModelThunk`` and bumps ``editorRevision`` so the canvas
-// reinitialises with the new graph.
+// ``updateDiagramModelThunk``. That is a model update, so ``editorRevision`` is
+// not bumped (it would remount the editor and clear its undo history): the KG
+// editor sees the new ``currentDiagram`` in the store and resets its model.
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -23,10 +24,7 @@ import {
   type KgPreflightReport,
 } from '../../shared/api/knowledgeGraph';
 import { useAppDispatch } from '../../app/store/hooks';
-import {
-  bumpEditorRevision,
-  updateDiagramModelThunk,
-} from '../../app/store/workspaceSlice';
+import { updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { getActiveKgDiagram } from './useKgToUmlConversion';
 import type { RowDecision } from './KgPreflightIssueRow';
@@ -126,7 +124,6 @@ export const useKgRefine = (): UseKgRefineReturn => {
           throw new Error(t('import.kg.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
-        dispatch(bumpEditorRevision());
         toast.success(t('import.kg.refine.refined'));
         return {
           pendingOrphanClassification: data.pendingOrphanClassification ?? null,
@@ -251,7 +248,6 @@ export const useKgRefine = (): UseKgRefineReturn => {
           throw new Error(t('import.kg.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
-        dispatch(bumpEditorRevision());
         toast.success(t('import.kg.refine.refined'));
         return true;
       } catch (error) {

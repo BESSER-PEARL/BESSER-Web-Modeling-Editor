@@ -226,6 +226,8 @@ describe('static analysis and applying', () => {
       expect.objectContaining({ source: 'static', kgSignature: 'sig', resolutions: [{ issueId: 'i1', decision: 'accept' }] }),
     );
     expect(dispatch).toHaveBeenCalledWith({ type: 'update', arg: { model: cleaned } });
+    // A model update: the editor follows the store, a remount would clear its undo history.
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'bump' });
     expect(applied).toEqual({
       pendingOrphanClassification: { nodeIds: ['o1'], kgSignature: 'new-sig' },
       newKgSignature: 'new-sig',
@@ -244,6 +246,7 @@ describe('static analysis and applying', () => {
     expect(api.applyKgRefinement).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'llm', llmIssues: [issue], resolutions: [{ issueId: 'i1', decision: 'skip' }] }),
     );
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'bump' });
   });
 
   it('applyStatic reports a stale-graph rejection and keeps the model as it was', async () => {
