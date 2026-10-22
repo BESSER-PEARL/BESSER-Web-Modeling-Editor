@@ -172,21 +172,45 @@ describe('whole-diagram rebuild keeps element ids', () => {
     expect(Object.keys(model.relationships)).toEqual(['rel-writes']);
   });
 
-  it('honours a valid spec id (a rename) and drops ids that are taken or of another kind', async () => {
+  it('ignores ids the spec carries and matches by name', async () => {
     const spec = librarySpec();
-    spec.classes[0].className = 'Novel';
-    (spec.classes[0] as any).id = 'cls-book';
-    spec.relationships[0].target = 'Novel';
-    (spec.classes[1] as any).id = 'cls-book'; // Author: matched by name instead
+    (spec.classes[1] as any).id = 'cls-book'; // Author listed with Book's id
     spec.classes.push({ className: 'Shelf', id: 'att-title', attributes: [], methods: [] } as any);
-    spec.classes.push({ className: 'Branch', id: 'cls-new', attributes: [], methods: [] } as any);
+    spec.classes.reverse();
     const model = await rebuild(spec, true);
 
-    expect(idOf(model, 'Novel')).toBe('cls-book');
-    expect(idOf(model, 'title', 'cls-book')).toBe('att-title');
+    expect(idOf(model, 'Book')).toBe('cls-book');
     expect(idOf(model, 'Author')).toBe('cls-author');
-    expect(idOf(model, 'Shelf')).not.toBe('att-title');
-    expect(idOf(model, 'Branch')).toBe('cls-new');
+    expect(idOf(model, 'title', 'cls-book')).toBe('att-title');
+    expect(Object.keys(libraryModel().elements)).not.toContain(idOf(model, 'Shelf'));
+  });
+
+  it('keeps the ids of classes whose names differ only in case', async () => {
+    const current = libraryModel();
+    current.elements['cls-book2' as 'cls-book'] = {
+      id: 'cls-book2', type: 'Class', name: 'book', owner: null, bounds: b(800, 40), attributes: [], methods: [],
+    } as any;
+    const model = await rebuild(librarySpec([{ className: 'book', attributes: [], methods: [] }]), true, current);
+
+    expect(idOf(model, 'Book')).toBe('cls-book');
+    expect(idOf(model, 'book')).toBe('cls-book2');
+  });
+
+  it('keeps the ids of overloaded methods', async () => {
+    const current = libraryModel();
+    current.elements['cls-book'].methods.push('met-read2');
+    current.elements['met-read2' as 'met-read'] = {
+      id: 'met-read2', type: 'ClassMethod', name: '+ read(page: int): str', owner: 'cls-book', bounds: b(40, 195),
+    } as any;
+    const spec = librarySpec();
+    spec.classes[0].methods = [
+      { name: 'read', returnType: 'str' },
+      { name: 'read', returnType: 'str', parameters: [{ name: 'page', type: 'int' }] },
+    ] as any;
+    const model = await rebuild(spec, true, current);
+
+    const methodIds = (Object.values(model.elements) as any[]).filter((e) => e.type === 'ClassMethod').map((e) => e.id);
+    expect(methodIds.sort()).toEqual(['met-read', 'met-read2']);
   });
 
   it('prefers a name match over a wrong id the spec carries', async () => {
@@ -227,6 +251,34 @@ describe('replaceExisting=false keeps the existing diagram', () => {
     // Placed below the existing content, and the user's layout is not rearranged.
     expect(model.elements[orderId].bounds.y).toBeGreaterThan(500);
     expect(consumeAutoLayoutRequest()).toBe(false);
+  });
+
+  it('adds a new association between two existing classes', async () => {
+    const model = await rebuild(
+      {
+        systemName: 'Library',
+        classes: [
+          { className: 'Book', attributes: [{ name: 'title', type: 'str' }], methods: [] },
+          { className: 'Author', attributes: [{ name: 'name', type: 'str' }], methods: [] },
+        ],
+        relationships: [{ type: 'Association', source: 'Author', target: 'Book', name: 'reviews' }],
+      },
+      false,
+    );
+
+    const names = (Object.values(model.relationships) as any[]).map((r) => r.name).sort();
+    expect(names).toEqual(['reviews', 'writes']);
+    expect(model.relationships['rel-writes'].name).toBe('writes');
+  });
+
+  it('does not fold a class into an existing one because the spec carries its id', async () => {
+    const model = await rebuild(
+      { systemName: 'S', classes: [{ id: 'cls-author', className: 'Shelf', attributes: [], methods: [] }], relationships: [] },
+      false,
+    );
+
+    expect(model.elements['cls-author'].name).toBe('Author');
+    expect(idOf(model, 'Shelf')).toBeTruthy();
   });
 
   it('merges a class that already exists instead of duplicating it', async () => {

@@ -77,21 +77,6 @@ function getModelBounds(model: any): ModelBounds | null {
   };
 }
 
-/** Move the elements a merge adds below the existing content. */
-function placeBelow(system: any, existingModel: any): any {
-  const existingIds = existingModel?.elements || {};
-  const added = Object.values((system?.elements || {}) as Record<string, any>).filter((e) => !(e.id in existingIds));
-  const existing = getModelBounds(existingModel);
-  const incoming = getModelBounds({ elements: added });
-  if (!existing || !incoming) return system;
-  const dx = existing.minX - incoming.minX;
-  const dy = existing.maxY + 100 - incoming.minY;
-  added.forEach((e) => {
-    if (e.bounds) e.bounds = { ...e.bounds, x: e.bounds.x + dx, y: e.bounds.y + dy };
-  });
-  return system;
-}
-
 /**
  * Scroll the editor canvas so the content bounding-box centre is visible.
  * The editor's inner SVG places model coordinate (0,0) at exactly
@@ -383,11 +368,11 @@ export function useModelInjection({
         const buildCompleteSystem = async () => {
           const { ConverterFactory } = await import('../services/converters');
           const { reuseExistingClassIds } = await import('../services/converters/reuseClassIds');
-          const { mergeSystemIntoModel } = await import('../services/UMLModelingService');
+          const { mergeSystemIntoModel, placeBelow } = await import('../services/systemMerge');
           const converter = ConverterFactory.getConverter(targetDiagramType as any);
           const spec =
             targetDiagramType === 'ClassDiagram' && rebuildsOpenDiagram
-              ? reuseExistingClassIds(command.systemSpec, currentModel)
+              ? reuseExistingClassIds(command.systemSpec, currentModel, { guessRenames: !mergeIntoCurrent })
               : command.systemSpec;
           const built = converter.convertCompleteSystem(spec);
           return mergeIntoCurrent ? mergeSystemIntoModel(currentModel, placeBelow(built, currentModel)) : built;
