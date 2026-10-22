@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { KnowledgeGraphInspector } from '../KnowledgeGraphInspector';
 import type { KgSelection } from '../types';
-import { SpecsListEditor } from '../ConstraintSpecsEditor';
+import { SpecsListEditor } from '../SpecsListEditor';
 import type { KnowledgeGraphData } from '../types';
 
 const RDFS_DOMAIN = 'http://www.w3.org/2000/01/rdf-schema#domain';

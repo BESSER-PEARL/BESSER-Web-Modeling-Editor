@@ -3,7 +3,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { SpecsListEditor } from '../ConstraintSpecsEditor';
+import { SpecsListEditor } from '../SpecsListEditor';
 import { kgStylesheet } from '../stylesheet';
 import { KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_SH_PROPERTY } from '../types';
 import type { KnowledgeGraphData } from '../types';
