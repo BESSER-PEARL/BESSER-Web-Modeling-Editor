@@ -77,8 +77,8 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
   const checkboxId = `kg-issue-${issue.id}`;
   // `recommendedAction.label` / `skipAction.label` are backend data; only the
   // fallbacks used when the backend omits them are ours to translate.
-  const recommendedLabel = issue.recommendedAction?.label ?? t('import.kg.preflight.noRecommendedAction');
-  const skipLabel = issue.skipAction?.label ?? t('import.kg.preflight.dropElement');
+  const recommendedLabel = issue.recommendedAction?.label ?? t('knowledgeGraph.preflight.noRecommendedAction');
+  const skipLabel = issue.skipAction?.label ?? t('knowledgeGraph.preflight.dropElement');
   const isAccepted = decision === 'accept';
 
   return (
@@ -97,7 +97,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
           </div>
           {issue.affectedNodeIds.length > 0 && (
             <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
-              {t('import.kg.preflight.affects', { ids: issue.affectedNodeIds.join(', ') })}
+              {t('knowledgeGraph.preflight.affects', { ids: issue.affectedNodeIds.join(', ') })}
             </div>
           )}
         </div>
@@ -117,17 +117,17 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             }
             aria-label={
               enableRoutingChoice
-                ? t('import.kg.preflight.fixAutomaticallyAria', { code: issue.code })
-                : t('import.kg.preflight.applyRecommendedAria', { code: issue.code })
+                ? t('knowledgeGraph.preflight.fixAutomaticallyAria', { code: issue.code })
+                : t('knowledgeGraph.preflight.applyRecommendedAria', { code: issue.code })
             }
             className="h-4 w-4 cursor-pointer"
           />
           <span className="break-words">
             {enableRoutingChoice ? (
-              <span className="font-medium">{t('import.kg.preflight.fixAutomatically')}</span>
+              <span className="font-medium">{t('knowledgeGraph.preflight.fixAutomatically')}</span>
             ) : (
               <>
-                <span className="font-medium">{t('import.kg.preflight.applyRecommended')}</span> {recommendedLabel}
+                <span className="font-medium">{t('knowledgeGraph.preflight.applyRecommended')}</span> {recommendedLabel}
               </>
             )}
           </span>
@@ -140,7 +140,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               onClick={() => onFixInKg(issue)}
               data-testid="kg-issue-fix-in-kg-header"
             >
-              {t('import.kg.preflight.fixInKg')}
+              {t('knowledgeGraph.preflight.fixInKg')}
             </Button>
           )}
           {!isAccepted && (
@@ -148,7 +148,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               data-testid="kg-issue-skipped-badge"
               className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
             >
-              {t('import.kg.preflight.skipped')}
+              {t('knowledgeGraph.preflight.skipped')}
             </span>
           )}
         </div>
@@ -158,7 +158,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
         <div
           data-testid="kg-issue-routing"
           role="radiogroup"
-          aria-label={t('import.kg.preflight.chooseFixAria')}
+          aria-label={t('knowledgeGraph.preflight.chooseFixAria')}
           className="flex flex-col gap-1.5 pl-6 text-sm text-gray-700 dark:text-gray-300"
         >
           <label className="flex cursor-pointer items-start gap-2">
@@ -183,7 +183,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               aria-checked={routing === 'llm'}
               className="mt-0.5 h-3.5 w-3.5 cursor-pointer"
             />
-            <span>{t('import.kg.preflight.sendToLlm')}</span>
+            <span>{t('knowledgeGraph.preflight.sendToLlm')}</span>
           </label>
         </div>
       )}
@@ -200,14 +200,14 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
           className="flex flex-wrap items-center gap-2 pl-6 text-sm text-gray-700 dark:text-gray-300"
         >
           <span data-testid="kg-issue-skip-text">{skipLabel}</span>
-          <span className="font-medium uppercase text-gray-500 dark:text-gray-400">{t('import.kg.preflight.or')}</span>
+          <span className="font-medium uppercase text-gray-500 dark:text-gray-400">{t('knowledgeGraph.preflight.or')}</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onFixInKg(issue)}
             data-testid="kg-issue-fix-in-kg"
           >
-            {t('import.kg.preflight.fixInKgInstead')}
+            {t('knowledgeGraph.preflight.fixInKgInstead')}
           </Button>
         </div>
       )}

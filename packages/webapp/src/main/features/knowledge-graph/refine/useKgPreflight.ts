@@ -18,7 +18,7 @@ export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 
 /** `failedKey` is the i18n key of the message shown when the analysis fails
  *  without an explanation of its own (the Refine dialog names it differently). */
-export const useKgPreflight = (failedKey = 'import.kg.preflight.failed') => {
+export const useKgPreflight = (failedKey = 'knowledgeGraph.preflight.failed') => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<PreflightStatus>('idle');
   const [report, setReport] = useState<KgPreflightReport | null>(null);
@@ -32,7 +32,7 @@ export const useKgPreflight = (failedKey = 'import.kg.preflight.failed') => {
       try {
         const data = await analyzeKg(active.diagram);
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error(t('import.kg.preflight.invalidResponse'));
+          throw new Error(t('knowledgeGraph.preflight.invalidResponse'));
         }
         setReport(data);
         setStatus('success');

@@ -72,8 +72,8 @@ export const useKgToUmlConversion = () => {
         } catch (err) {
           // The check is advisory — if the endpoint fails we surface a toast
           // and continue with the conversion rather than blocking the user.
-          const message = kgApiErrorMessage(err, t, t('import.kg.toUml.consistencyCheckFailed'));
-          toast.warn(t('import.kg.toUml.consistencyCheckSkipped', { message }));
+          const message = kgApiErrorMessage(err, t, t('knowledgeGraph.toUml.consistencyCheckFailed'));
+          toast.warn(t('knowledgeGraph.toUml.consistencyCheckSkipped', { message }));
         }
       }
 
@@ -84,7 +84,7 @@ export const useKgToUmlConversion = () => {
           kgSignature: options.kgSignature,
         });
         if (!data?.model || !data?.diagramType) {
-          throw new Error(t('import.kg.toUml.invalidResponse'));
+          throw new Error(t('knowledgeGraph.toUml.invalidResponse'));
         }
 
         reportKgWarnings(data.warnings, 'kg-conv');
@@ -110,10 +110,10 @@ export const useKgToUmlConversion = () => {
         await dispatch(switchDiagramTypeThunk({ diagramType: TARGET_DIAGRAM_TYPE }));
         await dispatch(switchDiagramIndexThunk({ diagramType: TARGET_DIAGRAM_TYPE, index: addResult.index }));
 
-        toast.success(t('import.kg.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY) }));
+        toast.success(t('knowledgeGraph.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY) }));
       } catch (error) {
-        const message = kgApiErrorMessage(error, t, t('import.kg.toUml.conversionFailed'));
-        dispatch(displayError(t('import.kg.toUml.failedTitle'), message));
+        const message = kgApiErrorMessage(error, t, t('knowledgeGraph.toUml.conversionFailed'));
+        dispatch(displayError(t('knowledgeGraph.toUml.failedTitle'), message));
         toast.error(message);
       }
     },

@@ -16,12 +16,12 @@ import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
 export function getActiveKgDiagram(): { project: BesserProject; diagram: ProjectDiagram } | null {
   const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
   if (!project) {
-    toast.error(i18n.t('import.kg.toUml.noProject'));
+    toast.error(i18n.t('knowledgeGraph.toUml.noProject'));
     return null;
   }
   const diagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
   if (!diagram || !diagram.model) {
-    toast.error(i18n.t('import.kg.toUml.noDiagram'));
+    toast.error(i18n.t('knowledgeGraph.toUml.noDiagram'));
     return null;
   }
   return { project, diagram };

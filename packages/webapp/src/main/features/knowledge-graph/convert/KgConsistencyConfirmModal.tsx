@@ -41,13 +41,13 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{t('import.kg.consistency.title')}</DialogTitle>
+          <DialogTitle>{t('knowledgeGraph.consistency.title')}</DialogTitle>
           {/* Four independent counts -- each pluralised on its own and composed. */}
           <DialogDescription>
-            {t('import.kg.consistency.description', {
-              issues: t('import.kg.consistency.issuesFragment', { count: issues.length }),
-              violations: t('import.kg.consistency.violationsFragment', { count: counts.violation }),
-              warnings: t('import.kg.consistency.warningsFragment', { count: counts.warning }),
+            {t('knowledgeGraph.consistency.description', {
+              issues: t('knowledgeGraph.consistency.issuesFragment', { count: issues.length }),
+              violations: t('knowledgeGraph.consistency.violationsFragment', { count: counts.violation }),
+              warnings: t('knowledgeGraph.consistency.warningsFragment', { count: counts.warning }),
               info: counts.info,
             })}
           </DialogDescription>
@@ -88,7 +88,7 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
                     </span>
                   )}
                   {issue.affectedNodeIds.length > 0 && (
-                    <span className="truncate">{t('import.kg.consistency.onNode', { nodeId: issue.affectedNodeIds[0] })}</span>
+                    <span className="truncate">{t('knowledgeGraph.consistency.onNode', { nodeId: issue.affectedNodeIds[0] })}</span>
                   )}
                 </div>
               </li>
@@ -106,10 +106,10 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
               onClick={onOpenRefine}
               data-testid="kg-consistency-confirm-open-refine"
             >
-              {t('import.kg.consistency.openRefine')}
+              {t('knowledgeGraph.consistency.openRefine')}
             </Button>
             <Button onClick={onProceed} data-testid="kg-consistency-confirm-proceed">
-              {t('import.kg.consistency.proceedAnyway')}
+              {t('knowledgeGraph.consistency.proceedAnyway')}
             </Button>
           </div>
         </DialogFooter>

@@ -89,7 +89,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
     report: staticReport,
     runPreflight: runStatic,
     reset: resetStatic,
-  } = useKgPreflight('import.kg.refine.staticFailed');
+  } = useKgPreflight('knowledgeGraph.refine.staticFailed');
   const [llmStatus, setLlmStatus] = useState<RefineStatus>('idle');
   const [llmReport, setLlmReport] = useState<KgPreflightReport | null>(null);
   const [llmProgress, setLlmProgress] = useState<OrphanBatchProgress | null>(null);
@@ -120,17 +120,17 @@ export const useKgRefine = (): UseKgRefineReturn => {
           resolutions: decisions,
         });
         if (!data?.model) {
-          throw new Error(t('import.kg.refine.applyNoModel'));
+          throw new Error(t('knowledgeGraph.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
-        toast.success(t('import.kg.refine.refined'));
+        toast.success(t('knowledgeGraph.refine.refined'));
         return {
           pendingOrphanClassification: data.pendingOrphanClassification ?? null,
           newKgSignature: data.kgSignature,
         };
       } catch (error) {
-        const message = kgApiErrorMessage(error, t, t('import.kg.refine.applyFailed'));
-        dispatch(displayError(t('import.kg.refine.failedTitle'), message));
+        const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyFailed'));
+        dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
         toast.error(message);
         return null;
       }
@@ -147,7 +147,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (credentials.apiKey || '').trim();
       if (!key) {
-        toast.error(t('import.kg.refine.apiKeyRequired'));
+        toast.error(t('knowledgeGraph.refine.apiKeyRequired'));
         return null;
       }
 
@@ -162,14 +162,14 @@ export const useKgRefine = (): UseKgRefineReturn => {
         });
         if (signal.aborted) return null;
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error(t('import.kg.refine.invalidLlmResponse'));
+          throw new Error(t('knowledgeGraph.refine.invalidLlmResponse'));
         }
         setLlmReport(data);
         setLlmStatus('success');
         return data;
       } catch (error) {
         if (signal.aborted) return null;
-        const message = kgApiErrorMessage(error, t, t('import.kg.refine.aiFailed'));
+        const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.aiFailed'));
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
@@ -193,11 +193,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (credentials.apiKey || '').trim();
       if (!key) {
-        toast.error(t('import.kg.refine.apiKeyRequired'));
+        toast.error(t('knowledgeGraph.refine.apiKeyRequired'));
         return null;
       }
       if (!nodeIds.length) {
-        toast.error(t('import.kg.refine.noOrphans'));
+        toast.error(t('knowledgeGraph.refine.noOrphans'));
         return null;
       }
 
@@ -223,8 +223,8 @@ export const useKgRefine = (): UseKgRefineReturn => {
         if (signal.aborted) return null;
         const message =
           error instanceof InvalidOrphanReportError
-            ? t('import.kg.refine.invalidOrphanResponse')
-            : kgApiErrorMessage(error, t, t('import.kg.refine.orphanFailed'));
+            ? t('knowledgeGraph.refine.invalidOrphanResponse')
+            : kgApiErrorMessage(error, t, t('knowledgeGraph.refine.orphanFailed'));
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
@@ -254,14 +254,14 @@ export const useKgRefine = (): UseKgRefineReturn => {
           llmIssues: issues,
         });
         if (!data?.model) {
-          throw new Error(t('import.kg.refine.applyNoModel'));
+          throw new Error(t('knowledgeGraph.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
-        toast.success(t('import.kg.refine.refined'));
+        toast.success(t('knowledgeGraph.refine.refined'));
         return true;
       } catch (error) {
-        const message = kgApiErrorMessage(error, t, t('import.kg.refine.applyLlmFailed'));
-        dispatch(displayError(t('import.kg.refine.failedTitle'), message));
+        const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyLlmFailed'));
+        dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
         toast.error(message);
         return false;
       }
