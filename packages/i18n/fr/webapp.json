@@ -3674,7 +3674,8 @@
         "usingKey": "La clé {{provider}} enregistrée est utilisée.",
         "addKey": "Ajouter une clé API",
         "changeKey": "Changer la clé",
-        "keyDialogDescription": "L'affinage par IA utilise l'unique clé que cette application enregistre et que l'assistant partage : enregistrer ici une clé remplace celle enregistrée auparavant. La clé reste dans cet onglet du navigateur et n'est envoyée au serveur que pour la requête. Les clés OpenAI, Anthropic, Mistral et Nebius fonctionnent ici."
+        "keyDialogDescription": "L'affinage par IA utilise l'unique clé que cette application enregistre et que l'assistant partage : enregistrer ici une clé remplace celle enregistrée auparavant. La clé reste dans cet onglet du navigateur et n'est envoyée au serveur que pour la requête. Les clés OpenAI, Anthropic, Mistral et Nebius fonctionnent ici.",
+        "analyzingBatches": "Analyse… {{done}}/{{total}} lots"
       },
       "toUml": {
         "noProject": "Ouvrez un projet avant de convertir.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "Échec de la conversion KG → UML"
       },
       "api": {
-        "timedOut": "La requête a pris trop de temps et a été annulée. Veuillez réessayer."
+        "timedOut": "La requête a pris trop de temps et a été annulée. Veuillez réessayer.",
+        "configUnavailable": "Impossible de charger les limites du graphe de connaissances depuis le serveur. Vérifiez que le backend est accessible et réessayez.",
+        "batchMismatch": "Le graphe a changé pendant la classification de ses nœuds. Relancez la classification."
       }
     }
   },

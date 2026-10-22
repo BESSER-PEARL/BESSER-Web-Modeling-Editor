@@ -3674,7 +3674,8 @@
         "usingKey": "Ihr gespeicherter {{provider}}-Schlüssel wird verwendet.",
         "addKey": "API-Schlüssel hinzufügen",
         "changeKey": "Schlüssel ändern",
-        "keyDialogDescription": "Die KI-Verfeinerung nutzt den einen Schlüssel, den diese App speichert und den auch der Assistent verwendet: Wenn Sie hier einen Schlüssel speichern, ersetzt er den zuvor gespeicherten. Der Schlüssel bleibt in diesem Browser-Tab und wird nur für die Anfrage an den Server gesendet. Hier funktionieren OpenAI-, Anthropic-, Mistral- und Nebius-Schlüssel."
+        "keyDialogDescription": "Die KI-Verfeinerung nutzt den einen Schlüssel, den diese App speichert und den auch der Assistent verwendet: Wenn Sie hier einen Schlüssel speichern, ersetzt er den zuvor gespeicherten. Der Schlüssel bleibt in diesem Browser-Tab und wird nur für die Anfrage an den Server gesendet. Hier funktionieren OpenAI-, Anthropic-, Mistral- und Nebius-Schlüssel.",
+        "analyzingBatches": "Wird analysiert… {{done}}/{{total}} Stapel"
       },
       "toUml": {
         "noProject": "Öffnen Sie ein Projekt, bevor Sie umwandeln.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "KG → UML Umwandlung fehlgeschlagen"
       },
       "api": {
-        "timedOut": "Die Anfrage hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es erneut."
+        "timedOut": "Die Anfrage hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es erneut.",
+        "configUnavailable": "Die Grenzwerte für den Knowledge Graph konnten nicht vom Server geladen werden. Prüfen Sie, ob das Backend erreichbar ist, und versuchen Sie es erneut.",
+        "batchMismatch": "Der Graph hat sich während der Klassifizierung seiner Knoten geändert. Führen Sie die Klassifizierung erneut aus."
       }
     }
   },

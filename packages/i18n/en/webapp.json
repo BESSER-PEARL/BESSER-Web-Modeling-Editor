@@ -3674,7 +3674,8 @@
         "usingKey": "Using your saved {{provider}} key.",
         "addKey": "Add API key",
         "changeKey": "Change key",
-        "keyDialogDescription": "AI refinement uses the one key this app saves, which the assistant shares: saving a key here replaces the key saved before. The key stays in this browser tab and is sent to the server only for the request. OpenAI, Anthropic, Mistral and Nebius keys work here."
+        "keyDialogDescription": "AI refinement uses the one key this app saves, which the assistant shares: saving a key here replaces the key saved before. The key stays in this browser tab and is sent to the server only for the request. OpenAI, Anthropic, Mistral and Nebius keys work here.",
+        "analyzingBatches": "Analyzing… {{done}}/{{total}} batches"
       },
       "toUml": {
         "noProject": "Open a project before converting.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "KG → UML conversion failed"
       },
       "api": {
-        "timedOut": "The request took too long and was cancelled. Please try again."
+        "timedOut": "The request took too long and was cancelled. Please try again.",
+        "configUnavailable": "Could not load the Knowledge Graph limits from the server. Check that the backend is reachable and try again.",
+        "batchMismatch": "The graph changed while its nodes were being classified. Run the classification again."
       }
     }
   },

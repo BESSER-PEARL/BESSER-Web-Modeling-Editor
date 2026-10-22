@@ -168,7 +168,31 @@ describe('runLlmOrphanClassification', () => {
       credentials: { provider: 'openai', apiKey: 'sk-key' },
       nodeIds: ['n1', 'n2'],
       kgSignature: 'sig',
+      onProgress: expect.any(Function),
     });
+  });
+
+  it('exposes the batch progress while the classification runs, and clears it after', async () => {
+    let finish: (report: unknown) => void = () => {};
+    api.classifyOrphansWithLlm.mockImplementation(({ onProgress }: { onProgress: (p: unknown) => void }) => {
+      onProgress({ done: 1, total: 3 });
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    });
+    const { result } = renderHook(() => useKgRefine());
+
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pending = result.current.runLlmOrphanClassification('', creds('sk-key'), ['n1', 'n2', 'n3'], 'sig');
+    });
+    expect(result.current.llmProgress).toEqual({ done: 1, total: 3 });
+
+    await act(async () => {
+      finish(REPORT);
+      await pending;
+    });
+    expect(result.current.llmProgress).toBeNull();
   });
 });
 

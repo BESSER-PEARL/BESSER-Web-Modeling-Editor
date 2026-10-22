@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const client = vi.hoisted(() => ({
+  get: vi.fn(),
   post: vi.fn(),
   upload: vi.fn(),
   downloadFile: vi.fn(),
@@ -8,18 +9,25 @@ const client = vi.hoisted(() => ({
 vi.mock('../api-client', () => ({ apiClient: client, ApiError: class extends Error {} }));
 
 import {
+  _resetKgConfigCacheForTests,
   analyzeKg,
   applyKgRefinement,
   checkKgConsistency,
   classifyOrphansWithLlm,
   exportKgRdf,
   filenameFromContentDisposition,
+  getKgConfig,
   importOwl,
   isKgLlmProvider,
   kgApiErrorMessage,
+  KgBatchMismatchError,
+  KgConfigUnavailableError,
   kgToClassDiagram,
   llmCleanKg,
+  mergeOrphanReports,
   type KgDiagramRef,
+  type KgIssue,
+  type KgPreflightReport,
 } from '../knowledgeGraph';
 
 const diagram: KgDiagramRef = {
@@ -29,8 +37,13 @@ const diagram: KgDiagramRef = {
 };
 const KEY = 'sk-test-secret-123';
 
+/** What the server's `GET /kg-config` answers in these tests. */
+const KG_CONFIG = { llmRequestTimeoutSeconds: 200, maxOrphanClassifyNodes: 2 };
+
 beforeEach(() => {
+  _resetKgConfigCacheForTests();
   for (const fn of Object.values(client)) fn.mockReset().mockResolvedValue({});
+  client.get.mockResolvedValue(KG_CONFIG);
 });
 
 /** The one FormData handed to `upload`, as a plain object. */
@@ -109,8 +122,10 @@ describe('LLM calls', () => {
       provider: 'anthropic',
       api_key: KEY,
     });
-    // The backend lets its upstream call take 120 s; the browser must outlast that.
-    expect(options.timeout).toBeGreaterThan(120_000);
+    // The server's deadline comes from /kg-config; the browser must outlast it.
+    expect(client.get).toHaveBeenCalledWith('/kg-config');
+    expect(options.timeout).toBeGreaterThan(200_000);
+    expect(options.timeout).toBeLessThanOrEqual(230_000);
   });
 
   it.each(['anthropic', 'openai', 'mistral', 'nebius'] as const)('sends the %s provider along with its key', async (provider) => {
@@ -144,7 +159,7 @@ describe('LLM calls', () => {
     expect(body.node_ids).toEqual(['n1', 'n2']);
     expect(body.diagram.kgSignature).toBe('sig');
     expect(body).toMatchObject({ provider: 'anthropic', api_key: KEY, description: 'a library' });
-    expect(options.timeout).toBeGreaterThan(120_000);
+    expect(options.timeout).toBeGreaterThan(200_000);
   });
 
   it('never puts the key anywhere except the api_key field', async () => {
@@ -161,6 +176,101 @@ describe('LLM calls', () => {
     for (const ok of ['anthropic', 'openai', 'mistral', 'nebius']) expect(isKgLlmProvider(ok)).toBe(true);
     // PIA and local need a custom base URL, which the server refuses to open.
     for (const no of ['pia', 'local', 'free', 'gemini']) expect(isKgLlmProvider(no)).toBe(false);
+  });
+});
+
+describe('server-owned KG limits', () => {
+  const credentials = { provider: 'anthropic', apiKey: KEY } as const;
+  const issue = (id: string, nodeId: string): KgIssue => ({
+    id,
+    code: 'ORPHAN_NODE_NO_CLASS_LINK',
+    description: '',
+    affectedNodeIds: [nodeId],
+    affectedEdgeIds: [],
+    recommendedAction: null,
+    skipAction: null,
+  });
+  const report = (issues: KgIssue[], kgSignature = 'sig'): KgPreflightReport => ({
+    kgSignature,
+    diagramType: 'OrphanClassification',
+    issueCount: issues.length,
+    issues,
+  });
+
+  it('fetches the config once per page load', async () => {
+    await getKgConfig();
+    await llmCleanKg({ diagram, credentials });
+    await llmCleanKg({ diagram, credentials });
+
+    expect(client.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses to call the LLM when the config cannot be loaded, and retries next time', async () => {
+    client.get.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(llmCleanKg({ diagram, credentials })).rejects.toBeInstanceOf(KgConfigUnavailableError);
+    expect(client.post).not.toHaveBeenCalled();
+
+    await llmCleanKg({ diagram, credentials });
+    expect(client.get).toHaveBeenCalledTimes(2);
+    expect(client.post).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['a missing field', { llmRequestTimeoutSeconds: 120 }],
+    ['a zero limit', { llmRequestTimeoutSeconds: 120, maxOrphanClassifyNodes: 0 }],
+    ['a string', { llmRequestTimeoutSeconds: '120', maxOrphanClassifyNodes: 400 }],
+  ])('rejects a config with %s instead of guessing', async (_label, payload) => {
+    client.get.mockResolvedValue(payload);
+
+    await expect(getKgConfig()).rejects.toBeInstanceOf(KgConfigUnavailableError);
+  });
+
+  it('classifies orphans in batches of maxOrphanClassifyNodes, one after the other, and merges the reports', async () => {
+    client.post
+      .mockResolvedValueOnce(report([issue('i1', 'n1'), issue('i2', 'n2')]))
+      .mockResolvedValueOnce(report([issue('i3', 'n3'), issue('i4', 'n4')]))
+      .mockResolvedValueOnce(report([issue('i5', 'n5')]));
+    const progress: Array<{ done: number; total: number }> = [];
+
+    const merged = await classifyOrphansWithLlm({
+      diagram,
+      credentials,
+      nodeIds: ['n1', 'n2', 'n3', 'n4', 'n5', 'n1'],
+      kgSignature: 'sig',
+      onProgress: (p) => progress.push(p),
+    });
+
+    expect(client.post.mock.calls.map((c) => c[1].node_ids)).toEqual([['n1', 'n2'], ['n3', 'n4'], ['n5']]);
+    for (const call of client.post.mock.calls) expect(call[1].diagram.kgSignature).toBe('sig');
+    expect(merged).toEqual(report(['i1', 'i2', 'i3', 'i4', 'i5'].map((id, i) => issue(id, `n${i + 1}`))));
+    expect(progress).toEqual([
+      { done: 0, total: 3 },
+      { done: 1, total: 3 },
+      { done: 2, total: 3 },
+      { done: 3, total: 3 },
+    ]);
+  });
+
+  it('fails the whole classification when one batch fails', async () => {
+    client.post.mockResolvedValueOnce(report([issue('i1', 'n1')])).mockRejectedValueOnce(new Error('502'));
+
+    await expect(
+      classifyOrphansWithLlm({ diagram, credentials, nodeIds: ['n1', 'n2', 'n3'], kgSignature: 'sig' }),
+    ).rejects.toThrow('502');
+  });
+
+  it('mergeOrphanReports keeps an issue id once and refuses reports of different graphs', () => {
+    expect(mergeOrphanReports([report([issue('a', 'n1')]), report([issue('a', 'n1'), issue('b', 'n2')])])).toEqual(
+      report([issue('a', 'n1'), issue('b', 'n2')]),
+    );
+    expect(() => mergeOrphanReports([report([], 's1'), report([], 's2')])).toThrow(KgBatchMismatchError);
+  });
+
+  it('explains a missing config and mismatched batches in the user language', () => {
+    const t = ((key: string) => `T(${key})`) as any;
+    expect(kgApiErrorMessage(new KgConfigUnavailableError(), t, 'f')).toBe('T(import.kg.api.configUnavailable)');
+    expect(kgApiErrorMessage(new KgBatchMismatchError(), t, 'f')).toBe('T(import.kg.api.batchMismatch)');
   });
 });
 

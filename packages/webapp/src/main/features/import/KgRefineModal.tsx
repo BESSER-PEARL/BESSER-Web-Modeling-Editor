@@ -942,7 +942,11 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     disabled={!canAnalyzeLlm}
                     data-testid="kg-refine-llm-analyze"
                   >
-                    {refine.llmStatus === 'loading' ? t('import.kg.refine.analyzing') : t('import.kg.refine.analyze')}
+                    {refine.llmStatus !== 'loading'
+                      ? t('import.kg.refine.analyze')
+                      : refine.llmProgress && refine.llmProgress.total > 1
+                        ? t('import.kg.refine.analyzingBatches', refine.llmProgress)
+                        : t('import.kg.refine.analyzing')}
                   </Button>
                 </DialogFooter>
               </>

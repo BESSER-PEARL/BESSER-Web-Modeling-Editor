@@ -3674,7 +3674,8 @@
         "usingKey": "Äre gespeicherte {{provider}}-Schlëssel gëtt benotzt.",
         "addKey": "API-Schlëssel derbäisetzen",
         "changeKey": "Schlëssel änneren",
-        "keyDialogDescription": "D'KI-Verfeinerung benotzt deen een Schlëssel, deen dës App späichert an deen och den Assistent notzt: Wann Dir hei e Schlëssel späichert, ersetzt e fréier gespäicherten. De Schlëssel bleibt an dësem Browser-Tab a gëtt just fir d'Ufro un de Server geschéckt. Hei funktionéieren OpenAI-, Anthropic-, Mistral- an Nebius-Schlësselen."
+        "keyDialogDescription": "D'KI-Verfeinerung benotzt deen een Schlëssel, deen dës App späichert an deen och den Assistent notzt: Wann Dir hei e Schlëssel späichert, ersetzt e fréier gespäicherten. De Schlëssel bleibt an dësem Browser-Tab a gëtt just fir d'Ufro un de Server geschéckt. Hei funktionéieren OpenAI-, Anthropic-, Mistral- an Nebius-Schlësselen.",
+        "analyzingBatches": "Gëtt analyséiert… {{done}}/{{total}} Paketen"
       },
       "toUml": {
         "noProject": "Maacht e Projet op, ier Dir ëmwandelt.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "KG → UML Ëmwandlung feelgeschloen"
       },
       "api": {
-        "timedOut": "D'Ufro huet ze laang gedauert an ass ofgebrach ginn. Probéiert w.e.g. nach eng Kéier."
+        "timedOut": "D'Ufro huet ze laang gedauert an ass ofgebrach ginn. Probéiert w.e.g. nach eng Kéier.",
+        "configUnavailable": "D'Limitte fir de Knowledge Graph konnten net vum Server geluede ginn. Kontrolléiert, ob de Backend erreechbar ass, a probéiert nach eng Kéier.",
+        "batchMismatch": "De Graph huet sech geännert, während seng Kniet klasséiert goufen. Start d'Klassifikatioun nach eng Kéier."
       }
     }
   },

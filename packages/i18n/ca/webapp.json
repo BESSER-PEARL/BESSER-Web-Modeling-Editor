@@ -3674,7 +3674,8 @@
         "usingKey": "S'utilitza la clau de {{provider}} desada.",
         "addKey": "Afegeix una clau d'API",
         "changeKey": "Canvia la clau",
-        "keyDialogDescription": "El refinament amb IA fa servir l'única clau que desa l'aplicació, que l'assistent comparteix: desar aquí una clau substitueix la desada abans. La clau només es conserva en aquesta pestanya del navegador i s'envia al servidor només per a la petició. Hi funcionen les claus d'OpenAI, Anthropic, Mistral i Nebius."
+        "keyDialogDescription": "El refinament amb IA fa servir l'única clau que desa l'aplicació, que l'assistent comparteix: desar aquí una clau substitueix la desada abans. La clau només es conserva en aquesta pestanya del navegador i s'envia al servidor només per a la petició. Hi funcionen les claus d'OpenAI, Anthropic, Mistral i Nebius.",
+        "analyzingBatches": "S'està analitzant… {{done}}/{{total}} lots"
       },
       "toUml": {
         "noProject": "Obre un projecte abans de convertir.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "La conversió KG → UML ha fallat"
       },
       "api": {
-        "timedOut": "La petició ha trigat massa i s'ha cancel·lat. Torneu-ho a provar."
+        "timedOut": "La petició ha trigat massa i s'ha cancel·lat. Torneu-ho a provar.",
+        "configUnavailable": "No s'han pogut carregar els límits del graf de coneixement des del servidor. Comproveu que el backend sigui accessible i torneu-ho a provar.",
+        "batchMismatch": "El graf ha canviat mentre se'n classificaven els nodes. Torneu a executar la classificació."
       }
     }
   },

@@ -53,6 +53,8 @@ export interface UseKgRefineReturn {
   // LLM tab
   llmStatus: RefineStatus;
   llmReport: KgPreflightReport | null;
+  /** Batches of the running orphan classification, or null when none runs. */
+  llmProgress: { done: number; total: number } | null;
   runLlmFullCleanup: (description: string, credentials: KgLlmCredentials) => Promise<KgPreflightReport | null>;
   runLlmOrphanClassification: (
     description: string,
@@ -77,6 +79,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
   const [staticReport, setStaticReport] = useState<KgPreflightReport | null>(null);
   const [llmStatus, setLlmStatus] = useState<RefineStatus>('idle');
   const [llmReport, setLlmReport] = useState<KgPreflightReport | null>(null);
+  const [llmProgress, setLlmProgress] = useState<{ done: number; total: number } | null>(null);
 
   const runStatic = useCallback(
     async (): Promise<KgPreflightReport | null> => {
@@ -206,6 +209,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
           credentials: { ...credentials, apiKey: key },
           nodeIds,
           kgSignature,
+          onProgress: setLlmProgress,
         });
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.refine.invalidOrphanResponse'));
@@ -219,6 +223,8 @@ export const useKgRefine = (): UseKgRefineReturn => {
         setLlmStatus('error');
         setLlmReport(null);
         return null;
+      } finally {
+        setLlmProgress(null);
       }
     },
     [t],
@@ -263,6 +269,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
     setStaticReport(null);
     setLlmStatus('idle');
     setLlmReport(null);
+    setLlmProgress(null);
   }, []);
 
   return useMemo(
@@ -273,6 +280,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       applyStatic,
       llmStatus,
       llmReport,
+      llmProgress,
       runLlmFullCleanup,
       runLlmOrphanClassification,
       applyLlm,
@@ -285,6 +293,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       applyStatic,
       llmStatus,
       llmReport,
+      llmProgress,
       runLlmFullCleanup,
       runLlmOrphanClassification,
       applyLlm,

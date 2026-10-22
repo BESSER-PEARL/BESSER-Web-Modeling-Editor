@@ -3674,7 +3674,8 @@
         "usingKey": "Se usa la clave de {{provider}} guardada.",
         "addKey": "Añadir clave de API",
         "changeKey": "Cambiar clave",
-        "keyDialogDescription": "El refinado con IA usa la única clave que guarda esta aplicación y que comparte el asistente: guardar aquí una clave sustituye a la guardada antes. La clave solo se conserva en esta pestaña del navegador y se envía al servidor únicamente para la solicitud. Aquí funcionan las claves de OpenAI, Anthropic, Mistral y Nebius."
+        "keyDialogDescription": "El refinado con IA usa la única clave que guarda esta aplicación y que comparte el asistente: guardar aquí una clave sustituye a la guardada antes. La clave solo se conserva en esta pestaña del navegador y se envía al servidor únicamente para la solicitud. Aquí funcionan las claves de OpenAI, Anthropic, Mistral y Nebius.",
+        "analyzingBatches": "Analizando… {{done}}/{{total}} lotes"
       },
       "toUml": {
         "noProject": "Abre un proyecto antes de convertir.",
@@ -3687,7 +3688,9 @@
         "failedTitle": "Error en la conversión KG → UML"
       },
       "api": {
-        "timedOut": "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo."
+        "timedOut": "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo.",
+        "configUnavailable": "No se pudieron cargar los límites del grafo de conocimiento desde el servidor. Comprueba que el backend esté accesible e inténtalo de nuevo.",
+        "batchMismatch": "El grafo cambió mientras se clasificaban sus nodos. Vuelve a ejecutar la clasificación."
       }
     }
   },
