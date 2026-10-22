@@ -1,6 +1,8 @@
 import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
 import type { AppDispatch } from '../../../app/store/store';
 import { ConverterFactory } from './converters';
+import { reuseExistingClassIds } from './converters/reuseClassIds';
+import { mergeSystemIntoModel } from './systemMerge';
 import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
@@ -190,7 +192,11 @@ export class UMLModelingService {
         : `Create ${systemName} system`;
       pushUndoSnapshot(currentModel, undoLabel);
 
-      const completeSystem = converter.convertCompleteSystem(systemSpec);
+      const completeSystem = converter.convertCompleteSystem(
+        type === 'ClassDiagram'
+          ? reuseExistingClassIds(systemSpec, currentModel, { guessRenames: !!replaceExisting })
+          : systemSpec,
+      );
       const shouldKeepExplicitLayout = this.hasExplicitSystemLayout(systemSpec, type);
       const shiftedSystem = shouldKeepExplicitLayout
         ? completeSystem
@@ -337,7 +343,7 @@ export class UMLModelingService {
         case 'complete_system':
           updatedModel = update.replaceExisting
             ? update.data  // Replace: use system data as the entire model
-            : this.mergeSystemIntoModel(currentModel, update.data);
+            : mergeSystemIntoModel(currentModel, update.data);
           break;
         case 'modification':
           updatedModel = update.data;
@@ -680,23 +686,5 @@ export class UMLModelingService {
       relationships: updatedRelationships
     };
   }
-
-  /**
-   * Merge complete system into existing model
-   */
-  private mergeSystemIntoModel(currentModel: BESSERModel, systemData: any): BESSERModel {
-    return {
-      ...currentModel,
-      elements: {
-        ...currentModel.elements,
-        ...systemData.elements
-      },
-      relationships: {
-        ...currentModel.relationships,
-        ...systemData.relationships
-      },
-      size: systemData.size || currentModel.size
-    };
-  }
-
 }
+

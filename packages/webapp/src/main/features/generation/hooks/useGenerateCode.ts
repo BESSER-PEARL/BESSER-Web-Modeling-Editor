@@ -7,6 +7,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
+import { promptForGitHubStarOnce } from '../../../shared/services/githubStarPrompt';
 import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
@@ -253,7 +254,7 @@ export const useGenerateCode = () => {
     [downloadFile, t],
   );
 
-  const generateCode = useCallback(
+  const runGeneration = useCallback(
     async (
       editor: ApollonEditor | null,
       generatorType: string,
@@ -413,6 +414,17 @@ export const useGenerateCode = () => {
       }
     },
     [downloadFile, generateCodeFromProject, t],
+  );
+
+  // A first successful generation is when the user has just gotten value
+  // from BESSER, so that is when we ask (once per browser) for a GitHub star.
+  const generateCode = useCallback(
+    async (...args: Parameters<typeof runGeneration>): Promise<GenerationResult> => {
+      const result = await runGeneration(...args);
+      if (result.ok) promptForGitHubStarOnce();
+      return result;
+    },
+    [runGeneration],
   );
 
   return generateCode;

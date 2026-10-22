@@ -1341,7 +1341,9 @@
       "importProjectSuccess": "Projet importé avec succès : {{name}}",
       "importModelFailed": "Échec de l'import du modèle depuis GitHub",
       "starThanks": "Merci d'avoir mis une étoile à BESSER !",
-      "starFailed": "Échec de la mise à jour de l'étoile"
+      "starFailed": "Échec de la mise à jour de l'étoile",
+      "starPrompt": "Votre code est prêt. Si BESSER vous a fait gagner du temps, une ⭐ sur GitHub aide d'autres personnes à le découvrir.",
+      "starPromptAction": "Mettre une étoile sur GitHub"
     },
     "push": {
       "changeRepo": "Changer de dépôt",
