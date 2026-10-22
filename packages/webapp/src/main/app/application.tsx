@@ -323,10 +323,9 @@ function AppContentInner() {
 
       {/* Refine KG modal: opened from the Quality Check button (refine-only)
           when a Knowledge Graph diagram is active, or from Generate →
-          Convert to B-UML → Class/Object Diagram (convert mode, when the
-          preflight finds inconsistencies). Hosts the unified two-tab
-          (Automatic / AI) refinement flow and surfaces a Convert button
-          when the KG is clean. */}
+          Convert to B-UML → Class Diagram (convert mode, when the preflight
+          finds issues). Hosts the Automatic / Consistency / AI tabs and
+          surfaces a Convert button when the KG is clean. */}
       <Suspense fallback={null}>
         <KgRefineModal {...kgFlows.refineModalProps} />
       </Suspense>

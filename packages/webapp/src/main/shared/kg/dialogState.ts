@@ -16,8 +16,9 @@ export const CLOSED_KG_GATE: KgConsistencyGate = { open: false, report: null };
  * What the Knowledge Graph dialogs (Refine, consistency gate) need to be open.
  *
  * Held with the app's other dialog state (`useDialogStates`) and handed to the
- * flow hook (`useKgFlows`), which drives it. Declared here so neither has to
- * import the other: features may not import from `app/`.
+ * flow hook (`useKgFlows`), which drives it. Declared in `shared/` so the shell
+ * and the import feature share the type without either depending on the
+ * other's module for it.
  */
 export interface KgDialogState {
   isKgRefineOpen: boolean;
