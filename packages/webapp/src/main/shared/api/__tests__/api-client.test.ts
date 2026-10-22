@@ -95,7 +95,7 @@ describe('FastAPI error details', () => {
   it('turns a 422 validation list into a readable message, not "[object Object]"', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify(VALIDATION_422), { status: 422 }));
 
-    const error = await apiClient.post('/classify-orphans-with-llm', {}).catch((e: ApiError) => e);
+    const error = (await apiClient.post('/classify-orphans-with-llm', {}).catch((e) => e)) as ApiError;
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error.status).toBe(422);
@@ -106,8 +106,8 @@ describe('FastAPI error details', () => {
   it('formats the detail of uploads and downloads the same way', async () => {
     fetchMock.mockImplementation(async () => new Response(JSON.stringify(VALIDATION_422), { status: 422 }));
 
-    const upload = await apiClient.upload('/import-owl', new FormData()).catch((e: ApiError) => e);
-    const download = await apiClient.downloadBlob('/export', {}).catch((e: ApiError) => e);
+    const upload = (await apiClient.upload('/import-owl', new FormData()).catch((e) => e)) as ApiError;
+    const download = (await apiClient.downloadBlob('/export', {}).catch((e) => e)) as ApiError;
 
     expect(upload.message).toContain('node_ids: List should have at most 400 items');
     expect(download.message).toContain('diagram.model: Field required');

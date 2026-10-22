@@ -196,7 +196,7 @@ describe('KnowledgeGraphEditor: the store echoing back a saved model', () => {
     });
 
     expect(text('canvas-nodes')).toBe('a,b,n3');
-    expect(text('canvas-visible').split(',')).toContain('n3');
+    expect(text('canvas-visible')?.split(',')).toContain('n3');
   });
 
   it('clears the selection when something else replaces the model and the node is gone', () => {
