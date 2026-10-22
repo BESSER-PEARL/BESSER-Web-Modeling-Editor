@@ -3352,6 +3352,10 @@
           "targetClass": "Diese NodeConstraint auf eine Klasse anwenden.",
           "shProperty": "Eine PropertyConstraint unter dieser NodeConstraint gruppieren (sh:property).",
           "targetProperty": "Diese PropertyConstraint auf eine Eigenschaft anwenden."
+        },
+        "newConstraint": {
+          "nodeConstraint": "Neuer Knoten-Constraint",
+          "propertyConstraint": "Neuer Eigenschafts-Constraint"
         }
       },
       "settings": {

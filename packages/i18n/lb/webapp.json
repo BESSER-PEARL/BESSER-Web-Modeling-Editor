@@ -3352,6 +3352,10 @@
           "targetClass": "Dës NodeConstraint op eng Klass uwenden.",
           "shProperty": "Eng PropertyConstraint ënner dëser NodeConstraint gruppéieren (sh:property).",
           "targetProperty": "Dës PropertyConstraint op eng Eegenschaft uwenden."
+        },
+        "newConstraint": {
+          "nodeConstraint": "Nei Knuetpunkt-Contrainte",
+          "propertyConstraint": "Nei Eegenschafts-Contrainte"
         }
       },
       "settings": {

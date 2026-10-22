@@ -3352,6 +3352,10 @@
           "targetClass": "Appliquer cette NodeConstraint à une classe.",
           "shProperty": "Regrouper une PropertyConstraint sous cette NodeConstraint (sh:property).",
           "targetProperty": "Appliquer cette PropertyConstraint à une propriété."
+        },
+        "newConstraint": {
+          "nodeConstraint": "Nouvelle contrainte de nœud",
+          "propertyConstraint": "Nouvelle contrainte de propriété"
         }
       },
       "settings": {

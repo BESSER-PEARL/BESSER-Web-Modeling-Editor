@@ -414,8 +414,8 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
                   {
                     id: newNodeId,
                     nodeType,
-                    label:
-                      nodeType === 'nodeConstraint' ? 'New node constraint' : 'New property constraint',
+                    // Stored in the model: written in the user's language.
+                    label: t(`editors.kg.inspector.newConstraint.${nodeType}`),
                     metadata: { constraintSpecs: [], isAnonymous: true },
                   },
                 ],
