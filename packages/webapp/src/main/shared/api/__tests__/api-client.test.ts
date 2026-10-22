@@ -84,6 +84,59 @@ describe('apiClient.downloadBlob', () => {
   });
 });
 
+/** A fetch that never answers, and rejects with the abort reason of its signal. */
+const hangingFetch = (_url: string, init: RequestInit) =>
+  new Promise((_resolve, reject) => {
+    const signal = init.signal!;
+    if (signal.aborted) reject(signal.reason);
+    signal.addEventListener('abort', () => reject(signal.reason));
+  });
+
+describe.each([
+  ['with AbortSignal.any', false],
+  ['without AbortSignal.any', true],
+])('cancelling a request %s', (_label, withoutAny) => {
+  beforeEach(() => {
+    if (withoutAny) vi.stubGlobal('AbortSignal', Object.assign(Object.create(AbortSignal), { any: undefined }));
+  });
+
+  it.each([
+    ['request', () => (signal: AbortSignal) => apiClient.post('/x', {}, { signal })],
+    ['upload', () => (signal: AbortSignal) => apiClient.upload('/x', new FormData(), { signal })],
+    ['downloadBlob', () => (signal: AbortSignal) => apiClient.downloadBlob('/x', {}, { signal })],
+  ])('%s stops when the caller aborts', async (_method, send) => {
+    fetchMock.mockImplementation(hangingFetch);
+    const caller = new AbortController();
+
+    const pending = send()(caller.signal).catch((e: unknown) => e as Error);
+    caller.abort();
+
+    expect((await pending).name).toBe('AbortError');
+  });
+
+  it('rejects at once when the caller cancelled before sending', async () => {
+    fetchMock.mockImplementation(hangingFetch);
+    const caller = new AbortController();
+    caller.abort();
+
+    const error = await apiClient.post('/x', {}, { signal: caller.signal }).catch((e: unknown) => e as Error);
+
+    expect(error.name).toBe('AbortError');
+  });
+
+  it('still gives up after the timeout when the caller passed a signal', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(hangingFetch);
+
+    const pending = apiClient
+      .post('/x', {}, { timeout: 1_000, signal: new AbortController().signal })
+      .catch((e: unknown) => e as Error);
+    await vi.advanceTimersByTimeAsync(1_001);
+
+    expect((await pending).name).toBe('TimeoutError');
+  });
+});
+
 describe('FastAPI error details', () => {
   const VALIDATION_422 = {
     detail: [

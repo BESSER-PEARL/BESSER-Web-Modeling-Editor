@@ -5,13 +5,43 @@ const DEFAULT_TIMEOUT = 30000; // 30 seconds
 /**
  * Per-request options. Extends `RequestInit` with an optional `timeout`
  * (milliseconds) that overrides the client's default for slow endpoints
- * (e.g. GitHub deployment, code generation).
+ * (e.g. GitHub deployment, code generation). A `signal` lets the caller
+ * cancel the request; the timeout applies either way.
  */
 export type ApiRequestOptions = RequestInit & { timeout?: number };
 
 /** Build the DOMException used as the abort reason on timeout. */
 const timeoutReason = (ms: number) =>
   new DOMException(`Request timed out after ${ms}ms`, 'TimeoutError');
+
+/**
+ * The signal a request is sent with: aborted when the timeout fires (reason: a
+ * `TimeoutError`) or when the caller's own `signal` aborts (its reason), so
+ * that a caller can cancel a request without losing the timeout. `dispose`
+ * clears the timer and the listener once the request has settled.
+ */
+function requestSignal(timeoutMs: number, callerSignal?: AbortSignal | null) {
+  const timeout = new AbortController();
+  const timeoutId = setTimeout(() => timeout.abort(timeoutReason(timeoutMs)), timeoutMs);
+  if (!callerSignal) {
+    return { signal: timeout.signal, dispose: () => clearTimeout(timeoutId) };
+  }
+  if (typeof AbortSignal.any === 'function') {
+    return { signal: AbortSignal.any([callerSignal, timeout.signal]), dispose: () => clearTimeout(timeoutId) };
+  }
+  // No `AbortSignal.any` (older browsers, some test environments): forward the
+  // caller's abort to the timeout controller instead.
+  const forward = () => timeout.abort(callerSignal.reason);
+  if (callerSignal.aborted) forward();
+  else callerSignal.addEventListener('abort', forward, { once: true });
+  return {
+    signal: timeout.signal,
+    dispose: () => {
+      clearTimeout(timeoutId);
+      callerSignal.removeEventListener('abort', forward);
+    },
+  };
+}
 
 /**
  * Readable text for the `detail` of a FastAPI error body. A handled error
@@ -77,15 +107,13 @@ class ApiClient {
    * which omits Content-Type so the browser sets the boundary).
    */
   async request<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
-    const { timeout: timeoutOverride, ...fetchOptions } = options;
-    const timeoutMs = timeoutOverride ?? this.timeout;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+    const { timeout: timeoutOverride, signal: callerSignal, ...fetchOptions } = options;
+    const { signal, dispose } = requestSignal(timeoutOverride ?? this.timeout, callerSignal);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...fetchOptions,
-        signal: controller.signal,
+        signal,
         headers: {
           ...fetchOptions.headers,
           'Content-Type': 'application/json',
@@ -98,7 +126,7 @@ class ApiClient {
 
       return response.json();
     } finally {
-      clearTimeout(timeoutId);
+      dispose();
     }
   }
 
@@ -123,17 +151,15 @@ class ApiClient {
    * the correct multipart boundary automatically.
    */
   async upload<T>(endpoint: string, formData: FormData, options?: ApiRequestOptions): Promise<T> {
-    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
-    const timeoutMs = timeoutOverride ?? this.timeout;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+    const { timeout: timeoutOverride, signal: callerSignal, ...fetchOptions } = options ?? {};
+    const { signal, dispose } = requestSignal(timeoutOverride ?? this.timeout, callerSignal);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...fetchOptions,
         method: 'POST',
         body: formData,
-        signal: controller.signal,
+        signal,
         // No Content-Type header — the browser sets it with the boundary
       });
 
@@ -143,7 +169,7 @@ class ApiClient {
 
       return response.json();
     } finally {
-      clearTimeout(timeoutId);
+      dispose();
     }
   }
 
@@ -158,17 +184,15 @@ class ApiClient {
     data: unknown,
     options?: ApiRequestOptions,
   ): Promise<{ blob: Blob; headers: Headers }> {
-    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
-    const timeoutMs = timeoutOverride ?? this.timeout;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+    const { timeout: timeoutOverride, signal: callerSignal, ...fetchOptions } = options ?? {};
+    const { signal, dispose } = requestSignal(timeoutOverride ?? this.timeout, callerSignal);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...fetchOptions,
         method: 'POST',
         body: JSON.stringify(data),
-        signal: controller.signal,
+        signal,
         headers: {
           ...fetchOptions.headers,
           'Content-Type': 'application/json',
@@ -181,7 +205,7 @@ class ApiClient {
 
       return { blob: await response.blob(), headers: response.headers };
     } finally {
-      clearTimeout(timeoutId);
+      dispose();
     }
   }
 }
