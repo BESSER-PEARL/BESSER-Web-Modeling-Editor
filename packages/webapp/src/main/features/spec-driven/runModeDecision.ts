@@ -29,10 +29,30 @@ export interface LastRunRecord {
   at: number;
 }
 
+/**
+ * How the project's model relates to the base run's, from
+ * `POST /spec-driven/preview` (`model_change`). Name-based on the backend.
+ */
+export interface ModelChange {
+  verdict: 'small' | 'large' | 'unrelated';
+  /** Share of the base run's model no longer present (0..1). */
+  gone: number;
+  /** "Class" / "Class.attribute" names gone from, and new in, the model. */
+  removed: string[];
+  added: string[];
+  /** Renames the backend recognised, when it reports them. */
+  renamed?: { from: string; to: string }[];
+}
+
 export interface RunModeDecision {
   mode: SpecDrivenMode;
   /** Present ONLY when `mode === 'modify'`. */
   baseRunId?: string;
+  /**
+   * Set on an automatic modify whose model changed a lot or is another
+   * app: ask "update the existing app / start fresh" before running.
+   */
+  askUser?: 'large' | 'unrelated';
 }
 
 export interface DecideRunModeParams {
@@ -46,6 +66,8 @@ export interface DecideRunModeParams {
   explicitMode?: string;
   /** Explicit `baseRunId` from the trigger payload, if provided. */
   explicitBaseRunId?: string;
+  /** The base run's model vs the current one; absent when unknown. */
+  modelChange?: ModelChange | null;
 }
 
 /**
@@ -61,10 +83,12 @@ export interface DecideRunModeParams {
  *      valid run id AND still within the backend's download-TTL window
  *      (after the TTL the backend has garbage-collected the temp dir /
  *      zip it would edit in place, so a rebuild is the only option).
+ *      When the model changed a lot or is another app, `askUser` asks
+ *      the caller to let the user choose; an unknown change modifies.
  *   3. Fall back to a fresh `generate`.
  */
 export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
-  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId } = params;
+  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId, modelChange } = params;
 
   const storedRunId =
     lastRun && isValidRunId(lastRun.runId) ? lastRun.runId : undefined;
@@ -89,6 +113,11 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
     nowMs - lastRun.at < ttlSeconds * 1000;
 
   if (storedRunId && withinTtl) {
+    // Never start fresh on our own: the base app may carry custom work.
+    const verdict = modelChange?.verdict;
+    if (verdict === 'large' || verdict === 'unrelated') {
+      return { mode: 'modify', baseRunId: storedRunId, askUser: verdict };
+    }
     return { mode: 'modify', baseRunId: storedRunId };
   }
 

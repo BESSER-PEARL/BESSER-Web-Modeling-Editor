@@ -110,6 +110,9 @@ import {
   resolveFreeRunModel,
 } from '../services/specDrivenConfig';
 import { decideRunMode } from '../runModeDecision';
+import type { DecideRunModeParams, RunModeDecision } from '../runModeDecision';
+import { fetchModelChange, modelChangeQuestion } from '../services/modelChange';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { getDemoToken } from '@/main/shared/services/demoMode';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
@@ -237,6 +240,9 @@ export function useSpecDrivenTrigger(
   // flipped to false by the finally block *after* the for-await loop
   // exits, not mid-event.
   const abortRequestedRef = useRef(false);
+  // True while a trigger is being prepared (config, model check, question),
+  // before the run slot is claimed.
+  const preparingRef = useRef(false);
 
   // Timeout handle for the COST_CAP/TIMEOUT failsafe. Cleared when
   // the `done` event finally arrives, or when the stream finishes
@@ -971,6 +977,46 @@ export function useSpecDrivenTrigger(
   ]);
 
   /**
+   * The run mode. An automatic modify first checks how far the model moved
+   * from the base app's; a large change or another app is the user's call.
+   * Stop aborts the check and closes the question. Null when stopped.
+   */
+  const chooseRunMode = useCallback(
+    async (
+      decisionInput: DecideRunModeParams,
+      project: unknown,
+      instructions: string,
+    ): Promise<RunModeDecision | null> => {
+      const decision = decideRunMode(decisionInput);
+      if (decision.mode !== 'modify' || !decision.baseRunId || decisionInput.explicitMode) {
+        return decision;
+      }
+      const check = new AbortController();
+      abortRef.current = () => check.abort();
+      // No run card yet: the typing indicator and its Stop button cover the check.
+      setIsGenerating(true);
+      try {
+        const modelChange = await fetchModelChange(
+          project, instructions, decision.baseRunId, check.signal,
+        );
+        if (abortRequestedRef.current) return null;
+        const checked = decideRunMode({ ...decisionInput, modelChange });
+        if (!checked.askUser || !modelChange) return checked;
+        const startFresh = await globalConfirm({
+          ...modelChangeQuestion(checked.askUser, modelChange),
+          signal: check.signal,
+        });
+        if (abortRequestedRef.current) return null;
+        return startFresh ? { mode: 'generate' } : checked;
+      } finally {
+        abortRef.current = null;
+        if (mountedRef.current) setIsGenerating(false);
+      }
+    },
+    [setIsGenerating],
+  );
+
+  /**
    * Do the actual SSE run after we know we have a key. Kept separate so
    * both the direct trigger path and the "resume after BYOK save" path
    * call the same implementation.
@@ -985,7 +1031,11 @@ export function useSpecDrivenTrigger(
       // (isRunningRef) and a run owned by the OTHER mounted hook
       // instance (global runStatus, read synchronously from the live
       // store — a useAppSelector value could be stale in this commit).
-      if (isRunningRef.current || dispatch(isSpecDrivenRunActive())) {
+      if (
+        isRunningRef.current ||
+        preparingRef.current ||
+        dispatch(isSpecDrivenRunActive())
+      ) {
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -1042,11 +1092,56 @@ export function useSpecDrivenTrigger(
       }
       const provider: SpecDrivenProvider = rawProvider;
 
-      // Point of no return: atomically claim the GLOBAL run slot. All
-      // code from the guard at the top of this function down to here is
-      // synchronous, so two instances racing in the same commit resolve
-      // deterministically — the first dispatch claims, the second sees
-      // 'running' and backs off.
+      // Route the project through the same normaliser the existing
+      // deterministic ``/generate-output-from-project`` path uses.
+      // This strips empty diagrams, normalises the project name, and
+      // otherwise mirrors the payload shape the backend already
+      // expects — so a spec-driven run of project X behaves identically
+      // to a deterministic run of project X at the payload-level.
+      const normalisedProject = buildProjectPayloadForBackend(project);
+
+      // Settle the run mode BEFORE claiming the slot, so the model-change
+      // question never sits under a "Starting…" run card.
+      preparingRef.current = true;
+      abortRequestedRef.current = false;
+      // `getSpecDrivenConfig` is cached and never rejects (resolves to the
+      // fallback), so the values below are always defined.
+      const cfg = await getSpecDrivenConfig();
+      let runDecision: RunModeDecision | null = null;
+      try {
+        if (!abortRequestedRef.current) {
+          // Incremental modify decision. Look up the previous successful
+          // run for THIS project and, if it's still within the backend's
+          // download-TTL window, edit that app in place (`mode:'modify'` +
+          // baseRunId) instead of rebuilding. The decision is automatic; an
+          // explicit `mode` on the trigger payload overrides it.
+          runDecision = await chooseRunMode(
+            {
+              lastRun: readProjectLastRun(project.id),
+              nowMs: Date.now(),
+              ttlSeconds: cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS,
+              explicitMode: payload.mode,
+              explicitBaseRunId: payload.baseRunId,
+            },
+            normalisedProject,
+            payload.instructions,
+          );
+        }
+      } finally {
+        preparingRef.current = false;
+      }
+      // Stopped meanwhile: nothing was started, so there is nothing to clean
+      // up, but the agent still learns the user cancelled.
+      if (abortRequestedRef.current || !runDecision) {
+        runFinishedReportedRef.current = false;
+        reportRunFinished({ ok: false, errorCode: 'CANCELLED' });
+        return;
+      }
+
+      // Point of no return: atomically claim the GLOBAL run slot. The claim
+      // itself is synchronous, so two instances racing in the same commit
+      // resolve deterministically — the first dispatch claims, the second
+      // sees 'running' and backs off.
       if (!dispatch(tryClaimRunSlot())) {
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
@@ -1085,14 +1180,6 @@ export function useSpecDrivenTrigger(
       // chat's typing indicator instead of pinning it for the whole run.
       setIsGenerating(false);
 
-      // Route the project through the same normaliser the existing
-      // deterministic ``/generate-output-from-project`` path uses.
-      // This strips empty diagrams, normalises the project name, and
-      // otherwise mirrors the payload shape the backend already
-      // expects — so a spec-driven run of project X behaves identically
-      // to a deterministic run of project X at the payload-level.
-      const normalisedProject = buildProjectPayloadForBackend(project);
-
       // Model-selection priority:
       //   1. User's explicit choice from the BYOK dialog (sessionStorage) —
       //      ALWAYS wins. This is what the user picked in the dropdown,
@@ -1123,13 +1210,6 @@ export function useSpecDrivenTrigger(
       // its own defaults — the SSE client only serialises set values.
       const budget = readSessionBudget();
 
-      // `getSpecDrivenConfig` is cached and never rejects (resolves to the
-      // fallback), so the values below are always defined.
-      const cfg = await getSpecDrivenConfig();
-      // Stopped while the config loaded: abortActive already cleaned up, and
-      // starting now would orphan a paid run on the server.
-      if (abortRequestedRef.current) return;
-
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The
       // default (or any stale/unknown stored id) omits llm_model — the
@@ -1139,21 +1219,6 @@ export function useSpecDrivenTrigger(
           cfg.free_tier, readFreeTierModel(), isPilotSession(),
         );
       }
-
-      // Incremental modify decision. Look up the previous successful
-      // run for THIS project and, if it's still within the backend's
-      // download-TTL window, edit that app in place (`mode:'modify'` +
-      // baseRunId) instead of rebuilding. The decision is automatic; an
-      // explicit `mode` on the trigger payload overrides it.
-      const ttlSeconds =
-        cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
-      const runDecision = decideRunMode({
-        lastRun: readProjectLastRun(project.id),
-        nowMs: Date.now(),
-        ttlSeconds,
-        explicitMode: payload.mode,
-        explicitBaseRunId: payload.baseRunId,
-      });
 
       // This tab's claim on the run (see claimSpecDrivenRunOwnership). An
       // object, so TS does not narrow away the assignment made in the callback.
@@ -1337,6 +1402,7 @@ export function useSpecDrivenTrigger(
     [
       appendAssistantMessage,
       appendErrorToChat,
+      chooseRunMode,
       clearFailsafeTimer,
       currentProjectRef,
       dispatch,

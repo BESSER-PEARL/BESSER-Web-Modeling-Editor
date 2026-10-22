@@ -14,6 +14,8 @@ export interface GlobalConfirmOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'default';
+  /** Aborting it closes the dialog as a cancel (resolves false). */
+  signal?: AbortSignal;
 }
 
 type ConfirmHandler = (options: GlobalConfirmOptions) => Promise<boolean>;

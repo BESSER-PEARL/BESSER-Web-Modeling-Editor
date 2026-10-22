@@ -129,3 +129,33 @@ describe('decideRunMode — explicit override', () => {
     expect(decision).toEqual({ mode: 'modify', baseRunId: RUN_A });
   });
 });
+
+describe('decideRunMode — the model changed since the base run', () => {
+  const recent = { runId: RUN_A, at: NOW - 60_000 };
+
+  it('asks before editing the app when the model changed a lot or is another app', () => {
+    for (const verdict of ['large', 'unrelated'] as const) {
+      expect(
+        decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, modelChange: { verdict, gone: 0.6, removed: [], added: [] } }),
+      ).toEqual({ mode: 'modify', baseRunId: RUN_A, askUser: verdict });
+    }
+  });
+
+  it('modifies without asking on a small change or an unknown one', () => {
+    for (const modelChange of [{ verdict: 'small' as const, gone: 0.05, removed: [], added: [] }, null, undefined]) {
+      expect(
+        decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, modelChange }),
+      ).toEqual({ mode: 'modify', baseRunId: RUN_A });
+    }
+  });
+
+  it('never asks when there is nothing to modify or the agent forced a mode', () => {
+    const unrelated = { verdict: 'unrelated' as const, gone: 1, removed: [], added: [] };
+    expect(
+      decideRunMode({ lastRun: null, nowMs: NOW, ttlSeconds: TTL, modelChange: unrelated }),
+    ).toEqual({ mode: 'generate' });
+    expect(
+      decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, explicitMode: 'modify', modelChange: unrelated }),
+    ).toEqual({ mode: 'modify', baseRunId: RUN_A });
+  });
+});

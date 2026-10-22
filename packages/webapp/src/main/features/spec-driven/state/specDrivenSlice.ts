@@ -513,8 +513,8 @@ const specDrivenSlice = createSlice({
     },
     /**
      * Synchronously claim the global run slot. Dispatched by
-     * `tryClaimRunSlot` before any awaits in `startRun` so two hook
-     * instances racing in the same React commit can never both start.
+     * `tryClaimRunSlot`, which checks and claims in one synchronous step,
+     * so two hook instances racing to start can never both start.
      */
     claimRunSlot(state) {
       state.runStatus = 'running';
