@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Knowledge-Graph-Einstellungen",
-        "noActiveDiagram": "Es ist kein Knowledge-Graph-Diagramm aktiv.",
+        "noActiveDiagram": "Diese Einstellungen gehören zu einem Knowledge-Graph-Diagramm. Öffnen Sie den Knowledge Graph des Projekts, um seine Einstellungen zu bearbeiten.",
+        "openKnowledgeGraph": "Knowledge Graph öffnen",
         "backToEditor": "Zurück zum Editor",
         "description": "Einstellungen für das aktive KG-Diagramm ({{title}}). Änderungen werden im Projekt gespeichert und bleiben bei Export/Import erhalten.",
         "saved": "KG-Einstellungen gespeichert.",

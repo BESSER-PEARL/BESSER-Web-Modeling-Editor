@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Knowledge-Graph-Astellungen",
-        "noActiveDiagram": "Et ass kee Knowledge-Graph-Diagramm aktiv.",
+        "noActiveDiagram": "Dës Astellunge gehéieren zu engem Knowledge-Graph-Diagramm. Maacht de Knowledge Graph vum Projet op, fir seng Astellungen z'änneren.",
+        "openKnowledgeGraph": "Knowledge Graph opmaachen",
         "backToEditor": "Zréck zum Editeur",
         "description": "Astellunge fir dat aktiivt KG-Diagramm ({{title}}). Ännerunge ginn am Projet gespäichert a bleiwe beim Export/Import erhalen.",
         "saved": "KG-Astellunge gespäichert.",

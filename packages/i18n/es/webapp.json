@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Ajustes del grafo de conocimiento",
-        "noActiveDiagram": "No hay ningún diagrama de grafo de conocimiento activo.",
+        "noActiveDiagram": "Estos ajustes pertenecen a un diagrama de grafo de conocimiento. Abre el grafo de conocimiento del proyecto para editar sus ajustes.",
+        "openKnowledgeGraph": "Abrir el grafo de conocimiento",
         "backToEditor": "Volver al editor",
         "description": "Preferencias del diagrama KG activo ({{title}}). Los cambios se guardan en el proyecto y se conservan al exportar/importar.",
         "saved": "Ajustes de KG guardados.",

@@ -23,6 +23,7 @@ vi.mock('../../../app/hooks/useProject', () => ({
 vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => dispatch }));
 vi.mock('../../../app/store/workspaceSlice', () => ({
   updateDiagramModelThunk: (arg: unknown) => ({ type: 'update', arg }),
+  switchDiagramTypeThunk: (arg: unknown) => ({ type: 'switch', arg }),
 }));
 vi.mock('react-toastify', () => ({ toast }));
 vi.mock('../../../shared/services/storage/ProjectStorageRepository', () => ({
@@ -90,5 +91,15 @@ describe('KnowledgeGraphSettingsPanel', () => {
     renderPanel();
 
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
+
+  it('opened while another diagram is active, explains why and offers to open the graph', () => {
+    workspace.type = 'ClassDiagram';
+    renderPanel();
+
+    expect(screen.getByText(/belong to a Knowledge Graph diagram/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open the Knowledge Graph' }));
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'switch', arg: { diagramType: 'KnowledgeGraphDiagram' } });
   });
 });

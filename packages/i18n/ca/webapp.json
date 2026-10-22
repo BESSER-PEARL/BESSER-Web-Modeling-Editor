@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Configuració del graf de coneixement",
-        "noActiveDiagram": "No hi ha cap diagrama de graf de coneixement actiu.",
+        "noActiveDiagram": "Aquests paràmetres pertanyen a un diagrama de graf de coneixement. Obriu el graf de coneixement del projecte per editar-ne els paràmetres.",
+        "openKnowledgeGraph": "Obre el graf de coneixement",
         "backToEditor": "Torna a l'editor",
         "description": "Preferències del diagrama KG actiu ({{title}}). Els canvis es desen al projecte i es conserven en exportar/importar.",
         "saved": "S'ha desat la configuració del KG.",

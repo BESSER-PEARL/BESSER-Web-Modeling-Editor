@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Paramètres du graphe de connaissances",
-        "noActiveDiagram": "Aucun diagramme de graphe de connaissances n'est actif.",
+        "noActiveDiagram": "Ces paramètres appartiennent à un diagramme de graphe de connaissances. Ouvrez le graphe de connaissances du projet pour modifier ses paramètres.",
+        "openKnowledgeGraph": "Ouvrir le graphe de connaissances",
         "backToEditor": "Retour à l'éditeur",
         "description": "Préférences propres au diagramme KG actif ({{title}}). Les modifications sont enregistrées dans le projet et conservées à l'export/import.",
         "saved": "Paramètres KG enregistrés.",

@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useProject } from '../../app/hooks/useProject';
 import { useAppDispatch } from '../../app/store/hooks';
-import { updateDiagramModelThunk } from '../../app/store/workspaceSlice';
+import { switchDiagramTypeThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
+import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import {
   DEFAULT_KG_HARD_LIMIT,
   DEFAULT_KG_LAYOUT,
@@ -49,7 +50,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
 
   // The settings belong to the diagram open in the workspace: that is the one
   // `updateDiagramModelThunk` writes, so the page edits nothing else.
-  const kgDiagram = currentDiagramType === 'KnowledgeGraphDiagram' ? currentDiagram : undefined;
+  const kgDiagram = getWorkspaceContext(currentDiagramType).isKgContext ? currentDiagram : undefined;
   const storedModel = useMemo<KnowledgeGraphData | null>(() => {
     const m = kgDiagram?.model;
     return isKnowledgeGraphData(m) ? m : null;
@@ -139,6 +140,9 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
     setShowMetaInput(DEFAULT_KG_SHOW_META_VOCAB);
   };
 
+  // Reached by URL (or from history) while another diagram is open: say why
+  // there is nothing to edit, and offer to switch to the project's graph, which
+  // turns this page into that graph's settings.
   if (!currentProject || !kgDiagram) {
     return (
       <div className="mx-auto max-w-3xl p-6">
@@ -147,7 +151,12 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
             <CardTitle>{t('editors.kg.settings.title')}</CardTitle>
             <CardDescription>{t('editors.kg.settings.noActiveDiagram')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
+            {currentProject && (
+              <Button onClick={() => dispatch(switchDiagramTypeThunk({ diagramType: 'KnowledgeGraphDiagram' }))}>
+                {t('editors.kg.settings.openKnowledgeGraph')}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-2 size-4" />
               {t('editors.kg.settings.backToEditor')}

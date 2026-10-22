@@ -3360,7 +3360,8 @@
       },
       "settings": {
         "title": "Knowledge Graph Settings",
-        "noActiveDiagram": "No Knowledge Graph diagram is active.",
+        "noActiveDiagram": "These settings belong to a Knowledge Graph diagram. Open the project's Knowledge Graph to edit its settings.",
+        "openKnowledgeGraph": "Open the Knowledge Graph",
         "backToEditor": "Back to editor",
         "description": "Preferences scoped to the active KG diagram ({{title}}). Changes are saved into the project and round-trip with export/import.",
         "saved": "KG settings saved.",
