@@ -1,11 +1,3 @@
+// What the rest of the app loads from the Knowledge Graph editor: EditorView
+// lazy-imports the editor from here. Everything else is internal to it.
 export { KnowledgeGraphEditor } from './KnowledgeGraphEditor';
-export { KnowledgeGraphPalette, KG_DRAG_MIME } from './KnowledgeGraphPalette';
-export { KnowledgeGraphToolbar } from './KnowledgeGraphToolbar';
-export type { ConnectMode } from './KnowledgeGraphToolbar';
-export { KgCanvasControls } from './KgCanvasControls';
-export { KnowledgeGraphInspector } from './KnowledgeGraphInspector';
-export type { KgSelection } from './KnowledgeGraphInspector';
-export { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
-export { CytoscapeCanvas } from './CytoscapeCanvas';
-export type { CytoscapeCanvasHandle } from './CytoscapeCanvas';
-export * from './types';

@@ -28,6 +28,7 @@ import type {
   KGConstraintSpec,
 } from './types';
 import { KG_CONSTRAINT_TARGET_CLASS, KG_CONSTRAINT_TARGET_PROPERTY, KG_NODE_TYPES, KG_SH_PROPERTY } from './types';
+import type { KgSelection } from './types';
 import { uuid } from '../../../shared/utils/uuid';
 import { edgeRuleReason, nodeTypeLabel } from './i18n-keys';
 import { KG_NODE_COLORS } from './stylesheet';
@@ -37,12 +38,6 @@ import { KG_EDGE_RULES, isMetaVocab, sourceTypesAllowedToTarget } from './edge-r
 import { defaultPredicateFor } from './edge-defaults';
 import { deleteSelectionFromModel } from './delete-selection';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
-
-export type KgSelection =
-  | { kind: 'node'; id: string }
-  | { kind: 'edge'; id: string }
-  | { kind: 'multi'; nodeIds: string[]; edgeIds: string[] }
-  | null;
 
 interface Props {
   model: KnowledgeGraphData;

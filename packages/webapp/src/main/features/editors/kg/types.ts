@@ -33,3 +33,13 @@ export const KG_NODE_TYPES: Array<{
     description: 'Constraints that apply to a property (OWL restriction or SHACL PropertyShape)',
   },
 ];
+
+/** What is selected on the canvas, shared by the canvas, the inspector and the editor. */
+export type KgSelection =
+  | { kind: 'node'; id: string }
+  | { kind: 'edge'; id: string }
+  | { kind: 'multi'; nodeIds: string[]; edgeIds: string[] }
+  | null;
+
+/** `DataTransfer` type of a palette item dragged onto the canvas; its data is the node kind. */
+export const KG_DRAG_MIME = 'application/x-besser-kg-node';

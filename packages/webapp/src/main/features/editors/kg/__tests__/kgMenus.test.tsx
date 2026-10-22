@@ -8,7 +8,8 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { KnowledgeGraphInspector, type KgSelection } from '../KnowledgeGraphInspector';
+import { KnowledgeGraphInspector } from '../KnowledgeGraphInspector';
+import type { KgSelection } from '../types';
 import { SpecsListEditor } from '../ConstraintSpecsEditor';
 import type { KnowledgeGraphData } from '../types';
 

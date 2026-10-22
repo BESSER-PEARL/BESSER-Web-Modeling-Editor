@@ -1,10 +1,8 @@
 import React from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { KG_NODE_TYPES } from './types';
+import { KG_DRAG_MIME, KG_NODE_TYPES } from './types';
 import { nodeTypeDescription, nodeTypeLabel } from './i18n-keys';
 import { KgShapeIcon } from './KgShapeIcon';
-
-export const KG_DRAG_MIME = 'application/x-besser-kg-node';
 
 /** Left-side palette of draggable KG node kinds. Users drag an item onto the
  *  Cytoscape canvas; the canvas reads the MIME payload on `drop` and creates

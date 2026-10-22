@@ -6,8 +6,7 @@
  * saved" apart from "something else replaced the model", because the second
  * case resets editor state and the first must not.
  */
-import type { KgSelection } from './KnowledgeGraphInspector';
-import type { KnowledgeGraphData } from './types';
+import type { KgSelection, KnowledgeGraphData } from './types';
 
 /** JSON with object keys sorted, so equal content compares equal whatever order
  *  the pieces were assembled in (spread, storage round trip, Cytoscape). */

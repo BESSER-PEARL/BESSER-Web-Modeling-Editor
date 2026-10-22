@@ -3,7 +3,8 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { KnowledgeGraphInspector, KgSelection } from '../KnowledgeGraphInspector';
+import { KnowledgeGraphInspector } from '../KnowledgeGraphInspector';
+import type { KgSelection } from '../types';
 import { deleteSelectionFromModel } from '../delete-selection';
 import type { KnowledgeGraphData } from '../types';
 

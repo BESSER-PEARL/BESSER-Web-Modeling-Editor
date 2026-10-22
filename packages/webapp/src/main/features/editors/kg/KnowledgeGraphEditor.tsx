@@ -13,7 +13,7 @@ import { KnowledgeGraphPalette } from './KnowledgeGraphPalette';
 import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
 import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
 import { KgCanvasControls } from './KgCanvasControls';
-import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
+import { KnowledgeGraphInspector } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
 import { deleteSelectionFromModel } from './delete-selection';
@@ -39,7 +39,7 @@ import {
   getKgSoftLimit,
   isKnowledgeGraphData,
 } from '../../../shared/types/project';
-import type { KnowledgeGraphData } from './types';
+import type { KgSelection, KnowledgeGraphData } from './types';
 
 /** Undo steps kept. Each step is a whole copy of the graph, and an imported
  *  ontology can be large, so this is well under the hook's default of 100. */
