@@ -13,7 +13,6 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import {
-  analyzeKg,
   applyKgRefinement,
   classifyOrphansWithLlm,
   kgApiErrorMessage,
@@ -27,9 +26,10 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { getActiveKgDiagram } from './useKgToUmlConversion';
+import { useKgPreflight, type PreflightStatus } from './useKgPreflight';
 import type { RowDecision } from './KgPreflightIssueRow';
 
-export type RefineStatus = 'idle' | 'loading' | 'success' | 'error';
+export type RefineStatus = PreflightStatus;
 
 export type PendingOrphanClassification = KgPendingOrphanClassification;
 
@@ -73,37 +73,16 @@ export const useKgRefine = (): UseKgRefineReturn => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
-  const [staticStatus, setStaticStatus] = useState<RefineStatus>('idle');
-  const [staticReport, setStaticReport] = useState<KgPreflightReport | null>(null);
+  // The static tab is the plain preflight; only its failure message differs.
+  const {
+    status: staticStatus,
+    report: staticReport,
+    runPreflight: runStatic,
+    reset: resetStatic,
+  } = useKgPreflight('import.kg.refine.staticFailed');
   const [llmStatus, setLlmStatus] = useState<RefineStatus>('idle');
   const [llmReport, setLlmReport] = useState<KgPreflightReport | null>(null);
   const [llmProgress, setLlmProgress] = useState<{ done: number; total: number } | null>(null);
-
-  const runStatic = useCallback(
-    async (): Promise<KgPreflightReport | null> => {
-      const active = getActiveKgDiagram();
-      if (!active) return null;
-      const { diagram: kgDiagram } = active;
-
-      setStaticStatus('loading');
-      try {
-        const data = await analyzeKg(kgDiagram);
-        if (!data || !Array.isArray(data.issues)) {
-          throw new Error(t('import.kg.preflight.invalidResponse'));
-        }
-        setStaticReport(data);
-        setStaticStatus('success');
-        return data;
-      } catch (error) {
-        const message = kgApiErrorMessage(error, t, t('import.kg.refine.staticFailed'));
-        toast.error(message);
-        setStaticStatus('error');
-        setStaticReport(null);
-        return null;
-      }
-    },
-    [t],
-  );
 
   const applyStatic = useCallback(
     async (
@@ -261,12 +240,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
   );
 
   const reset = useCallback(() => {
-    setStaticStatus('idle');
-    setStaticReport(null);
+    resetStatic();
     setLlmStatus('idle');
     setLlmReport(null);
     setLlmProgress(null);
-  }, []);
+  }, [resetStatic]);
 
   return useMemo(
     () => ({

@@ -16,7 +16,9 @@ import { getActiveKgDiagram } from './useKgToUmlConversion';
 
 export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 
-export const useKgPreflight = () => {
+/** `failedKey` is the i18n key of the message shown when the analysis fails
+ *  without an explanation of its own (the Refine dialog names it differently). */
+export const useKgPreflight = (failedKey = 'import.kg.preflight.failed') => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<PreflightStatus>('idle');
   const [report, setReport] = useState<KgPreflightReport | null>(null);
@@ -36,13 +38,13 @@ export const useKgPreflight = () => {
         setStatus('success');
         return data;
       } catch (error) {
-        toast.error(kgApiErrorMessage(error, t, t('import.kg.preflight.failed')));
+        toast.error(kgApiErrorMessage(error, t, t(failedKey)));
         setStatus('error');
         setReport(null);
         return null;
       }
     },
-    [t],
+    [t, failedKey],
   );
 
   const reset = useCallback(() => {
