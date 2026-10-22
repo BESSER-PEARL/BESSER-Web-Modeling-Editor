@@ -32,11 +32,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import type { KgDecision, KgIssue } from '../../shared/api/knowledgeGraph';
-
-export type RowDecision = KgDecision;
-
-export type RowRouting = 'recommended' | 'llm';
+import type { KgIssue } from '../../../shared/api/knowledgeGraph';
+import type { RowDecision, RowRouting } from '../types';
 
 export interface KgPreflightIssueRowProps {
   issue: KgIssue;

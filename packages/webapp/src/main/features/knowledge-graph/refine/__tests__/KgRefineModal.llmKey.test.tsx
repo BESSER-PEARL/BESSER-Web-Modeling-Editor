@@ -24,8 +24,8 @@ const refine = vi.hoisted(() => ({
 }));
 vi.mock('../useKgRefine', () => ({ useKgRefine: () => refine }));
 // The dialog asks the server for the free-tier advertisement when it opens.
-vi.mock('../../../shared/services/specDrivenConfig', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('../../../shared/services/specDrivenConfig')>();
+vi.mock('../../../../shared/services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../../shared/services/specDrivenConfig')>();
   return { ...mod, getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)) };
 });
 

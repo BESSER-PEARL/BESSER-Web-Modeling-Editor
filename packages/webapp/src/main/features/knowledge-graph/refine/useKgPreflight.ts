@@ -11,8 +11,8 @@ import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { analyzeKg, kgApiErrorMessage, type KgPreflightReport } from '../../shared/api/knowledgeGraph';
-import { getActiveKgDiagram } from './useKgToUmlConversion';
+import { analyzeKg, kgApiErrorMessage, type KgPreflightReport } from '../../../shared/api/knowledgeGraph';
+import { getActiveKgDiagram } from '../activeKgDiagram';
 
 export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 

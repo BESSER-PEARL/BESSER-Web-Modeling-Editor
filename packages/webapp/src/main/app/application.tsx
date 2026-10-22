@@ -21,7 +21,7 @@ import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
-import { useKgFlows } from '../features/import/useKgFlows';
+import { useKgFlows } from '../features/knowledge-graph';
 import { useKgRouting } from './hooks/useKgRouting';
 import { useDialogStates } from './shell/hooks/useDialogStates';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
@@ -66,10 +66,10 @@ const ExportDialog = React.lazy(() =>
 );
 
 const KgRefineModal = React.lazy(() =>
-  import('../features/import/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
+  import('../features/knowledge-graph/refine/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
 );
 const KgConsistencyConfirmModal = React.lazy(() =>
-  import('../features/import/KgConsistencyConfirmModal').then((m) => ({
+  import('../features/knowledge-graph/convert/KgConsistencyConfirmModal').then((m) => ({
     default: m.KgConsistencyConfirmModal,
   })),
 );

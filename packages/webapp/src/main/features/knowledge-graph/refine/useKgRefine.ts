@@ -21,13 +21,13 @@ import {
   type KgLlmCredentials,
   type KgPendingOrphanClassification,
   type KgPreflightReport,
-} from '../../shared/api/knowledgeGraph';
-import { useAppDispatch } from '../../app/store/hooks';
-import { updateDiagramModelThunk } from '../../app/store/workspaceSlice';
-import { displayError } from '../../app/store/errorManagementSlice';
-import { getActiveKgDiagram } from './useKgToUmlConversion';
+} from '../../../shared/api/knowledgeGraph';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
+import { displayError } from '../../../app/store/errorManagementSlice';
+import { getActiveKgDiagram } from '../activeKgDiagram';
+import type { RowDecision } from '../types';
 import { useKgPreflight, type PreflightStatus } from './useKgPreflight';
-import type { RowDecision } from './KgPreflightIssueRow';
 
 export type RefineStatus = PreflightStatus;
 

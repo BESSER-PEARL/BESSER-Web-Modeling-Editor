@@ -9,9 +9,9 @@ const mocks = vi.hoisted(() => ({
   capture: vi.fn(),
 }));
 
-vi.mock('../useKgPreflight', () => ({ useKgPreflight: () => ({ runPreflight: mocks.runPreflight }) }));
-vi.mock('../useKgToUmlConversion', () => ({
-  useKgToUmlConversion: () => mocks.runConversion,
+vi.mock('../refine/useKgPreflight', () => ({ useKgPreflight: () => ({ runPreflight: mocks.runPreflight }) }));
+vi.mock('../convert/useKgToUmlConversion', () => ({ useKgToUmlConversion: () => mocks.runConversion }));
+vi.mock('../activeKgDiagram', () => ({
   getActiveKgDiagram: () => ({
     project: { id: 'p1' },
     diagram: {

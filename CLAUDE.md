@@ -72,7 +72,8 @@ Webapp (`packages/webapp/src/main/`):
 | `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, Knowledge Graph → Cytoscape, rest → Apollon), `uml/`, `gui/`, `quantum/`, `kg/`, `diagram-tabs/` |
 | `features/assistant/` | AI assistant: WebSocket client, `services/converters/`, `services/modifiers/` |
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
-| `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation}/` | One feature module each |
+| `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
+| `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
 | `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
@@ -246,7 +247,7 @@ Full reference: `docs/source/reference/environment.rst`.
   - backend calls go through `shared/api/knowledgeGraph.ts`; the AI tabs use the shared LLM key
     (`llmKeyStorage`) and send it with its provider (Anthropic, OpenAI, Mistral or Nebius; PIA and local keys
     need a custom endpoint the server will not open, so they are refused); the convert/refine dialogs are
-    driven by `features/import/useKgFlows.ts`, RDF export is a section of the Export dialog
+    driven by `features/knowledge-graph/useKgFlows.ts`, RDF export is a section of the Export dialog
   - the modeling assistant does not support KG: no converter/modifier, the bubble is hidden on it and an
     injection targeting it is refused
 

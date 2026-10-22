@@ -38,17 +38,22 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { LlmKeyDialog, PROVIDER_OPTIONS } from '../../shared/components/byok/LlmKeyDialog';
-import { readLlmKey, type LlmKey } from '../../shared/services/llmKeyStorage';
-import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPreflightIssueRow';
+import { LlmKeyDialog, PROVIDER_OPTIONS } from '../../../shared/components/byok/LlmKeyDialog';
+import { readLlmKey, type LlmKey } from '../../../shared/services/llmKeyStorage';
+import { KgPreflightIssueRow } from './KgPreflightIssueRow';
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
-import { isKgLlmProvider, type KgIssue, type KgLlmCredentials, type KgPreflightReport } from '../../shared/api/knowledgeGraph';
-import { useKgConsistencyCheck } from './useKgConsistencyCheck';
-import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { getActiveDiagram } from '../../shared/types/project';
-import type { BesserProject, ConsistencyReport } from '../../shared/types/project';
+import {
+  checkKgConsistency,
+  isKgLlmProvider,
+  type KgIssue,
+  type KgLlmCredentials,
+  type KgPreflightReport,
+} from '../../../shared/api/knowledgeGraph';
+import type { KgRefineTab, RowDecision, RowRouting } from '../types';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import { getActiveDiagram } from '../../../shared/types/project';
+import type { BesserProject, ConsistencyReport } from '../../../shared/types/project';
 
-type TabKey = 'static' | 'consistency' | 'llm';
 type LlmPhase = 'input' | 'review';
 
 /** Display-only, so it points at the existing `diagramTypes.*` key rather
@@ -80,7 +85,7 @@ export interface KgRefineModalProps {
   /** Tab to focus when the modal opens. Defaults to "static". The
    *  pre-conversion gate uses "consistency" to deep-link the user
    *  straight into the new tab. */
-  initialTab?: TabKey;
+  initialTab?: KgRefineTab;
 }
 
 function _initialDecisions(issues: KgIssue[]): Record<string, RowDecision> {
@@ -173,9 +178,8 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   const refine = useKgRefine();
   const diagramLabel = convertMode ? t(DIAGRAM_LABEL_KEY) : null;
 
-  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'static');
+  const [activeTab, setActiveTab] = useState<KgRefineTab>(initialTab ?? 'static');
   // Consistency tab state — independent of static/LLM tabs.
-  const checkConsistency = useKgConsistencyCheck();
   const [consistencyStatus, setConsistencyStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [consistencyReport, setConsistencyReport] = useState<ConsistencyReport | null>(null);
   const [consistencyError, setConsistencyError] = useState<string | null>(null);
@@ -268,7 +272,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     setConsistencyStatus('loading');
     setConsistencyError(null);
     try {
-      const report = await checkConsistency(kgDiagram);
+      const report = await checkKgConsistency(kgDiagram);
       setConsistencyReport(report);
       setConsistencyStatus('success');
       setConsistencyLastRun(Date.now());
@@ -277,7 +281,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       setConsistencyStatus('error');
       setConsistencyError(err instanceof Error ? err.message : t('import.kg.refine.consistencyFailed'));
     }
-  }, [checkConsistency]);
+  }, [t]);
 
   // Initialise / refresh LLM-tab decisions when a new LLM report arrives.
   useEffect(() => {
@@ -460,7 +464,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     credentials !== null &&
     refine.llmStatus !== 'loading';
 
-  const tabButton = (key: TabKey, label: string, badge?: string) => (
+  const tabButton = (key: KgRefineTab, label: string, badge?: string) => (
     <button
       key={key}
       type="button"

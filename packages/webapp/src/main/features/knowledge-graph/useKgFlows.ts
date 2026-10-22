@@ -16,8 +16,9 @@ import type { KgIssue } from '../../shared/api/knowledgeGraph';
 import { CLOSED_KG_GATE, type KgDialogState } from '../../shared/kg/dialogState';
 import type { ConsistencyReport } from '../../shared/types/project';
 import { isKnowledgeGraphData } from '../../shared/types/project';
-import { getActiveKgDiagram, useKgToUmlConversion } from './useKgToUmlConversion';
-import { useKgPreflight } from './useKgPreflight';
+import { getActiveKgDiagram } from './activeKgDiagram';
+import { useKgToUmlConversion } from './convert/useKgToUmlConversion';
+import { useKgPreflight } from './refine/useKgPreflight';
 
 type GateDecision = 'proceed' | 'cancel';
 

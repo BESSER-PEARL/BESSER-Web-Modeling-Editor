@@ -6,20 +6,14 @@ import { toast } from 'react-toastify';
 import { useKgPreflight } from '../useKgPreflight';
 
 // Mock the KG diagram lookup helper.
-vi.mock('../useKgToUmlConversion', async () => {
-  const actual = await vi.importActual<typeof import('../useKgToUmlConversion')>(
-    '../useKgToUmlConversion',
-  );
-  return {
-    ...actual,
-    getActiveKgDiagram: vi.fn(() => ({
-      project: { id: 'p1', name: 'Test' },
-      diagram: { id: 'd1', title: 'KG', model: { type: 'KnowledgeGraphDiagram', nodes: [], edges: [] } },
-    })),
-  };
-});
+vi.mock('../../activeKgDiagram', () => ({
+  getActiveKgDiagram: vi.fn(() => ({
+    project: { id: 'p1', name: 'Test' },
+    diagram: { id: 'd1', title: 'KG', model: { type: 'KnowledgeGraphDiagram', nodes: [], edges: [] } },
+  })),
+}));
 
-vi.mock('../../../shared/constants/constant', () => ({
+vi.mock('../../../../shared/constants/constant', () => ({
   BACKEND_URL: 'http://localhost:9000/besser_api',
 }));
 

@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { ConsistencyIssue, ConsistencyReport } from '../../shared/types/project';
+import type { ConsistencyIssue, ConsistencyReport } from '../../../shared/types/project';
 
 export interface KgConsistencyConfirmModalProps {
   open: boolean;

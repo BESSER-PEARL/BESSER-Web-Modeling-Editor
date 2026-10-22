@@ -2,35 +2,27 @@
 // deterministic /kg/to-class-diagram endpoint, then open the result in a new
 // tab in the current project.
 //
-// Two-phase API:
-//   - getActiveKgDiagram(): returns the active KG diagram or null + a toast.
-//   - convertKgToUml(options?): runs the conversion. ``options`` may include
-//     ``resolutions`` (decision array from the preflight modal) and
-//     ``kgSignature`` (echoed from the analyze response).
+// The hook returns `convert(options?)`. ``options`` may include
+// ``resolutions`` (decision array from the preflight modal) and
+// ``kgSignature`` (echoed from the analyze response).
 //
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../shared/i18n';
 
-import { kgApiErrorMessage, kgToClassDiagram } from '../../shared/api/knowledgeGraph';
-import { reportKgWarnings } from '../../shared/kg/reportKgWarnings';
-import { useAppDispatch } from '../../app/store/hooks';
+import { checkKgConsistency, kgApiErrorMessage, kgToClassDiagram } from '../../../shared/api/knowledgeGraph';
+import { reportKgWarnings } from '../../../shared/kg/reportKgWarnings';
+import { useAppDispatch } from '../../../app/store/hooks';
 import {
   addDiagramThunk,
   switchDiagramIndexThunk,
   switchDiagramTypeThunk,
-} from '../../app/store/workspaceSlice';
-import { displayError } from '../../app/store/errorManagementSlice';
-import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { getActiveDiagram } from '../../shared/types/project';
-import type {
-  BesserProject,
-  ConsistencyReport,
-  SupportedDiagramType,
-} from '../../shared/types/project';
-import { useKgConsistencyCheck } from './useKgConsistencyCheck';
+} from '../../../app/store/workspaceSlice';
+import { displayError } from '../../../app/store/errorManagementSlice';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import type { ConsistencyReport, SupportedDiagramType } from '../../../shared/types/project';
+import { getActiveKgDiagram } from '../activeKgDiagram';
 
 export interface KgConvertOptions {
   resolutions?: Array<{ issueId: string; decision: 'accept' | 'skip' }>;
@@ -57,31 +49,9 @@ const TITLE_SUFFIX = 'Class Diagram';
 /** Localised display name for the same diagram, used in toasts only. */
 const DIAGRAM_TYPE_KEY = 'diagramTypes.ClassDiagram';
 
-/**
- * Look up the currently-active KnowledgeGraphDiagram. Returns ``null`` and
- * shows a toast if no project / no KG diagram is active.
- */
-export function getActiveKgDiagram(): { project: BesserProject; diagram: any } | null {
-  // Plain module function, not a hook -- called from six sites across
-  // useKgRefine / useKgPreflight. Reads the i18n singleton (resolved at call
-  // time, so always the current language) rather than changing six signatures.
-  const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
-  if (!project) {
-    toast.error(i18n.t('import.kg.toUml.noProject'));
-    return null;
-  }
-  const diagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
-  if (!diagram || !diagram.model) {
-    toast.error(i18n.t('import.kg.toUml.noDiagram'));
-    return null;
-  }
-  return { project, diagram };
-}
-
 export const useKgToUmlConversion = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const checkConsistency = useKgConsistencyCheck();
 
   return useCallback(
     async (options: KgConvertOptions = {}): Promise<void> => {
@@ -94,7 +64,7 @@ export const useKgToUmlConversion = () => {
       // the conversion) or when no handler is wired up.
       if (!options.skipConsistencyGate && options.onConsistencyIssues) {
         try {
-          const consistencyReport = await checkConsistency(kgDiagram);
+          const consistencyReport = await checkKgConsistency(kgDiagram);
           if (consistencyReport.issueCount > 0) {
             const decision = await options.onConsistencyIssues(consistencyReport);
             if (decision === 'cancel') return;
@@ -147,6 +117,6 @@ export const useKgToUmlConversion = () => {
         toast.error(message);
       }
     },
-    [dispatch, checkConsistency, t],
+    [dispatch, t],
   );
 };

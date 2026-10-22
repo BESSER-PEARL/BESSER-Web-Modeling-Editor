@@ -11,27 +11,27 @@ const api = vi.hoisted(() => ({
 const dispatch = vi.hoisted(() => vi.fn());
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), warn: vi.fn() }));
 
-vi.mock('../../../shared/api/knowledgeGraph', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../shared/api/knowledgeGraph')>()),
+vi.mock('../../../../shared/api/knowledgeGraph', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/api/knowledgeGraph')>()),
   ...api,
 }));
 vi.mock('react-toastify', () => ({ toast }));
-vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => dispatch }));
-vi.mock('../../../app/store/workspaceSlice', () => ({
+vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => dispatch }));
+vi.mock('../../../../app/store/workspaceSlice', () => ({
   bumpEditorRevision: () => ({ type: 'bump' }),
   updateDiagramModelThunk: (arg: unknown) => ({ type: 'update', arg }),
 }));
-vi.mock('../../../app/store/errorManagementSlice', () => ({
+vi.mock('../../../../app/store/errorManagementSlice', () => ({
   displayError: (title: string, message: string) => ({ type: 'error', title, message }),
 }));
-vi.mock('../useKgToUmlConversion', () => ({
+vi.mock('../../activeKgDiagram', () => ({
   getActiveKgDiagram: () => ({
     project: { id: 'p1' },
     diagram: { id: 'd1', title: 'KG', model: { type: 'KnowledgeGraphDiagram', nodes: [], edges: [] } },
   }),
 }));
 
-import { ApiError } from '../../../shared/api/api-client';
+import { ApiError } from '../../../../shared/api/api-client';
 import { useKgRefine } from '../useKgRefine';
 
 /** The user's key, as the modal hands it over. */
