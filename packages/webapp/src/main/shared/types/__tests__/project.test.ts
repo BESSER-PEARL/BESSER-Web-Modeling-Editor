@@ -160,6 +160,26 @@ describe('ensureProjectMigrated v5 → v6', () => {
     expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
   });
 
+  /** A v5 project holding a graph saved by the first settings revision. */
+  const withKgSettings = (settings: Record<string, unknown>) => {
+    const project = v5Project({});
+    project.diagrams.KnowledgeGraphDiagram = [
+      { ...createEmptyDiagram('KG', null, 'kg'), model: { version: '1.0.0', nodes: [], edges: [], settings } as any },
+    ];
+    return project;
+  };
+  const kgSettings = (project: BesserProject) => (project.diagrams.KnowledgeGraphDiagram[0].model as any).settings;
+
+  it('renames maxVisibleNodes, from the first settings revision, to softLimit', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, layout: 'grid' }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 30, layout: 'grid' });
+  });
+
+  it('keeps an explicit softLimit over the legacy field, and drops the legacy one', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, softLimit: 70 }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 70 });
+  });
+
   it('leaves a new project untouched', () => {
     const migrated = ensureProjectMigrated(createDefaultProject('Fresh', '', 'me'));
     expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);

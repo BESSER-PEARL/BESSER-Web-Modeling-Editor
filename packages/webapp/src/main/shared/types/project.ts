@@ -203,10 +203,6 @@ export interface KnowledgeGraphSettings {
    *  pipelines (RDF export, KG → UML) still see them. Undefined means "use
    *  the default (false)". */
   showMetaVocabNodes?: boolean;
-  /** @deprecated Legacy field from the first settings revision. Still read
-   *  as a fallback for `softLimit` on projects saved before the two-limit
-   *  rework; never written. */
-  maxVisibleNodes?: number;
 }
 
 /** An OWL axiom relating several nodes (equivalent classes, sub-property, ...).
@@ -259,11 +255,9 @@ export const DEFAULT_KG_SOFT_LIMIT = 50;
 export const DEFAULT_KG_HARD_LIMIT = 100;
 export const DEFAULT_KG_LAYOUT: KnowledgeGraphLayout = 'concentric';
 export const DEFAULT_KG_SHOW_META_VOCAB = false;
-/** @deprecated use DEFAULT_KG_SOFT_LIMIT */
-export const DEFAULT_KG_MAX_VISIBLE_NODES = DEFAULT_KG_SOFT_LIMIT;
 
 export function getKgSoftLimit(settings?: KnowledgeGraphSettings): number {
-  return settings?.softLimit ?? settings?.maxVisibleNodes ?? DEFAULT_KG_SOFT_LIMIT;
+  return settings?.softLimit ?? DEFAULT_KG_SOFT_LIMIT;
 }
 
 export function getKgHardLimit(settings?: KnowledgeGraphSettings): number {
@@ -825,6 +819,7 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
 
   // Migrate v5 → v6: the Knowledge Graph diagram became a project type
   if (!obj.schemaVersion || obj.schemaVersion < 6) {
+    obj = migrateKnowledgeGraphSoftLimit(obj);
     obj = migrateKnowledgeGraphPerspective(obj, hadPerspectives);
   }
 
@@ -846,6 +841,22 @@ const migrateComponentDeploymentPerspectives = (project: BesserProject, hadPersp
     };
   }
   project.schemaVersion = 5;
+  return project;
+};
+
+/**
+ * Part of v5 → v6: Knowledge Graph diagrams saved by the editor's first
+ * settings revision keep their soft limit in `maxVisibleNodes`; it becomes
+ * `softLimit` (an explicit `softLimit` wins) and the old field is dropped.
+ */
+const migrateKnowledgeGraphSoftLimit = (project: BesserProject): BesserProject => {
+  for (const diagram of project.diagrams.KnowledgeGraphDiagram ?? []) {
+    const model = diagram.model as { settings?: Record<string, unknown> } | undefined;
+    if (!model?.settings || !('maxVisibleNodes' in model.settings)) continue;
+    const { maxVisibleNodes, ...settings } = model.settings;
+    if (settings.softLimit == null && typeof maxVisibleNodes === 'number') settings.softLimit = maxVisibleNodes;
+    model.settings = settings;
+  }
   return project;
 };
 

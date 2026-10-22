@@ -36,7 +36,7 @@ const MODEL: KnowledgeGraphData = {
   version: '1.0.0',
   nodes: [{ id: 'a', nodeType: 'class', label: 'A', position: { x: 1, y: 2 } }],
   edges: [],
-  settings: { visibleIds: ['a'], maxVisibleNodes: 30, layout: 'grid' },
+  settings: { visibleIds: ['a'], softLimit: 30, layout: 'grid' },
 };
 
 const renderPanel = () =>
@@ -65,7 +65,7 @@ describe('KnowledgeGraphSettingsPanel', () => {
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const { model } = dispatch.mock.calls[0][0].arg as { model: KnowledgeGraphData };
-    // visibleIds is the editor's; the legacy limit is dropped once a new one is written.
+    // visibleIds is the editor's: kept as it is.
     expect(model.settings).toEqual({ visibleIds: ['a'], softLimit: 50, layout: 'grid' });
     // The layout did not change, so the stored positions stay.
     expect(model.nodes[0].position).toEqual({ x: 1, y: 2 });

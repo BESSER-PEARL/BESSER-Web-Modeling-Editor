@@ -28,15 +28,9 @@ const MIN = 1;
 const MAX = 10000;
 
 /** The settings this page writes; the others (e.g. the editor's `visibleIds`)
- *  are kept as they are. `maxVisibleNodes` is the legacy soft limit. */
-type OwnedSetting = 'softLimit' | 'hardLimit' | 'layout' | 'showMetaVocabNodes' | 'maxVisibleNodes';
-const OWNED_SETTINGS: ReadonlySet<string> = new Set<OwnedSetting>([
-  'softLimit',
-  'hardLimit',
-  'layout',
-  'showMetaVocabNodes',
-  'maxVisibleNodes',
-]);
+ *  are kept as they are. */
+type OwnedSetting = 'softLimit' | 'hardLimit' | 'layout' | 'showMetaVocabNodes';
+const OWNED_SETTINGS: ReadonlySet<string> = new Set<OwnedSetting>(['softLimit', 'hardLimit', 'layout', 'showMetaVocabNodes']);
 
 /** KG-specific settings page. Two limits:
  *  - Soft: how many nodes are auto-shown on import / reseed.
@@ -61,7 +55,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
     return isKnowledgeGraphData(m) ? m : null;
   }, [kgDiagram?.model]);
 
-  const storedSoft = storedModel?.settings?.softLimit ?? storedModel?.settings?.maxVisibleNodes;
+  const storedSoft = storedModel?.settings?.softLimit;
   const storedHard = storedModel?.settings?.hardLimit;
   const storedLayout = storedModel?.settings?.layout;
   const storedShowMeta = storedModel?.settings?.showMetaVocabNodes;
@@ -105,7 +99,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
   const save = async () => {
     if (!storedModel) return;
     // Every field this page owns is dropped, then written back only when it
-    // differs from the default; the legacy `maxVisibleNodes` is never written.
+    // differs from the default.
     const otherSettings = Object.fromEntries(
       Object.entries(storedModel.settings ?? {}).filter(([key]) => !OWNED_SETTINGS.has(key)),
     ) as Omit<KnowledgeGraphSettings, OwnedSetting>;
