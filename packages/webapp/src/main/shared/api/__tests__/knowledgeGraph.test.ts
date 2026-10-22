@@ -4,7 +4,7 @@ const client = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   upload: vi.fn(),
-  downloadFile: vi.fn(),
+  downloadBlob: vi.fn(),
 }));
 vi.mock('../api-client', () => ({ apiClient: client, ApiError: class extends Error {} }));
 
@@ -291,14 +291,14 @@ describe('importOwl', () => {
 describe('exportKgRdf', () => {
   it('posts the vocabulary choice to the format-specific endpoint and returns the server file name', async () => {
     const blob = new Blob(['x']);
-    client.downloadFile.mockResolvedValue({
+    client.downloadBlob.mockResolvedValue({
       blob,
       headers: new Headers({ 'Content-Disposition': 'attachment; filename="people.ttl"' }),
     });
 
     const result = await exportKgRdf({ diagram, format: 'ttl', vocab: 'shacl' });
 
-    expect(client.downloadFile).toHaveBeenCalledWith('/export-kg-rdf/ttl', {
+    expect(client.downloadBlob).toHaveBeenCalledWith('/export-kg-rdf/ttl', {
       id: 'd1',
       title: 'People',
       model: diagram.model,
@@ -308,7 +308,7 @@ describe('exportKgRdf', () => {
   });
 
   it('reports no file name when the server sent none', async () => {
-    client.downloadFile.mockResolvedValue({ blob: new Blob(['x']), headers: new Headers() });
+    client.downloadBlob.mockResolvedValue({ blob: new Blob(['x']), headers: new Headers() });
 
     expect((await exportKgRdf({ diagram, format: 'owl', vocab: 'both' })).filename).toBeNull();
   });

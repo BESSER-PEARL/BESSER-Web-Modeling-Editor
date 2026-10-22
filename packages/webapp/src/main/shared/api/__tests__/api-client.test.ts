@@ -12,22 +12,31 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('apiClient.downloadFile', () => {
+/** A Blob's text. jsdom's Blob has no `text()`, so read it as the browser would. */
+const textOf = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+
+describe('apiClient.downloadBlob', () => {
   it('returns the blob together with the response headers', async () => {
     fetchMock.mockResolvedValue(
       new Response('@prefix : <#> .', { headers: { 'Content-Disposition': 'attachment; filename="kg.ttl"' } }),
     );
 
-    const { blob, headers } = await apiClient.downloadFile('/export', { a: 1 });
+    const { blob, headers } = await apiClient.downloadBlob('/export', { a: 1 });
 
-    expect(await blob.text()).toBe('@prefix : <#> .');
+    expect(await textOf(blob)).toBe('@prefix : <#> .');
     expect(headers.get('Content-Disposition')).toBe('attachment; filename="kg.ttl"');
   });
 
   it('posts the payload as JSON', async () => {
     fetchMock.mockResolvedValue(new Response('x'));
 
-    await apiClient.downloadFile('/export', { a: 1 });
+    await apiClient.downloadBlob('/export', { a: 1 });
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toMatch(/\/export$/);
@@ -36,12 +45,12 @@ describe('apiClient.downloadFile', () => {
     expect(JSON.parse(init.body)).toEqual({ a: 1 });
   });
 
-  it("raises an ApiError that carries the server's explanation, unlike downloadBlob", async () => {
+  it("raises an ApiError that carries the server's explanation", async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ detail: 'Unsupported format' }), { status: 400, statusText: 'Bad Request' }),
     );
 
-    await expect(apiClient.downloadFile('/export', {})).rejects.toMatchObject({
+    await expect(apiClient.downloadBlob('/export', {})).rejects.toMatchObject({
       name: 'ApiError',
       status: 400,
       message: 'Unsupported format',
@@ -51,7 +60,7 @@ describe('apiClient.downloadFile', () => {
   it('falls back to the status text when the error body is not JSON', async () => {
     fetchMock.mockResolvedValue(new Response('<html>', { status: 502, statusText: 'Bad Gateway' }));
 
-    const error = await apiClient.downloadFile('/export', {}).catch((e) => e);
+    const error = await apiClient.downloadBlob('/export', {}).catch((e) => e);
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error.status).toBe(502);
@@ -67,7 +76,7 @@ describe('apiClient.downloadFile', () => {
         }),
     );
 
-    const pending = apiClient.downloadFile('/export', {}, { timeout: 5_000 }).catch((e) => e);
+    const pending = apiClient.downloadBlob('/export', {}, { timeout: 5_000 }).catch((e) => e);
     await vi.advanceTimersByTimeAsync(5_001);
 
     const error = await pending;
@@ -98,7 +107,7 @@ describe('FastAPI error details', () => {
     fetchMock.mockImplementation(async () => new Response(JSON.stringify(VALIDATION_422), { status: 422 }));
 
     const upload = await apiClient.upload('/import-owl', new FormData()).catch((e: ApiError) => e);
-    const download = await apiClient.downloadFile('/export', {}).catch((e: ApiError) => e);
+    const download = await apiClient.downloadBlob('/export', {}).catch((e: ApiError) => e);
 
     expect(upload.message).toContain('node_ids: List should have at most 400 items');
     expect(download.message).toContain('diagram.model: Field required');

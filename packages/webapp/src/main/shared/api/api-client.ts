@@ -148,44 +148,12 @@ class ApiClient {
   }
 
   /**
-   * POST JSON and receive a raw Blob (e.g. ZIP file downloads).
-   */
-  async downloadBlob(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<Blob> {
-    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
-    const timeoutMs = timeoutOverride ?? this.timeout;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
-
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...fetchOptions,
-        method: 'POST',
-        body: JSON.stringify(data),
-        signal: controller.signal,
-        headers: {
-          ...fetchOptions.headers,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new ApiError(response.status, 'Download failed');
-      }
-
-      return response.blob();
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-
-  /**
    * POST JSON and receive a file together with its response headers (e.g.
    * `Content-Disposition`, which carries the server-chosen file name).
-   *
-   * Unlike {@link downloadBlob}, a failure raises an {@link ApiError} carrying
-   * the server's `{"detail": ...}` explanation instead of a generic message.
+   * A failure raises an {@link ApiError} carrying the server's
+   * `{"detail": ...}` explanation.
    */
-  async downloadFile(
+  async downloadBlob(
     endpoint: string,
     data: unknown,
     options?: ApiRequestOptions,

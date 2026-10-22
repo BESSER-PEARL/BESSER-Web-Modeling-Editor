@@ -397,7 +397,7 @@ export const exportKgRdf = async ({
   format,
   vocab,
 }: ExportKgRdfRequest): Promise<{ blob: Blob; filename: string | null }> => {
-  const { blob, headers } = await apiClient.downloadFile(`/export-kg-rdf/${format}`, {
+  const { blob, headers } = await apiClient.downloadBlob(`/export-kg-rdf/${format}`, {
     ...diagramBody(diagram),
     vocab,
   });
