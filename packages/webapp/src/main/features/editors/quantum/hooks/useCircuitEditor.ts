@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Circuit, Gate, CircuitColumn } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
-import { useUndoRedo } from './useUndoRedo';
+import { useUndoRedo } from '../../../../shared/hooks/useUndoRedo';
 import { GATE_SIZE, cellAt } from '../layout-constants';
 
 interface UseCircuitEditorOptions {

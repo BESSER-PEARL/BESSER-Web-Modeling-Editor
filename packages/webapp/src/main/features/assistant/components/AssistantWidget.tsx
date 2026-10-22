@@ -28,6 +28,7 @@ import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
+import { isAssistantApplicableTo } from '../services/assistantSupport';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
@@ -101,10 +102,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
 
   const isOnEditorPage = location.pathname === '/';
-  // The modeling assistant is UML-oriented and has no reasoning over NN
-  // architectures; hide it entirely on the NN diagram so users aren't tempted
-  // to ask it about layers / hyperparameters / training.
-  const isAssistantApplicable = activeDiagramType !== 'NNDiagram';
+  // The modeling assistant is UML-oriented: it has no reasoning over NN
+  // architectures and cannot edit a Knowledge Graph, so hide it entirely on
+  // those diagrams (see services/assistantSupport.ts).
+  const isAssistantApplicable = isAssistantApplicableTo(activeDiagramType);
 
   /* ---- Widget-specific diagram switching ---- */
 
