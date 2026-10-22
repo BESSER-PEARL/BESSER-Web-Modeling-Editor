@@ -1351,7 +1351,9 @@
       "importProjectSuccess": "Projecte importat correctament: {{name}}",
       "importModelFailed": "No s'ha pogut importar el model de GitHub",
       "starThanks": "Gràcies per marcar BESSER amb una estrella!",
-      "starFailed": "No s'ha pogut actualitzar l'estrella"
+      "starFailed": "No s'ha pogut actualitzar l'estrella",
+      "starPrompt": "El teu codi és a punt. Si BESSER t'ha estalviat temps, una ⭐ a GitHub ajuda altres persones a trobar-lo.",
+      "starPromptAction": "Dona una estrella a GitHub"
     },
     "push": {
       "changeRepo": "Canvia el repositori",

@@ -1351,7 +1351,9 @@
       "importProjectSuccess": "Projekt erfolgreich importiert: {{name}}",
       "importModelFailed": "Modell konnte nicht von GitHub importiert werden",
       "starThanks": "Vielen Dank, dass Sie BESSER mit einem Stern markiert haben!",
-      "starFailed": "Stern konnte nicht aktualisiert werden"
+      "starFailed": "Stern konnte nicht aktualisiert werden",
+      "starPrompt": "Ihr Code ist fertig. Wenn BESSER Ihnen Zeit gespart hat, hilft ein ⭐ auf GitHub anderen, es zu finden.",
+      "starPromptAction": "Auf GitHub mit Stern markieren"
     },
     "push": {
       "changeRepo": "Repository ändern",

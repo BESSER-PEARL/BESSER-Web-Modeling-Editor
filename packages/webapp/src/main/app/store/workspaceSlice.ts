@@ -214,12 +214,11 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
-    const supportedType =
-      diagramType === 'QuantumCircuitDiagram' ||
-      diagramType === 'GUINoCodeDiagram' ||
-      diagramType === 'KnowledgeGraphDiagram'
-        ? (diagramType as SupportedDiagramType)
-        : toSupportedDiagramType(diagramType as UMLDiagramType);
+    // Only BPMN's two names differ ('BPMN' vs the editor's 'BPMNDiagram'), and
+    // toSupportedDiagramType falls back to ClassDiagram for a name it does not know.
+    const supportedType = (ALL_DIAGRAM_TYPES as readonly string[]).includes(diagramType)
+      ? (diagramType as SupportedDiagramType)
+      : toSupportedDiagramType(diagramType as UMLDiagramType);
 
     let diagram: ProjectDiagram | null = null;
     ProjectStorageRepository.withoutNotify(() => {

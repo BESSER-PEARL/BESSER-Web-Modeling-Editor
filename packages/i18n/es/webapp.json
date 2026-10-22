@@ -1351,7 +1351,9 @@
       "importProjectSuccess": "Proyecto importado correctamente: {{name}}",
       "importModelFailed": "No se pudo importar el modelo de GitHub",
       "starThanks": "¡Gracias por marcar BESSER con una estrella!",
-      "starFailed": "No se pudo actualizar la estrella"
+      "starFailed": "No se pudo actualizar la estrella",
+      "starPrompt": "Tu código está listo. Si BESSER te ha ahorrado tiempo, una ⭐ en GitHub ayuda a que otros lo encuentren.",
+      "starPromptAction": "Dar una estrella en GitHub"
     },
     "push": {
       "changeRepo": "Cambiar repositorio",

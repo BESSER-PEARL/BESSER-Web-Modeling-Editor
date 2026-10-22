@@ -1351,7 +1351,9 @@
       "importProjectSuccess": "Projet erfollegräich importéiert: {{name}}",
       "importModelFailed": "D'Modell konnt net vu GitHub importéiert ginn",
       "starThanks": "Merci datt Dir BESSER e Stär ginn hutt!",
-      "starFailed": "De Stär konnt net aktualiséiert ginn"
+      "starFailed": "De Stär konnt net aktualiséiert ginn",
+      "starPrompt": "Äre Code ass prett. Wa BESSER Iech Zäit gespuert huet, hëlleft e ⭐ op GitHub anere Leit, et ze fannen.",
+      "starPromptAction": "Op GitHub e Stär ginn"
     },
     "push": {
       "changeRepo": "Repository änneren",
