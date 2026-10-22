@@ -23,7 +23,6 @@ import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
 import { useKgFlows } from '../features/knowledge-graph';
 import { useKgRouting } from './hooks/useKgRouting';
-import { useDialogStates } from './shell/hooks/useDialogStates';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
@@ -162,9 +161,8 @@ function AppContentInner() {
   // Knowledge Graph flows that open their own dialogs: converting to a class
   // diagram, and refining. They are not code generation, so they stay out of
   // useGeneratorExecution; the Generate menu and the Quality Check button
-  // reach them from here.
-  const dialogs = useDialogStates();
-  const kgFlows = useKgFlows(dialogs.kgDialogs);
+  // reach them from here. The hook owns the open/close state of its dialogs.
+  const kgFlows = useKgFlows();
   const { onGenerate, onQualityCheck } = useKgRouting({
     isKgContext,
     kg: kgFlows,
@@ -189,7 +187,6 @@ function AppContentInner() {
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
-        dialogs={dialogs}
         onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}

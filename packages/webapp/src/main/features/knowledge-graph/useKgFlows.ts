@@ -3,24 +3,25 @@
 // it on its own. They used to live inside useGeneratorExecution, which put the
 // open/close state of three modals into the generic code-generation hook.
 //
-// The open/close state of those dialogs lives with the app's other dialog
-// state (`useDialogStates`) and arrives here as `dialogs`. This hook drives it
-// and returns the props for the two modals the app renders (KgRefineModal,
-// KgConsistencyConfirmModal). The one thing it keeps itself is the consistency
-// gate's promise resolver, which is not render state.
+// This hook owns the open/close state of those dialogs and returns the props
+// for the two modals the app renders (KgRefineModal, KgConsistencyConfirmModal).
+// The consistency gate's promise resolver is kept in a ref: it is not render
+// state.
 import { useCallback, useRef, useState } from 'react';
 
 import * as kgFocus from '../../shared/kg/kgFocus';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import type { KgIssue } from '../../shared/api/knowledgeGraph';
-import { CLOSED_KG_GATE, type KgDialogState } from '../../shared/kg/dialogState';
 import type { ConsistencyReport } from '../../shared/types/project';
 import { isKnowledgeGraphData } from '../../shared/types/project';
 import { getActiveKgDiagram } from './activeKgDiagram';
 import { useKgToUmlConversion } from './convert/useKgToUmlConversion';
 import { useKgPreflight } from './refine/useKgPreflight';
+import type { KgConsistencyGate, KgRefineTab } from './types';
 
 type GateDecision = 'proceed' | 'cancel';
+
+const CLOSED_KG_GATE: KgConsistencyGate = { open: false, report: null };
 
 /** How many first-degree neighbours "Fix in KG" brings onto the canvas. */
 const FOCUS_MAX_NEIGHBORS = 15;
@@ -35,17 +36,12 @@ function trackFlow(flow: 'kg_to_class' | 'kg_refine'): void {
   });
 }
 
-export function useKgFlows(dialogs: KgDialogState) {
-  const {
-    isKgRefineOpen,
-    setIsKgRefineOpen,
-    isKgConvertMode,
-    setIsKgConvertMode,
-    kgRefineInitialTab,
-    setKgRefineInitialTab,
-    kgConsistencyGate,
-    setKgConsistencyGate,
-  } = dialogs;
+export function useKgFlows() {
+  const [isKgRefineOpen, setIsKgRefineOpen] = useState(false);
+  /** Refine was opened because the preflight found issues; it converts once the graph is clean. */
+  const [isKgConvertMode, setIsKgConvertMode] = useState(false);
+  const [kgRefineInitialTab, setKgRefineInitialTab] = useState<KgRefineTab | undefined>(undefined);
+  const [kgConsistencyGate, setKgConsistencyGate] = useState<KgConsistencyGate>(CLOSED_KG_GATE);
   const runConversion = useKgToUmlConversion();
   const { runPreflight } = useKgPreflight();
 

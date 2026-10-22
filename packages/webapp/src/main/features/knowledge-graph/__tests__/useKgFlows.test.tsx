@@ -31,11 +31,9 @@ vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
   getPostHog: () => ({ capture: mocks.capture }),
 }));
 
-import { useDialogStates } from '../../../app/shell/hooks/useDialogStates';
 import { useKgFlows } from '../useKgFlows';
 
-/** The flow hook wired to the real dialog state, as the app root wires it. */
-const useFlows = () => useKgFlows(useDialogStates().kgDialogs);
+const useFlows = () => useKgFlows();
 
 const REPORT = (issueCount: number) => ({ kgSignature: 'sig-1', diagramType: 'ClassDiagram', issueCount, issues: [] });
 const CONSISTENCY_REPORT = { issues: [], issueCount: 2, severityCounts: {}, kgSignature: 'sig-1', inferenceUsed: 'rdfs' } as any;
@@ -180,32 +178,6 @@ describe('the consistency gate', () => {
     await expect(decision()).resolves.toBe('cancel');
     expect(result.current.consistencyConfirmModalProps.open).toBe(false);
     expect(result.current.refineModalProps).toMatchObject({ open: true, initialTab: 'consistency' });
-  });
-});
-
-describe('the dialog state is the app\'s, not the hook\'s', () => {
-  /** What the app root does: one `useDialogStates`, handed to the flow hook. */
-  const useBoth = () => {
-    const dialogs = useDialogStates();
-    return { dialogs, flows: useKgFlows(dialogs.kgDialogs) };
-  };
-
-  it('opening Refine is visible in the shared dialog state', () => {
-    const { result } = renderHook(() => useBoth());
-
-    act(() => result.current.flows.openRefine());
-
-    expect(result.current.dialogs.kgDialogs.isKgRefineOpen).toBe(true);
-  });
-
-  it('the consistency gate is visible there too, without the resolver, which is not state', async () => {
-    const { result } = renderHook(() => useBoth());
-    mocks.runPreflight.mockResolvedValue(REPORT(0));
-    mocks.runConversion.mockImplementation(({ onConsistencyIssues }) => { void onConsistencyIssues(CONSISTENCY_REPORT); return new Promise(() => {}); });
-
-    await act(async () => { void result.current.flows.convertToClassDiagram(); });
-
-    expect(result.current.dialogs.kgDialogs.kgConsistencyGate).toEqual({ open: true, report: CONSISTENCY_REPORT });
   });
 });
 
