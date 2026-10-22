@@ -111,7 +111,7 @@ describe.each([
     const pending = send()(caller.signal).catch((e: unknown) => e as Error);
     caller.abort();
 
-    expect((await pending).name).toBe('AbortError');
+    expect(((await pending) as Error).name).toBe('AbortError');
   });
 
   it('rejects at once when the caller cancelled before sending', async () => {
@@ -119,7 +119,7 @@ describe.each([
     const caller = new AbortController();
     caller.abort();
 
-    const error = await apiClient.post('/x', {}, { signal: caller.signal }).catch((e: unknown) => e as Error);
+    const error = (await apiClient.post('/x', {}, { signal: caller.signal }).catch((e: unknown) => e)) as Error;
 
     expect(error.name).toBe('AbortError');
   });
@@ -133,7 +133,7 @@ describe.each([
       .catch((e: unknown) => e as Error);
     await vi.advanceTimersByTimeAsync(1_001);
 
-    expect((await pending).name).toBe('TimeoutError');
+    expect(((await pending) as Error).name).toBe('TimeoutError');
   });
 });
 

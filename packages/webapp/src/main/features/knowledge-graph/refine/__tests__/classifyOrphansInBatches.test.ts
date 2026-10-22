@@ -98,9 +98,9 @@ describe('classifyOrphansInBatches', () => {
       return report([issue('i1', 'n1')]);
     });
 
-    const error = await classifyOrphansInBatches(request(['n1', 'n2', 'n3', 'n4'], { signal: controller.signal })).catch(
-      (e: unknown) => e as Error,
-    );
+    const error = (await classifyOrphansInBatches(request(['n1', 'n2', 'n3', 'n4'], { signal: controller.signal })).catch(
+      (e: unknown) => e,
+    )) as Error;
 
     expect(error.name).toBe('AbortError');
     expect(sentBatches()).toEqual([['n1', 'n2']]);

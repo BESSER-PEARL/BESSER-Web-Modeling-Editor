@@ -14,10 +14,11 @@ export class InvalidOrphanReportError extends Error {
   }
 }
 
-export interface OrphanBatchProgress {
+/** A type, not an interface, so it can be passed as i18next interpolation values. */
+export type OrphanBatchProgress = {
   done: number;
   total: number;
-}
+};
 
 export interface ClassifyOrphansInBatchesRequest extends ClassifyOrphansRequest {
   /** Called before the first batch and after each one, with how many of
