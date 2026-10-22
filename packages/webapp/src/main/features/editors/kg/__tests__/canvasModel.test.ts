@@ -311,6 +311,16 @@ describe('syncElementData (inspector edits reaching the canvas)', () => {
     };
     expect(syncElementData(cy, reordered)).toBe(0);
   });
+
+  it('compares against the canvas model it is given, as the sync effect passes the one it already read', () => {
+    const cy = load(original);
+    const onCanvas = cyToModel(cy, original);
+    const spy = vi.spyOn(cy, 'nodes');
+
+    expect(syncElementData(cy, edited(), onCanvas)).toBe(4);
+    expect(spy).not.toHaveBeenCalled();
+    expect(cy.getElementById('lit').data('value')).toBe('new');
+  });
 });
 
 describe('nodesToReposition', () => {

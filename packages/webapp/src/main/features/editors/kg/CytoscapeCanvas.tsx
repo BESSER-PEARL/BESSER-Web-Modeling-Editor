@@ -717,14 +717,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       const sameStructure = sameCanvasStructure(current, visible);
       const needsLayout = !hasMeaningfulPositions(visible.nodes);
 
-      if (sameStructure) {
-        suppressEventsRef.current = true;
-        try {
-          syncElementData(cy, visible);
-        } finally {
-          suppressEventsRef.current = false;
-        }
-      }
+      // No listener reacts to `data` changes, so this needs no event suppression.
+      if (sameStructure) syncElementData(cy, visible, current);
 
       // Early-return only if *both* the structure matches AND positions are
       // already meaningful. Missing/stacked positions (first mount after a

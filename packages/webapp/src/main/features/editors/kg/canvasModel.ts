@@ -283,9 +283,15 @@ export function sameCanvasStructure(onCanvas: KnowledgeGraphData, wanted: Knowle
  * Without this the canvas keeps the old data and the next drag, which emits
  * the model from Cytoscape, silently reverts the edit. Elements are matched
  * by id; ones not on the canvas are ignored. Returns the number updated.
+ *
+ * `shown` is what the canvas holds (`cyToModel(cy, ...)`); a caller that has
+ * just computed it passes it in rather than reading the canvas a second time.
  */
-export function syncElementData(cy: Core, wanted: KnowledgeGraphData): number {
-  const shown = cyToModel(cy, wanted);
+export function syncElementData(
+  cy: Core,
+  wanted: KnowledgeGraphData,
+  shown: KnowledgeGraphData = cyToModel(cy, wanted),
+): number {
   const shownNodes = new Map(shown.nodes.map((n) => [n.id, nodeContentKey(n)]));
   const shownEdges = new Map(shown.edges.map((e) => [e.id, edgeContentKey(e)]));
   let updated = 0;
