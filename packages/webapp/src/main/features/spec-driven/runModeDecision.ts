@@ -1,5 +1,5 @@
 /**
- * Pure decision helper for incremental modify.
+ * Decision helpers for incremental modify.
  *
  * Given the previously recorded successful run for the current project
  * (if any) and the backend's download-TTL window, decides whether a new
@@ -7,11 +7,15 @@
  *   - edit that run's app IN PLACE (`mode:'modify'` + `baseRunId`), or
  *   - rebuild from scratch (`mode:'generate'`).
  *
- * Extracted as a side-effect-free function so the branching logic is
- * unit-testable in isolation from the React hook, Redux, and the SSE
- * client (see `__tests__/runModeDecision.test.ts`).
+ * `decideRunMode` is side-effect-free; `resolveRunMode` adds the pre-run
+ * model check and the user's answer. Both are unit-testable in isolation
+ * from the React hook, Redux, and the SSE client (see
+ * `__tests__/runModeDecision.test.ts`).
  */
 
+import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import { fetchModelChange, modelChangeQuestion } from './services/modelChange';
+import type { ModelChange } from './services/modelChange';
 import type { SpecDrivenMode } from './types';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
@@ -33,6 +37,11 @@ export interface RunModeDecision {
   mode: SpecDrivenMode;
   /** Present ONLY when `mode === 'modify'`. */
   baseRunId?: string;
+  /**
+   * Set on an automatic modify whose model changed a lot or is another
+   * app: ask "update the existing app / start fresh" before running.
+   */
+  askUser?: 'large' | 'unrelated';
 }
 
 export interface DecideRunModeParams {
@@ -46,6 +55,8 @@ export interface DecideRunModeParams {
   explicitMode?: string;
   /** Explicit `baseRunId` from the trigger payload, if provided. */
   explicitBaseRunId?: string;
+  /** The base run's model vs the current one; absent when unknown. */
+  modelChange?: ModelChange | null;
 }
 
 /**
@@ -61,10 +72,12 @@ export interface DecideRunModeParams {
  *      valid run id AND still within the backend's download-TTL window
  *      (after the TTL the backend has garbage-collected the temp dir /
  *      zip it would edit in place, so a rebuild is the only option).
+ *      When the model changed a lot or is another app, `askUser` asks
+ *      the caller to let the user choose; an unknown change modifies.
  *   3. Fall back to a fresh `generate`.
  */
 export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
-  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId } = params;
+  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId, modelChange } = params;
 
   const storedRunId =
     lastRun && isValidRunId(lastRun.runId) ? lastRun.runId : undefined;
@@ -89,9 +102,43 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
     nowMs - lastRun.at < ttlSeconds * 1000;
 
   if (storedRunId && withinTtl) {
+    // Never start fresh on our own: the base app may carry custom work.
+    const verdict = modelChange?.verdict;
+    if (verdict === 'large' || verdict === 'unrelated') {
+      return { mode: 'modify', baseRunId: storedRunId, askUser: verdict };
+    }
     return { mode: 'modify', baseRunId: storedRunId };
   }
 
   // 3. Fresh build.
   return { mode: 'generate' };
+}
+
+/**
+ * The run mode, with the user's say on a large model change. An automatic
+ * modify first asks the backend how far the model moved from the base app's;
+ * on a large change or another app the user picks "Start fresh" (generate) or
+ * "Update the existing app" (modify, also on dismiss). Null when `signal`
+ * aborts during the check or the question.
+ */
+export async function resolveRunMode(
+  params: DecideRunModeParams,
+  check: { project: unknown; instructions: string; signal: AbortSignal },
+): Promise<RunModeDecision | null> {
+  const decision = decideRunMode(params);
+  if (decision.mode !== 'modify' || !decision.baseRunId || params.explicitMode) {
+    return decision;
+  }
+  const modelChange = await fetchModelChange(
+    check.project, check.instructions, decision.baseRunId, check.signal,
+  );
+  if (check.signal.aborted) return null;
+  const checked = decideRunMode({ ...params, modelChange });
+  if (!checked.askUser || !modelChange) return checked;
+  const startFresh = await globalConfirm({
+    ...modelChangeQuestion(checked.askUser, modelChange),
+    signal: check.signal,
+  });
+  if (check.signal.aborted) return null;
+  return startFresh ? { mode: 'generate' } : checked;
 }
