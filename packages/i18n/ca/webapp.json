@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "La petició ha trigat massa i s'ha cancel·lat. Torneu-ho a provar.",
-        "configUnavailable": "No s'han pogut carregar els límits del graf de coneixement des del servidor. Comproveu que el backend sigui accessible i torneu-ho a provar.",
-        "batchMismatch": "El graf ha canviat mentre se'n classificaven els nodes. Torneu a executar la classificació."
+        "configUnavailable": "No s'han pogut carregar els límits del graf de coneixement des del servidor. Comproveu que el backend sigui accessible i torneu-ho a provar."
       }
     }
   },

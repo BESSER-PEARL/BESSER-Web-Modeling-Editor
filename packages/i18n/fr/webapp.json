@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "La requête a pris trop de temps et a été annulée. Veuillez réessayer.",
-        "configUnavailable": "Impossible de charger les limites du graphe de connaissances depuis le serveur. Vérifiez que le backend est accessible et réessayez.",
-        "batchMismatch": "Le graphe a changé pendant la classification de ses nœuds. Relancez la classification."
+        "configUnavailable": "Impossible de charger les limites du graphe de connaissances depuis le serveur. Vérifiez que le backend est accessible et réessayez."
       }
     }
   },

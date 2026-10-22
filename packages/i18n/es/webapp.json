@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo.",
-        "configUnavailable": "No se pudieron cargar los límites del grafo de conocimiento desde el servidor. Comprueba que el backend esté accesible e inténtalo de nuevo.",
-        "batchMismatch": "El grafo cambió mientras se clasificaban sus nodos. Vuelve a ejecutar la clasificación."
+        "configUnavailable": "No se pudieron cargar los límites del grafo de conocimiento desde el servidor. Comprueba que el backend esté accesible e inténtalo de nuevo."
       }
     }
   },

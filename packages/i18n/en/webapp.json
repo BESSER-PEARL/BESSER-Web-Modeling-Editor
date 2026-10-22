@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "The request took too long and was cancelled. Please try again.",
-        "configUnavailable": "Could not load the Knowledge Graph limits from the server. Check that the backend is reachable and try again.",
-        "batchMismatch": "The graph changed while its nodes were being classified. Run the classification again."
+        "configUnavailable": "Could not load the Knowledge Graph limits from the server. Check that the backend is reachable and try again."
       }
     }
   },

@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "D'Ufro huet ze laang gedauert an ass ofgebrach ginn. Probéiert w.e.g. nach eng Kéier.",
-        "configUnavailable": "D'Limitte fir de Knowledge Graph konnten net vum Server geluede ginn. Kontrolléiert, ob de Backend erreechbar ass, a probéiert nach eng Kéier.",
-        "batchMismatch": "De Graph huet sech geännert, während seng Kniet klasséiert goufen. Start d'Klassifikatioun nach eng Kéier."
+        "configUnavailable": "D'Limitte fir de Knowledge Graph konnten net vum Server geluede ginn. Kontrolléiert, ob de Backend erreechbar ass, a probéiert nach eng Kéier."
       }
     }
   },

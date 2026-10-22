@@ -7,6 +7,7 @@ const api = vi.hoisted(() => ({
   applyKgRefinement: vi.fn(),
   llmCleanKg: vi.fn(),
   classifyOrphansWithLlm: vi.fn(),
+  getKgConfig: vi.fn(),
 }));
 const dispatch = vi.hoisted(() => vi.fn());
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), warn: vi.fn() }));
@@ -41,6 +42,7 @@ const REPORT = { kgSignature: 'sig', diagramType: 'ClassDiagram', issueCount: 0,
 
 beforeEach(() => {
   for (const fn of [...Object.values(api), dispatch, ...Object.values(toast)]) fn.mockReset();
+  api.getKgConfig.mockResolvedValue({ llmRequestTimeoutSeconds: 200, maxOrphanClassifyNodes: 1 });
   // `dispatch(thunk).unwrap()` is how the hook awaits store updates.
   dispatch.mockReturnValue({ unwrap: async () => ({}) });
 });
@@ -69,6 +71,7 @@ describe('runLlmFullCleanup', () => {
       diagram: expect.objectContaining({ id: 'd1' }),
       description: '',
       credentials: { provider: 'openai', apiKey: 'sk-key' },
+      signal: expect.any(AbortSignal),
     });
     expect(result.current.llmStatus).toBe('success');
   });
@@ -85,6 +88,7 @@ describe('runLlmFullCleanup', () => {
       diagram: expect.objectContaining({ id: 'd1' }),
       description: 'a library',
       credentials: { provider: 'openai', apiKey: 'sk-key' },
+      signal: expect.any(AbortSignal),
     });
     expect(result.current.llmStatus).toBe('success');
     expect(result.current.llmReport).toEqual(REPORT);
@@ -154,7 +158,7 @@ describe('runLlmOrphanClassification', () => {
     expect(api.classifyOrphansWithLlm).not.toHaveBeenCalled();
   });
 
-  it('passes the nodes and the signature along', async () => {
+  it('passes the nodes and the signature along, one batch per request', async () => {
     api.classifyOrphansWithLlm.mockResolvedValue(REPORT);
     const { result } = renderHook(() => useKgRefine());
 
@@ -162,37 +166,126 @@ describe('runLlmOrphanClassification', () => {
       await result.current.runLlmOrphanClassification('a library', creds('sk-key'), ['n1', 'n2'], 'sig');
     });
 
-    expect(api.classifyOrphansWithLlm).toHaveBeenCalledWith({
-      diagram: expect.objectContaining({ id: 'd1' }),
-      description: 'a library',
-      credentials: { provider: 'openai', apiKey: 'sk-key' },
-      nodeIds: ['n1', 'n2'],
-      kgSignature: 'sig',
-      onProgress: expect.any(Function),
-    });
+    expect(api.classifyOrphansWithLlm.mock.calls.map((c) => c[0])).toEqual(
+      ['n1', 'n2'].map((id) => ({
+        diagram: expect.objectContaining({ id: 'd1' }),
+        description: 'a library',
+        credentials: { provider: 'openai', apiKey: 'sk-key' },
+        nodeIds: [id],
+        kgSignature: 'sig',
+        signal: expect.any(AbortSignal),
+      })),
+    );
+    expect(result.current.llmStatus).toBe('success');
   });
 
   it('exposes the batch progress while the classification runs, and clears it after', async () => {
-    let finish: (report: unknown) => void = () => {};
-    api.classifyOrphansWithLlm.mockImplementation(({ onProgress }: { onProgress: (p: unknown) => void }) => {
-      onProgress({ done: 1, total: 3 });
-      return new Promise((resolve) => {
-        finish = resolve;
-      });
-    });
+    const answers = deferredAnswers();
     const { result } = renderHook(() => useKgRefine());
 
     let pending: Promise<unknown> = Promise.resolve();
     act(() => {
       pending = result.current.runLlmOrphanClassification('', creds('sk-key'), ['n1', 'n2', 'n3'], 'sig');
     });
-    expect(result.current.llmProgress).toEqual({ done: 1, total: 3 });
+    await act(async () => answers.answer(0, REPORT));
+    await vi.waitFor(() => expect(result.current.llmProgress).toEqual({ done: 1, total: 3 }));
 
     await act(async () => {
-      finish(REPORT);
+      await answers.answer(1, REPORT);
+      await answers.answer(2, REPORT);
       await pending;
     });
     expect(result.current.llmProgress).toBeNull();
+  });
+
+  it('rejects a batch answered with something other than a report', async () => {
+    api.classifyOrphansWithLlm.mockResolvedValue({ unexpected: true });
+    const { result } = renderHook(() => useKgRefine());
+
+    await act(async () => {
+      expect(await result.current.runLlmOrphanClassification('', creds('sk-key'), ['n1'], 'sig')).toBeNull();
+    });
+
+    expect(result.current.llmStatus).toBe('error');
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** `classifyOrphansWithLlm` held open: each request waits until the test
+ *  answers it, and rejects with the abort reason when its signal aborts, as
+ *  `fetch` does. */
+function deferredAnswers() {
+  const pending: Array<(report: unknown) => void> = [];
+  api.classifyOrphansWithLlm.mockImplementation(
+    ({ signal }: { signal: AbortSignal }) =>
+      new Promise((resolve, reject) => {
+        pending.push(resolve);
+        signal.addEventListener('abort', () => reject(signal.reason));
+      }),
+  );
+  return {
+    sent: () => pending.length,
+    /** Answer request `index` (once it has been sent). */
+    answer: async (index: number, report: unknown) => {
+      await vi.waitFor(() => expect(pending.length).toBeGreaterThan(index));
+      pending[index](report);
+    },
+  };
+}
+
+describe('closing the dialog (reset) while the AI is working', () => {
+  it('sends no further orphan batch and keeps no report, status or progress', async () => {
+    const answers = deferredAnswers();
+    const { result } = renderHook(() => useKgRefine());
+
+    let outcome: Promise<unknown> = Promise.resolve();
+    act(() => {
+      outcome = result.current.runLlmOrphanClassification('', creds('sk-key'), ['n1', 'n2', 'n3'], 'sig');
+    });
+    await act(async () => answers.answer(0, REPORT));
+    await vi.waitFor(() => expect(answers.sent()).toBe(2));
+
+    act(() => result.current.reset());
+    await act(async () => {
+      expect(await outcome).toBeNull();
+    });
+
+    expect(answers.sent()).toBe(2);
+    expect(api.classifyOrphansWithLlm.mock.calls[1][0].signal.aborted).toBe(true);
+    expect(result.current).toMatchObject({ llmStatus: 'idle', llmReport: null, llmProgress: null });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('drops a full-graph answer that arrives after the dialog closed', async () => {
+    let answer: (report: unknown) => void = () => {};
+    api.llmCleanKg.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+    const { result } = renderHook(() => useKgRefine());
+
+    let outcome: Promise<unknown> = Promise.resolve();
+    act(() => {
+      outcome = result.current.runLlmFullCleanup('a library', creds('sk-key'));
+    });
+    act(() => result.current.reset());
+    await act(async () => {
+      answer(REPORT);
+      expect(await outcome).toBeNull();
+    });
+
+    expect(api.llmCleanKg.mock.calls[0][0].signal.aborted).toBe(true);
+    expect(result.current).toMatchObject({ llmStatus: 'idle', llmReport: null });
+  });
+
+  it('cancels the request in flight when the dialog unmounts', async () => {
+    deferredAnswers();
+    const { result, unmount } = renderHook(() => useKgRefine());
+
+    act(() => {
+      void result.current.runLlmOrphanClassification('', creds('sk-key'), ['n1'], 'sig');
+    });
+    await vi.waitFor(() => expect(api.classifyOrphansWithLlm).toHaveBeenCalled());
+    unmount();
+
+    expect(api.classifyOrphansWithLlm.mock.calls[0][0].signal.aborted).toBe(true);
   });
 });
 

@@ -214,7 +214,8 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     if (open) setLlmKey(readLlmKey());
   }, [open]);
 
-  // Reset internal state on close.
+  // Reset internal state on close. `refine.reset()` also cancels an AI
+  // analysis still running, so it cannot fill the dialog after it closed.
   useEffect(() => {
     if (!open) {
       setActiveTab(initialTab ?? 'static');
@@ -283,13 +284,14 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     }
   }, [t]);
 
-  // Initialise / refresh LLM-tab decisions when a new LLM report arrives.
+  // Initialise / refresh LLM-tab decisions when a new LLM report arrives
+  // (only while open: a closed dialog has just been reset).
   useEffect(() => {
-    if (refine.llmReport) {
+    if (open && refine.llmReport) {
       setLlmDecisions(_initialDecisions(refine.llmReport.issues));
       setLlmPhase('review');
     }
-  }, [refine.llmReport]);
+  }, [open, refine.llmReport]);
 
   const handleStaticDecisionChange = (issueId: string, decision: RowDecision) => {
     setStaticDecisions((prev) => ({ ...prev, [issueId]: decision }));
@@ -938,7 +940,8 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                   </div>
                 )}
                 <DialogFooter>
-                  <Button variant="outline" onClick={onClose} disabled={refine.llmStatus === 'loading'}>
+                  {/* Enabled while the analysis runs: closing cancels it. */}
+                  <Button variant="outline" onClick={onClose} data-testid="kg-refine-llm-cancel">
                     {t('common.cancel')}
                   </Button>
                   <Button

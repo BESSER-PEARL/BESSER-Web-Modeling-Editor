@@ -5,8 +5,10 @@ import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiag
 /**
  * API layer for the Knowledge Graph feature.
  *
- * Every KG HTTP call goes through the shared `apiClient` (timeouts, `{"detail"}`
- * error parsing into `ApiError`). The response types below mirror the backend's
+ * One function per endpoint (`/besser_api/kg/...`); the flows built on them
+ * (batching, merging, retries) belong to the features that use them. Every KG
+ * HTTP call goes through the shared `apiClient` (timeouts, `{"detail"}` error
+ * parsing into `ApiError`). The response types below mirror the backend's
  * `backend/models/responses.py`; a change there is a change here.
  */
 
@@ -232,6 +234,8 @@ export interface LlmCleanKgRequest {
   /** What the system is, in the user's words. Optional: when blank the model infers the domain from the graph. */
   description?: string;
   credentials: KgLlmCredentials;
+  /** Cancels the request (the user closed the dialog). */
+  signal?: AbortSignal;
 }
 
 /** The body fields both LLM endpoints share (the backend's `KGLLMRequest`). */
@@ -247,99 +251,42 @@ export const llmCleanKg = async ({
   diagram,
   description,
   credentials,
+  signal,
 }: LlmCleanKgRequest): Promise<KgPreflightReport> => {
   const config = await getKgConfig();
   return apiClient.post<KgPreflightReport>(
     '/kg/llm-clean',
     { diagram: diagramBody(diagram), ...llmBody({ description, credentials }) },
-    { timeout: llmTimeoutMs(config) },
+    { timeout: llmTimeoutMs(config), signal },
   );
 };
 
 export interface ClassifyOrphansRequest extends LlmCleanKgRequest {
+  /** At most `maxOrphanClassifyNodes` ids (`getKgConfig`): the server rejects more. */
   nodeIds: string[];
   kgSignature: string;
-  /** Called before the first batch and after each one, with how many of
-   *  `total` batches are done. */
-  onProgress?: (progress: { done: number; total: number }) => void;
 }
 
-/** The reports of several batches of one graph carry different signatures,
- *  so they cannot all describe the graph the user is about to change. */
-export class KgBatchMismatchError extends Error {
-  constructor() {
-    super('The batches of the orphan classification describe different versions of the graph.');
-    this.name = 'KgBatchMismatchError';
-  }
-}
-
-/**
- * One report out of the reports of several batches of the same graph.
- *
- * Well-defined because every batch is sent against the same diagram and
- * signature, the batches hold disjoint node ids, and the server derives an
- * issue's id from its action and the nodes it touches: the issues are
- * concatenated (an id seen twice is kept once) and the signature, which must
- * be the same in every report, is kept.
- */
-export function mergeOrphanReports(reports: readonly KgPreflightReport[]): KgPreflightReport {
-  if (reports.length === 0) throw new Error('mergeOrphanReports needs at least one report');
-  const [first] = reports;
-  if (reports.some((r) => r.kgSignature !== first.kgSignature)) throw new KgBatchMismatchError();
-  const seen = new Set<string>();
-  const issues: KgIssue[] = [];
-  for (const report of reports) {
-    for (const issue of report.issues) {
-      if (seen.has(issue.id)) continue;
-      seen.add(issue.id);
-      issues.push(issue);
-    }
-  }
-  return { kgSignature: first.kgSignature, diagramType: first.diagramType, issueCount: issues.length, issues };
-}
-
-/**
- * Ask the LLM to place nodes that have no class.
- *
- * The server takes at most `maxOrphanClassifyNodes` ids per request (from
- * `getKgConfig`), so a longer list is sent in batches of that size, one after
- * the other (each batch is already a chain of LLM calls on the server; running
- * them in parallel would only multiply the load on the user's key), and the
- * reports are merged into one (`mergeOrphanReports`) that the AI tab reviews
- * and applies in a single step. A failed batch fails the whole call.
- */
+/** Ask the LLM to place nodes that have no class: one request, for at most
+ *  `maxOrphanClassifyNodes` of them. */
 export const classifyOrphansWithLlm = async ({
   diagram,
   description,
   credentials,
   nodeIds,
   kgSignature,
-  onProgress,
+  signal,
 }: ClassifyOrphansRequest): Promise<KgPreflightReport> => {
   const config = await getKgConfig();
-  const ids = [...new Set(nodeIds)];
-  const size = config.maxOrphanClassifyNodes;
-  const batches: string[][] = [];
-  for (let i = 0; i < ids.length; i += size) batches.push(ids.slice(i, i + size));
-
-  const reports: KgPreflightReport[] = [];
-  onProgress?.({ done: 0, total: batches.length });
-  for (const batch of batches) {
-    const report = await apiClient.post<KgPreflightReport>(
-      '/kg/classify-orphans',
-      {
-        diagram: { ...diagramBody(diagram), kgSignature },
-        ...llmBody({ description, credentials }),
-        nodeIds: batch,
-      },
-      { timeout: llmTimeoutMs(config) },
-    );
-    // A malformed answer goes back as is, for the caller to reject.
-    if (!report || !Array.isArray(report.issues)) return report;
-    reports.push(report);
-    onProgress?.({ done: reports.length, total: batches.length });
-  }
-  return mergeOrphanReports(reports);
+  return apiClient.post<KgPreflightReport>(
+    '/kg/classify-orphans',
+    {
+      diagram: { ...diagramBody(diagram), kgSignature },
+      ...llmBody({ description, credentials }),
+      nodeIds,
+    },
+    { timeout: llmTimeoutMs(config), signal },
+  );
 };
 
 /** Parse an OWL / RDF-XML / Turtle file into a Knowledge Graph model. */
@@ -408,14 +355,13 @@ export const exportKgRdf = async ({
 // Errors
 // ---------------------------------------------------------------------------
 
-/** User-facing text for a failed KG call: the request timing out, the server's
- *  limits being unavailable and mismatched batches get their own message (the
- *  raw ones are English or name milliseconds); anything else shows what the
- *  server or the network said, else `fallback`. */
+/** User-facing text for a failed KG call: the request timing out and the
+ *  server's limits being unavailable get their own message (the raw ones are
+ *  English or name milliseconds); anything else shows what the server or the
+ *  network said, else `fallback`. */
 export function kgApiErrorMessage(error: unknown, t: TFunction, fallback: string): string {
   if (error instanceof DOMException && error.name === 'TimeoutError') return t('import.kg.api.timedOut');
   if (error instanceof KgConfigUnavailableError) return t('import.kg.api.configUnavailable');
-  if (error instanceof KgBatchMismatchError) return t('import.kg.api.batchMismatch');
   if (error instanceof Error && error.message) return error.message;
   // A rejected Redux thunk's `.unwrap()` throws a serialized error: a plain
   // `{ name, message }` object, not an `Error`. Without this its message was

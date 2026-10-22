@@ -3693,8 +3693,7 @@
       },
       "api": {
         "timedOut": "Die Anfrage hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es erneut.",
-        "configUnavailable": "Die Grenzwerte für den Knowledge Graph konnten nicht vom Server geladen werden. Prüfen Sie, ob das Backend erreichbar ist, und versuchen Sie es erneut.",
-        "batchMismatch": "Der Graph hat sich während der Klassifizierung seiner Knoten geändert. Führen Sie die Klassifizierung erneut aus."
+        "configUnavailable": "Die Grenzwerte für den Knowledge Graph konnten nicht vom Server geladen werden. Prüfen Sie, ob das Backend erreichbar ist, und versuchen Sie es erneut."
       }
     }
   },

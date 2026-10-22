@@ -8,13 +8,17 @@
 // ``updateDiagramModelThunk``. That is a model update, so ``editorRevision`` is
 // not bumped (it would remount the editor and clear its undo history): the KG
 // editor sees the new ``currentDiagram`` in the store and resets its model.
-import { useCallback, useMemo, useState } from 'react';
+//
+// The LLM calls can run for minutes (and orphan classification in several
+// batches). ``reset`` (the dialog closing) cancels the one in flight: no
+// further batch is sent, and its answer, if it still arrives, is dropped
+// instead of landing in a dialog that has been closed.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import {
   applyKgRefinement,
-  classifyOrphansWithLlm,
   kgApiErrorMessage,
   llmCleanKg,
   type KgIssue,
@@ -28,6 +32,11 @@ import { displayError } from '../../../app/store/errorManagementSlice';
 import { getActiveKgDiagram } from '../activeKgDiagram';
 import type { RowDecision } from '../types';
 import { useKgPreflight, type PreflightStatus } from './useKgPreflight';
+import {
+  classifyOrphansInBatches,
+  InvalidOrphanReportError,
+  type OrphanBatchProgress,
+} from './classifyOrphansInBatches';
 
 export type RefineStatus = PreflightStatus;
 
@@ -52,7 +61,7 @@ export interface UseKgRefineReturn {
   llmStatus: RefineStatus;
   llmReport: KgPreflightReport | null;
   /** Batches of the running orphan classification, or null when none runs. */
-  llmProgress: { done: number; total: number } | null;
+  llmProgress: OrphanBatchProgress | null;
   runLlmFullCleanup: (description: string, credentials: KgLlmCredentials) => Promise<KgPreflightReport | null>;
   runLlmOrphanClassification: (
     description: string,
@@ -66,6 +75,7 @@ export interface UseKgRefineReturn {
     kgSignature: string,
   ) => Promise<boolean>;
 
+  /** Back to the initial state; cancels an LLM call in flight. */
   reset: () => void;
 }
 
@@ -82,7 +92,17 @@ export const useKgRefine = (): UseKgRefineReturn => {
   } = useKgPreflight('import.kg.refine.staticFailed');
   const [llmStatus, setLlmStatus] = useState<RefineStatus>('idle');
   const [llmReport, setLlmReport] = useState<KgPreflightReport | null>(null);
-  const [llmProgress, setLlmProgress] = useState<{ done: number; total: number } | null>(null);
+  const [llmProgress, setLlmProgress] = useState<OrphanBatchProgress | null>(null);
+
+  // The LLM call in flight, if any. A new call or a reset aborts it; once
+  // aborted, nothing it returns or throws touches the state any more.
+  const llmRun = useRef<AbortController | null>(null);
+  const startLlmRun = useCallback((): AbortSignal => {
+    llmRun.current?.abort();
+    llmRun.current = new AbortController();
+    return llmRun.current.signal;
+  }, []);
+  useEffect(() => () => llmRun.current?.abort(), []);
 
   const applyStatic = useCallback(
     async (
@@ -131,13 +151,16 @@ export const useKgRefine = (): UseKgRefineReturn => {
         return null;
       }
 
+      const signal = startLlmRun();
       setLlmStatus('loading');
       try {
         const data = await llmCleanKg({
           diagram: kgDiagram,
           description: desc,
           credentials: { ...credentials, apiKey: key },
+          signal,
         });
+        if (signal.aborted) return null;
         if (!data || !Array.isArray(data.issues)) {
           throw new Error(t('import.kg.refine.invalidLlmResponse'));
         }
@@ -145,6 +168,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         setLlmStatus('success');
         return data;
       } catch (error) {
+        if (signal.aborted) return null;
         const message = kgApiErrorMessage(error, t, t('import.kg.refine.aiFailed'));
         toast.error(message);
         setLlmStatus('error');
@@ -152,7 +176,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         return null;
       }
     },
-    [t],
+    [t, startLlmRun],
   );
 
   const runLlmOrphanClassification = useCallback(
@@ -177,33 +201,39 @@ export const useKgRefine = (): UseKgRefineReturn => {
         return null;
       }
 
+      const signal = startLlmRun();
       setLlmStatus('loading');
       try {
-        const data = await classifyOrphansWithLlm({
+        const data = await classifyOrphansInBatches({
           diagram: kgDiagram,
           description: desc,
           credentials: { ...credentials, apiKey: key },
           nodeIds,
           kgSignature,
-          onProgress: setLlmProgress,
+          signal,
+          onProgress: (progress) => {
+            if (!signal.aborted) setLlmProgress(progress);
+          },
         });
-        if (!data || !Array.isArray(data.issues)) {
-          throw new Error(t('import.kg.refine.invalidOrphanResponse'));
-        }
+        if (signal.aborted) return null;
         setLlmReport(data);
         setLlmStatus('success');
         return data;
       } catch (error) {
-        const message = kgApiErrorMessage(error, t, t('import.kg.refine.orphanFailed'));
+        if (signal.aborted) return null;
+        const message =
+          error instanceof InvalidOrphanReportError
+            ? t('import.kg.refine.invalidOrphanResponse')
+            : kgApiErrorMessage(error, t, t('import.kg.refine.orphanFailed'));
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
         return null;
       } finally {
-        setLlmProgress(null);
+        if (!signal.aborted) setLlmProgress(null);
       }
     },
-    [t],
+    [t, startLlmRun],
   );
 
   const applyLlm = useCallback(
@@ -240,6 +270,8 @@ export const useKgRefine = (): UseKgRefineReturn => {
   );
 
   const reset = useCallback(() => {
+    llmRun.current?.abort();
+    llmRun.current = null;
     resetStatic();
     setLlmStatus('idle');
     setLlmReport(null);
