@@ -91,7 +91,7 @@ describe('modelChangeQuestion', () => {
     expect(q.confirmLabel).toBe('Start fresh');
     expect(q.cancelLabel).toBe('Update the existing app');
     expect(q.description).toContain(
-      'About 64% of the classes and attributes your app was built from have no match in the current diagram.',
+      'About 64% of the model your app was built from was removed or had attributes renamed.',
     );
   });
 
@@ -112,12 +112,18 @@ describe('modelChangeQuestion', () => {
 
   it('names only classes when the base run recorded class names only', () => {
     const q = modelChangeQuestion('large', { ...change, basis: 'classes' });
-    expect(q.description).toContain('About 64% of the classes your app was built from');
+    expect(q.description).toContain('About 64% of the classes your app was built from were removed.');
+    expect(modelChangeQuestion('unrelated', { ...change, basis: 'classes' }).description).toContain(
+      'Most of the classes your app was built from were removed.',
+    );
   });
 
   it('recommends starting fresh for another app', () => {
     const q = modelChangeQuestion('unrelated', { ...change, verdict: 'unrelated', gone: 1 });
     expect(q.title).toBe('This looks like a different app');
+    expect(q.description).toContain(
+      'Most of the model your app was built from was removed or had attributes renamed.',
+    );
     expect(q.description).toContain('Starting fresh is recommended');
   });
 });

@@ -15,7 +15,10 @@ export interface ModelChange {
   verdict: 'small' | 'large' | 'unrelated';
   /** `classes` when the base run recorded class names only. */
   basis: 'attributes' | 'classes';
-  /** Share of the base model's classes (and attributes) with no match in the new one; a recognised rename is a match. */
+  /**
+   * Share of the base model's classes and attributes removed, or attributes
+   * renamed (a class rename or a case-only rename does not count).
+   */
   gone: number;
   /** "Class" / "Class.attribute" names gone from, and new in, the model; renames excluded. */
   removed: string[];
@@ -110,13 +113,15 @@ export function modelChangeQuestion(
     listed('Removed', change.removed) +
     listed('Added', change.added) +
     listed('Renamed', change.renamed.map((r) => `${r.from} → ${r.to}`));
-  const elements = change.basis === 'classes' ? 'classes' : 'classes and attributes';
+  const goneText =
+    change.basis === 'classes'
+      ? 'of the classes your app was built from were removed'
+      : 'of the model your app was built from was removed or had attributes renamed';
   return verdict === 'unrelated'
     ? {
         title: 'This looks like a different app',
         description:
-          `Most of the ${elements} your app was built from have no match in the ` +
-          `current diagram.${diff} ` +
+          `Most ${goneText}.${diff} ` +
           'Starting fresh is recommended: it builds a clean app from the current ' +
           'diagram. Updating adapts the existing code and can leave parts of the ' +
           'old app behind.',
@@ -126,8 +131,7 @@ export function modelChangeQuestion(
     : {
         title: 'Your class diagram changed a lot',
         description:
-          `About ${Math.round(change.gone * 100)}% of the ${elements} your app was ` +
-          `built from have no match in the current diagram.${diff} Updating keeps ` +
+          `About ${Math.round(change.gone * 100)}% ${goneText}.${diff} Updating keeps ` +
           'the custom work in the existing app, but old enumerations, methods and relationships may ' +
           'stay in the code. Starting fresh builds a clean app from the current ' +
           'diagram, without that work.',
