@@ -9,20 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useProject } from '../../app/hooks/useProject';
-import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { useAppDispatch } from '../../app/store/hooks';
+import { updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import {
   DEFAULT_KG_HARD_LIMIT,
   DEFAULT_KG_LAYOUT,
   DEFAULT_KG_SHOW_META_VOCAB,
   DEFAULT_KG_SOFT_LIMIT,
-  getActiveDiagram,
   getKgHardLimit,
   getKgLayout,
   getKgShowMetaVocab,
   getKgSoftLimit,
   isKnowledgeGraphData,
 } from '../../shared/types/project';
-import type { KnowledgeGraphData, KnowledgeGraphLayout } from '../../shared/types/project';
+import type { KnowledgeGraphData, KnowledgeGraphLayout, KnowledgeGraphSettings } from '../../shared/types/project';
 
 const MIN = 1;
 const MAX = 10000;
@@ -38,10 +38,13 @@ const VocabCode: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
 
 export const KnowledgeGraphSettingsPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { currentProject } = useProject();
+  const { currentProject, currentDiagram, currentDiagramType } = useProject();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const kgDiagram = currentProject ? getActiveDiagram(currentProject, 'KnowledgeGraphDiagram') : undefined;
+  // The settings belong to the diagram open in the workspace: that is the one
+  // `updateDiagramModelThunk` writes, so the page edits nothing else.
+  const kgDiagram = currentDiagramType === 'KnowledgeGraphDiagram' ? currentDiagram : undefined;
   const storedModel = useMemo<KnowledgeGraphData | null>(() => {
     const m = kgDiagram?.model;
     return isKnowledgeGraphData(m) ? m : null;
@@ -88,56 +91,45 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
     showMetaInput !== appliedStoredShowMeta;
   const canSave = isDirty && softValid && hardValid && orderValid;
 
-  const save = () => {
-    if (!currentProject) return;
-    const project = ProjectStorageRepository.loadProject(currentProject.id);
-    if (!project) return;
-    const active = getActiveDiagram(project, 'KnowledgeGraphDiagram');
-    if (!active || !isKnowledgeGraphData(active.model)) return;
-
-    const nextSettings = { ...(active.model.settings ?? {}) };
-    if (softInput.trim() === '') {
-      delete (nextSettings as any).softLimit;
-    } else {
-      nextSettings.softLimit = softVal;
-    }
-    if (hardInput.trim() === '') {
-      delete (nextSettings as any).hardLimit;
-    } else {
-      nextSettings.hardLimit = hardVal;
-    }
-    if (layoutInput === DEFAULT_KG_LAYOUT) {
-      delete (nextSettings as any).layout;
-    } else {
-      nextSettings.layout = layoutInput;
-    }
-    if (showMetaInput === DEFAULT_KG_SHOW_META_VOCAB) {
-      delete (nextSettings as any).showMetaVocabNodes;
-    } else {
-      nextSettings.showMetaVocabNodes = showMetaInput;
-    }
-    // Clear the legacy field once either of the new ones is written.
-    delete (nextSettings as any).maxVisibleNodes;
+  const save = async () => {
+    if (!storedModel) return;
+    // Every field this page owns is dropped, then written back only when it
+    // differs from the default; the legacy `maxVisibleNodes` is never written.
+    const {
+      softLimit: _softLimit,
+      hardLimit: _hardLimit,
+      layout: _layout,
+      showMetaVocabNodes: _showMetaVocabNodes,
+      maxVisibleNodes: _legacyLimit,
+      ...otherSettings
+    } = storedModel.settings ?? {};
+    const nextSettings: KnowledgeGraphSettings = {
+      ...otherSettings,
+      ...(softInput.trim() === '' ? {} : { softLimit: softVal }),
+      ...(hardInput.trim() === '' ? {} : { hardLimit: hardVal }),
+      ...(layoutInput === DEFAULT_KG_LAYOUT ? {} : { layout: layoutInput }),
+      ...(showMetaInput === DEFAULT_KG_SHOW_META_VOCAB ? {} : { showMetaVocabNodes: showMetaInput }),
+    };
 
     // If the layout algorithm changed, wipe persisted node positions so the
     // editor re-runs the newly-chosen layout on its next sync pass (which
     // fires as soon as the user navigates back to the editor).
     const layoutChanged = layoutInput !== appliedStoredLayout;
     const nextNodes = layoutChanged
-      ? active.model.nodes.map((n) => {
+      ? storedModel.nodes.map((n) => {
           const { position: _discarded, ...rest } = n;
           return rest;
         })
-      : active.model.nodes;
+      : storedModel.nodes;
 
-    const nextModel: KnowledgeGraphData = { ...active.model, nodes: nextNodes, settings: nextSettings };
-    const ok = ProjectStorageRepository.updateDiagram(project.id, 'KnowledgeGraphDiagram', {
-      ...active,
-      model: nextModel,
-      lastUpdate: new Date().toISOString(),
-    });
-    if (ok) toast.success(t('editors.kg.settings.saved'));
-    else toast.error(t('editors.kg.settings.saveFailed'));
+    const nextModel: KnowledgeGraphData = { ...storedModel, nodes: nextNodes, settings: nextSettings };
+    try {
+      const updated = await dispatch(updateDiagramModelThunk({ model: nextModel })).unwrap();
+      if (!updated) throw new Error('no active diagram');
+      toast.success(t('editors.kg.settings.saved'));
+    } catch {
+      toast.error(t('editors.kg.settings.saveFailed'));
+    }
   };
 
   const resetToDefault = () => {
@@ -298,7 +290,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
           <Separator />
 
           <div className="flex items-center gap-2">
-            <Button onClick={save} disabled={!canSave}>
+            <Button onClick={() => void save()} disabled={!canSave}>
               {t('common.save')}
             </Button>
             <Button
