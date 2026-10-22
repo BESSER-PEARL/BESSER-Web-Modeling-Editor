@@ -2,7 +2,7 @@
 //
 // Two tabs:
 //   - Automatic: runs the static analyzer on mount, lets the user accept/skip
-//                each issue, and applies via /apply-kg-refinement (source=static).
+//                each issue, and applies via /kg/apply-refinement (source=static).
 //                For ORPHAN_NODE_NO_CLASS_LINK issues, "skip" defers the orphan
 //                set to LLM classification; the apply response carries
 //                pendingOrphanClassification which auto-switches to the AI tab.
@@ -14,8 +14,8 @@
 //                needs a description: there is nothing else to say what the
 //                user wants refined.
 //                If pending orphan node ids were carried over, the input phase
-//                triggers /classify-orphans-with-llm; otherwise it triggers
-//                /llm-clean-kg (full-graph). Apply via /apply-kg-refinement
+//                triggers /kg/classify-orphans; otherwise it triggers
+//                /kg/llm-clean (full-graph). Apply via /kg/apply-refinement
 //                (source=llm), then close the modal.
 //
 // Each tab owns its own decisions state; switching tabs preserves both.
@@ -248,7 +248,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   }, [open]);
 
   // Consistency tab runner. Reads the active KG diagram from local storage,
-  // calls /check-kg-consistency, and stores the report. Only invoked when
+  // calls /kg/consistency, and stores the report. Only invoked when
   // the user explicitly clicks the "Run check" / "Re-check" button — the
   // OWL/SHACL validation can be slow on large KGs, so we keep the user in
   // control of when it actually fires.

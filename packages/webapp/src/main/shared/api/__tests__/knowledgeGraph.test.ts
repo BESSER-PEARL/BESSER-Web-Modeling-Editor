@@ -37,7 +37,7 @@ const diagram: KgDiagramRef = {
 };
 const KEY = 'sk-test-secret-123';
 
-/** What the server's `GET /kg-config` answers in these tests. */
+/** What the server's `GET /kg/config` answers in these tests. */
 const KG_CONFIG = { llmRequestTimeoutSeconds: 200, maxOrphanClassifyNodes: 2 };
 
 beforeEach(() => {
@@ -56,7 +56,7 @@ describe('JSON calls', () => {
   it('analyzeKg posts only the diagram', async () => {
     await analyzeKg(diagram);
 
-    expect(client.post).toHaveBeenCalledWith('/analyze-kg-for-buml-conversion', {
+    expect(client.post).toHaveBeenCalledWith('/kg/preflight', {
       id: 'd1',
       title: 'People',
       model: diagram.model,
@@ -66,7 +66,7 @@ describe('JSON calls', () => {
   it('checkKgConsistency posts only the diagram', async () => {
     await checkKgConsistency(diagram);
 
-    expect(client.post).toHaveBeenCalledWith('/check-kg-consistency', { id: 'd1', title: 'People', model: diagram.model });
+    expect(client.post).toHaveBeenCalledWith('/kg/consistency', { id: 'd1', title: 'People', model: diagram.model });
   });
 
   it('applyKgRefinement sends the source, signature and decisions', async () => {
@@ -78,7 +78,7 @@ describe('JSON calls', () => {
     });
 
     const [endpoint, body] = client.post.mock.calls[0];
-    expect(endpoint).toBe('/apply-kg-refinement');
+    expect(endpoint).toBe('/kg/apply-refinement');
     expect(body).toMatchObject({ id: 'd1', source: 'static', kgSignature: 'sig', resolutions: [{ issueId: 'i1', decision: 'accept' }] });
     expect(body).not.toHaveProperty('llmIssues');
   });
@@ -95,7 +95,7 @@ describe('JSON calls', () => {
     await kgToClassDiagram({ diagram, resolutions: [] });
 
     const [endpoint, body, options] = client.post.mock.calls[0];
-    expect(endpoint).toBe('/kg-to-class-diagram');
+    expect(endpoint).toBe('/kg/to-class-diagram');
     expect(body).toEqual({ id: 'd1', title: 'People', model: diagram.model });
     expect(options.timeout).toBeGreaterThan(30_000);
   });
@@ -114,7 +114,7 @@ describe('LLM calls', () => {
     await llmCleanKg({ diagram, description: 'a library', credentials });
 
     const [endpoint, body, options] = client.post.mock.calls[0];
-    expect(endpoint).toBe('/llm-clean-kg');
+    expect(endpoint).toBe('/kg/llm-clean');
     expect(endpoint).not.toContain(KEY);
     expect(body).toEqual({
       diagram: { id: 'd1', title: 'People', model: diagram.model },
@@ -122,8 +122,8 @@ describe('LLM calls', () => {
       provider: 'anthropic',
       api_key: KEY,
     });
-    // The server's deadline comes from /kg-config; the browser must outlast it.
-    expect(client.get).toHaveBeenCalledWith('/kg-config');
+    // The server's deadline comes from /kg/config; the browser must outlast it.
+    expect(client.get).toHaveBeenCalledWith('/kg/config');
     expect(options.timeout).toBeGreaterThan(200_000);
     expect(options.timeout).toBeLessThanOrEqual(230_000);
   });
@@ -154,9 +154,9 @@ describe('LLM calls', () => {
     });
 
     const [endpoint, body, options] = client.post.mock.calls[0];
-    expect(endpoint).toBe('/classify-orphans-with-llm');
+    expect(endpoint).toBe('/kg/classify-orphans');
     expect(endpoint).not.toContain(KEY);
-    expect(body.node_ids).toEqual(['n1', 'n2']);
+    expect(body.nodeIds).toEqual(['n1', 'n2']);
     expect(body.diagram.kgSignature).toBe('sig');
     expect(body).toMatchObject({ provider: 'anthropic', api_key: KEY, description: 'a library' });
     expect(options.timeout).toBeGreaterThan(200_000);
@@ -241,7 +241,7 @@ describe('server-owned KG limits', () => {
       onProgress: (p) => progress.push(p),
     });
 
-    expect(client.post.mock.calls.map((c) => c[1].node_ids)).toEqual([['n1', 'n2'], ['n3', 'n4'], ['n5']]);
+    expect(client.post.mock.calls.map((c) => c[1].nodeIds)).toEqual([['n1', 'n2'], ['n3', 'n4'], ['n5']]);
     for (const call of client.post.mock.calls) expect(call[1].diagram.kgSignature).toBe('sig');
     expect(merged).toEqual(report(['i1', 'i2', 'i3', 'i4', 'i5'].map((id, i) => issue(id, `n${i + 1}`))));
     expect(progress).toEqual([
@@ -281,7 +281,7 @@ describe('importOwl', () => {
     await importOwl(file);
 
     const [endpoint, , options] = client.upload.mock.calls[0];
-    expect(endpoint).toBe('/import-owl');
+    expect(endpoint).toBe('/kg/import-owl');
     expect(uploadedForm().owl_file).toBeInstanceOf(File);
     expect((uploadedForm().owl_file as File).name).toBe('onto.owl');
     expect(options.timeout).toBeGreaterThan(30_000);
@@ -298,7 +298,7 @@ describe('exportKgRdf', () => {
 
     const result = await exportKgRdf({ diagram, format: 'ttl', vocab: 'shacl' });
 
-    expect(client.downloadBlob).toHaveBeenCalledWith('/export-kg-rdf/ttl', {
+    expect(client.downloadBlob).toHaveBeenCalledWith('/kg/export/ttl', {
       id: 'd1',
       title: 'People',
       model: diagram.model,

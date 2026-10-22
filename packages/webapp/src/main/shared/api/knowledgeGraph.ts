@@ -25,13 +25,13 @@ const HEAVY_TIMEOUT_MS = 60_000;
 // Server-owned limits
 // ---------------------------------------------------------------------------
 
-/** Backend `GET /kg-config`: the limits the server enforces on the KG LLM
+/** Backend `GET /kg/config`: the limits the server enforces on the KG LLM
  *  endpoints. Never hardcode a copy: a stale one silently becomes the binding
  *  limit (a timeout shorter than the server's, or a batch it rejects). */
 export interface KgConfig {
   /** Overall deadline, in seconds, the server gives one KG LLM request. */
   llmRequestTimeoutSeconds: number;
-  /** Most node ids one `/classify-orphans-with-llm` request may carry. */
+  /** Most node ids one `/kg/classify-orphans` request may carry. */
   maxOrphanClassifyNodes: number;
 }
 
@@ -52,7 +52,7 @@ function parseKgConfig(raw: unknown): KgConfig {
   const timeout = data?.llmRequestTimeoutSeconds;
   const maxNodes = data?.maxOrphanClassifyNodes;
   if (!isPositiveNumber(timeout) || !isPositiveNumber(maxNodes) || maxNodes < 1) {
-    throw new Error(`Unexpected /kg-config payload: ${JSON.stringify(raw)}`);
+    throw new Error(`Unexpected /kg/config payload: ${JSON.stringify(raw)}`);
   }
   return { llmRequestTimeoutSeconds: timeout, maxOrphanClassifyNodes: Math.floor(maxNodes) };
 }
@@ -68,7 +68,7 @@ let kgConfigPromise: Promise<KgConfig> | null = null;
 export function getKgConfig(): Promise<KgConfig> {
   if (!kgConfigPromise) {
     kgConfigPromise = apiClient
-      .get<unknown>('/kg-config')
+      .get<unknown>('/kg/config')
       .then(parseKgConfig)
       .catch((error: unknown) => {
         kgConfigPromise = null;
@@ -108,8 +108,8 @@ export interface KgIssue {
   skipAction: KgAction | null;
 }
 
-/** Backend `KGPreflightReportResponse`: answer of `/analyze-kg-for-buml-conversion`,
- *  `/llm-clean-kg` and `/classify-orphans-with-llm`. */
+/** Backend `KGPreflightReportResponse`: answer of `/kg/preflight`,
+ *  `/kg/llm-clean` and `/kg/classify-orphans`. */
 export interface KgPreflightReport {
   kgSignature: string;
   diagramType: string;
@@ -126,7 +126,7 @@ export interface KgPendingOrphanClassification {
   kgSignature: string;
 }
 
-/** Backend `KGRefinementResponse`: answer of `/apply-kg-refinement`. */
+/** Backend `KGRefinementResponse`: answer of `/kg/apply-refinement`. */
 export interface KgRefinementResponse {
   title: string;
   model: KnowledgeGraphData;
@@ -137,8 +137,8 @@ export interface KgRefinementResponse {
   version?: string;
 }
 
-/** Backend `DiagramExportResponse`: answer of `/import-owl` (a KG model) and
- *  `/kg-to-class-diagram` (a class diagram model). `warnings` is the
+/** Backend `DiagramExportResponse`: answer of `/kg/import-owl` (a KG model) and
+ *  `/kg/to-class-diagram` (a class diagram model). `warnings` is the
  *  conversion's list of `{code, message}` anomalies. */
 export interface KgDiagramResponse<TModel> {
   title: string;
@@ -176,11 +176,11 @@ const diagramBody = (diagram: KgDiagramRef) => ({
 
 /** Static preflight: every element that has no clean B-UML mapping. */
 export const analyzeKg = (diagram: KgDiagramRef): Promise<KgPreflightReport> =>
-  apiClient.post<KgPreflightReport>('/analyze-kg-for-buml-conversion', diagramBody(diagram));
+  apiClient.post<KgPreflightReport>('/kg/preflight', diagramBody(diagram));
 
 /** OWL2 + SHACL consistency check of the graph's data. */
 export const checkKgConsistency = (diagram: KgDiagramRef): Promise<KgConsistencyReport> =>
-  apiClient.post<KgConsistencyReport>('/check-kg-consistency', diagramBody(diagram));
+  apiClient.post<KgConsistencyReport>('/kg/consistency', diagramBody(diagram));
 
 export interface ApplyKgRefinementRequest {
   diagram: KgDiagramRef;
@@ -201,7 +201,7 @@ export const applyKgRefinement = ({
   resolutions,
   llmIssues,
 }: ApplyKgRefinementRequest): Promise<KgRefinementResponse> =>
-  apiClient.post<KgRefinementResponse>('/apply-kg-refinement', {
+  apiClient.post<KgRefinementResponse>('/kg/apply-refinement', {
     ...diagramBody(diagram),
     source,
     kgSignature,
@@ -250,7 +250,7 @@ export const llmCleanKg = async ({
 }: LlmCleanKgRequest): Promise<KgPreflightReport> => {
   const config = await getKgConfig();
   return apiClient.post<KgPreflightReport>(
-    '/llm-clean-kg',
+    '/kg/llm-clean',
     { diagram: diagramBody(diagram), ...llmBody({ description, credentials }) },
     { timeout: llmTimeoutMs(config) },
   );
@@ -326,11 +326,11 @@ export const classifyOrphansWithLlm = async ({
   onProgress?.({ done: 0, total: batches.length });
   for (const batch of batches) {
     const report = await apiClient.post<KgPreflightReport>(
-      '/classify-orphans-with-llm',
+      '/kg/classify-orphans',
       {
         diagram: { ...diagramBody(diagram), kgSignature },
         ...llmBody({ description, credentials }),
-        node_ids: batch,
+        nodeIds: batch,
       },
       { timeout: llmTimeoutMs(config) },
     );
@@ -346,7 +346,7 @@ export const classifyOrphansWithLlm = async ({
 export const importOwl = (file: File): Promise<KgDiagramResponse<KnowledgeGraphData>> => {
   const form = new FormData();
   form.append('owl_file', file);
-  return apiClient.upload<KgDiagramResponse<KnowledgeGraphData>>('/import-owl', form, {
+  return apiClient.upload<KgDiagramResponse<KnowledgeGraphData>>('/kg/import-owl', form, {
     timeout: HEAVY_TIMEOUT_MS,
   });
 };
@@ -365,7 +365,7 @@ export const kgToClassDiagram = ({
   kgSignature,
 }: KgToClassDiagramRequest): Promise<KgDiagramResponse<ProjectDiagramModel>> =>
   apiClient.post<KgDiagramResponse<ProjectDiagramModel>>(
-    '/kg-to-class-diagram',
+    '/kg/to-class-diagram',
     {
       ...diagramBody(diagram),
       ...(resolutions && resolutions.length ? { resolutions } : {}),
@@ -397,7 +397,7 @@ export const exportKgRdf = async ({
   format,
   vocab,
 }: ExportKgRdfRequest): Promise<{ blob: Blob; filename: string | null }> => {
-  const { blob, headers } = await apiClient.downloadBlob(`/export-kg-rdf/${format}`, {
+  const { blob, headers } = await apiClient.downloadBlob(`/kg/export/${format}`, {
     ...diagramBody(diagram),
     vocab,
   });

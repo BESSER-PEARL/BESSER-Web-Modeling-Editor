@@ -132,7 +132,7 @@ assistant's dialog, and its opt-in flag is kept separate from the key so no plac
 - Never hardcode server-owned limits (cost/runtime caps, free-model ids, download TTL). They come from
   `GET /spec-driven/config`, fetched once per page load by `shared/services/specDrivenConfig.ts`; a stale
   hardcoded copy silently becomes the binding limit. The Knowledge Graph LLM timeout and orphan batch size come
-  from `GET /kg-config` (`getKgConfig` in `shared/api/knowledgeGraph.ts`), with no fallback.
+  from `GET /kg/config` (`getKgConfig` in `shared/api/knowledgeGraph.ts`), with no fallback.
 
 ## Key Patterns
 

@@ -219,7 +219,7 @@ export function mergeKnowledgeGraphs(
 }
 
 /**
- * The diagram model to store for what `/import-owl` returned.
+ * The diagram model to store for what `/kg/import-owl` returned.
  *
  * `axioms` must come along: the backend sends the OWL constructs that relate
  * several nodes (equivalent classes, inverse and sub-properties, ...) there and

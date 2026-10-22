@@ -1,6 +1,6 @@
 // Import an OWL/RDF ontology into a KnowledgeGraphDiagram.
 // Separate from `useImportDiagramKG` (which targets ClassDiagram via an LLM);
-// this hook hits `/import-owl` (rdflib-backed) and writes the parsed graph as
+// this hook hits `/kg/import-owl` (rdflib-backed) and writes the parsed graph as
 // the KG diagram's model so the Cytoscape canvas renders it directly.
 //
 // Where the parsed graph lands depends on the active KG tab:

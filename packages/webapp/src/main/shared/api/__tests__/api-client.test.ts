@@ -87,7 +87,7 @@ describe('apiClient.downloadBlob', () => {
 describe('FastAPI error details', () => {
   const VALIDATION_422 = {
     detail: [
-      { type: 'too_long', loc: ['body', 'node_ids'], msg: 'List should have at most 400 items', input: [] },
+      { type: 'too_long', loc: ['body', 'nodeIds'], msg: 'List should have at most 400 items', input: [] },
       { type: 'missing', loc: ['body', 'diagram', 'model'], msg: 'Field required' },
     ],
   };
@@ -95,21 +95,21 @@ describe('FastAPI error details', () => {
   it('turns a 422 validation list into a readable message, not "[object Object]"', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify(VALIDATION_422), { status: 422 }));
 
-    const error = (await apiClient.post('/classify-orphans-with-llm', {}).catch((e) => e)) as ApiError;
+    const error = (await apiClient.post('/kg/classify-orphans', {}).catch((e) => e)) as ApiError;
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error.status).toBe(422);
-    expect(error.message).toBe('node_ids: List should have at most 400 items; diagram.model: Field required');
+    expect(error.message).toBe('nodeIds: List should have at most 400 items; diagram.model: Field required');
     expect(error.message).not.toContain('[object Object]');
   });
 
   it('formats the detail of uploads and downloads the same way', async () => {
     fetchMock.mockImplementation(async () => new Response(JSON.stringify(VALIDATION_422), { status: 422 }));
 
-    const upload = (await apiClient.upload('/import-owl', new FormData()).catch((e) => e)) as ApiError;
+    const upload = (await apiClient.upload('/kg/import-owl', new FormData()).catch((e) => e)) as ApiError;
     const download = (await apiClient.downloadBlob('/export', {}).catch((e) => e)) as ApiError;
 
-    expect(upload.message).toContain('node_ids: List should have at most 400 items');
+    expect(upload.message).toContain('nodeIds: List should have at most 400 items');
     expect(download.message).toContain('diagram.model: Field required');
   });
 

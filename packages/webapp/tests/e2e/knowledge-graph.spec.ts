@@ -135,7 +135,7 @@ test.describe('Knowledge Graph diagram', () => {
   });
 
   test('imports an OWL file through the backend and shows its graph', async ({ page }) => {
-    await page.route(`${BACKEND}/import-owl`, (route) => route.fulfill({ json: OWL_IMPORT_RESPONSE }));
+    await page.route(`${BACKEND}/kg/import-owl`, (route) => route.fulfill({ json: OWL_IMPORT_RESPONSE }));
 
     await page.getByRole('button', { name: 'File', exact: true }).click();
     const [chooser] = await Promise.all([
@@ -148,7 +148,7 @@ test.describe('Knowledge Graph diagram', () => {
   });
 
   test('shows the backend\'s explanation when the import is refused', async ({ page }) => {
-    await page.route(`${BACKEND}/import-owl`, (route) =>
+    await page.route(`${BACKEND}/kg/import-owl`, (route) =>
       route.fulfill({ status: 400, json: { detail: 'The file contains a DOCTYPE and was not imported.' } }),
     );
 
@@ -165,7 +165,7 @@ test.describe('Knowledge Graph diagram', () => {
 
   test('the Export dialog offers RDF for a graph, not the UML image formats', async ({ page }) => {
     await dropNode(page, 'Class', { x: 300, y: 200 });
-    await page.route(`${BACKEND}/export-kg-rdf/ttl`, (route) =>
+    await page.route(`${BACKEND}/kg/export/ttl`, (route) =>
       route.fulfill({
         status: 200,
         contentType: 'text/turtle',

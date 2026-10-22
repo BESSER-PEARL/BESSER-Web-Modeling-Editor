@@ -191,7 +191,7 @@ describe('axioms', () => {
   });
 });
 
-describe('incomingFromImport (what /import-owl returned, as the diagram to store)', () => {
+describe('incomingFromImport (what /kg/import-owl returned, as the diagram to store)', () => {
   const response = {
     version: '1.0.0',
     nodes: [classNode('A')],

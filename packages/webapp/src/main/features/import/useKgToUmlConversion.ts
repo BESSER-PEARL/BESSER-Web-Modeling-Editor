@@ -1,5 +1,5 @@
 // Convert a Knowledge Graph diagram into a Class Diagram via the backend's
-// deterministic /kg-to-class-diagram endpoint, then open the result in a new
+// deterministic /kg/to-class-diagram endpoint, then open the result in a new
 // tab in the current project.
 //
 // Two-phase API:

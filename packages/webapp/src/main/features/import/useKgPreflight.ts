@@ -4,7 +4,7 @@
 // One issue = one "non-1-to-1" mapping. Each issue carries a
 // ``recommendedAction`` (pre-checked checkbox in the modal) and a
 // ``skipAction`` ("drop from output"). The user's decision per issue —
-// "accept" or "skip" — is later sent to ``/kg-to-class-diagram`` along
+// "accept" or "skip" — is later sent to ``/kg/to-class-diagram`` along
 // with the ``kgSignature`` echoed here so the backend can detect a stale
 // graph.
 import { useCallback, useState } from 'react';

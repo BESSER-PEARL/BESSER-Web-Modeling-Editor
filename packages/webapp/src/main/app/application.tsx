@@ -331,7 +331,7 @@ function AppContentInner() {
       </Suspense>
 
       {/* Pre-conversion consistency-gate modal: shown when the OWL/SHACL
-          consistency check (via /check-kg-consistency) finds issues just
+          consistency check (via /kg/consistency) finds issues just
           before a KG → ClassDiagram / ObjectDiagram conversion runs. Users
           can fix, proceed, or cancel. */}
       <Suspense fallback={null}>

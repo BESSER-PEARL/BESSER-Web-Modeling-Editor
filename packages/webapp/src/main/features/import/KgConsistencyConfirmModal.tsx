@@ -1,5 +1,5 @@
 // Pre-conversion warning modal. Surfaces inconsistencies returned by
-// /check-kg-consistency just before the KG → ClassDiagram conversion is
+// /kg/consistency just before the KG → ClassDiagram conversion is
 // triggered. The user can:
 //   - "Open Refine to fix": closes this modal and opens KgRefineModal on
 //     the Consistency tab.

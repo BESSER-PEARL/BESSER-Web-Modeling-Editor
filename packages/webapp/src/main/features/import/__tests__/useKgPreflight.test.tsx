@@ -32,7 +32,7 @@ describe('useKgPreflight', () => {
     vi.restoreAllMocks();
   });
 
-  it('posts to /analyze-kg-for-buml-conversion with the diagram and parses the report', async () => {
+  it('posts to /kg/preflight with the diagram and parses the report', async () => {
     const fakeReport = {
       kgSignature: 'sig-xyz',
       diagramType: 'ClassDiagram',
@@ -66,7 +66,7 @@ describe('useKgPreflight', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(String(url)).toContain('/analyze-kg-for-buml-conversion');
+    expect(String(url)).toContain('/kg/preflight');
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.id).toBe('d1');
   });

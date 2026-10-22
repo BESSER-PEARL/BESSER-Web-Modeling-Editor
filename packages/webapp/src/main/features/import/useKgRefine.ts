@@ -1,8 +1,8 @@
 // Unified Refine KG hook.
 //
 // Orchestrates the two tabs of the Refine KG modal:
-//   - Static (Automatic) tab → /analyze-kg-for-buml-conversion + apply via /apply-kg-refinement
-//   - LLM (AI) tab → /llm-clean-kg or /classify-orphans-with-llm + apply via /apply-kg-refinement
+//   - Static (Automatic) tab → /kg/preflight + apply via /kg/apply-refinement
+//   - LLM (AI) tab → /kg/llm-clean or /kg/classify-orphans + apply via /kg/apply-refinement
 //
 // Both apply legs return a cleaned KG; this hook dispatches
 // ``updateDiagramModelThunk``. That is a model update, so ``editorRevision`` is

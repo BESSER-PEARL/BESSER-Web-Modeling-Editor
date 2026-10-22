@@ -1,5 +1,5 @@
 // Export the active Knowledge Graph diagram as OWL (RDF/XML) or Turtle (TTL)
-// via the backend's /export-kg-rdf/{fmt} endpoint, then trigger a browser
+// via the backend's /kg/export/{fmt} endpoint, then trigger a browser
 // download. Used by the Export dialog when a KnowledgeGraphDiagram is active.
 // Resolves to whether a file was downloaded; failures are reported by toast.
 import { useCallback } from 'react';
