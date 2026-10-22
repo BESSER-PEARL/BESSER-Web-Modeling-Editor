@@ -19,6 +19,7 @@ import { writeProjectLastRun } from '@/main/features/spec-driven/storage';
 import type { TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
 import * as modelChange from '@/main/features/spec-driven/services/modelChange';
+import type { ModelChange } from '@/main/features/spec-driven/services/modelChange';
 import * as confirm from '@/main/shared/services/confirm/globalConfirm';
 import {
   sessionStorageSpecDrivenApiKey,
@@ -58,6 +59,10 @@ vi.mock('@/main/features/spec-driven/services/modelChange', async (importOrigina
 vi.mock('@/main/shared/services/confirm/globalConfirm', () => ({
   globalConfirm: vi.fn(),
 }));
+
+const change = (verdict: ModelChange['verdict'], gone: number, removed: string[] = [], added: string[] = []): ModelChange => ({
+  verdict, basis: 'attributes', gone, removed, added, renamed: [],
+});
 
 const PROJECT_ID = 'proj-model-change';
 const BASE = 'c'.repeat(32);
@@ -114,9 +119,9 @@ async function trigger(payload: TriggerSpecDrivenPayload = PAYLOAD) {
   return vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0];
 }
 
-/** Nothing of a run is visible yet: no slot, no intro line, no card. */
-function noRunYet() {
-  expect(store.getState().specDriven.runStatus).toBe('idle');
+/** Nothing of a run is visible yet: no running slot, no intro line, no card. */
+function noRunYet(slot: 'preparing' | 'idle' = 'preparing') {
+  expect(store.getState().specDriven.runStatus).toBe(slot);
   expect(conversationStore.getMessages()).toEqual([]);
   expect(vi.mocked(sseClient.startSpecDrivenRun)).not.toHaveBeenCalled();
 }
@@ -139,7 +144,7 @@ afterEach(() => {
 
 describe('second run: the model changed since the base app', () => {
   it('asks on an unrelated model and starts fresh when the user chooses so', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue({ verdict: 'unrelated', gone: 0.86, removed: ['Room'], added: ['Book'] });
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.86, ['Room'], ['Book']));
     vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
 
     const params = await trigger();
@@ -155,7 +160,7 @@ describe('second run: the model changed since the base app', () => {
   });
 
   it('updates the existing app when the user keeps it on a large change', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue({ verdict: 'large', gone: 0.64, removed: ['Room.price'], added: [] });
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.64, ['Room.price'], []));
     vi.mocked(confirm.globalConfirm).mockResolvedValue(false);
 
     const params = await trigger();
@@ -166,7 +171,7 @@ describe('second run: the model changed since the base app', () => {
   });
 
   it('does not ask on a small change, nor when the comparison is unavailable', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue({ verdict: 'small', gone: 0, removed: [], added: [] });
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
     expect((await trigger()).mode).toBe('modify');
     cleanup();
     vi.mocked(sseClient.startSpecDrivenRun).mockClear();
@@ -188,7 +193,7 @@ describe('second run: the question comes before the run', () => {
     let answer: ((startFresh: boolean) => void) | undefined;
     vi.mocked(modelChange.fetchModelChange).mockImplementation(async () => {
       noRunYet();
-      return { verdict: 'unrelated', gone: 0.9, removed: ['Room'], added: ['Book'] };
+      return change('unrelated', 0.9, ['Room'], ['Book']);
     });
     vi.mocked(confirm.globalConfirm).mockImplementation(
       () => new Promise((resolve) => { answer = resolve; }),
@@ -232,7 +237,7 @@ describe('second run: the question comes before the run', () => {
   });
 
   it('refuses a second trigger while the question is open', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue({ verdict: 'large', gone: 0.6, removed: [], added: [] });
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.6, [], []));
     let answer: ((startFresh: boolean) => void) | undefined;
     vi.mocked(confirm.globalConfirm).mockImplementation(
       () => new Promise((resolve) => { answer = resolve; }),
@@ -255,6 +260,34 @@ describe('second run: the question comes before the run', () => {
     expect(vi.mocked(sseClient.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses a trigger from the other chat surface while the question is open', async () => {
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.9));
+    let answer: ((startFresh: boolean) => void) | undefined;
+    vi.mocked(confirm.globalConfirm).mockImplementation(
+      () => new Promise((resolve) => { answer = resolve; }),
+    );
+    const widget = mount();
+    const drawer = mount();
+    let running: Promise<void> | undefined;
+    act(() => { running = widget.current!(PAYLOAD); });
+    await waitFor(() => expect(answer).toBeDefined());
+
+    await act(async () => { await drawer.current!(PAYLOAD); });
+    expect(vi.mocked(modelChange.fetchModelChange)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(confirm.globalConfirm)).toHaveBeenCalledTimes(1);
+    expect(conversationStore.getMessages().map((m) => m.content)).toEqual([
+      expect.stringContaining('already running'),
+    ]);
+    expect(vi.mocked(sseClient.startSpecDrivenRun)).not.toHaveBeenCalled();
+
+    await act(async () => {
+      answer!(true);
+      await running;
+    });
+    expect(vi.mocked(sseClient.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0].mode).toBe('generate');
+  });
+
   it('stop while the model check is pending: no card, no run, the agent hears it was cancelled', async () => {
     let checkSignal: AbortSignal | undefined;
     vi.mocked(modelChange.fetchModelChange).mockImplementation(
@@ -271,14 +304,14 @@ describe('second run: the question comes before the run', () => {
     await act(async () => { await running; });
 
     expect(checkSignal!.aborted).toBe(true);
-    noRunYet();
+    noRunYet('idle');
     expect(generating.current).toBe(false);
     expect(finished).toHaveBeenCalledTimes(1);
     expect(finished).toHaveBeenCalledWith(expect.objectContaining({ ok: false, errorCode: 'CANCELLED' }));
   });
 
   it('stop while the question is open closes it and the run never starts', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue({ verdict: 'large', gone: 0.64, removed: [], added: [] });
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.64, [], []));
     let dialogSignal: AbortSignal | undefined;
     vi.mocked(confirm.globalConfirm).mockImplementation(
       (options) => new Promise((resolve) => {
@@ -294,7 +327,7 @@ describe('second run: the question comes before the run', () => {
     await act(async () => { await running; });
 
     expect(dialogSignal!.aborted).toBe(true);
-    noRunYet();
+    noRunYet('idle');
     expect(finished).toHaveBeenCalledWith(expect.objectContaining({ errorCode: 'CANCELLED' }));
   });
 });

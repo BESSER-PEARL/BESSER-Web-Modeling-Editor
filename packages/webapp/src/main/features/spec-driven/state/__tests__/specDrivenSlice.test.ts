@@ -538,6 +538,21 @@ describe('specDrivenSlice — atomic thunks', () => {
     expect(store.dispatch(isSpecDrivenRunActive())).toBe(false);
     expect(store.dispatch(tryClaimRunSlot())).toBe(true);
   });
+
+  it('a preparing slot is busy for every other claimer until it runs or is released', () => {
+    const store = makeStore();
+    store.dispatch(openByokDialog(PENDING));
+    expect(store.dispatch(tryClaimRunSlot('preparing'))).toBe(true);
+    expect(store.getState().specDriven.runStatus).toBe('preparing');
+    expect(store.dispatch(isSpecDrivenRunActive())).toBe(true);
+    expect(store.dispatch(tryClaimRunSlot('preparing'))).toBe(false);
+    expect(store.dispatch(tryClaimRunSlot())).toBe(false);
+    expect(store.dispatch(consumePendingTrigger())).toBeNull();
+    store.dispatch(claimRunSlot());
+    expect(store.getState().specDriven.runStatus).toBe('running');
+    store.dispatch(releaseRunSlot());
+    expect(store.dispatch(tryClaimRunSlot('preparing'))).toBe(true);
+  });
 });
 
 /* ------------------------------------------------------------------ */

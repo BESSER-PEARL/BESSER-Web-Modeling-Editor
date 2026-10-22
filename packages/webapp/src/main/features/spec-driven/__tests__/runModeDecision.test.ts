@@ -5,9 +5,25 @@
  * Redux, and the SSE client.
  */
 
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { decideRunMode, isValidRunId } from '../runModeDecision';
+import { decideRunMode, isValidRunId, resolveRunMode } from '../runModeDecision';
+import * as modelChangeService from '../services/modelChange';
+import type { ModelChange } from '../services/modelChange';
+import * as confirm from '../../../shared/services/confirm/globalConfirm';
+
+vi.mock('../services/modelChange', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../services/modelChange')>();
+  return { ...mod, fetchModelChange: vi.fn() };
+});
+
+vi.mock('../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: vi.fn(),
+}));
+
+const change = (verdict: ModelChange['verdict'], gone: number): ModelChange => ({
+  verdict, basis: 'attributes', gone, removed: [], added: [], renamed: [],
+});
 
 // Two distinct canonical 32-hex run ids.
 const RUN_A = 'a'.repeat(32);
@@ -136,13 +152,13 @@ describe('decideRunMode — the model changed since the base run', () => {
   it('asks before editing the app when the model changed a lot or is another app', () => {
     for (const verdict of ['large', 'unrelated'] as const) {
       expect(
-        decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, modelChange: { verdict, gone: 0.6, removed: [], added: [] } }),
+        decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, modelChange: change(verdict, 0.6) }),
       ).toEqual({ mode: 'modify', baseRunId: RUN_A, askUser: verdict });
     }
   });
 
   it('modifies without asking on a small change or an unknown one', () => {
-    for (const modelChange of [{ verdict: 'small' as const, gone: 0.05, removed: [], added: [] }, null, undefined]) {
+    for (const modelChange of [change('small', 0.05), null, undefined]) {
       expect(
         decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, modelChange }),
       ).toEqual({ mode: 'modify', baseRunId: RUN_A });
@@ -150,12 +166,62 @@ describe('decideRunMode — the model changed since the base run', () => {
   });
 
   it('never asks when there is nothing to modify or the agent forced a mode', () => {
-    const unrelated = { verdict: 'unrelated' as const, gone: 1, removed: [], added: [] };
+    const unrelated = change('unrelated', 1);
     expect(
       decideRunMode({ lastRun: null, nowMs: NOW, ttlSeconds: TTL, modelChange: unrelated }),
     ).toEqual({ mode: 'generate' });
     expect(
       decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, explicitMode: 'modify', modelChange: unrelated }),
     ).toEqual({ mode: 'modify', baseRunId: RUN_A });
+  });
+});
+
+describe('resolveRunMode — the pre-run model check', () => {
+  const recent = { runId: RUN_A, at: NOW - 60_000 };
+  const params = { lastRun: recent, nowMs: NOW, ttlSeconds: TTL };
+  const check = () => ({ project: { id: 'p' }, instructions: 'go', signal: new AbortController().signal });
+
+  beforeEach(() => {
+    vi.mocked(modelChangeService.fetchModelChange).mockReset();
+    vi.mocked(confirm.globalConfirm).mockReset();
+  });
+
+  it('starts fresh only when the user picks it', async () => {
+    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('unrelated', 0.9));
+    vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
+    expect(await resolveRunMode(params, check())).toEqual({ mode: 'generate' });
+
+    vi.mocked(confirm.globalConfirm).mockResolvedValue(false);
+    expect(await resolveRunMode(params, check())).toMatchObject({ mode: 'modify', baseRunId: RUN_A });
+  });
+
+  it('asks nothing on a small or unknown change, and checks nothing without a modify', async () => {
+    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('small', 0.05));
+    expect(await resolveRunMode(params, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
+    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(null);
+    expect(await resolveRunMode(params, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
+    expect(confirm.globalConfirm).not.toHaveBeenCalled();
+
+    vi.mocked(modelChangeService.fetchModelChange).mockClear();
+    expect(await resolveRunMode({ ...params, lastRun: null }, check())).toEqual({ mode: 'generate' });
+    expect(await resolveRunMode({ ...params, explicitMode: 'modify' }, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
+    expect(modelChangeService.fetchModelChange).not.toHaveBeenCalled();
+  });
+
+  it('is null when stopped during the check or the question', async () => {
+    const stop = new AbortController();
+    vi.mocked(modelChangeService.fetchModelChange).mockImplementation(async () => {
+      stop.abort();
+      return null;
+    });
+    expect(await resolveRunMode(params, { ...check(), signal: stop.signal })).toBeNull();
+
+    const stop2 = new AbortController();
+    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('large', 0.6));
+    vi.mocked(confirm.globalConfirm).mockImplementation(async () => {
+      stop2.abort();
+      return false;
+    });
+    expect(await resolveRunMode(params, { ...check(), signal: stop2.signal })).toBeNull();
   });
 });

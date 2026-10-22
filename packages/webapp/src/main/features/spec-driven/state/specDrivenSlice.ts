@@ -37,7 +37,8 @@ import type {
   TriggerSpecDrivenPayload,
 } from '../types';
 
-export type SpecDrivenRunStatus = 'idle' | 'running';
+/** `preparing`: the run mode is being settled (model check, question), no run card yet. */
+export type SpecDrivenRunStatus = 'idle' | 'preparing' | 'running';
 
 /** Human-readable labels for the backend's run phases. */
 export const SPEC_DRIVEN_PHASE_LABELS: Record<SpecDrivenPhase, string> = {
@@ -512,12 +513,13 @@ const specDrivenSlice = createSlice({
       state.pendingTrigger = null;
     },
     /**
-     * Synchronously claim the global run slot. Dispatched by
-     * `tryClaimRunSlot`, which checks and claims in one synchronous step,
-     * so two hook instances racing to start can never both start.
+     * Synchronously claim the global run slot (`running` by default).
+     * Dispatched by `tryClaimRunSlot`, which checks and claims in one
+     * synchronous step, so two hook instances can never both start; the
+     * owner of a `preparing` slot dispatches it again to start the run.
      */
-    claimRunSlot(state) {
-      state.runStatus = 'running';
+    claimRunSlot(state, action: PayloadAction<'preparing' | 'running' | undefined>) {
+      state.runStatus = action.payload ?? 'running';
     },
     /** Release the global run slot (paired with claimRunSlot). */
     releaseRunSlot(state) {
@@ -644,7 +646,7 @@ export function consumePendingTrigger() {
     getState: () => SpecDrivenSliceState,
   ): TriggerSpecDrivenPayload | null => {
     const s = getState().specDriven;
-    if (!s.pendingTrigger || s.runStatus === 'running') return null;
+    if (!s.pendingTrigger || s.runStatus !== 'idle') return null;
     const trigger = s.pendingTrigger;
     dispatch(specDrivenSlice.actions.clearPendingTrigger());
     return trigger;
@@ -653,12 +655,12 @@ export function consumePendingTrigger() {
 
 /**
  * Atomically claim the global run slot. Returns `true` when this caller
- * now owns the slot; `false` when another run is already active.
+ * now owns the slot; `false` when another run is preparing or active.
  */
-export function tryClaimRunSlot() {
+export function tryClaimRunSlot(status: 'preparing' | 'running' = 'running') {
   return (dispatch: Dispatch, getState: () => SpecDrivenSliceState): boolean => {
-    if (getState().specDriven.runStatus === 'running') return false;
-    dispatch(specDrivenSlice.actions.claimRunSlot());
+    if (getState().specDriven.runStatus !== 'idle') return false;
+    dispatch(specDrivenSlice.actions.claimRunSlot(status));
     return true;
   };
 }
@@ -666,10 +668,11 @@ export function tryClaimRunSlot() {
 /**
  * Synchronous fresh-state read of the global run guard (unlike a
  * `useAppSelector` value, which can be stale within the same commit).
+ * True while a run is preparing or running.
  */
 export function isSpecDrivenRunActive() {
   return (_dispatch: Dispatch, getState: () => SpecDrivenSliceState): boolean =>
-    getState().specDriven.runStatus === 'running';
+    getState().specDriven.runStatus !== 'idle';
 }
 
 /**

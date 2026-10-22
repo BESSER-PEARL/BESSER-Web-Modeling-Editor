@@ -1,28 +1,43 @@
 /**
  * How the project's model relates to the model a base run was built from,
  * read from `POST /spec-driven/preview` (no LLM call, no key) before a modify
- * run starts. See `decideRunMode`.
+ * run starts. See `resolveRunMode`.
  */
 
 import { SMART_GEN_PREVIEW_ENDPOINT } from '../../../shared/constants/constant';
 import type { GlobalConfirmOptions } from '../../../shared/services/confirm/globalConfirm';
-import type { ModelChange } from '../runModeDecision';
+
+/**
+ * `model_change` in the preview response; the backend side is
+ * `ModelChange.to_dict` in `besser/spec_driven_agent/planning/model_change.py`.
+ */
+export interface ModelChange {
+  verdict: 'small' | 'large' | 'unrelated';
+  /** `classes` when the base run recorded class names only. */
+  basis: 'attributes' | 'classes';
+  /** Share of the base model's classes (and attributes) with no match in the new one; a recognised rename is a match. */
+  gone: number;
+  /** "Class" / "Class.attribute" names gone from, and new in, the model; renames excluded. */
+  removed: string[];
+  added: string[];
+  renamed: { from: string; to: string }[];
+}
 
 /** Short: the run is waiting on this answer. */
 export const MODEL_CHANGE_TIMEOUT_MS = 8_000;
+
+/** Names listed per kind in the question; the rest are counted. */
+const MAX_LISTED_NAMES = 6;
 
 const VERDICTS = new Set(['small', 'large', 'unrelated']);
 
 const names = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 
-/** `{from, to}` objects or `[from, to]` pairs; anything else is skipped. */
-const renames = (value: unknown): { from: string; to: string }[] =>
+const renames = (value: unknown): ModelChange['renamed'] =>
   Array.isArray(value)
-    ? value.flatMap((item) => {
-        const [from, to] = Array.isArray(item) ? item : [item?.from, item?.to];
-        return typeof from === 'string' && typeof to === 'string' ? [{ from, to }] : [];
-      })
+    ? value.filter((r) => typeof r?.from === 'string' && typeof r?.to === 'string')
+        .map((r) => ({ from: r.from, to: r.to }))
     : [];
 
 /** The comparison, or null when it is unavailable or `signal` aborts. Never rejects. */
@@ -48,19 +63,26 @@ export async function fetchModelChange(
       }),
       signal: controller.signal,
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn(`[modelChange] preview returned ${response.status}; modifying without the check`);
+      return null;
+    }
     const change = (await response.json())?.model_change;
     if (!change || !VERDICTS.has(change.verdict) || typeof change.gone !== 'number') {
       return null;
     }
     return {
       verdict: change.verdict,
+      basis: change.basis === 'classes' ? 'classes' : 'attributes',
       gone: change.gone,
       removed: names(change.removed),
       added: names(change.added),
       renamed: renames(change.renamed),
     };
-  } catch {
+  } catch (err) {
+    if (!signal?.aborted) {
+      console.warn('[modelChange] preview failed; modifying without the check', err);
+    }
     return null;
   } finally {
     clearTimeout(timer);
@@ -70,8 +92,9 @@ export async function fetchModelChange(
 
 function listed(label: string, items: string[]): string {
   if (items.length === 0) return '';
-  const shown = items.slice(0, 6).join(', ');
-  const more = items.length > 6 ? ` and ${items.length - 6} more` : '';
+  const shown = items.slice(0, MAX_LISTED_NAMES).join(', ');
+  const more =
+    items.length > MAX_LISTED_NAMES ? ` and ${items.length - MAX_LISTED_NAMES} more` : '';
   return ` ${label}: ${shown}${more}.`;
 }
 
@@ -86,12 +109,14 @@ export function modelChangeQuestion(
   const diff =
     listed('Removed', change.removed) +
     listed('Added', change.added) +
-    listed('Renamed', (change.renamed ?? []).map((r) => `${r.from} → ${r.to}`));
+    listed('Renamed', change.renamed.map((r) => `${r.from} → ${r.to}`));
+  const elements = change.basis === 'classes' ? 'classes' : 'classes and attributes';
   return verdict === 'unrelated'
     ? {
         title: 'This looks like a different app',
         description:
-          `Most of the model your app was built from is gone.${diff} ` +
+          `Most of the ${elements} your app was built from have no match in the ` +
+          `current diagram.${diff} ` +
           'Starting fresh is recommended: it builds a clean app from the current ' +
           'diagram. Updating adapts the existing code and can leave parts of the ' +
           'old app behind.',
@@ -101,9 +126,9 @@ export function modelChangeQuestion(
     : {
         title: 'Your class diagram changed a lot',
         description:
-          `About ${Math.round(change.gone * 100)}% of the model your app was built ` +
-          `from was removed or renamed.${diff} Updating keeps the custom work in ` +
-          'the existing app, but old enumerations, methods and relationships may ' +
+          `About ${Math.round(change.gone * 100)}% of the ${elements} your app was ` +
+          `built from have no match in the current diagram.${diff} Updating keeps ` +
+          'the custom work in the existing app, but old enumerations, methods and relationships may ' +
           'stay in the code. Starting fresh builds a clean app from the current ' +
           'diagram, without that work.',
         confirmLabel: 'Start fresh',

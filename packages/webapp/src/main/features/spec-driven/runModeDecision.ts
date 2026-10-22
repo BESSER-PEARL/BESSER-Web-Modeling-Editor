@@ -1,5 +1,5 @@
 /**
- * Pure decision helper for incremental modify.
+ * Decision helpers for incremental modify.
  *
  * Given the previously recorded successful run for the current project
  * (if any) and the backend's download-TTL window, decides whether a new
@@ -7,11 +7,15 @@
  *   - edit that run's app IN PLACE (`mode:'modify'` + `baseRunId`), or
  *   - rebuild from scratch (`mode:'generate'`).
  *
- * Extracted as a side-effect-free function so the branching logic is
- * unit-testable in isolation from the React hook, Redux, and the SSE
- * client (see `__tests__/runModeDecision.test.ts`).
+ * `decideRunMode` is side-effect-free; `resolveRunMode` adds the pre-run
+ * model check and the user's answer. Both are unit-testable in isolation
+ * from the React hook, Redux, and the SSE client (see
+ * `__tests__/runModeDecision.test.ts`).
  */
 
+import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import { fetchModelChange, modelChangeQuestion } from './services/modelChange';
+import type { ModelChange } from './services/modelChange';
 import type { SpecDrivenMode } from './types';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
@@ -27,21 +31,6 @@ export interface LastRunRecord {
   runId: string;
   /** Epoch ms at which the run completed. */
   at: number;
-}
-
-/**
- * How the project's model relates to the base run's, from
- * `POST /spec-driven/preview` (`model_change`). Name-based on the backend.
- */
-export interface ModelChange {
-  verdict: 'small' | 'large' | 'unrelated';
-  /** Share of the base run's model no longer present (0..1). */
-  gone: number;
-  /** "Class" / "Class.attribute" names gone from, and new in, the model. */
-  removed: string[];
-  added: string[];
-  /** Renames the backend recognised, when it reports them. */
-  renamed?: { from: string; to: string }[];
 }
 
 export interface RunModeDecision {
@@ -123,4 +112,33 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
 
   // 3. Fresh build.
   return { mode: 'generate' };
+}
+
+/**
+ * The run mode, with the user's say on a large model change. An automatic
+ * modify first asks the backend how far the model moved from the base app's;
+ * on a large change or another app the user picks "Start fresh" (generate) or
+ * "Update the existing app" (modify, also on dismiss). Null when `signal`
+ * aborts during the check or the question.
+ */
+export async function resolveRunMode(
+  params: DecideRunModeParams,
+  check: { project: unknown; instructions: string; signal: AbortSignal },
+): Promise<RunModeDecision | null> {
+  const decision = decideRunMode(params);
+  if (decision.mode !== 'modify' || !decision.baseRunId || params.explicitMode) {
+    return decision;
+  }
+  const modelChange = await fetchModelChange(
+    check.project, check.instructions, decision.baseRunId, check.signal,
+  );
+  if (check.signal.aborted) return null;
+  const checked = decideRunMode({ ...params, modelChange });
+  if (!checked.askUser || !modelChange) return checked;
+  const startFresh = await globalConfirm({
+    ...modelChangeQuestion(checked.askUser, modelChange),
+    signal: check.signal,
+  });
+  if (check.signal.aborted) return null;
+  return startFresh ? { mode: 'generate' } : checked;
 }
