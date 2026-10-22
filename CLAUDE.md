@@ -95,7 +95,7 @@ First-class part of the app, with two independent backends.
 - `features/assistant/services/AssistantClient.ts`, a module-level singleton (`getSharedAssistantClient`) so the
   floating bubble (`AssistantWidget.tsx`) and the bottom drawer (`AssistantWorkspaceDrawer.tsx`) share one socket
   and conversation. They coordinate via the `besser:assistant-drawer` CustomEvent and `sessionStorage`; the bubble
-  is hidden on `NNDiagram`.
+  is hidden on `NNDiagram` and `KnowledgeGraphDiagram` (`services/assistantSupport.ts`).
 - URL is `UML_BOT_WS_URL` (default `ws://localhost:8765`). The socket carries a per-tab `session_id` and a
   `localStorage`-persisted `user_id` query param — BAF keys backend sessions on it; without it every reconnect
   wipes conversation memory.
@@ -103,7 +103,8 @@ First-class part of the app, with two independent backends.
   structured reply, never scraped out of prose (prompt-injection guard; see
   `services/__tests__/AssistantClient.injection.test.ts`).
 - Converters (agent JSON → editor model) and modifiers (incremental edits) cover 8 types: Class, Object,
-  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent.** A new type
+  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent**, and
+  `KnowledgeGraphDiagram` is not supported (its model is not Apollon's; injection refuses to write one). A new type
   needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
 
@@ -130,7 +131,8 @@ assistant's dialog, and its opt-in flag is kept separate from the key so no plac
 - Never write an API key outside `sessionStorage`, never into Redux, never log one.
 - Never hardcode server-owned limits (cost/runtime caps, free-model ids, download TTL). They come from
   `GET /spec-driven/config`, fetched once per page load by `shared/services/specDrivenConfig.ts`; a stale
-  hardcoded copy silently becomes the binding limit.
+  hardcoded copy silently becomes the binding limit. The Knowledge Graph LLM timeout and orphan batch size come
+  from `GET /kg-config` (`getKgConfig` in `shared/api/knowledgeGraph.ts`), with no fallback.
 
 ## Key Patterns
 
@@ -245,6 +247,8 @@ Full reference: `docs/source/reference/environment.rst`.
     (`llmKeyStorage`) and send it with its provider (Anthropic, OpenAI, Mistral or Nebius; PIA and local keys
     need a custom endpoint the server will not open, so they are refused); the convert/refine dialogs are
     driven by `features/import/useKgFlows.ts`, RDF export is a section of the Export dialog
+  - the modeling assistant does not support KG: no converter/modifier, the bubble is hidden on it and an
+    injection targeting it is refused
 
 ## Cross-Repo Workflow
 1. Commit and push frontend changes on a branch here
