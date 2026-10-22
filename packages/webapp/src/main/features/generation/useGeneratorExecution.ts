@@ -571,7 +571,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const deployLocally = useDeployLocally();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
-    location.pathname,
     currentProject?.currentDiagramType,
   );
 

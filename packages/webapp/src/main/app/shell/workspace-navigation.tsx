@@ -128,6 +128,21 @@ export const KG_ROUTE_ITEMS = [
   { path: '/kg-settings', label: 'KG Settings', labelKey: 'nav.route.kgSettings', icon: <SlidersHorizontal className="size-4" /> },
 ] as const;
 
+export interface NavRouteItem {
+  path: string;
+  label: string;
+  labelKey: string;
+  icon: React.ReactNode;
+}
+
+/** The pages listed under a diagram's sidebar button (shown while its editor
+ *  or one of these pages is open). A diagram type gets sub-items by having an
+ *  entry here. */
+export const DIAGRAM_ROUTE_ITEMS: Partial<Record<SupportedDiagramType, readonly NavRouteItem[]>> = {
+  AgentDiagram: AGENT_ROUTE_ITEMS,
+  KnowledgeGraphDiagram: KG_ROUTE_ITEMS,
+};
+
 export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> }] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {

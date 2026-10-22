@@ -69,6 +69,16 @@ describe('Knowledge Graph entry of the sidebar', () => {
     expect(kgSettings()).not.toHaveAttribute('aria-current');
   });
 
+  it('tells assistive technology whether its sub-items are shown', () => {
+    const { rerender } = render(<WorkspaceSidebar {...props()} />);
+    expect(screen.getByRole('button', { name: 'KG' })).toHaveAttribute('aria-expanded', 'false');
+
+    rerender(<WorkspaceSidebar {...props({ activeDiagramType: 'KnowledgeGraphDiagram' })} />);
+    expect(screen.getByRole('button', { name: 'KG' })).toHaveAttribute('aria-expanded', 'true');
+    // A diagram without sub-items is not a disclosure button at all.
+    expect(screen.getByRole('button', { name: 'GUI' })).not.toHaveAttribute('aria-expanded');
+  });
+
   it('does not show the KG entry when the project hides it', () => {
     const perspectives = Object.fromEntries(ALL_DIAGRAM_TYPES.map((t) => [t, t !== 'KnowledgeGraphDiagram'])) as any;
     render(<WorkspaceSidebar {...props({ perspectives })} />);
@@ -89,5 +99,18 @@ describe('Agent sub-items share the same component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Simulate Agent' }));
 
     expect(onTestAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the agent group open on the simulation page, with its route items', () => {
+    const onNavigate = vi.fn();
+    render(
+      <WorkspaceSidebar
+        {...props({ activeUmlType: UMLDiagramType.AgentDiagram, locationPath: '/agent-simulation', onTestAgent: vi.fn(), onNavigate })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Simulate Agent' })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(screen.getByRole('button', { name: 'Components' }));
+    expect(onNavigate).toHaveBeenCalledWith('/agent-components');
   });
 });

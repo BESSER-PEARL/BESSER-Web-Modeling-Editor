@@ -15,7 +15,8 @@ interface WorkspaceContext {
   generatorMenuMode: GeneratorMenuMode;
 }
 
-export const getWorkspaceContext = (pathname: string, currentDiagramType?: string): WorkspaceContext => {
+/** What the active diagram type makes available (generator menu, deployment, KG-only entries). */
+export const getWorkspaceContext = (currentDiagramType?: string): WorkspaceContext => {
   const isQuantumContext = currentDiagramType === 'QuantumCircuitDiagram';
   const isGuiContext = currentDiagramType === 'GUINoCodeDiagram';
   const isClassContext = currentDiagramType === 'ClassDiagram';

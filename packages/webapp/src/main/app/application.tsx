@@ -146,7 +146,7 @@ function AppContentInner() {
       setHubInitialStep(undefined);
     }
   }, [setShowProjectHub]);
-  const { generatorMenuMode, isKgContext } = getWorkspaceContext(location.pathname, currentDiagramType);
+  const { generatorMenuMode, isKgContext } = getWorkspaceContext(currentDiagramType);
 
   // All generator config state, execution handlers, and quality-check logic
   const {

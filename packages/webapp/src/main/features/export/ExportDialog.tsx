@@ -28,6 +28,7 @@ import { exportProjectById } from './useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from './useExportProjectBUML';
 import { useAppSelector } from '../../app/store/hooks';
 import { selectActiveDiagram } from '../../app/store/workspaceSlice';
+import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 
 interface ExportDialogProps {
   open: boolean;
@@ -150,7 +151,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   };
 
   // A Knowledge Graph has no SVG/PNG/UML-JSON form; what you export from it is RDF.
-  const isKgDiagram = currentProject?.currentDiagramType === 'KnowledgeGraphDiagram';
+  const { isKgContext: isKgDiagram } = getWorkspaceContext(currentProject?.currentDiagramType);
   const kgNodes = isKnowledgeGraphData(diagram?.model) ? diagram.model.nodes : [];
 
   const handleKgExport = async (format: KgRdfFormat, vocab: KgRdfVocab) => {

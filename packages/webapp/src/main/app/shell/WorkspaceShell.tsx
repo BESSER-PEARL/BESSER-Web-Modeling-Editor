@@ -8,7 +8,7 @@ import { X } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useProject } from '../hooks/useProject';
-import { ALL_DIAGRAM_TYPES, getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
+import { ALL_DIAGRAM_TYPES, getActiveDiagram, hasCustomEditor, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
@@ -246,7 +246,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
     [currentDiagramType],
   );
-  const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
+  const { isDeploymentAvailable } = getWorkspaceContext(currentProject?.currentDiagramType);
 
   const simulationDiagramModel = useMemo(
     (): object =>
@@ -617,13 +617,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     // Don't skip the switch when the active UML type already matches AND we're on /
-    if (
-      location.pathname === '/' &&
-      activeUmlType === type &&
-      currentDiagramType !== 'GUINoCodeDiagram' &&
-      currentDiagramType !== 'QuantumCircuitDiagram' &&
-      currentDiagramType !== 'KnowledgeGraphDiagram'
-    ) {
+    // (with a GUI / quantum / KG editor open, the UML type is not what is shown)
+    if (location.pathname === '/' && activeUmlType === type && !hasCustomEditor(currentDiagramType)) {
       return;
     }
     switchDiagramType(type);

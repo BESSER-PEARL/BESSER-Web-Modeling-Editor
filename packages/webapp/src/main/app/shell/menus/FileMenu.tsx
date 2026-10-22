@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { getWorkspaceContext } from '../../../shared/utils/workspaceContext';
 import { HeaderTooltip } from './HeaderTooltip';
 
 interface FileMenuProps {
@@ -70,6 +71,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onOpenProjectPreview,
 }) => {
   const { t } = useTranslation();
+  const { isKgContext } = getWorkspaceContext(activeDiagramType);
   const title = t('menu.file.title');
   return (
     <DropdownMenu>
@@ -149,7 +151,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             {t('menu.file.importBpmnDiagram')}
           </DropdownMenuItem>
         )}
-        {activeDiagramType === 'KnowledgeGraphDiagram' && (
+        {isKgContext && (
           <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
             <Network className="mr-2 size-4" />
             {t('menu.file.importKgOwl')}

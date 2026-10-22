@@ -5,10 +5,9 @@ import { FlaskConical, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
-import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
+import { hasCustomEditor, isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
-  AGENT_ROUTE_ITEMS,
-  KG_ROUTE_ITEMS,
+  DIAGRAM_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
   ROUTE_ITEMS,
   UML_ITEMS,
@@ -106,7 +105,9 @@ const DiagramNavButton: React.FC<{
   isCollapsed: boolean;
   isSidebarExpanded: boolean;
   isDarkTheme: boolean;
-}> = ({ label, count, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme }) => {
+  /** Set on a button with sub-items: whether they are shown. */
+  expanded?: boolean;
+}> = ({ label, count, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme, expanded }) => {
   const displayLabel = labelWithCount(label, count);
   return (
     <SidebarTooltip label={displayLabel} collapsed={isCollapsed}>
@@ -117,6 +118,7 @@ const DiagramNavButton: React.FC<{
         title={isSidebarExpanded ? displayLabel : undefined}
         aria-label={displayLabel}
         aria-current={active ? 'page' : undefined}
+        aria-expanded={expanded}
       >
         {icon}
         {isSidebarExpanded && <NavLabel label={label} count={count} />}
@@ -125,7 +127,7 @@ const DiagramNavButton: React.FC<{
   );
 };
 
-/** A diagram button with its sub-items (Agent, Knowledge Graph): the group is
+/** A diagram button with its sub-items (`DIAGRAM_ROUTE_ITEMS`): the group is
  *  tinted while its editor or one of its sub-routes is open. */
 const DiagramNavGroup: React.FC<{ expanded: boolean; button: React.ReactNode; children: React.ReactNode }> = ({
   expanded,
@@ -163,17 +165,48 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   // When a non-UML editor (GUI / Quantum / KG) is active, no UML button should appear selected
-  const isNonUmlActive =
-    activeDiagramType === 'GUINoCodeDiagram' ||
-    activeDiagramType === 'QuantumCircuitDiagram' ||
-    activeDiagramType === 'KnowledgeGraphDiagram';
-  const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
-  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
-  const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
+  const isNonUmlActive = hasCustomEditor(activeDiagramType);
+  const subItemProps = { isCollapsed: !isSidebarExpanded, isSidebarExpanded, isDarkTheme };
 
-  const isKgEditorActive = locationPath === '/' && activeDiagramType === 'KnowledgeGraphDiagram';
-  const isKgSubRouteActive = KG_ROUTE_ITEMS.some((item) => item.path === locationPath);
-  const showKgSubItems = isKgEditorActive || isKgSubRouteActive;
+  /** `button` alone, or grouped with the pages `DIAGRAM_ROUTE_ITEMS` lists
+   *  for `type` (plus the Agent's simulation entry), open while its editor
+   *  (`editorActive`) or one of those pages is. */
+  const withSubItems = (
+    type: SupportedDiagramType,
+    editorActive: boolean,
+    renderButton: (expanded?: boolean) => React.ReactElement,
+  ) => {
+    const routeItems = DIAGRAM_ROUTE_ITEMS[type];
+    if (!routeItems) return renderButton();
+    const simulateAgent = type === 'AgentDiagram' ? onTestAgent : undefined;
+    const expanded =
+      editorActive ||
+      routeItems.some((item) => item.path === locationPath) ||
+      (type === 'AgentDiagram' && locationPath === '/agent-simulation');
+    return (
+      <DiagramNavGroup key={type} expanded={expanded} button={renderButton(expanded)}>
+        {simulateAgent && (
+          <SidebarSubItem
+            label={t('agentSimulation.sidebar.simulateAgent')}
+            icon={<FlaskConical className="size-4" />}
+            active={locationPath === '/agent-simulation'}
+            onClick={simulateAgent}
+            {...subItemProps}
+          />
+        )}
+        {routeItems.map((routeItem) => (
+          <SidebarSubItem
+            key={routeItem.path}
+            label={t(routeItem.labelKey)}
+            icon={routeItem.icon}
+            active={locationPath === routeItem.path}
+            onClick={() => onNavigate(routeItem.path)}
+            {...subItemProps}
+          />
+        ))}
+      </DiagramNavGroup>
+    );
+  };
 
   // Pre-compute diagram count info for all diagram types
   const countMap = useMemo(() => {
@@ -199,7 +232,6 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   );
 
   const isCollapsed = !isSidebarExpanded;
-  const subItemProps = { isCollapsed, isSidebarExpanded, isDarkTheme };
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -207,73 +239,35 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
         {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
         <nav aria-label={t('nav.editors')} className="flex flex-col gap-0.5">
         {visibleUmlItems.map((item) => {
-          const button = (
+          const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
+          return withSubItems(toSupportedDiagramType(item.type), active, (expanded) => (
             <DiagramNavButton
               key={item.type}
               label={t(item.labelKey)}
               count={countMap[item.type] ?? 0}
               icon={item.icon}
-              active={locationPath === '/' && !isNonUmlActive && activeUmlType === item.type}
+              active={active}
               onClick={() => onSwitchUml(item.type)}
+              expanded={expanded}
               {...subItemProps}
             />
-          );
-          if (item.type !== UMLDiagramType.AgentDiagram) return button;
-
-          return (
-            <DiagramNavGroup key={item.type} expanded={showAgentSubItems} button={button}>
-              {onTestAgent && (
-                <SidebarSubItem
-                  label={t('agentSimulation.sidebar.simulateAgent')}
-                  icon={<FlaskConical className="size-4" />}
-                  active={locationPath === '/agent-simulation'}
-                  onClick={onTestAgent}
-                  {...subItemProps}
-                />
-              )}
-              {AGENT_ROUTE_ITEMS.map((routeItem) => (
-                <SidebarSubItem
-                  key={routeItem.path}
-                  label={t(routeItem.labelKey)}
-                  icon={routeItem.icon}
-                  active={locationPath === routeItem.path}
-                  onClick={() => onNavigate(routeItem.path)}
-                  {...subItemProps}
-                />
-              ))}
-            </DiagramNavGroup>
-          );
+          ));
         })}
 
         {visibleNonUmlItems.map((item) => {
-          const button = (
+          const active = locationPath === '/' && activeDiagramType === item.type;
+          return withSubItems(item.type, active, (expanded) => (
             <DiagramNavButton
               key={item.type}
               label={t(item.labelKey)}
               count={countMap[item.type] ?? 0}
               icon={item.icon}
-              active={locationPath === '/' && activeDiagramType === item.type}
+              active={active}
               onClick={() => onSwitchDiagramType(item.type)}
+              expanded={expanded}
               {...subItemProps}
             />
-          );
-          if (item.type !== 'KnowledgeGraphDiagram') return button;
-
-          // Same group treatment as the Agent entry, with KG_ROUTE_ITEMS underneath.
-          return (
-            <DiagramNavGroup key={item.type} expanded={showKgSubItems} button={button}>
-              {KG_ROUTE_ITEMS.map((routeItem) => (
-                <SidebarSubItem
-                  key={routeItem.path}
-                  label={t(routeItem.labelKey)}
-                  icon={routeItem.icon}
-                  active={locationPath === routeItem.path}
-                  onClick={() => onNavigate(routeItem.path)}
-                  {...subItemProps}
-                />
-              ))}
-            </DiagramNavGroup>
-          );
+          ));
         })}
 
         <Separator className="my-1" />

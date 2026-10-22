@@ -437,6 +437,11 @@ export const DIAGRAM_KIND_BY_TYPE: Partial<Record<SupportedDiagramType, DiagramK
   KnowledgeGraphDiagram: 'kg',
 };
 
+/** True for a diagram type with an editor of its own (GrapesJS, the quantum
+ *  canvas, Cytoscape), false for an Apollon (UML-family) one or no type. */
+export const hasCustomEditor = (type: string | null | undefined): boolean =>
+  !!type && !!DIAGRAM_KIND_BY_TYPE[type as SupportedDiagramType];
+
 // Migrate v1 project (single diagram per type) to v2 (array per type)
 export const migrateProjectToV2 = (project: any): BesserProject => {
   if (project.schemaVersion >= 2) {
