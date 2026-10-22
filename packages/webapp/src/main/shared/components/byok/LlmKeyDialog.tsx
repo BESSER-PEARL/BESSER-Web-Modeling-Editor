@@ -106,10 +106,12 @@ export interface LlmKeyDialogProps {
   preferKeyEntry?: boolean;
   /**
    * Provider preselected on open, ahead of the stored key's provider. For
-   * surfaces that can only use one provider (e.g. Knowledge Graph refinement
-   * needs an OpenAI key): the user lands on the right one instead of whatever
-   * was saved last. The user can still pick another; saving replaces the single
-   * shared key either way.
+   * surfaces that cannot use the saved one (e.g. Knowledge Graph refinement
+   * accepts Anthropic, OpenAI, Mistral or Nebius keys, not PIA or local, so it
+   * passes `anthropic` when the saved key is unusable there): the user lands on
+   * a provider that works instead of whatever was saved last. The saved model
+   * is only carried over when it belongs to the preselected provider. The user
+   * can still pick another; saving replaces the single shared key either way.
    */
   preferProvider?: LlmProvider;
 }
@@ -496,7 +498,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     setProvider(nextProvider);
     setKeyPresent(stored !== null);
-    const classified = _classifyStoredModel(nextProvider, stored?.model);
+    // A saved model belongs to the saved provider: when another provider is
+    // preselected (preferProvider, or a pia/local key on the hosted editor),
+    // its id would land in the custom-model box of the wrong provider.
+    const classified = _classifyStoredModel(
+      nextProvider,
+      stored?.provider === nextProvider ? stored?.model : undefined,
+    );
     setModelChoice(classified.choice);
     setCustomModel(classified.custom);
     // Prefill the base URL: 'local' uses the stored/user value (default Ollama);

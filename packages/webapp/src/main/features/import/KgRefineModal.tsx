@@ -1045,6 +1045,9 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         <LlmKeyDialog
           open={keyDialogOpen}
           onOpenChange={setKeyDialogOpen}
+          // Without a usable key (none, or a PIA/local one the KG endpoints
+          // refuse) open on a provider they accept; on a local deployment the
+          // dialog would otherwise reopen on the saved 'local' provider.
           preferProvider={credentials ? undefined : 'anthropic'}
           preferKeyEntry
           showRunBudget={false}
