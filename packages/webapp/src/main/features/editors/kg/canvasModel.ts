@@ -57,6 +57,36 @@ export function displayLabel(n: KGNodeData): string {
   return iri;
 }
 
+/** The Cytoscape `data` of a node apart from its id: every field `cyToModel`
+ *  turns back into the model, plus the derived `displayLabel` / `isVocab`.
+ *  Shared by `modelToElements` (first render) and `syncElementData` (an edit
+ *  made outside the canvas, e.g. in the inspector) so the two cannot drift. */
+function nodeContentData(n: KGNodeData): Record<string, unknown> {
+  return {
+    // Stored label, untouched; `displayLabel` is what gets drawn.
+    label: n.label ?? '',
+    displayLabel: displayLabel(n),
+    nodeType: n.nodeType,
+    iri: n.iri,
+    value: n.value,
+    datatype: n.datatype,
+    // Carry metadata through Cytoscape so cyToModel can put it back on
+    // the re-emitted KGNodeData. Critical for constraint nodes, whose
+    // `metadata.constraintSpecs` would otherwise be silently dropped on
+    // every canvas interaction.
+    metadata: n.metadata,
+    // Tag vocabulary nodes (owl:/rdf:/rdfs:/xsd:/sh:) so the stylesheet can
+    // render them with the "framework" chip treatment. Cytoscape stores
+    // booleans as strings in selectors, so we keep this as a literal flag.
+    isVocab: isMetaVocab(n.iri),
+  };
+}
+
+/** The Cytoscape `data` of an edge apart from its id and endpoints. */
+function edgeContentData(e: KGEdgeData): Record<string, unknown> {
+  return { label: e.label, iri: e.iri };
+}
+
 export function modelToElements(model: KnowledgeGraphData): ElementDefinition[] {
   // Defensive dedup: Cytoscape silently drops elements with duplicate IDs.
   // OWL imports occasionally produce siblings with the same local name or
@@ -70,25 +100,7 @@ export function modelToElements(model: KnowledgeGraphData): ElementDefinition[] 
     seenNodes.add(id);
     nodes.push({
       group: 'nodes',
-      data: {
-        id,
-        // Stored label, untouched; `displayLabel` is what gets drawn.
-        label: n.label ?? '',
-        displayLabel: displayLabel(n),
-        nodeType: n.nodeType,
-        iri: n.iri,
-        value: n.value,
-        datatype: n.datatype,
-        // Carry metadata through Cytoscape so cyToModel can put it back on
-        // the re-emitted KGNodeData. Critical for constraint nodes, whose
-        // `metadata.constraintSpecs` would otherwise be silently dropped on
-        // every canvas interaction.
-        metadata: n.metadata,
-        // Tag vocabulary nodes (owl:/rdf:/rdfs:/xsd:/sh:) so the stylesheet can
-        // render them with the "framework" chip treatment. Cytoscape stores
-        // booleans as strings in selectors, so we keep this as a literal flag.
-        isVocab: isMetaVocab(n.iri),
-      },
+      data: { id, ...nodeContentData(n) },
       // Copy the position object — Cytoscape layouts mutate it in place,
       // and React may freeze state-derived objects in dev mode, which
       // would throw `"x" is read-only` on any subsequent layout pass.
@@ -107,7 +119,7 @@ export function modelToElements(model: KnowledgeGraphData): ElementDefinition[] 
     seenEdges.add(id);
     edges.push({
       group: 'edges',
-      data: { id, source: e.source, target: e.target, label: e.label, iri: e.iri },
+      data: { id, source: e.source, target: e.target, ...edgeContentData(e) },
     });
   }
 
@@ -226,6 +238,73 @@ export function mergeWithFullModel(
   return { ...full, nodes: mergedNodes, edges: cleanEdges };
 }
 
+/** JSON with sorted object keys, so two equal values compare equal whatever
+ *  order their keys were written in. `undefined` fields are dropped, as
+ *  `JSON.stringify` does. */
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, (v as Record<string, unknown>)[k]]))
+      : v,
+  );
+}
+
+/** The node fields `cyToModel` round-trips, apart from id and position. */
+const nodeContentKey = (n: KGNodeData) =>
+  stableStringify([n.label ?? '', n.nodeType, n.iri, n.value, n.datatype, n.metadata]);
+
+/** The edge fields `cyToModel` round-trips, apart from id and endpoints. */
+const edgeContentKey = (e: KGEdgeData) => stableStringify([e.label, e.iri]);
+
+/**
+ * Same element set on the canvas as in `wanted`: same node ids and same edge
+ * ids with the same endpoints, in the same order. Content (labels, IRIs,
+ * values, metadata) is not compared here; `syncElementData` patches it in place.
+ */
+export function sameCanvasStructure(onCanvas: KnowledgeGraphData, wanted: KnowledgeGraphData): boolean {
+  if (onCanvas.nodes.length !== wanted.nodes.length || onCanvas.edges.length !== wanted.edges.length) {
+    return false;
+  }
+  for (let i = 0; i < wanted.nodes.length; i++) {
+    if (onCanvas.nodes[i].id !== wanted.nodes[i].id) return false;
+  }
+  for (let i = 0; i < wanted.edges.length; i++) {
+    const a = onCanvas.edges[i];
+    const b = wanted.edges[i];
+    if (a.id !== b.id || a.source !== b.source || a.target !== b.target) return false;
+  }
+  return true;
+}
+
+/**
+ * Write into the canvas the content of every element whose round-tripped
+ * fields differ from `wanted` (an edit made in the inspector: label, value,
+ * IRI, constraint specs, edge IRI ...), in place, recomputing `displayLabel`.
+ * Without this the canvas keeps the old data and the next drag, which emits
+ * the model from Cytoscape, silently reverts the edit. Elements are matched
+ * by id; ones not on the canvas are ignored. Returns the number updated.
+ */
+export function syncElementData(cy: Core, wanted: KnowledgeGraphData): number {
+  const shown = cyToModel(cy, wanted);
+  const shownNodes = new Map(shown.nodes.map((n) => [n.id, nodeContentKey(n)]));
+  const shownEdges = new Map(shown.edges.map((e) => [e.id, edgeContentKey(e)]));
+  let updated = 0;
+  cy.batch(() => {
+    for (const n of wanted.nodes) {
+      const current = shownNodes.get(n.id);
+      if (current === undefined || current === nodeContentKey(n)) continue;
+      cy.getElementById(n.id).data(nodeContentData(n));
+      updated++;
+    }
+    for (const e of wanted.edges) {
+      const current = shownEdges.get(e.id);
+      if (current === undefined || current === edgeContentKey(e)) continue;
+      cy.getElementById(e.id).data(edgeContentData(e));
+      updated++;
+    }
+  });
+  return updated;
+}
 
 export function defaultLabelFor(nodeType: KGNodeType): string {
   switch (nodeType) {

@@ -9,6 +9,8 @@ import {
   modelToElements,
   newNodeElement,
   nodesToReposition,
+  sameCanvasStructure,
+  syncElementData,
 } from '../canvasModel';
 import type { KGEdgeData, KGNodeData, KnowledgeGraphData } from '../types';
 
@@ -226,6 +228,88 @@ describe('mergeWithFullModel', () => {
     const merged = mergeWithFullModel(full, canvas, visible);
 
     expect(merged.edges).toEqual([]);
+  });
+});
+
+describe('syncElementData (inspector edits reaching the canvas)', () => {
+  const original = model(
+    [
+      node({ id: 'lit', nodeType: 'literal', label: '', value: 'old' }, 10, 10),
+      node({ id: 'c', nodeType: 'class', label: '', iri: 'http://ex.org/onto#Old' }, 50, 10),
+      node(
+        { id: 's', nodeType: 'nodeConstraint', label: 'Shape', metadata: { constraintSpecs: [{ kind: 'minCount', value: 1 }] } },
+        90,
+        10,
+      ),
+    ],
+    [{ id: 'e', source: 'c', target: 'lit', label: 'p', iri: 'http://ex.org/onto#old' }],
+  );
+  const edited = (): KnowledgeGraphData => ({
+    ...original,
+    nodes: original.nodes.map((n) => {
+      if (n.id === 'lit') return { ...n, value: 'new' };
+      if (n.id === 'c') return { ...n, iri: 'http://ex.org/onto#New' };
+      if (n.id === 's') return { ...n, metadata: { constraintSpecs: [{ kind: 'minCount', value: 3 }] } };
+      return n;
+    }),
+    edges: [{ ...original.edges[0], iri: 'http://ex.org/onto#new' }],
+  });
+
+  /** What dragging a node does: move it on the canvas, then emit the canvas
+   *  through `cyToModel` and merge it into the full model. */
+  const dragAndEmit = (cy: cytoscape.Core, full: KnowledgeGraphData) => {
+    cy.getElementById('lit').position({ x: 200, y: 200 });
+    const all = new Set(full.nodes.map((n) => n.id));
+    return mergeWithFullModel(full, cyToModel(cy, full), all);
+  };
+
+  it('treats content-only edits as the same structure', () => {
+    const cy = load(original);
+    expect(sameCanvasStructure(cyToModel(cy, original), edited())).toBe(true);
+    expect(sameCanvasStructure(cyToModel(cy, original), model(original.nodes.slice(1), []))).toBe(false);
+  });
+
+  it('a later drag keeps an edited value, IRI, constraint spec and edge IRI', () => {
+    const cy = load(original);
+    const after = edited();
+
+    expect(syncElementData(cy, after)).toBe(4);
+    const merged = dragAndEmit(cy, after);
+
+    const byId = (id: string) => merged.nodes.find((n) => n.id === id)!;
+    expect(byId('lit').value).toBe('new');
+    expect(byId('lit').position).toEqual({ x: 200, y: 200 });
+    expect(byId('c').iri).toBe('http://ex.org/onto#New');
+    expect(byId('s').metadata).toEqual({ constraintSpecs: [{ kind: 'minCount', value: 3 }] });
+    expect(merged.edges[0].iri).toBe('http://ex.org/onto#new');
+  });
+
+  it('without the sync the drag would revert the edit (the bug this guards against)', () => {
+    const cy = load(original);
+    const merged = dragAndEmit(cy, edited());
+    expect(merged.nodes.find((n) => n.id === 'lit')!.value).toBe('old');
+  });
+
+  it('recomputes the drawn label from the new content', () => {
+    const cy = load(original);
+    expect(cy.getElementById('lit').data('displayLabel')).toBe('old');
+    expect(cy.getElementById('c').data('displayLabel')).toBe('Old');
+
+    syncElementData(cy, edited());
+
+    expect(cy.getElementById('lit').data('displayLabel')).toBe('new');
+    expect(cy.getElementById('c').data('displayLabel')).toBe('New');
+  });
+
+  it('leaves unchanged elements alone, whatever the key order of their metadata', () => {
+    const cy = load(original);
+    const reordered: KnowledgeGraphData = {
+      ...original,
+      nodes: original.nodes.map((n) =>
+        n.id === 's' ? { ...n, metadata: { constraintSpecs: [{ value: 1, kind: 'minCount' }] } } : n,
+      ),
+    };
+    expect(syncElementData(cy, reordered)).toBe(0);
   });
 });
 

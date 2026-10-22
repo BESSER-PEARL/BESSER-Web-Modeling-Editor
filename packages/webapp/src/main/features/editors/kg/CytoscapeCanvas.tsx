@@ -20,6 +20,8 @@ import {
   modelToElements,
   newNodeElement,
   nodesToReposition,
+  sameCanvasStructure,
+  syncElementData,
   type CanvasChangeOptions,
 } from './canvasModel';
 import { defaultPredicateFor } from './edge-defaults';
@@ -707,21 +709,28 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       if (!cy) return;
       const visible = filterVisible(model, visibleIds);
       const current = cyToModel(cy, modelRef.current);
-      const sameNodes =
-        current.nodes.length === visible.nodes.length &&
-        JSON.stringify(current.nodes.map((n) => [n.id, n.label, n.nodeType])) ===
-          JSON.stringify(visible.nodes.map((n) => [n.id, n.label, n.nodeType]));
-      const sameEdges =
-        current.edges.length === visible.edges.length &&
-        JSON.stringify(current.edges.map((e) => [e.id, e.source, e.target, e.label])) ===
-          JSON.stringify(visible.edges.map((e) => [e.id, e.source, e.target, e.label]));
+      // Structure = which elements exist (ids, edge endpoints). Their content
+      // (labels, IRIs, values, constraint specs) is patched in place below, so
+      // an inspector edit reaches Cytoscape's data without a rebuild; a
+      // comparison of labels alone left the other fields stale on the canvas
+      // and the next drag wrote the old values back over the edit.
+      const sameStructure = sameCanvasStructure(current, visible);
       const needsLayout = !hasMeaningfulPositions(visible.nodes);
+
+      if (sameStructure) {
+        suppressEventsRef.current = true;
+        try {
+          syncElementData(cy, visible);
+        } finally {
+          suppressEventsRef.current = false;
+        }
+      }
 
       // Early-return only if *both* the structure matches AND positions are
       // already meaningful. Missing/stacked positions (first mount after a
       // layout change) must trigger a relayout even when structure is
       // unchanged.
-      if (sameNodes && sameEdges && !needsLayout) {
+      if (sameStructure && !needsLayout) {
         // Nothing structural changed, but the model may still hold other
         // positions than the canvas shows: that is what undoing a drag or a
         // layout looks like. Move the nodes there (without echoing the move
@@ -742,7 +751,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
 
       const chosen = layoutRef.current;
 
-      if (!sameNodes || !sameEdges) {
+      if (!sameStructure) {
         // Structure differs — rebuild cy's element set from the model.
         // For 'grid' we pre-seed positions so the very first paint shows
         // nodes in place; concentric / fcose are run by cy after add.
@@ -775,7 +784,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       };
 
       if (chosen === 'grid') {
-        if (sameNodes && sameEdges) {
+        if (sameStructure) {
           // Structure unchanged so we didn't rebuild — apply grid positions
           // in-place on the existing cy nodes, then persist.
           const placed = assignGridPositions(visible.nodes);
