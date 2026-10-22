@@ -1,6 +1,6 @@
 export type InterfaceStyleSetting = {
   size: number;
-  font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque' | 'condensed' | 'hyperlegible' | 'lexend' | 'dyslexia' | 'verdana';
+  font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque' | 'condensed' | 'hyperlegible' | 'lexend' | 'dyslexia' | 'verdana' | 'fredoka';
   lineSpacing: number;
   alignment: 'left' | 'center' | 'justify';
   color: string;

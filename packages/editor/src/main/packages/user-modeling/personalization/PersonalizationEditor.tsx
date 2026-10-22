@@ -438,7 +438,7 @@ const TextStyleFields: React.FC<{
           onChange={(e) => patchPresentation({ font: (e.target.value || undefined) as UserPresentationSpec['font'] })}
         >
           <option value="">Original</option>
-          {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed', 'hyperlegible', 'lexend', 'dyslexia', 'verdana'].map((f) => (
+          {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed', 'hyperlegible', 'lexend', 'dyslexia', 'verdana', 'fredoka'].map((f) => (
             <option key={f} value={f}>{f}</option>
           ))}
         </Select>

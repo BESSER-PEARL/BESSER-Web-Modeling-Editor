@@ -1,13 +1,13 @@
 {
   "project": {
-    "id": "project_1790679845664_2fyn1tguk",
+    "id": "project_1792496426029_g94cq6f2z",
     "type": "Project",
     "schemaVersion": 4,
     "name": "MuseumAgent",
     "description": "Workspace to create the museum assistant. ",
     "owner": "Study Participant",
-    "createdAt": "2026-09-29T11:04:05.664Z",
-    "currentDiagramType": "AgentDiagram",
+    "createdAt": "2026-10-20T11:40:26.029Z",
+    "currentDiagramType": "GUINoCodeDiagram",
     "currentDiagramIndices": {
       "ClassDiagram": 0,
       "ObjectDiagram": 0,
@@ -1240,7 +1240,7 @@
             },
             "assessments": {}
           },
-          "lastUpdate": "2026-09-29T11:04:38.356Z",
+          "lastUpdate": "2026-10-20T11:41:41.013Z",
           "config": {
             "agentPlatform": "websocket",
             "agentPlatformUseStreamlit": true,
@@ -2439,6 +2439,67 @@
           },
           "lastUpdate": "2026-10-19T00:00:00.000Z"
         }
+      ],
+      "ClassDiagram": [
+        {
+          "id": "2aa7b72e-3768-4554-8dcc-5d00cec5536d",
+          "title": "Class Diagram",
+          "model": {
+            "version": "3.0.0",
+            "type": "ClassDiagram",
+            "size": {
+              "width": 1020,
+              "height": 600
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "bca6230c-804d-4043-a221-c53df7bddd0a": {
+                "id": "bca6230c-804d-4043-a221-c53df7bddd0a",
+                "name": "Class",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": -490,
+                  "y": -280,
+                  "width": 160,
+                  "height": 70
+                },
+                "attributes": [
+                  "2c7963fb-1a66-4266-a355-f1246c5c51ef"
+                ],
+                "methods": []
+              },
+              "2c7963fb-1a66-4266-a355-f1246c5c51ef": {
+                "id": "2c7963fb-1a66-4266-a355-f1246c5c51ef",
+                "name": "Attribute",
+                "type": "ClassAttribute",
+                "owner": "bca6230c-804d-4043-a221-c53df7bddd0a",
+                "bounds": {
+                  "x": -489.5,
+                  "y": -239.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              }
+            },
+            "relationships": {},
+            "assessments": {}
+          },
+          "lastUpdate": "2026-10-20T11:41:38.232Z"
+        }
       ]
     },
     "settings": {
@@ -2446,7 +2507,7 @@
       "autoSave": true,
       "collaborationEnabled": false,
       "perspectives": {
-        "ClassDiagram": false,
+        "ClassDiagram": true,
         "ObjectDiagram": false,
         "StateMachineDiagram": false,
         "AgentDiagram": true,
@@ -2458,6 +2519,6 @@
       }
     }
   },
-  "exportedAt": "2026-09-29T11:04:57.064Z",
+  "exportedAt": "2026-10-20T11:42:29.547Z",
   "version": "2.0.0"
 }

@@ -65,11 +65,12 @@ const FONT_FAMILIES: Record<NonNullable<UserGuiPresentationSpec['font']>, string
   lexend: 'Lexend, Verdana, sans-serif',
   dyslexia: 'OpenDyslexic, "Comic Sans MS", Verdana, sans-serif',
   verdana: 'Verdana, Tahoma, sans-serif',
+  fredoka: 'Fredoka, "Comic Sans MS", sans-serif',
 };
 
 /** Stylesheets providing the web fonts above (used by the GUI canvas). */
 export const READABILITY_FONT_STYLESHEETS = [
-  'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;700&family=Fredoka:wght@400;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic/index.css',
 ];
 
