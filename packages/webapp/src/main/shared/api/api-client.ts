@@ -14,6 +14,42 @@ const timeoutReason = (ms: number) =>
   new DOMException(`Request timed out after ${ms}ms`, 'TimeoutError');
 
 /**
+ * Readable text for the `detail` of a FastAPI error body. A handled error
+ * sends a string; a request-validation failure (422) sends a list of
+ * `{loc, msg, type}` objects, which used to reach the user as
+ * "[object Object]". Each entry becomes "field.path: message"; the `body`
+ * prefix every body field carries is left out.
+ */
+export function formatErrorDetail(detail: unknown, fallback: string): string {
+  if (typeof detail === 'string') return detail || fallback;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => {
+        if (!item || typeof item !== 'object') return item == null ? '' : String(item);
+        const { loc, msg } = item as { loc?: unknown; msg?: unknown };
+        const where = Array.isArray(loc) ? loc.filter((p, i) => !(i === 0 && p === 'body')).join('.') : '';
+        const text = typeof msg === 'string' && msg ? msg : JSON.stringify(item);
+        return where ? `${where}: ${text}` : text;
+      })
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join('; ') : fallback;
+  }
+  if (detail && typeof detail === 'object') {
+    const message = (detail as { message?: unknown }).message;
+    return typeof message === 'string' && message ? message : JSON.stringify(detail);
+  }
+  return fallback;
+}
+
+/** The `ApiError` for a failed response, from its `{"detail": ...}` body when
+ *  there is one, else from its status text, else `fallback`. */
+async function errorFromResponse(response: Response, fallback: string): Promise<ApiError> {
+  const body = await response.json().catch(() => ({ detail: response.statusText }));
+  const detail = body && typeof body === 'object' ? (body as { detail?: unknown }).detail : undefined;
+  return new ApiError(response.status, formatErrorDetail(detail, fallback));
+}
+
+/**
  * Centralized API client for all backend communication.
  *
  * Provides a single place to configure base URL, timeouts, default headers,
@@ -57,8 +93,7 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new ApiError(response.status, error.detail || 'Request failed');
+        throw await errorFromResponse(response, 'Request failed');
       }
 
       return response.json();
@@ -103,8 +138,7 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new ApiError(response.status, error.detail || 'Upload failed');
+        throw await errorFromResponse(response, 'Upload failed');
       }
 
       return response.json();
@@ -174,8 +208,7 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new ApiError(response.status, error.detail || 'Download failed');
+        throw await errorFromResponse(response, 'Download failed');
       }
 
       return { blob: await response.blob(), headers: response.headers };
