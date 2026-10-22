@@ -69,7 +69,8 @@ describe('the CDN scripts', () => {
     const require = createRequire(import.meta.url);
     const [, pkg, version, file] = script.url.match(/npm\/([a-z-]+)@([\d.]+)\/(.+)$/)!;
     // Some packages restrict `exports`, so find the folder from the entry point.
-    const entry = require.resolve(pkg);
+    // Forward slashes, so the lookup below also works with Windows paths.
+    const entry = require.resolve(pkg).replace(/\\/g, '/');
     const dir = entry.slice(0, entry.indexOf(`node_modules/${pkg}/`) + `node_modules/${pkg}`.length);
 
     it('is the version the editor has installed', () => {
