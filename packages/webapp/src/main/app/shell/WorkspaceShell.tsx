@@ -28,6 +28,7 @@ import {
 } from '../../features/inter-diagram';
 import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { ApollonEditorContext } from '../../features/editors/uml/apollon-editor-context';
+import { runConstraintSimplification } from '../../shared/services/validation/constraintSimplification';
 import { runIncrementalPreanalysis } from '../../shared/services/validation/incrementalPreanalysis';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
@@ -687,6 +688,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   }, [generateDockerCompose]);
 
   const [isPreanalyzing, setIsPreanalyzing] = useState(false);
+  const [isSimplifying, setIsSimplifying] = useState(false);
+  const handleConstraintSimplification = useCallback(async () => {
+    if (currentProject?.currentDiagramType !== 'ClassDiagram') {
+      toast.error(t('menu.generate.simplification.notClassDiagram'));
+      return;
+    }
+    setIsSimplifying(true);
+    try {
+      await runConstraintSimplification(editor, diagram?.title || t('generation.defaultDiagramTitle'));
+    } finally {
+      setIsSimplifying(false);
+    }
+  }, [currentProject?.currentDiagramType, diagram?.title, editor, t]);
   const handleIncrementalPreanalysis = useCallback(async () => {
     if (currentProject?.currentDiagramType !== 'ClassDiagram') {
       toast.error(t('menu.generate.preanalysis.notClassDiagram'));
@@ -1101,7 +1115,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
-        isGenerating={isGenerating || isDockerComposing || isPreanalyzing}
+        isGenerating={isGenerating || isDockerComposing || isPreanalyzing || isSimplifying}
         isAuthenticated={isAuthenticated}
         username={username || undefined}
         githubLoading={githubLoading}
@@ -1148,6 +1162,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }
         onIncrementalPreanalysis={
           currentProject?.currentDiagramType === 'ClassDiagram' ? handleIncrementalPreanalysis : undefined
+        }
+        onConstraintSimplification={
+          currentProject?.currentDiagramType === 'ClassDiagram' ? handleConstraintSimplification : undefined
         }
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}

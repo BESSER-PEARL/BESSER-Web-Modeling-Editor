@@ -94,7 +94,17 @@
       "generateDockerCompose": "Docker Compose generieren",
       "constraints": {
         "title": "Einschränkungen",
-        "incrementalPreanalysis": "Inkrementelle Voranalyse"
+        "incrementalPreanalysis": "Inkrementelle Voranalyse",
+        "constraintSimplification": "Einschränkungen vereinfachen"
+      },
+      "simplification": {
+        "running": "Einschränkungen werden vereinfacht…",
+        "done": "Vereinfachte Invarianten zeigen den normalisierten Ausdruck. Der ursprüngliche Text bleibt in einem verknüpften Kommentar.",
+        "unchanged": "Alle Invarianten waren bereits vereinfacht.",
+        "none": "Es gibt keine Invarianten zum Vereinfachen.",
+        "failed": "Die Vereinfachung der Einschränkungen ist fehlgeschlagen.",
+        "notClassDiagram": "Die Vereinfachung gilt für Klassendiagramme.",
+        "noDiagram": "Es ist kein Klassendiagramm geöffnet."
       },
       "preanalysis": {
         "running": "Inkrementelle Voranalyse läuft…",

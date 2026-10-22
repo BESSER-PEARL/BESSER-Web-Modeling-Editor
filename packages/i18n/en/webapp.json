@@ -94,7 +94,17 @@
       "generateDockerCompose": "Generate Docker Compose",
       "constraints": {
         "title": "Constraints",
-        "incrementalPreanalysis": "Incremental pre-analysis"
+        "incrementalPreanalysis": "Incremental pre-analysis",
+        "constraintSimplification": "Constraint simplification"
+      },
+      "simplification": {
+        "running": "Simplifying constraints…",
+        "done": "Simplified invariants now show their normalized expression. The original text is kept in a linked comment.",
+        "unchanged": "Every invariant was already in simplified form.",
+        "none": "No invariants were found to simplify.",
+        "failed": "Constraint simplification failed.",
+        "notClassDiagram": "Constraint simplification applies to class diagrams.",
+        "noDiagram": "No class diagram is open."
       },
       "preanalysis": {
         "running": "Running incremental pre-analysis…",

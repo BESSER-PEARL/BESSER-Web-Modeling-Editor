@@ -1,5 +1,6 @@
 import { DeepPartial } from 'redux';
 import { UMLElementType } from '../../uml-element-type';
+import { GeneralRelationshipType } from '../../common/uml-link/general-relationship-type';
 import { ClassRelationshipType } from '..';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
@@ -40,7 +41,8 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
 
   // Define supported relationships - only OCL Link
   static supportedRelationships = [
-    ClassRelationshipType.ClassOCLLink
+    ClassRelationshipType.ClassOCLLink,
+    GeneralRelationshipType.Link,
   ];
 
   type: UMLElementType = UMLElementType.ClassOCLConstraint;

@@ -52,6 +52,26 @@ describe('GenerateMenu', () => {
     fireEvent.click(action);
     expect(onIncrementalPreanalysis).toHaveBeenCalledTimes(1);
   });
+
+  it('offers constraint simplification next to incremental pre-analysis', () => {
+    const onConstraintSimplification = vi.fn();
+    withTooltips(
+      <GenerateMenu
+        mode="class"
+        isGenerating={false}
+        primaryGenerateClass=""
+        onGenerate={vi.fn()}
+        onIncrementalPreanalysis={vi.fn()}
+        onConstraintSimplification={onConstraintSimplification}
+      />,
+    );
+    openMenu('Generate');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Constraints' }));
+    const action = screen.getByRole('menuitem', { name: 'Constraint simplification' });
+    expect(action.querySelector('svg')).not.toBeNull();
+    fireEvent.click(action);
+    expect(onConstraintSimplification).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('FileMenu', () => {

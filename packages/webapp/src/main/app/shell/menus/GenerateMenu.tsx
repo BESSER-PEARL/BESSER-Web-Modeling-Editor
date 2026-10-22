@@ -23,6 +23,7 @@ import {
   Layers,
   ListTree,
   Loader2,
+  Minimize2,
   type LucideIcon,
   Network,
   ShieldCheck,
@@ -57,6 +58,7 @@ interface GenerateMenuProps {
   onDeriveDeploymentDiagram?: () => void;
   onGenerateDockerCompose?: () => void;
   onIncrementalPreanalysis?: () => void;
+  onConstraintSimplification?: () => void;
 }
 
 /** Icons for top-level groups, keyed by the config's stable English label. */
@@ -154,6 +156,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   onDeriveDeploymentDiagram,
   onGenerateDockerCompose,
   onIncrementalPreanalysis,
+  onConstraintSimplification,
 }) => {
   const { t } = useTranslation();
   const menuEntries = GENERATOR_MENU_CONFIG[mode];
@@ -183,7 +186,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
       </HeaderTooltip>
       <DropdownMenuContent className="w-72" align="end">
         {menuEntries.map((entry) => renderGeneratorMenuEntry(entry, onGenerate, t))}
-        {mode === 'class' && onIncrementalPreanalysis && (
+        {mode === 'class' && (onIncrementalPreanalysis || onConstraintSimplification) && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
@@ -192,10 +195,18 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
                 {t('menu.generate.constraints.title')}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent {...SUBMENU_OFFSETS}>
-                <DropdownMenuItem onClick={onIncrementalPreanalysis} disabled={isGenerating}>
-                  <ListTree className="mr-2 size-4" />
-                  {t('menu.generate.constraints.incrementalPreanalysis')}
-                </DropdownMenuItem>
+                {onIncrementalPreanalysis && (
+                  <DropdownMenuItem onClick={onIncrementalPreanalysis} disabled={isGenerating}>
+                    <ListTree className="mr-2 size-4" />
+                    {t('menu.generate.constraints.incrementalPreanalysis')}
+                  </DropdownMenuItem>
+                )}
+                {onConstraintSimplification && (
+                  <DropdownMenuItem onClick={onConstraintSimplification} disabled={isGenerating}>
+                    <Minimize2 className="mr-2 size-4" />
+                    {t('menu.generate.constraints.constraintSimplification')}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           </>

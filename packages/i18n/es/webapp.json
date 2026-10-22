@@ -94,7 +94,17 @@
       "generateDockerCompose": "Generar Docker Compose",
       "constraints": {
         "title": "Restricciones",
-        "incrementalPreanalysis": "Preanálisis incremental"
+        "incrementalPreanalysis": "Preanálisis incremental",
+        "constraintSimplification": "Simplificación de restricciones"
+      },
+      "simplification": {
+        "running": "Simplificando las restricciones…",
+        "done": "Las invariantes simplificadas muestran la expresión normalizada. El texto original queda en un comentario enlazado.",
+        "unchanged": "Todas las invariantes ya estaban simplificadas.",
+        "none": "No hay invariantes que simplificar.",
+        "failed": "La simplificación de restricciones ha fallado.",
+        "notClassDiagram": "La simplificación de restricciones se aplica a los diagramas de clases.",
+        "noDiagram": "No hay ningún diagrama de clases abierto."
       },
       "preanalysis": {
         "running": "Ejecutando el preanálisis incremental…",

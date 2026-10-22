@@ -1,6 +1,7 @@
 import { ModelState } from '../../components/store/model-state';
 import { AssessmentState } from '../../services/assessment/assessment-types';
 import { UMLElementState } from '../../services/uml-element/uml-element-types';
+import { UMLRelationship } from '../../services/uml-relationship/uml-relationship';
 
 /**
  * Merges the old state with the new state. In particular, it maintains
@@ -12,12 +13,21 @@ import { UMLElementState } from '../../services/uml-element/uml-element-types';
  * @returns The merged state.
  */
 export function merge(oldState: ModelState, newState: ModelState): ModelState {
+  const relationships = Object.keys(newState.elements).filter((id) =>
+    UMLRelationship.isUMLRelationship(newState.elements[id]),
+  );
+  const kept = oldState.diagram.ownedRelationships.filter((id) => relationships.includes(id));
+  const added = relationships.filter((id) => !kept.includes(id));
   return {
     ...oldState,
     diagram: {
       ...oldState.diagram,
-      ownedElements: Object.keys(newState.elements).filter((id) => !newState.elements[id].owner),
-      ownedRelationships: oldState.diagram.ownedRelationships.filter((id) => !!newState.elements[id]),
+      ownedElements: Object.keys(newState.elements).filter(
+        (id) => !newState.elements[id].owner && !relationships.includes(id),
+      ),
+      // A patch can introduce a relationship (a comment linked to a constraint).
+      // Keep the previous order and append the new ones so the canvas draws them.
+      ownedRelationships: [...kept, ...added],
     },
     elements: Object.keys(newState.elements).reduce((acc, id) => {
       return {

@@ -94,7 +94,17 @@
       "generateDockerCompose": "Genera el Docker Compose",
       "constraints": {
         "title": "Restriccions",
-        "incrementalPreanalysis": "Preanàlisi incremental"
+        "incrementalPreanalysis": "Preanàlisi incremental",
+        "constraintSimplification": "Simplificació de restriccions"
+      },
+      "simplification": {
+        "running": "S'estan simplificant les restriccions…",
+        "done": "Les invariants simplificades mostren l'expressió normalitzada. El text original queda en un comentari enllaçat.",
+        "unchanged": "Totes les invariants ja estaven simplificades.",
+        "none": "No hi ha invariants per simplificar.",
+        "failed": "La simplificació de restriccions ha fallat.",
+        "notClassDiagram": "La simplificació de restriccions s'aplica als diagrames de classes.",
+        "noDiagram": "No hi ha cap diagrama de classes obert."
       },
       "preanalysis": {
         "running": "S'està executant la preanàlisi incremental…",

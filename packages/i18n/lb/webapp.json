@@ -94,7 +94,17 @@
       "generateDockerCompose": "Docker Compose generéieren",
       "constraints": {
         "title": "Aschränkungen",
-        "incrementalPreanalysis": "Inkrementell Viranalyse"
+        "incrementalPreanalysis": "Inkrementell Viranalyse",
+        "constraintSimplification": "Aschränkunge vereinfachen"
+      },
+      "simplification": {
+        "running": "Aschränkunge ginn vereinfacht…",
+        "done": "Vereinfacht Invarianten weisen den normaliséierten Ausdrock. Den ursprénglechen Text bleift an engem verlinkte Kommentar.",
+        "unchanged": "All Invariante ware scho vereinfacht.",
+        "none": "Et gëtt keng Invarianten ze vereinfachen.",
+        "failed": "D'Vereinfachung vun den Aschränkungen ass feelgeschloen.",
+        "notClassDiagram": "D'Vereinfachung gëllt fir Klassendiagrammer.",
+        "noDiagram": "Et ass keen Klassendiagramm op."
       },
       "preanalysis": {
         "running": "Inkrementell Viranalyse leeft…",
