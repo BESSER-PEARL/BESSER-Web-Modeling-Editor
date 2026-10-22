@@ -77,6 +77,21 @@ function getModelBounds(model: any): ModelBounds | null {
   };
 }
 
+/** Move the elements a merge adds below the existing content. */
+function placeBelow(system: any, existingModel: any): any {
+  const existingIds = existingModel?.elements || {};
+  const added = Object.values((system?.elements || {}) as Record<string, any>).filter((e) => !(e.id in existingIds));
+  const existing = getModelBounds(existingModel);
+  const incoming = getModelBounds({ elements: added });
+  if (!existing || !incoming) return system;
+  const dx = existing.minX - incoming.minX;
+  const dy = existing.maxY + 100 - incoming.minY;
+  added.forEach((e) => {
+    if (e.bounds) e.bounds = { ...e.bounds, x: e.bounds.x + dx, y: e.bounds.y + dy };
+  });
+  return system;
+}
+
 /**
  * Scroll the editor canvas so the content bounding-box centre is visible.
  * The editor's inner SVG places model coordinate (0,0) at exactly
@@ -360,6 +375,24 @@ export function useModelInjection({
 
         let newModel: any = null;
 
+        // A rebuild of the open diagram keeps its element ids;
+        // replaceExisting=false keeps its content as well.
+        const rebuildsOpenDiagram =
+          currentModel?.type === targetDiagramType && Object.keys(currentModel?.elements || {}).length > 0;
+        const mergeIntoCurrent = command.replaceExisting === false && rebuildsOpenDiagram;
+        const buildCompleteSystem = async () => {
+          const { ConverterFactory } = await import('../services/converters');
+          const { reuseExistingClassIds } = await import('../services/converters/reuseClassIds');
+          const { mergeSystemIntoModel } = await import('../services/UMLModelingService');
+          const converter = ConverterFactory.getConverter(targetDiagramType as any);
+          const spec =
+            targetDiagramType === 'ClassDiagram' && rebuildsOpenDiagram
+              ? reuseExistingClassIds(command.systemSpec, currentModel)
+              : command.systemSpec;
+          const built = converter.convertCompleteSystem(spec);
+          return mergeIntoCurrent ? mergeSystemIntoModel(currentModel, placeBelow(built, currentModel)) : built;
+        };
+
         switch (command.action) {
           case 'inject_complete_system':
             if (
@@ -374,17 +407,13 @@ export function useModelInjection({
                   command.systemSpec.nodes,
               )
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (
               command.systemSpec &&
               typeof command.systemSpec === 'object' &&
               Object.keys(command.systemSpec).length > 0
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (command.systemSpec) {
               throw new Error(
                 'inject_complete_system payload is missing a valid classes/states/objects/intents/nodes array',
@@ -541,8 +570,8 @@ export function useModelInjection({
           } else {
             await dispatch(updateDiagramModelThunk({ model: newModel }));
             // A freshly generated complete class diagram should be ELK-arranged
-            // on the recreated editor. Incremental edits keep their positions.
-            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
+            // on the recreated editor. Incremental edits and merges keep their positions.
+            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram' && !mergeIntoCurrent) {
               requestAutoLayoutOnNextSetup();
             }
             dispatch(bumpEditorRevision());

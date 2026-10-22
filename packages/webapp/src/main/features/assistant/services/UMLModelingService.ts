@@ -1,6 +1,7 @@
 import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
 import type { AppDispatch } from '../../../app/store/store';
 import { ConverterFactory } from './converters';
+import { reuseExistingClassIds } from './converters/reuseClassIds';
 import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
@@ -190,7 +191,9 @@ export class UMLModelingService {
         : `Create ${systemName} system`;
       pushUndoSnapshot(currentModel, undoLabel);
 
-      const completeSystem = converter.convertCompleteSystem(systemSpec);
+      const completeSystem = converter.convertCompleteSystem(
+        type === 'ClassDiagram' ? reuseExistingClassIds(systemSpec, currentModel) : systemSpec,
+      );
       const shouldKeepExplicitLayout = this.hasExplicitSystemLayout(systemSpec, type);
       const shiftedSystem = shouldKeepExplicitLayout
         ? completeSystem
@@ -337,7 +340,7 @@ export class UMLModelingService {
         case 'complete_system':
           updatedModel = update.replaceExisting
             ? update.data  // Replace: use system data as the entire model
-            : this.mergeSystemIntoModel(currentModel, update.data);
+            : mergeSystemIntoModel(currentModel, update.data);
           break;
         case 'modification':
           updatedModel = update.data;
@@ -680,23 +683,34 @@ export class UMLModelingService {
       relationships: updatedRelationships
     };
   }
+}
 
-  /**
-   * Merge complete system into existing model
-   */
-  private mergeSystemIntoModel(currentModel: BESSERModel, systemData: any): BESSERModel {
-    return {
-      ...currentModel,
-      elements: {
-        ...currentModel.elements,
-        ...systemData.elements
-      },
-      relationships: {
-        ...currentModel.relationships,
-        ...systemData.relationships
-      },
-      size: systemData.size || currentModel.size
-    };
+/**
+ * Merge a complete system into an existing model. Elements the system shares
+ * with the model (same id) keep their current state; a shared classifier only
+ * gains the members it did not have.
+ */
+export function mergeSystemIntoModel(currentModel: BESSERModel, systemData: any): BESSERModel {
+  const elements: Record<string, any> = { ...currentModel.elements };
+  for (const [id, element] of Object.entries<any>(systemData.elements || {})) {
+    const existing = elements[id];
+    if (!existing) {
+      elements[id] = element;
+      continue;
+    }
+    for (const key of ['attributes', 'methods']) {
+      if (Array.isArray(existing[key]) && Array.isArray(element?.[key])) {
+        elements[id] = { ...elements[id], [key]: [...new Set([...existing[key], ...element[key]])] };
+      }
+    }
   }
-
+  return {
+    ...currentModel,
+    elements,
+    relationships: {
+      ...systemData.relationships,
+      ...currentModel.relationships
+    },
+    size: systemData.size || currentModel.size
+  };
 }
