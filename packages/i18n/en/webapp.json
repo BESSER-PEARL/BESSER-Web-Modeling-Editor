@@ -784,14 +784,17 @@
       "horizonHint": "Values it forecasts: the size of the last layer.",
       "season": "Season",
       "seasonHint": "12 for monthly data, 4 quarterly, 7 daily.",
-      "difference": "Difference lag",
-      "differenceHint": "0: levels, 1: first difference, or the season.",
+      "difference": "Differencing",
+      "differenceHint": "The change the network forecasts: from the same period a season earlier, from the previous value, or none.",
+      "differenceSeasonal": "Seasonal (lag = the season)",
+      "differenceFirst": "First difference (lag 1)",
+      "differenceLevels": "None (levels)",
       "seed": "Seed",
       "seedHint": "Makes training repeatable.",
       "log": "Forecast the logarithm (positive series)",
       "calendar": "Add the position in the season as inputs",
       "standardize": "Standardise the series",
-      "channelLast": "Channels last (as in the PyTorch generator)"
+      "channelLast": "Channels last: a first 1D convolution marked “permute in” reads the window as a sequence"
     },
     "webApp": {
       "title": "Web Application Generator",

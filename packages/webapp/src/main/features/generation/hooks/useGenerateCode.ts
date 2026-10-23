@@ -96,8 +96,8 @@ export interface ForecasterConfig {
   horizon: number;
   /** Period of the series: 12 for monthly data, 4 for quarterly, 7 for daily. */
   season: number;
-  /** Lag of the difference: 0 (levels), 1, or the season. */
-  difference: number;
+  /** Lag of the difference: 0 (levels), 1 (first difference), or null for the season (seasonal difference). */
+  difference: 0 | 1 | null;
   /** Forecast the logarithm when every value is positive. */
   log: boolean;
   /** Add the sine and cosine of the position in the season as inputs. */
@@ -108,11 +108,12 @@ export interface ForecasterConfig {
   channel_last: boolean;
 }
 
+/** The backend's ForecastConfig defaults (DEFAULT_WINDOW, DEFAULT_HORIZON, DEFAULT_SEASON in forecaster_generator.py). */
 export const DEFAULT_FORECASTER_CONFIG: ForecasterConfig = {
   window: 24,
   horizon: 12,
   season: 12,
-  difference: 12,
+  difference: null,
   log: true,
   calendar: true,
   standardize: true,

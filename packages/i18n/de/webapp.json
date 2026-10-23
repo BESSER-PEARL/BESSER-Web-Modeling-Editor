@@ -784,14 +784,17 @@
       "horizonHint": "Prognostizierte Werte: die Größe der letzten Schicht.",
       "season": "Saison",
       "seasonHint": "12 für Monatsdaten, 4 quartalsweise, 7 täglich.",
-      "difference": "Differenzen-Abstand",
-      "differenceHint": "0: Niveaus, 1: erste Differenz, oder die Saison.",
+      "difference": "Differenzierung",
+      "differenceHint": "Was das Netz vorhersagt: die Änderung zur gleichen Periode eine Saison früher, zum vorigen Wert, oder keine.",
+      "differenceSeasonal": "Saisonal (Abstand = die Saison)",
+      "differenceFirst": "Erste Differenz (Abstand 1)",
+      "differenceLevels": "Keine (Niveaus)",
       "seed": "Seed",
       "seedHint": "Macht das Training reproduzierbar.",
       "log": "Logarithmus prognostizieren (positive Reihe)",
       "calendar": "Position in der Saison als Eingabe hinzufügen",
       "standardize": "Reihe standardisieren",
-      "channelLast": "Kanäle zuletzt (wie beim PyTorch-Generator)"
+      "channelLast": "Kanäle zuletzt: eine erste 1D-Faltung mit „permute in“ liest das Fenster als Sequenz"
     },
     "webApp": {
       "title": "Webanwendungs-Generator",

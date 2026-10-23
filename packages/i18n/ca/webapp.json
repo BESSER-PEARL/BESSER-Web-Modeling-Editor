@@ -784,14 +784,17 @@
       "horizonHint": "Valors previstos: la mida de l'última capa.",
       "season": "Estació",
       "seasonHint": "12 per a dades mensuals, 4 trimestrals, 7 diàries.",
-      "difference": "Desfasament de la diferència",
-      "differenceHint": "0: nivells, 1: primera diferència, o l'estació.",
+      "difference": "Diferenciació",
+      "differenceHint": "El que prediu la xarxa: el canvi respecte al mateix període una estació abans, al valor anterior, o cap.",
+      "differenceSeasonal": "Estacional (desfasament = l'estació)",
+      "differenceFirst": "Primera diferència (desfasament 1)",
+      "differenceLevels": "Cap (nivells)",
       "seed": "Llavor",
       "seedHint": "Fa l'entrenament reproduïble.",
       "log": "Preveure el logaritme (sèrie positiva)",
       "calendar": "Afegir la posició en l'estació com a entrada",
       "standardize": "Estandarditzar la sèrie",
-      "channelLast": "Canals al final (com al generador PyTorch)"
+      "channelLast": "Canals al final: una primera convolució 1D marcada «permute in» llegeix la finestra com una seqüència"
     },
     "webApp": {
       "title": "Generador d'aplicació web",

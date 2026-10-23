@@ -1341,16 +1341,18 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   ]);
 
   const handleQiskitGenerate = useCallback(async () => {
-    await executeGenerator('qiskit', {
+    const result = await executeGenerator('qiskit', {
       backend: qiskitBackend,
       shots: Math.max(1, qiskitShots || 1024),
     } as QiskitConfig);
-    setConfigDialog('none');
+    // A failed generation keeps the dialog open, so the settings can be corrected after the error toast.
+    if (result.ok) setConfigDialog('none');
   }, [qiskitBackend, qiskitShots, executeGenerator]);
 
   const handleForecasterGenerate = useCallback(async () => {
-    await executeGenerator('forecaster', forecasterConfig);
-    setConfigDialog('none');
+    // The backend checks the horizon against the network's last layer: on a 400 the dialog stays open.
+    const result = await executeGenerator('forecaster', forecasterConfig);
+    if (result.ok) setConfigDialog('none');
   }, [forecasterConfig, executeGenerator]);
 
   const handleForecasterConfigChange = useCallback((update: Partial<ForecasterConfig>) => {

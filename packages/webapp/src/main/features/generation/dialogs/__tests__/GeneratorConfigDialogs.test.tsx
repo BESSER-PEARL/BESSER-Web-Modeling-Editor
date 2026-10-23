@@ -96,7 +96,8 @@ describe('GeneratorConfigDialogs — Forecaster', () => {
     expect(field('window')).toHaveValue(24);
     expect(field('horizon')).toHaveValue(12);
     expect(field('season')).toHaveValue(12);
-    expect(field('difference')).toHaveValue(12);
+    expect(screen.getByRole('combobox', { name: new RegExp(`^${i18n.t('generation.forecaster.difference')}`) }))
+      .toHaveTextContent(i18n.t('generation.forecaster.differenceSeasonal'));
     expect(screen.getByRole('checkbox', { name: i18n.t('generation.forecaster.log') })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: i18n.t('generation.forecaster.channelLast') })).not.toBeChecked();
     fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
@@ -116,5 +117,19 @@ describe('GeneratorConfigDialogs — Forecaster', () => {
     expect(screen.getByRole('button', { name: i18n.t('generation.generate') })).toBeDisabled();
     fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
     expect(handlers.onForecasterGenerate).not.toHaveBeenCalled();
+  });
+
+  it('accepts the large values the backend accepts', () => {
+    renderDialogs({ configDialog: 'forecaster', forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG, window: 5000, season: 52 } });
+    expect(screen.getByRole('button', { name: i18n.t('generation.generate') })).toBeEnabled();
+  });
+
+  it('clears the shown errors on Cancel', () => {
+    const handlers = renderDialogs({ configDialog: 'forecaster', forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG, window: 0 } });
+    fireEvent.blur(field('window'));
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('common.cancel') }));
+    expect(handlers.setConfigDialog).toHaveBeenCalledWith('none');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

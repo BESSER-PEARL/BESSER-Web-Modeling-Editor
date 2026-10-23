@@ -784,14 +784,17 @@
       "horizonHint": "Valeurs prévues : la taille de la dernière couche.",
       "season": "Saison",
       "seasonHint": "12 pour des données mensuelles, 4 trimestrielles, 7 journalières.",
-      "difference": "Décalage de la différence",
-      "differenceHint": "0 : niveaux, 1 : différence première, ou la saison.",
+      "difference": "Différenciation",
+      "differenceHint": "Ce que le réseau prévoit : l'écart à la même période une saison plus tôt, à la valeur précédente, ou aucun.",
+      "differenceSeasonal": "Saisonnière (décalage = la saison)",
+      "differenceFirst": "Différence première (décalage 1)",
+      "differenceLevels": "Aucune (niveaux)",
       "seed": "Graine",
       "seedHint": "Rend l'entraînement reproductible.",
       "log": "Prévoir le logarithme (série positive)",
       "calendar": "Ajouter la position dans la saison en entrée",
       "standardize": "Standardiser la série",
-      "channelLast": "Canaux en dernier (comme le générateur PyTorch)"
+      "channelLast": "Canaux en dernier : une première convolution 1D marquée « permute in » lit la fenêtre comme une séquence"
     },
     "webApp": {
       "title": "Générateur d'application web",

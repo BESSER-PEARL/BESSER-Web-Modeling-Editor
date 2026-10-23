@@ -36,6 +36,7 @@ import {
 import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
 import {
   validateProjectName,
+  validateMinimum,
   validateNumberRange,
   validateJavaClassName,
   validateJavaPackageName,
@@ -173,6 +174,13 @@ interface GeneratorConfigDialogsProps {
   onWebAppGenerate: () => void;
 }
 
+/** The forecaster's differencing choices: the Select value and the lag sent to the backend (null: the season). */
+const DIFFERENCE_CHOICES = [
+  { value: 'seasonal', lag: null, label: 'differenceSeasonal' },
+  { value: 'first', lag: 1, label: 'differenceFirst' },
+  { value: 'levels', lag: 0, label: 'differenceLevels' },
+] as const satisfies ReadonlyArray<{ value: string; lag: ForecasterConfig['difference']; label: string }>;
+
 const closeDialog = (setConfigDialog: (dialog: ConfigDialog) => void): void => {
   setConfigDialog('none');
 };
@@ -284,14 +292,14 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   const qiskitValidation = useFieldValidation(qiskitValidators);
 
   // ── Forecaster inline validation ──────────────────────────────────────
-  // The backend checks the same bounds (ForecastConfig) and whether the
-  // network fits them; these only catch a value that cannot be right.
+  // The same lower bounds as the backend (ForecastConfig), which also checks
+  // that the network fits them. The seed's lower bound is the UI's only:
+  // the backend takes any integer.
   const forecasterValidators = useMemo(() => ({
-    window: () => validateNumberRange(forecasterConfig.window, 1, 1000, t('generation.forecaster.window')),
-    horizon: () => validateNumberRange(forecasterConfig.horizon, 1, 1000, t('generation.forecaster.horizon')),
-    season: () => validateNumberRange(forecasterConfig.season, 1, 1000, t('generation.forecaster.season')),
-    difference: () => validateNumberRange(forecasterConfig.difference, 0, 1000, t('generation.forecaster.difference')),
-    seed: () => validateNumberRange(forecasterConfig.seed, 0, 2147483647, t('generation.forecaster.seed')),
+    window: () => validateMinimum(forecasterConfig.window, 1, t('generation.forecaster.window')),
+    horizon: () => validateMinimum(forecasterConfig.horizon, 1, t('generation.forecaster.horizon')),
+    season: () => validateMinimum(forecasterConfig.season, 1, t('generation.forecaster.season')),
+    seed: () => validateMinimum(forecasterConfig.seed, 0, t('generation.forecaster.seed')),
   }), [forecasterConfig, t]);
   const forecasterValidation = useFieldValidation(forecasterValidators);
 
@@ -971,7 +979,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           </DialogHeader>
           <form onSubmit={submitWith(onForecasterGenerate, forecasterValidation.isValid)} className="grid gap-4">
           <div className="grid grid-cols-2 gap-4">
-            {(['window', 'horizon', 'season', 'difference', 'seed'] as const).map((key) => (
+            {(['window', 'horizon', 'season', 'seed'] as const).map((key) => (
               <FormField
                 key={key}
                 label={t(`generation.forecaster.${key}`)}
@@ -984,7 +992,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                   id={`forecaster-${key}`}
                   type="number"
                   inputMode="numeric"
-                  min={key === 'difference' || key === 'seed' ? 0 : 1}
+                  min={key === 'seed' ? 0 : 1}
                   value={Number.isNaN(forecasterConfig[key]) ? '' : forecasterConfig[key]}
                   onChange={(event) => onForecasterConfigChange({
                     [key]: event.target.value === '' ? Number.NaN : Math.trunc(Number(event.target.value)),
@@ -995,6 +1003,28 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </FormField>
             ))}
           </div>
+          <FormField
+            label={t('generation.forecaster.difference')}
+            htmlFor="forecaster-difference"
+            helperText={t('generation.forecaster.differenceHint')}
+          >
+            <Select
+              value={DIFFERENCE_CHOICES.find((choice) => choice.lag === forecasterConfig.difference)?.value}
+              onValueChange={(value) => {
+                const choice = DIFFERENCE_CHOICES.find((option) => option.value === value);
+                if (choice) onForecasterConfigChange({ difference: choice.lag });
+              }}
+            >
+              <SelectTrigger id="forecaster-difference">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DIFFERENCE_CHOICES.map((choice) => (
+                  <SelectItem key={choice.value} value={choice.value}>{t(`generation.forecaster.${choice.label}`)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
           <div className="flex flex-col gap-2">
             {(['log', 'calendar', 'standardize', 'channel_last'] as const).map((key) => (
               <div key={key} className="flex items-center gap-2">
@@ -1010,7 +1040,14 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             ))}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                closeDialog(setConfigDialog);
+                forecasterValidation.resetTouched();
+              }}
+            >
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={!forecasterValidation.isValid}>{t('generation.generate')}</Button>

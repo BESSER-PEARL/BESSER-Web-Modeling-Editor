@@ -784,14 +784,17 @@
       "horizonHint": "Prognostizéiert Wäerter: d'Gréisst vun der leschter Schicht.",
       "season": "Saison",
       "seasonHint": "12 fir Méintsdaten, 4 pro Trimester, 7 deeglech.",
-      "difference": "Ofstand vun der Differenz",
-      "differenceHint": "0: Niveauen, 1: éischt Differenz, oder d'Saison.",
+      "difference": "Differenzéierung",
+      "differenceHint": "Wat d'Netz viraussot: d'Ännerung par rapport zu der selwechter Period eng Saison virdrun, zum leschte Wäert, oder keng.",
+      "differenceSeasonal": "Saisonal (Ofstand = d'Saison)",
+      "differenceFirst": "Éischt Differenz (Ofstand 1)",
+      "differenceLevels": "Keng (Niveauen)",
       "seed": "Seed",
       "seedHint": "Mécht den Training reproduzéierbar.",
       "log": "Logarithmus prognostizéieren (positiv Rei)",
       "calendar": "Positioun an der Saison als Agab bäisetzen",
       "standardize": "Rei standardiséieren",
-      "channelLast": "Kanäl um Enn (wéi beim PyTorch-Generator)"
+      "channelLast": "Kanäl um Enn: eng éischt 1D-Konvolutioun mat „permute in“ liest d'Fënster als Sequenz"
     },
     "webApp": {
       "title": "Web-Applikatioun Generator",
