@@ -36,7 +36,9 @@
         "height": 40
       },
       "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"96\" viewBox=\"0 0 20 20\"> \t<g fill=\"none\"> \t\t<path fill=\"url(#fluentColorPerson200)\" d=\"M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z\" /> \t\t<path fill=\"url(#fluentColorPerson201)\" d=\"M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z\" /> \t\t<path fill=\"url(#fluentColorPerson202)\" d=\"M10 2a4 4 0 1 0 0 8a4 4 0 0 0 0-8\" /> \t\t<defs> \t\t\t<linearGradient id=\"fluentColorPerson200\" x1=\"6.329\" x2=\"8.591\" y1=\"11.931\" y2=\"19.153\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop offset=\".125\" stop-color=\"#5baad0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#282233\" /> \t\t\t</linearGradient> \t\t\t<linearGradient id=\"fluentColorPerson201\" x1=\"10\" x2=\"13.167\" y1=\"10.167\" y2=\"22\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop stop-color=\"#537fff\" stop-opacity=\"0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#e362f8\" /> \t\t\t</linearGradient> \t\t\t<linearGradient id=\"fluentColorPerson202\" x1=\"7.902\" x2=\"11.979\" y1=\"3.063\" y2=\"9.574\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop offset=\".125\" stop-color=\"#5baad0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#282233\" /> \t\t\t</linearGradient> \t\t</defs> \t</g> </svg>",
-      "attributes": ["c099dfb1-b5ed-4a34-9ede-9593be0a49bc"],
+      "attributes": [
+        "c099dfb1-b5ed-4a34-9ede-9593be0a49bc"
+      ],
       "methods": []
     },
     "5b6e9989-bda3-4434-8fac-89f649dc05d3": {
@@ -206,7 +208,6 @@
       "attributeType": "ReligionEnum",
       "visibility": "public"
     },
-   
     "b181633c-ee8d-4a0a-aab8-ffaae0a2495a": {
       "id": "b181633c-ee8d-4a0a-aab8-ffaae0a2495a",
       "name": "dread",
@@ -473,7 +474,6 @@
       "attributeType": "int",
       "visibility": "public"
     },
-   
     "d9746458-b08c-4aaf-b9e9-5e440c971f66": {
       "id": "d9746458-b08c-4aaf-b9e9-5e440c971f66",
       "name": "bad_to_good",
@@ -562,7 +562,6 @@
       "attributeType": "CEFR",
       "visibility": "public"
     },
-    
     "d22d5a3d-d583-4725-92b3-df18fc7dff62": {
       "id": "d22d5a3d-d583-4725-92b3-df18fc7dff62",
       "name": "companyName",
@@ -665,7 +664,6 @@
       "attributeType": "str",
       "visibility": "public"
     },
-   
     "181abb5b-d034-4ebe-9762-bbba5ab6392c": {
       "id": "181abb5b-d034-4ebe-9762-bbba5ab6392c",
       "name": "ReligionEnum",
@@ -786,7 +784,6 @@
       "attributeType": "",
       "visibility": "public"
     },
-   
     "9f0f6ea8-d2bb-42b3-8f29-f33195b1216a": {
       "id": "9f0f6ea8-d2bb-42b3-8f29-f33195b1216a",
       "name": "name",
@@ -966,7 +963,6 @@
       "attributeType": "",
       "visibility": "public"
     },
-   
     "3709672d-5a98-48a6-be25-c690a126c048": {
       "id": "3709672d-5a98-48a6-be25-c690a126c048",
       "name": "Education",
@@ -1104,7 +1100,6 @@
       "attributeType": "AspectsEnum",
       "visibility": "public"
     },
-  
     "651f19aa-4e66-455f-8f4f-b2e1f150c968": {
       "id": "651f19aa-4e66-455f-8f4f-b2e1f150c968",
       "name": "name",
@@ -1133,7 +1128,6 @@
       "attributeType": "int",
       "visibility": "public"
     },
-   
     "8085a685-a21d-4597-b5ee-4f90654de3f1": {
       "id": "8085a685-a21d-4597-b5ee-4f90654de3f1",
       "name": "contentContrast",
@@ -1204,7 +1198,6 @@
       "attributeType": "int",
       "visibility": "public"
     },
-   
     "f66fb622-c0d3-453a-96f9-10dc47509dd7": {
       "id": "f66fb622-c0d3-453a-96f9-10dc47509dd7",
       "name": "GenderEnum",
@@ -1265,7 +1258,6 @@
       "attributeType": "",
       "visibility": "public"
     },
-    
     "a18f2d59-d150-4d54-8b75-e9b8cdd2e453": {
       "id": "a18f2d59-d150-4d54-8b75-e9b8cdd2e453",
       "name": "score",
@@ -1280,7 +1272,6 @@
       "attributeType": "int",
       "visibility": "public"
     },
-   
     "5834b703-19b3-4404-84a9-577f0903d6bb": {
       "id": "5834b703-19b3-4404-84a9-577f0903d6bb",
       "name": "value",
@@ -1481,7 +1472,7 @@
     },
     "ec450ee0-e344-49d7-b902-c7db720d2ca7": {
       "id": "ec450ee0-e344-49d7-b902-c7db720d2ca7",
-      "name": "Doctorate's_degree",
+      "name": "Doctorates_degree",
       "type": "ClassAttribute",
       "owner": "4a5c7841-ecff-4ce5-aec2-ea6cb4a42213",
       "bounds": {
@@ -1495,7 +1486,7 @@
     },
     "2299c7fa-badd-4634-af4c-2caad4daedfe": {
       "id": "2299c7fa-badd-4634-af4c-2caad4daedfe",
-      "name": "High-school_diploma",
+      "name": "High_school_diploma",
       "type": "ClassAttribute",
       "owner": "4a5c7841-ecff-4ce5-aec2-ea6cb4a42213",
       "bounds": {
@@ -1509,7 +1500,7 @@
     },
     "8a9587ce-a9b2-4ad5-bb64-625ad1370ce2": {
       "id": "8a9587ce-a9b2-4ad5-bb64-625ad1370ce2",
-      "name": "Master's_degree",
+      "name": "Masters_degree",
       "type": "ClassAttribute",
       "owner": "4a5c7841-ecff-4ce5-aec2-ea6cb4a42213",
       "bounds": {
@@ -1537,7 +1528,7 @@
     },
     "80d26e07-b91b-49ef-a962-105853ba9ea8": {
       "id": "80d26e07-b91b-49ef-a962-105853ba9ea8",
-      "name": "Bachelor's_degree",
+      "name": "Bachelors_degree",
       "type": "ClassAttribute",
       "owner": "4a5c7841-ecff-4ce5-aec2-ea6cb4a42213",
       "bounds": {
@@ -2632,6 +2623,67 @@
         "height": 90
       },
       "constraint": "context Disability inv description_not_empty: self.description <> ''"
+    },
+    "fedf5234-c2d1-4470-a7c1-f31e2bf30ef8": {
+      "id": "fedf5234-c2d1-4470-a7c1-f31e2bf30ef8",
+      "name": "name",
+      "type": "ClassAttribute",
+      "owner": "2afa4767-7160-4621-977c-b3f293d27aa0",
+      "bounds": {
+        "x": 700.5,
+        "y": -79.5,
+        "width": 159,
+        "height": 30
+      },
+      "attributeType": "str",
+      "visibility": "public"
+    },
+    "dbb7c854-1ee3-437b-953f-bf0c42a3d030": {
+      "id": "dbb7c854-1ee3-437b-953f-bf0c42a3d030",
+      "name": "description",
+      "type": "ClassAttribute",
+      "owner": "2afa4767-7160-4621-977c-b3f293d27aa0",
+      "bounds": {
+        "x": 700.5,
+        "y": -49.5,
+        "width": 159,
+        "height": 30
+      },
+      "attributeType": "str",
+      "visibility": "public"
+    },
+    "dc3f4791-f996-48b5-8fdf-fb79675a47c9": {
+      "id": "dc3f4791-f996-48b5-8fdf-fb79675a47c9",
+      "name": "deadline",
+      "type": "ClassAttribute",
+      "owner": "2afa4767-7160-4621-977c-b3f293d27aa0",
+      "bounds": {
+        "x": 700.5,
+        "y": -19.5,
+        "width": 159,
+        "height": 30
+      },
+      "attributeType": "datetime",
+      "visibility": "public"
+    },
+    "2afa4767-7160-4621-977c-b3f293d27aa0": {
+      "id": "2afa4767-7160-4621-977c-b3f293d27aa0",
+      "name": "Goal",
+      "type": "Class",
+      "owner": null,
+      "bounds": {
+        "x": 700,
+        "y": -120,
+        "width": 160,
+        "height": 130
+      },
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"96\" viewBox=\"0 0 50 50\"> \t<g fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"> \t\t<path stroke=\"#003187\" d=\"m31.25 18.75l-5.208 5.208zm0-6.25v6.25h6.25l6.25-6.25H37.5V6.25z\" /> \t\t<path stroke=\"#6d93ef\" d=\"M25.688 6.25H25A18.75 18.75 0 1 0 43.75 25v-.687\" /> \t\t<path stroke=\"#6d93ef\" d=\"M35.208 27.083a10.417 10.417 0 1 1-12.291-12.291\" /> \t</g> </svg>",
+      "attributes": [
+        "fedf5234-c2d1-4470-a7c1-f31e2bf30ef8",
+        "dbb7c854-1ee3-437b-953f-bf0c42a3d030",
+        "dc3f4791-f996-48b5-8fdf-fb79675a47c9"
+      ],
+      "methods": []
     }
   },
   "relationships": {
@@ -4237,6 +4289,61 @@
         "element": "eb43d3fb-899c-4de1-a9e6-53fd0c446cda",
         "multiplicity": "",
         "role": ""
+      },
+      "isManuallyLayouted": false
+    },
+    "0721275a-c3aa-415d-adef-3bd0559f1e36": {
+      "id": "0721275a-c3aa-415d-adef-3bd0559f1e36",
+      "name": "Goal_User_non_navigable",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": {
+        "x": -400,
+        "y": -630,
+        "width": 1100,
+        "height": 510
+      },
+      "path": [
+        {
+          "x": 80,
+          "y": 0
+        },
+        {
+          "x": 80,
+          "y": 200
+        },
+        {
+          "x": 1000,
+          "y": 200
+        },
+        {
+          "x": 1000,
+          "y": 510
+        }
+      ],
+      "source": {
+        "direction": "Down",
+        "element": "ce1e2d59-3d7c-4753-adb7-09ca96797f5a",
+        "multiplicity": "1..1",
+        "role": "User_end",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        }
+      },
+      "target": {
+        "direction": "Up",
+        "element": "2afa4767-7160-4621-977c-b3f293d27aa0",
+        "multiplicity": "0..*",
+        "role": "Goal_end",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        }
       },
       "isManuallyLayouted": false
     }

@@ -1,5 +1,6 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import { GUI_PERSONALIZE_EVENT } from '../../../../shared/constants/gui-personalize-event';
 import { isReadAloudVariant, setPageReadAloud, setupGuiReadAloudControls } from './guiReadAloudControls';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
@@ -339,9 +340,11 @@ const openProfilePickerModal = async (
     confirmLabel: string;
     // When true, shows an "Auto-personalize with AI" checkbox.
     personalizeToggle?: boolean;
+    // Pages to choose from. The checklist is only shown for two or more pages.
+    pages?: Array<{ id: string; name: string }>;
     onConfirm: (
       profile: ProfileOption,
-      choices: { personalize: boolean; applyRules: boolean },
+      choices: { personalize: boolean; applyRules: boolean; pageIds: string[] },
     ) => void | Promise<void>;
   },
 ) => {
@@ -378,6 +381,22 @@ const openProfilePickerModal = async (
         </span>
       </label>`
     : '';
+  const pageChoices = options.pages && options.pages.length >= 2 ? options.pages : [];
+  const pagesHtml = pageChoices.length
+    ? `
+      <div style="margin-top:14px;">
+        <div style="margin-bottom:6px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">Pages</div>
+        <label style="display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; font-size:14px; font-weight:600;">
+          <input type="checkbox" id="gjs-personalization-pages-all" checked /> All pages
+        </label>
+        <div style="max-height:150px; overflow-y:auto; border:1px solid #e5e5e5; border-radius:6px; padding:4px 10px;">
+          ${pageChoices.map((choice) => `
+          <label style="display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; font-size:14px;">
+            <input type="checkbox" class="gjs-personalization-page-check" value="${escapeHtml(choice.id)}" checked /> ${escapeHtml(choice.name)}
+          </label>`).join('')}
+        </div>
+      </div>`
+    : '';
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 320px;">
       <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
@@ -385,6 +404,7 @@ const openProfilePickerModal = async (
       <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
         ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.name)}</option>`).join('')}
       </select>
+      ${pagesHtml}
       ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
         <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
@@ -422,13 +442,36 @@ const openProfilePickerModal = async (
     updateRulesAvailability();
     select?.addEventListener('change', updateRulesAvailability);
 
+    // "All pages" toggles every page, and follows the single checkboxes.
+    const allPages = document.getElementById('gjs-personalization-pages-all') as HTMLInputElement | null;
+    const pageChecks = Array.from(document.querySelectorAll<HTMLInputElement>('.gjs-personalization-page-check'));
+    const selectedPageIds = () => pageChecks.filter((check) => check.checked).map((check) => check.value);
+    const updatePageSelection = () => {
+      const count = selectedPageIds().length;
+      if (allPages) {
+        allPages.checked = count === pageChecks.length;
+        allPages.indeterminate = count > 0 && count < pageChecks.length;
+      }
+      if (confirmBtn) {
+        const noPage = pageChecks.length > 0 && count === 0;
+        (confirmBtn as HTMLButtonElement).disabled = noPage;
+        confirmBtn.style.opacity = noPage ? '0.5' : '1';
+      }
+    };
+    allPages?.addEventListener('change', () => {
+      pageChecks.forEach((check) => { check.checked = allPages.checked; });
+      updatePageSelection();
+    });
+    pageChecks.forEach((check) => check.addEventListener('change', updatePageSelection));
+
     cancelBtn?.addEventListener('click', () => modal.close());
     confirmBtn?.addEventListener('click', async () => {
       const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
       const personalize = !!toggle?.checked;
       const applyRules = !!rulesToggle?.checked && !rulesToggle.disabled;
+      const pageIds = pageChecks.length ? selectedPageIds() : (options.pages ?? []).map((choice) => choice.id);
       modal.close();
-      await options.onConfirm(selectedProfile, { personalize, applyRules });
+      await options.onConfirm(selectedProfile, { personalize, applyRules, pageIds });
     });
   }, 50);
 };
@@ -492,6 +535,185 @@ const openPageDeleteModal = (
   }, 50);
 };
 
+/** Create the personalized variant of one page for the chosen profile. */
+const createVariantForPage = async (
+  editor: Editor,
+  page: any,
+  profile: ProfileOption,
+  { personalize, applyRules }: { personalize: boolean; applyRules: boolean },
+) => {
+  // Persist any edits in the currently-active variant/base first.
+  saveActiveLive(editor, page);
+
+  // Ensure a Base snapshot exists so "Base" can always be restored.
+  if (!getBaseSnapshot(page)) {
+    setBaseSnapshot(page, captureSnapshot(editor, page));
+  }
+  const baseSnapshot = getBaseSnapshot(page) ?? captureSnapshot(editor, page);
+  const presentation = aggregateGuiPresentation(profile.model);
+  const content = aggregateGuiContent(profile.model);
+  const simplifyText = applyRules && presentation.languageComplexity === 'simple';
+  const translateText = applyRules && !!presentation.language && presentation.language !== 'original';
+  const changeSentenceLength = applyRules && !!presentation.sentenceLength && presentation.sentenceLength !== 'original';
+  const adaptContent = applyRules && content.adaptContentToUserProfile === true;
+  const summarizeContent = applyRules && content.summarizeLongContent === true;
+  const personalizeText = simplifyText || translateText || changeSentenceLength || adaptContent || summarizeContent;
+  const finishSnapshot = (snapshot: PageSnapshot): PageSnapshot => {
+    const result = applyRules
+      ? applyGuiPresentation({ ...snapshot, fontSizes: snapshot.fontSizes ?? baseSnapshot.fontSizes }, presentation, page.getId())
+      : snapshot;
+    const readAloudRequested = applyRules && guiReadAloudEnabled(profile.model);
+    const marked = JSON.parse(JSON.stringify(result)) as PageSnapshot;
+    const languageTags: Record<string, string> = { english: 'en', french: 'fr', german: 'de', spanish: 'es', portuguese: 'pt', luxembourgish: 'lb', italian: 'it' };
+    const languageTag = presentation.language && languageTags[presentation.language];
+    const visit = (component: any) => {
+      if (!readAloudRequested && component.attributes) delete component.attributes['data-besser-read-aloud'];
+      if (readAloudRequested && (component.type === 'text' || ['p', 'blockquote', 'article'].includes(String(component.tagName).toLowerCase()))) {
+        component.attributes = { ...component.attributes, 'data-besser-read-aloud': 'true', ...(languageTag ? { lang: languageTag } : {}) };
+      }
+      if (Array.isArray(component.components)) component.components.forEach(visit);
+    };
+    marked.components.forEach(visit);
+    return marked;
+  };
+
+  // Rules start from Base so another profile's styling cannot leak in.
+  // When combined with AI, apply explicit settings to the LLM output.
+  // On AI failure, offer a copy or rules-only fallback; declining aborts.
+  const buildSnapshot = async (): Promise<PageSnapshot | null> => {
+    if (!personalize && !personalizeText) return finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page));
+
+    const closeLoading = openLoadingModal(
+      editor,
+      !personalize ? translateText && !simplifyText && !changeSentenceLength && !adaptContent && !summarizeContent ? 'Translating page text' : 'Personalizing page text' : 'Personalizing page with AI',
+      `Adapting "${page.getName()}" for ${profile.name}…`,
+    );
+    let snap: PageSnapshot | null = null;
+    let failure: string | null = null;
+    try {
+      snap = await personalizeSnapshotWithAI(
+        editor, page, profile, applyRules ? baseSnapshot : captureSnapshot(editor, page),
+        { adaptFromProfile: personalize, ...(applyRules ? { guiPersonalization: { presentation, ...(adaptContent || summarizeContent ? { content } : {}) } } : {}) },
+      );
+    } catch (err) {
+      failure =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof DOMException && err.name === 'TimeoutError'
+            ? 'The request timed out.'
+            : err instanceof Error
+              ? err.message
+              : 'Unknown error.';
+    } finally {
+      closeLoading();
+    }
+
+    if (snap) {
+      notify(editor, 'success', `✓ Personalized "${page.getName()}" for ${profile.name}.`);
+      return finishSnapshot(snap);
+    }
+
+    // Personalization failed — show the error and ask whether to fall
+    // back to a manual copy.
+    const makeCopy = await globalConfirm({
+      title: 'AI personalization failed',
+      description: `${failure ?? 'Something went wrong.'}\n\n${applyRules
+        ? personalizeText ? 'Continue with visual rules only? Text personalization failed, so the original wording will be kept.' : 'Continue by applying the defined GUI rules to the Base page?'
+        : 'Do you still want to create a copy to manually personalize?'}`,
+      confirmLabel: personalizeText ? 'Apply visual rules' : applyRules ? 'Apply rules' : 'Create copy',
+      cancelLabel: 'Cancel',
+    });
+    return makeCopy ? finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page)) : null;
+  };
+
+  const variants = getPageVariants(page);
+  const existing = variants.find((v) => v.profileId === profile.id);
+
+  if (existing) {
+    // Re-adding an existing profile replaces its content.
+    const confirmed = await globalConfirm({
+      title: 'Variant already exists',
+      description: personalize
+        ? `A variant for "${profile.name}" already exists. Continue to regenerate it with AI? This replaces its current content.`
+        : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page${applyRules ? ' and apply its defined GUI rules' : ''}. Continue?`,
+      confirmLabel: personalize ? 'Regenerate with AI' : applyRules ? 'Apply rules' : 'Replace with Base',
+      variant: 'danger',
+    });
+    if (!confirmed) {
+      // Leave it untouched — just surface the existing variant.
+      switchVariant(editor, page, existing.id);
+      updatePagesList(editor);
+      return;
+    }
+    const snapshot = personalize || applyRules ? await buildSnapshot() : baseSnapshot;
+    if (!snapshot) {
+      // User declined the fallback copy — leave the variant untouched.
+      switchVariant(editor, page, existing.id);
+      updatePagesList(editor);
+      return;
+    }
+    applySnapshot(editor, page, snapshot);
+    const idx = variants.findIndex((v) => v.id === existing.id);
+    variants[idx] = { ...existing, snapshot, readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model) };
+    setPageVariants(page, variants);
+    setActiveVariantId(page, existing.id);
+    updatePagesList(editor);
+    return;
+  }
+
+  const snapshot = await buildSnapshot();
+  if (!snapshot) {
+    // User declined the fallback copy — don't create a variant.
+    updatePagesList(editor);
+    return;
+  }
+  // Plain copy already matches the canvas; adapted content must be mounted.
+  if (personalize || applyRules) applySnapshot(editor, page, snapshot);
+
+  const newVariant: PageVariant = {
+    id: `variant-${profile.id}-${Date.now()}`,
+    profileId: profile.id,
+    profileName: profile.name,
+    readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model),
+    snapshot,
+  };
+
+  setPageVariants(page, [...variants, newVariant]);
+  setActiveVariantId(page, newVariant.id);
+  updatePagesList(editor);
+
+};
+
+/**
+ * Ask for a profile (and, with two or more pages, which pages), then create the
+ * variants. `choosePages` shows the page checklist, which is hidden for one page.
+ */
+const openAddVariantModal = async (editor: Editor, pages: any[], options?: { choosePages?: boolean }) => {
+  const choosePages = !!options?.choosePages && pages.length >= 2;
+  await openProfilePickerModal(editor, {
+    title: choosePages ? 'Create page variants' : 'Create page variant',
+    description: choosePages
+      ? 'Choose a user profile and the pages to personalize.'
+      : `Choose a user profile to create a personalized variant of "${pages[0]?.getName?.()}".`,
+    confirmLabel: choosePages ? 'Create variants' : 'Create variant',
+    personalizeToggle: true,
+    pages: choosePages ? pages.map((page) => ({ id: page.getId(), name: page.getName() })) : undefined,
+    onConfirm: async (profile, { personalize, applyRules, pageIds }) => {
+      const targets = choosePages ? pages.filter((page) => pageIds.includes(page.getId())) : pages;
+      const original = editor.Pages?.getSelected();
+      for (const target of targets) {
+        // Show each page first so its live content and fonts can be measured.
+        if (targets.length > 1 && editor.Pages?.getSelected() !== target) {
+          editor.Pages.select(target);
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
+        await createVariantForPage(editor, target, profile, { personalize, applyRules });
+      }
+      if (original && editor.Pages?.getSelected() !== original) editor.Pages.select(original);
+    },
+  });
+};
+
 export function setupPageSystem(editor: Editor) {
   // Check if this specific editor already has the page system initialized
   if ((editor as any).__pageSystemInitialized) return;
@@ -502,6 +724,11 @@ export function setupPageSystem(editor: Editor) {
   setupPageCommands(editor);
   setupPageListeners(editor);
   setupGuiReadAloudControls(editor);
+
+  // The top bar button cannot reach the editor instance, so it sends an event.
+  const onTopBarPersonalize = () => editor.runCommand('personalization:add-variant');
+  window.addEventListener(GUI_PERSONALIZE_EVENT, onTopBarPersonalize);
+  editor.on('destroy', () => window.removeEventListener(GUI_PERSONALIZE_EVENT, onTopBarPersonalize));
   
   // Suppress harmless ResizeObserver warning in development
   if (import.meta.env.DEV) {
@@ -873,156 +1100,9 @@ function updatePagesList(editor: Editor) {
       });
 
       // Add variant button
-      item.querySelector('.add-variant-btn')?.addEventListener('click', async (e) => {
+      item.querySelector('.add-variant-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
-
-        await openProfilePickerModal(editor, {
-          title: 'Create page variant',
-          description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
-          confirmLabel: 'Create variant',
-          personalizeToggle: true,
-          onConfirm: async (profile, { personalize, applyRules }) => {
-            // Persist any edits in the currently-active variant/base first.
-            saveActiveLive(editor, page);
-
-            // Ensure a Base snapshot exists so "Base" can always be restored.
-            if (!getBaseSnapshot(page)) {
-              setBaseSnapshot(page, captureSnapshot(editor, page));
-            }
-            const baseSnapshot = getBaseSnapshot(page) ?? captureSnapshot(editor, page);
-            const presentation = aggregateGuiPresentation(profile.model);
-            const content = aggregateGuiContent(profile.model);
-            const simplifyText = applyRules && presentation.languageComplexity === 'simple';
-            const translateText = applyRules && !!presentation.language && presentation.language !== 'original';
-            const changeSentenceLength = applyRules && !!presentation.sentenceLength && presentation.sentenceLength !== 'original';
-            const adaptContent = applyRules && content.adaptContentToUserProfile === true;
-            const summarizeContent = applyRules && content.summarizeLongContent === true;
-            const personalizeText = simplifyText || translateText || changeSentenceLength || adaptContent || summarizeContent;
-            const finishSnapshot = (snapshot: PageSnapshot): PageSnapshot => {
-              const result = applyRules
-                ? applyGuiPresentation({ ...snapshot, fontSizes: snapshot.fontSizes ?? baseSnapshot.fontSizes }, presentation, page.getId())
-                : snapshot;
-              const readAloudRequested = applyRules && guiReadAloudEnabled(profile.model);
-              const marked = JSON.parse(JSON.stringify(result)) as PageSnapshot;
-              const languageTags: Record<string, string> = { english: 'en', french: 'fr', german: 'de', spanish: 'es', portuguese: 'pt', luxembourgish: 'lb', italian: 'it' };
-              const languageTag = presentation.language && languageTags[presentation.language];
-              const visit = (component: any) => {
-                if (!readAloudRequested && component.attributes) delete component.attributes['data-besser-read-aloud'];
-                if (readAloudRequested && (component.type === 'text' || ['p', 'blockquote', 'article'].includes(String(component.tagName).toLowerCase()))) {
-                  component.attributes = { ...component.attributes, 'data-besser-read-aloud': 'true', ...(languageTag ? { lang: languageTag } : {}) };
-                }
-                if (Array.isArray(component.components)) component.components.forEach(visit);
-              };
-              marked.components.forEach(visit);
-              return marked;
-            };
-
-            // Rules start from Base so another profile's styling cannot leak in.
-            // When combined with AI, apply explicit settings to the LLM output.
-            // On AI failure, offer a copy or rules-only fallback; declining aborts.
-            const buildSnapshot = async (): Promise<PageSnapshot | null> => {
-              if (!personalize && !personalizeText) return finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page));
-
-              const closeLoading = openLoadingModal(
-                editor,
-                !personalize ? translateText && !simplifyText && !changeSentenceLength && !adaptContent && !summarizeContent ? 'Translating page text' : 'Personalizing page text' : 'Personalizing page with AI',
-                `Adapting "${page.getName()}" for ${profile.name}…`,
-              );
-              let snap: PageSnapshot | null = null;
-              let failure: string | null = null;
-              try {
-                snap = await personalizeSnapshotWithAI(
-                  editor, page, profile, applyRules ? baseSnapshot : captureSnapshot(editor, page),
-                  { adaptFromProfile: personalize, ...(applyRules ? { guiPersonalization: { presentation, ...(adaptContent || summarizeContent ? { content } : {}) } } : {}) },
-                );
-              } catch (err) {
-                failure =
-                  err instanceof ApiError
-                    ? err.message
-                    : err instanceof DOMException && err.name === 'TimeoutError'
-                      ? 'The request timed out.'
-                      : err instanceof Error
-                        ? err.message
-                        : 'Unknown error.';
-              } finally {
-                closeLoading();
-              }
-
-              if (snap) {
-                notify(editor, 'success', `✓ Personalized "${page.getName()}" for ${profile.name}.`);
-                return finishSnapshot(snap);
-              }
-
-              // Personalization failed — show the error and ask whether to fall
-              // back to a manual copy.
-              const makeCopy = await globalConfirm({
-                title: 'AI personalization failed',
-                description: `${failure ?? 'Something went wrong.'}\n\n${applyRules
-                  ? personalizeText ? 'Continue with visual rules only? Text personalization failed, so the original wording will be kept.' : 'Continue by applying the defined GUI rules to the Base page?'
-                  : 'Do you still want to create a copy to manually personalize?'}`,
-                confirmLabel: personalizeText ? 'Apply visual rules' : applyRules ? 'Apply rules' : 'Create copy',
-                cancelLabel: 'Cancel',
-              });
-              return makeCopy ? finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page)) : null;
-            };
-
-            const variants = getPageVariants(page);
-            const existing = variants.find((v) => v.profileId === profile.id);
-
-            if (existing) {
-              // Re-adding an existing profile replaces its content.
-              const confirmed = await globalConfirm({
-                title: 'Variant already exists',
-                description: personalize
-                  ? `A variant for "${profile.name}" already exists. Continue to regenerate it with AI? This replaces its current content.`
-                  : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page${applyRules ? ' and apply its defined GUI rules' : ''}. Continue?`,
-                confirmLabel: personalize ? 'Regenerate with AI' : applyRules ? 'Apply rules' : 'Replace with Base',
-                variant: 'danger',
-              });
-              if (!confirmed) {
-                // Leave it untouched — just surface the existing variant.
-                switchVariant(editor, page, existing.id);
-                updatePagesList(editor);
-                return;
-              }
-              const snapshot = personalize || applyRules ? await buildSnapshot() : baseSnapshot;
-              if (!snapshot) {
-                // User declined the fallback copy — leave the variant untouched.
-                switchVariant(editor, page, existing.id);
-                updatePagesList(editor);
-                return;
-              }
-              applySnapshot(editor, page, snapshot);
-              const idx = variants.findIndex((v) => v.id === existing.id);
-              variants[idx] = { ...existing, snapshot, readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model) };
-              setPageVariants(page, variants);
-              setActiveVariantId(page, existing.id);
-              updatePagesList(editor);
-              return;
-            }
-
-            const snapshot = await buildSnapshot();
-            if (!snapshot) {
-              // User declined the fallback copy — don't create a variant.
-              updatePagesList(editor);
-              return;
-            }
-            // Plain copy already matches the canvas; adapted content must be mounted.
-            if (personalize || applyRules) applySnapshot(editor, page, snapshot);
-
-            const newVariant: PageVariant = {
-              id: `variant-${profile.id}-${Date.now()}`,
-              profileId: profile.id,
-              profileName: profile.name,
-              readAloudEnabled: applyRules && guiReadAloudEnabled(profile.model),
-              snapshot,
-            };
-
-            setPageVariants(page, [...variants, newVariant]);
-            setActiveVariantId(page, newVariant.id);
-            updatePagesList(editor);
-          },
-        });
+        void openAddVariantModal(editor, [page]);
       });
       
       item.querySelector('.delete-page-btn')?.addEventListener('click', async (e) => {
@@ -1152,6 +1232,15 @@ function setupPageCommands(editor: Editor) {
   // page is captured into besserBaseSnapshot/besserPageVariants (which are what
   // per-version generation reads) — the live canvas holds edits that haven't
   // been written back to the active snapshot until a variant switch.
+  // Start the "create personalized variant" flow for the selected page. Used by
+  // the Personalize button in the top bar, which lives outside the editor.
+  editor.Commands.add('personalization:add-variant', {
+    run() {
+      const pages = editor.Pages?.getAll() ?? [];
+      if (pages.length) void openAddVariantModal(editor, pages, { choosePages: true });
+    },
+  });
+
   editor.Commands.add('personalization:flush-active', {
     run() {
       try {

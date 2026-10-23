@@ -4,6 +4,7 @@ import { FolderKanban, Sparkles, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { GUI_PERSONALIZE_EVENT } from '../../shared/constants/gui-personalize-event';
 import { LanguageSelector } from './LanguageSelector';
 import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
@@ -171,6 +172,20 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               onClick={() => {
                 getPostHog()?.capture('personalize_dialog_opened', { diagram_type: activeDiagramType });
                 onOpenPersonalizeDialog();
+              }}
+              title={t('personalize.title')}
+            >
+              <Users className="size-4" />
+              <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalize.title')}</span>
+            </Button>
+          )}
+          {activeDiagramType === 'GUINoCodeDiagram' && (
+            <Button
+              variant="outline"
+              className={outlineButtonClass}
+              onClick={() => {
+                getPostHog()?.capture('personalize_dialog_opened', { diagram_type: activeDiagramType });
+                window.dispatchEvent(new CustomEvent(GUI_PERSONALIZE_EVENT));
               }}
               title={t('personalize.title')}
             >
