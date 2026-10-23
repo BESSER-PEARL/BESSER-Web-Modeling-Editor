@@ -8,6 +8,7 @@ import {
   mergeSingletonBoxes,
   flattenUserDiagramForBackend,
   reinjectHiddenContainers,
+  applyGoalDefaults,
 } from '../user-profile-graph';
 
 /* ------------------------------------------------------------------ */
@@ -541,5 +542,32 @@ describe('uniquifyNames', () => {
       { name: '   ' },
     ]);
     expect(out.map((e) => e.name)).toEqual(['french', 'user_2', 'french (2)', 'user_4']);
+  });
+});
+
+describe('applyGoalDefaults', () => {
+  const build = () => ({
+    type: 'UserDiagram',
+    elements: {
+      u: box('u', 'User'),
+      g1: box('g1', 'Goal', ['g1d']),
+      g1d: attr('g1d', 'g1', 'description = Learn'),
+      g2: box('g2', 'Goal', ['g2n']),
+      g2n: attr('g2n', 'g2', 'name = custom'),
+    },
+    relationships: {},
+  });
+
+  it('adds incremental name and a 2100 deadline, keeps user-set values', () => {
+    const out = applyGoalDefaults(build());
+    const names = (id: string) =>
+      out.elements[id].attributes.map((a: string) => out.elements[a].name);
+    expect(names('g1')).toEqual(['description = Learn', 'name = goal_1', 'deadline = 2100-01-01T00:00']);
+    expect(names('g2')).toEqual(['name = custom', 'deadline = 2100-01-01T00:00']);
+  });
+
+  it('returns the same reference when there is no Goal', () => {
+    const m = { type: 'UserDiagram', elements: { u: box('u', 'User') }, relationships: {} };
+    expect(applyGoalDefaults(m)).toBe(m);
   });
 });

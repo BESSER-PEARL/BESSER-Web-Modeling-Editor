@@ -24,6 +24,10 @@ export const HIDDEN_USER_MODEL_ATTRIBUTES: ReadonlySet<string> = new Set<string>
   // Education — names a specific institution / degree, not a design-level category.
   'Education.providedBy',
   'Education.degreeName',
+  // Goal — only the description is modeled; `name` and `deadline` are filled with
+  // defaults (goal_N / 2100) when the model is sent to the backend.
+  'Goal.name',
+  'Goal.deadline',
 ]);
 
 /** True when an attribute should be hidden from the modeling environment. */

@@ -527,6 +527,62 @@ export const reinjectHiddenContainers = (model: any): any => {
   return { ...model, elements: newElements, relationships: newRelationships };
 };
 
+/** Deadline written for every Goal: far enough out to never expire (`datetime` format). */
+const GOAL_DEFAULT_DEADLINE = '2100-01-01T00:00';
+
+/**
+ * Fill the hidden `Goal` attributes the editor never asks for: `name` becomes
+ * `goal_1`, `goal_2`, … (diagram-wide, in element order) and `deadline` becomes
+ * {@link GOAL_DEFAULT_DEADLINE}. Values the user already set are kept. Missing
+ * attribute rows are created (with their metamodel `attributeId`). Pure — returns
+ * the same reference when the model has no Goal box.
+ */
+export const applyGoalDefaults = (model: any): any => {
+  if (!model || model.type !== 'UserDiagram' || !model.elements) return model;
+  const goalBoxes = Object.values(model.elements as Record<string, any>).filter(
+    (el: any) => el?.type === 'UserModelName' && el.className === 'Goal',
+  );
+  if (goalBoxes.length === 0) return model;
+
+  const metaEls = (userMetaModel as any).elements as Record<string, any>;
+  const goalClass: any = Object.values(metaEls).find((e: any) => e?.type === 'Class' && e.name === 'Goal');
+  const metaAttrId = (name: string): string | undefined =>
+    (goalClass?.attributes || []).find((id: string) => metaEls[id]?.name === name);
+
+  const elements: Record<string, any> = { ...model.elements };
+  let seq = 0;
+  goalBoxes.forEach((box: any, index: number) => {
+    const defaults: Record<string, string> = {
+      name: `goal_${index + 1}`,
+      deadline: GOAL_DEFAULT_DEADLINE,
+    };
+    const attrIds: string[] = [...(Array.isArray(box.attributes) ? box.attributes : [])];
+    Object.entries(defaults).forEach(([attrName, value]) => {
+      const existingId = attrIds.find(
+        (id) => elements[id]?.type === 'UserModelAttribute' && criterionValue(elements[id].name ?? '', attrName) !== null,
+      );
+      if (existingId) {
+        if (criterionValue(elements[existingId].name ?? '', attrName)) return; // user-set value wins
+        elements[existingId] = { ...elements[existingId], name: `${attrName} = ${value}`, attributeOperator: '==' };
+        return;
+      }
+      const newId = `goal_default_${box.id}_${seq++}`;
+      elements[newId] = {
+        id: newId,
+        name: `${attrName} = ${value}`,
+        type: 'UserModelAttribute',
+        owner: box.id,
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+        attributeOperator: '==',
+        ...(metaAttrId(attrName) ? { attributeId: metaAttrId(attrName) } : {}),
+      };
+      attrIds.push(newId);
+    });
+    elements[box.id] = { ...box, attributes: attrIds };
+  });
+  return { ...model, elements };
+};
+
 /**
  * Transform a whole-canvas `UserDiagram` into the shape the backend accepts:
  * every object owned by exactly one `User` and every `single` containment
@@ -548,6 +604,7 @@ export const reinjectHiddenContainers = (model: any): any => {
  */
 export const flattenUserDiagramForBackend = (model: any): any => {
   if (!model || model.type !== 'UserDiagram' || !model.elements) return model;
+  model = applyGoalDefaults(model);
 
   const profiles = splitUserDiagramIntoProfiles(model);
   if (profiles.length === 0) return uniquifyUserModelNames(model);

@@ -348,7 +348,7 @@ describe('buildMetamodelTree (real metamodel)', () => {
     // Accessibility/Competence are hidden grouping containers — dropped from
     // User's direct children and replaced by their own children (repeatable).
     expect(parts).toEqual(
-      ['Culture', 'Disability', 'Education', 'Language', 'Personal_Information', 'Skill'].sort(),
+      ['Culture', 'Disability', 'Education', 'Goal', 'Language', 'Personal_Information', 'Skill'].sort(),
     );
     expect(parts).not.toContain('Accessibility');
     expect(parts).not.toContain('Competence');
