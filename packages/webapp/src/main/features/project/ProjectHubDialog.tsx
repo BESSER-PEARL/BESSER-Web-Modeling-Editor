@@ -34,7 +34,7 @@ import {
   DEFAULT_SDMX_SOURCE,
   SdmxSourceFields,
   isSdmxSourceComplete,
-  sdmxRequestBody,
+  requestSdmxDiagram,
   useSdmxProviders,
   type SdmxSourceValue,
 } from './SdmxSourceFields';
@@ -575,12 +575,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   };
 
   /**
-   * Shared by both sources of the "From data" step: create the project, ask the backend for a class
-   * diagram (CSV/XLSX upload or SDMX dataflow) and import it into the new project.
+   * Shared by both sources of the "From Data" step: ask the backend for a class diagram (CSV/XLSX upload or
+   * SDMX dataflow) first, then create the project and import the diagram into it. A failed request (a typo in a
+   * dataflow id, a provider that is down) leaves no empty project behind.
    */
   const createProjectFromGeneratedDiagram = async (
-    requestDiagram: () => Promise<Response>,
-    messages: { generateFailed: string; importFailed: string },
+    requestDiagram: () => Promise<unknown>,
+    messages: { importFailed: string },
   ) => {
     const name = normalizeProjectName(spreadsheetForm.name);
     const description = spreadsheetForm.description.trim();
@@ -588,41 +589,26 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     try {
       setIsBusy(true);
+      const diagramJson = await requestDiagram();
+
       await createProject(
         name,
         description || defaultForm.description,
         owner || defaultForm.owner,
         resolvePerspectives(spreadsheetPerspectiveKey),
       );
-
-      const response = await requestDiagram();
-
-      if (!response.ok) {
-        let message = t(messages.generateFailed);
-        try {
-          const errorData = await response.json();
-          if (typeof errorData?.detail === 'string') {
-            message = errorData.detail;
-          }
-        } catch {
-          // Keep fallback message.
-        }
-        throw new Error(message);
-      }
-
-      const diagramJson = await response.json();
-      const generatedDiagramFile = new File(
-        [JSON.stringify(diagramJson)],
-        `${name}_class_diagram.json`,
-        { type: 'application/json' },
-      );
+      const generatedDiagramFile = new File([JSON.stringify(diagramJson)], `${name}_class_diagram.json`, {
+        type: 'application/json',
+      });
 
       await importDiagramToProject(generatedDiagramFile);
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
-      toast.error(t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(
+        t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -640,18 +626,28 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
 
     await createProjectFromGeneratedDiagram(
-      () => {
+      async () => {
         const requestData = new FormData();
         spreadsheetFiles.forEach((file) => requestData.append('files', file));
-        return fetch(`${BACKEND_URL}/csv-to-domain-model`, {
+        const response = await fetch(`${BACKEND_URL}/csv-to-domain-model`, {
           method: 'POST',
           body: requestData,
         });
+        if (!response.ok) {
+          let message = t('project.hub.toasts.spreadsheetGenerateFailed');
+          try {
+            const errorData = await response.json();
+            if (typeof errorData?.detail === 'string') {
+              message = errorData.detail;
+            }
+          } catch {
+            // Keep fallback message.
+          }
+          throw new Error(message);
+        }
+        return response.json();
       },
-      {
-        generateFailed: 'project.hub.toasts.spreadsheetGenerateFailed',
-        importFailed: 'project.hub.toasts.spreadsheetImportFailed',
-      },
+      { importFailed: 'project.hub.toasts.spreadsheetImportFailed' },
     );
   };
 
@@ -667,15 +663,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
 
     await createProjectFromGeneratedDiagram(
-      () => fetch(`${BACKEND_URL}/sdmx-to-domain-model`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sdmxRequestBody(sdmxSource)),
-      }),
-      {
-        generateFailed: 'project.hub.toasts.sdmxGenerateFailed',
-        importFailed: 'project.hub.toasts.sdmxImportFailed',
-      },
+      () => requestSdmxDiagram(sdmxSource, t('project.hub.toasts.sdmxGenerateFailed')),
+      { importFailed: 'project.hub.toasts.sdmxImportFailed' },
     );
   };
 
@@ -1344,39 +1333,39 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
                     {dataSource === 'files' ? (
                       <>
-                      <div className="rounded-xl border-2 border-dashed border-border/50 bg-muted/10 p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <p className="text-sm font-semibold tracking-tight">{t('project.hub.spreadsheet.sourceFiles')}</p>
-                          <Badge variant="secondary" className="rounded-full font-mono text-[10px]">{spreadsheetFiles.length}</Badge>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 hover:border-brand/30 hover:bg-brand/[0.04]"
-                          onClick={() => spreadsheetFileInputRef.current?.click()}
-                          disabled={isBusy}
-                        >
-                          <FileSpreadsheet className="size-4" />
-                          {t('project.hub.spreadsheet.selectFiles')}
-                        </Button>
-                        {spreadsheetFiles.length > 0 && (
-                          <div className="mt-3 flex flex-col gap-1.5">
-                            {spreadsheetFiles.map((file) => (
-                              <div
-                                key={`${file.name}-${file.size}`}
-                                className="flex items-center justify-between rounded-lg border border-border/40 bg-background/80 px-3 py-2 text-xs"
-                              >
-                                <span className="truncate font-medium">{file.name}</span>
-                                <span className="font-mono text-[10px] text-muted-foreground">{readableFileSize(file.size)}</span>
-                              </div>
-                            ))}
+                        <div className="rounded-xl border-2 border-dashed border-border/50 bg-muted/10 p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <p className="text-sm font-semibold tracking-tight">{t('project.hub.spreadsheet.sourceFiles')}</p>
+                            <Badge variant="secondary" className="rounded-full font-mono text-[10px]">{spreadsheetFiles.length}</Badge>
                           </div>
-                        )}
-                      </div>
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 hover:border-brand/30 hover:bg-brand/[0.04]"
+                            onClick={() => spreadsheetFileInputRef.current?.click()}
+                            disabled={isBusy}
+                          >
+                            <FileSpreadsheet className="size-4" />
+                            {t('project.hub.spreadsheet.selectFiles')}
+                          </Button>
+                          {spreadsheetFiles.length > 0 && (
+                            <div className="mt-3 flex flex-col gap-1.5">
+                              {spreadsheetFiles.map((file) => (
+                                <div
+                                  key={`${file.name}-${file.size}`}
+                                  className="flex items-center justify-between rounded-lg border border-border/40 bg-background/80 px-3 py-2 text-xs"
+                                >
+                                  <span className="truncate font-medium">{file.name}</span>
+                                  <span className="font-mono text-[10px] text-muted-foreground">{readableFileSize(file.size)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                      <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid || spreadsheetFiles.length === 0} className="w-full gap-2">
-                        <Sparkles className="size-4" />
-                        {t('project.hub.spreadsheet.submit')}
-                      </Button>
+                        <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid || spreadsheetFiles.length === 0} className="w-full gap-2">
+                          {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                          {t('project.hub.spreadsheet.submit')}
+                        </Button>
                       </>
                     ) : (
                       <>
@@ -1399,9 +1388,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                           {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                           {t('project.hub.spreadsheet.sdmxSubmit')}
                         </Button>
-                        {isBusy && (
-                          <p className="text-xs text-muted-foreground" role="status">{t('project.hub.spreadsheet.sdmxWait')}</p>
-                        )}
+                        {/* Always rendered: screen readers announce a live region's changes, not its arrival. */}
+                        <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
+                          {isBusy ? t('project.hub.spreadsheet.sdmxWait') : ''}
+                        </p>
                       </>
                     )}
                   </CardContent>
