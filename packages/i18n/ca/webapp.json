@@ -82,7 +82,7 @@
       "importProject": "Importa un projecte",
       "import": "Importa",
       "importProjectFile": "Fitxer de projecte (.json / .py)…",
-      "fromSpreadsheet": "Des d’un full de càlcul…",
+      "fromSpreadsheet": "Des de dades…",
       "fromGithub": "Des de GitHub…"
     },
     "generate": {
@@ -896,18 +896,33 @@
         "dropHint": "Fitxers de projecte JSON o Python"
       },
       "spreadsheet": {
-        "title": "Començar des d'un full de càlcul",
-        "description": "Crea un projecte i genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX.",
-        "cardTitle": "Entrada de full de càlcul",
-        "cardDescription": "Crea les metadades del projecte i puja els fitxers font.",
+        "title": "Començar des de dades",
+        "description": "Crear un projecte i generar automàticament un diagrama de classes des de fitxers CSV/XLSX o l’estructura d’un flux de dades SDMX.",
+        "cardTitle": "Dades d’entrada",
+        "cardDescription": "Indiqueu les dades del projecte i trieu d’on ve l’estructura de les dades.",
         "sourceFiles": "Fitxers font",
         "selectFiles": "Selecciona fitxers CSV / XLSX",
         "submit": "Crear des de full de càlcul",
         "howTitle": "Com funciona",
-        "step1": "Primer es crea el projecte amb les teves metadades.",
+        "step1": "El projecte es crea amb les vostres metadades quan el diagrama de classes està llest.",
         "step2": "Els fitxers del full de càlcul es converteixen en un diagrama de classes.",
         "step3": "El diagrama de classes generat s'importa automàticament al projecte.",
-        "accepted": "Acceptats: .csv, .xlsx, .xls"
+        "accepted": "Acceptats: .csv, .xlsx, .xls",
+        "sourceLabel": "Origen",
+        "sourceTabFiles": "Fitxers (CSV, XLSX)",
+        "sourceTabSdmx": "API estadística (SDMX)",
+        "sdmxProvider": "Proveïdor",
+        "sdmxLoadingProviders": "Carregant proveïdors…",
+        "sdmxProvidersFailed": "No s'ha pogut carregar la llista de proveïdors SDMX. Comproveu que el backend funciona i torneu-ho a provar.",
+        "sdmxCustom": "Una altra API SDMX 2.1 (URL)…",
+        "sdmxBaseUrl": "URL base de l’API",
+        "sdmxBaseUrlHint": "L’URL base https d’una API REST SDMX 2.1.",
+        "sdmxDataflow": "Flux de dades",
+        "sdmxDataflowHint": "El seu identificador (une_rt_m), o AGÈNCIA,ID,VERSIÓ (ECB,EXR,1.0).",
+        "sdmxSubmit": "Crear des de SDMX",
+        "sdmxWait": "S'està llegint l'estructura del flux de dades al proveïdor; els fluxos grans poden trigar una estona.",
+        "sdmxStep2": "Les dimensions i llistes de codis del flux es llegeixen del proveïdor i es converteixen en un diagrama de classes.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, BCE, OCDE, FMI, OIT, instituts nacionals d’estadística…"
       },
       "open": {
         "title": "Obrir un projecte existent",
@@ -921,8 +936,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) és una plataforma de codi obert dirigida per models per al disseny, la generació i el desplegament d'UML. Tria un camí a continuació per iniciar el teu projecte ràpidament.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Des de full de càlcul",
-          "description": "Genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX."
+          "title": "Des de dades",
+          "description": "Generar un diagrama de classes des de fitxers CSV/XLSX o una API estadística (SDMX)."
         },
         "cardImport": {
           "title": "Importar projecte",
@@ -969,7 +984,10 @@
         "noSpreadsheetFile": "Selecciona com a mínim un fitxer CSV/XLSX.",
         "spreadsheetGenerateFailed": "No s'ha pogut generar el diagrama de classes a partir del full de càlcul.",
         "spreadsheetCreated": "Projecte «{{name}}» creat i diagrama de classes importat.",
-        "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}"
+        "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}",
+        "noSdmxDataflow": "Trieu un proveïdor i introduïu un identificador de flux vàlid.",
+        "sdmxGenerateFailed": "No s’ha pogut generar el diagrama de classes des del flux SDMX.",
+        "sdmxImportFailed": "Ha fallat la importació SDMX: {{error}}"
       },
       "returning": {
         "title": "Projectes",

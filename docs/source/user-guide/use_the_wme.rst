@@ -29,7 +29,7 @@ The numbered elements in the interface are described below.
 
 The *File* menu provides project and diagram management:
 
-- *New / Open / Import Project*: Opens the project hub where you can create a blank project, build a class diagram from a spreadsheet, open a recent one, import an existing project, or continue from a GitHub repository. Diagram types available in a project: Class, Object, State Machine, Agent, User, GUI No-Code, Quantum Circuit, Neural Network and BPMN — up to five diagrams of each.
+- *New / Open / Import Project*: Opens the project hub where you can create a blank project, build a class diagram from data (spreadsheet files or a statistics API), open a recent one, import an existing project, or continue from a GitHub repository. Diagram types available in a project: Class, Object, State Machine, Agent, User, GUI No-Code, Quantum Circuit, Neural Network and BPMN — up to five diagrams of each.
 - *Load Template*: Start from one of the bundled templates (class-diagram patterns, agents, state machines, BPMN processes, neural networks, quantum circuits, or two complete example projects).
 - *Export Project*: Export your project or the current diagram in B-UML, JSON, SVG or PNG format.
 - *Import Diagram*: Add a single diagram to the current project from ``.json``, ``.py``, ``.bpmn`` or ``.xml``.

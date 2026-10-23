@@ -35,8 +35,16 @@ Choosing **More options** opens the project hub, which offers four ways to
 start:
 
 * **Create Blank** — an empty project with all editors available.
-* **From Spreadsheet** — upload one or more ``.csv``, ``.xlsx`` or ``.xls``
-  files and the backend derives a class diagram from them.
+* **From Data** — build a class diagram from data, from one of two sources:
+
+  * *Files (CSV, XLSX)*: upload one or more ``.csv``, ``.xlsx`` or ``.xls``
+    files and the backend derives a class diagram from them.
+  * *Statistics API (SDMX)*: pick a provider (Eurostat, the ECB, the OECD, the
+    IMF, national statistics offices...) or enter the https URL of any SDMX 2.1
+    API, then a dataflow id (``une_rt_m``, or ``AGENCY,ID,VERSION`` such as
+    ``ECB,EXR,1.0``). The backend reads the dataflow's structure, its dimensions
+    and codelists, and turns it into a class diagram: an ``Observation`` class,
+    an enumeration per small codelist and a class per large or hierarchical one.
 * **Import Project** — load an exported ``.json`` or a B-UML ``.py`` file.
 * **Continue from GitHub** — reopen a repository BESSER generated earlier and
   keep building on it (see `Continuing from a GitHub repository`_).

@@ -74,7 +74,7 @@
       "importProject": "Import Project",
       "import": "Import",
       "importProjectFile": "Project file (.json / .py)…",
-      "fromSpreadsheet": "From Spreadsheet…",
+      "fromSpreadsheet": "From Data…",
       "fromGithub": "From GitHub…",
       "loadTemplate": "Load Template…",
       "exportProject": "Export Project…",
@@ -896,18 +896,33 @@
         "dropHint": "JSON or Python project files"
       },
       "spreadsheet": {
-        "title": "Start from Spreadsheet",
-        "description": "Create a project and auto-generate a class diagram from CSV/XLSX files.",
-        "cardTitle": "Spreadsheet Input",
-        "cardDescription": "Create project metadata and upload source files.",
+        "title": "Start from Data",
+        "description": "Create a project and auto-generate a class diagram from CSV/XLSX files or the structure of an SDMX dataflow.",
+        "cardTitle": "Data Input",
+        "cardDescription": "Create project metadata and choose where the data structure comes from.",
         "sourceFiles": "Source Files",
         "selectFiles": "Select CSV / XLSX Files",
         "submit": "Create from Spreadsheet",
         "howTitle": "How It Works",
-        "step1": "Project is created first with your metadata.",
+        "step1": "The project is created with your metadata once the class diagram is ready.",
         "step2": "Spreadsheet files are converted to a class diagram.",
         "step3": "Generated class diagram is imported into the project automatically.",
-        "accepted": "Accepted: .csv, .xlsx, .xls"
+        "accepted": "Accepted: .csv, .xlsx, .xls",
+        "sourceLabel": "Source",
+        "sourceTabFiles": "Files (CSV, XLSX)",
+        "sourceTabSdmx": "Statistics API (SDMX)",
+        "sdmxProvider": "Provider",
+        "sdmxLoadingProviders": "Loading providers…",
+        "sdmxProvidersFailed": "The list of SDMX providers could not be loaded. Check that the backend is running and try again.",
+        "sdmxCustom": "Other SDMX 2.1 API (URL)…",
+        "sdmxBaseUrl": "API base URL",
+        "sdmxBaseUrlHint": "The https base URL of an SDMX 2.1 REST API.",
+        "sdmxDataflow": "Dataflow",
+        "sdmxDataflowHint": "Its id (une_rt_m), or AGENCY,ID,VERSION (ECB,EXR,1.0).",
+        "sdmxSubmit": "Create from SDMX",
+        "sdmxWait": "Reading the dataflow’s structure from the provider; large dataflows can take a while.",
+        "sdmxStep2": "The dataflow’s dimensions and codelists are read from the provider and turned into a class diagram.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, ECB, OECD, IMF, ILO, national statistics offices…"
       },
       "open": {
         "title": "Open Existing Project",
@@ -921,8 +936,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design, generation, and deployment. Choose a path below to bootstrap your project quickly.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "From Spreadsheet",
-          "description": "Auto-generate a class diagram from CSV/XLSX files."
+          "title": "From Data",
+          "description": "Generate a class diagram from CSV/XLSX files or a statistics API (SDMX)."
         },
         "cardImport": {
           "title": "Import Project",
@@ -969,7 +984,10 @@
         "noSpreadsheetFile": "Select at least one CSV/XLSX file.",
         "spreadsheetGenerateFailed": "Could not generate class diagram from spreadsheet.",
         "spreadsheetCreated": "Project \"{{name}}\" created and class diagram imported.",
-        "spreadsheetImportFailed": "Spreadsheet import failed: {{error}}"
+        "spreadsheetImportFailed": "Spreadsheet import failed: {{error}}",
+        "noSdmxDataflow": "Choose a provider and enter a valid dataflow id.",
+        "sdmxGenerateFailed": "Could not generate class diagram from the SDMX dataflow.",
+        "sdmxImportFailed": "SDMX import failed: {{error}}"
       },
       "returning": {
         "title": "Projects",
