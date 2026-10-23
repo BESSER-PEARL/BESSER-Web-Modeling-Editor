@@ -110,7 +110,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "forecaster": "Zeitreihen-Prognose"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -774,6 +775,27 @@
       "numberOfShots": "Anzahl der Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Zeitreihen-Prognose",
+      "description": "Bettet das Netz in eine Prognose-Pipeline ein: Das Netz liest die letzten Werte einer Zeitreihe und gibt die nächsten zurück.",
+      "window": "Fenster",
+      "windowHint": "Vergangene Werte, die das Netz liest.",
+      "horizon": "Horizont",
+      "horizonHint": "Prognostizierte Werte: die Größe der letzten Schicht.",
+      "season": "Saison",
+      "seasonHint": "12 für Monatsdaten, 4 quartalsweise, 7 täglich.",
+      "difference": "Differenzierung",
+      "differenceHint": "Was das Netz vorhersagt: die Änderung zur gleichen Periode eine Saison früher, zum vorigen Wert, oder keine.",
+      "differenceSeasonal": "Saisonal (Abstand = die Saison)",
+      "differenceFirst": "Erste Differenz (Abstand 1)",
+      "differenceLevels": "Keine (Niveaus)",
+      "seed": "Seed",
+      "seedHint": "Macht das Training reproduzierbar.",
+      "log": "Logarithmus prognostizieren (positive Reihe)",
+      "calendar": "Position in der Saison als Eingabe hinzufügen",
+      "standardize": "Reihe standardisieren",
+      "channelLast": "Kanäle zuletzt: eine erste 1D-Faltung mit „permute in“ liest das Fenster als Sequenz"
+    },
     "webApp": {
       "title": "Webanwendungs-Generator",
       "description": "Die folgenden Diagramme werden für die Generierung verwendet.",
@@ -854,6 +876,7 @@
       "jsonSchemaGeneration": "JSON-Schema-Generierung",
       "agentGeneration": "Agent-Generierung",
       "qiskitGeneration": "Qiskit-Generierung",
+      "forecasterGeneration": "Prognose-Generierung",
       "webAppGeneration": "Web-App-Generierung"
     },
     "overlay": {
@@ -2457,6 +2480,9 @@
           "first": "Erster",
           "last": "Letzter"
         },
+        "dataEndpoint": "Endpunkt (optional)",
+        "dataEndpointPlaceholder": "/stats/umsatz?jahr=2025 oder https://… (braucht eine Datenquelle)",
+        "dataEndpointInvalid": "Ignoriert: einen Pfad mit / am Anfang oder eine http(s)://-URL ohne Leerzeichen angeben",
         "groupBy": "Gruppieren nach",
         "dataField": "Datenfeld",
         "dataSource": "Datenquelle",
@@ -2611,6 +2637,8 @@
         "color": "Farbe",
         "filter": "Filter",
         "filterPlaceholder": "Filterausdruck",
+        "endpoint": "Endpunkt (optional)",
+        "endpointPlaceholder": "/stats/umsatz?jahr=2025 oder https://… (braucht eine Datenquelle; Standard: die Datensätze der Klasse)",
         "pickColor": "Farbe wählen",
         "addSeries": "Reihe hinzufügen"
       },

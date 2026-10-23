@@ -110,7 +110,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
-        "qiskitCode": "Codi Qiskit"
+        "qiskitCode": "Codi Qiskit",
+        "forecaster": "Previsió de sèries temporals"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -774,6 +775,27 @@
       "numberOfShots": "Nombre de tirades (shots)",
       "shotsLabel": "Tirades"
     },
+    "forecaster": {
+      "title": "Previsió de sèries temporals",
+      "description": "Integra la xarxa en un flux de previsió: la xarxa llegeix els últims valors d'una sèrie i retorna els següents.",
+      "window": "Finestra",
+      "windowHint": "Valors passats que llegeix la xarxa.",
+      "horizon": "Horitzó",
+      "horizonHint": "Valors previstos: la mida de l'última capa.",
+      "season": "Estació",
+      "seasonHint": "12 per a dades mensuals, 4 trimestrals, 7 diàries.",
+      "difference": "Diferenciació",
+      "differenceHint": "El que prediu la xarxa: el canvi respecte al mateix període una estació abans, al valor anterior, o cap.",
+      "differenceSeasonal": "Estacional (desfasament = l'estació)",
+      "differenceFirst": "Primera diferència (desfasament 1)",
+      "differenceLevels": "Cap (nivells)",
+      "seed": "Llavor",
+      "seedHint": "Fa l'entrenament reproduïble.",
+      "log": "Preveure el logaritme (sèrie positiva)",
+      "calendar": "Afegir la posició en l'estació com a entrada",
+      "standardize": "Estandarditzar la sèrie",
+      "channelLast": "Canals al final: una primera convolució 1D marcada «permute in» llegeix la finestra com una seqüència"
+    },
     "webApp": {
       "title": "Generador d'aplicació web",
       "description": "Els diagrames següents s'utilitzaran per a la generació.",
@@ -854,6 +876,7 @@
       "jsonSchemaGeneration": "Generació de JSON Schema",
       "agentGeneration": "Generació d'agent",
       "qiskitGeneration": "Generació de Qiskit",
+      "forecasterGeneration": "Generació del previsor",
       "webAppGeneration": "Generació d'aplicació web"
     },
     "overlay": {
@@ -2457,6 +2480,9 @@
           "first": "Primer",
           "last": "Últim"
         },
+        "dataEndpoint": "Endpoint (opcional)",
+        "dataEndpointPlaceholder": "/stats/vendes?any=2025 o https://… (cal una font de dades)",
+        "dataEndpointInvalid": "Ignorat: fes servir un camí que comenci per / o una URL http(s)://, sense espais",
         "groupBy": "Agrupa per",
         "dataField": "Camp de dades",
         "dataSource": "Font de dades",
@@ -2611,6 +2637,8 @@
         "color": "Color",
         "filter": "Filtre",
         "filterPlaceholder": "Expressió de filtre",
+        "endpoint": "Endpoint (opcional)",
+        "endpointPlaceholder": "/stats/vendes?any=2025 o https://… (cal una font de dades; per defecte: els registres de la classe)",
         "pickColor": "Tria un color",
         "addSeries": "Afegeix una sèrie"
       },

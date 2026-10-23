@@ -110,7 +110,8 @@
         "besserAgent": "BESSER Agent",
         "jsonObjectExport": "JSON Object Export",
         "userProfileJson": "User Profile JSON",
-        "qiskitCode": "Qiskit Code"
+        "qiskitCode": "Qiskit Code",
+        "forecaster": "Time-Series Forecaster"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -774,6 +775,27 @@
       "numberOfShots": "Number of Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Time-Series Forecaster",
+      "description": "Wrap the network in a forecasting pipeline: the network reads the last values of a series and returns the next ones.",
+      "window": "Window",
+      "windowHint": "Past values the network reads.",
+      "horizon": "Horizon",
+      "horizonHint": "Values it forecasts: the size of the last layer.",
+      "season": "Season",
+      "seasonHint": "12 for monthly data, 4 quarterly, 7 daily.",
+      "difference": "Differencing",
+      "differenceHint": "The change the network forecasts: from the same period a season earlier, from the previous value, or none.",
+      "differenceSeasonal": "Seasonal (lag = the season)",
+      "differenceFirst": "First difference (lag 1)",
+      "differenceLevels": "None (levels)",
+      "seed": "Seed",
+      "seedHint": "Makes training repeatable.",
+      "log": "Forecast the logarithm (positive series)",
+      "calendar": "Add the position in the season as inputs",
+      "standardize": "Standardise the series",
+      "channelLast": "Channels last: a first 1D convolution marked “permute in” reads the window as a sequence"
+    },
     "webApp": {
       "title": "Web Application Generator",
       "description": "The following diagrams will be used for generation.",
@@ -854,6 +876,7 @@
       "jsonSchemaGeneration": "JSON Schema generation",
       "agentGeneration": "Agent generation",
       "qiskitGeneration": "Qiskit generation",
+      "forecasterGeneration": "Forecaster generation",
       "webAppGeneration": "Web App generation"
     },
     "overlay": {
@@ -2457,6 +2480,9 @@
           "first": "First",
           "last": "Last"
         },
+        "dataEndpoint": "Endpoint (optional)",
+        "dataEndpointPlaceholder": "/stats/sales?year=2025 or https://… (needs a data source)",
+        "dataEndpointInvalid": "Ignored: use a path starting with / or an http(s):// URL, without spaces",
         "groupBy": "Group By",
         "dataField": "Data Field",
         "dataSource": "Data Source",
@@ -2611,6 +2637,8 @@
         "color": "Color",
         "filter": "Filter",
         "filterPlaceholder": "Filter expression",
+        "endpoint": "Endpoint (optional)",
+        "endpointPlaceholder": "/stats/sales?year=2025 or https://… (needs a data source; default: the class's records)",
         "pickColor": "Pick color",
         "addSeries": "Add Series"
       },

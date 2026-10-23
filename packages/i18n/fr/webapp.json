@@ -110,7 +110,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Export d'objet JSON",
         "userProfileJson": "JSON de profil utilisateur",
-        "qiskitCode": "Code Qiskit"
+        "qiskitCode": "Code Qiskit",
+        "forecaster": "Prévision de séries temporelles"
       },
       "notices": {
         "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
@@ -774,6 +775,27 @@
       "numberOfShots": "Nombre de tirs (shots)",
       "shotsLabel": "Tirs"
     },
+    "forecaster": {
+      "title": "Prévision de séries temporelles",
+      "description": "Intègre le réseau dans un pipeline de prévision : le réseau lit les dernières valeurs d'une série et renvoie les suivantes.",
+      "window": "Fenêtre",
+      "windowHint": "Valeurs passées que lit le réseau.",
+      "horizon": "Horizon",
+      "horizonHint": "Valeurs prévues : la taille de la dernière couche.",
+      "season": "Saison",
+      "seasonHint": "12 pour des données mensuelles, 4 trimestrielles, 7 journalières.",
+      "difference": "Différenciation",
+      "differenceHint": "Ce que le réseau prévoit : l'écart à la même période une saison plus tôt, à la valeur précédente, ou aucun.",
+      "differenceSeasonal": "Saisonnière (décalage = la saison)",
+      "differenceFirst": "Différence première (décalage 1)",
+      "differenceLevels": "Aucune (niveaux)",
+      "seed": "Graine",
+      "seedHint": "Rend l'entraînement reproductible.",
+      "log": "Prévoir le logarithme (série positive)",
+      "calendar": "Ajouter la position dans la saison en entrée",
+      "standardize": "Standardiser la série",
+      "channelLast": "Canaux en dernier : une première convolution 1D marquée « permute in » lit la fenêtre comme une séquence"
+    },
     "webApp": {
       "title": "Générateur d'application web",
       "description": "Les diagrammes suivants seront utilisés pour la génération.",
@@ -854,6 +876,7 @@
       "jsonSchemaGeneration": "Génération JSON Schema",
       "agentGeneration": "Génération d'agent",
       "qiskitGeneration": "Génération Qiskit",
+      "forecasterGeneration": "Génération du prévisionniste",
       "webAppGeneration": "Génération d'application web"
     },
     "overlay": {
@@ -2457,6 +2480,9 @@
           "first": "Premier",
           "last": "Dernier"
         },
+        "dataEndpoint": "Point d'accès (facultatif)",
+        "dataEndpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données)",
+        "dataEndpointInvalid": "Ignoré : indiquez un chemin commençant par / ou une URL http(s)://, sans espaces",
         "groupBy": "Grouper par",
         "dataField": "Champ de données",
         "dataSource": "Source de données",
@@ -2611,6 +2637,8 @@
         "color": "Couleur",
         "filter": "Filtre",
         "filterPlaceholder": "Expression de filtre",
+        "endpoint": "Point d'accès (facultatif)",
+        "endpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données ; par défaut : les enregistrements de la classe)",
         "pickColor": "Choisir une couleur",
         "addSeries": "Ajouter une série"
       },
