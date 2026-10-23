@@ -110,7 +110,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "forecaster": "Zeitreihen-Prognose"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -774,6 +775,24 @@
       "numberOfShots": "Anzahl der Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Zeitreihen-Prognose",
+      "description": "Bettet das Netz in eine Prognose-Pipeline ein: Das Netz liest die letzten Werte einer Zeitreihe und gibt die nächsten zurück.",
+      "window": "Fenster",
+      "windowHint": "Vergangene Werte, die das Netz liest.",
+      "horizon": "Horizont",
+      "horizonHint": "Prognostizierte Werte: die Größe der letzten Schicht.",
+      "season": "Saison",
+      "seasonHint": "12 für Monatsdaten, 4 quartalsweise, 7 täglich.",
+      "difference": "Differenzen-Abstand",
+      "differenceHint": "0: Niveaus, 1: erste Differenz, oder die Saison.",
+      "seed": "Seed",
+      "seedHint": "Macht das Training reproduzierbar.",
+      "log": "Logarithmus prognostizieren (positive Reihe)",
+      "calendar": "Position in der Saison als Eingabe hinzufügen",
+      "standardize": "Reihe standardisieren",
+      "channelLast": "Kanäle zuletzt (wie beim PyTorch-Generator)"
+    },
     "webApp": {
       "title": "Webanwendungs-Generator",
       "description": "Die folgenden Diagramme werden für die Generierung verwendet.",
@@ -854,6 +873,7 @@
       "jsonSchemaGeneration": "JSON-Schema-Generierung",
       "agentGeneration": "Agent-Generierung",
       "qiskitGeneration": "Qiskit-Generierung",
+      "forecasterGeneration": "Prognose-Generierung",
       "webAppGeneration": "Web-App-Generierung"
     },
     "overlay": {

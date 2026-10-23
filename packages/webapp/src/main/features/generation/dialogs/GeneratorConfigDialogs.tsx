@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import type { WebAppVersionMode } from '../../../shared/utils/buildWebAppVersions';
-import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig, SupabaseConfig } from '../hooks/useGenerateCode';
+import type { ForecasterConfig, JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig, SupabaseConfig } from '../hooks/useGenerateCode';
 import {
   SPRING_BOOT_VERSIONS,
   SPRING_JAVA_VERSIONS,
@@ -48,7 +48,7 @@ import { getActiveDiagram } from '../../../shared/types/project';
  * Props for the <GeneratorConfigDialogs /> component.
  *
  * This component renders one <Dialog /> per generator (Django, Spring, SQL,
- * SQLAlchemy, JSON Schema, Agent, Qiskit). Only one dialog is visible at a time, controlled
+ * SQLAlchemy, JSON Schema, Agent, Qiskit, Forecaster). Only one dialog is visible at a time, controlled
  * by `configDialog`.
  *
  * State and callbacks are provided by the `useGeneratorExecution` hook via the
@@ -120,6 +120,9 @@ interface GeneratorConfigDialogsProps {
   qiskitBackend: QiskitConfig['backend'];
   qiskitShots: number;
 
+  // ── Forecaster ───────────────────────────────────────────────────────────
+  forecasterConfig: ForecasterConfig;
+
   // ── Field change handlers ────────────────────────────────────────────────
   onDjangoProjectNameChange: (value: string) => void;
   onDjangoAppNameChange: (value: string) => void;
@@ -138,6 +141,8 @@ interface GeneratorConfigDialogsProps {
   onSelectedAgentLanguagesChange: (value: string[]) => void;
   onQiskitBackendChange: (value: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (value: number) => void;
+  /** Merge a partial update into the forecaster settings. */
+  onForecasterConfigChange: (value: Partial<ForecasterConfig>) => void;
   onAgentModeChange: (value: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
   onSelectedAgentVariantIdChange: (value: string) => void;
@@ -164,6 +169,7 @@ interface GeneratorConfigDialogsProps {
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
   onQiskitGenerate: () => void;
+  onForecasterGenerate: () => void;
   onWebAppGenerate: () => void;
 }
 
@@ -201,6 +207,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   selectedAgentLanguages,
   qiskitBackend,
   qiskitShots,
+  forecasterConfig,
   hasSavedAgentConfiguration,
   agentMode,
   storedAgentConfigurations,
@@ -226,6 +233,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onSelectedAgentLanguagesChange,
   onQiskitBackendChange,
   onQiskitShotsChange,
+  onForecasterConfigChange,
   onAgentModeChange,
   onStoredAgentConfigToggle,
   onSelectedAgentVariantIdChange,
@@ -244,6 +252,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onJsonSchemaGenerate,
   onAgentGenerate,
   onQiskitGenerate,
+  onForecasterGenerate,
   onWebAppGenerate,
 }) => {
   const navigate = useNavigate();
@@ -273,6 +282,18 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
     shots: () => validateNumberRange(qiskitShots, 1, 100000, t('generation.qiskit.shotsLabel')),
   }), [qiskitShots, t]);
   const qiskitValidation = useFieldValidation(qiskitValidators);
+
+  // ── Forecaster inline validation ──────────────────────────────────────
+  // The backend checks the same bounds (ForecastConfig) and whether the
+  // network fits them; these only catch a value that cannot be right.
+  const forecasterValidators = useMemo(() => ({
+    window: () => validateNumberRange(forecasterConfig.window, 1, 1000, t('generation.forecaster.window')),
+    horizon: () => validateNumberRange(forecasterConfig.horizon, 1, 1000, t('generation.forecaster.horizon')),
+    season: () => validateNumberRange(forecasterConfig.season, 1, 1000, t('generation.forecaster.season')),
+    difference: () => validateNumberRange(forecasterConfig.difference, 0, 1000, t('generation.forecaster.difference')),
+    seed: () => validateNumberRange(forecasterConfig.seed, 0, 2147483647, t('generation.forecaster.seed')),
+  }), [forecasterConfig, t]);
+  const forecasterValidation = useFieldValidation(forecasterValidators);
 
   // ── Agent runtime config preview (read-only snapshot from active agent diagram) ─
   // Single source of truth: AgentDiagram.config. Falls back to hardcoded
@@ -929,6 +950,70 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={!qiskitValidation.isValid}>{t('generation.generate')}</Button>
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={configDialog === 'forecaster'}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog(setConfigDialog);
+            forecasterValidation.resetTouched();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('generation.forecaster.title')}</DialogTitle>
+            <DialogDescription>{t('generation.forecaster.description')}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitWith(onForecasterGenerate, forecasterValidation.isValid)} className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            {(['window', 'horizon', 'season', 'difference', 'seed'] as const).map((key) => (
+              <FormField
+                key={key}
+                label={t(`generation.forecaster.${key}`)}
+                htmlFor={`forecaster-${key}`}
+                required
+                error={forecasterValidation.getError(key)}
+                helperText={t(`generation.forecaster.${key}Hint`)}
+              >
+                <Input
+                  id={`forecaster-${key}`}
+                  type="number"
+                  inputMode="numeric"
+                  min={key === 'difference' || key === 'seed' ? 0 : 1}
+                  value={Number.isNaN(forecasterConfig[key]) ? '' : forecasterConfig[key]}
+                  onChange={(event) => onForecasterConfigChange({
+                    [key]: event.target.value === '' ? Number.NaN : Math.trunc(Number(event.target.value)),
+                  })}
+                  onBlur={() => forecasterValidation.markTouched(key)}
+                  className={forecasterValidation.getError(key) ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+                />
+              </FormField>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            {(['log', 'calendar', 'standardize', 'channel_last'] as const).map((key) => (
+              <div key={key} className="flex items-center gap-2">
+                <Checkbox
+                  id={`forecaster-${key}`}
+                  checked={forecasterConfig[key]}
+                  onCheckedChange={(checked) => onForecasterConfigChange({ [key]: checked === true })}
+                />
+                <Label htmlFor={`forecaster-${key}`} className="font-normal">
+                  {t(`generation.forecaster.${key === 'channel_last' ? 'channelLast' : key}`)}
+                </Label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" disabled={!forecasterValidation.isValid}>{t('generation.generate')}</Button>
           </DialogFooter>
           </form>
         </DialogContent>

@@ -110,7 +110,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Export d'objet JSON",
         "userProfileJson": "JSON de profil utilisateur",
-        "qiskitCode": "Code Qiskit"
+        "qiskitCode": "Code Qiskit",
+        "forecaster": "Prévision de séries temporelles"
       },
       "notices": {
         "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
@@ -774,6 +775,24 @@
       "numberOfShots": "Nombre de tirs (shots)",
       "shotsLabel": "Tirs"
     },
+    "forecaster": {
+      "title": "Prévision de séries temporelles",
+      "description": "Intègre le réseau dans un pipeline de prévision : le réseau lit les dernières valeurs d'une série et renvoie les suivantes.",
+      "window": "Fenêtre",
+      "windowHint": "Valeurs passées que lit le réseau.",
+      "horizon": "Horizon",
+      "horizonHint": "Valeurs prévues : la taille de la dernière couche.",
+      "season": "Saison",
+      "seasonHint": "12 pour des données mensuelles, 4 trimestrielles, 7 journalières.",
+      "difference": "Décalage de la différence",
+      "differenceHint": "0 : niveaux, 1 : différence première, ou la saison.",
+      "seed": "Graine",
+      "seedHint": "Rend l'entraînement reproductible.",
+      "log": "Prévoir le logarithme (série positive)",
+      "calendar": "Ajouter la position dans la saison en entrée",
+      "standardize": "Standardiser la série",
+      "channelLast": "Canaux en dernier (comme le générateur PyTorch)"
+    },
     "webApp": {
       "title": "Générateur d'application web",
       "description": "Les diagrammes suivants seront utilisés pour la génération.",
@@ -854,6 +873,7 @@
       "jsonSchemaGeneration": "Génération JSON Schema",
       "agentGeneration": "Génération d'agent",
       "qiskitGeneration": "Génération Qiskit",
+      "forecasterGeneration": "Génération du prévisionniste",
       "webAppGeneration": "Génération d'application web"
     },
     "overlay": {

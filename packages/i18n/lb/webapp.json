@@ -110,7 +110,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "forecaster": "Zäitreien-Prognos"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
@@ -774,6 +775,24 @@
       "numberOfShots": "Zuel vun de Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Zäitreien-Prognos",
+      "description": "Bett d'Netz an eng Prognos-Pipeline an: d'Netz liest déi lescht Wäerter vun enger Zäitrei a gëtt déi nächst zréck.",
+      "window": "Fënster",
+      "windowHint": "Vergaangen Wäerter, déi d'Netz liest.",
+      "horizon": "Horizont",
+      "horizonHint": "Prognostizéiert Wäerter: d'Gréisst vun der leschter Schicht.",
+      "season": "Saison",
+      "seasonHint": "12 fir Méintsdaten, 4 pro Trimester, 7 deeglech.",
+      "difference": "Ofstand vun der Differenz",
+      "differenceHint": "0: Niveauen, 1: éischt Differenz, oder d'Saison.",
+      "seed": "Seed",
+      "seedHint": "Mécht den Training reproduzéierbar.",
+      "log": "Logarithmus prognostizéieren (positiv Rei)",
+      "calendar": "Positioun an der Saison als Agab bäisetzen",
+      "standardize": "Rei standardiséieren",
+      "channelLast": "Kanäl um Enn (wéi beim PyTorch-Generator)"
+    },
     "webApp": {
       "title": "Web-Applikatioun Generator",
       "description": "Déi folgend Diagrammer gi fir d'Generéierung benotzt.",
@@ -854,6 +873,7 @@
       "jsonSchemaGeneration": "JSON Schema Generéierung",
       "agentGeneration": "Agent-Generéierung",
       "qiskitGeneration": "Qiskit-Generéierung",
+      "forecasterGeneration": "Prognos-Generatioun",
       "webAppGeneration": "Web-App-Generéierung"
     },
     "overlay": {

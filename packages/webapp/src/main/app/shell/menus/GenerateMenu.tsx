@@ -25,6 +25,7 @@ import {
   type LucideIcon,
   Network,
   Server,
+  TrendingUp,
   Workflow,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ const GENERATOR_ICONS: Partial<Record<GeneratorType, LucideIcon>> = {
   bpmn: Workflow,
   pytorch: Layers,
   tensorflow: Layers,
+  forecaster: TrendingUp,
 };
 
 const renderGeneratorMenuEntry = (

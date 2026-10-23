@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import i18n from '../../../../shared/i18n';
 import { GeneratorConfigDialogs } from '../GeneratorConfigDialogs';
+import { DEFAULT_FORECASTER_CONFIG } from '../../hooks/useGenerateCode';
 
 vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => ({ currentProject: null }) }));
 
@@ -19,7 +20,7 @@ const handlerNames = [
   'onSelectedAgentVariantIdChange', 'onAgentGenerationModeChange', 'onWebAppVersionModeChange',
   'onWebAppSelectedProfileIdChange', 'onDjangoGenerate', 'onDjangoDeploy', 'onSpringGenerate', 'onSqlGenerate',
   'onSupabaseGenerate', 'onSqlAlchemyGenerate', 'onJsonSchemaGenerate', 'onAgentGenerate', 'onQiskitGenerate',
-  'onWebAppGenerate',
+  'onWebAppGenerate', 'onForecasterConfigChange', 'onForecasterGenerate',
 ] as const;
 
 const renderDialogs = (overrides: Record<string, unknown> = {}) => {
@@ -38,6 +39,7 @@ const renderDialogs = (overrides: Record<string, unknown> = {}) => {
     hasSavedAgentConfiguration: true, agentMode: 'original', storedAgentConfigurations: [], storedAgentMappings: [],
     selectedStoredAgentConfigIds: [], agentVariantOptions: [], selectedAgentVariantId: '', agentGenerationMode: 'none',
     qiskitBackend: 'aer_simulator', qiskitShots: 1024,
+    forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG },
     webAppChecklist: null, webAppVersionMode: 'base', webAppSelectedProfileId: '',
     ...overrides,
   };
@@ -82,5 +84,37 @@ describe('GeneratorConfigDialogs — Django', () => {
     const handlers = renderDialogs();
     fireEvent.click(screen.getByRole('checkbox', { name: i18n.t('generation.django.includeDocker') }));
     expect(handlers.onUseDockerChange).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('GeneratorConfigDialogs — Forecaster', () => {
+  const field = (key: string) => screen.getByLabelText(new RegExp(`^${i18n.t(`generation.forecaster.${key}`)}`));
+
+  it('opens pre-filled with the defaults and generates on submit', () => {
+    const handlers = renderDialogs({ configDialog: 'forecaster' });
+    expect(screen.getByRole('dialog')).toHaveTextContent(i18n.t('generation.forecaster.title'));
+    expect(field('window')).toHaveValue(24);
+    expect(field('horizon')).toHaveValue(12);
+    expect(field('season')).toHaveValue(12);
+    expect(field('difference')).toHaveValue(12);
+    expect(screen.getByRole('checkbox', { name: i18n.t('generation.forecaster.log') })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: i18n.t('generation.forecaster.channelLast') })).not.toBeChecked();
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+    expect(handlers.onForecasterGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends each change as a partial update', () => {
+    const handlers = renderDialogs({ configDialog: 'forecaster' });
+    fireEvent.change(field('window'), { target: { value: '36' } });
+    expect(handlers.onForecasterConfigChange).toHaveBeenCalledWith({ window: 36 });
+    fireEvent.click(screen.getByRole('checkbox', { name: i18n.t('generation.forecaster.calendar') }));
+    expect(handlers.onForecasterConfigChange).toHaveBeenCalledWith({ calendar: false });
+  });
+
+  it('does not generate while a setting is out of range', () => {
+    const handlers = renderDialogs({ configDialog: 'forecaster', forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG, window: 0 } });
+    expect(screen.getByRole('button', { name: i18n.t('generation.generate') })).toBeDisabled();
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+    expect(handlers.onForecasterGenerate).not.toHaveBeenCalled();
   });
 });

@@ -110,7 +110,8 @@
         "besserAgent": "BESSER Agent",
         "jsonObjectExport": "JSON Object Export",
         "userProfileJson": "User Profile JSON",
-        "qiskitCode": "Qiskit Code"
+        "qiskitCode": "Qiskit Code",
+        "forecaster": "Time-Series Forecaster"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -774,6 +775,24 @@
       "numberOfShots": "Number of Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Time-Series Forecaster",
+      "description": "Wrap the network in a forecasting pipeline: the network reads the last values of a series and returns the next ones.",
+      "window": "Window",
+      "windowHint": "Past values the network reads.",
+      "horizon": "Horizon",
+      "horizonHint": "Values it forecasts: the size of the last layer.",
+      "season": "Season",
+      "seasonHint": "12 for monthly data, 4 quarterly, 7 daily.",
+      "difference": "Difference lag",
+      "differenceHint": "0: levels, 1: first difference, or the season.",
+      "seed": "Seed",
+      "seedHint": "Makes training repeatable.",
+      "log": "Forecast the logarithm (positive series)",
+      "calendar": "Add the position in the season as inputs",
+      "standardize": "Standardise the series",
+      "channelLast": "Channels last (as in the PyTorch generator)"
+    },
     "webApp": {
       "title": "Web Application Generator",
       "description": "The following diagrams will be used for generation.",
@@ -854,6 +873,7 @@
       "jsonSchemaGeneration": "JSON Schema generation",
       "agentGeneration": "Agent generation",
       "qiskitGeneration": "Qiskit generation",
+      "forecasterGeneration": "Forecaster generation",
       "webAppGeneration": "Web App generation"
     },
     "overlay": {

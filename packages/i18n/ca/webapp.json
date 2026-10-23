@@ -110,7 +110,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
-        "qiskitCode": "Codi Qiskit"
+        "qiskitCode": "Codi Qiskit",
+        "forecaster": "Previsió de sèries temporals"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -774,6 +775,24 @@
       "numberOfShots": "Nombre de tirades (shots)",
       "shotsLabel": "Tirades"
     },
+    "forecaster": {
+      "title": "Previsió de sèries temporals",
+      "description": "Integra la xarxa en un flux de previsió: la xarxa llegeix els últims valors d'una sèrie i retorna els següents.",
+      "window": "Finestra",
+      "windowHint": "Valors passats que llegeix la xarxa.",
+      "horizon": "Horitzó",
+      "horizonHint": "Valors previstos: la mida de l'última capa.",
+      "season": "Estació",
+      "seasonHint": "12 per a dades mensuals, 4 trimestrals, 7 diàries.",
+      "difference": "Desfasament de la diferència",
+      "differenceHint": "0: nivells, 1: primera diferència, o l'estació.",
+      "seed": "Llavor",
+      "seedHint": "Fa l'entrenament reproduïble.",
+      "log": "Preveure el logaritme (sèrie positiva)",
+      "calendar": "Afegir la posició en l'estació com a entrada",
+      "standardize": "Estandarditzar la sèrie",
+      "channelLast": "Canals al final (com al generador PyTorch)"
+    },
     "webApp": {
       "title": "Generador d'aplicació web",
       "description": "Els diagrames següents s'utilitzaran per a la generació.",
@@ -854,6 +873,7 @@
       "jsonSchemaGeneration": "Generació de JSON Schema",
       "agentGeneration": "Generació d'agent",
       "qiskitGeneration": "Generació de Qiskit",
+      "forecasterGeneration": "Generació del previsor",
       "webAppGeneration": "Generació d'aplicació web"
     },
     "overlay": {
