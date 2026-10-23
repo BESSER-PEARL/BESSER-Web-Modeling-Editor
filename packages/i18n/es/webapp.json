@@ -82,7 +82,7 @@
       "importProject": "Importar proyecto",
       "import": "Importar",
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
-      "fromSpreadsheet": "Desde hoja de cálculo…",
+      "fromSpreadsheet": "Desde datos…",
       "fromGithub": "Desde GitHub…"
     },
     "generate": {
@@ -896,10 +896,10 @@
         "dropHint": "Archivos de proyecto JSON o Python"
       },
       "spreadsheet": {
-        "title": "Empezar desde una hoja de cálculo",
-        "description": "Crea un proyecto y genera automáticamente un diagrama de clases a partir de archivos CSV/XLSX.",
-        "cardTitle": "Entrada de hoja de cálculo",
-        "cardDescription": "Crea los metadatos del proyecto y sube los archivos fuente.",
+        "title": "Empezar desde datos",
+        "description": "Crear un proyecto y generar automáticamente un diagrama de clases desde archivos CSV/XLSX o la estructura de un flujo de datos SDMX.",
+        "cardTitle": "Datos de entrada",
+        "cardDescription": "Indique los datos del proyecto y elija de dónde viene la estructura de los datos.",
         "sourceFiles": "Archivos fuente",
         "selectFiles": "Seleccionar archivos CSV / XLSX",
         "submit": "Crear desde hoja de cálculo",
@@ -907,7 +907,21 @@
         "step1": "Primero se crea el proyecto con tus metadatos.",
         "step2": "Los archivos de la hoja de cálculo se convierten en un diagrama de clases.",
         "step3": "El diagrama de clases generado se importa automáticamente al proyecto.",
-        "accepted": "Aceptados: .csv, .xlsx, .xls"
+        "accepted": "Aceptados: .csv, .xlsx, .xls",
+        "sourceLabel": "Origen",
+        "sourceTabFiles": "Archivos (CSV, XLSX)",
+        "sourceTabSdmx": "API estadística (SDMX)",
+        "sdmxProvider": "Proveedor",
+        "sdmxLoadingProviders": "Cargando proveedores…",
+        "sdmxCustom": "Otra API SDMX 2.1 (URL)…",
+        "sdmxBaseUrl": "URL base de la API",
+        "sdmxBaseUrlHint": "La URL base https de una API REST SDMX 2.1.",
+        "sdmxDataflow": "Flujo de datos",
+        "sdmxDataflowHint": "Su identificador (une_rt_m), o AGENCIA,ID,VERSIÓN (ECB,EXR,1.0).",
+        "sdmxSubmit": "Crear desde SDMX",
+        "sdmxWait": "Leyendo la estructura del flujo; los grandes pueden tardar hasta un minuto.",
+        "sdmxStep2": "Las dimensiones y listas de códigos del flujo se leen del proveedor y se convierten en un diagrama de clases.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, BCE, OCDE, FMI, OIT, institutos nacionales de estadística…"
       },
       "open": {
         "title": "Abrir proyecto existente",
@@ -921,8 +935,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) es una plataforma de código abierto dirigida por modelos para el diseño, la generación y el despliegue de UML. Elige un camino a continuación para iniciar tu proyecto rápidamente.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Desde hoja de cálculo",
-          "description": "Genera automáticamente un diagrama de clases a partir de archivos CSV/XLSX."
+          "title": "Desde datos",
+          "description": "Generar un diagrama de clases desde archivos CSV/XLSX o una API estadística (SDMX)."
         },
         "cardImport": {
           "title": "Importar proyecto",
@@ -969,7 +983,10 @@
         "noSpreadsheetFile": "Selecciona al menos un archivo CSV/XLSX.",
         "spreadsheetGenerateFailed": "No se pudo generar el diagrama de clases a partir de la hoja de cálculo.",
         "spreadsheetCreated": "Proyecto «{{name}}» creado y diagrama de clases importado.",
-        "spreadsheetImportFailed": "Error al importar la hoja de cálculo: {{error}}"
+        "spreadsheetImportFailed": "Error al importar la hoja de cálculo: {{error}}",
+        "noSdmxDataflow": "Elija un proveedor e introduzca un identificador de flujo válido.",
+        "sdmxGenerateFailed": "No se pudo generar el diagrama de clases desde el flujo SDMX.",
+        "sdmxImportFailed": "Error en la importación SDMX: {{error}}"
       },
       "returning": {
         "title": "Proyectos",

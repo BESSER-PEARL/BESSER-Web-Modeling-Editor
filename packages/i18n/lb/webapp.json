@@ -82,7 +82,7 @@
       "importProject": "Projet importéieren",
       "import": "Importéieren",
       "importProjectFile": "Projetdatei (.json / .py)…",
-      "fromSpreadsheet": "Aus enger Tabell…",
+      "fromSpreadsheet": "Aus Donnéeën…",
       "fromGithub": "Aus GitHub…"
     },
     "generate": {
@@ -896,10 +896,10 @@
         "dropHint": "JSON- oder Python-Projetdateien"
       },
       "spreadsheet": {
-        "title": "Vun engem Spreadsheet ufänken",
-        "description": "Erstellt e Projet a generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien.",
-        "cardTitle": "Spreadsheet-Input",
-        "cardDescription": "Erstellt d'Projet-Metadaten a luet Quelldateien erop.",
+        "title": "Aus Donnéeë starten",
+        "description": "E Projet uleeën an automatesch e Klassendiagramm aus CSV/XLSX-Fichieren oder der Struktur vun engem SDMX-Datefloss generéieren.",
+        "cardTitle": "Donnéeën",
+        "cardDescription": "Projetsinformatiounen aginn a wielen, wou d’Datestruktur hierkënnt.",
         "sourceFiles": "Quelldateien",
         "selectFiles": "CSV / XLSX-Dateien auswielen",
         "submit": "Aus Tabell erstellen",
@@ -907,7 +907,21 @@
         "step1": "De Projet gëtt fir d'éischt mat Äre Metadaten erstallt.",
         "step2": "D'Spreadsheet-Dateie ginn an e Klassendiagramm ëmgewandelt.",
         "step3": "De generéierte Klassendiagramm gëtt automatesch an de Projet importéiert.",
-        "accepted": "Ënnerstëtze Formater: .csv, .xlsx, .xls"
+        "accepted": "Ënnerstëtze Formater: .csv, .xlsx, .xls",
+        "sourceLabel": "Quell",
+        "sourceTabFiles": "Fichieren (CSV, XLSX)",
+        "sourceTabSdmx": "Statistik-API (SDMX)",
+        "sdmxProvider": "Ubidder",
+        "sdmxLoadingProviders": "Ubidder ginn gelueden…",
+        "sdmxCustom": "Aner SDMX-2.1-API (URL)…",
+        "sdmxBaseUrl": "Basis-URL vun der API",
+        "sdmxBaseUrlHint": "D’https-Basis-URL vun enger SDMX-2.1-REST-API.",
+        "sdmxDataflow": "Datefloss",
+        "sdmxDataflowHint": "Seng ID (une_rt_m), oder AGENCE,ID,VERSIOUN (ECB,EXR,1.0).",
+        "sdmxSubmit": "Aus SDMX erstellen",
+        "sdmxWait": "D’Struktur vum Datefloss gëtt gelies; grouss kënne bis zu enger Minutt daueren.",
+        "sdmxStep2": "D’Dimensiounen an d’Codelëschte vum Datefloss gi beim Ubidder gelies an zu engem Klassendiagramm ëmgewandelt.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, EZB, OECD, IWF, ILO, national Statistikinstituter…"
       },
       "open": {
         "title": "Bestoende Projet opmaachen",
@@ -921,8 +935,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Vun engem Spreadsheet",
-          "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
+          "title": "Aus Donnéeën",
+          "description": "E Klassendiagramm aus CSV/XLSX-Fichieren oder enger Statistik-API (SDMX) generéieren."
         },
         "cardImport": {
           "title": "Projet importéieren",
@@ -969,7 +983,10 @@
         "noSpreadsheetFile": "Wielt op d'mannst eng CSV/XLSX-Datei.",
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
-        "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+        "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}",
+        "noSdmxDataflow": "Wielt en Ubidder a gitt eng gülteg Datefloss-ID an.",
+        "sdmxGenerateFailed": "Aus dem SDMX-Datefloss konnt kee Klassendiagramm generéiert ginn.",
+        "sdmxImportFailed": "SDMX-Import feelgeschloen: {{error}}"
       },
       "returning": {
         "title": "Projeten",

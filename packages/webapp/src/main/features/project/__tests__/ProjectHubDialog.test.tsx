@@ -1,12 +1,13 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectHubDialog } from '../ProjectHubDialog';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { createDefaultProject } from '../../../shared/types/project';
 
 const mockLoadProject = vi.fn();
+const mockImportDiagram = vi.fn();
 const mockGithubLogin = vi.fn();
 let mockGithubAuthenticated = false;
 
@@ -34,7 +35,7 @@ vi.mock('../../github/hooks/useGitHubStorage', () => ({
   }),
 }));
 vi.mock('../../import/useImportDiagram', () => ({
-  useImportDiagramToProject: () => vi.fn(),
+  useImportDiagramToProject: () => mockImportDiagram,
 }));
 vi.mock('../../../app/store/hooks', () => ({
   useAppDispatch: () => vi.fn(),
@@ -57,6 +58,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   mockLoadProject.mockReset();
+  mockImportDiagram.mockReset();
   mockGithubLogin.mockReset();
   mockGithubAuthenticated = false;
 });
@@ -138,5 +140,78 @@ describe('ProjectHubDialog', () => {
     const file = new File(['name,age'], 'people.csv', { type: 'text/csv' });
     fireEvent.change(fileInput, { target: { files: [file] } });
     expect(submit.disabled).toBe(false);
+  });
+
+  describe('"From data" step, SDMX source', () => {
+    const providers = {
+      providers: [
+        { key: 'eurostat', name: 'Eurostat', baseUrl: 'https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1', agency: 'ESTAT' },
+        { key: 'ecb', name: 'European Central Bank', baseUrl: 'https://data-api.ecb.europa.eu/service', agency: 'ECB' },
+      ],
+      customUrlAllowed: true,
+    };
+    const diagram = { title: 'UneRtM', model: { type: 'ClassDiagram', elements: {}, relationships: {} }, diagramType: 'ClassDiagram' };
+
+    const jsonResponse = (body: unknown, ok = true) =>
+      Promise.resolve({ ok, status: ok ? 200 : 502, json: () => Promise.resolve(body) } as Response);
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('keeps files as the default source and switches to the SDMX fields', async () => {
+      const fetchMock = vi.fn((url: string, _init?: RequestInit) => jsonResponse(url.endsWith('/sdmx-providers') ? providers : diagram));
+      vi.stubGlobal('fetch', fetchMock);
+      render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+
+      expect(screen.getByTestId('data-source-files').getAttribute('aria-checked')).toBe('true');
+      expect(screen.getByRole('button', { name: /create from spreadsheet/i })).toBeTruthy();
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId('data-source-sdmx'));
+      expect(screen.getByTestId('data-source-sdmx').getAttribute('aria-checked')).toBe('true');
+      expect(screen.queryByRole('button', { name: /create from spreadsheet/i })).toBeNull();
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/sdmx-providers$/)));
+      expect(screen.getByLabelText(/^Dataflow/)).toBeTruthy();
+    });
+
+    it('enables the submit only for a valid dataflow id, then posts it and imports the diagram', async () => {
+      const fetchMock = vi.fn((url: string, _init?: RequestInit) => jsonResponse(url.endsWith('/sdmx-providers') ? providers : diagram));
+      vi.stubGlobal('fetch', fetchMock);
+      render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+      fireEvent.click(screen.getByTestId('data-source-sdmx'));
+      await waitFor(() => expect(screen.getByTestId('sdmx-provider').hasAttribute('disabled')).toBe(false));
+
+      const submit = screen.getByRole('button', { name: /create from sdmx/i }) as HTMLButtonElement;
+      expect(submit.disabled).toBe(true);
+      const dataflow = screen.getByLabelText(/^Dataflow/) as HTMLInputElement;
+      fireEvent.change(dataflow, { target: { value: '../admin' } });
+      expect(submit.disabled).toBe(true);
+      fireEvent.change(dataflow, { target: { value: 'une_rt_m' } });
+      expect(submit.disabled).toBe(false);
+
+      fireEvent.click(submit);
+      await waitFor(() => expect(mockImportDiagram).toHaveBeenCalledTimes(1));
+      const [url, init] = fetchMock.mock.calls.find(([u]) => String(u).endsWith('/sdmx-to-domain-model')) as [string, RequestInit];
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(String(init.body))).toEqual({ provider: 'eurostat', dataflow: 'une_rt_m' });
+      expect(url).toMatch(/\/sdmx-to-domain-model$/);
+      const imported = mockImportDiagram.mock.calls[0][0] as File;
+      expect(imported.name).toMatch(/_class_diagram\.json$/);
+    });
+
+    it('falls back to a custom API URL when the provider list cannot be loaded', async () => {
+      vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))));
+      render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+      fireEvent.click(screen.getByTestId('data-source-sdmx'));
+
+      const baseUrl = (await screen.findByLabelText(/^API base URL/)) as HTMLInputElement;
+      fireEvent.change(screen.getByLabelText(/^Dataflow/), { target: { value: 'DF_POP' } });
+      const submit = screen.getByRole('button', { name: /create from sdmx/i }) as HTMLButtonElement;
+      fireEvent.change(baseUrl, { target: { value: 'http://stats.example.org/rest' } });
+      expect(submit.disabled).toBe(true);
+      fireEvent.change(baseUrl, { target: { value: 'https://stats.example.org/rest' } });
+      expect(submit.disabled).toBe(false);
+    });
   });
 });
