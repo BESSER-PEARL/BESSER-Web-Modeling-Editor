@@ -2460,6 +2460,8 @@
           "last": "Último"
         },
         "dataEndpoint": "Endpoint (opcional)",
+        "dataEndpointPlaceholder": "/stats/ventas?anio=2025 o https://… (requiere una fuente de datos)",
+        "dataEndpointInvalid": "Ignorado: usa una ruta que empiece por / o una URL http(s)://, sin espacios",
         "groupBy": "Agrupar por",
         "dataField": "Campo de datos",
         "dataSource": "Fuente de datos",
@@ -2615,7 +2617,7 @@
         "filter": "Filtro",
         "filterPlaceholder": "Expresión de filtro",
         "endpoint": "Endpoint (opcional)",
-        "endpointPlaceholder": "/stats/ventas?anio=2025 (por defecto: los registros de la clase)",
+        "endpointPlaceholder": "/stats/ventas?anio=2025 o https://… (requiere una fuente de datos; por defecto: los registros de la clase)",
         "pickColor": "Elegir color",
         "addSeries": "Añadir serie"
       },

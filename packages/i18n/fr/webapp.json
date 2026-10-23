@@ -2460,6 +2460,8 @@
           "last": "Dernier"
         },
         "dataEndpoint": "Point d'accès (facultatif)",
+        "dataEndpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données)",
+        "dataEndpointInvalid": "Ignoré : indiquez un chemin commençant par / ou une URL http(s)://, sans espaces",
         "groupBy": "Grouper par",
         "dataField": "Champ de données",
         "dataSource": "Source de données",
@@ -2615,7 +2617,7 @@
         "filter": "Filtre",
         "filterPlaceholder": "Expression de filtre",
         "endpoint": "Point d'accès (facultatif)",
-        "endpointPlaceholder": "/stats/ventes?annee=2025 (par défaut : les enregistrements de la classe)",
+        "endpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données ; par défaut : les enregistrements de la classe)",
         "pickColor": "Choisir une couleur",
         "addSeries": "Ajouter une série"
       },

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { MetricCardConfig } from '../configs/metricCardConfigs';
+import { markEndpointTrait } from '../configs/endpoint';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions } from '../diagram-helpers';
 
 /**
@@ -24,12 +25,11 @@ const buildMetricCardProps = (attrs: Record<string, any>, config: MetricCardConf
   const dataSource = attrs['data-source'];
   const dataField = attrs['data-field'];
   const aggregation = attrs['aggregation'];
-  const dataEndpoint = typeof attrs['data-endpoint'] === 'string' ? attrs['data-endpoint'].trim() : '';
 
   if (dataSource || dataField || aggregation) {
     props.data_binding = {
       entity: dataSource || undefined,
-      endpoint: dataEndpoint || (dataSource ? `/${dataSource.toLowerCase()}/` : undefined),
+      endpoint: dataSource ? `/${dataSource.toLowerCase()}/` : undefined,
       data_field: dataField || undefined,
       aggregation: aggregation || undefined,
     };
@@ -102,6 +102,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
               const attrs = { ...(this.get('attributes') || {}) };
               attrs[trait.name] = this.get(trait.name);
               this.set('attributes', attrs);
+              if (trait.name === 'data-endpoint') markEndpointTrait(this, attrs[trait.name]);
               // Re-render metric card for any trait change
               this.renderMetricCard();
             });

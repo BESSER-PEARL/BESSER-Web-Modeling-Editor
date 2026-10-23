@@ -2460,6 +2460,8 @@
           "last": "Last"
         },
         "dataEndpoint": "Endpoint (optional)",
+        "dataEndpointPlaceholder": "/stats/sales?year=2025 or https://… (needs a data source)",
+        "dataEndpointInvalid": "Ignored: use a path starting with / or an http(s):// URL, without spaces",
         "groupBy": "Group By",
         "dataField": "Data Field",
         "dataSource": "Data Source",
@@ -2615,7 +2617,7 @@
         "filter": "Filter",
         "filterPlaceholder": "Filter expression",
         "endpoint": "Endpoint (optional)",
-        "endpointPlaceholder": "/stats/sales?year=2025 (default: the class's records)",
+        "endpointPlaceholder": "/stats/sales?year=2025 or https://… (needs a data source; default: the class's records)",
         "pickColor": "Pick color",
         "addSeries": "Add Series"
       },
