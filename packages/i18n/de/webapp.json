@@ -2439,6 +2439,7 @@
           "first": "Erster",
           "last": "Letzter"
         },
+        "dataEndpoint": "Endpunkt (optional)",
         "groupBy": "Gruppieren nach",
         "dataField": "Datenfeld",
         "dataSource": "Datenquelle",
@@ -2593,6 +2594,8 @@
         "color": "Farbe",
         "filter": "Filter",
         "filterPlaceholder": "Filterausdruck",
+        "endpoint": "Endpunkt (optional)",
+        "endpointPlaceholder": "/stats/umsatz?jahr=2025 (Standard: die Datensätze der Klasse)",
         "pickColor": "Farbe wählen",
         "addSeries": "Reihe hinzufügen"
       },

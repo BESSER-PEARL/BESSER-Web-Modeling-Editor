@@ -24,11 +24,12 @@ const buildMetricCardProps = (attrs: Record<string, any>, config: MetricCardConf
   const dataSource = attrs['data-source'];
   const dataField = attrs['data-field'];
   const aggregation = attrs['aggregation'];
+  const dataEndpoint = typeof attrs['data-endpoint'] === 'string' ? attrs['data-endpoint'].trim() : '';
 
   if (dataSource || dataField || aggregation) {
     props.data_binding = {
       entity: dataSource || undefined,
-      endpoint: dataSource ? `/${dataSource.toLowerCase()}/` : undefined,
+      endpoint: dataEndpoint || (dataSource ? `/${dataSource.toLowerCase()}/` : undefined),
       data_field: dataField || undefined,
       aggregation: aggregation || undefined,
     };

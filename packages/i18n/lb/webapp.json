@@ -2439,6 +2439,7 @@
           "first": "Éischten",
           "last": "Leschten"
         },
+        "dataEndpoint": "Endpunkt (fakultativ)",
         "groupBy": "Gruppéieren no",
         "dataField": "Datefeld",
         "dataSource": "Datequell",
@@ -2593,6 +2594,8 @@
         "color": "Faarf",
         "filter": "Filter",
         "filterPlaceholder": "Filterausdrock",
+        "endpoint": "Endpunkt (fakultativ)",
+        "endpointPlaceholder": "/stats/verkaf?joer=2025 (Standard: d'Donnéeë vun der Klass)",
         "pickColor": "Faarf wielen",
         "addSeries": "Serie dobäisetzen"
       },

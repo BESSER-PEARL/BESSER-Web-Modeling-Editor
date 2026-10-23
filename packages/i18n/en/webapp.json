@@ -2439,6 +2439,7 @@
           "first": "First",
           "last": "Last"
         },
+        "dataEndpoint": "Endpoint (optional)",
         "groupBy": "Group By",
         "dataField": "Data Field",
         "dataSource": "Data Source",
@@ -2593,6 +2594,8 @@
         "color": "Color",
         "filter": "Filter",
         "filterPlaceholder": "Filter expression",
+        "endpoint": "Endpoint (optional)",
+        "endpointPlaceholder": "/stats/sales?year=2025 (default: the class's records)",
         "pickColor": "Pick color",
         "addSeries": "Add Series"
       },

@@ -25,6 +25,8 @@ interface SeriesItem {
   'label-field'?: string;
   'data-field'?: string;
   filter?: string;
+  // Optional backend path the series reads its records from instead of the class's CRUD list
+  'data-endpoint'?: string;
   color?: string;
   data: Array<{ name: string; value: number }>;
   _expanded?: boolean;
@@ -282,6 +284,17 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           filterInput.style.width = '100%';
           filterInput.style.margin = '4px 0 8px 0';
 
+          // Endpoint (text input, optional)
+          const endpointLabel = document.createElement('label');
+          endpointLabel.textContent = i18n.t('editors.gui.seriesManager.endpoint');
+          const endpointInput = document.createElement('input');
+          endpointInput.type = 'text';
+          endpointInput.value = s['data-endpoint'] || '';
+          endpointInput.placeholder = i18n.t('editors.gui.seriesManager.endpointPlaceholder');
+          endpointInput.setAttribute('data-endpoint-idx', idx.toString());
+          endpointInput.style.width = '100%';
+          endpointInput.style.margin = '4px 0 8px 0';
+
           // Color (GrapesJS-style: text + preview + popover picker, no alpha)
 
           const colorLabel = document.createElement('label');
@@ -448,6 +461,8 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           details.appendChild(dataFieldSelect);
           details.appendChild(filterLabel);
           details.appendChild(filterInput);
+          details.appendChild(endpointLabel);
+          details.appendChild(endpointInput);
           details.appendChild(colorLabel);
           details.appendChild(colorInputContainer);
 
@@ -586,6 +601,17 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           const idx = Number(target.dataset.filterIdx);
           series[idx].filter = target.value;
           // Persist without re-render to avoid chart refresh on each keystroke
+          persistSeries(true);
+        }
+        // Endpoint
+        if (target.tagName === 'INPUT' && target.dataset.endpointIdx !== undefined) {
+          const idx = Number(target.dataset.endpointIdx);
+          const value = target.value.trim();
+          if (value) {
+            series[idx]['data-endpoint'] = value;
+          } else {
+            delete series[idx]['data-endpoint'];
+          }
           persistSeries(true);
         }
         // Color

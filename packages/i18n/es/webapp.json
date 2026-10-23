@@ -2439,6 +2439,7 @@
           "first": "Primero",
           "last": "Último"
         },
+        "dataEndpoint": "Endpoint (opcional)",
         "groupBy": "Agrupar por",
         "dataField": "Campo de datos",
         "dataSource": "Fuente de datos",
@@ -2593,6 +2594,8 @@
         "color": "Color",
         "filter": "Filtro",
         "filterPlaceholder": "Expresión de filtro",
+        "endpoint": "Endpoint (opcional)",
+        "endpointPlaceholder": "/stats/ventas?anio=2025 (por defecto: los registros de la clase)",
         "pickColor": "Elegir color",
         "addSeries": "Añadir serie"
       },

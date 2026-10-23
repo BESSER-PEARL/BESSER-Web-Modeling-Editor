@@ -2439,6 +2439,7 @@
           "first": "Primer",
           "last": "Últim"
         },
+        "dataEndpoint": "Endpoint (opcional)",
         "groupBy": "Agrupa per",
         "dataField": "Camp de dades",
         "dataSource": "Font de dades",
@@ -2593,6 +2594,8 @@
         "color": "Color",
         "filter": "Filtre",
         "filterPlaceholder": "Expressió de filtre",
+        "endpoint": "Endpoint (opcional)",
+        "endpointPlaceholder": "/stats/vendes?any=2025 (per defecte: els registres de la classe)",
         "pickColor": "Tria un color",
         "addSeries": "Afegeix una sèrie"
       },

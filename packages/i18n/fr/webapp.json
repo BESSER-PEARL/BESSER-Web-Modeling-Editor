@@ -2439,6 +2439,7 @@
           "first": "Premier",
           "last": "Dernier"
         },
+        "dataEndpoint": "Point d'accès (facultatif)",
         "groupBy": "Grouper par",
         "dataField": "Champ de données",
         "dataSource": "Source de données",
@@ -2593,6 +2594,8 @@
         "color": "Couleur",
         "filter": "Filtre",
         "filterPlaceholder": "Expression de filtre",
+        "endpoint": "Point d'accès (facultatif)",
+        "endpointPlaceholder": "/stats/ventes?annee=2025 (par défaut : les enregistrements de la classe)",
         "pickColor": "Choisir une couleur",
         "addSeries": "Ajouter une série"
       },
