@@ -8,6 +8,10 @@ import {
 } from '../../../shared/services/storage/local-storage-repository';
 import type { AgentRuntimeConfig } from '../../../shared/services/storage/local-storage-repository';
 import type { BesserProject } from '../../../shared/types/project';
+import type { GrapesJSProjectData } from '../../../shared/types/project';
+import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { buildAllWebAppVersions, buildVersionGuiModel } from '../../../shared/utils/buildWebAppVersions';
+import { restoreBaseAgentModels, stripAgentConfigToSystem } from '../utils/restoreBaseAgentModels';
 import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
@@ -18,6 +22,8 @@ import type { AgentConfigFormData } from '../../../shared/utils/agent-config-yam
 export interface StudyDeployResult {
   success: boolean;
   url: string;
+  websiteUrl: string;
+  websiteVersions: string[];
   message: string;
 }
 
@@ -39,10 +45,23 @@ export const useStudyDeploy = () => {
     try {
       const freshProject = ProjectStorageRepository.loadProject(project.id) ?? project;
       const agentDiagram = getActiveDiagram(freshProject, 'AgentDiagram');
+      const guiDiagram = getActiveDiagram(freshProject, 'GUINoCodeDiagram');
+      const classDiagram = getActiveDiagram(freshProject, 'ClassDiagram');
 
       if (!agentDiagram || !isUMLModel(agentDiagram.model) || agentDiagram.model.type !== UMLDiagramType.AgentDiagram) {
         throw new Error('No agent diagram found in the current project.');
       }
+      if (!guiDiagram?.model || !classDiagram?.model) {
+        throw new Error('A GUI diagram and its class diagram are required to deploy the study website.');
+      }
+
+      const guiModel = guiDiagram.model as GrapesJSProjectData;
+      if (!Array.isArray(guiModel.pages) || guiModel.pages.length === 0) {
+        throw new Error('The study website needs at least one modeled GUI page.');
+      }
+      const versions = personalized ? buildAllWebAppVersions(guiModel, 'all', null) : [];
+      const webAppVersions = versions.length ? versions : [{ slug: 'base', name: 'Base', guiModel: buildVersionGuiModel(guiModel, null) }];
+      const webAppProject = buildProjectPayloadForBackend(stripAgentConfigToSystem(restoreBaseAgentModels(freshProject)));
 
       const personalizationMapping =
         personalized && hasPersonalizationVariants(freshProject)
@@ -92,13 +111,18 @@ export const useStudyDeploy = () => {
         agent_config: normalizedAgentConfig,
         agent_config_yaml: configYaml,
         personalization_mapping: personalizationMapping,
+        web_app_project: webAppProject,
+        web_app_versions: webAppVersions,
       };
 
       const data = await apiClient.post<StudyDeployResult>(
         '/deploy_study_agent',
         payload,
-        { timeout: 120_000 },
+        { timeout: 600_000 },
       );
+      if (!data.success || !data.websiteUrl || !Array.isArray(data.websiteVersions) || !data.websiteVersions.includes('base')) {
+        throw new Error('The study server did not return a deployed website. Update both study services and retry.');
+      }
 
       // Keep the loading state visible for at least MIN_DEPLOY_WAIT_MS so users
       // understand the agent service needs time to start (502s are normal briefly).

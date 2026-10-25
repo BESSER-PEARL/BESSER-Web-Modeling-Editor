@@ -46,6 +46,7 @@ export const StudyWelcomeDialog: React.FC<StudyWelcomeDialogProps> = ({ open, pa
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">{t('study.welcome.trackingNotice')}</p>
           <p className="text-sm text-muted-foreground">{t('study.welcome.idIntro')}</p>
 
           <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">

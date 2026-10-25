@@ -56,4 +56,26 @@ DEPLOYMENT_URL=https://editor.besser-pearl.org
 OPENAI_API_KEY=sk-...
 GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
+STUDY_DEPLOY_TOKEN=<a-long-random-secret-shared-by-the-two-containers>
+STUDY_FRONTEND_PUBLIC_URL=https://museum.study.besser-pearl.org
+STUDY_SITE_HOST=museum.study.besser-pearl.org
 ```
+
+The study deployment generates the website using BESSER's React generator, then
+builds it in the existing frontend container. No separate website container or
+Docker build is started for each participant. The frontend serves Base at
+`/study-site/base/` and personalized versions at `/study-site/<profile>/`.
+`STUDY_FRONTEND_PUBLIC_URL` must be the public origin of that frontend (without
+a trailing path). Use a hostname distinct from the editor hostname for the
+generated website, pointing to the same frontend service. Set `STUDY_SITE_HOST`
+to that hostname; the frontend serves `/study-site/` only on that host. This
+keeps participant generated pages separate from the editor's browser storage.
+Configure DNS, HTTPS, and the reverse proxy to forward that hostname to the
+frontend container while preserving its `Host` header.
+Generated static files live in the `study_site` volume and
+survive container restarts; a successful new deployment replaces them.
+
+The frontend container needs outbound npm registry access for the first website
+build of each generated dependency set. Installed dependencies are cached in
+the `study_site` volume and reused for later participants. The API reports
+install or build failures without replacing the previous website.

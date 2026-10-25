@@ -41,7 +41,7 @@ EXPOSE 8080
 
 # Create a user and set up necessary directories and permissions
 RUN adduser -D -s /bin/sh besser_standalone \
-    && mkdir /opt/besser
+    && mkdir -p /opt/besser/study-site
 
 RUN chown -R besser_standalone /opt/besser
 

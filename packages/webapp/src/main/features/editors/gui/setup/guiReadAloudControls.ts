@@ -1,5 +1,6 @@
 import type { Editor } from 'grapesjs';
 import { requestGuiAudio } from './guiAudio';
+import { captureAnalyticsEvent } from '../../../../shared/services/analytics/lazy-analytics';
 
 const CONTROL_ATTRIBUTE = 'data-besser-read-aloud-preview';
 
@@ -140,7 +141,7 @@ export function setupGuiReadAloudControls(editor: Editor) {
   };
   const play = async (record: Record) => {
     if (record.disposed || record.request) return;
-    if (record.audio && !record.audio.paused) { record.audio.pause(); return; }
+    if (record.audio && !record.audio.paused) { record.audio.pause(); captureAnalyticsEvent('gui_read_aloud_paused', { summary: record.summary }); return; }
     const intent = ++playbackIntent;
     records.forEach(other => { if (other !== record) other.audio?.pause(); });
     record.status.setAttribute('role', 'status'); record.status.style.color = '#475569';
@@ -164,7 +165,10 @@ export function setupGuiReadAloudControls(editor: Editor) {
       }
       record.play.disabled = false; resetLabel(record); record.group.setAttribute('aria-busy', 'false');
       record.status.textContent = 'AI-generated voice'; record.stop.disabled = false;
-      if (intent === playbackIntent && record.audio) await record.audio.play();
+      if (intent === playbackIntent && record.audio) {
+        await record.audio.play();
+        captureAnalyticsEvent('gui_read_aloud_played', { summary: record.summary });
+      }
     } catch (error) {
       if (!record.disposed && !(error instanceof DOMException && error.name === 'AbortError')) showError(record, error);
     } finally {
@@ -172,6 +176,7 @@ export function setupGuiReadAloudControls(editor: Editor) {
     }
   };
   const stop = (record: Record) => {
+    captureAnalyticsEvent('gui_read_aloud_stopped', { summary: record.summary });
     playbackIntent++;
     if (record.request) { record.request.abort(); record.request = undefined; }
     if (record.audio) { record.audio.pause(); record.audio.currentTime = 0; }

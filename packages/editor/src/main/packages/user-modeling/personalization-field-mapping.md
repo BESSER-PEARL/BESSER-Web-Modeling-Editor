@@ -65,6 +65,11 @@ French, German, Portuguese, Luxembourgish, and Italian. Original keeps the curre
 language. A selected language translates visible text and labels through the
 backend, independently of general AI adaptation. When combined with Simple text,
 translation runs first and simplification keeps the selected language.
+When a PostHog key is configured and analytics consent is accepted, the editor records GUI rule changes and page
+variant picker, create, replace, select, delete, and read-aloud actions. Variant
+events include the selected rule options and whether a visual-only fallback was
+used. Event properties contain no page text or profile name. Events made before
+the lazy PostHog client loads are queued and linked to the study participant ID.
 GUI **Sentence length** offers the agent's Original, concise, and verbose choices.
 It uses the same backend LLM helper, after translation and simplification, and
 can also be applied alone. Original skips the sentence-length rewrite.

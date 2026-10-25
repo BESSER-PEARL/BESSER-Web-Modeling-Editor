@@ -4,6 +4,7 @@ import { GUI_PERSONALIZE_EVENT } from '../../../../shared/constants/gui-personal
 import { isReadAloudVariant, setPageReadAloud, setupGuiReadAloudControls } from './guiReadAloudControls';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import { captureAnalyticsEvent } from '../../../../shared/services/analytics/lazy-analytics';
 import {
   aggregateGuiPresentation,
   aggregateGuiContent,
@@ -558,6 +559,17 @@ const createVariantForPage = async (
   const adaptContent = applyRules && content.adaptContentToUserProfile === true;
   const summarizeContent = applyRules && content.summarizeLongContent === true;
   const personalizeText = simplifyText || translateText || changeSentenceLength || adaptContent || summarizeContent;
+  const eventProperties = {
+    ai_profile_adaptation: personalize,
+    apply_gui_rules: applyRules,
+    language: translateText ? presentation.language! : 'original',
+    simple_text: simplifyText,
+    sentence_length: changeSentenceLength ? presentation.sentenceLength! : 'original',
+    adapt_content: adaptContent,
+    summarize_content: summarizeContent,
+    read_aloud: applyRules && guiReadAloudEnabled(profile.model),
+  };
+  let usedVisualFallback = false;
   const finishSnapshot = (snapshot: PageSnapshot): PageSnapshot => {
     const result = applyRules
       ? applyGuiPresentation({ ...snapshot, fontSizes: snapshot.fontSizes ?? baseSnapshot.fontSizes }, presentation, page.getId())
@@ -623,7 +635,12 @@ const createVariantForPage = async (
       confirmLabel: personalizeText ? 'Apply visual rules' : applyRules ? 'Apply rules' : 'Create copy',
       cancelLabel: 'Cancel',
     });
-    return makeCopy ? finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page)) : null;
+    if (!makeCopy) {
+      captureAnalyticsEvent('gui_personalization_variant_cancelled_after_error', eventProperties);
+      return null;
+    }
+    usedVisualFallback = true;
+    return finishSnapshot(applyRules ? baseSnapshot : captureSnapshot(editor, page));
   };
 
   const variants = getPageVariants(page);
@@ -658,6 +675,7 @@ const createVariantForPage = async (
     setPageVariants(page, variants);
     setActiveVariantId(page, existing.id);
     updatePagesList(editor);
+    captureAnalyticsEvent('gui_personalization_variant_replaced', { ...eventProperties, visual_fallback: usedVisualFallback });
     return;
   }
 
@@ -681,6 +699,7 @@ const createVariantForPage = async (
   setPageVariants(page, [...variants, newVariant]);
   setActiveVariantId(page, newVariant.id);
   updatePagesList(editor);
+  captureAnalyticsEvent('gui_personalization_variant_created', { ...eventProperties, visual_fallback: usedVisualFallback });
 
 };
 
@@ -690,6 +709,7 @@ const createVariantForPage = async (
  */
 const openAddVariantModal = async (editor: Editor, pages: any[], options?: { choosePages?: boolean }) => {
   const choosePages = !!options?.choosePages && pages.length >= 2;
+  captureAnalyticsEvent('gui_personalization_picker_opened', { page_count: pages.length, choose_pages: choosePages });
   await openProfilePickerModal(editor, {
     title: choosePages ? 'Create page variants' : 'Create page variant',
     description: choosePages
@@ -1097,6 +1117,7 @@ function updatePagesList(editor: Editor) {
         const select = e.target as HTMLSelectElement;
         switchVariant(editor, page, select.value || null);
         updatePagesList(editor);
+        captureAnalyticsEvent('gui_personalization_variant_selected', { variant: select.value ? 'profile' : 'base' });
       });
 
       // Add variant button
@@ -1166,6 +1187,7 @@ function updatePagesList(editor: Editor) {
               setActiveVariantId(page, null);
             }
             updatePagesList(editor);
+            captureAnalyticsEvent('gui_personalization_variant_deleted');
           },
         });
       });

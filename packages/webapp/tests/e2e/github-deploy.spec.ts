@@ -63,7 +63,7 @@ test.describe('GitHub deploy: projectExport envelope', () => {
       try {
         localStorage.setItem(
           'besser_analytics_consent',
-          JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() })
+          JSON.stringify({ status: 'declined', version: '2.0', timestamp: Date.now() })
         );
         // Pin storage migrations as already-applied so runStorageMigrations
         // doesn't strip ``github_username`` (the v2 migration clears it).

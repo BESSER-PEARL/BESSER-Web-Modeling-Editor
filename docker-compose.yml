@@ -9,6 +9,11 @@ services:
       # /baf_packages is a persistent volume where BAF is installed once manually.
       # Add it to PYTHONPATH so the spawned agent process can import it.
       PYTHONPATH: /baf_packages
+      DEPLOYMENT_URL: ${DEPLOYMENT_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      STUDY_FRONTEND_INTERNAL_URL: http://frontend:8080
+      STUDY_FRONTEND_PUBLIC_URL: ${STUDY_FRONTEND_PUBLIC_URL:?Set the public frontend origin}
+      STUDY_DEPLOY_TOKEN: ${STUDY_DEPLOY_TOKEN:?Set a shared study deployment token}
     volumes:
       - baf_packages:/baf_packages
     networks:
@@ -19,6 +24,12 @@ services:
     restart: unless-stopped
     ports:
       - "80:8080"
+    environment:
+      STUDY_DEPLOY_TOKEN: ${STUDY_DEPLOY_TOKEN:?Set a shared study deployment token}
+      STUDY_SITE_DIR: /opt/besser/study-site
+      STUDY_SITE_HOST: ${STUDY_SITE_HOST:?Set the study website hostname}
+    volumes:
+      - study_site:/opt/besser/study-site
     networks:
       - app
     depends_on:
@@ -30,3 +41,4 @@ networks:
 
 volumes:
   baf_packages:
+  study_site:

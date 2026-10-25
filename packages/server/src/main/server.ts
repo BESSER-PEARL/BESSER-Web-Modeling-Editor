@@ -5,6 +5,7 @@ import express, { RequestHandler } from 'express';
 import * as Sentry from '@sentry/node';
 import { indexHtml, webappPath } from './constants';
 import { register } from './routes';
+import { registerStudySite } from './study-site';
 
 const port = 8080;
 
@@ -22,8 +23,6 @@ if (process.env.SENTRY_DSN) {
 
 // Replace build-time placeholders with runtime env values.
 // Vite outputs JS into webapp/assets/, so scan that subdirectory.
-// FORCE_ANALYTICS_CONSENT is injected into index.html as a meta tag
-// (JS bundles can't carry it because Vite constant-folds string comparisons).
 if (fs.existsSync(webappPath)) {
   const assetsPath = path.join(webappPath, 'assets');
   const scanDir = fs.existsSync(assetsPath) ? assetsPath : webappPath;
@@ -38,13 +37,9 @@ if (fs.existsSync(webappPath)) {
     fs.writeFileSync(filePath, content);
   });
 
-  if (fs.existsSync(indexHtml)) {
-    const html = fs.readFileSync(indexHtml, 'utf8')
-        .replace(/__POSTHOG_ENABLE_RECORDINGS__/g, process.env.POSTHOG_ENABLE_RECORDINGS === 'true' ? 'true' : '');
-    fs.writeFileSync(indexHtml, html);
-  }
 }
 
+registerStudySite(app);
 app.use('/', express.static(webappPath));
 app.use(bodyParser.json() as RequestHandler);
 app.use(

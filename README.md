@@ -142,13 +142,13 @@ Set `POSTHOG_KEY` and `POSTHOG_HOST` at build time or via the runtime env file (
 
 When neither variable is set, PostHog is not initialised and no data is sent.
 
-To enable **session recordings**, two things must be true: (1) Session Replay must be on in your PostHog project → **Settings → Session Replay**, and (2) `POSTHOG_ENABLE_RECORDINGS=true` must be set in the environment. If either is absent, recordings are disabled.
+In study mode (`ENABLE_STUDY_DEPLOY=true`), PostHog collects the coded study events, automatic interaction and page events, and session recordings after the participant acknowledges the study welcome dialog. Session Replay must also be enabled in the PostHog project. Outside study mode, PostHog collects only coded feature events after analytics acceptance; automatic interaction capture and session recording are disabled, regardless of `POSTHOG_ENABLE_RECORDINGS`.
 
 ### Cookie consent mode
 
-When `POSTHOG_KEY` is set and `ENABLE_STUDY_DEPLOY` is **not** active, a small passive notice appears at the bottom of the screen informing users that anonymous interaction data is collected. The notice can be dismissed and the choice is stored in `localStorage`.
+When `POSTHOG_KEY` is set and `ENABLE_STUDY_DEPLOY` is **not** active, a banner offers **Accept** and **Decline**. No PostHog events are sent before acceptance. Declining leaves analytics disabled. The choice is stored in `localStorage` and can be changed later with the **Privacy Settings** button. The former unconditional Google Analytics tag has been removed.
 
-When `ENABLE_STUDY_DEPLOY=true`, no notice is shown. Instead the study welcome dialog's **"I understand"** button records the participant's explicit acknowledgment and activates PostHog at that moment.
+When `ENABLE_STUDY_DEPLOY=true`, no ordinary analytics banner is shown. The study welcome dialog's **"I understand"** button records acknowledgment and activates study tracking. If storage is unavailable, tracking remains off and the dialog stays open.
 
 ### Docker / runtime configuration
 
@@ -162,7 +162,6 @@ Variables supported for runtime substitution:
 | `__BACKEND_URL__` | `BACKEND_URL` | Python backend API URL |
 | `__POSTHOG_KEY__` | `POSTHOG_KEY` | PostHog project API key |
 | `__POSTHOG_HOST__` | `POSTHOG_HOST` | PostHog instance URL |
-| `__POSTHOG_ENABLE_RECORDINGS__` (in `index.html`) | `POSTHOG_ENABLE_RECORDINGS` | Set to `true` to enable session recordings |
 
 ### Working from the main BESSER repo
 

@@ -21,7 +21,9 @@ export const BACKEND_URL = import.meta.env.DEV
   : _env(process.env.BACKEND_URL, import.meta.env.VITE_BACKEND_URL);
 export const SENTRY_DSN = _env(process.env.SENTRY_DSN, import.meta.env.VITE_SENTRY_DSN);
 export const POSTHOG_HOST = _env(process.env.POSTHOG_HOST, import.meta.env.VITE_POSTHOG_HOST);
-export const POSTHOG_KEY = _env(process.env.POSTHOG_KEY, import.meta.env.VITE_POSTHOG_KEY);
+const posthogKey = _env(process.env.POSTHOG_KEY, import.meta.env.VITE_POSTHOG_KEY);
+// An unresolved server substitution token is not a configured PostHog key.
+export const POSTHOG_KEY = posthogKey?.startsWith('__POSTHOG_') ? undefined : posthogKey;
 export const BASE_URL = `${DEPLOYMENT_URL}/api`;
 export const NO_HTTP_URL = DEPLOYMENT_URL?.split('//')[1] || '';
 export const WS_PROTOCOL = DEPLOYMENT_URL?.startsWith('https') ? 'wss' : 'ws';
@@ -34,8 +36,8 @@ const defaultBotWsUrl = import.meta.env.DEV
 
 export const UML_BOT_WS_URL = _env(process.env.UML_BOT_WS_URL, import.meta.env.VITE_UML_BOT_WS_URL) || defaultBotWsUrl;
 
-export const ENABLE_STUDY_DEPLOY = Boolean(
-  _env(process.env.ENABLE_STUDY_DEPLOY, import.meta.env.VITE_ENABLE_STUDY_DEPLOY),
+export const ENABLE_STUDY_DEPLOY = ['true', '1'].includes(
+  (_env(process.env.ENABLE_STUDY_DEPLOY, import.meta.env.VITE_ENABLE_STUDY_DEPLOY) ?? '').toLowerCase(),
 );
 
 // prefixes

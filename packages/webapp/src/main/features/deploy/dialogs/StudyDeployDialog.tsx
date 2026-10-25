@@ -23,6 +23,7 @@ interface StudyDeployDialogProps {
   onOpenChange: (open: boolean) => void;
   onDeploy: () => void;
   onOpenAgent: (url: string) => void;
+  onOpenWebsite: (url: string) => void;
 }
 
 export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
@@ -36,6 +37,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
   onOpenChange,
   onDeploy,
   onOpenAgent,
+  onOpenWebsite,
 }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
@@ -76,7 +78,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
                 onChange={(e) => onPersonalizedChange?.(e.target.checked)}
                 className="size-4 cursor-pointer rounded border-border accent-brand"
               />
-              {t('deploy.study.personalizedAgent')}
+              {t('deploy.study.personalizedVersions')}
             </label>
           )}
 
@@ -102,6 +104,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                <span className="font-medium">{t('deploy.study.agentLabel')}</span>
                 <span className="min-w-0 flex-1 truncate font-mono">{result.url}</span>
                 <button
                   type="button"
@@ -112,6 +115,21 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
                   <Copy className="size-3.5" />
                 </button>
               </div>
+              {result.websiteUrl && (result.websiteVersions ?? []).map((version) => {
+                const websiteLink = `${result.websiteUrl}${version}/`;
+                return (
+                  <div key={version} className="flex items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium">{t('deploy.study.websiteLabel', { version })}</span>
+                    <span className="min-w-0 flex-1 truncate font-mono">{websiteLink}</span>
+                    <button type="button" onClick={() => handleCopy(websiteLink)} className="shrink-0 rounded p-1 hover:bg-muted" title={t('deploy.study.copyUrl')}>
+                      <Copy className="size-3.5" />
+                    </button>
+                    <button type="button" onClick={() => onOpenWebsite(websiteLink)} className="shrink-0 rounded p-1 hover:bg-muted" title={t('deploy.study.openWebsite')}>
+                      <ExternalLink className="size-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
               {copied && (
                 <p className="text-center text-xs text-emerald-600 dark:text-emerald-400">
                   {t('deploy.study.urlCopied')}
@@ -137,13 +155,16 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
           </Button>
 
           {result?.success ? (
-            <Button
-              className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark"
-              onClick={() => onOpenAgent(result.url)}
-            >
-              <ExternalLink className="size-4" />
-              {t('deploy.study.openAgent')}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => onOpenAgent(result.url)}>
+                <ExternalLink className="size-4" />
+                {t('deploy.study.openAgent')}
+              </Button>
+              {result.websiteUrl && <Button className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark" onClick={() => onOpenWebsite(`${result.websiteUrl}base/`)}>
+                <ExternalLink className="size-4" />
+                {t('deploy.study.openWebsite')}
+              </Button>}
+            </div>
           ) : (
             <Button
               className="bg-brand text-brand-foreground hover:bg-brand-dark"

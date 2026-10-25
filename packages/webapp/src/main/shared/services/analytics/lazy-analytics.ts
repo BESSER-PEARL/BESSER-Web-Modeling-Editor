@@ -9,7 +9,8 @@
  * For PostHog opt-in/opt-out at runtime, use `getPostHog()`.
  */
 
-import type { ConsentStatus } from '../../components/cookie-consent/CookieConsentBanner';
+import { getConsentStatus, type ConsentStatus } from './analytics-consent';
+import { ENABLE_STUDY_DEPLOY, POSTHOG_KEY } from '../../constants/constant';
 
 // ── Sentry ──────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,32 @@ export const getSentry = (): typeof import('@sentry/react') | null => sentryModu
 // ── PostHog ─────────────────────────────────────────────────────────────────
 
 let posthogModule: typeof import('posthog-js') | null = null;
+type AnalyticsProperties = Record<string, string | number | boolean>;
+const pendingEvents: Array<{ name: string; properties: AnalyticsProperties }> = [];
+let pendingStudyParticipantId: string | null = null;
+
+/** Retain a bounded set of non-content events until the optional SDK is ready. */
+export const captureAnalyticsEvent = (name: string, properties: AnalyticsProperties = {}): void => {
+  if (!POSTHOG_KEY || getConsentStatus() !== 'accepted') return;
+  const ph = getPostHog();
+  if (ph) {
+    ph.capture(name, properties);
+  } else if (pendingEvents.length < 100) {
+    pendingEvents.push({ name, properties });
+  }
+};
+
+/** Associate queued and future study events with the existing pseudonymous ID. */
+export const identifyStudyParticipant = (participantId: string): void => {
+  if (!POSTHOG_KEY || getConsentStatus() !== 'accepted') return;
+  const ph = getPostHog();
+  if (ph) {
+    ph.identify(participantId);
+    ph.register({ participant_id: participantId, study_mode: true });
+  } else {
+    pendingStudyParticipantId = participantId;
+  }
+};
 
 /**
  * Returns the lazily-loaded PostHog default export, or `null` if it hasn't
@@ -33,38 +60,37 @@ export const getPostHog = (): (typeof import('posthog-js'))['default'] | null =>
 
 /**
  * Called by LazyPostHogProvider after posthog.init() completes.
- * Stores the module and flushes any queued consent decision.
+ * Applies the persisted decision before flushing consented events.
  */
 export const setPostHogModule = (mod: typeof import('posthog-js')): void => {
   posthogModule = mod;
-  if (pendingConsentStatus !== null) {
-    applyConsentToPostHog(pendingConsentStatus);
-    pendingConsentStatus = null;
+  const consent = getConsentStatus();
+  applyConsentToPostHog(consent === 'accepted' ? 'accepted' : 'declined');
+  if (consent === 'accepted' && pendingStudyParticipantId !== null) {
+    identifyStudyParticipant(pendingStudyParticipantId);
+  }
+  pendingStudyParticipantId = null;
+  for (const event of pendingEvents.splice(0)) {
+    if (consent === 'accepted') mod.default.capture(event.name, event.properties);
   }
 };
 
 /**
- * Queue of consent operations that arrived before PostHog was loaded.
- * Once PostHog is ready we flush and apply them in order.
- */
-let pendingConsentStatus: ConsentStatus | null = null;
-
-/**
  * Apply an opt-in / opt-out decision to PostHog.
- * If PostHog hasn't loaded yet the decision is queued and applied on load.
+ * Before the SDK loads, setPostHogModule reads the persisted decision on load.
  */
 export const applyConsentToPostHog = (status: ConsentStatus): void => {
   const ph = getPostHog();
   if (ph) {
     if (status === 'accepted') {
       ph.opt_in_capturing();
+      if (ENABLE_STUDY_DEPLOY) ph.startSessionRecording(true);
     } else {
+      if (ENABLE_STUDY_DEPLOY) ph.stopSessionRecording();
       ph.opt_out_capturing();
     }
     return;
   }
-  // PostHog not loaded yet -- remember so we can apply when it arrives.
-  pendingConsentStatus = status;
 };
 
 // ── Deferred initializer ────────────────────────────────────────────────────

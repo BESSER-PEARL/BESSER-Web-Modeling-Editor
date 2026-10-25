@@ -5,7 +5,8 @@ import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Menu, X } from 'lucide-react';
 import { useProject } from '../hooks/useProject';
-import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
+import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram, type GrapesJSProjectData } from '../../shared/types/project';
+import { collectVariantProfiles } from '../../shared/utils/buildWebAppVersions';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
@@ -25,8 +26,9 @@ import {
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
 import { ENABLE_STUDY_DEPLOY, localStorageStudyParticipantId, localStorageStudyModelUploaded } from '../../shared/constants/constant';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { captureAnalyticsEvent, getPostHog, identifyStudyParticipant } from '../../shared/services/analytics/lazy-analytics';
 import { acceptStudyConsent } from '../../shared/components/cookie-consent/CookieConsentBanner';
+import { getConsentStatus } from '../../shared/services/analytics/analytics-consent';
 import { apiClient } from '../../shared/api/api-client';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
@@ -242,7 +244,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [studyWelcomeOpen, setStudyWelcomeOpen] = useState(false);
   const [studyParticipantId, setStudyParticipantId] = useState('');
   const [studyModelUploaded, setStudyModelUploaded] = useState(
-    () => ENABLE_STUDY_DEPLOY && localStorage.getItem(localStorageStudyModelUploaded) === '1',
+    () => {
+      try { return ENABLE_STUDY_DEPLOY && localStorage.getItem(localStorageStudyModelUploaded) === '1'; }
+      catch { return false; }
+    },
   );
   const [studyUploading, setStudyUploading] = useState(false);
 
@@ -270,17 +275,34 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       '?usp=pp_url&entry.153355410=' + encodeURIComponent(studyParticipantId)
     : undefined;
   useEffect(() => {
+    const allowedFields = new Set([
+      'language', 'languageComplexity', 'sentenceLength',
+      'size', 'font', 'lineSpacing', 'alignment', 'color', 'contrast',
+      'adaptContentToUserProfile', 'summarizeLongContent', 'readAloud',
+    ]);
+    const onGuiRuleChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ field?: string; enabled?: boolean }>).detail;
+      if (detail && typeof detail.field === 'string' && allowedFields.has(detail.field) && typeof detail.enabled === 'boolean') {
+        captureAnalyticsEvent('gui_personalization_rule_changed', { field: detail.field, enabled: detail.enabled });
+      }
+    };
+    window.addEventListener('besser:gui-personalization-rule-changed', onGuiRuleChanged);
+    return () => window.removeEventListener('besser:gui-personalization-rule-changed', onGuiRuleChanged);
+  }, []);
+  useEffect(() => {
     if (!ENABLE_STUDY_DEPLOY) return;
-    const existing = localStorage.getItem(localStorageStudyParticipantId);
+    let existing: string | null = null;
+    try { existing = localStorage.getItem(localStorageStudyParticipantId); } catch { /* consent dialog will report unavailable storage */ }
     const participantId = existing ?? crypto.randomUUID();
     if (!existing) {
-      localStorage.setItem(localStorageStudyParticipantId, participantId);
+      try { localStorage.setItem(localStorageStudyParticipantId, participantId); } catch { /* consent remains pending */ }
+    }
+    if (getConsentStatus() !== 'accepted') {
       setStudyWelcomeOpen(true);
     }
     setStudyParticipantId(participantId);
     // Link all PostHog events to this participant for the duration of the session.
-    getPostHog()?.identify(participantId);
-    getPostHog()?.register({ participant_id: participantId, study_mode: true });
+    if (getConsentStatus() === 'accepted') identifyStudyParticipant(participantId);
   }, []);
 
   const handleOpenStudyDeployDialog = useCallback(() => {
@@ -1119,10 +1141,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         open={studyWelcomeOpen}
         participantId={studyParticipantId}
         onConfirm={() => {
-          acceptStudyConsent();
+          if (!acceptStudyConsent()) {
+            toast.error('Could not save analytics consent in this browser. Enable storage and try again.');
+            return;
+          }
           if (studyParticipantId) {
-            getPostHog()?.identify(studyParticipantId);
-            getPostHog()?.register({ participant_id: studyParticipantId, study_mode: true });
+            identifyStudyParticipant(studyParticipantId);
           }
           setStudyWelcomeOpen(false);
         }}
@@ -1133,12 +1157,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         isDeploying={isStudyDeploying}
         result={studyDeployResult}
         error={studyDeployError}
-        hasPersonalizationVariants={hasPersonalizationVariants(currentProject)}
+        hasPersonalizationVariants={hasPersonalizationVariants(currentProject) || (currentProject ? collectVariantProfiles(getActiveDiagram(currentProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined).length > 0 : false)}
         isPersonalized={isPersonalizedStudyDeploy}
         onPersonalizedChange={setIsPersonalizedStudyDeploy}
         onOpenChange={setIsStudyDeployDialogOpen}
         onDeploy={handleStudyDeploy}
         onOpenAgent={(url) => openExternalUrl(url)}
+        onOpenWebsite={(url) => openExternalUrl(url)}
       />
 
       <AboutDialog

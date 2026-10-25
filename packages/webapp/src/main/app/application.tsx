@@ -1,6 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogProvider';
+import { createPostHogOptions } from '../shared/services/analytics/posthog-options';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -69,17 +70,7 @@ const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
 
-const ENABLE_RECORDINGS =
-  document.querySelector('meta[name="posthog-enable-recordings"]')?.getAttribute('content') === 'true';
-
-const postHogOptions = {
-  api_host: POSTHOG_HOST,
-  autocapture: false,
-  disable_session_recording: ENABLE_STUDY_DEPLOY ? false : !ENABLE_RECORDINGS,
-  respect_dnt: true,
-  persistence: 'localStorage+cookie' as const,
-  ip: false,
-};
+const postHogOptions = createPostHogOptions(ENABLE_STUDY_DEPLOY, POSTHOG_HOST);
 
 function AppContentInner() {
   const [editor, setEditor] = useState<ApollonEditor>();

@@ -9,7 +9,7 @@ test.describe('Smoke tests', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '2.0', timestamp: Date.now() }));
     });
     await page.reload();
   });

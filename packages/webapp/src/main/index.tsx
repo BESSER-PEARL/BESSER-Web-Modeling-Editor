@@ -7,7 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
 import { runStorageMigrations } from './shared/utils/storage-migration';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
-import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
+import { hasUserConsented } from './shared/services/analytics/analytics-consent';
 
 // Initialise i18next (language detection + resource bundles) before first render.
 import './shared/i18n';

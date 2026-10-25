@@ -565,10 +565,16 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
   const patchContent = (patch: Partial<UserContentSpec>) =>
     onChange(clean({ ...spec, content: { ...content, ...patch } }));
 
-  const patchGuiPresentation = (patch: Partial<UserGuiPresentationSpec>) =>
+  const recordGuiRuleChange = (field: string, enabled: boolean) =>
+    window.dispatchEvent(new CustomEvent('besser:gui-personalization-rule-changed', { detail: { field, enabled } }));
+  const patchGuiPresentation = (patch: Partial<UserGuiPresentationSpec>) => {
     onChange(clean({ ...spec, gui: { ...spec.gui, presentation: { ...guiPresentation, ...patch } } }));
-  const patchGuiContent = (patch: Partial<NonNullable<NonNullable<UserPersonalizationSpec['gui']>['content']>>) =>
+    for (const [field, value] of Object.entries(patch)) recordGuiRuleChange(field, value !== undefined && value !== 'original');
+  };
+  const patchGuiContent = (patch: Partial<NonNullable<NonNullable<UserPersonalizationSpec['gui']>['content']>>) => {
     onChange(clean({ ...spec, gui: { ...spec.gui, content: { ...guiContent, ...patch } } }));
+    for (const [field, value] of Object.entries(patch)) recordGuiRuleChange(field, value === true);
+  };
 
   return (
     <Wrapper>
@@ -873,7 +879,10 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
               <CheckRow as="label">
                 <RowLabel>Read text aloud</RowLabel>
                 <input type="checkbox" checked={spec.gui?.modality?.readAloud ?? false}
-                  onChange={(event) => onChange(clean({ ...spec, gui: { ...spec.gui, modality: { readAloud: event.target.checked || undefined } } }))} />
+                  onChange={(event) => {
+                    onChange(clean({ ...spec, gui: { ...spec.gui, modality: { readAloud: event.target.checked || undefined } } }));
+                    recordGuiRuleChange('readAloud', event.target.checked);
+                  }} />
               </CheckRow>
               <ButtonDescription>Show Play controls below text blocks and summaries after applying GUI rules. Click Play to generate and listen to a temporary preview. The exported app also includes listening controls.</ButtonDescription>
             </Section>
