@@ -123,8 +123,6 @@ browser or after clearing site data.
 Next steps
 ----------
 
-* :doc:`../user-guide/diagrams/class-diagram`: add OCL constraints and check
-  their satisfiability.
 * :doc:`../user-guide/diagrams/gui-diagram`: add screens to the data model.
 * :doc:`../user-guide/ai-assistant`: describe changes in natural language.
 * :doc:`../user-guide/spec-driven-agent`: generate a customised application.
