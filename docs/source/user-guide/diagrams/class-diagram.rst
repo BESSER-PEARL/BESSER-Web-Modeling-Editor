@@ -114,7 +114,12 @@ You can add Object Constraint Language (OCL) constraints to your model:
     <https://alloytools.org/>`_, for an instance of the class diagram within
     increasingly larger bounds (objects per class, a range of integers). It
     reports the instance found, "No instance within …" when the bounds hold none
-    (a larger instance might still exist), or that the search timed out.
+    (a larger instance might still exist), or that the search timed out. If the
+    model uses a construct the Alloy translation does not support, it reports
+    "The model cannot be translated to Alloy." with the reasons. See the
+    `semantic check example
+    <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+    in the BESSER docs.
 
 **Example:**
 
