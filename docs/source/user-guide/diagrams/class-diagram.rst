@@ -109,17 +109,10 @@ You can add Object Constraint Language (OCL) constraints to your model:
 2.  Write constraints in the format ``Context "class_name" ...``.
 3.  Link them to classes with dotted lines.
 4.  Use **Quality Check > Syntactic check** to validate the syntax.
-5.  Use **Quality Check > Semantic check** to check that the constraints can all
-    hold together. The check searches, with the `Alloy Analyzer
-    <https://alloytools.org/>`_, for an instance of the class diagram within
-    increasingly larger bounds (objects per class, a range of integers). It
-    reports the instance found, "No instance within …" when the bounds hold none
-    (a larger instance might still exist), or that the search timed out. If the
-    model uses a construct the Alloy translation does not support, it reports
-    "The model cannot be translated to Alloy." with the reasons. See the
-    `semantic check example
+5.  Use **Quality Check > Semantic check** to verify the satisfiability of the constraints.
+    Note that the semantic check performs a bounded analysis. See the `docs
     <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
-    in the BESSER docs.
+    for details.
 
 **Example:**
 
@@ -157,4 +150,4 @@ Class diagrams support generation for:
 *   Pydantic Models
 *   JSON Schema
 *   Smart Data Models
-*   Alloy Specification (**Generate > Formal Methods**)
+*   Alloy Specification
