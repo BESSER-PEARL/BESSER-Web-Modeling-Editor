@@ -80,14 +80,16 @@ The *Help* menu provides guidance and information:
 6. Quality Check
 ~~~~~~~~~~~~~~~~
 
-- Use **Quality Check > Syntactic check** to validate your model. 
+On a class diagram, **Quality Check** has two entries:
+
+- Use **Quality Check > Syntactic check** to validate your model.
   The editor checks for errors including duplicate class names, invalid OCL
   constraint syntax, and structural model consistency. Validation results are
   displayed with specific error messages.
 - Use **Quality Check > Semantic check** to verify the satisfiability of the
   model and its OCL constraints. Note that the semantic check performs a bounded analysis.
-  See the `docs <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_ 
-  for details. 
+  See the `docs <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+  for details.
 
 7. GitHub and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~
