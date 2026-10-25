@@ -124,7 +124,7 @@ Next steps
 ----------
 
 * :doc:`../user-guide/diagrams/class-diagram`: add OCL constraints and check
-  that they can all hold with **Quality Check > Semantic check**.
+  their satisfiability.
 * :doc:`../user-guide/diagrams/gui-diagram`: add screens to the data model.
 * :doc:`../user-guide/ai-assistant`: describe changes in natural language.
 * :doc:`../user-guide/spec-driven-agent`: generate a customised application.

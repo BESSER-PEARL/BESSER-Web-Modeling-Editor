@@ -49,13 +49,14 @@ Double-click the link to:
 Generating Objects
 ~~~~~~~~~~~~~~~~~~
 
-Next to the referenced class diagram, two buttons fill the object diagram:
+To automatically generate an object diagram:
 
-*   **Generate**: adds one object per class, with default attribute values.
-*   **Semantic generation**: replaces the diagram with an instance of the
-    class diagram that satisfies its OCL constraints, searched for as in the
-    class diagram's semantic check. The editor asks before replacing a diagram
-    that is not empty.
+*   **Generate**: adds objects with default attribute values.
+*   **Semantic generation**: generates an instance of the class diagram
+    that satisfies its OCL constraints. The generation searches within
+    bounded domains. See the `docs
+    <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+    for details.
 
 OCL Constraint Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
