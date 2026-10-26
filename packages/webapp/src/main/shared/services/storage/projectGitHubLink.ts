@@ -23,6 +23,8 @@ export interface RepoCodeAnalysis {
   model_source: string | null;
   source_files: string[];
   entities: string[];
+  /** True when an AI model proposed the classes because no data classes were readable directly. */
+  ai?: boolean;
 }
 
 export interface ProjectGitHubLink {

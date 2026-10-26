@@ -173,7 +173,8 @@ export const importRepoAsRun = (githubSession: string, owner: string, repo: stri
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
     { owner, repo, branch: branch || undefined },
-    { ...session(githubSession), timeout: 120_000 },
+    // The AI fallback reader can take up to 90 s on top of the download.
+    { ...session(githubSession), timeout: 150_000 },
   );
 
 export interface GoLiveResult {
@@ -187,9 +188,6 @@ export interface GoLiveResult {
   frontend_dir: string | null;
   warnings: string[];
 }
-
-/** Fired on `window` to open Go live from anywhere (the GitHub panel); the shell owns the dialog. */
-export const GO_LIVE_EVENT = 'wme:open-go-live';
 
 let goLiveAvailable: Promise<boolean> | null = null;
 
@@ -210,5 +208,5 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
     { ...session(githubSession), timeout: 120_000 },
   );
 
-/** Fired on `window` to open the GitHub panel from anywhere (the chat's repo header). */
+/** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
 export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';

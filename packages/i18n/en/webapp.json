@@ -95,7 +95,8 @@
       "importGroupProject": "Project",
       "importGroupClassDiagram": "Class Diagram from",
       "importImage": "Image…",
-      "importKnowledgeGraph": "Knowledge Graph…"
+      "importKnowledgeGraph": "Knowledge Graph…",
+      "shareAsGist": "Share as Secret Gist…"
     },
     "generate": {
       "title": "Generate",
@@ -922,7 +923,17 @@
         "detailsTitle": "Project Details",
         "detailsDescription": "Give your workspace a name and description.",
         "submit": "Create Project",
-        "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need."
+        "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need.",
+        "github": {
+          "toasts": {
+            "saving": "Saving {{name}} on GitHub…",
+            "saved": "Saved on GitHub as {{repo}}.",
+            "failed": "Your project was created, but saving it on GitHub failed: {{error}}"
+          },
+          "label": "Save it on GitHub",
+          "connectHint": "Connect GitHub to keep this project in a private repository of your own.",
+          "connect": "Connect GitHub"
+        }
       },
       "import": {
         "title": "Import a Project",
@@ -1204,6 +1215,14 @@
         "bumlCopied": "Project B-UML copied.",
         "bumlCopyFailed": "Failed to copy B-UML preview.",
         "noBumlToDownload": "No B-UML preview to download."
+      }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Keep your projects in your own GitHub repositories",
+        "connectedAs": "Connected as {{username}}",
+        "connected": "Connected to GitHub",
+        "connect": "Connect GitHub"
       }
     }
   },
@@ -1524,13 +1543,34 @@
       "title": "Proposed from {{repo}}: {{count}} classes",
       "source": "Read from its {{source}} in {{files}}. Edit anything, then accept.",
       "discard": "Discard",
-      "accept": "Accept model"
+      "accept": "Accept model",
+      "aiTitle": "Proposed by AI from {{repo}}: {{count}} classes",
+      "aiSource": "An AI reading of {{files}}, not an exact one. Check each class, then accept."
     },
     "chatHeader": {
       "diverged": "Changed here and on GitHub",
       "signedOut": "Connect GitHub to see its status",
       "label": "Working on {{repo}}: {{state}}. Open the GitHub panel.",
-      "workingOn": "Working on"
+      "workingOn": "Working on",
+      "openMenu": "Working on {{repo}}: {{state}}. Open the GitHub menu."
+    },
+    "menu": {
+      "localChangesHint": "Save to GitHub to keep them in the repository.",
+      "divergedHint": "Saving merges both versions. Get latest takes the GitHub version instead.",
+      "unlinkConfirmDescription": "The project stays in your browser and the repository stays on GitHub. Saving to GitHub stops until you link a repository again.",
+      "saveToGitHub": "Save to GitHub…",
+      "getLatest": "Get latest",
+      "history": "History…",
+      "changeRepository": "Change repository…",
+      "createRepository": "Create a repository for this project",
+      "linkExisting": "Link an existing repository…",
+      "signedInAs": "Signed in as {{name}}",
+      "linkTitle": "Link a repository",
+      "restore": "Restore",
+      "defaultCommitMessage": "Update the model from the BESSER editor",
+      "saveDescription": "Commits your model to {{repo}} on {{branch}}. Newer changes on GitHub are merged, never overwritten.",
+      "commitMessageOptional": "What changed? (optional)",
+      "save": "Save"
     }
   },
   "assistant": {

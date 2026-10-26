@@ -74,6 +74,31 @@ describe('continueFromGithubRepo', () => {
     expect(describeOpenedRepo(result)).toContain('**Accept model**');
   });
 
+  it('says when the proposal is an AI reading, and keeps that on the link', async () => {
+    const aiAnalysis = {
+      stack: ['React'],
+      model_source: 'AI reading of the code',
+      source_files: ['prisma/schema.prisma', 'src/types/order.ts'],
+      entities: ['Customer', 'Order'],
+      ai: true,
+    };
+    const model = { elements: { a: { name: 'Order' } }, relationships: {}, type: 'ClassDiagram' };
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: null, has_model: false,
+      owner: 'me', repo: 'shop', branch: 'main', commit_sha: HEAD,
+      analysis: aiAnalysis, proposed_diagram: { title: 'shop model', model, diagramType: 'ClassDiagram' },
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+
+    expect(getProjectGitHubLink('p-new')?.modelProposal).toMatchObject({ ai: true });
+    const text = describeOpenedRepo(result);
+    expect(text).toContain('an AI model read its code');
+    expect(text).toContain('`prisma/schema.prisma`');
+    expect(text).toContain('2 classes: Customer, Order');
+    expect(text).toContain('**Accept model**');
+  });
+
   it('opens a repo with no readable data classes as an empty project the agent can still change', async () => {
     importRepoAsRun.mockResolvedValue({
       run_id: RUN, project: null, has_model: false,

@@ -1,6 +1,6 @@
 /**
  * The repository the agentic chat is working on: repo, branch and sync state,
- * one line above the conversation. Clicking it opens the GitHub panel.
+ * one line above the conversation. Clicking it opens the GitHub menu.
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,8 +45,8 @@ export const RepoChatHeader: React.FC<{ className?: string }> = ({ className }) 
         'mx-auto flex w-full max-w-4xl items-center gap-2 rounded-lg border border-border/60 bg-card/70 px-3 py-1.5 text-left text-xs backdrop-blur-sm transition-colors hover:bg-muted/60',
         className,
       )}
-      aria-label={t('github.chatHeader.label', {
-        defaultValue: 'Working on {{repo}}: {{state}}. Open the GitHub panel.',
+      aria-label={t('github.chatHeader.openMenu', {
+        defaultValue: 'Working on {{repo}}: {{state}}. Open the GitHub menu.',
         repo: `${link.owner}/${link.repo}`,
         state: stateText[state],
       })}

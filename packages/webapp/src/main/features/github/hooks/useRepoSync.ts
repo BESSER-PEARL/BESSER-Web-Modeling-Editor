@@ -2,7 +2,7 @@
  * The current project's GitHub repository: its link, how it relates to the
  * repo (in sync, behind, local changes), and the actions that move it.
  *
- * Shared by the GitHub sidebar and the repo status in the top bar, so both
+ * Shared by the GitHub menu in the top bar and the chat's repo header, so both
  * always show the same state.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -69,7 +69,11 @@ export function deriveRepoSyncState(input: {
 const projectExport = (project: BesserProject) =>
   buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
 
-export function useRepoSync() {
+/**
+ * `checkRemote: false` skips the sync-status checks, for callers that only
+ * need the link and the session; the GitHub menu runs them.
+ */
+export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = {}) {
   const dispatch = useAppDispatch();
   const { currentProject, loadProject } = useProject();
   const { isAuthenticated, githubSession } = useGitHubAuth();
@@ -112,7 +116,7 @@ export function useRepoSync() {
 
   useEffect(() => {
     setStatus(null);
-    if (!link || !githubSession) return undefined;
+    if (!checkRemote || !link || !githubSession) return undefined;
     void refresh();
     const onFocus = () => void refresh();
     window.addEventListener('focus', onFocus);
@@ -123,7 +127,7 @@ export function useRepoSync() {
       window.removeEventListener('focus', onFocus);
       window.clearInterval(timer);
     };
-  }, [link, githubSession, refresh]);
+  }, [checkRemote, link, githubSession, refresh]);
 
   // After a pull the editor rewrites the model into its current format: take
   // the sync fingerprint once the project has stopped changing.
@@ -254,3 +258,5 @@ export function useRepoSync() {
     markSynced,
   };
 }
+
+export type RepoSync = ReturnType<typeof useRepoSync>;

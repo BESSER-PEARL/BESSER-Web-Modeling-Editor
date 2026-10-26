@@ -30,8 +30,8 @@ const PROPOSAL = {
 };
 const LINK = { owner: 'me', repo: 'shop', branch: 'main', baseCommitSha: 'b'.repeat(40), modelProposal: PROPOSAL };
 
-function withProposal() {
-  repo.link = LINK;
+function withProposal(proposal: Record<string, unknown> = PROPOSAL) {
+  repo.link = { ...LINK, modelProposal: proposal };
   saved.project = {
     id: PROJECT_ID,
     currentDiagramIndices: { ClassDiagram: 0 },
@@ -51,6 +51,19 @@ describe('ModelProposalBanner', () => {
     withProposal();
     expect(screen.getByText(/me\/shop/)).toBeTruthy();
     expect(screen.getByText(/2 classes/)).toBeTruthy();
+  });
+
+  it('says an AI proposed the classes and that it is a reading to check', () => {
+    withProposal({
+      ...PROPOSAL,
+      model_source: 'AI reading of the code',
+      source_files: ['prisma/schema.prisma', 'src/types/order.ts', 'README.md'],
+      ai: true,
+    });
+    expect(screen.getByText('Proposed by AI from me/shop: 2 classes')).toBeTruthy();
+    expect(screen.getByText(/An AI reading of prisma\/schema\.prisma, src\/types\/order\.ts, …/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Accept model/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Discard/ })).toBeTruthy();
   });
 
   it('Accept keeps the model and settles the proposal, keeping the link', () => {

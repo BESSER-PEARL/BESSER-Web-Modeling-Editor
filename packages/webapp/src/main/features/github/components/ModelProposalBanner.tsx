@@ -16,7 +16,7 @@ import { useRepoSync } from '../hooks/useRepoSync';
 export const ModelProposalBanner: React.FC<{ className?: string }> = ({ className }) => {
   const { t } = useTranslation();
   const { currentProject, loadProject } = useProject();
-  const { link } = useRepoSync();
+  const { link } = useRepoSync({ checkRemote: false });
   const proposal = link?.modelProposal;
   if (!link || !proposal || !currentProject) return null;
 
@@ -38,6 +38,7 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
   };
 
   const files = proposal.source_files;
+  const shownFiles = files.slice(0, 2).join(', ') + (files.length > 2 ? ', …' : '');
   return (
     <div
       role="region"
@@ -50,18 +51,29 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
       <FileCode2 className="size-4 shrink-0 text-brand" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="font-medium">
-          {t('github.proposal.title', {
-            defaultValue: 'Proposed from {{repo}}: {{count}} classes',
-            repo: `${link.owner}/${link.repo}`,
-            count: proposal.entities.length,
-          })}
+          {proposal.ai
+            ? t('github.proposal.aiTitle', {
+                defaultValue: 'Proposed by AI from {{repo}}: {{count}} classes',
+                repo: `${link.owner}/${link.repo}`,
+                count: proposal.entities.length,
+              })
+            : t('github.proposal.title', {
+                defaultValue: 'Proposed from {{repo}}: {{count}} classes',
+                repo: `${link.owner}/${link.repo}`,
+                count: proposal.entities.length,
+              })}
         </p>
         <p className="text-xs text-muted-foreground" title={files.join(', ')}>
-          {t('github.proposal.source', {
-            defaultValue: 'Read from its {{source}} in {{files}}. Edit anything, then accept.',
-            source: proposal.model_source ?? '',
-            files: files.slice(0, 2).join(', ') + (files.length > 2 ? ', …' : ''),
-          })}
+          {proposal.ai
+            ? t('github.proposal.aiSource', {
+                defaultValue: 'An AI reading of {{files}}, not an exact one. Check each class, then accept.',
+                files: shownFiles,
+              })
+            : t('github.proposal.source', {
+                defaultValue: 'Read from its {{source}} in {{files}}. Edit anything, then accept.',
+                source: proposal.model_source ?? '',
+                files: shownFiles,
+              })}
         </p>
       </div>
       <div className="flex shrink-0 gap-2">

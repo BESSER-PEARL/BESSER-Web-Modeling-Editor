@@ -2,15 +2,6 @@ import type React from 'react';
 import type { SupportedDiagramType } from '../../shared/types/project';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
-import type { RepoSyncState } from '../../features/github/hooks/useRepoSync';
-
-/** The current project's GitHub repository, as the top bar shows it. */
-export interface RepoStatusSummary {
-  repo: string;
-  state: RepoSyncState;
-  /** Commits on GitHub since the project's last sync. */
-  behind: number;
-}
 
 export interface AgentVariantOption {
   id: string;
@@ -42,6 +33,8 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
+  /** Shares the project as a secret GitHub gist (signs in first when needed). */
+  onShareAsGist: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;
@@ -52,8 +45,6 @@ export interface WorkspaceTopBarProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
-  onOpenGitHubSidebar: () => void;
-  repoStatus?: RepoStatusSummary;
   hasStarred: boolean;
   starLoading: boolean;
   onToggleStar: () => void;

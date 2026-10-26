@@ -15,7 +15,8 @@ import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
-import { GO_LIVE_EVENT, OPEN_GITHUB_PANEL_EVENT, isGoLiveAvailable } from '../../features/github/services/githubApi';
+import { ShareGistDialog } from '../../features/github/dialogs/ShareGistDialog';
+import { isGoLiveAvailable } from '../../features/github/services/githubApi';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -74,9 +75,6 @@ import { useHasOpened } from '../hooks/useHasOpened';
 import { useStableCallback } from '../hooks/useStableCallback';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
-const GitHubSidebar = React.lazy(() =>
-  import('../../features/github/components/GitHubSidebar').then((m) => ({ default: m.GitHubSidebar })),
-);
 const AssistantWorkspaceDrawer = React.lazy(() =>
   import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({
     default: m.AssistantWorkspaceDrawer,
@@ -229,7 +227,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
-  const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
+  const [isGistDialogOpen, setIsGistDialogOpen] = useState(false);
   // Restore the drawer to wherever the user left it this tab (sessionStorage).
   // Defaults to closed when nothing is stored or storage is unavailable.
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
@@ -1068,33 +1066,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     };
   }, []);
   const openProjectPreview = useStableCallback(handleOpenProjectPreview);
-  const toggleGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen((previous) => !previous), []);
-  const repoSync = useRepoSync();
+  // The top bar's GitHub menu checks the repo's sync status; the shell needs only the link.
+  const repoSync = useRepoSync({ checkRemote: false });
   const canGoLive = goLiveAvailable && !!repoSync.link && !!repoSync.githubSession && !!currentProject;
   // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
   const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
-  useEffect(() => {
-    const openPanel = () => setIsGitHubSidebarOpen(true);
-    window.addEventListener(OPEN_GITHUB_PANEL_EVENT, openPanel);
-    return () => window.removeEventListener(OPEN_GITHUB_PANEL_EVENT, openPanel);
-  }, []);
-  useEffect(() => {
-    const onGoLive = () => openDeployDialog();
-    window.addEventListener(GO_LIVE_EVENT, onGoLive);
-    return () => window.removeEventListener(GO_LIVE_EVENT, onGoLive);
-  }, [openDeployDialog]);
-  const repoStatus = useMemo(
-    () =>
-      repoSync.link
-        ? {
-            repo: `${repoSync.link.owner}/${repoSync.link.repo}`,
-            state: repoSync.state,
-            behind: repoSync.status?.commits_since.length ?? 0,
-          }
-        : { repo: '', state: 'unlinked' as const, behind: 0 },
-    [repoSync.link, repoSync.state, repoSync.status],
+  const openGistDialog = useCallback(
+    () => (isAuthenticated ? setIsGistDialogOpen(true) : githubLogin()),
+    [isAuthenticated, githubLogin],
   );
-  const closeGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen(false), []);
   const openHelpDialog = useCallback(() => setIsHelpDialogOpen(true), [setIsHelpDialogOpen]);
   const openAboutDialog = useCallback(() => setIsAboutDialogOpen(true), [setIsAboutDialogOpen]);
   const openFeedback = useCallback(() => setIsFeedbackDialogOpen(true), [setIsFeedbackDialogOpen]);
@@ -1102,7 +1082,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const testAgent = showSimulateAgent ? handleSimulateAgent : undefined;
 
   // Lazy panels mount on first open so their chunks are not fetched at startup.
-  const gitHubSidebarMounted = useHasOpened(isGitHubSidebarOpen);
   const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
   const helpDialogMounted = useHasOpened(isHelpDialogOpen);
 
@@ -1137,6 +1116,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportImage={openAssistantImportImage}
         onOpenAssistantImportKg={openAssistantImportKg}
         onOpenProjectPreview={openProjectPreview}
+        onShareAsGist={openGistDialog}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
@@ -1147,8 +1127,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
-        onOpenGitHubSidebar={toggleGitHubSidebar}
-        repoStatus={repoStatus}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
@@ -1270,12 +1248,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           )}
         </main>
 
-        {gitHubSidebarMounted && (
-          <Suspense fallback={null}>
-            <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={closeGitHubSidebar} />
-          </Suspense>
-        )}
-
         {/*
           Bottom-sheet assistant drawer. Renders a 28-px drag handle at
           the bottom of the viewport in its closed state; the user drags
@@ -1353,6 +1325,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       )}
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
+
+      <ShareGistDialog open={isGistDialogOpen} onOpenChange={setIsGistDialogOpen} githubSession={githubSession} />
 
       {canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
         <GoLiveDialog

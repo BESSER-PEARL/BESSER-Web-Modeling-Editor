@@ -32,6 +32,7 @@ The *File* menu provides project and diagram management:
 - *New / Open / Import Project*: Opens the project hub where you can create a blank project, build a class diagram from data (spreadsheet files or a statistics API), open a recent one, import an existing project, or continue from a GitHub repository. Diagram types available in a project: Class, Object, State Machine, Agent, User, GUI No-Code, Quantum Circuit, Neural Network and BPMN — up to five diagrams of each.
 - *Load Template*: Start from one of the bundled templates (class-diagram patterns, agents, state machines, BPMN processes, neural networks, quantum circuits, or two complete example projects).
 - *Export Project*: Export your project or the current diagram in B-UML, JSON, SVG or PNG format.
+- *Share as Secret Gist*: Publish the project as a secret GitHub gist and open it (asks you to connect GitHub first).
 - *Import Diagram*: Add a single diagram to the current project from ``.json``, ``.py``, ``.bpmn`` or ``.xml``.
 - *Import Class Diagram from Image*: Use AI to convert a picture of a class diagram into a model.
 - *Import Class Diagram from KG*: Import a class diagram from a knowledge graph file (TTL/RDF/JSON).
@@ -89,11 +90,13 @@ The right side of the top bar provides quick-access utilities:
 
 - **Theme toggle**: Switch between light and dark mode.
 - **Star**: Star or unstar the BESSER GitHub repository (when signed in).
-- **GitHub account**: Sign in or out of your GitHub account. Once authenticated,
-  the Deploy menu becomes available.
-- **GitHub panel** (branch icon): Opens the project's repository panel. Once the
-  project is linked, the button shows the repository and a dot for its state (in
-  sync, unsaved model changes, or new commits on GitHub).
+- **GitHub**: one control for everything GitHub. Signed out it reads
+  **Connect GitHub**; once you are signed in the Deploy menu becomes available
+  and the control reads **Link to GitHub** until the project has a repository.
+  For a linked project it shows the repository and a dot for its state (in sync,
+  unsaved model changes, or new commits on GitHub). Click it for a menu to save
+  the model, get the latest version, see the history, open the repository,
+  change or unlink it, and sign out (see :doc:`projects`).
 
 8. Left Sidebar
 ~~~~~~~~~~~~~~~

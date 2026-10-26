@@ -75,6 +75,15 @@ Creating a New Project
 
 4.  Click **Create Project**.
 
+**Save it on GitHub**, under the project details, is ticked by default once
+GitHub is connected (the first-run screen and this form both offer **Connect
+GitHub**; you come back to where you were after signing in). The project is
+created first, then a **private** repository named after it (``Shop`` becomes
+``shop``, or ``shop-2`` when that name is taken) receives its model, and the
+project is linked to it and shown as in sync. If the repository cannot be
+created, the project is kept and stays unlinked; you can link or create a
+repository later from the GitHub menu in the top bar.
+
 Importing Projects
 ------------------
 
@@ -188,8 +197,7 @@ and collaboration on your models.
 Connecting to GitHub
 ~~~~~~~~~~~~~~~~~~~~
 
-1. Click the **GitHub** account button in the top bar (or **Sync** to open the
-   GitHub panel on the right).
+1. Click **Connect GitHub** in the top bar.
 2. You are redirected to GitHub to authorise the BESSER OAuth app, and sent back
    to the editor signed in. A toast confirms *Signed in as …*.
 
@@ -197,13 +205,30 @@ The editor never sees your GitHub access token: the BESSER backend performs the
 OAuth exchange, keeps the token server-side, and hands the browser only an
 opaque session id. That session id is held in this browser tab
 (``sessionStorage``) and expires after **24 hours**; your username is kept in
-``localStorage`` for convenience. Sign out from the account dropdown in the top
-bar.
+``localStorage`` for convenience.
+
+The GitHub menu
+~~~~~~~~~~~~~~~
+
+Once you are signed in, the same top-bar control is your project's GitHub menu.
+It reads **Link to GitHub** while the project has no repository; once linked it
+shows the repository's name and a dot for its state (green when in sync, amber
+when there are unsaved model changes or new commits on GitHub). Hover it to read
+the state in words, and click it for everything you do with the repository:
+
+- **Save to GitHub…**: commit the model, with an optional message.
+- **Get latest**: appears when GitHub has commits you do not have.
+- **History…**: the model's earlier versions, with a restore for each.
+- **Open on GitHub**: the repository's branch in a new tab.
+- **Change repository…** and **Unlink**.
+- **Sign Out**, under *Signed in as …* at the bottom of the menu.
+
+The chat's *Working on …* line above the conversation opens the same menu.
 
 One repository per project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A project is linked to **one** repository. The GitHub panel, the Spec-Driven
+A project is linked to **one** repository. The GitHub menu, the Spec-Driven
 Agent's *Save to GitHub* and *Continue from GitHub* all use that same link, and
 the link is also written into the repository, so any browser that opens the repo
 finds its project again. Every repository BESSER writes has the same layout:
@@ -222,39 +247,44 @@ hold a ``besser-project.json`` still open; the first save moves the model to
 Linking a repository
 ~~~~~~~~~~~~~~~~~~~~
 
-Open the GitHub panel (the branch button in the top bar). For a project without
-a repository you can:
+Click **Link to GitHub** in the top bar. For a project without a repository you
+can:
 
-- **Create a repository**: name it and choose private or public. The first
-  commit holds the model and a README.
-- **Link an existing repository**: the browser lists your BESSER projects first
+- **Create a repository for this project**: name it and choose private or
+  public. The first commit holds the model and a README.
+- **Link an existing repository…**: the browser lists your BESSER projects first
   (search reaches every repository). Selecting one shows its model, its
   diagrams and classes, and its last commit with who made it. If it already
   holds a model you choose between loading that model and keeping yours.
+
+**Change repository…** in the menu of a linked project opens the same browser.
 
 Staying in sync
 ~~~~~~~~~~~~~~~
 
 The top bar shows the linked repository and a dot for its state: in sync,
 model changes not saved yet, new commits on GitHub, or both. The editor checks
-the repository when you return to the tab and once a minute.
+the repository when you open the menu, when you return to the tab and once a
+minute.
 
-- **Save to GitHub** commits the model. If someone pushed since your last sync,
+- **Save to GitHub…** commits the model. The commit message is optional. If
+  someone pushed since your last sync,
   BESSER merges their commits with yours instead of overwriting them, and the
   editor then shows the merged model. When GitHub cannot merge the two on its own
   (both changed the same part of the model), your save goes to a ``besser/sync-…``
-  branch and the panel offers a pull request. Nothing is overwritten.
-- **Pull the latest version** loads the repository's model, and its code as the
-  starting point of the next Spec-Driven Agent run. It asks first when you have
-  unsaved model changes.
-- **Update the app code** asks the Spec-Driven Agent to bring the repository's
-  app in line with your model. You review the run, then push it.
+  branch and the save dialog offers a pull request. Nothing is overwritten.
+- **Get latest** loads the repository's model, and its code as the starting
+  point of the next Spec-Driven Agent run. It asks first when you have unsaved
+  model changes.
+
+To bring the repository's app code in line with your model, ask the Spec-Driven
+Agent in the chat; you review the run, then push it.
 
 Going live
 ~~~~~~~~~~
 
-For a project linked to a repository, **Deploy > Go live from GitHub** (or
-**Go live** in the GitHub panel) puts the app that is in the repository online
+For a project linked to a repository, **Deploy > Go live from GitHub** puts the
+app that is in the repository online
 on Render. What goes live is exactly the repository's code, so the app the
 Spec-Driven Agent built, with every change it made, is the app people use.
 
@@ -273,23 +303,18 @@ plan puts an idle app to sleep, and its database resets on each redeploy.
 Model history
 ~~~~~~~~~~~~~
 
-The panel lists recent commits that changed the model. Each one says who made
+**History…** in the GitHub menu lists recent commits that changed the model.
+Each one says who made
 it (the Spec-Driven Agent, the editor, or a person on GitHub), when, and what
 it changed in the class diagram, for example ``class Loan added``. Restore any
 earlier version into the editor; it then counts as an unsaved change.
 
-Auto-commit
-~~~~~~~~~~~
-
-Under **Settings** in the GitHub panel you can switch on auto-commit and pick an
-interval (5, 10, 15, 30 or 60 minutes). It is off by default, needs a linked
-repository, and skips ticks where nothing changed.
-
 Sharing as a gist
 ~~~~~~~~~~~~~~~~~
 
-**Share ▸ Create secret gist** publishes the project JSON as a GitHub gist —
-secret by default — and opens it in a new tab.
+**File > Share as Secret Gist…** publishes the project JSON as a GitHub gist,
+secret by default, and opens it in a new tab. It asks you to connect GitHub
+first when you are signed out.
 
 Continuing from a GitHub repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

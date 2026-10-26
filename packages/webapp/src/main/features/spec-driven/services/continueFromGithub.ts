@@ -163,9 +163,17 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
     );
   }
   const where = files.length ? ` in \`${files.slice(0, 3).join('`, `')}\`${files.length > 3 ? ' and more' : ''}` : '';
+  const classes = `${entities.length} class${entities.length === 1 ? '' : 'es'}: ${entities.join(', ')}`;
+  if (result.analysis.ai) {
+    return (
+      `Opened ${repo}${stackText}. It has no data classes I can read exactly, so an AI model read its code${where} ` +
+      `and proposed ${classes}. This is a reading, not a transcription: check names, types and links on the ` +
+      'canvas, edit what is off, then click **Accept model**. Then ask for changes to the model or the code.'
+    );
+  }
   return (
     `Opened ${repo}${stackText}. It has no BESSER model yet, so I read its ${source}${where} ` +
-    `and drew ${entities.length} class${entities.length === 1 ? '' : 'es'}: ${entities.join(', ')}. ` +
+    `and drew ${classes}. ` +
     'Check them on the canvas and click **Accept model**, or edit them first. ' +
     'Then ask for changes to the model or the code.'
   );

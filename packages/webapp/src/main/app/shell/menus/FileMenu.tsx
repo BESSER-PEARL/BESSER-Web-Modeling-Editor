@@ -13,6 +13,7 @@ import {
   Github,
   Image,
   LayoutTemplate,
+  Link2,
   Share2,
   Upload,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ interface FileMenuProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
+  onShareAsGist: () => void;
 }
 
 /** Section header inside top-bar menus (File > Import, Help > Community). */
@@ -65,6 +67,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onOpenProjectPreview,
+  onShareAsGist,
 }) => {
   const { t } = useTranslation();
   const title = t('menu.file.title');
@@ -135,6 +138,10 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         <DropdownMenuItem onClick={onExportProject}>
           <Download className="mr-2 size-4" />
           {t('menu.file.exportProject')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onShareAsGist} disabled={!hasProject}>
+          <Link2 className="mr-2 size-4" />
+          {t('menu.file.shareAsGist', { defaultValue: 'Share as Secret Gist…' })}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>

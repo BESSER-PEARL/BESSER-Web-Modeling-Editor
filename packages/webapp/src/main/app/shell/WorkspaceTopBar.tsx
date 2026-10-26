@@ -34,6 +34,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onOpenProjectPreview,
+  onShareAsGist,
   onGenerate,
   onQualityCheck,
   qualityCheckState,
@@ -44,8 +45,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
-  onOpenGitHubSidebar,
-  repoStatus,
   hasStarred,
   starLoading,
   onToggleStar,
@@ -131,6 +130,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onOpenProjectPreview={onOpenProjectPreview}
+            onShareAsGist={onShareAsGist}
           />
           <GenerateMenu
             mode={generatorMode}
@@ -182,8 +182,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
-            onOpenGitHubSidebar={onOpenGitHubSidebar}
-            repoStatus={repoStatus}
             onToggleStar={onToggleStar}
           />
           <div className="hidden sm:contents">

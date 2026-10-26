@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,10 +25,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BesserProject, InterfaceMode, PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
 import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { FirstRunLanding } from './FirstRunLanding';
+import { repoSlug, saveProjectOnGithub } from './saveProjectOnGithub';
+import { clearHubGithubResume, peekHubGithubResume, stashHubGithubResume } from './hubGithubResume';
 import {
   DEFAULT_SDMX_SOURCE,
   SdmxSourceFields,
@@ -165,6 +168,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
+  // "Save it on GitHub" on the create form; takes effect only while signed in.
+  const [saveOnGithub, setSaveOnGithub] = useState(true);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
   const [spreadsheetPerspectiveKey, setSpreadsheetPerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetFiles, setSpreadsheetFiles] = useState<File[]>([]);
@@ -181,8 +186,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [githubError, setGithubError] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
-  const { isAuthenticated: isGithubAuthenticated, githubSession, login: githubLogin } = useGitHubAuth();
-  const { pullInto: pullRepoIntoProject } = useRepoSync();
+  const {
+    isAuthenticated: isGithubAuthenticated,
+    username: githubUsername,
+    githubSession,
+    login: githubLogin,
+  } = useGitHubAuth();
+  const { pullInto: pullRepoIntoProject } = useRepoSync({ checkRemote: false });
 
   const { currentProject, createProject, loadProject, deleteProject } = useProject();
   const importDiagramToProject = useImportDiagramToProject();
@@ -250,6 +260,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
+    setSaveOnGithub(true);
     setSpreadsheetForm(defaultForm);
     setSpreadsheetPerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetFiles([]);
@@ -260,6 +271,31 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     spreadsheetValidation.resetTouched();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, refreshProjects]);
+
+  // Back from a GitHub sign-in started on the landing or the create form:
+  // reopen that step with what the user had entered. Declared after the reset
+  // above so its writes win; the repo-picker intent is left to the next effect.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const resume = peekHubGithubResume();
+    if (resume?.step === 'github') {
+      return;
+    }
+    clearHubGithubResume();
+    if (resume?.step === 'welcome') {
+      setStep('welcome');
+      setEntryStep('welcome');
+    } else if (resume?.step === 'create') {
+      setForm(resume.form);
+      setPendingPreferredInterface(resume.mode);
+      setCreatePerspectiveKey(resume.perspectiveKey);
+      setSaveOnGithub(true);
+      setStep('create');
+      setEntryStep(resume.entryStep);
+    }
+  }, [open]);
 
   // Resume "Continue from GitHub" after the OAuth redirect: once the hub is
   // open AND we're authenticated, consume-and-clear the stashed intent and jump
@@ -353,6 +389,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     onOpenChange(nextOpen);
   };
 
+  // Close once a project is open. Not via handleDialogOpenChange: its canClose is
+  // stale (no project yet) in these async handlers, and after a GitHub sign-in the
+  // bootstrap no longer closes the hub when a project appears.
+  const closeWithProject = () => onOpenChange(false);
+
   // First-run landing: a portal was chosen. Persist the per-user default when
   // "Remember my choice" is ticked, then advance into the shared project-
   // creation form. BOTH modes create a project the same way; the only
@@ -386,6 +427,55 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     setStep(entryStep === 'welcome' ? 'welcome' : 'start');
   };
 
+  // GitHub sign-in from the landing or the create form: the hub reopens on the
+  // same step after the OAuth redirect (see the resume effect above).
+  const handleConnectGithubFromLanding = () => {
+    stashHubGithubResume({ step: 'welcome' });
+    githubLogin();
+  };
+
+  const handleConnectGithubFromCreate = () => {
+    stashHubGithubResume({
+      step: 'create',
+      entryStep: entryStep === 'start' ? 'start' : 'welcome',
+      form,
+      mode: pendingPreferredInterface,
+      perspectiveKey: createPerspectiveKey,
+    });
+    githubLogin();
+  };
+
+  // Runs after the hub has closed: a failure leaves the project created and unlinked.
+  const saveCreatedProjectOnGithub = async (session: string, created: BesserProject) => {
+    const project = ProjectStorageRepository.loadProject(created.id) ?? created;
+    const toastId = toast.loading(t('project.hub.create.github.toasts.saving', {
+      defaultValue: 'Saving {{name}} on GitHub…',
+      name: project.name,
+    }));
+    try {
+      const link = await saveProjectOnGithub(session, project);
+      toast.update(toastId, {
+        render: t('project.hub.create.github.toasts.saved', {
+          defaultValue: 'Saved on GitHub as {{repo}}.',
+          repo: `${link.owner}/${link.repo}`,
+        }),
+        type: 'success',
+        isLoading: false,
+        autoClose: 5000,
+      });
+    } catch (error) {
+      toast.update(toastId, {
+        render: t('project.hub.create.github.toasts.failed', {
+          defaultValue: 'Your project was created, but saving it on GitHub failed: {{error}}',
+          error: error instanceof Error ? error.message : t('project.hub.unknownError'),
+        }),
+        type: 'error',
+        isLoading: false,
+        autoClose: 8000,
+      });
+    }
+  };
+
   const handleCreateProject = async () => {
     const errors = createValidation.touchAll();
     if (Object.keys(errors).length > 0) {
@@ -395,6 +485,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     const name = normalizeProjectName(form.name);
     const description = form.description.trim();
     const owner = form.owner.trim();
+    const githubTarget = saveOnGithub && isGithubAuthenticated ? githubSession : null;
 
     try {
       setIsBusy(true);
@@ -409,7 +500,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           /* storage unavailable — the drawer just won't auto-open, non-fatal */
         }
       }
-      await createProject(
+      const created = await createProject(
         name,
         description || defaultForm.description,
         owner || defaultForm.owner,
@@ -419,8 +510,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       );
       trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.created', { name }));
+      if (githubTarget && created) {
+        void saveCreatedProjectOnGithub(githubTarget, created);
+      }
     } catch (error) {
       // Creation failed — disarm the flag so it can't spuriously open the drawer
       // on some later, unrelated project load.
@@ -439,7 +533,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     try {
       setIsBusy(true);
       await loadProject(projectId);
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.loaded'));
     } catch (error) {
       toast.error(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
@@ -482,7 +576,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       const importedProject = await importProject(file);
       await loadProject(importedProject.id);
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
       toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
@@ -510,7 +604,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       const importedProject = await importProject(file);
       await loadProject(importedProject.id);
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
       toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
@@ -553,7 +647,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
       await importDiagramToProject(generatedDiagramFile);
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
       toast.error(
@@ -779,6 +873,65 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     </FormField>
   );
 
+  // "Save it on GitHub": a checkbox (on by default) when signed in, a connect link otherwise.
+  const renderSaveOnGithub = () => {
+    const title = (
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+        <Github aria-hidden className="size-3.5" />
+        {t('project.hub.create.github.label', { defaultValue: 'Save it on GitHub' })}
+      </span>
+    );
+    if (!isGithubAuthenticated) {
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border/70 px-3 py-2.5">
+          <span className="min-w-0">
+            {title}
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {t('project.hub.create.github.connectHint', {
+                defaultValue: 'Connect GitHub to keep this project in a private repository of your own.',
+              })}
+            </span>
+          </span>
+          <Button
+            type="button"
+            variant="link"
+            size="xs"
+            className="shrink-0 px-0"
+            onClick={handleConnectGithubFromCreate}
+            data-testid="create-github-connect"
+          >
+            {t('project.hub.create.github.connect', { defaultValue: 'Connect GitHub' })}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <label
+        htmlFor="create-save-github"
+        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:border-brand/30"
+      >
+        <Checkbox
+          id="create-save-github"
+          className="mt-0.5"
+          checked={saveOnGithub}
+          onCheckedChange={setSaveOnGithub}
+          data-testid="create-save-github"
+        />
+        <span className="min-w-0">
+          {title}
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            <Trans
+              i18nKey="project.hub.create.github.privateRepo"
+              defaults="A private repository named <repo>{{repo}}</repo> keeps your model and code."
+              values={{ repo: repoSlug(normalizeProjectName(form.name)) }}
+              components={{ repo: <code className="break-all font-mono text-[11px] text-foreground" /> }}
+            />
+          </span>
+        </span>
+      </label>
+    );
+  };
+
   // Project cards: the whole card opens the project (the primary action);
   // delete is a hover/focus-revealed corner control so it can't be hit by
   // accident but is always one hover away (dimmed but visible on touch).
@@ -908,6 +1061,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             onChoose={handleChooseInterface}
             onMoreOptions={() => setStep('start')}
             defaultRemember={readPreferredInterface() !== null}
+            github={{
+              connected: isGithubAuthenticated,
+              username: githubUsername ?? null,
+              onConnect: handleConnectGithubFromLanding,
+            }}
           />
         )}
         {step !== 'welcome' && (
@@ -1097,6 +1255,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     {renderInterfaceModePicker()}
                     {(pendingPreferredInterface ?? 'model') === 'model' &&
                       renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                    {renderSaveOnGithub()}
                     <Button type="submit" disabled={isBusy || !createValidation.isValid} className="w-full gap-2">
                       <Sparkles className="size-4" />
                       {t('project.hub.create.submit')}
