@@ -31,8 +31,7 @@
             "useSessionVars": false,
             "llm_name": ""
           }
-        ],
-        "initial": true
+        ]
       }
     },
     {
@@ -100,6 +99,23 @@
             "prompt": ""
           }
         ]
+      }
+    },
+    {
+      "id": "350b1235-0202-44f6-beb4-e403241defde__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -115,
+        "y": -599.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -243,6 +259,18 @@
             "y": -404.33331298828125
           }
         ]
+      }
+    },
+    {
+      "id": "350b1235-0202-44f6-beb4-e403241defde__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "350b1235-0202-44f6-beb4-e403241defde__initial",
+      "target": "350b1235-0202-44f6-beb4-e403241defde",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

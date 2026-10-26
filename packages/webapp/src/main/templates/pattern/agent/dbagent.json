@@ -19,8 +19,7 @@
       },
       "data": {
         "name": "initial",
-        "replyType": "text",
-        "initial": true
+        "replyType": "text"
       }
     },
     {
@@ -51,6 +50,23 @@
             "dbSqlQuery": ""
           }
         ]
+      }
+    },
+    {
+      "id": "553fc567-842b-40f2-8ff1-3e24aa2e16a1__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -590,
+        "y": -172.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -147,6 +163,18 @@
             "y": -130
           }
         ]
+      }
+    },
+    {
+      "id": "553fc567-842b-40f2-8ff1-3e24aa2e16a1__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "553fc567-842b-40f2-8ff1-3e24aa2e16a1__initial",
+      "target": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

@@ -117,8 +117,7 @@
             "useSessionVars": false,
             "llm_name": ""
           }
-        ],
-        "initial": true
+        ]
       }
     },
     {
@@ -217,6 +216,23 @@
             "system_message": ""
           }
         ]
+      }
+    },
+    {
+      "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -35,
+        "y": -317.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -568,6 +584,18 @@
             "y": 170
           }
         ]
+      }
+    },
+    {
+      "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+      "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

@@ -86,8 +86,24 @@
                   "name": "AgentCoder_greet",
                   "replyType": "text",
                   "stateType": "standard",
-                  "fallbackBodyEnabled": false,
-                  "initial": true
+                  "fallbackBodyEnabled": false
+                }
+              },
+              {
+                "id": "gen-tiz82qoyc__initial",
+                "type": "StateInitialNode",
+                "position": {
+                  "x": -20,
+                  "y": -76.5
+                },
+                "width": 45,
+                "height": 45,
+                "measured": {
+                  "width": 45,
+                  "height": 45
+                },
+                "data": {
+                  "name": ""
                 }
               }
             ],
@@ -134,6 +150,18 @@
                       "y": 36
                     }
                   ]
+                }
+              },
+              {
+                "id": "gen-tiz82qoyc__initial-edge",
+                "type": "AgentStateTransitionInit",
+                "source": "gen-tiz82qoyc__initial",
+                "target": "gen-tiz82qoyc",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "params": {},
+                  "points": []
                 }
               }
             ],
@@ -301,8 +329,7 @@
                       "llm_name": "",
                       "system_message": ""
                     }
-                  ],
-                  "initial": true
+                  ]
                 }
               },
               {
@@ -376,6 +403,23 @@
                       "system_message": ""
                     }
                   ]
+                }
+              },
+              {
+                "id": "gen-vwr6kpejc__initial",
+                "type": "StateInitialNode",
+                "position": {
+                  "x": -200,
+                  "y": -116.5
+                },
+                "width": 45,
+                "height": 45,
+                "measured": {
+                  "width": 45,
+                  "height": 45
+                },
+                "data": {
+                  "name": ""
                 }
               }
             ],
@@ -551,6 +595,18 @@
                       "y": -101
                     }
                   ]
+                }
+              },
+              {
+                "id": "gen-vwr6kpejc__initial-edge",
+                "type": "AgentStateTransitionInit",
+                "source": "gen-vwr6kpejc__initial",
+                "target": "gen-vwr6kpejc",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "params": {},
+                  "points": []
                 }
               }
             ],

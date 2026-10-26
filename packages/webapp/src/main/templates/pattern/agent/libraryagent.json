@@ -199,8 +199,24 @@
             "useSessionVars": false,
             "llm_name": ""
           }
-        ],
-        "initial": true
+        ]
+      }
+    },
+    {
+      "id": "46badadf-e50d-481e-8246-3ba2393fce47__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -790,
+        "y": -127.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -544,6 +560,18 @@
             "y": 5
           }
         ]
+      }
+    },
+    {
+      "id": "46badadf-e50d-481e-8246-3ba2393fce47__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "46badadf-e50d-481e-8246-3ba2393fce47__initial",
+      "target": "46badadf-e50d-481e-8246-3ba2393fce47",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

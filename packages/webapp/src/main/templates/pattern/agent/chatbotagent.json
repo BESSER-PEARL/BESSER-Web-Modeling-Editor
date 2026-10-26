@@ -27,8 +27,7 @@
             "replyType": "text",
             "ragDatabaseName": ""
           }
-        ],
-        "initial": true
+        ]
       }
     },
     {
@@ -90,6 +89,23 @@
             "ragDatabaseName": ""
           }
         ]
+      }
+    },
+    {
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -600,
+        "y": -67.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -288,6 +304,18 @@
             "y": 20
           }
         ]
+      }
+    },
+    {
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e__initial",
+      "target": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

@@ -21,8 +21,7 @@
         "name": "initial",
         "replyType": "text",
         "stateType": "standard",
-        "fallbackBodyEnabled": false,
-        "initial": true
+        "fallbackBodyEnabled": false
       }
     },
     {
@@ -121,6 +120,23 @@
             "llm_name": ""
           }
         ]
+      }
+    },
+    {
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial",
+      "type": "StateInitialNode",
+      "position": {
+        "x": -604,
+        "y": -36.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
   ],
@@ -370,6 +386,18 @@
             "y": -34
           }
         ]
+      }
+    },
+    {
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial-edge",
+      "type": "AgentStateTransitionInit",
+      "source": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
       }
     }
   ],

@@ -124,8 +124,7 @@
                       "replyType": "text",
                       "ragDatabaseName": ""
                     }
-                  ],
-                  "initial": true
+                  ]
                 }
               },
               {
@@ -203,6 +202,23 @@
                       "llm_name": "gpt-4o-mini"
                     }
                   ]
+                }
+              },
+              {
+                "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+                "type": "StateInitialNode",
+                "position": {
+                  "x": -220,
+                  "y": -357.5
+                },
+                "width": 45,
+                "height": 45,
+                "measured": {
+                  "width": 45,
+                  "height": 45
+                },
+                "data": {
+                  "name": ""
                 }
               }
             ],
@@ -554,6 +570,18 @@
                       "y": 130
                     }
                   ]
+                }
+              },
+              {
+                "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial-edge",
+                "type": "AgentStateTransitionInit",
+                "source": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+                "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "params": {},
+                  "points": []
                 }
               }
             ],
@@ -6250,8 +6278,7 @@
                 "replyType": "text",
                 "ragDatabaseName": ""
               }
-            ],
-            "initial": true
+            ]
           }
         },
         {
@@ -6329,6 +6356,23 @@
                 "llm_name": "gpt-4o-mini"
               }
             ]
+          }
+        },
+        {
+          "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+          "type": "StateInitialNode",
+          "position": {
+            "x": -220,
+            "y": -357.5
+          },
+          "width": 45,
+          "height": 45,
+          "measured": {
+            "width": 45,
+            "height": 45
+          },
+          "data": {
+            "name": ""
           }
         }
       ],
@@ -6680,6 +6724,18 @@
                 "y": 130
               }
             ]
+          }
+        },
+        {
+          "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial-edge",
+          "type": "AgentStateTransitionInit",
+          "source": "77976ef7-599d-4c49-9f4d-1ecb23239fe3__initial",
+          "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "data": {
+            "params": {},
+            "points": []
           }
         }
       ],
