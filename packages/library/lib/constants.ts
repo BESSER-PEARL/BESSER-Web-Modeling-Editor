@@ -925,41 +925,39 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
   // fallback-body are not draggable items — they are added inside an
   // existing State container, matching v3 behaviour.
   [UMLDiagramType.StateMachineDiagram]: [
+    // Ready-made states, start/end markers and code. A body row names the
+    // code block function it runs (`entry /`), a fallback row the one that
+    // runs on an error; the "Action" and "Guard" code blocks are the
+    // functions those rows and transition guards refer to. Row ids are
+    // template placeholders — `DraggableGhost` re-ids them on drop.
     {
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
+      height: LAYOUT.DEFAULT_HEADER_HEIGHT,
       defaultData: { name: "State" },
       svg: StateSVG,
+      sectionLabel: "States",
+      sectionLabelKey: "packages.StateDiagram.palette.states",
     },
     {
-      // Develop palette parity (`state-preview.ts` `stateWithBody`):
-      // second State preview carrying one pre-populated body row. Row
-      // ids are template placeholders — `DraggableGhost` re-ids
-      // body/fallback rows on drop (same treatment as the AgentState
-      // palette variants).
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 70,
       defaultData: {
         name: "State",
-        bodies: [{ id: "state-template-body", name: "body" }],
+        bodies: [{ id: "state-template-body", name: "on_enter" }],
       },
       svg: StateSVG,
     },
     {
-      // Develop palette parity (`state-preview.ts`
-      // `stateWithBothBodies`): third State preview with one body row
-      // plus one fallback row so the fallback divider is visible
-      // straight from the sidebar.
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: {
         name: "State",
-        bodies: [{ id: "state-template-body", name: "body" }],
+        bodies: [{ id: "state-template-body", name: "on_enter" }],
         fallbackBodies: [
-          { id: "state-template-fallback-body", name: "fallback body" },
+          { id: "state-template-fallback-body", name: "on_error" },
         ],
       },
       svg: StateSVG,
@@ -970,6 +968,8 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       height: 45,
       defaultData: { name: "" },
       svg: StateInitialNodeSVG,
+      sectionLabel: "Start and end",
+      sectionLabelKey: "packages.StateDiagram.palette.startEnd",
     },
     {
       type: "StateFinalNode" as never,
@@ -978,20 +978,32 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       defaultData: { name: "" },
       svg: StateFinalNodeSVG,
     },
-    // Per user (2025-05): drop StateActionNode / StateObjectNode /
-    // StateMergeNode / StateForkNode / StateForkNodeHorizontal from the
-    // StateMachineDiagram palette. The v3 BESSER state metamodel did not
-    // expose these; their node implementations remain in the codebase so
-    // existing models that reference them still render.
+    // StateActionNode / StateObjectNode / StateMergeNode / StateForkNode /
+    // StateForkNodeHorizontal stay off the palette: the BESSER state
+    // metamodel has no such elements. Their node code remains so existing
+    // models that reference them still render.
+    {
+      // Code names come from the `def` line: the backend reads the
+      // function name from it when the block name is empty.
+      type: "StateCodeBlock" as never,
+      width: 240,
+      height: 100,
+      defaultData: {
+        name: "",
+        code: 'def on_enter(session):\n    print("Entered the state")',
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
+      sectionLabel: "Code",
+      sectionLabelKey: "packages.StateDiagram.palette.code",
+    },
     {
       type: "StateCodeBlock" as never,
-      width: 150,
-      height: 150,
+      width: 240,
+      height: 100,
       defaultData: {
-        // Empty on purpose: the backend reads the function name from the
-        // code's `def` line only when the block name is empty.
         name: "",
-        code: '# Sample code\nprint("Hello World")',
+        code: "def is_ready(session):\n    return True",
         language: "python",
       },
       svg: StateCodeBlockSVG,

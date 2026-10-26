@@ -678,7 +678,12 @@
       "State": "Zustand",
       "StateBody": "Rumpf",
       "StateFallbackBody": "Fallback-Rumpf",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "palette": {
+        "states": "Zustände",
+        "startEnd": "Start und Ende",
+        "code": "Code"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Übergang",

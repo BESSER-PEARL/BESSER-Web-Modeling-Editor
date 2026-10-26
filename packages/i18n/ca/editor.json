@@ -678,7 +678,12 @@
       "State": "Estat",
       "StateBody": "Cos",
       "StateFallbackBody": "Cos alternatiu",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "palette": {
+        "states": "Estats",
+        "startEnd": "Inici i final",
+        "code": "Codi"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Transició",

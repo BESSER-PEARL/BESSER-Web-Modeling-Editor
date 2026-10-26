@@ -43,7 +43,7 @@ describe("A2c — pre-populated State palette variants", () => {
       name?: string
     }>
     expect(withBodyRows).toHaveLength(1)
-    expect(withBodyRows[0].name).toBe("body")
+    expect(withBodyRows[0].name).toBe("on_enter")
     expect(withBody.defaultData?.fallbackBodies).toBeUndefined()
 
     const bothBodies = withBoth.defaultData?.bodies as Array<{
@@ -55,9 +55,9 @@ describe("A2c — pre-populated State palette variants", () => {
       name?: string
     }>
     expect(bothBodies).toHaveLength(1)
-    expect(bothBodies[0].name).toBe("body")
+    expect(bothBodies[0].name).toBe("on_enter")
     expect(bothFallbacks).toHaveLength(1)
-    expect(bothFallbacks[0].name).toBe("fallback body")
+    expect(bothFallbacks[0].name).toBe("on_error")
   })
 
   it("materializes body/fallback rows with fresh unique ids per drop", () => {
@@ -83,10 +83,10 @@ describe("A2c — pre-populated State palette variants", () => {
     // Two drops never collide (row ids become element ids on export).
     expect(new Set([...idsA, ...idsB]).size).toBe(idsA.length + idsB.length)
     // Names survive the re-id.
-    expect((dropA.bodies as Array<{ name?: string }>)[0].name).toBe("body")
+    expect((dropA.bodies as Array<{ name?: string }>)[0].name).toBe("on_enter")
     expect(
       (dropA.fallbackBodies as Array<{ name?: string }>)[0].name
-    ).toBe("fallback body")
+    ).toBe("on_error")
   })
 
   it("leaves non-array attribute dicts untouched (NN palette shape)", () => {

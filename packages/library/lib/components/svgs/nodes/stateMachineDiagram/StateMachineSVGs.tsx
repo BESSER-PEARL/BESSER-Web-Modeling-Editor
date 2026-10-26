@@ -1,5 +1,8 @@
+import { useId } from "react"
 import { SVGComponentProps } from "@/types/SVG"
 import { StateBodyRow } from "@/types"
+import { LAYOUT } from "@/constants"
+import { StateCodeBlockShape, StateShape } from "./StateShape"
 
 /**
  * Lightweight palette previews for StateMachineDiagram. Mirror the
@@ -9,21 +12,13 @@ import { StateBodyRow } from "@/types"
  */
 
 type StateSVGProps = SVGComponentProps & {
-  /**
-   * Optional palette `defaultData` (Sidebar passes it through). Develop
-   * parity (`state-preview.ts` `stateWithBody` / `stateWithBothBodies`):
-   * pre-populated variants render their body rows and — when both
-   * sections are present — the dashed fallback divider.
-   */
+  /** Palette `defaultData` (Sidebar passes it through): name and rows. */
   data?: {
     name?: string
     bodies?: StateBodyRow[]
     fallbackBodies?: StateBodyRow[]
   }
 }
-
-const STATE_HEADER_HEIGHT = 40
-const STATE_ROW_HEIGHT = 30
 
 export const StateSVG: React.FC<StateSVGProps> = ({
   width,
@@ -32,85 +27,28 @@ export const StateSVG: React.FC<StateSVGProps> = ({
   svgAttributes,
   data,
 }) => {
-  const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
-  const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
-  const stateName = data?.name ?? "State"
-  const bodies = data?.bodies ?? []
-  const fallbackBodies = data?.fallbackBodies ?? []
-  const fallbackDividerY =
-    STATE_HEADER_HEIGHT + bodies.length * STATE_ROW_HEIGHT
-  const hasFallbackDivider = fallbackBodies.length > 0 && bodies.length > 0
+  const clipId = `state-preview-${useId().replace(/:/g, "")}`
+  const scale = SIDEBAR_PREVIEW_SCALE ?? 1
   return (
     <svg
-      width={scaledWidth}
-      height={scaledHeight}
+      width={width * scale}
+      height={height * scale}
       viewBox={`0 0 ${width} ${height}`}
       overflow="visible"
       {...svgAttributes}
     >
-      <rect
-        x={0}
-        y={0}
+      <StateShape
         width={width}
         height={height}
-        rx={8}
-        ry={8}
-        fill="var(--besser-background, white)"
-        stroke="var(--besser-primary-contrast, #000)"
-        strokeWidth={2}
+        headerHeight={LAYOUT.DEFAULT_HEADER_HEIGHT}
+        name={data?.name ?? "State"}
+        bodies={data?.bodies ?? []}
+        fallbackBodies={data?.fallbackBodies ?? []}
+        fillColor="var(--besser-background, white)"
+        strokeColor="var(--besser-primary-contrast, #000)"
+        textColor="var(--besser-primary-contrast, #000)"
+        clipId={clipId}
       />
-      <text
-        x={width / 2}
-        y={26}
-        textAnchor="middle"
-        fontSize={16}
-        fontWeight="600"
-        fill="var(--besser-primary-contrast, #000)"
-      >
-        {stateName}
-      </text>
-      <line
-        x1={0}
-        x2={width}
-        y1={STATE_HEADER_HEIGHT}
-        y2={STATE_HEADER_HEIGHT}
-        stroke="var(--besser-primary-contrast, #000)"
-      />
-      {bodies.map((b, i) => (
-        <text
-          key={b.id}
-          x={10}
-          y={STATE_HEADER_HEIGHT + i * STATE_ROW_HEIGHT + 19}
-          fontSize={12}
-          fill="var(--besser-primary-contrast, #000)"
-        >
-          {b.name ?? ""}
-        </text>
-      ))}
-      {hasFallbackDivider && (
-        <line
-          x1={0}
-          x2={width}
-          y1={fallbackDividerY}
-          y2={fallbackDividerY}
-          stroke="var(--besser-primary-contrast, #000)"
-          strokeWidth={1}
-          strokeDasharray="3 2"
-          opacity={0.6}
-        />
-      )}
-      {fallbackBodies.map((b, i) => (
-        <text
-          key={b.id}
-          x={10}
-          y={fallbackDividerY + i * STATE_ROW_HEIGHT + 19}
-          fontSize={12}
-          fontStyle="italic"
-          fill="var(--besser-primary-contrast, #000)"
-        >
-          {b.name ?? ""}
-        </text>
-      ))}
     </svg>
   )
 }
@@ -334,69 +272,29 @@ export const StateForkNodeHorizontalSVG: React.FC<SVGComponentProps> = ({
   )
 }
 
-export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
-  width,
-  height,
-  SIDEBAR_PREVIEW_SCALE,
-  svgAttributes,
-}) => {
-  const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
-  const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+export const StateCodeBlockSVG: React.FC<
+  SVGComponentProps & { data?: { code?: string; language?: string } }
+> = ({ width, height, SIDEBAR_PREVIEW_SCALE, svgAttributes, data }) => {
+  const clipId = `code-preview-${useId().replace(/:/g, "")}`
+  const scale = SIDEBAR_PREVIEW_SCALE ?? 1
   return (
     <svg
-      width={scaledWidth}
-      height={scaledHeight}
+      width={width * scale}
+      height={height * scale}
       viewBox={`0 0 ${width} ${height}`}
       overflow="visible"
       {...svgAttributes}
     >
-      <rect
-        x={0}
-        y={0}
+      <StateCodeBlockShape
         width={width}
         height={height}
-        rx={8}
-        ry={8}
-        fill="var(--besser-background, white)"
-        stroke="var(--besser-primary-contrast, #000)"
-        strokeWidth={1}
+        code={data?.code ?? ""}
+        language={data?.language ?? "python"}
+        fillColor="var(--besser-background, white)"
+        strokeColor="var(--besser-primary-contrast, #000)"
+        textColor="var(--besser-primary-contrast, #000)"
+        clipId={clipId}
       />
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={20}
-        rx={8}
-        ry={8}
-        fill="var(--besser-primary-contrast, #000)"
-        fillOpacity={0.12}
-        stroke="var(--besser-primary-contrast, #000)"
-        strokeWidth={1}
-      />
-      <text
-        x={10}
-        y={14}
-        fontSize={10}
-        fontWeight="bold"
-        fill="var(--besser-primary-contrast, #000)"
-      >
-        Python
-      </text>
-      {/*
-        Palette preview shows a multi-line code snippet
-        rather than the literal "# code" placeholder, so the drag ghost
-        previews the same shape the dropped canvas card renders.
-      */}
-      <text
-        x={10}
-        y={36}
-        fontSize={11}
-        fontFamily="monospace"
-        fill="var(--besser-primary-contrast, #000)"
-      >
-        <tspan x={10} dy={0}>{"# Sample code"}</tspan>
-        <tspan x={10} dy={14}>{'print("Hello World")'}</tspan>
-      </text>
     </svg>
   )
 }

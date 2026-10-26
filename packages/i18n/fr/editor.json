@@ -678,7 +678,12 @@
       "State": "État",
       "StateBody": "Corps",
       "StateFallbackBody": "Corps de repli",
-      "Comments": "Commentaires"
+      "Comments": "Commentaires",
+      "palette": {
+        "states": "États",
+        "startEnd": "Début et fin",
+        "code": "Code"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Transition",

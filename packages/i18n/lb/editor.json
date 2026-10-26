@@ -678,7 +678,12 @@
       "State": "Zoustand",
       "StateBody": "Aktioun",
       "StateFallbackBody": "Feelerfall-Aktioun",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "palette": {
+        "states": "Zoustänn",
+        "startEnd": "Ufank an Enn",
+        "code": "Code"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Iwwergang",

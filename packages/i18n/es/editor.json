@@ -678,7 +678,12 @@
       "State": "Estado",
       "StateBody": "Cuerpo",
       "StateFallbackBody": "Cuerpo alternativo",
-      "Comments": "Comentarios"
+      "Comments": "Comentarios",
+      "palette": {
+        "states": "Estados",
+        "startEnd": "Inicio y fin",
+        "code": "Código"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Transición",

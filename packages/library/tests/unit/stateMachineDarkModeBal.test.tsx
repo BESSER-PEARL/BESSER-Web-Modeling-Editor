@@ -90,10 +90,10 @@ describe("Code block header", () => {
 
   it("is a tinted band in the inherited font, with themed text", () => {
     const { container } = block("python")
-    const header = container.querySelectorAll("svg rect")[1]
-    expect(header.getAttribute("fill-opacity")).toBe("0.12")
+    const header = container.querySelector("svg rect[clip-path]")!
+    expect(header.getAttribute("fill")).toContain("color-mix")
     const label = container.querySelector("svg text")!
-    expect(label.textContent).toBe("Python")
+    expect(label.textContent).toBe("PYTHON")
     expect(label.getAttribute("font-family")).toBeNull()
     expect(label.getAttribute("fill")).not.toContain("--besser-background")
   })
