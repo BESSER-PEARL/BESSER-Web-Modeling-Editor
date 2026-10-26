@@ -16,6 +16,7 @@ import { A2AChip, A2ADetails } from "./A2ABadge"
 import {
   AGENT_PRIMITIVE_COLORS,
   replyTypeIcon,
+  replyTypeTag,
 } from "./agentPrimitiveColors"
 import {
   AGENT_CARD_HEADER_HEIGHT,
@@ -208,8 +209,9 @@ export function AgentState({
                   <AgentPill
                     key={b.id}
                     accent={accent}
-                    icon={<RIcon size={12} />}
+                    icon={<RIcon size={11} />}
                     label={label}
+                    tag={replyTypeTag(replyType)}
                   />
                 )
               })}
@@ -227,8 +229,9 @@ export function AgentState({
                   <AgentPill
                     key={b.id}
                     accent={accent}
-                    icon={<RIcon size={12} />}
+                    icon={<RIcon size={11} />}
                     label={label}
+                    tag={replyTypeTag(replyType)}
                     dashed
                   />
                 )

@@ -79,6 +79,28 @@ export const replyTypeIcon = (replyType?: string): LucideIcon => {
   }
 }
 
+/** Short kind tag shown on a reply row; none for a plain text reply. */
+export const replyTypeTag = (replyType?: string): string | undefined => {
+  switch (replyType) {
+    case "llm":
+    case "llm_chat":
+    case "web_crawl_llm":
+      return "LLM"
+    case "rag":
+      return "RAG"
+    case "db_reply":
+      return "DB"
+    case "code":
+      return "Python"
+    case "json":
+      return "JSON"
+    case "gui_reply":
+      return "GUI"
+    default:
+      return replyType?.startsWith("ws_") ? "GUI" : undefined
+  }
+}
+
 /**
  * Shared single-line truncation for the card subtitles (develop's
  * `truncate` helper, duplicated per component there — centralised here).

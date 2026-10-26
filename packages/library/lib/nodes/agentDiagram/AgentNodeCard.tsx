@@ -87,17 +87,31 @@ export function AgentNodeCard({
           "0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 24px -12px rgba(16, 24, 40, 0.16)",
         overflow: "hidden",
         fontFamily: CARD_FONT,
+        position: "relative",
       }}
     >
-      {/* Header — clean neutral row; accent lives only in the icon badge */}
+      {/* Accent rail along the left edge (clipped by the card radius). */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          background: ink(accent),
+        }}
+      />
+      {/* Header — faint accent wash behind the icon badge and name */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 9,
-          padding: "0 10px",
+          padding: "0 10px 0 12px",
           minHeight: AGENT_CARD_HEADER_HEIGHT,
           boxSizing: "border-box",
+          background: `linear-gradient(180deg, ${tint(accent, 8)}, ${tint(accent, 2)})`,
           borderBottom: hasBody ? `1px solid ${HAIRLINE}` : "none",
         }}
       >
@@ -106,7 +120,7 @@ export function AgentNodeCard({
             flex: "0 0 auto",
             width: 28,
             height: 28,
-            borderRadius: 8,
+            borderRadius: 9,
             background: tint(accent, 12),
             color: ink(accent),
             display: "grid",
@@ -128,20 +142,18 @@ export function AgentNodeCard({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: 0.7,
+              fontSize: 10.5,
+              fontWeight: 500,
               color: MUTED,
-              textTransform: "uppercase",
             }}
           >
-            <span>{typeLabel}</span>
+            <span style={{ textTransform: "capitalize" }}>{typeLabel}</span>
           </span>
           <span
             title={name}
             style={{
-              fontSize: 13.5,
-              fontWeight: 600,
+              fontSize: 14,
+              fontWeight: 650,
               color: title,
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -175,7 +187,7 @@ export function AgentNodeCard({
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
-            padding: "7px 9px",
+            padding: "7px 9px 7px 11px",
             display: "flex",
             flexDirection: "column",
             gap: 5,
@@ -195,12 +207,14 @@ export interface AgentPillProps {
   accent?: string
   /** Dashed border (used for fallback / secondary rows). */
   dashed?: boolean
+  /** Short right-aligned kind tag, e.g. "LLM". */
+  tag?: string
 }
 
-/** A quiet, neutral "step" chip — a reply row inside a State card, an
- * intent training phrase, etc. The reply-kind icon is muted; the accent
- * stays reserved for the card's icon badge. */
-export function AgentPill({ icon, label, dashed }: AgentPillProps) {
+/** A quiet, neutral "step" row — a reply inside a State card, an intent
+ * training phrase, etc. The kind icon sits in a small muted tile; the
+ * accent stays reserved for the card's icon badge and rail. */
+export function AgentPill({ icon, label, dashed, tag }: AgentPillProps) {
   return (
     <div
       title={label}
@@ -208,26 +222,53 @@ export function AgentPill({ icon, label, dashed }: AgentPillProps) {
         display: "flex",
         alignItems: "center",
         gap: 7,
-        padding: "3px 8px",
+        minHeight: 24,
+        padding: "3px 8px 3px 3px",
         borderRadius: 8,
         background: dashed
           ? "transparent"
-          : "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 4%, transparent)",
+          : "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 3%, transparent)",
         border: `1px ${dashed ? "dashed" : "solid"} ${HAIRLINE}`,
         fontSize: 12,
-        color: "var(--besser-primary-contrast, #0f172a)",
+        color: dashed ? MUTED : "var(--besser-primary-contrast, #0f172a)",
         whiteSpace: "nowrap",
         overflow: "hidden",
         boxSizing: "border-box",
-        fontStyle: dashed ? "italic" : undefined,
       }}
     >
       {icon != null ? (
-        <span style={{ display: "inline-flex", color: MUTED, flex: "0 0 auto" }}>
+        <span
+          style={{
+            flex: "0 0 auto",
+            width: 16,
+            height: 16,
+            borderRadius: 5,
+            display: "grid",
+            placeItems: "center",
+            color: MUTED,
+            background:
+              "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 7%, transparent)",
+          }}
+        >
           {icon}
         </span>
       ) : null}
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+        {label}
+      </span>
+      {tag ? (
+        <span
+          style={{
+            flex: "0 0 auto",
+            fontSize: 9.5,
+            fontWeight: 600,
+            letterSpacing: 0.4,
+            color: MUTED,
+          }}
+        >
+          {tag}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -262,20 +303,25 @@ export function AgentBadge({ children }: AgentBadgeProps) {
   )
 }
 
-/** Small muted section label inside a card body (e.g. "fallback"). */
+/** Small muted section label inside a card body (e.g. "fallback"),
+ * followed by a hairline. */
 export function AgentSectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <span
       style={{
-        fontSize: 9,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 9.5,
         fontWeight: 600,
         letterSpacing: 0.6,
         textTransform: "uppercase",
         color: MUTED,
-        padding: "2px 2px 0",
+        padding: "3px 2px 0",
       }}
     >
       {children}
+      <span style={{ flex: 1, height: 1, background: HAIRLINE }} />
     </span>
   )
 }
