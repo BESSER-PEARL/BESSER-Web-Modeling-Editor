@@ -23,6 +23,7 @@ import {
   resolveAgentEdgeType,
   resolveBpmnEdgeType,
   resolveCommentEdgeType,
+  orientEdgeEndpoints,
   resolveNNEdgeType,
   simplifyPoints,
   simplifySvgPath,
@@ -1524,5 +1525,28 @@ describe("getConnectionLineType", () => {
         targetNavigable: true,
       })
     }
+  })
+})
+
+describe("orientEdgeEndpoints", () => {
+  const drag = { source: "a", target: "b", sourceHandle: "right", targetHandle: "left" }
+
+  // Review finding: drawn from the state to the initial marker, the entry
+  // edge was saved backwards and the backend found no initial state.
+  it("makes the initial marker the source of an agent entry edge", () => {
+    expect(orientEdgeEndpoints("AgentStateTransitionInit", drag, "AgentState", "StateInitialNode")).toEqual({
+      source: "b",
+      target: "a",
+      sourceHandle: "left",
+      targetHandle: "right",
+    })
+  })
+
+  it("keeps an entry edge drawn from the marker", () => {
+    expect(orientEdgeEndpoints("AgentStateTransitionInit", drag, "StateInitialNode", "AgentState")).toBe(drag)
+  })
+
+  it("still puts the NN container at a composition's target", () => {
+    expect(orientEdgeEndpoints("NNComposition", drag, "NNContainer", "Configuration").source).toBe("b")
   })
 })

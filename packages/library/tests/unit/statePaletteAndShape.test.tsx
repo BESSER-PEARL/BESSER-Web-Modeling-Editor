@@ -19,9 +19,10 @@ describe("state machine palette", () => {
   })
 
   it("pairs the state rows with the code block functions they name", () => {
-    const rows = palette.flatMap((e) => [
-      ...((e.defaultData as { bodies?: { name: string }[] }).bodies ?? []),
-    ])
+    const rows = palette.flatMap((e) => {
+      const data = e.defaultData as { bodies?: { name: string }[]; fallbackBodies?: { name: string }[] }
+      return [...(data.bodies ?? []), ...(data.fallbackBodies ?? [])]
+    })
     const functions = palette
       .filter((e) => (e.type as string) === "StateCodeBlock")
       .map((e) => /def (\w+)\(/.exec((e.defaultData as { code: string }).code)?.[1])

@@ -927,9 +927,9 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
   [UMLDiagramType.StateMachineDiagram]: [
     // Ready-made states, start/end markers and code. A body row names the
     // code block function it runs (`entry /`), a fallback row the one that
-    // runs on an error; the "Action" and "Guard" code blocks are the
-    // functions those rows and transition guards refer to. Row ids are
-    // template placeholders — `DraggableGhost` re-ids them on drop.
+    // runs on an error; the code blocks are the functions those rows and
+    // transition guards refer to. Row ids are template placeholders —
+    // `DraggableGhost` re-ids them on drop.
     {
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
@@ -1004,6 +1004,17 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       defaultData: {
         name: "",
         code: "def is_ready(session):\n    return True",
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
+    },
+    {
+      type: "StateCodeBlock" as never,
+      width: 240,
+      height: 100,
+      defaultData: {
+        name: "",
+        code: 'def on_error(session):\n    print("Something went wrong")',
         language: "python",
       },
       svg: StateCodeBlockSVG,

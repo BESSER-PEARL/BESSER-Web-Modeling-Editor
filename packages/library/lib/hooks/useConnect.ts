@@ -16,7 +16,7 @@ import {
   generateUUID,
   getDefaultEdgeType,
   getInitialEdgeData,
-  normalizeNNCompositionEndpoints,
+  orientEdgeEndpoints,
   resolveAgentEdgeType,
   resolveBpmnEdgeType,
   resolveCommentEdgeType,
@@ -364,13 +364,15 @@ export const useConnect = () => {
       if (!finalized) return
       resolvedType = finalized.type
       const initialData = finalized.data
-      // NNComposition endpoint normalization — the NNContainer always
-      // lands at the target end so the rhombus (markerEnd) sits on the
-      // container, replacing develop's render-time path reversal.
-      const normalizedConnection =
-        resolvedType === "NNComposition"
-          ? normalizeNNCompositionEndpoints(connection, sourceType, targetType)
-          : connection
+      // Endpoints in the direction the type requires (the NNContainer at a
+      // composition's target end, the initial marker at an entry edge's
+      // source), whichever way the user dragged.
+      const normalizedConnection = orientEdgeEndpoints(
+        resolvedType,
+        connection,
+        sourceType,
+        targetType
+      )
       const newEdge: Edge = {
         ...normalizedConnection,
         id: generateUUID(),
@@ -574,25 +576,18 @@ export const useConnect = () => {
           }
           resolvedTypeOnEnd = finalizedOnEnd.type
           const initialDataOnEnd = finalizedOnEnd.data
-          // Same NNComposition endpoint normalization as `onConnect`.
-          const endpointsOnEnd =
-            resolvedTypeOnEnd === "NNComposition"
-              ? normalizeNNCompositionEndpoints(
-                  {
-                    source: sourceNodeId,
-                    target: nodeOnTop.id,
-                    sourceHandle: sourceHandleId,
-                    targetHandle,
-                  },
-                  sourceTypeOnEnd,
-                  targetTypeOnEnd
-                )
-              : {
-                  source: sourceNodeId,
-                  target: nodeOnTop.id,
-                  sourceHandle: sourceHandleId,
-                  targetHandle,
-                }
+          // Same endpoint orientation as `onConnect`.
+          const endpointsOnEnd = orientEdgeEndpoints(
+            resolvedTypeOnEnd,
+            {
+              source: sourceNodeId,
+              target: nodeOnTop.id,
+              sourceHandle: sourceHandleId,
+              targetHandle,
+            },
+            sourceTypeOnEnd,
+            targetTypeOnEnd
+          )
           setEdges((eds) =>
             eds.concat({
               id: generateUUID(),

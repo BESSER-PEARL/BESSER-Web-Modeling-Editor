@@ -1099,6 +1099,39 @@ export const normalizeNNCompositionEndpoints = <
 }
 
 /**
+ * The connection in the direction its edge type requires (a connection
+ * can be dragged either way): the NN container is a composition's target,
+ * and the initial marker is the source of the agent's entry edge.
+ */
+export const orientEdgeEndpoints = <
+  T extends {
+    source: string
+    target: string
+    sourceHandle?: string | null
+    targetHandle?: string | null
+  },
+>(
+  type: string,
+  connection: T,
+  sourceType: string | undefined,
+  targetType: string | undefined
+): T => {
+  if (type === "NNComposition") {
+    return normalizeNNCompositionEndpoints(connection, sourceType, targetType)
+  }
+  if (type === "AgentStateTransitionInit" && targetType === "StateInitialNode") {
+    return {
+      ...connection,
+      source: connection.target,
+      sourceHandle: connection.targetHandle,
+      target: connection.source,
+      targetHandle: connection.sourceHandle,
+    }
+  }
+  return connection
+}
+
+/**
  * Auto-detect the AgentDiagram edge type from its endpoints. Mirrors
  * v3's supported-relationship intersection (`connectable-repository.ts`
  * + `agent-state.ts` / `uml-state-initial-node.ts`): the initial node
