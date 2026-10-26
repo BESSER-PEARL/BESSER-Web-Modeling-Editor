@@ -1216,7 +1216,12 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
       type: "TensorOp" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "tensorop", attributes: { name: "tensorop" } },
+      // A reshape needs its target shape: seed it so a dropped TensorOp
+      // converts as is.
+      defaultData: {
+        name: "tensorop",
+        attributes: { name: "tensorop", reshape_dim: "[-1]" },
+      },
       svg: TensorOpSVG,
       sectionLabel: "NN TensorOps",
       sectionLabelKey: "packages.NNDiagram.SectionTensorOps",

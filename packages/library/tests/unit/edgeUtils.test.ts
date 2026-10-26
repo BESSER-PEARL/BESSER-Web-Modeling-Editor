@@ -1546,6 +1546,18 @@ describe("orientEdgeEndpoints", () => {
     expect(orientEdgeEndpoints("AgentStateTransitionInit", drag, "StateInitialNode", "AgentState")).toBe(drag)
   })
 
+  // Review findings: the backend rejected these when drawn the other way.
+  it("makes the interface the target of an interface edge", () => {
+    expect(orientEdgeEndpoints("ComponentProvidedInterface", drag, "componentInterface", "component").source).toBe("b")
+    expect(orientEdgeEndpoints("DeploymentRequiredInterface", drag, "deploymentInterface", "deploymentNode").source).toBe("b")
+    expect(orientEdgeEndpoints("ComponentProvidedInterface", drag, "component", "componentInterface")).toBe(drag)
+  })
+
+  it("makes the artifact the source of its deployment on a node", () => {
+    expect(orientEdgeEndpoints("DeploymentAssociation", drag, "deploymentNode", "deploymentArtifact").source).toBe("b")
+    expect(orientEdgeEndpoints("DeploymentAssociation", drag, "deploymentNode", "deploymentNode")).toBe(drag)
+  })
+
   it("still puts the NN container at a composition's target", () => {
     expect(orientEdgeEndpoints("NNComposition", drag, "NNContainer", "Configuration").source).toBe("b")
   })

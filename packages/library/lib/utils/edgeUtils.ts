@@ -1098,10 +1098,15 @@ export const normalizeNNCompositionEndpoints = <
   }
 }
 
+const INTERFACE_NODE_TYPES = new Set(["componentInterface", "deploymentInterface"])
+const INTERFACE_EDGE_TYPE = /^(Component|Deployment)(Provided|Required)/
+
 /**
  * The connection in the direction its edge type requires (a connection
  * can be dragged either way): the NN container is a composition's target,
- * and the initial marker is the source of the agent's entry edge.
+ * the initial marker is the source of the agent's entry edge, an
+ * interface is the target of a provided / required interface edge, and an
+ * artifact is the source of its deployment on a node.
  */
 export const orientEdgeEndpoints = <
   T extends {
@@ -1119,16 +1124,23 @@ export const orientEdgeEndpoints = <
   if (type === "NNComposition") {
     return normalizeNNCompositionEndpoints(connection, sourceType, targetType)
   }
-  if (type === "AgentStateTransitionInit" && targetType === "StateInitialNode") {
-    return {
-      ...connection,
-      source: connection.target,
-      sourceHandle: connection.targetHandle,
-      target: connection.source,
-      targetHandle: connection.sourceHandle,
-    }
-  }
-  return connection
+  const reversed =
+    (type === "AgentStateTransitionInit" && targetType === "StateInitialNode") ||
+    (INTERFACE_EDGE_TYPE.test(type) &&
+      INTERFACE_NODE_TYPES.has(sourceType ?? "") &&
+      !INTERFACE_NODE_TYPES.has(targetType ?? "")) ||
+    (type === "DeploymentAssociation" &&
+      sourceType === "deploymentNode" &&
+      targetType === "deploymentArtifact")
+  return reversed
+    ? {
+        ...connection,
+        source: connection.target,
+        sourceHandle: connection.targetHandle,
+        target: connection.source,
+        targetHandle: connection.sourceHandle,
+      }
+    : connection
 }
 
 /**

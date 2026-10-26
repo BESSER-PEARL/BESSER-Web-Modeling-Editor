@@ -71,7 +71,11 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
           onChange={(e) => update({ language: String(e.target.value) })}
           sx={{ flex: 1 }}
         >
-          {LANGUAGES.map((l) => (
+          {/* The backend runs state code as Python only: BAL is listed just
+              for a block that already uses it. */}
+          {LANGUAGES.filter(
+            (l) => l.value === "python" || l.value === data.language
+          ).map((l) => (
             <MenuItem key={l.value} value={l.value}>
               {l.label}
             </MenuItem>
