@@ -25,6 +25,8 @@ export interface ProjectGitHubLink {
   syncedModel?: string;
   baselinePending?: boolean;
   lastSyncedAt?: string;
+  /** Where the app runs once it went live from this repo. */
+  liveUrl?: string;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -48,6 +50,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(typeof value.baseCommitSha === 'string' ? { baseCommitSha: value.baseCommitSha } : {}),
         ...(typeof value.syncedModel === 'string' ? { syncedModel: value.syncedModel } : {}),
         ...(value.baselinePending === true ? { baselinePending: true } : {}),
+        ...(typeof value.liveUrl === 'string' ? { liveUrl: value.liveUrl } : {}),
         ...(typeof value.lastSyncedAt === 'string' ? { lastSyncedAt: value.lastSyncedAt } : {}),
       };
     }

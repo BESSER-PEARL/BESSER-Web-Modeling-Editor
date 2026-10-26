@@ -14,6 +14,8 @@ import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, 
 import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
+import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
+import { GO_LIVE_EVENT, isGoLiveAvailable } from '../../features/github/services/githubApi';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -1054,10 +1056,27 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const openAssistantImportImage = useCallback(() => openAssistantImportDialog('image'), [openAssistantImportDialog]);
   const openAssistantImportKg = useCallback(() => openAssistantImportDialog('kg'), [openAssistantImportDialog]);
-  const openDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const openClassicDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const [isGoLiveOpen, setIsGoLiveOpen] = useState(false);
+  const [goLiveAvailable, setGoLiveAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void isGoLiveAvailable().then((available) => !cancelled && setGoLiveAvailable(available));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const openProjectPreview = useStableCallback(handleOpenProjectPreview);
   const toggleGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen((previous) => !previous), []);
   const repoSync = useRepoSync();
+  const canGoLive = goLiveAvailable && !!repoSync.link && !!repoSync.githubSession && !!currentProject;
+  // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
+  const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
+  useEffect(() => {
+    const onGoLive = () => openDeployDialog();
+    window.addEventListener(GO_LIVE_EVENT, onGoLive);
+    return () => window.removeEventListener(GO_LIVE_EVENT, onGoLive);
+  }, [openDeployDialog]);
   const repoStatus = useMemo(
     () =>
       repoSync.link
@@ -1103,6 +1122,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         githubLoading={githubLoading}
         hasProject={Boolean(currentProject)}
         isDeploymentAvailable={isDeploymentAvailable}
+        deployGoesLive={canGoLive}
         onOpenProjectHub={onOpenProjectHub}
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
@@ -1321,6 +1341,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       )}
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
+
+      {canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
+        <GoLiveDialog
+          open={isGoLiveOpen}
+          projectId={currentProject.id}
+          link={repoSync.link}
+          githubSession={repoSync.githubSession}
+          onOpenChange={setIsGoLiveOpen}
+          onUseClassicDeploy={() => {
+            setIsGoLiveOpen(false);
+            openClassicDeployDialog();
+          }}
+        />
+      )}
 
       <DeployDialog
         open={isDeployDialogOpen}

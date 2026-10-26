@@ -25,6 +25,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   githubLoading,
   hasProject,
   isDeploymentAvailable,
+  deployGoesLive,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
@@ -149,6 +150,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               isAuthenticated={isAuthenticated}
               githubLoading={githubLoading}
               isDeploymentAvailable={isDeploymentAvailable}
+              deployGoesLive={deployGoesLive}
               onGitHubLogin={onGitHubLogin}
               onOpenDeployDialog={onOpenDeployDialog}
             />
@@ -192,7 +194,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             isDarkTheme={isDarkTheme}
             isAuthenticated={isAuthenticated}
             githubLoading={githubLoading}
-            isDeploymentAvailable={isDeploymentAvailable}
+            isDeploymentAvailable={isDeploymentAvailable || !!deployGoesLive}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
             onOpenDeployDialog={onOpenDeployDialog}

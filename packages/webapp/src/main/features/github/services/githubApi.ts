@@ -167,3 +167,37 @@ export const importRepoAsRun = (githubSession: string, owner: string, repo: stri
     { owner, repo, branch: branch || undefined },
     { ...session(githubSession), timeout: 120_000 },
   );
+
+export interface GoLiveResult {
+  commit_sha: string;
+  /** False when the repo already held these exact deploy files. */
+  changed: boolean;
+  render_deploy_url: string;
+  backend_url: string;
+  frontend_url: string | null;
+  backend_dir: string;
+  frontend_dir: string | null;
+  warnings: string[];
+}
+
+/** Fired on `window` to open Go live from anywhere (the GitHub panel); the shell owns the dialog. */
+export const GO_LIVE_EVENT = 'wme:open-go-live';
+
+let goLiveAvailable: Promise<boolean> | null = null;
+
+/** Whether the server deploys the project's own repo ("Go live"); asked once per page load. */
+export const isGoLiveAvailable = (): Promise<boolean> => {
+  goLiveAvailable ??= apiClient
+    .get<{ go_live: boolean }>('/github/app/capabilities')
+    .then((caps) => caps.go_live === true)
+    .catch(() => false);
+  return goLiveAvailable;
+};
+
+/** Commit Render deploy files for the app in the repo; 422 carries the reason a repo cannot go live. */
+export const goLive = (githubSession: string, owner: string, repo: string, branch: string) =>
+  apiClient.post<GoLiveResult>(
+    '/github/app/go-live',
+    { owner, repo, branch },
+    { ...session(githubSession), timeout: 120_000 },
+  );

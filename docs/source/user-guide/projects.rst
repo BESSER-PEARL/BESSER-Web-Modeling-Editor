@@ -250,6 +250,26 @@ the repository when you return to the tab and once a minute.
 - **Update the app code** asks the Spec-Driven Agent to bring the repository's
   app in line with your model. You review the run, then push it.
 
+Going live
+~~~~~~~~~~
+
+For a project linked to a repository, **Deploy > Go live from GitHub** (or
+**Go live** in the GitHub panel) puts the app that is in the repository online
+on Render. What goes live is exactly the repository's code, so the app the
+Spec-Driven Agent built, with every change it made, is the app people use.
+
+1. BESSER adds Render's deploy file to the repository, written for the app's
+   real folders, and commits nothing else.
+2. You open Render, sign in with GitHub and click **Apply**, once. A private
+   repository needs Render to be given access to it first.
+3. From then on every code save to GitHub updates the live app, and saving only
+   the model does not.
+
+Go live supports apps with a FastAPI backend and an optional React (Vite)
+frontend. For anything else it says why and offers the classic deploy, which
+rebuilds the app from the diagrams into a separate repository. Render's free
+plan puts an idle app to sleep, and its database resets on each redeploy.
+
 Model history
 ~~~~~~~~~~~~~
 

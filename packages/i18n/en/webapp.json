@@ -134,7 +134,8 @@
       "title": "Deploy",
       "connectGitHub": "Connect GitHub to Deploy",
       "publishToRender": "Publish to Render…",
-      "connectGitHubFirstHint": "Connect GitHub first"
+      "connectGitHubFirstHint": "Connect GitHub first",
+      "goLive": "Go live from GitHub"
     },
     "community": {
       "title": "Community",
@@ -1467,7 +1468,10 @@
       "historyTitle": "Model history",
       "historyFailed": "Could not load the history.",
       "restoreVersion": "Restore this version",
-      "moreChanges": "and {{count}} more"
+      "moreChanges": "and {{count}} more",
+      "liveTitle": "Live app",
+      "liveHint": "Put this repository's app online on Render. After that, every code save updates it.",
+      "liveCheck": "Check the deploy setup"
     },
     "status": {
       "signedOut": "Connect GitHub to see the repository status",
@@ -1497,6 +1501,22 @@
       "noModel": "No BESSER model in this repository yet.",
       "classes_one": "1 class",
       "showOthers_one": "Show 1 other repository"
+    },
+    "goLive": {
+      "title": "Go live",
+      "freeTier": "Render's free plan puts the app to sleep when nobody uses it (the first visit then takes about a minute), and its database resets on each redeploy.",
+      "description": "Put the app in {{repo}} online. What goes live is exactly the code in the repository.",
+      "step1": "BESSER adds Render's deploy file to {{repo}}, written for the app's folders.",
+      "step2": "You open Render, sign in and click Apply, once.",
+      "step3": "From then on, every code save to GitHub updates the live app. Saving only the model does not.",
+      "ready": "{{repo}} is ready for Render.",
+      "alreadyReady": "{{repo}} was already ready for Render.",
+      "next": "Open Render, sign in with GitHub and click Apply. If the repository is private, Render asks for access to it first.",
+      "addresses": "Your app will be at",
+      "classicHint": "The classic deploy still works: it rebuilds the app from your diagrams into a separate repository, without the changes the agent made.",
+      "openRender": "Open Render",
+      "useClassic": "Use the classic deploy",
+      "prepare": "Prepare {{repo}}"
     }
   },
   "assistant": {

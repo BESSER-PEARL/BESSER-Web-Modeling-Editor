@@ -31,6 +31,8 @@ export interface WorkspaceTopBarProps {
   githubLoading: boolean;
   hasProject: boolean;
   isDeploymentAvailable: boolean;
+  /** Deploy puts the linked repo online (Go live) instead of rebuilding the app. */
+  deployGoesLive?: boolean;
   /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
   onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;

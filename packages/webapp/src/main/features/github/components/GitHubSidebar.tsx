@@ -16,10 +16,12 @@ import {
   FileText,
   GitPullRequest,
   Github,
+  Globe,
   History,
   Loader2,
   PlusCircle,
   RefreshCw,
+  Rocket,
   RotateCcw,
   Settings,
   Share2,
@@ -48,6 +50,8 @@ import {
   createPullRequest,
   createRepoForProject,
   getModelHistory,
+  GO_LIVE_EVENT,
+  isGoLiveAvailable,
   type ModelHistoryEntry,
   type SaveModelResult,
 } from '../services/githubApi';
@@ -101,6 +105,15 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
   const [newRepoDescription, setNewRepoDescription] = useState('');
   const [isRepoPrivate, setIsRepoPrivate] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+
+  const [goLiveAvailable, setGoLiveAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void isGoLiveAvailable().then((available) => !cancelled && setGoLiveAvailable(available));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [showGistModal, setShowGistModal] = useState(false);
   const [gistDescription, setGistDescription] = useState('');
@@ -532,6 +545,47 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             </Button>
           </div>
         </section>
+
+        {goLiveAvailable && (
+          <section className="flex flex-col gap-2">
+            <div className={sectionTitle}>
+              <Globe className="size-3.5" />
+              {t('github.panel.liveTitle', { defaultValue: 'Live app' })}
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card p-3">
+              {link.liveUrl ? (
+                <a
+                  href={link.liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 break-all text-sm font-medium text-brand underline"
+                >
+                  <ExternalLink className="size-3.5 shrink-0" />
+                  {link.liveUrl}
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {t('github.panel.liveHint', {
+                    defaultValue: "Put this repository's app online on Render. After that, every code save updates it.",
+                  })}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  onClose();
+                  window.dispatchEvent(new CustomEvent(GO_LIVE_EVENT));
+                }}
+              >
+                <Rocket className="size-4" />
+                {link.liveUrl
+                  ? t('github.panel.liveCheck', { defaultValue: 'Check the deploy setup' })
+                  : t('github.goLive.title', { defaultValue: 'Go live' })}
+              </Button>
+            </div>
+          </section>
+        )}
 
         <section className="flex flex-col gap-2">
           <div className={sectionTitle}>
