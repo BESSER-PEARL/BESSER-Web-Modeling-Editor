@@ -313,6 +313,21 @@ describe('LlmKeyDialog — model pickers', () => {
     ]);
   });
 
+  // PIA's recommended set (2026-10-26). gpt-5.4 / gpt-5.4-mini were listed by
+  // /v1/models but rejected on /chat/completions as invalid model names.
+  it('offers the PIA gateway recommended models, one Claude and one GPT per tier', () => {
+    expect(modelOptions('pia')).toEqual([
+      '',
+      'claude-sonnet-5-5',
+      'gpt-6.1-sol',
+      'claude-opus-5-5',
+      'gpt-6-astra',
+      'claude-haiku-4-5-20251001',
+      'gpt-6-luna',
+      '__custom__',
+    ]);
+  });
+
   it('offers GPT-6 alongside the GPT-5.6 family', () => {
     expect(modelOptions('openai')).toEqual([
       '',
@@ -383,7 +398,7 @@ describe('LlmKeyDialog — model pickers', () => {
   // pia/local have no server-side default model: "Recommended default" would
   // let the backend request a model the gateway does not serve.
   it.each([
-    ['pia', 'claude-sonnet-4-6'],
+    ['pia', 'claude-sonnet-5-5'],
     ['local', 'qwen2.5-coder:7b'],
   ])('preselects the first %s preset when switching provider', (provider, firstPreset) => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
@@ -404,7 +419,7 @@ describe('LlmKeyDialog — model pickers', () => {
     fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
       target: { value: 'pia' },
     });
-    expect(model.value).toBe('claude-sonnet-4-6');
+    expect(model.value).toBe('claude-sonnet-5-5');
   });
 
   it('keeps "Recommended default" when switching to a provider with a server default', () => {
