@@ -2,7 +2,7 @@ import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { ClassSVG } from "@/components"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { ClassNodeElement, ClassNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -170,18 +170,25 @@ export function Class({
     ]
   )
 
+  // A class fits its rows until the user makes it taller: grow to the
+  // content, and follow the content while the height still fits it (also
+  // the methods-included height, for a UML-saved class shown in ER).
+  const fullContentHeight = calculateMinHeight(
+    headerHeight,
+    attributes.length,
+    methods.length,
+    attributeHeight,
+    methodHeight
+  )
+  const fittedHeight = useRef(minHeight)
   useEffect(() => {
-    // Always snap height to `minHeight`. The NodeResizer already caps
-    // `maxHeight = minHeight`, so heights can never exceed the content
-    // height — but the palette config can drop nodes with default heights
-    // *larger* than the computed minimum (e.g. height: 90 with one
-    // attribute → minHeight 70). Without snapping down, the selection
-    // bounding box stays at the palette default while the SVG only draws
-    // the minHeight band, leaving an empty strip below the visible class.
-    if (height && height !== minHeight) {
+    const fitted =
+      height === fittedHeight.current || height === fullContentHeight
+    fittedHeight.current = minHeight
+    if (height && (height < minHeight || (fitted && height !== minHeight))) {
       setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
     }
-  }, [minHeight, height, id, setNodes])
+  }, [minHeight, fullContentHeight, height, id, setNodes])
 
   useEffect(() => {
     if (width && width < minWidth) {
@@ -193,13 +200,13 @@ export function Class({
   }, [id, setNodes, minWidth])
 
   const finalWidth = Math.max(width ?? 0, minWidth)
+  const finalHeight = Math.max(height ?? 0, minHeight)
 
   return (
     <DefaultNodeWrapper
       width={width}
       height={height}
       elementId={id}
-      className="horizontally-not-resizable"
     >
       <NodeToolbar elementId={id} />
 
@@ -208,7 +215,6 @@ export function Class({
         isVisible={isDiagramModifiable}
         minWidth={minWidth}
         minHeight={minHeight}
-        maxHeight={minHeight}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={classSvgWrapperRef}>
@@ -223,7 +229,7 @@ export function Class({
             we want there). */}
         <ClassSVG
           width={finalWidth}
-          height={minHeight}
+          height={finalHeight}
           data={data}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
