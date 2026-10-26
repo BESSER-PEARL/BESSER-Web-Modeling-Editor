@@ -135,4 +135,40 @@ describe('TopBarUtilities', () => {
 
     expect(screen.getByRole('button', { name: 'Quality Check: Validated' })).toBeInTheDocument();
   });
+
+  const renderSignedIn = (repoStatus: React.ComponentProps<typeof TopBarUtilities>['repoStatus']) =>
+    withTooltips(
+      <TopBarUtilities
+        showQualityCheck={false}
+        outlineButtonClass=""
+        isDarkTheme={false}
+        isAuthenticated
+        username="ana"
+        githubLoading={false}
+        hasStarred={false}
+        starLoading={false}
+        onQualityCheck={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onGitHubLogin={vi.fn()}
+        onGitHubLogout={vi.fn()}
+        onOpenGitHubSidebar={vi.fn()}
+        repoStatus={repoStatus}
+        onToggleStar={vi.fn()}
+      />,
+    );
+
+  it('says "Link to GitHub" when the project has no linked repository', () => {
+    renderSignedIn({ repo: '', state: 'unlinked', behind: 0 });
+
+    const button = screen.getByRole('button', { name: /Link this project to a GitHub repository/ });
+    expect(button).toHaveTextContent('Link to GitHub');
+  });
+
+  it('shows the linked repository and its state instead', () => {
+    renderSignedIn({ repo: 'ana/library-app', state: 'behind', behind: 2 });
+
+    const button = screen.getByRole('button', { name: /ana\/library-app: 2 new commits on GitHub/ });
+    expect(button).toHaveTextContent('ana/library-app');
+    expect(button).not.toHaveTextContent('Link to GitHub');
+  });
 });

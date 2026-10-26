@@ -48,7 +48,8 @@
       "unlinked": "Link this project to a GitHub repository",
       "signed-out": "GitHub",
       "behind_one": "{{repo}}: 1 new commit on GitHub"
-    }
+    },
+    "linkToGithub": "Link to GitHub"
   },
   "nav": {
     "editors": "Editors",

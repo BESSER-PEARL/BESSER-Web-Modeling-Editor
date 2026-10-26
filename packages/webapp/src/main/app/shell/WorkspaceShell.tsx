@@ -1066,7 +1066,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             state: repoSync.state,
             behind: repoSync.status?.commits_since.length ?? 0,
           }
-        : undefined,
+        : { repo: '', state: 'unlinked' as const, behind: 0 },
     [repoSync.link, repoSync.state, repoSync.status],
   );
   const closeGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen(false), []);

@@ -86,6 +86,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
 }) => {
   const { t } = useTranslation();
   const repoTone = repoStatus ? REPO_STATE_TONE[repoStatus.state] : undefined;
+  // No linked repo: say what the button does instead of showing a bare icon.
+  const isUnlinked = repoStatus?.state === 'unlinked';
   const repoLabel = repoStatus
     ? t(`topbar.repoState.${repoStatus.state}`, {
         defaultValue: REPO_STATE_LABEL[repoStatus.state],
@@ -229,7 +231,11 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
               aria-label={`${t('topbar.toggleGithubPanel')}: ${repoLabel}`}
             >
               <GitBranch className="size-4" aria-hidden="true" />
-              <span className="hidden max-w-[11rem] truncate 2xl:inline">{repoStatus?.repo ?? t('topbar.sync')}</span>
+              {isUnlinked ? (
+                <span className="hidden lg:inline">{t('topbar.linkToGithub', { defaultValue: 'Link to GitHub' })}</span>
+              ) : (
+                <span className="hidden max-w-[11rem] truncate 2xl:inline">{repoStatus?.repo || t('topbar.sync')}</span>
+              )}
               {repoTone && (
                 <span
                   aria-hidden="true"
