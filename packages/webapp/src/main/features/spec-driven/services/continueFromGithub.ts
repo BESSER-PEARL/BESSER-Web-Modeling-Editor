@@ -22,6 +22,7 @@ import {
   setProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
+import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { PROJECT_EXPORT_VERSION } from '../../../shared/utils/projectExportUtils';
 import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../github/services/githubApi';
 import { writeProjectLastRun } from '../storage';
@@ -101,6 +102,8 @@ export async function continueFromGithubRepo(args: {
         baseCommitSha: response.commit_sha,
         ...(response.proposed_diagram && response.analysis ? { modelProposal: response.analysis } : {}),
       });
+      // A proposed diagram has no layout of its own: let ELK arrange it when the canvas opens.
+      if (response.proposed_diagram) requestAutoLayoutOnNextSetup();
     }
 
     // Prime the modify base: the next Spec-Driven request edits the repo's code.

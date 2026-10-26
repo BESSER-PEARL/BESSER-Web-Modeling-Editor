@@ -12,6 +12,7 @@ vi.mock('../../../../shared/services/project-import/projectImport', () => ({
 import { continueFromGithubRepo, describeOpenedRepo } from '../continueFromGithub';
 import { getProjectGitHubLink } from '../../../../shared/services/storage/projectGitHubLink';
 import { readProjectLastRun } from '../../storage';
+import { consumeAutoLayoutRequest } from '../../../../shared/utils/autoLayoutSignal';
 
 const HEAD = 'b'.repeat(40);
 const RUN = 'f'.repeat(32);
@@ -20,6 +21,7 @@ afterEach(() => {
   localStorage.clear();
   importRepoAsRun.mockReset();
   importProjectFromJson.mockClear();
+  consumeAutoLayoutRequest(); // the layout request is module state
 });
 
 const ANALYSIS = {
@@ -72,6 +74,8 @@ describe('continueFromGithubRepo', () => {
     expect(getProjectGitHubLink('p-new')?.syncedModel).toBeUndefined();
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
     expect(describeOpenedRepo(result)).toContain('**Accept model**');
+    // The proposal has no layout of its own; the canvas lays it out when it opens.
+    expect(consumeAutoLayoutRequest()).toBe(true);
   });
 
   it('says when the proposal is an AI reading, and keeps that on the link', async () => {
@@ -113,5 +117,6 @@ describe('continueFromGithubRepo', () => {
     expect(getProjectGitHubLink('p-new')?.modelProposal).toBeUndefined();
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
     expect(describeOpenedRepo(result)).toContain('work on its code');
+    expect(consumeAutoLayoutRequest()).toBe(false);
   });
 });
