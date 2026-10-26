@@ -150,8 +150,8 @@ A repository BESSER generated can be reopened later:
    prompted).
 2. Pick the repository and branch.
 3. The editor imports the model that BESSER stored in the repo as a **new
-   project**, links the repo, and primes the modify pointer so your next request
-   edits that application.
+   project**, links the repo at that commit, and primes the modify pointer so
+   your next request edits that application's code as it is on GitHub.
 
 Repositories BESSER did not create are rejected with *"This repo has no BESSER
 model — it wasn't created by BESSER."* Importing never overwrites the project
@@ -161,9 +161,17 @@ Pushing the result to GitHub
 ----------------------------
 
 *Push to GitHub* on a finished run card creates a new repository, or pushes into
-one you already linked. If a repository with the chosen name already exists the
+the project's linked one. If a repository with the chosen name already exists the
 dialog tells you to push to it as an existing repo rather than silently
 overwriting.
+
+A push to the linked repository never reverts other people's work. If commits
+landed on the branch since your last sync (a teammate's push, an edit on
+github.com), BESSER merges them with the run's changes, then loads the merged
+model and uses the merged code as the next run's starting point. If GitHub cannot
+merge them on its own, the push stays on a ``besser/sync-…`` branch and the
+dialog offers a pull request. You can also choose **Open a pull request** up
+front, so your team reviews the change before it lands.
 
 Configuration
 -------------

@@ -91,7 +91,9 @@ The right side of the top bar provides quick-access utilities:
 - **Star**: Star or unstar the BESSER GitHub repository (when signed in).
 - **GitHub account**: Sign in or out of your GitHub account. Once authenticated,
   the Deploy menu becomes available.
-- **Sync**: Synchronize your project with GitHub version control.
+- **GitHub panel** (branch icon): Opens the project's repository panel. Once the
+  project is linked, the button shows the repository and a dot for its state (in
+  sync, unsaved model changes, or new commits on GitHub).
 
 8. Left Sidebar
 ~~~~~~~~~~~~~~~

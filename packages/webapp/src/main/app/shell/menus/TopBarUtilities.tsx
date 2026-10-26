@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { inputBaseClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
-import type { AgentVariantOption } from '../topbar-types';
+import type { AgentVariantOption, RepoStatusSummary } from '../topbar-types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,29 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
+
+// Dot on the GitHub button; no dot while unlinked or signed out.
+const REPO_STATE_TONE: Record<RepoStatusSummary['state'], string | undefined> = {
+  'in-sync': 'bg-success',
+  'local-changes': 'bg-warning',
+  behind: 'bg-warning',
+  diverged: 'bg-warning',
+  checking: 'bg-muted-foreground/50',
+  unknown: 'bg-muted-foreground/50',
+  unlinked: undefined,
+  'signed-out': undefined,
+};
+
+const REPO_STATE_LABEL: Record<RepoStatusSummary['state'], string> = {
+  'in-sync': '{{repo}}: in sync with GitHub',
+  'local-changes': '{{repo}}: model changes not saved to GitHub',
+  behind: '{{repo}}: {{count}} new commits on GitHub',
+  diverged: '{{repo}}: changed here and on GitHub',
+  checking: '{{repo}}: checking GitHub',
+  unknown: '{{repo}}: could not reach GitHub',
+  unlinked: 'Link this project to a GitHub repository',
+  'signed-out': 'GitHub',
+};
 
 interface TopBarUtilitiesProps {
   showQualityCheck: boolean;
@@ -35,6 +58,7 @@ interface TopBarUtilitiesProps {
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
   onOpenGitHubSidebar: () => void;
+  repoStatus?: RepoStatusSummary;
   onToggleStar: () => void;
 }
 
@@ -57,9 +81,18 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onGitHubLogin,
   onGitHubLogout,
   onOpenGitHubSidebar,
+  repoStatus,
   onToggleStar,
 }) => {
   const { t } = useTranslation();
+  const repoTone = repoStatus ? REPO_STATE_TONE[repoStatus.state] : undefined;
+  const repoLabel = repoStatus
+    ? t(`topbar.repoState.${repoStatus.state}`, {
+        defaultValue: REPO_STATE_LABEL[repoStatus.state],
+        repo: repoStatus.repo,
+        count: repoStatus.behind,
+      })
+    : t('topbar.githubVersionControl');
   const qualityStateLabel = qualityCheckState === 'valid'
     ? t('topbar.quality.validated')
     : qualityCheckState === 'errors'
@@ -187,16 +220,22 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <HeaderTooltip label={t('topbar.githubVersionControl')} hideFrom="2xl">
+          <HeaderTooltip label={repoLabel}>
             <Button
               variant="ghost"
               size="sm"
-              className={`gap-1.5 ${outlineButtonClass}`}
+              className={`relative gap-1.5 ${outlineButtonClass}`}
               onClick={onOpenGitHubSidebar}
-              aria-label={t('topbar.toggleGithubPanel')}
+              aria-label={`${t('topbar.toggleGithubPanel')}: ${repoLabel}`}
             >
               <GitBranch className="size-4" aria-hidden="true" />
-              <span className="hidden 2xl:inline">{t('topbar.sync')}</span>
+              <span className="hidden max-w-[11rem] truncate 2xl:inline">{repoStatus?.repo ?? t('topbar.sync')}</span>
+              {repoTone && (
+                <span
+                  aria-hidden="true"
+                  className={cn('absolute right-1 top-1 size-2 rounded-full ring-2 ring-background', repoTone)}
+                />
+              )}
             </Button>
           </HeaderTooltip>
         </>

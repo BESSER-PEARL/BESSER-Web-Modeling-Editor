@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
+import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -1056,6 +1057,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const openDeployDialog = useStableCallback(handleOpenDeployDialog);
   const openProjectPreview = useStableCallback(handleOpenProjectPreview);
   const toggleGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen((previous) => !previous), []);
+  const repoSync = useRepoSync();
+  const repoStatus = useMemo(
+    () =>
+      repoSync.link
+        ? {
+            repo: `${repoSync.link.owner}/${repoSync.link.repo}`,
+            state: repoSync.state,
+            behind: repoSync.status?.commits_since.length ?? 0,
+          }
+        : undefined,
+    [repoSync.link, repoSync.state, repoSync.status],
+  );
   const closeGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen(false), []);
   const openHelpDialog = useCallback(() => setIsHelpDialogOpen(true), [setIsHelpDialogOpen]);
   const openAboutDialog = useCallback(() => setIsAboutDialogOpen(true), [setIsAboutDialogOpen]);
@@ -1109,6 +1122,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
         onOpenGitHubSidebar={toggleGitHubSidebar}
+        repoStatus={repoStatus}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}

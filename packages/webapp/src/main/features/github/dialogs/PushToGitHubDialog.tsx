@@ -15,7 +15,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Github, Loader2 } from 'lucide-react';
+import { AlertTriangle, ExternalLink, GitMerge, GitPullRequest, Github, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,8 +33,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
 import { validateRepoName } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
-import type { DeployLinkedRepo } from '../../../shared/services/storage/local-storage-repository';
-import { useGitHubStorage } from '../hooks/useGitHubStorage';
+import type { ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
+import { listBranches, listRepos, type RepoListing } from '../services/githubApi';
 import type {
   SpecDrivenPushConfig,
   SpecDrivenPushResult,
@@ -59,13 +59,14 @@ export interface PushToGitHubDialogProps {
   open: boolean;
   runId: string | null;
   projectName: string;
-  linkedRepo: DeployLinkedRepo | null;
+  linkedRepo: ProjectGitHubLink | null;
   githubSession: string | null;
   isPushing: boolean;
   result: SpecDrivenPushResult | null;
   onOpenChange: (open: boolean) => void;
   onChangeRepo: () => void;
   push: (config: SpecDrivenPushConfig) => Promise<SpecDrivenPushOutcome>;
+  openConflictPullRequest: () => Promise<string | null>;
 }
 
 export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
@@ -78,9 +79,22 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
   onOpenChange,
   onChangeRepo,
   push,
+  openConflictPullRequest,
 }) => {
   const { t } = useTranslation();
-  const { repositories, isLoading: reposLoading, fetchRepositories, fetchBranches } = useGitHubStorage();
+  const [repositories, setRepositories] = useState<RepoListing[]>([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const fetchRepositories = async (session: string) => {
+    setReposLoading(true);
+    try {
+      setRepositories(await listRepos(session));
+    } catch {
+      setRepositories([]);
+    } finally {
+      setReposLoading(false);
+    }
+  };
+  const [pushMode, setPushMode] = useState<'commit' | 'pull_request'>('commit');
 
   const isUpdateMode = !!linkedRepo && !result;
 
@@ -122,6 +136,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
       setIsPrivate(true);
       setCreateBranch(DEFAULT_BRANCH);
       setCommitMessage('');
+      setPushMode('commit');
       setSelectedRepoFullName('');
       setBranches([]);
       setSelectedBranch('');
@@ -153,7 +168,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
     if (!repo || !githubSession) return;
     setLoadingBranches(true);
     const [owner] = repo.full_name.split('/');
-    const list = await fetchBranches(githubSession, owner, repo.name);
+    const list = await listBranches(githubSession, owner, repo.name).catch(() => []);
     if (requestId !== branchRequestRef.current) return;
     setLoadingBranches(false);
     const resolved = list.length > 0 ? list : [repo.default_branch].filter(Boolean);
@@ -172,6 +187,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
         isPrivate,
         branch: linkedRepo.branch || DEFAULT_BRANCH,
         commitMessage: commitMessage.trim() || undefined,
+        pushMode,
       };
     } else if (mode === 'existing') {
       const repo = repositories.find((r) => r.full_name === selectedRepoFullName);
@@ -221,36 +237,80 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
         ? !!selectedRepoFullName
         : validation.isValid);
 
-  // ── Success view ───────────────────────────────────────────────────────
+  // ── Result view ────────────────────────────────────────────────────────
   if (result?.success) {
+    const isConflict = result.status === 'conflict';
+    const summary =
+      result.status === 'merged'
+        ? t('github.push.successMerged', {
+            defaultValue: 'Merged with the commits made on GitHub since your last sync. Nothing was overwritten, and the editor now shows the merged model.',
+          })
+        : result.status === 'pull_request'
+          ? t('github.push.successPullRequest', { defaultValue: 'Your changes are in a pull request, ready for review.' })
+          : isConflict
+            ? t('github.push.conflict', {
+                defaultValue:
+                  'Someone changed the same files on GitHub since your last sync, so GitHub could not merge this push on its own. Your push is on the branch {{branch}}; nothing was overwritten.',
+                branch: result.conflict_branch,
+              })
+            : result.is_first_push
+              ? t('github.push.successCreated')
+              : t('github.push.successUpdated');
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Github className="size-5" />
-              {t('github.push.successTitle')}
+              {isConflict ? <AlertTriangle className="size-5 text-warning" /> : result.status === 'merged' ? <GitMerge className="size-5" /> : <Github className="size-5" />}
+              {isConflict ? t('github.push.conflictTitle', { defaultValue: 'Needs a merge' }) : t('github.push.successTitle')}
             </DialogTitle>
-            <DialogDescription>
-              {result.is_first_push ? t('github.push.successCreated') : t('github.push.successUpdated')}
-            </DialogDescription>
+            <DialogDescription>{summary}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+            <div
+              className={`rounded-md border px-3 py-2 text-sm ${
+                isConflict ? 'border-warning/30 bg-warning/10 text-warning' : 'border-success/30 bg-success/10 text-success'
+              }`}
+            >
               <p className="font-medium">
                 {result.owner}/{result.repo_name}
+                <span className="text-xs opacity-80">@{result.branch}</span>
               </p>
               <p className="text-xs">{t('github.push.filesUploaded', { count: result.files_uploaded })}</p>
             </div>
-            <a
-              href={result.repo_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand underline"
-            >
-              <ExternalLink className="size-4" />
-              {t('github.linked.openOnGitHub')}
-            </a>
+            {result.pull_request_url ? (
+              <a
+                href={result.pull_request_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand underline"
+              >
+                <GitPullRequest className="size-4" />
+                {t('github.push.viewPullRequest', { defaultValue: 'View the pull request' })}
+              </a>
+            ) : isConflict ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 self-start"
+                onClick={() => {
+                  void openConflictPullRequest().then((url) => url && window.open(url, '_blank', 'noopener,noreferrer'));
+                }}
+              >
+                <GitPullRequest className="size-4" />
+                {t('github.push.openPullRequest', { defaultValue: 'Open a pull request to merge it' })}
+              </Button>
+            ) : (
+              <a
+                href={result.repo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand underline"
+              >
+                <ExternalLink className="size-4" />
+                {t('github.linked.openOnGitHub')}
+              </a>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={() => onOpenChange(false)}>{t('github.push.done')}</Button>
@@ -314,6 +374,42 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                   placeholder={t('github.push.commitMessagePlaceholder')}
                 />
               </FormField>
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-medium">{t('github.push.howTitle', { defaultValue: 'How to push' })}</legend>
+                {(['commit', 'pull_request'] as const).map((value) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      pushMode === value ? 'border-brand/50 bg-brand/5' : 'border-border/70 hover:bg-muted/40'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="push-mode"
+                      value={value}
+                      checked={pushMode === value}
+                      onChange={() => setPushMode(value)}
+                      className="mt-1 accent-brand"
+                    />
+                    <span className="flex flex-col">
+                      <span className="font-medium">
+                        {value === 'commit'
+                          ? t('github.push.modeCommit', { defaultValue: 'Commit to {{branch}}', branch: linkedRepo.branch || DEFAULT_BRANCH })
+                          : t('github.push.modePullRequest', { defaultValue: 'Open a pull request' })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {value === 'commit'
+                          ? t('github.push.modeCommitHint', {
+                              defaultValue: 'Commits made on GitHub since your last sync are merged in, never overwritten.',
+                            })
+                          : t('github.push.modePullRequestHint', {
+                              defaultValue: 'Your team reviews the change on GitHub before it lands. Best for shared repositories.',
+                            })}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
             </>
           ) : (
             <>
@@ -458,7 +554,13 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
           </Button>
           <Button type="submit" disabled={!canSubmit} className="gap-1.5">
             {isPushing ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
-            {isPushing ? t('github.commit.pushing') : isUpdateMode ? t('github.push.pushUpdate') : t('github.commit.title')}
+            {isPushing
+              ? t('github.commit.pushing')
+              : isUpdateMode
+                ? pushMode === 'pull_request'
+                  ? t('github.push.modePullRequest', { defaultValue: 'Open a pull request' })
+                  : t('github.push.pushUpdate')
+                : t('github.commit.title')}
           </Button>
         </DialogFooter>
         </form>

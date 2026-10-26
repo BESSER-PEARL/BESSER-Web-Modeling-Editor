@@ -44,6 +44,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onGitHubLogin,
   onGitHubLogout,
   onOpenGitHubSidebar,
+  repoStatus,
   hasStarred,
   starLoading,
   onToggleStar,
@@ -180,6 +181,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
             onOpenGitHubSidebar={onOpenGitHubSidebar}
+            repoStatus={repoStatus}
             onToggleStar={onToggleStar}
           />
           <div className="hidden sm:contents">

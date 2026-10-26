@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { BesserProject } from '../../../shared/types/project';
-import { LinkedRepository, useGitHubStorage } from './useGitHubStorage';
-import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 
 // LocalStorage key for auto-commit settings
 const AUTO_COMMIT_SETTINGS_KEY = 'besser_github_auto_commit';
@@ -15,30 +12,40 @@ export interface AutoCommitSettings {
 }
 
 interface UseAutoCommitProps {
-    githubSession: string | null;
     projectId: string | null;
-    linkedRepo: LinkedRepository | null;
+    /** The project is linked and GitHub is connected. */
+    canCommit: boolean;
+    hasLocalChanges: boolean;
     saveCurrentEditorState: () => void;
+    /** Commit the model (useRepoSync's save). */
+    save: (commitMessage: string) => Promise<{ status: string }>;
 }
 
 /**
  * Hook for managing auto-commit functionality.
- * Automatically commits changes to GitHub at specified intervals.
+ * Commits the model to the linked repository at the chosen interval, when it changed.
  */
 export const useAutoCommit = ({
-    githubSession,
     projectId,
-    linkedRepo,
+    canCommit,
+    hasLocalChanges,
     saveCurrentEditorState,
+    save,
 }: UseAutoCommitProps) => {
     const { t } = useTranslation();
-    const { saveProjectToGitHub, checkForChanges } = useGitHubStorage();
     const [settings, setSettings] = useState<AutoCommitSettings>({
         enabled: false,
         intervalMinutes: 10,
     });
     const [isAutoCommitting, setIsAutoCommitting] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    // Read at tick time: these change on every sync check, which must not restart the interval.
+    const hasChangesRef = useRef(hasLocalChanges);
+    hasChangesRef.current = hasLocalChanges;
+    const saveRef = useRef(save);
+    saveRef.current = save;
+    const flushRef = useRef(saveCurrentEditorState);
+    flushRef.current = saveCurrentEditorState;
 
     // Load settings from localStorage
     useEffect(() => {
@@ -82,43 +89,16 @@ export const useAutoCommit = ({
 
     // Perform auto-commit
     const performAutoCommit = useCallback(async () => {
-        if (!githubSession || !projectId || !linkedRepo) {
-            return;
-        }
-
-        // Save current editor state first
-        saveCurrentEditorState();
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Get latest project
-        const project = ProjectStorageRepository.loadProject(projectId);
-        if (!project) {
-            console.error('Auto-commit: Could not load project');
-            return;
-        }
-
-        // Check if there are actual changes
-        const hasChanges = await checkForChanges(githubSession, project, linkedRepo);
-        if (!hasChanges) {
-            console.log('Auto-commit: No changes detected');
+        flushRef.current();
+        if (!hasChangesRef.current) {
             return;
         }
 
         setIsAutoCommitting(true);
-
         try {
             const timestamp = new Date().toLocaleString();
-            const result = await saveProjectToGitHub(
-                githubSession,
-                project,
-                linkedRepo.owner,
-                linkedRepo.repo,
-                t('github.toasts.autoSaveCommitMessage', { timestamp }),
-                linkedRepo.branch,
-                linkedRepo.filePath
-            );
-
-            if (result.success) {
+            const result = await saveRef.current(t('github.toasts.autoSaveCommitMessage', { timestamp }));
+            if (result.status !== 'conflict') {
                 updateSettings({ lastAutoCommitAt: new Date().toISOString() });
                 toast.info(t('github.toasts.autoSaved'), { autoClose: 2000 });
             }
@@ -127,25 +107,19 @@ export const useAutoCommit = ({
         } finally {
             setIsAutoCommitting(false);
         }
-    }, [githubSession, projectId, linkedRepo, saveCurrentEditorState, checkForChanges, saveProjectToGitHub, updateSettings, t]);
+    }, [updateSettings, t]);
 
     // Set up interval for auto-commit
     useEffect(() => {
-        // Clear existing interval
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
 
-        // Only set up if enabled and all required data is available
-        if (settings.enabled && githubSession && projectId && linkedRepo && linkedRepo.lastSyncedAt) {
-            const intervalMs = settings.intervalMinutes * 60 * 1000;
-
+        if (settings.enabled && canCommit) {
             intervalRef.current = setInterval(() => {
-                performAutoCommit();
-            }, intervalMs);
-
-            console.log(`Auto-commit enabled: every ${settings.intervalMinutes} minutes`);
+                void performAutoCommit();
+            }, settings.intervalMinutes * 60 * 1000);
         }
 
         return () => {
@@ -153,7 +127,7 @@ export const useAutoCommit = ({
                 clearInterval(intervalRef.current);
             }
         };
-    }, [settings.enabled, settings.intervalMinutes, githubSession, projectId, linkedRepo, performAutoCommit]);
+    }, [settings.enabled, settings.intervalMinutes, canCommit, performAutoCommit]);
 
     return {
         settings,

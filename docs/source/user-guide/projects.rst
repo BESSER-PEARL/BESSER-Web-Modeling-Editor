@@ -200,39 +200,63 @@ opaque session id. That session id is held in this browser tab
 ``localStorage`` for convenience. Sign out from the account dropdown in the top
 bar.
 
-Saving a Project to GitHub
+One repository per project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can save your project to a new or existing GitHub repository:
+A project is linked to **one** repository. The GitHub panel, the Spec-Driven
+Agent's *Push to GitHub* and *Continue from GitHub* all use that same link, and
+the link is also written into the repository, so any browser that opens the repo
+finds its project again. Every repository BESSER writes has the same layout:
 
-- **New repository**: Click **Create Repository**, enter a name and description, then push. The editor
-  creates the repo and commits your project JSON file.
-- **Existing repository**: Click **Link Repository**, browse your repos, select one, choose a branch
-  and file path, then push. The project JSON is saved to that location.
+- ``buml/diagrams.json``: the model, the only file the editor reads back.
+- ``buml/*.py``: the same model as B-UML Python source, for reading without the
+  editor.
+- ``.besser/project.json``: which BESSER project the repository belongs to.
+- the app code, when the Spec-Driven Agent built one.
 
-Each push creates a commit with your project data. The editor also exports raw B-UML Python files
-(``domain_model.py``, ``agent_model.py``) into a ``buml/`` directory alongside the JSON, so your
-project can be maintained even without the web editor.
+BESSER also tags the repository with the ``besser`` topic, which is how the
+repository browser lists your BESSER projects first. Older repositories that
+hold a ``besser-project.json`` still open; the first save moves the model to
+``buml/diagrams.json`` and removes the old file in the same commit.
 
-Opening a Previously Synced Project
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Linking a repository
+~~~~~~~~~~~~~~~~~~~~
 
-To reopen a project that was saved to GitHub:
+Open the GitHub panel (the branch button in the top bar). For a project without
+a repository you can:
 
-1. Open the GitHub panel in the sidebar.
-2. Click **Link Repository** and select the repo and branch where your project is stored.
-3. Browse the repository contents and select the ``.json`` project file.
-4. Click **Pull** to load the project from GitHub into the editor.
+- **Create a repository**: name it and choose private or public. The first
+  commit holds the model and a README.
+- **Link an existing repository**: the browser lists your BESSER projects first
+  (search reaches every repository). Selecting one shows its model, its
+  diagrams and classes, and its last commit with who made it. If it already
+  holds a model you choose between loading that model and keeping yours.
 
-The sync connection is remembered per project. Subsequent pushes go to the same repo/branch/file
-without needing to relink.
+Staying in sync
+~~~~~~~~~~~~~~~
 
-Commit History
-~~~~~~~~~~~~~~
+The top bar shows the linked repository and a dot for its state: in sync,
+model changes not saved yet, new commits on GitHub, or both. The editor checks
+the repository when you return to the tab and once a minute.
 
-The GitHub panel shows the last ten commits touching your project file, with
-author, date and short SHA. Click any earlier commit to restore that version of
-the project.
+- **Save to GitHub** commits the model. If someone pushed since your last sync,
+  BESSER merges their commits with yours instead of overwriting them, and the
+  editor then shows the merged model. When GitHub cannot merge the two on its own
+  (both changed the same part of the model), your save goes to a ``besser/sync-…``
+  branch and the panel offers a pull request. Nothing is overwritten.
+- **Pull the latest version** loads the repository's model, and its code as the
+  starting point of the next Spec-Driven Agent run. It asks first when you have
+  unsaved model changes.
+- **Update the app code** asks the Spec-Driven Agent to bring the repository's
+  app in line with your model. You review the run, then push it.
+
+Model history
+~~~~~~~~~~~~~
+
+The panel lists recent commits that changed the model. Each one says who made
+it (the Spec-Driven Agent, the editor, or a person on GitHub), when, and what
+it changed in the class diagram, for example ``class Loan added``. Restore any
+earlier version into the editor; it then counts as an unsaved change.
 
 Auto-commit
 ~~~~~~~~~~~
@@ -251,6 +275,8 @@ Continuing from a GitHub repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A repository that BESSER itself generated can be reopened from the project hub's
-**Continue from GitHub** card. This imports the stored model as a new project and
-links the repo, so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep
-editing the application it built earlier.
+**Continue from GitHub** card, which uses the same repository browser. This
+imports the stored model as a new project and links the repo at the imported
+commit, so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep editing the
+application it built earlier. If a project in this browser is already linked to
+that repository, the hub pulls into that project instead of making a copy.

@@ -384,6 +384,29 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   }
 }
 
+/**
+ * Store a repository's model file (`buml/diagrams.json`, a V2 export envelope,
+ * or an older repo's bare project file) as the project `projectId`, replacing
+ * it. Used to pull a linked repo or restore one of its versions in place.
+ */
+export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
+  let base: BesserProject;
+  let personalization: ImportedPersonalization | undefined;
+  if (isOldWebappFormat(data)) {
+    base = migrateOldWebappProject(data);
+  } else if (validateV2ExportData(data)) {
+    base = data.project;
+    personalization = extractPersonalization(data);
+  } else if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    base = data as BesserProject;
+  } else {
+    throw new Error('This file is not a BESSER model.');
+  }
+  const project = fillMissingDiagrams({ ...base, id: projectId });
+  storeImportedProject(project, personalization);
+  return project;
+}
+
 // Import from JSON file
 export async function importProjectFromJson(file: File): Promise<BesserProject> {
   return new Promise((resolve, reject) => {

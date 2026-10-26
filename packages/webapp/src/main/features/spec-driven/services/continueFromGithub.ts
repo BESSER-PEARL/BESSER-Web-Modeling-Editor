@@ -1,32 +1,21 @@
 /**
- * Continue-from-GitHub via CHAT (`trigger_github_import` agent action).
+ * Open a BESSER-created GitHub repo as a new project and keep working on it.
  *
- * Mirrors ProjectHubDialog's `handleContinueGithubRepo` sequence without
- * touching that dialog (it is being reworked separately): import the
- * BESSER-created repo as a modify seed, load the returned project, link
- * the push target, and prime the modify base so the next Spec-Driven
- * request auto-selects mode=modify + base_run_id.
+ * The one path behind the Project Hub's "Continue from GitHub", the chat's
+ * `trigger_github_import` action and the repo browser: import the repo as a
+ * modify seed, load its model into a fresh project, link that project to the
+ * repo at the imported commit, and prime the modify base so the next
+ * Spec-Driven request auto-selects mode=modify + base_run_id.
  *
- * The caller (useAssistantLogic) owns store dispatch and project loading —
- * this module stays hook-free so it can be unit-tested directly.
+ * The caller owns store dispatch and loading the project; this module stays
+ * hook-free so it can be unit-tested directly.
  */
-import { apiClient, ApiError } from '../../../shared/api/api-client';
+import { ApiError } from '../../../shared/api/api-client';
 import { importProjectFromJson } from '../../../shared/services/project-import/projectImport';
-import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { markProjectGitHubSynced } from '../../../shared/services/storage/projectGitHubLink';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
+import { importRepoAsRun } from '../../github/services/githubApi';
 import { writeProjectLastRun } from '../storage';
-
-const GITHUB_TARGET = 'github';
-
-interface ImportGitHubRunResponse {
-  run_id: string;
-  project: unknown | null;
-  has_model: boolean;
-  owner: string;
-  repo: string;
-  branch: string;
-  message?: string;
-}
 
 export interface ContinueFromGithubResult {
   ok: boolean;
@@ -55,11 +44,7 @@ export async function continueFromGithubRepo(args: {
   githubSession: string;
 }): Promise<ContinueFromGithubResult> {
   try {
-    const response = await apiClient.post<ImportGitHubRunResponse>(
-      '/spec-driven/import-github-run',
-      { owner: args.owner, repo: args.repo, branch: args.branch || undefined },
-      { headers: { 'X-GitHub-Session': args.githubSession } },
-    );
+    const response = await importRepoAsRun(args.githubSession, args.owner, args.repo, args.branch);
 
     if (!response.has_model || !response.project) {
       return {
@@ -80,12 +65,14 @@ export async function continueFromGithubRepo(args: {
     });
     const imported = await importProjectFromJson(file);
 
-    // Link the push target so a later Spec-Driven push updates the SAME repo.
-    LocalStorageRepository.setDeployLinkedRepo(imported.id, GITHUB_TARGET, {
-      owner: response.owner,
-      repo: response.repo,
-      branch: response.branch,
-    });
+    // Link the project to the repo at the imported commit, so a later push
+    // updates the SAME repo and merges any commits made after this one.
+    markProjectGitHubSynced(
+      { owner: response.owner, repo: response.repo, branch: response.branch },
+      imported,
+      response.commit_sha,
+      { loadedFromRepo: true },
+    );
 
     // Prime the modify base: the next Spec-Driven request auto-selects
     // mode=modify + base_run_id via decideRunMode.

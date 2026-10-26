@@ -37,7 +37,18 @@
       "needsRecheck": "Needs recheck",
       "notValidated": "Not validated"
     },
-    "more": "More"
+    "more": "More",
+    "repoState": {
+      "in-sync": "{{repo}}: in sync with GitHub",
+      "local-changes": "{{repo}}: model changes not saved to GitHub",
+      "behind": "{{repo}}: {{count}} new commits on GitHub",
+      "diverged": "{{repo}}: changed here and on GitHub",
+      "checking": "{{repo}}: checking GitHub",
+      "unknown": "{{repo}}: could not reach GitHub",
+      "unlinked": "Link this project to a GitHub repository",
+      "signed-out": "GitHub",
+      "behind_one": "{{repo}}: 1 new commit on GitHub"
+    }
   },
   "nav": {
     "editors": "Editors",
@@ -1410,7 +1421,81 @@
       "successCreated": "Repository created and files pushed.",
       "successTitle": "Pushed to GitHub",
       "successUpdated": "Repository updated with your latest generation.",
-      "useExisting": "Use Existing Repository"
+      "useExisting": "Use Existing Repository",
+      "successMerged": "Merged with the commits made on GitHub since your last sync. Nothing was overwritten, and the editor now shows the merged model.",
+      "successPullRequest": "Your changes are in a pull request, ready for review.",
+      "conflict": "Someone changed the same files on GitHub since your last sync, so GitHub could not merge this push on its own. Your push is on the branch {{branch}}; nothing was overwritten.",
+      "conflictTitle": "Needs a merge",
+      "viewPullRequest": "View the pull request",
+      "openPullRequest": "Open a pull request to merge it",
+      "howTitle": "How to push",
+      "modeCommit": "Commit to {{branch}}",
+      "modePullRequest": "Open a pull request",
+      "modeCommitHint": "Commits made on GitHub since your last sync are merged in, never overwritten.",
+      "modePullRequestHint": "Your team reviews the change on GitHub before it lands. Best for shared repositories."
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Person"
+    },
+    "panel": {
+      "conflictToast": "GitHub could not merge your save automatically.",
+      "savedMerged": "Saved, and merged with the newer changes on GitHub.",
+      "saved": "Model saved to GitHub.",
+      "prTitle": "Model changes from the BESSER editor",
+      "repoHasModelTitle": "This repository already holds a model",
+      "repoHasModelDescription": "{{repo}} holds \"{{name}}\". Load it into this project, replacing the model you have open? Choose Cancel to keep your model; it replaces the repository's on your next save.",
+      "loadRepoModel": "Load the repository model",
+      "linked": "Linked to {{repo}}. Save to put your model in it.",
+      "created": "Created {{repo}} with your model.",
+      "notLinkedHint": "A linked repository keeps your model, its history and your app code in one place, for you and your team.",
+      "linkAction": "Link to this project",
+      "newOnGitHub": "New on GitHub since your last sync",
+      "pullLatest": "Pull the latest version",
+      "saveTitle": "Save the model",
+      "commitPlaceholder": "What changed? e.g. Add the Loan class",
+      "saveAction": "Save to GitHub",
+      "nothingToSave": "Your model matches the repository.",
+      "conflict": "Your save and a newer change on GitHub touch the same part of the model, so GitHub could not merge them. Your save is on the branch {{branch}}; nothing was overwritten.",
+      "prOpened": "Pull request opened",
+      "openPr": "Open a pull request to merge it",
+      "codeTitle": "App code",
+      "codeHint": "The Spec-Driven Agent updates this repository's app to match your model. You review the run, then push it here.",
+      "updateCode": "Update the app code",
+      "historyTitle": "Model history",
+      "historyFailed": "Could not load the history.",
+      "restoreVersion": "Restore this version",
+      "moreChanges": "and {{count}} more"
+    },
+    "status": {
+      "signedOut": "Connect GitHub to see the repository status",
+      "unlinked": "Not linked to a repository",
+      "unknown": "Could not reach the repository",
+      "inSync": "In sync with GitHub",
+      "localChanges": "Model changes not saved to GitHub",
+      "behind": "{{count}} new commits on GitHub",
+      "diverged": "Changed here and on GitHub ({{count}} new commits). Save to merge both, or pull to take the GitHub version.",
+      "behind_one": "1 new commit on GitHub",
+      "diverged_one": "Changed here and on GitHub (1 new commit). Save to merge both, or pull to take the GitHub version."
+    },
+    "repoBrowser": {
+      "private": "Private",
+      "search": "Search your repositories",
+      "refresh": "Refresh repositories",
+      "loading": "Loading your repositories…",
+      "loadFailed": "Could not load your repositories. Check your GitHub connection and try again.",
+      "besserRepos": "BESSER projects",
+      "noBesserMatch": "No BESSER project matches your search.",
+      "noBesserRepos": "None yet. Repositories you push from BESSER show up here.",
+      "otherRepos": "Other repositories",
+      "showOthers": "Show {{count}} other repositories",
+      "reading": "Reading the repository…",
+      "summaryFailed": "Could not read this repository.",
+      "classes": "{{count}} classes",
+      "noModel": "No BESSER model in this repository yet.",
+      "classes_one": "1 class",
+      "showOthers_one": "Show 1 other repository"
     }
   },
   "assistant": {
