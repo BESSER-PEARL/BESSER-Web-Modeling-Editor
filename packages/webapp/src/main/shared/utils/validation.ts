@@ -210,6 +210,19 @@ export const validateNumberRange = (
   return undefined;
 };
 
+/**
+ * Validates that a number is at least `min`, with no upper bound.
+ */
+export const validateMinimum = (value: number, min: number, fieldLabel: string): string | undefined => {
+  if (isNaN(value)) {
+    return `${fieldLabel} must be a number.`;
+  }
+  if (value < min) {
+    return `${fieldLabel} must be at least ${min.toLocaleString()}.`;
+  }
+  return undefined;
+};
+
 // ── Combinator ──────────────────────────────────────────────────────────
 
 /**

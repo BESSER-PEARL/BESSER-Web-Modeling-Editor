@@ -65,8 +65,8 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     label: 'In development',
   },
   NNDiagram: {
-    generators: ['pytorch', 'tensorflow'],
-    label: '2 generators',
+    generators: ['pytorch', 'tensorflow', 'forecaster'],
+    label: '3 generators',
   },
 };
 

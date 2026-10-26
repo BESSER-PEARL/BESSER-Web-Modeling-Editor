@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { MetricCardConfig } from '../configs/metricCardConfigs';
+import { markEndpointTrait } from '../configs/endpoint';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions } from '../diagram-helpers';
 
 /**
@@ -101,6 +102,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
               const attrs = { ...(this.get('attributes') || {}) };
               attrs[trait.name] = this.get(trait.name);
               this.set('attributes', attrs);
+              if (trait.name === 'data-endpoint') markEndpointTrait(this, attrs[trait.name]);
               // Re-render metric card for any trait change
               this.renderMetricCard();
             });

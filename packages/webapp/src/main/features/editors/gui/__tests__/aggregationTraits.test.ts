@@ -29,3 +29,30 @@ describe('aggregation traits', () => {
     expect(trait.options.map((o: { value: string }) => o.value)).toEqual(BACKEND_AGGREGATIONS);
   });
 });
+
+const endpointTrait = (traits: { name: string }[]) => traits.find((t) => t.name === 'data-endpoint') as any;
+
+describe('endpoint traits', () => {
+  it('lets a metric card read from an endpoint, none by default, with a hint', () => {
+    const trait = endpointTrait(getMetricCardConfig().traits);
+    expect(trait).toMatchObject({ type: 'text', value: '' });
+    expect(trait.placeholder).toBeTruthy();
+  });
+
+  it('lets a chart with its own data source read from an endpoint', () => {
+    const configs = getChartConfigs();
+    for (const id of ['line-chart', 'bar-chart', 'radar-chart']) {
+      const config = configs.find((c) => c.id === id)!;
+      expect(endpointTrait(config.traits), id).toMatchObject({ type: 'text', value: '' });
+      expect(config.traits.findIndex((t) => t.name === 'data-endpoint'))
+        .toBeGreaterThan(config.traits.findIndex((t) => t.name === 'data-source'));
+    }
+  });
+
+  it('gives no endpoint to a chart without a chart-level data source (its series have one)', () => {
+    const configs = getChartConfigs();
+    for (const id of ['pie-chart', 'radial-bar-chart']) {
+      expect(endpointTrait(configs.find((c) => c.id === id)!.traits), id).toBeUndefined();
+    }
+  });
+});

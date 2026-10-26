@@ -182,6 +182,70 @@ test.describe('Project management', () => {
   });
 });
 
+test.describe('From Data', () => {
+  const providers = {
+    providers: [{ key: 'eurostat', name: 'Eurostat', baseUrl: 'https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1', agency: 'ESTAT' }],
+    customUrlAllowed: false,
+  };
+  const diagram = {
+    title: 'UneRtM',
+    model: { type: 'ClassDiagram', elements: {}, relationships: {} },
+    diagramType: 'ClassDiagram',
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+    });
+    await page.reload();
+  });
+
+  test('creates a project from an SDMX dataflow, and none when the dataflow does not exist', async ({ page }) => {
+    let imports = 0;
+    await page.route('**/besser_api/sdmx-providers', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(providers) }),
+    );
+    await page.route('**/besser_api/sdmx-to-domain-model', async (route) => {
+      imports += 1;
+      const body = route.request().postDataJSON();
+      if (body.dataflow === 'nope') {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'Dataflow ESTAT:nope not found at Eurostat' }),
+        });
+        return;
+      }
+      expect(body).toEqual({ provider: 'eurostat', dataflow: 'une_rt_m' });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(diagram) });
+    });
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await dialog.getByRole('button', { name: 'More options' }).click();
+    await dialog.getByText('From Data').first().click();
+    await expect(dialog.getByText('Start from Data')).toBeVisible();
+
+    await dialog.getByRole('radio', { name: /Statistics API \(SDMX\)/ }).click();
+    const dataflow = dialog.getByLabel(/^Dataflow/);
+    const submit = dialog.getByRole('button', { name: /create from sdmx/i });
+
+    await dataflow.fill('nope');
+    await submit.click();
+    await expect(page.getByText(/Dataflow ESTAT:nope not found at Eurostat/)).toBeVisible({ timeout: 10_000 });
+    await expect(dialog).toBeVisible();
+    // No project was saved (besser_project_<id>) by the failed import.
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('besser_project_')).length)).toBe(0);
+
+    await dataflow.fill('une_rt_m');
+    await submit.click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+    expect(imports).toBe(2);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

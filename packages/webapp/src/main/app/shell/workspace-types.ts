@@ -16,6 +16,7 @@ export type GeneratorType =
   | 'jsonobject'
   | 'pytorch'
   | 'tensorflow'
+  | 'forecaster'
   | 'bpmn'
   | 'test_case';
 
