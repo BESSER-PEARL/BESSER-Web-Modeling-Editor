@@ -149,7 +149,7 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     value: 'pia',
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
-    hint: 'Your personal LIST PIA Gateway key (starts with sk-). Runs on LIST infrastructure.',
+    hint: "Your personal LIST PIA Gateway key (starts with sk-). Goes through LIST's governed AI gateway.",
     expectedPrefix: 'sk-',
   },
   {
@@ -559,6 +559,15 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     providerLockedRef.current = true;
     if (next === 'local' && baseUrl.trim() === '') {
       setBaseUrl(DEFAULT_LOCAL_BASE_URL);
+    }
+    // pia/local have no server-side default model (see _classifyStoredModel),
+    // so preselect their first preset instead of "Recommended default".
+    if (
+      _needsBaseUrl(next) &&
+      modelChoice !== CUSTOM_MODEL_VALUE &&
+      !MODEL_PRESETS[next].some((p) => p.value === modelChoice)
+    ) {
+      setModelChoice(MODEL_PRESETS[next][0].value);
     }
   };
 
