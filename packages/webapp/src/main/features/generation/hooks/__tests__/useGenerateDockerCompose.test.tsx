@@ -13,6 +13,7 @@ const mockDownloadFile = vi.fn();
 vi.mock('react-toastify', () => ({
   toast: {
     error: vi.fn(),
+    info: vi.fn(),
     success: vi.fn(),
     warning: vi.fn(),
   },

@@ -30,6 +30,18 @@ type ClassifierMemberRow = {
 };
 import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
+/**
+ * Use the spec's id when it is a free string within this build (whole-system
+ * builds only); otherwise generate one.
+ */
+function takeId(specId: unknown, prefix: string, usedIds?: Set<string>): string {
+  const id = usedIds && typeof specId === 'string' && specId.trim() && !usedIds.has(specId)
+    ? specId
+    : generateUniqueId(prefix);
+  usedIds?.add(id);
+  return id;
+}
+
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
 
@@ -41,17 +53,18 @@ export class ClassDiagramConverter implements DiagramConverter {
     spec: any,
     position?: { x: number; y: number },
     classNames?: Set<string>,
+    usedIds?: Set<string>,
   ): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const pos = position || this.positionGenerator.getNextPosition();
-    const classId = generateUniqueId('class');
+    const classId = takeId(spec.id, 'class', usedIds);
 
     let stereotype: string | null = null;
     if (spec.isAbstract) stereotype = CLASS_STEREOTYPE.Abstract;
     else if (spec.isEnumeration) stereotype = CLASS_STEREOTYPE.Enumeration;
     else if (spec.isInterface) stereotype = CLASS_STEREOTYPE.Interface;
 
-    const attributes = this.createAttributeRows(spec, classNames);
-    const methods = this.createMethodRows(spec);
+    const attributes = this.createAttributeRows(spec, classNames, usedIds);
+    const methods = this.createMethodRows(spec, usedIds);
 
     const node = buildClassNode({
       id: classId,
@@ -79,6 +92,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     const edges: BesserEdge[] = model.edges;
     const classIdMap: Record<string, string> = {};
     const attachedClasses = new Set<string>();
+    const usedIds = new Set<string>();
     // null = plain class; 'abstract' / 'enumeration' / 'interface' otherwise.
     const stereotypeOf = (nodeId: string): string | null => {
       const node = nodes.find((n) => n.id === nodeId);
@@ -92,7 +106,7 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const { nodes: classNodes } = this.convertSingleElement(classSpec, position, allClassNames);
+      const { nodes: classNodes } = this.convertSingleElement(classSpec, position, allClassNames, usedIds);
       const classNode = classNodes[0];
       classIdMap[classSpec.className] = classNode.id;
       nodes.push(classNode);
@@ -118,7 +132,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       }
 
       if (sourceId && targetId) {
-        const relId = generateUniqueId('rel');
+        const relId = takeId(rel.id, 'rel', usedIds);
         const relationshipName = rel.name || '';
 
         const edge: BesserEdge = {
@@ -225,12 +239,12 @@ export class ClassDiagramConverter implements DiagramConverter {
     }
   }
 
-  private createAttributeRows(spec: any, classNames?: Set<string>): ClassifierMemberRow[] {
+  private createAttributeRows(spec: any, classNames?: Set<string>, usedIds?: Set<string>): ClassifierMemberRow[] {
     const rows: ClassifierMemberRow[] = [];
 
     spec.attributes?.forEach((attr: any) => {
       const row: ClassifierMemberRow = {
-        id: generateUniqueId('attr'),
+        id: takeId(attr.id, 'attr', usedIds),
         name: attr.name,
         attributeType: normalizeType(attr.type, classNames),
         visibility: attr.visibility || 'public',
@@ -251,7 +265,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     return rows;
   }
 
-  private createMethodRows(spec: any): ClassifierMemberRow[] {
+  private createMethodRows(spec: any, usedIds?: Set<string>): ClassifierMemberRow[] {
     const rows: ClassifierMemberRow[] = [];
 
     spec.methods?.forEach((method: any) => {
@@ -262,7 +276,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       const cleanMethodName = (method.name || 'method').replace(/\(.*\).*$/, '').trim();
 
       const row: ClassifierMemberRow = {
-        id: generateUniqueId('method'),
+        id: takeId(method.id, 'method', usedIds),
         name: `${cleanMethodName}(${paramStr})`,
         attributeType: normalizedReturnType,
         visibility: method.visibility || 'public',

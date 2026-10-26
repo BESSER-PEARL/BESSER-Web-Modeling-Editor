@@ -497,6 +497,24 @@ export function useModelInjection({
         let newModel: any = null;
         let staleEditor: unknown;
 
+        // A rebuild of the open diagram keeps its element ids;
+        // replaceExisting=false keeps its content as well.
+        const rebuildsOpenDiagram =
+          currentModel?.type === targetDiagramType && (currentModel?.nodes?.length ?? 0) > 0;
+        const mergeIntoCurrent = command.replaceExisting === false && rebuildsOpenDiagram;
+        const buildCompleteSystem = async () => {
+          const { ConverterFactory } = await import('../services/converters');
+          const { reuseExistingClassIds } = await import('../services/converters/reuseClassIds');
+          const { mergeSystemIntoModel, placeBelow } = await import('../services/systemMerge');
+          const converter = ConverterFactory.getConverter(targetDiagramType as any);
+          const spec =
+            targetDiagramType === 'ClassDiagram' && rebuildsOpenDiagram
+              ? reuseExistingClassIds(command.systemSpec, currentModel, { guessRenames: !mergeIntoCurrent })
+              : command.systemSpec;
+          const built = converter.convertCompleteSystem(spec);
+          return mergeIntoCurrent ? mergeSystemIntoModel(currentModel, placeBelow(built, currentModel)) : built;
+        };
+
         switch (command.action) {
           case 'inject_complete_system':
             if (
@@ -511,17 +529,13 @@ export function useModelInjection({
                   command.systemSpec.nodes,
               )
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (
               command.systemSpec &&
               typeof command.systemSpec === 'object' &&
               Object.keys(command.systemSpec).length > 0
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (command.systemSpec) {
               throw new Error(
                 'inject_complete_system payload is missing a valid classes/states/objects/intents/nodes array',
@@ -699,8 +713,8 @@ export function useModelInjection({
             });
           } else {
             // A freshly generated complete class diagram is ELK-arranged.
-            // Incremental edits keep their positions.
-            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
+            // Incremental edits and merges keep their positions.
+            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram' && !mergeIntoCurrent) {
               newModel = await layoutGeneratedClassDiagram(newModel);
             }
             if (liveEditor && liveEditor === editorRef.current && modelingServiceRef.current) {

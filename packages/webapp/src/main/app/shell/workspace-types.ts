@@ -17,6 +17,7 @@ export type GeneratorType =
   | 'pytorch'
   | 'tensorflow'
   | 'test_case'
+  | 'forecaster'
   | 'bpmn';
 
 export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'bpmn' | 'none';

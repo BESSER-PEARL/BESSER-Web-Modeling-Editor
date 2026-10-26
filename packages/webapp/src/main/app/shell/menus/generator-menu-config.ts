@@ -149,6 +149,12 @@ const NN_GENERATORS: GeneratorMenuEntry[] = [
     actions: [
       { kind: 'action', label: 'Subclassing', generator: 'pytorch', config: { generation_type: 'subclassing' } },
       { kind: 'action', label: 'Sequential', generator: 'pytorch', config: { generation_type: 'sequential' } },
+      {
+        kind: 'action',
+        label: 'Time-Series Forecaster',
+        labelKey: 'menu.generate.actions.forecaster',
+        generator: 'forecaster',
+      },
     ],
   },
   {

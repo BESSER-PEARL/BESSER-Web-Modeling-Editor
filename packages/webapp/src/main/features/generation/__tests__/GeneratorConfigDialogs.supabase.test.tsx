@@ -4,6 +4,7 @@ import { vi, describe, it, expect } from 'vitest';
 import { GeneratorConfigDialogs } from '../dialogs/GeneratorConfigDialogs';
 import type { ConfigDialog } from '../generator-dialog-config';
 import type { WebAppVersionMode } from '../../../shared/utils/buildWebAppVersions';
+import { DEFAULT_FORECASTER_CONFIG } from '../hooks/useGenerateCode';
 
 // The dialog component reads router + project context; neither matters for
 // the Supabase dialog, so stub them out instead of mounting providers.
@@ -55,6 +56,9 @@ const baseProps = (overrides: Partial<React.ComponentProps<typeof GeneratorConfi
   agentGenerationMode: 'selected' as any,
   qiskitBackend: 'aer_simulator' as const,
   qiskitShots: 1024,
+  forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG },
+  onForecasterConfigChange: vi.fn(),
+  onForecasterGenerate: vi.fn(),
   webAppVersionMode: 'base' as WebAppVersionMode,
   webAppSelectedProfileId: '',
   onWebAppVersionModeChange: vi.fn(),

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { ChartConfig } from '../configs/chartConfigs';
+import { markEndpointTrait } from '../configs/endpoint';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
 import registerSeriesManagerTrait from '../traits/registerSeriesManagerTrait';
@@ -128,6 +129,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
             const attrs = { ...(this.get('attributes') || {}) };
             attrs[trait.name] = this.get(trait.name);
             this.set('attributes', attrs);
+            if (trait.name === 'data-endpoint') markEndpointTrait(this, attrs[trait.name]);
             // Re-render chart for any trait change
             this.renderReactChart();
           });

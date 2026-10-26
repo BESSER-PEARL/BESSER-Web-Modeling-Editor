@@ -78,8 +78,8 @@
       "importProject": "Projekt importieren",
       "import": "Importieren",
       "importProjectFile": "Projektdatei (.json / .py)…",
-      "fromSpreadsheet": "Aus Tabelle…",
-      "fromGithub": "Von GitHub",
+      "fromSpreadsheet": "Aus Daten…",
+      "fromGithub": "Aus GitHub…",
       "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…",
       "importGroupProject": "Projekt",
       "importGroupClassDiagram": "Klassendiagramm aus",
@@ -111,7 +111,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "forecaster": "Zeitreihen-Prognose"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -775,6 +776,27 @@
       "numberOfShots": "Anzahl der Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Zeitreihen-Prognose",
+      "description": "Bettet das Netz in eine Prognose-Pipeline ein: Das Netz liest die letzten Werte einer Zeitreihe und gibt die nächsten zurück.",
+      "window": "Fenster",
+      "windowHint": "Vergangene Werte, die das Netz liest.",
+      "horizon": "Horizont",
+      "horizonHint": "Prognostizierte Werte: die Größe der letzten Schicht.",
+      "season": "Saison",
+      "seasonHint": "12 für Monatsdaten, 4 quartalsweise, 7 täglich.",
+      "difference": "Differenzierung",
+      "differenceHint": "Was das Netz vorhersagt: die Änderung zur gleichen Periode eine Saison früher, zum vorigen Wert, oder keine.",
+      "differenceSeasonal": "Saisonal (Abstand = die Saison)",
+      "differenceFirst": "Erste Differenz (Abstand 1)",
+      "differenceLevels": "Keine (Niveaus)",
+      "seed": "Seed",
+      "seedHint": "Macht das Training reproduzierbar.",
+      "log": "Logarithmus prognostizieren (positive Reihe)",
+      "calendar": "Position in der Saison als Eingabe hinzufügen",
+      "standardize": "Reihe standardisieren",
+      "channelLast": "Kanäle zuletzt: eine erste 1D-Faltung mit „permute in“ liest das Fenster als Sequenz"
+    },
     "webApp": {
       "title": "Webanwendungs-Generator",
       "description": "Die folgenden Diagramme werden für die Generierung verwendet.",
@@ -859,6 +881,7 @@
       "jsonSchemaGeneration": "JSON-Schema-Generierung",
       "agentGeneration": "Agent-Generierung",
       "qiskitGeneration": "Qiskit-Generierung",
+      "forecasterGeneration": "Prognose-Generierung",
       "webAppGeneration": "Web-App-Generierung"
     },
     "overlay": {
@@ -901,18 +924,33 @@
         "dropHint": "JSON- oder Python-Projektdateien"
       },
       "spreadsheet": {
-        "title": "Mit einer Tabelle beginnen",
-        "description": "Erstellen Sie ein Projekt und generieren Sie automatisch ein Klassendiagramm aus CSV/XLSX-Dateien.",
-        "cardTitle": "Tabelleneingabe",
-        "cardDescription": "Projektmetadaten erstellen und Quelldateien hochladen.",
+        "title": "Aus Daten starten",
+        "description": "Ein Projekt anlegen und automatisch ein Klassendiagramm aus CSV/XLSX-Dateien oder der Struktur eines SDMX-Datenflusses erzeugen.",
+        "cardTitle": "Dateneingabe",
+        "cardDescription": "Projektangaben erfassen und wählen, woher die Datenstruktur kommt.",
         "sourceFiles": "Quelldateien",
         "selectFiles": "CSV-/XLSX-Dateien auswählen",
         "submit": "Aus Tabelle erstellen",
         "howTitle": "So funktioniert es",
-        "step1": "Das Projekt wird zuerst mit Ihren Metadaten erstellt.",
+        "step1": "Das Projekt wird mit Ihren Metadaten erstellt, sobald das Klassendiagramm fertig ist.",
         "step2": "Tabellendateien werden in ein Klassendiagramm umgewandelt.",
         "step3": "Das generierte Klassendiagramm wird automatisch in das Projekt importiert.",
-        "accepted": "Akzeptiert: .csv, .xlsx, .xls"
+        "accepted": "Akzeptiert: .csv, .xlsx, .xls",
+        "sourceLabel": "Quelle",
+        "sourceTabFiles": "Dateien (CSV, XLSX)",
+        "sourceTabSdmx": "Statistik-API (SDMX)",
+        "sdmxProvider": "Anbieter",
+        "sdmxLoadingProviders": "Anbieter werden geladen…",
+        "sdmxProvidersFailed": "Die Liste der SDMX-Anbieter konnte nicht geladen werden. Prüfen Sie, ob das Backend läuft, und versuchen Sie es erneut.",
+        "sdmxCustom": "Andere SDMX-2.1-API (URL)…",
+        "sdmxBaseUrl": "Basis-URL der API",
+        "sdmxBaseUrlHint": "Die https-Basis-URL einer SDMX-2.1-REST-API.",
+        "sdmxDataflow": "Datenfluss",
+        "sdmxDataflowHint": "Seine ID (une_rt_m) oder AGENTUR,ID,VERSION (ECB,EXR,1.0).",
+        "sdmxSubmit": "Aus SDMX erstellen",
+        "sdmxWait": "Die Struktur des Datenflusses wird beim Anbieter gelesen; große Datenflüsse können eine Weile dauern.",
+        "sdmxStep2": "Die Dimensionen und Codelisten des Datenflusses werden beim Anbieter gelesen und in ein Klassendiagramm umgewandelt.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, EZB, OECD, IWF, ILO, nationale Statistikämter…"
       },
       "open": {
         "title": "Vorhandenes Projekt öffnen",
@@ -926,8 +964,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) ist eine quelloffene, modellgetriebene Plattform für UML-Design, -Generierung und -Bereitstellung. Wählen Sie unten eine Option aus, um Ihr Projekt schnell aufzusetzen.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Aus Tabelle",
-          "description": "Automatisch ein Klassendiagramm aus CSV/XLSX-Dateien generieren."
+          "title": "Aus Daten",
+          "description": "Ein Klassendiagramm aus CSV/XLSX-Dateien oder einer Statistik-API (SDMX) erzeugen."
         },
         "cardImport": {
           "title": "Projekt importieren",
@@ -974,7 +1012,10 @@
         "noSpreadsheetFile": "Wählen Sie mindestens eine CSV-/XLSX-Datei.",
         "spreadsheetGenerateFailed": "Klassendiagramm konnte nicht aus der Tabelle generiert werden.",
         "spreadsheetCreated": "Projekt \"{{name}}\" erstellt und Klassendiagramm importiert.",
-        "spreadsheetImportFailed": "Tabellenimport fehlgeschlagen: {{error}}"
+        "spreadsheetImportFailed": "Tabellenimport fehlgeschlagen: {{error}}",
+        "noSdmxDataflow": "Wählen Sie einen Anbieter und geben Sie eine gültige Datenfluss-ID ein.",
+        "sdmxGenerateFailed": "Aus dem SDMX-Datenfluss konnte kein Klassendiagramm erzeugt werden.",
+        "sdmxImportFailed": "SDMX-Import fehlgeschlagen: {{error}}"
       },
       "returning": {
         "title": "Projekte",
@@ -1349,7 +1390,9 @@
       "importProjectSuccess": "Projekt erfolgreich importiert: {{name}}",
       "importModelFailed": "Modell konnte nicht von GitHub importiert werden",
       "starThanks": "Vielen Dank, dass Sie BESSER mit einem Stern markiert haben!",
-      "starFailed": "Stern konnte nicht aktualisiert werden"
+      "starFailed": "Stern konnte nicht aktualisiert werden",
+      "starPrompt": "Ihr Code ist fertig. Wenn BESSER Ihnen Zeit gespart hat, hilft ein ⭐ auf GitHub anderen, es zu finden.",
+      "starPromptAction": "Auf GitHub mit Stern markieren"
     },
     "push": {
       "changeRepo": "Repository ändern",
@@ -2478,6 +2521,9 @@
           "first": "Erster",
           "last": "Letzter"
         },
+        "dataEndpoint": "Endpunkt (optional)",
+        "dataEndpointPlaceholder": "/stats/umsatz?jahr=2025 oder https://… (braucht eine Datenquelle)",
+        "dataEndpointInvalid": "Ignoriert: einen Pfad mit / am Anfang oder eine http(s)://-URL ohne Leerzeichen angeben",
         "groupBy": "Gruppieren nach",
         "dataField": "Datenfeld",
         "dataSource": "Datenquelle",
@@ -2632,6 +2678,8 @@
         "color": "Farbe",
         "filter": "Filter",
         "filterPlaceholder": "Filterausdruck",
+        "endpoint": "Endpunkt (optional)",
+        "endpointPlaceholder": "/stats/umsatz?jahr=2025 oder https://… (braucht eine Datenquelle; Standard: die Datensätze der Klasse)",
         "pickColor": "Farbe wählen",
         "addSeries": "Reihe hinzufügen"
       },

@@ -78,7 +78,7 @@
       "importProject": "Importer un projet",
       "import": "Importer",
       "importProjectFile": "Fichier de projet (.json / .py)…",
-      "fromSpreadsheet": "Depuis un tableur…",
+      "fromSpreadsheet": "Depuis des données…",
       "fromGithub": "Depuis GitHub…",
       "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…",
       "importGroupProject": "Projet",
@@ -111,7 +111,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Export d'objet JSON",
         "userProfileJson": "JSON de profil utilisateur",
-        "qiskitCode": "Code Qiskit"
+        "qiskitCode": "Code Qiskit",
+        "forecaster": "Prévision de séries temporelles"
       },
       "notices": {
         "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
@@ -775,6 +776,27 @@
       "numberOfShots": "Nombre de tirs (shots)",
       "shotsLabel": "Tirs"
     },
+    "forecaster": {
+      "title": "Prévision de séries temporelles",
+      "description": "Intègre le réseau dans un pipeline de prévision : le réseau lit les dernières valeurs d'une série et renvoie les suivantes.",
+      "window": "Fenêtre",
+      "windowHint": "Valeurs passées que lit le réseau.",
+      "horizon": "Horizon",
+      "horizonHint": "Valeurs prévues : la taille de la dernière couche.",
+      "season": "Saison",
+      "seasonHint": "12 pour des données mensuelles, 4 trimestrielles, 7 journalières.",
+      "difference": "Différenciation",
+      "differenceHint": "Ce que le réseau prévoit : l'écart à la même période une saison plus tôt, à la valeur précédente, ou aucun.",
+      "differenceSeasonal": "Saisonnière (décalage = la saison)",
+      "differenceFirst": "Différence première (décalage 1)",
+      "differenceLevels": "Aucune (niveaux)",
+      "seed": "Graine",
+      "seedHint": "Rend l'entraînement reproductible.",
+      "log": "Prévoir le logarithme (série positive)",
+      "calendar": "Ajouter la position dans la saison en entrée",
+      "standardize": "Standardiser la série",
+      "channelLast": "Canaux en dernier : une première convolution 1D marquée « permute in » lit la fenêtre comme une séquence"
+    },
     "webApp": {
       "title": "Générateur d'application web",
       "description": "Les diagrammes suivants seront utilisés pour la génération.",
@@ -859,6 +881,7 @@
       "jsonSchemaGeneration": "Génération JSON Schema",
       "agentGeneration": "Génération d'agent",
       "qiskitGeneration": "Génération Qiskit",
+      "forecasterGeneration": "Génération du prévisionniste",
       "webAppGeneration": "Génération d'application web"
     },
     "overlay": {
@@ -901,18 +924,33 @@
         "dropHint": "Fichiers de projet JSON ou Python"
       },
       "spreadsheet": {
-        "title": "Démarrer à partir d'un tableur",
-        "description": "Créez un projet et générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX.",
-        "cardTitle": "Entrée tableur",
-        "cardDescription": "Créez les métadonnées du projet et téléversez les fichiers sources.",
+        "title": "Démarrer depuis des données",
+        "description": "Créer un projet et générer automatiquement un diagramme de classes depuis des fichiers CSV/XLSX ou la structure d’un flux de données SDMX.",
+        "cardTitle": "Données en entrée",
+        "cardDescription": "Renseignez le projet et choisissez d’où vient la structure des données.",
         "sourceFiles": "Fichiers sources",
         "selectFiles": "Sélectionner des fichiers CSV / XLSX",
         "submit": "Créer à partir du tableur",
         "howTitle": "Comment ça marche",
-        "step1": "Le projet est d'abord créé avec vos métadonnées.",
+        "step1": "Le projet est créé avec vos métadonnées dès que le diagramme de classes est prêt.",
         "step2": "Les fichiers du tableur sont convertis en un diagramme de classes.",
         "step3": "Le diagramme de classes généré est automatiquement importé dans le projet.",
-        "accepted": "Acceptés : .csv, .xlsx, .xls"
+        "accepted": "Acceptés : .csv, .xlsx, .xls",
+        "sourceLabel": "Source",
+        "sourceTabFiles": "Fichiers (CSV, XLSX)",
+        "sourceTabSdmx": "API statistique (SDMX)",
+        "sdmxProvider": "Fournisseur",
+        "sdmxLoadingProviders": "Chargement des fournisseurs…",
+        "sdmxProvidersFailed": "La liste des fournisseurs SDMX n’a pas pu être chargée. Vérifiez que le backend fonctionne et réessayez.",
+        "sdmxCustom": "Autre API SDMX 2.1 (URL)…",
+        "sdmxBaseUrl": "URL de base de l’API",
+        "sdmxBaseUrlHint": "L’URL https de base d’une API REST SDMX 2.1.",
+        "sdmxDataflow": "Flux de données",
+        "sdmxDataflowHint": "Son identifiant (une_rt_m), ou AGENCE,ID,VERSION (ECB,EXR,1.0).",
+        "sdmxSubmit": "Créer depuis SDMX",
+        "sdmxWait": "Lecture de la structure du flux auprès du fournisseur ; les grands flux peuvent prendre un moment.",
+        "sdmxStep2": "Les dimensions et listes de codes du flux sont lues chez le fournisseur et transformées en diagramme de classes.",
+        "sdmxAccepted": "SDMX 2.1 : Eurostat, BCE, OCDE, FMI, OIT, instituts statistiques nationaux…"
       },
       "open": {
         "title": "Ouvrir un projet existant",
@@ -926,8 +964,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) est une plateforme open source dirigée par les modèles pour la conception, la génération et le déploiement UML. Choisissez un chemin ci-dessous pour amorcer rapidement votre projet.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "À partir d'un tableur",
-          "description": "Générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX."
+          "title": "Depuis des données",
+          "description": "Générer un diagramme de classes depuis des fichiers CSV/XLSX ou une API statistique (SDMX)."
         },
         "cardImport": {
           "title": "Importer un projet",
@@ -974,7 +1012,10 @@
         "noSpreadsheetFile": "Sélectionnez au moins un fichier CSV/XLSX.",
         "spreadsheetGenerateFailed": "Impossible de générer le diagramme de classes à partir du tableur.",
         "spreadsheetCreated": "Projet « {{name}} » créé et diagramme de classes importé.",
-        "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}"
+        "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}",
+        "noSdmxDataflow": "Choisissez un fournisseur et saisissez un identifiant de flux valide.",
+        "sdmxGenerateFailed": "Impossible de générer le diagramme de classes depuis le flux SDMX.",
+        "sdmxImportFailed": "Échec de l’import SDMX : {{error}}"
       },
       "returning": {
         "title": "Projets",
@@ -1349,7 +1390,9 @@
       "importProjectSuccess": "Projet importé avec succès : {{name}}",
       "importModelFailed": "Échec de l'import du modèle depuis GitHub",
       "starThanks": "Merci d'avoir mis une étoile à BESSER !",
-      "starFailed": "Échec de la mise à jour de l'étoile"
+      "starFailed": "Échec de la mise à jour de l'étoile",
+      "starPrompt": "Votre code est prêt. Si BESSER vous a fait gagner du temps, une ⭐ sur GitHub aide d'autres personnes à le découvrir.",
+      "starPromptAction": "Mettre une étoile sur GitHub"
     },
     "push": {
       "changeRepo": "Changer de dépôt",
@@ -2478,6 +2521,9 @@
           "first": "Premier",
           "last": "Dernier"
         },
+        "dataEndpoint": "Point d'accès (facultatif)",
+        "dataEndpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données)",
+        "dataEndpointInvalid": "Ignoré : indiquez un chemin commençant par / ou une URL http(s)://, sans espaces",
         "groupBy": "Grouper par",
         "dataField": "Champ de données",
         "dataSource": "Source de données",
@@ -2632,6 +2678,8 @@
         "color": "Couleur",
         "filter": "Filtre",
         "filterPlaceholder": "Expression de filtre",
+        "endpoint": "Point d'accès (facultatif)",
+        "endpointPlaceholder": "/stats/ventes?annee=2025 ou https://… (nécessite une source de données ; par défaut : les enregistrements de la classe)",
         "pickColor": "Choisir une couleur",
         "addSeries": "Ajouter une série"
       },

@@ -78,7 +78,7 @@
       "importProject": "Importa un projecte",
       "import": "Importa",
       "importProjectFile": "Fitxer de projecte (.json / .py)…",
-      "fromSpreadsheet": "Des d’un full de càlcul…",
+      "fromSpreadsheet": "Des de dades…",
       "fromGithub": "Des de GitHub…",
       "importBpmnDiagram": "Importa un diagrama BPMN (.bpmn / .xml)…",
       "importGroupProject": "Projecte",
@@ -111,7 +111,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
-        "qiskitCode": "Codi Qiskit"
+        "qiskitCode": "Codi Qiskit",
+        "forecaster": "Previsió de sèries temporals"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -775,6 +776,27 @@
       "numberOfShots": "Nombre de tirades (shots)",
       "shotsLabel": "Tirades"
     },
+    "forecaster": {
+      "title": "Previsió de sèries temporals",
+      "description": "Integra la xarxa en un flux de previsió: la xarxa llegeix els últims valors d'una sèrie i retorna els següents.",
+      "window": "Finestra",
+      "windowHint": "Valors passats que llegeix la xarxa.",
+      "horizon": "Horitzó",
+      "horizonHint": "Valors previstos: la mida de l'última capa.",
+      "season": "Estació",
+      "seasonHint": "12 per a dades mensuals, 4 trimestrals, 7 diàries.",
+      "difference": "Diferenciació",
+      "differenceHint": "El que prediu la xarxa: el canvi respecte al mateix període una estació abans, al valor anterior, o cap.",
+      "differenceSeasonal": "Estacional (desfasament = l'estació)",
+      "differenceFirst": "Primera diferència (desfasament 1)",
+      "differenceLevels": "Cap (nivells)",
+      "seed": "Llavor",
+      "seedHint": "Fa l'entrenament reproduïble.",
+      "log": "Preveure el logaritme (sèrie positiva)",
+      "calendar": "Afegir la posició en l'estació com a entrada",
+      "standardize": "Estandarditzar la sèrie",
+      "channelLast": "Canals al final: una primera convolució 1D marcada «permute in» llegeix la finestra com una seqüència"
+    },
     "webApp": {
       "title": "Generador d'aplicació web",
       "description": "Els diagrames següents s'utilitzaran per a la generació.",
@@ -859,6 +881,7 @@
       "jsonSchemaGeneration": "Generació de JSON Schema",
       "agentGeneration": "Generació d'agent",
       "qiskitGeneration": "Generació de Qiskit",
+      "forecasterGeneration": "Generació del previsor",
       "webAppGeneration": "Generació d'aplicació web"
     },
     "overlay": {
@@ -901,18 +924,33 @@
         "dropHint": "Fitxers de projecte JSON o Python"
       },
       "spreadsheet": {
-        "title": "Començar des d'un full de càlcul",
-        "description": "Crea un projecte i genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX.",
-        "cardTitle": "Entrada de full de càlcul",
-        "cardDescription": "Crea les metadades del projecte i puja els fitxers font.",
+        "title": "Començar des de dades",
+        "description": "Crear un projecte i generar automàticament un diagrama de classes des de fitxers CSV/XLSX o l’estructura d’un flux de dades SDMX.",
+        "cardTitle": "Dades d’entrada",
+        "cardDescription": "Indiqueu les dades del projecte i trieu d’on ve l’estructura de les dades.",
         "sourceFiles": "Fitxers font",
         "selectFiles": "Selecciona fitxers CSV / XLSX",
         "submit": "Crear des de full de càlcul",
         "howTitle": "Com funciona",
-        "step1": "Primer es crea el projecte amb les teves metadades.",
+        "step1": "El projecte es crea amb les vostres metadades quan el diagrama de classes està llest.",
         "step2": "Els fitxers del full de càlcul es converteixen en un diagrama de classes.",
         "step3": "El diagrama de classes generat s'importa automàticament al projecte.",
-        "accepted": "Acceptats: .csv, .xlsx, .xls"
+        "accepted": "Acceptats: .csv, .xlsx, .xls",
+        "sourceLabel": "Origen",
+        "sourceTabFiles": "Fitxers (CSV, XLSX)",
+        "sourceTabSdmx": "API estadística (SDMX)",
+        "sdmxProvider": "Proveïdor",
+        "sdmxLoadingProviders": "Carregant proveïdors…",
+        "sdmxProvidersFailed": "No s'ha pogut carregar la llista de proveïdors SDMX. Comproveu que el backend funciona i torneu-ho a provar.",
+        "sdmxCustom": "Una altra API SDMX 2.1 (URL)…",
+        "sdmxBaseUrl": "URL base de l’API",
+        "sdmxBaseUrlHint": "L’URL base https d’una API REST SDMX 2.1.",
+        "sdmxDataflow": "Flux de dades",
+        "sdmxDataflowHint": "El seu identificador (une_rt_m), o AGÈNCIA,ID,VERSIÓ (ECB,EXR,1.0).",
+        "sdmxSubmit": "Crear des de SDMX",
+        "sdmxWait": "S'està llegint l'estructura del flux de dades al proveïdor; els fluxos grans poden trigar una estona.",
+        "sdmxStep2": "Les dimensions i llistes de codis del flux es llegeixen del proveïdor i es converteixen en un diagrama de classes.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, BCE, OCDE, FMI, OIT, instituts nacionals d’estadística…"
       },
       "open": {
         "title": "Obrir un projecte existent",
@@ -926,8 +964,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) és una plataforma de codi obert dirigida per models per al disseny, la generació i el desplegament d'UML. Tria un camí a continuació per iniciar el teu projecte ràpidament.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Des de full de càlcul",
-          "description": "Genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX."
+          "title": "Des de dades",
+          "description": "Generar un diagrama de classes des de fitxers CSV/XLSX o una API estadística (SDMX)."
         },
         "cardImport": {
           "title": "Importar projecte",
@@ -974,7 +1012,10 @@
         "noSpreadsheetFile": "Selecciona com a mínim un fitxer CSV/XLSX.",
         "spreadsheetGenerateFailed": "No s'ha pogut generar el diagrama de classes a partir del full de càlcul.",
         "spreadsheetCreated": "Projecte «{{name}}» creat i diagrama de classes importat.",
-        "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}"
+        "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}",
+        "noSdmxDataflow": "Trieu un proveïdor i introduïu un identificador de flux vàlid.",
+        "sdmxGenerateFailed": "No s’ha pogut generar el diagrama de classes des del flux SDMX.",
+        "sdmxImportFailed": "Ha fallat la importació SDMX: {{error}}"
       },
       "returning": {
         "title": "Projectes",
@@ -1349,7 +1390,9 @@
       "importProjectSuccess": "Projecte importat correctament: {{name}}",
       "importModelFailed": "No s'ha pogut importar el model de GitHub",
       "starThanks": "Gràcies per marcar BESSER amb una estrella!",
-      "starFailed": "No s'ha pogut actualitzar l'estrella"
+      "starFailed": "No s'ha pogut actualitzar l'estrella",
+      "starPrompt": "El teu codi és a punt. Si BESSER t'ha estalviat temps, una ⭐ a GitHub ajuda altres persones a trobar-lo.",
+      "starPromptAction": "Dona una estrella a GitHub"
     },
     "push": {
       "changeRepo": "Canvia el repositori",
@@ -2478,6 +2521,9 @@
           "first": "Primer",
           "last": "Últim"
         },
+        "dataEndpoint": "Endpoint (opcional)",
+        "dataEndpointPlaceholder": "/stats/vendes?any=2025 o https://… (cal una font de dades)",
+        "dataEndpointInvalid": "Ignorat: fes servir un camí que comenci per / o una URL http(s)://, sense espais",
         "groupBy": "Agrupa per",
         "dataField": "Camp de dades",
         "dataSource": "Font de dades",
@@ -2632,6 +2678,8 @@
         "color": "Color",
         "filter": "Filtre",
         "filterPlaceholder": "Expressió de filtre",
+        "endpoint": "Endpoint (opcional)",
+        "endpointPlaceholder": "/stats/vendes?any=2025 o https://… (cal una font de dades; per defecte: els registres de la classe)",
         "pickColor": "Tria un color",
         "addSeries": "Afegeix una sèrie"
       },
