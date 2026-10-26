@@ -38,6 +38,8 @@ export interface ContinueFromGithubResult {
   analysis?: RepoAnalysis;
   /** True when the project opened with a model BESSER proposed from the code. */
   proposedModel?: boolean;
+  /** The server's explanation when no model could be proposed (e.g. the AI reading failed). */
+  message?: string;
   error?: string;
 }
 
@@ -120,7 +122,11 @@ export async function continueFromGithubRepo(args: {
       owner: response.owner,
       repo: response.repo,
       branch: response.branch,
-      ...(isBesserRepo ? {} : { analysis: response.analysis ?? undefined, proposedModel: !!response.proposed_diagram }),
+      ...(isBesserRepo ? {} : {
+        analysis: response.analysis ?? undefined,
+        proposedModel: !!response.proposed_diagram,
+        message: response.message || undefined,
+      }),
     };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -160,9 +166,13 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
   const { stack, model_source: source, source_files: files, entities } = result.analysis;
   const stackText = stack.length ? ` (${stack.join(' + ')})` : '';
   if (!result.proposedModel) {
+    // The server says why (no readable classes, AI reading unavailable or failed).
+    const why = result.message
+      ? `${result.message.replace(/;\s*you can still work on its code\.?$/i, '')}.`
+      : 'It has no BESSER model, and I found no data classes I can read into one.';
     return (
-      `Opened ${repo}${stackText}. It has no BESSER model, and I found no data classes I can read ` +
-      'into one, so the canvas is empty. I can still work on its code: tell me what to change.'
+      `Opened ${repo}${stackText}. ${why} The canvas is empty, but I can still work on its code: ` +
+      'tell me what to change.'
     );
   }
   const where = files.length ? ` in \`${files.slice(0, 3).join('`, `')}\`${files.length > 3 ? ' and more' : ''}` : '';

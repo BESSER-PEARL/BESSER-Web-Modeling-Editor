@@ -103,6 +103,24 @@ describe('continueFromGithubRepo', () => {
     expect(text).toContain('**Accept model**');
   });
 
+  it('says the AI reading failed instead of claiming there was nothing to read', async () => {
+    // Live on experimental: the AI reading of ArmenSl/MVC-Java-App timed out, and the chat
+    // still said "I found no data classes I can read".
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: null, has_model: false,
+      owner: 'me', repo: 'cantine', branch: 'main', commit_sha: HEAD,
+      analysis: { ...ANALYSIS, model_source: null, source_files: [], entities: [] }, proposed_diagram: null,
+      message: 'This repo has no data classes BESSER can read directly, and the AI model '
+        + 'could not read a model from its code; you can still work on its code.',
+    });
+
+    const text = describeOpenedRepo(await continueFromGithubRepo({ owner: 'me', repo: 'cantine', githubSession: 's' }));
+
+    expect(text).toContain('the AI model could not read a model from its code.');
+    expect(text).not.toContain('I found no data classes');
+    expect(text).toContain('work on its code');
+  });
+
   it('opens a repo with no readable data classes as an empty project the agent can still change', async () => {
     importRepoAsRun.mockResolvedValue({
       run_id: RUN, project: null, has_model: false,
