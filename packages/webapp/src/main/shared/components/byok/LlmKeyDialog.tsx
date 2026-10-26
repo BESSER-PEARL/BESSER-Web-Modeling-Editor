@@ -149,7 +149,7 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     value: 'pia',
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
-    hint: 'Your personal LIST PIA Gateway key (starts with sk-). Runs on LIST infrastructure.',
+    hint: "Your personal LIST PIA Gateway key (starts with sk-). Goes through LIST's governed AI gateway.",
     expectedPrefix: 'sk-',
   },
   {
@@ -285,13 +285,15 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
-  // PIA gateway serves both GPT and Claude model names.
+  // PIA's recommended models, one Claude and one GPT per tier. The gateway lists
+  // more (older Claude/GPT-5.6); those stay reachable as a custom model ID.
   pia: [
-    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced (default)' },
-    { value: 'claude-opus-4-8', label: 'Claude Opus 4.8 — most capable' },
-    { value: 'gpt-5.4', label: 'GPT-5.4 — strong for code' },
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
-    { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
+    { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — writing, analysis, coding (default)' },
+    { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol — writing, analysis, coding' },
+    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — demanding planning or coding' },
+    { value: 'gpt-6-astra', label: 'GPT-6 Astra — demanding planning or coding' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — routine work, fast & cheap' },
+    { value: 'gpt-6-luna', label: 'GPT-6 Luna — routine work, fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   // Local model names are whatever the user has pulled (common Ollama tags).
@@ -559,6 +561,15 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     providerLockedRef.current = true;
     if (next === 'local' && baseUrl.trim() === '') {
       setBaseUrl(DEFAULT_LOCAL_BASE_URL);
+    }
+    // pia/local have no server-side default model (see _classifyStoredModel),
+    // so preselect their first preset instead of "Recommended default".
+    if (
+      _needsBaseUrl(next) &&
+      modelChoice !== CUSTOM_MODEL_VALUE &&
+      !MODEL_PRESETS[next].some((p) => p.value === modelChoice)
+    ) {
+      setModelChoice(MODEL_PRESETS[next][0].value);
     }
   };
 
