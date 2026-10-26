@@ -10,7 +10,11 @@ import { EdgeEndLabels } from "../labelTypes/EdgeEndLabels"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
-import { useDiagramStore, usePopoverStore } from "@/store/context"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  usePopoverStore,
+} from "@/store/context"
 import type { DiagramStore } from "@/store/diagramStore"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
@@ -18,7 +22,7 @@ import { useMemo } from "react"
 import { EDGES, MARKER_CONFIGS } from "@/constants"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { AssessmentSelectableWrapper } from "@/components"
-import { getCustomColorsFromDataForEdge } from "@/utils"
+import { generateUUID, getCustomColorsFromDataForEdge } from "@/utils"
 import {
   EdgeInlineMarkers,
   InlineMarker,
@@ -27,9 +31,9 @@ import {
 import { getAssociationMarkers } from "@/utils/uml-association-navigability"
 import { endMarkerLength } from "@/utils/edgeUtils"
 import { useSettingsStore } from "@/store/settingsStore"
-import { useEdgeLinkingStore } from "@/store/edgeLinkingStore"
 import {
   ASSOCIATION_CLASS_CAPABLE_TYPES,
+  buildAssociationClass,
   computeAnchorOnNodeBoundary,
   getAbsoluteNodePosition,
   isEdgeAnchoredLinkRel,
@@ -204,7 +208,7 @@ export const ClassDiagramEdge = ({
       state.selectedElementIds[0] === linkInfo.linkId
   )
 
-  const startLinking = useEdgeLinkingStore((state) => state.startLinking)
+  const diagramStoreApi = useDiagramStoreApi()
 
   // Continuous ports: anchors, route and label placement for this edge.
   const floating = useFloatingEdgeLayout(id)
@@ -302,6 +306,28 @@ export const ClassDiagramEdge = ({
     isDiagramModifiable &&
     ASSOCIATION_CLASS_CAPABLE_TYPES.has(type as string) &&
     !linkInfo.hasLink
+
+  // One click: a new class above the association, linked and selected.
+  const addAssociationClass = () => {
+    const { nodes, edges, setNodesAndEdges, setSelectedElementsId } =
+      diagramStoreApi.getState()
+    const association = edges.find((e) => e.id === id)
+    if (!association) return
+    const { node, link } = buildAssociationClass(
+      association,
+      nodes,
+      edgeData.pathMiddlePosition,
+      { node: generateUUID(), link: generateUUID() }
+    )
+    setNodesAndEdges(
+      [
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+        { ...node, selected: true },
+      ],
+      [...edges.map((e) => (e.selected ? { ...e, selected: false } : e)), link]
+    )
+    setSelectedElementsId([node.id])
+  }
 
   // Wire `showAssociationNames` to the rendered
   // edge. v3 stored the user-typed association name on `data.name`
@@ -554,7 +580,7 @@ export const ClassDiagramEdge = ({
           setPopOverElementId={setPopOverElementId}
           type={type}
           onAttachAssociationClass={
-            canAttachAssociationClass ? () => startLinking(id) : undefined
+            canAttachAssociationClass ? addAssociationClass : undefined
           }
         />
 

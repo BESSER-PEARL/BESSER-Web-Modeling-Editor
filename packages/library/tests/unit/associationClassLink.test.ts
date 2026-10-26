@@ -11,6 +11,7 @@ import * as Y from "yjs"
 import type { Edge, Node } from "@xyflow/react"
 import {
   ASSOCIATION_CLASS_CAPABLE_TYPES,
+  buildAssociationClass,
   computeAnchorOnNodeBoundary,
   getAbsoluteNodePosition,
   getLinkRelForAssociation,
@@ -258,5 +259,41 @@ describe("diagramStore ClassLinkRel cascade", () => {
       .setNodes((nodes) => nodes.filter((n) => n.id !== "class-ac"))
     store.getState().setEdges((edges) => [...edges])
     expect(store.getState().edges.map((e) => e.id)).toEqual(["assoc-1"])
+  })
+})
+
+describe("buildAssociationClass", () => {
+  const classNode = (id: string, name: string): Node => ({
+    id,
+    type: "class",
+    position: { x: 0, y: 0 },
+    data: { name, attributes: [], methods: [] },
+  })
+  const nodes = [classNode("class-a", "Student"), classNode("class-b", "Course")]
+  const ids = { node: "new-class", link: "new-link" }
+
+  it("creates a class above the association midpoint, linked to the association", () => {
+    const { node, link } = buildAssociationClass(assocEdge, nodes, { x: 300, y: 200 }, ids)
+    expect(node.type).toBe("class")
+    expect(node.position.x + node.width / 2).toBe(300)
+    expect(node.position.y + node.height).toBeLessThan(200)
+    expect(link).toMatchObject({
+      type: "ClassLinkRel",
+      source: "assoc-1",
+      sourceHandle: "Center",
+      target: "new-class",
+    })
+    expect(isEdgeAnchoredLinkRel(link, new Set([...nodeIds, node.id]))).toBe(true)
+  })
+
+  it("is named after the association, else after its two classes", () => {
+    expect(buildAssociationClass(assocEdge, nodes, { x: 0, y: 0 }, ids).node.data.name).toBe("Owns")
+    const unnamed = { ...assocEdge, data: { name: "" } }
+    expect(buildAssociationClass(unnamed, nodes, { x: 0, y: 0 }, ids).node.data.name).toBe("StudentCourse")
+  })
+
+  it("never reuses an existing class name", () => {
+    const withOwns = [...nodes, classNode("c3", "Owns")]
+    expect(buildAssociationClass(assocEdge, withOwns, { x: 0, y: 0 }, ids).node.data.name).toBe("Owns2")
   })
 })

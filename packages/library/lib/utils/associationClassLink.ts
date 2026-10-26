@@ -170,3 +170,52 @@ export const computeAnchorOnNodeBoundary = (
   if (!Number.isFinite(t)) return { x: cx, y: cy }
   return { x: cx + dx * t, y: cy + dy * t }
 }
+
+/** Class name of a node, if it is a named node. */
+const nodeName = (node: { data?: unknown } | undefined): string =>
+  ((node?.data as { name?: unknown } | undefined)?.name as string) ?? ""
+
+/**
+ * A new association class for `association`: an empty class centred above
+ * the association's `midpoint`, named after the association (or its two
+ * classes), plus the edge-anchored `ClassLinkRel` to it.
+ */
+export const buildAssociationClass = (
+  association: LinkRelEdgeLike & { data?: unknown },
+  nodes: readonly (LinkRelNodeLike & { type?: string; data?: unknown })[],
+  midpoint: LinkRelPoint,
+  ids: { node: string; link: string }
+) => {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const fromName = nodeName(association).replace(/^\w/, (c) => c.toUpperCase())
+  const base =
+    (/^[A-Za-z_]\w*$/.test(fromName) && fromName) ||
+    `${nodeName(byId.get(association.source))}${nodeName(byId.get(association.target))}` ||
+    "AssociationClass"
+  const taken = new Set(nodes.filter((n) => n.type === "class").map(nodeName))
+  let name = base
+  for (let i = 2; taken.has(name); i++) name = `${base}${i}`
+
+  const width = 160
+  const height = 40
+  return {
+    node: {
+      id: ids.node,
+      type: "class",
+      position: { x: midpoint.x - width / 2, y: midpoint.y - 60 - height },
+      width,
+      height,
+      measured: { width, height },
+      data: { name, attributes: [], methods: [] },
+    },
+    link: {
+      id: ids.link,
+      type: "ClassLinkRel",
+      source: association.id,
+      sourceHandle: "Center",
+      target: ids.node,
+      targetHandle: "top",
+      data: { points: [] },
+    },
+  }
+}

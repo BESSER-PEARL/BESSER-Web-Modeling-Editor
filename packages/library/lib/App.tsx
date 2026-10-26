@@ -53,12 +53,7 @@ import { usePaneClicked } from "./hooks/usePaneClicked"
 import { BesserMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
 import { isEdgeAnchoredLinkRel } from "./utils/associationClassLink"
-import {
-  isEnumerationClassNode,
-  applyBpmnCollapseVisibility,
-} from "./utils/bpmnConstraints"
-import { useEdgeLinkingStore } from "./store/edgeLinkingStore"
-import { generateUUID } from "./utils"
+import { applyBpmnCollapseVisibility } from "./utils/bpmnConstraints"
 import { FLOATING_PORT_DIAGRAMS } from "./utils/floatingEdges"
 import { FloatingConnectionLine } from "./edges/FloatingConnectionLine"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
@@ -298,7 +293,7 @@ function App({ onReactFlowInit }: AppProps) {
     () => false
   )
 
-  const { nodes, onNodesChange, edges, onEdgesChange, diagramId, addEdge } =
+  const { nodes, onNodesChange, edges, onEdgesChange, diagramId } =
     useDiagramStore(
       useShallow((state) => ({
         nodes: state.nodes,
@@ -306,7 +301,6 @@ function App({ onReactFlowInit }: AppProps) {
         edges: state.edges,
         onEdgesChange: state.onEdgesChange,
         diagramId: state.diagramId,
-        addEdge: state.addEdge,
       }))
     )
 
@@ -380,70 +374,19 @@ function App({ onReactFlowInit }: AppProps) {
     [nodes]
   )
 
-  // Association-class authoring (click-to-pick): "Attach association
-  // class" on an association's midpoint toolbar arms
-  // `pendingAssociationEdgeId`; clicking a (non-Enumeration) class node
-  // completes the link with the backend's canonical orientation
-  // (source = association edge id, sourceHandle "Center").
-  const { pendingAssociationEdgeId, cancelLinking } = useEdgeLinkingStore(
-    useShallow((state) => ({
-      pendingAssociationEdgeId: state.pendingAssociationEdgeId,
-      cancelLinking: state.cancelLinking,
-    }))
-  )
-
   const flowStore = useStoreApi()
   const onNodeClick = useStableHandler(
     (event: React.MouseEvent, node: Node) => {
-      if (!pendingAssociationEdgeId) {
-        // A plain click inside a multi-selection keeps only the clicked node
-        // (React Flow leaves the whole selection); Shift / Ctrl / Meta toggle.
-        if (event.shiftKey || event.ctrlKey || event.metaKey) return
-        const { nodeLookup, edgeLookup, addSelectedNodes } = flowStore.getState()
-        const othersSelected =
-          [...nodeLookup.values()].some((n) => n.selected && n.id !== node.id) ||
-          [...edgeLookup.values()].some((e) => e.selected)
-        if (othersSelected) addSelectedNodes([node.id])
-        return
-      }
-      // Stale-id guard: the pending association must still exist in
-      // THIS diagram's edges (the linking store is module-level).
-      const associationExists = edges.some(
-        (e) => e.id === pendingAssociationEdgeId
-      )
-      const isLinkableClass =
-        node.type === "class" && !isEnumerationClassNode(node)
-      if (associationExists && isLinkableClass) {
-        addEdge({
-          id: generateUUID(),
-          source: pendingAssociationEdgeId,
-          sourceHandle: "Center",
-          target: node.id,
-          targetHandle: "top",
-          type: "ClassLinkRel",
-          selected: false,
-          data: { points: [] },
-        })
-      }
-      cancelLinking()
+      // A plain click inside a multi-selection keeps only the clicked node
+      // (React Flow leaves the whole selection); Shift / Ctrl / Meta toggle.
+      if (event.shiftKey || event.ctrlKey || event.metaKey) return
+      const { nodeLookup, edgeLookup, addSelectedNodes } = flowStore.getState()
+      const othersSelected =
+        [...nodeLookup.values()].some((n) => n.selected && n.id !== node.id) ||
+        [...edgeLookup.values()].some((e) => e.selected)
+      if (othersSelected) addSelectedNodes([node.id])
     }
   )
-
-  // Escape cancels a pending association-class link pick (capture: the
-  // canvas Escape handler stops the event on a focused node).
-  useEffect(() => {
-    if (!pendingAssociationEdgeId) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") cancelLinking()
-    }
-    window.addEventListener("keydown", onKeyDown, true)
-    return () => window.removeEventListener("keydown", onKeyDown, true)
-  }, [pendingAssociationEdgeId, cancelLinking])
-
-  const handlePaneClicked = useCallback(() => {
-    cancelLinking()
-    onPaneClicked()
-  }, [cancelLinking, onPaneClicked])
 
   return (
     <div
@@ -461,8 +404,8 @@ function App({ onReactFlowInit }: AppProps) {
       <ReactFlow
         id={`react-flow-library-${diagramId}`}
         className={`besser-container${
-          pendingAssociationEdgeId ? " besser-container--linking" : ""
-        }${isConnecting ? " besser-container--connecting" : ""}`}
+          isConnecting ? " besser-container--connecting" : ""
+        }`}
         nodeTypes={diagramNodeTypes}
         edgeTypes={diagramEdgeTypes}
         nodes={visibleNodes}
@@ -514,7 +457,7 @@ function App({ onReactFlowInit }: AppProps) {
         // Keyboard deletion is owned by `useKeyboardShortcuts`, which skips
         // focused controls (React Flow's own Backspace handler does not).
         deleteKeyCode={null}
-        onPaneClick={handlePaneClicked}
+        onPaneClick={onPaneClicked}
         proOptions={proOptions}
         edgesReconnectable={isDiagramModifiable}
         nodesConnectable={isDiagramModifiable}

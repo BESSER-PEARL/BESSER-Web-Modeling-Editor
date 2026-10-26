@@ -19,7 +19,7 @@ export interface EdgeToolbarSurroundings {
 }
 
 /**
- * Tiny class-rect glyph for the "Attach association class" toolbar
+ * Tiny class-rect glyph for the "Add association class" toolbar
  * action. Inline SVG (matches the rest of `@/components/Icon`) so we
  * don't need a new icon-pack dependency.
  */
@@ -52,8 +52,8 @@ interface CustomEdgeToolbarProps {
   /**
    * Association-class authoring entry point. When
    * provided (only by `ClassDiagramEdge` on association types without
-   * an existing link) a third action renders that arms the
-   * click-to-pick `ClassLinkRel` flow.
+   * an existing link) a third action renders that creates the
+   * association class.
    */
   onAttachAssociationClass?: () => void
   /** Route and nodes around the selected edge; without them, below-right. */
@@ -139,7 +139,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           )}
           {onAttachAssociationClass && (
             <ToolbarButton
-              label={t("toolbar.attachAssociationClass", "Attach association class")}
+              label={t("toolbar.addAssociationClass", "Add association class")}
               onClick={(e) => {
                 e.stopPropagation()
                 onAttachAssociationClass()

@@ -1082,7 +1082,7 @@
     },
     "resetZoom": "Zoom auf 100% zurücksetzen",
     "minimap": "Übersichtskarte",
-    "attachAssociationClass": "Assoziationsklasse anhängen"
+    "addAssociationClass": "Assoziationsklasse hinzufügen"
   },
   "comment": {
     "link": "Kommentarverbindung"

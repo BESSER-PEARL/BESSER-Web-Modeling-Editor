@@ -1082,7 +1082,7 @@
     },
     "resetZoom": "Restablecer el zoom al 100%",
     "minimap": "Minimapa",
-    "attachAssociationClass": "Asociar una clase de asociación"
+    "addAssociationClass": "Añadir una clase de asociación"
   },
   "comment": {
     "link": "Enlace de comentario"

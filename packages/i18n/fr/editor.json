@@ -1082,7 +1082,7 @@
     },
     "resetZoom": "Réinitialiser le zoom à 100%",
     "minimap": "Mini-carte",
-    "attachAssociationClass": "Attacher une classe d'association"
+    "addAssociationClass": "Ajouter une classe d'association"
   },
   "comment": {
     "link": "Lien de commentaire"
