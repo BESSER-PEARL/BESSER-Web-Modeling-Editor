@@ -377,11 +377,14 @@ describe("resolveAgentEdgeType — AgentState (covers reasoning)", () => {
 describe("AgentDiagram palette — smart-gen composeBotPreview parity", () => {
   const palette = dropElementConfigs[UMLDiagramType.AgentDiagram]
 
-  it("carries a single Flow section with one AgentState", () => {
-    expect(palette).toHaveLength(1)
-    expect(palette[0].type as string).toBe("AgentState")
+  it("carries a single Flow section with the initial node and one AgentState", () => {
+    expect(palette.map((entry) => entry.type as string)).toEqual([
+      "StateInitialNode",
+      "AgentState",
+    ])
     expect(palette[0].sectionLabel).toBe("Flow")
     expect(palette[0].sectionLabelKey).toBe("packages.AgentDiagram.palette.flow")
+    expect(palette[1].sectionLabel).toBeUndefined()
   })
 
   it("offers no component types (they are off-canvas)", () => {

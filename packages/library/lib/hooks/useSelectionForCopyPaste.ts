@@ -43,10 +43,6 @@ const isClipboardData = (value: unknown): value is ClipboardData =>
 const isForeignPayload = (data: ClipboardData, diagramType: string) =>
   !!data.diagramType && data.diagramType !== diagramType
 
-const hasInitialAgentState = (node: Node) =>
-  node.type === "AgentState" &&
-  (node.data as { initial?: boolean } | undefined)?.initial === true
-
 const canUseClipboard = () => !!navigator.clipboard && window.isSecureContext
 
 const clipboardReadPermission = async (): Promise<PermissionState | null> => {
@@ -193,16 +189,11 @@ export const useSelectionForCopyPaste = () => {
           ...currentNodes.map((node) => node.id),
           ...materialized.nodes.map((node) => node.id),
         ])
-        // "Initial" is single-select across an agent diagram.
-        const hasInitial = currentNodes.some(hasInitialAgentState)
         const pastedNodes = withUniqueCopyNames(
           materialized.nodes.map((node) => {
             let next = node
             if (next.parentId && !knownIds.has(next.parentId)) {
               next = { ...next, parentId: undefined }
-            }
-            if (hasInitial && hasInitialAgentState(next)) {
-              next = { ...next, data: { ...next.data, initial: false } }
             }
             return next
           }),

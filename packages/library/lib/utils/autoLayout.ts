@@ -356,7 +356,7 @@ const flowEdgeRole = (edge: Edge, info: GraphInfo): EdgeRole => {
 
 type LayerConstraint = "FIRST" | "LAST" | undefined
 
-const layerConstraintOf = (diagramType: string, node: Node, info: GraphInfo): LayerConstraint => {
+const layerConstraintOf = (node: Node, info: GraphInfo): LayerConstraint => {
   const data = (node.data ?? {}) as Record<string, unknown>
   const indeg = info.indeg.get(node.id) ?? 0
   const outdeg = info.outdeg.get(node.id) ?? 0
@@ -377,8 +377,6 @@ const layerConstraintOf = (diagramType: string, node: Node, info: GraphInfo): La
       if (indeg === 0 && outdeg > 0) return "FIRST"
       if (outdeg === 0 && indeg > 0) return "LAST"
       return undefined
-    case "AgentState":
-      return diagramType === UMLDiagramType.AgentDiagram && data.initial === true ? "FIRST" : undefined
     case "reachabilityGraphMarking":
       return data.isInitialMarking === true ? "FIRST" : undefined
     default:
@@ -1391,7 +1389,6 @@ const modelOrder = (nodes: Node[], direction: "DOWN" | "RIGHT"): Node[] => {
 const layeredPipeline = async (
   nodes: Node[],
   edges: Edge[],
-  diagramType: string,
   family: Family,
   direction: "DOWN" | "RIGHT"
 ): Promise<{ nodes: Node[]; edges: Edge[] }> => {
@@ -1405,7 +1402,7 @@ const layeredPipeline = async (
   const ordered =
     family === "structural"
       ? positional
-      : flowOrder(positional, prep.nodeEdges, (n) => layerConstraintOf(diagramType, n, prep.info))
+      : flowOrder(positional, prep.nodeEdges, (n) => layerConstraintOf(n, prep.info))
   const roleOf = family === "structural" ? structuralEdgeRole : flowEdgeRole
   const plainEdges = prep.nodeEdges.map((edge) => ({ edge, role: roleOf(edge, prep.info) }))
   const options = layeredOptions(direction, family)
@@ -1419,7 +1416,7 @@ const layeredPipeline = async (
     withLabels: true,
     centreLabels: family !== "structural",
     nodeOptions: (node) => {
-      const constraint = layerConstraintOf(diagramType, node, prep.info)
+      const constraint = layerConstraintOf(node, prep.info)
       return constraint ? { "elk.layered.layering.layerConstraint": constraint } : undefined
     },
   }
@@ -1678,8 +1675,7 @@ const compactPipeline = async (
  */
 const treePipeline = async (
   nodes: Node[],
-  edges: Edge[],
-  diagramType: string
+  edges: Edge[]
 ): Promise<{ nodes: Node[]; edges: Edge[] }> => {
   const prep = prepare(nodes, edges)
   const links = prep.nodeEdges.filter((e) => e.source !== e.target)
@@ -1697,7 +1693,7 @@ const treePipeline = async (
   }
   const forwardOk = indegOk(false)
   const reverseOk = indegOk(true)
-  if (!forwardOk && !reverseOk) return layeredPipeline(nodes, edges, diagramType, "flow", "DOWN")
+  if (!forwardOk && !reverseOk) return layeredPipeline(nodes, edges, "flow", "DOWN")
   const reverse = !forwardOk || (reverseOk && roots(true) < roots(false))
   const elk = await createElk()
   const laid = await elk.layout({
@@ -1794,8 +1790,7 @@ const compactBand = (
 
 const bpmnPipeline = async (
   nodes: Node[],
-  edges: Edge[],
-  diagramType: string
+  edges: Edge[]
 ): Promise<{ nodes: Node[]; edges: Edge[] }> => {
   const prep = prepare(nodes, edges)
   const rects = absoluteRects(prep.visible)
@@ -1804,7 +1799,7 @@ const bpmnPipeline = async (
     .sort((a, b) => rects.get(a.id)!.y - rects.get(b.id)!.y)
   if (pools.length === 0) {
     // No participants: a plain left-to-right flow.
-    return layeredPipeline(nodes, edges, diagramType, "flow", "RIGHT")
+    return layeredPipeline(nodes, edges, "flow", "RIGHT")
   }
   const lanesOfPool = new Map<string, Node[]>()
   for (const pool of pools) {
@@ -1955,7 +1950,7 @@ const bpmnPipeline = async (
     },
     withLabels: true,
     nodeOptions: (node) => {
-      const c = layerConstraintOf(diagramType, node, prep.info)
+      const c = layerConstraintOf(node, prep.info)
       return c ? { "elk.layered.layering.layerConstraint": c } : undefined
     },
   })
@@ -2141,15 +2136,15 @@ export const computeAutoLayout = async (
 
   let result: { nodes: Node[]; edges: Edge[] }
   if (family === "bpmn") {
-    result = await bpmnPipeline(nodes, edges, diagramType)
+    result = await bpmnPipeline(nodes, edges)
   } else if (family === "tree") {
-    result = await treePipeline(nodes, edges, diagramType)
+    result = await treePipeline(nodes, edges)
   } else if (strategy === "compact" && !hasContainers) {
     result = await compactPipeline(nodes, edges)
   } else {
     const direction =
       strategy === "horizontal" ? "RIGHT" : strategy === "vertical" ? "DOWN" : getLayoutDirection(diagramType)
-    result = await layeredPipeline(nodes, edges, diagramType, family, direction)
+    result = await layeredPipeline(nodes, edges, family, direction)
   }
   const touched = new Set(
     result.edges.filter((e, i) => e !== edges[i]).map((e) => e.id)

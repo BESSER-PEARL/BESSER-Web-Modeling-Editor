@@ -241,15 +241,10 @@ export class AgentDiagramConverter implements DiagramConverter {
     if (spec.type === 'intent' || spec.intentBodies) {
       return { nodes: [], edges: [], components: buildIntentComponents(spec).components };
     }
-    if (spec.type === 'initial') {
-      // v4 marks the entry state with `data.initial`; a bare StateInitialNode
-      // (no init edge) is dropped by the library on load, so say so instead.
-      throw new Error(
-        'The initial state of an agent is a property of a state. Ask to connect "initial" to a state, ' +
-          'or tick "Initial state" on the state.',
-      );
-    }
     const pos = position || this.positionGenerator.getNextPosition();
+    if (spec.type === 'initial') {
+      return { nodes: [this.createInitialNode(pos)], edges: [], components: {} };
+    }
     return { nodes: [this.createStateNode(spec, pos)], edges: [], components: {} };
   }
 

@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "@/i18n"
 
 /**
  * `AgentNodeCard` — the shared HTML card shell for AgentDiagram nodes AND
@@ -50,8 +49,6 @@ export interface AgentNodeCardProps {
   headerRight?: React.ReactNode
   italic?: boolean
   underline?: boolean
-  /** Marks the agent's initial (entry) state — renders an "initial" pill. */
-  initial?: boolean
   children?: React.ReactNode
 }
 
@@ -67,10 +64,8 @@ export function AgentNodeCard({
   headerRight,
   italic,
   underline,
-  initial,
   children,
 }: AgentNodeCardProps) {
-  const { t } = useTranslation()
   const surfaceColor = surface || "var(--besser-background, #ffffff)"
   const title = textColor || "var(--besser-primary-contrast, #0f172a)"
   const hasBody = children != null
@@ -128,8 +123,6 @@ export function AgentNodeCard({
             lineHeight: 1.25,
           }}
         >
-          {/* The initial pill shares the type-label line, so the name
-              keeps the full header width. */}
           <span
             style={{
               display: "flex",
@@ -143,24 +136,6 @@ export function AgentNodeCard({
             }}
           >
             <span>{typeLabel}</span>
-            {initial ? (
-              <span
-                style={{
-                  fontSize: 8,
-                  fontWeight: 700,
-                  letterSpacing: 0.6,
-                  lineHeight: "11px",
-                  color: ink(accent),
-                  background: tint(accent, 12),
-                  border: `1px solid ${tint(ink(accent), 40)}`,
-                  borderRadius: 4,
-                  padding: "0 4px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {t("packages.AgentDiagram.card.initial", "initial")}
-              </span>
-            ) : null}
           </span>
           <span
             title={name}

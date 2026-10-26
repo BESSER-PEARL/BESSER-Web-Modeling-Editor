@@ -156,8 +156,8 @@ describe('laneToAgentModel layout, rendered by the Agent editor', () => {
     expect(collisions(rendered, MIN_GAP)).toEqual([]);
     // The editor kept the derived widths, so the derived layout is what the user sees.
     for (const n of canvasNodes(rendered)) expect(n.width).toBe(nodeById(r.model, n.id)!.width);
-    // The initial state is a flag on the state; it must survive the load.
-    const initialState = (m: UMLModel) => m.nodes.find((n) => n.data.initial === true)?.id;
+    // The initial node and its init edge must survive the load.
+    const initialState = (m: UMLModel) => m.edges.find((e) => e.type === 'AgentStateTransitionInit')?.target;
     expect(initialState(r.model)).toBeDefined();
     expect(initialState(rendered)).toBe(initialState(r.model));
   });

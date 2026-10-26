@@ -967,7 +967,6 @@
       "stateName": "nombre",
       "italic": "cursiva",
       "underline": "subrayado",
-      "initialState": "Estado inicial",
       "flipTransition": "Invertir origen / destino",
       "transitionName": "nombre",
       "parameters": "parámetros",
@@ -978,7 +977,6 @@
       "trainingPhrasePlaceholder": "p. ej. hola",
       "deleteTrainingPhrase": "eliminar frase de entrenamiento",
       "card": {
-        "initial": "inicial",
         "state": "estado",
         "reasoning": "razonamiento",
         "fallback": "respaldo",

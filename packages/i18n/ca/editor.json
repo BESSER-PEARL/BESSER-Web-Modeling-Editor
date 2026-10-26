@@ -967,7 +967,6 @@
       "stateName": "nom",
       "italic": "cursiva",
       "underline": "subratllat",
-      "initialState": "Estat inicial",
       "flipTransition": "Inverteix origen / destinació",
       "transitionName": "nom",
       "parameters": "paràmetres",
@@ -978,7 +977,6 @@
       "trainingPhrasePlaceholder": "p. ex. hola",
       "deleteTrainingPhrase": "elimina la frase d'entrenament",
       "card": {
-        "initial": "inicial",
         "state": "estat",
         "reasoning": "raonament",
         "fallback": "alternativa",

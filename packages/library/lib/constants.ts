@@ -1006,28 +1006,30 @@ const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElem
   [UMLDiagramType.AgentDiagram]: [
     // smart-gen `composeBotPreview` parity (3d720bdd / ada9a2c6): the
     // palette carries only the conversation flow — one "Flow" section with
-    // one AgentState. Agent components (intents, LLMs, RAG databases,
+    // the initial node and one AgentState. Agent components (intents, LLMs, RAG databases,
     // tools, skills, workspaces, GUIs) are off-canvas, edited in the
     // webapp's agent Components page and stored in `model.components`;
     // legacy on-canvas component nodes are migrated by
     // `normalizeAgentComponents` on load.
     //
-    // Deliberate deltas from smart-gen:
-    //  - no initial-node marker: v4 stores the entry state as
-    //    `AgentState.data.initial` (inspector "Initial state" toggle +
-    //    "initial" pill on the card). A dropped marker + init edge only
-    //    folds into `data.initial` on the next load, so it would not
-    //    round-trip cleanly while editing.
-    //  - reasoning states are the inspector's "State Type" toggle (as in
-    //    smart-gen), not a separate palette entry.
+    // The entry state is the initial-node marker wired to a state, as on
+    // the state machine canvas. Reasoning states are the inspector's
+    // "State Type" toggle (as in smart-gen), not a separate palette entry.
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+      sectionLabel: "Flow",
+      sectionLabelKey: "packages.AgentDiagram.palette.flow",
+    },
     {
       type: "AgentState" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: { name: "AgentState", replyType: "text" },
       svg: AgentStateSVG,
-      sectionLabel: "Flow",
-      sectionLabelKey: "packages.AgentDiagram.palette.flow",
     },
   ],
   // BESSER UserDiagram palette — fully dynamic: see

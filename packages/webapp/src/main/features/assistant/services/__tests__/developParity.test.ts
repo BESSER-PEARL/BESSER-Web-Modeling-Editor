@@ -7,7 +7,7 @@
  */
 
 import { vi } from 'vitest';
-import { formatObjectMember, normalizeV4Model } from '@besser/wme';
+import { formatObjectMember } from '@besser/wme';
 import { ClassDiagramModifier } from '../modifiers/ClassDiagramModifier';
 import { ObjectDiagramModifier } from '../modifiers/ObjectDiagramModifier';
 import { AgentDiagramModifier } from '../modifiers/AgentDiagramModifier';
@@ -247,34 +247,55 @@ describe('object header', () => {
 // v4 marks the entry state with `data.initial`; the library drops a
 // StateInitialNode without an init edge, so a bare marker vanished silently.
 describe('agent initial state', () => {
-  it('a single "initial" element is rejected with a message instead of vanishing', () => {
-    expect(() => new AgentDiagramConverter().convertSingleElement({ type: 'initial' })).toThrow(/initial state/i);
+  it('a single "initial" element becomes the initial node', () => {
+    const fragment = new AgentDiagramConverter().convertSingleElement({ type: 'initial' });
+    expect(fragment.nodes.map((n) => n.type)).toEqual(['StateInitialNode']);
   });
 
-  it('add_transition from "initial" marks the target state initial (single-select)', () => {
-    const start = model('AgentDiagram', [
-      agentState('s1', 'Welcome', { initial: true }),
-      agentState('s2', 'Menu'),
-    ]);
+  const initEdges = (m: any) => m.edges.filter((e: any) => e.type === 'AgentStateTransitionInit');
+
+  it('add_transition from "initial" draws the initial node and wires it to the state', () => {
+    const start = model('AgentDiagram', [agentState('s1', 'Welcome'), agentState('s2', 'Menu')]);
     const result: any = new AgentDiagramModifier().applyModification(start, {
+      action: 'add_transition',
+      target: { sourceStateName: 'initial', targetStateName: 'Welcome' },
+      changes: {},
+    } as any);
+    const marker = result.nodes.find((n: any) => n.type === 'StateInitialNode');
+    expect(marker).toBeDefined();
+    expect(initEdges(result).map((e: any) => [e.source, e.target])).toEqual([[marker.id, 's1']]);
+  });
+
+  it('add_transition from "initial" moves the init edge (one initial state)', () => {
+    const start = model('AgentDiagram', [agentState('s1', 'Welcome'), agentState('s2', 'Menu')]);
+    const modifier = new AgentDiagramModifier();
+    const once: any = modifier.applyModification(start, {
+      action: 'add_transition',
+      target: { sourceStateName: 'initial', targetStateName: 'Welcome' },
+      changes: {},
+    } as any);
+    const result: any = modifier.applyModification(once, {
       action: 'add_transition',
       target: { sourceStateName: 'initial', targetStateName: 'Menu' },
       changes: {},
     } as any);
-    expect(result.nodes.find((n: any) => n.id === 's2').data.initial).toBe(true);
-    expect(result.nodes.find((n: any) => n.id === 's1').data.initial).toBe(false);
-    expect(result.edges).toHaveLength(0);
-    expect(normalizeV4Model(result).nodes.find((n: any) => n.id === 's2')?.data).toMatchObject({ initial: true });
+    expect(result.nodes.filter((n: any) => n.type === 'StateInitialNode')).toHaveLength(1);
+    expect(initEdges(result).map((e: any) => e.target)).toEqual(['s2']);
   });
 
-  it('remove_transition from "initial" clears the initial flag', () => {
-    const start = model('AgentDiagram', [agentState('s1', 'Welcome', { initial: true })]);
-    const result: any = new AgentDiagramModifier().applyModification(start, {
+  it('remove_transition from "initial" removes the init edge', () => {
+    const modifier = new AgentDiagramModifier();
+    const wired: any = modifier.applyModification(model('AgentDiagram', [agentState('s1', 'Welcome')]), {
+      action: 'add_transition',
+      target: { sourceStateName: 'initial', targetStateName: 'Welcome' },
+      changes: {},
+    } as any);
+    const result: any = modifier.applyModification(wired, {
       action: 'remove_transition',
       target: { sourceStateName: 'initial', targetStateName: 'Welcome' },
       changes: {},
     } as any);
-    expect(result.nodes[0].data.initial).toBe(false);
+    expect(initEdges(result)).toHaveLength(0);
   });
 });
 

@@ -261,25 +261,6 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }
 
-  // "Initial" is single-select across the diagram.
-  const setInitial = (checked: boolean) => {
-    setNodes((all) =>
-      all.map((n) => {
-        if (n.id === elementId) {
-          return { ...n, data: { ...n.data, initial: checked } }
-        }
-        if (
-          checked &&
-          n.type === "AgentState" &&
-          (n.data as { initial?: boolean } | undefined)?.initial
-        ) {
-          return { ...n, data: { ...n.data, initial: false } }
-        }
-        return n
-      })
-    )
-  }
-
   const handleDataFieldUpdate = (key: string, value: string) => {
     updateNode({ [key]: value } as Partial<AgentStateNodeProps>)
   }
@@ -596,17 +577,6 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           label={t("packages.AgentDiagram.underline", "underline")}
         />
       </Stack>
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            size="small"
-            checked={!!data.initial}
-            onChange={(e) => setInitial(e.target.checked)}
-          />
-        }
-        label={t("packages.AgentDiagram.initialState", "Initial state")}
-      />
 
       <DividerLine width="100%" />
 

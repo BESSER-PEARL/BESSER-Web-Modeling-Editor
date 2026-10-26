@@ -35,16 +35,18 @@ const stereotypeOf = (n: BesserNode) => (n.data.stereotype as string | undefined
 const boundaryStates = (m: UMLModel) => states(m).filter((n) => ['input', 'output'].includes(stereotypeOf(n)));
 
 /**
- * The agent has exactly one initial state, the greeting (v4 marks it with
- * `data.initial`; there is no StateInitialNode marker and no init edge).
+ * The agent has exactly one initial state, the greeting: the one initial
+ * node is wired to it by the one init edge.
  */
 function expectSingleInitialGreeting(m: UMLModel, greetName = 'Coder_greet'): BesserNode {
-  const initial = states(m).filter((n) => n.data.initial === true);
-  expect(initial).toHaveLength(1);
-  expect(stateName(initial[0])).toBe(greetName);
-  expect(m.nodes.filter((n) => n.type === 'StateInitialNode')).toHaveLength(0);
-  expect(m.edges.filter((e) => e.type === 'AgentStateTransitionInit')).toHaveLength(0);
-  return initial[0];
+  const markers = m.nodes.filter((n) => n.type === 'StateInitialNode');
+  const initEdges = m.edges.filter((e) => e.type === 'AgentStateTransitionInit');
+  expect(markers).toHaveLength(1);
+  expect(initEdges).toHaveLength(1);
+  expect(initEdges[0].source).toBe(markers[0].id);
+  const initial = states(m).find((n) => n.id === initEdges[0].target)!;
+  expect(stateName(initial)).toBe(greetName);
+  return initial;
 }
 
 describe('laneToAgentModel', () => {

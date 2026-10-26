@@ -60,11 +60,10 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     // are folded onto their parent's inline data arrays. Of the 14
     // v3 elements, 3 AgentState body/fallback rows are absorbed by their
     // parent state and 5 AgentIntent child rows are absorbed by their
-    // parent intents. The `StateInitialNode` marker (init-1) is also folded
-    // away — onto the target state's `data.initial`. The intents and the
-    // RAG element are off-canvas agent components (smart-gen Components
-    // page): they move into `components`, leaving the 2 states as nodes.
-    expect(v4.nodes.length).toBe(2)
+    // parent intents. The intents and the RAG element are off-canvas agent
+    // components (smart-gen Components page): they move into `components`,
+    // leaving the 2 states and the `StateInitialNode` marker as nodes.
+    expect(v4.nodes.length).toBe(3)
 
     // AgentState — retains stereotype/replyType + inline bodies.
     const greet = v4.nodes.find((n) => n.id === "as-Greet")!
@@ -122,12 +121,14 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(rag.dbQueryMode).toBe("llm_query")
     expect(rag.bounds).toBeUndefined()
 
-    // Initial state — the legacy `StateInitialNode` marker + init edge are
-    // folded onto `data.initial` on the target state; neither survives in v4.
-    expect(v4.nodes.find((n) => n.id === "init-1")).toBeUndefined()
-    expect(v4.edges.find((e) => e.id === "init-edge-1")).toBeUndefined()
+    // Initial state — the `StateInitialNode` marker and its init edge stay
+    // on the canvas, as in the state machine diagram.
+    expect(v4.nodes.find((n) => n.id === "init-1")?.type).toBe("StateInitialNode")
+    const initEdge = v4.edges.find((e) => e.id === "init-edge-1")!
+    expect(initEdge.type).toBe("AgentStateTransitionInit")
+    expect([initEdge.source, initEdge.target]).toEqual(["init-1", "as-Greet"])
     const greetState = v4.nodes.find((n) => n.id === "as-Greet")!
-    expect((greetState.data as { initial?: boolean }).initial).toBe(true)
+    expect((greetState.data as { initial?: boolean }).initial).toBeUndefined()
 
     // The fixture wires shapes #1 and #4 from an intent to a state; those
     // edges leave with the intents (components are not connectable). The

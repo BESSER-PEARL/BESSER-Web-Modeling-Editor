@@ -139,7 +139,6 @@ export function AgentState({
             textColor={textColor}
             italic={italic}
             underline={underline}
-            initial={data.initial}
             headerRight={
               <AgentBadge accent={accent}>
                 <Bot size={11} />
@@ -197,7 +196,6 @@ export function AgentState({
           textColor={textColor}
           italic={italic}
           underline={underline}
-          initial={data.initial}
         >
           {hasAnyBody || hasA2A ? (
             <>

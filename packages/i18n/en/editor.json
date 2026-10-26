@@ -967,7 +967,6 @@
       "stateName": "name",
       "italic": "italic",
       "underline": "underline",
-      "initialState": "Initial state",
       "flipTransition": "Flip source / target",
       "transitionName": "name",
       "parameters": "parameters",
@@ -978,7 +977,6 @@
       "trainingPhrasePlaceholder": "e.g. hello",
       "deleteTrainingPhrase": "delete training phrase",
       "card": {
-        "initial": "initial",
         "state": "state",
         "reasoning": "reasoning",
         "fallback": "fallback",

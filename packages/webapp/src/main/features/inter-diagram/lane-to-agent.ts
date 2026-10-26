@@ -18,7 +18,7 @@ import {
  *
  * Core: one `AgentState` per task in the lane; intra-lane sequence flows →
  * `AgentStateTransition`s (in-lane gateways collapsed). A greeting state is
- * the initial state (`data.initial`) and leads to the entry task (or receives
+ * the initial state (wired from the initial node) and leads to the entry task (or receives
  * the inbound A2A intents). Reflection modes, governed merges and cross-lane
  * flows add scaffold states, intents and A2A tags on top. Scaffolded intents
  * are off-canvas agent components (`model.components`).
@@ -96,7 +96,7 @@ const profileOf = (lane: BesserNode): LaneProfile => lane.data as LaneProfile;
 /** The derived agent: canvas nodes and edges, plus the scaffolded intents. */
 class AgentBuilder extends DiagramBuilder {
   readonly intents: Record<string, UMLModelComponent> = {};
-  /** Layout slots of content that is not a canvas node (intents, entry marker). */
+  /** Layout slots of content that is not a canvas node (intents). */
   readonly layoutOnly: Box[] = [];
 
   addState(name: string, position: { x: number; y: number }, extra: Record<string, unknown> = {}): string {
@@ -207,10 +207,14 @@ export function laneToAgentModel(model: UMLModel, laneId: string): AgentDerivati
   const greetId = out.addState(
     names.allocate(sanitizeStateName((nodeName(lane) || 'Agent') + '_greet')),
     { x: 0, y: greetY },
-    { initial: true },
   );
-  // Layout slot of develop's initial-state marker, left of the greeting.
-  out.layoutOnly.push({ x: -110, y: greetY - 2, width: INIT_SIZE, height: INIT_SIZE });
+  // The initial node, left of the greeting.
+  const initialId = out.addNode(
+    'StateInitialNode',
+    { x: -110, y: greetY - 2, width: INIT_SIZE, height: INIT_SIZE },
+    { name: '' },
+  );
+  out.addEdge('AgentStateTransitionInit', initialId, greetId, ['right', 'left'], { params: {} });
 
   // Reflection scaffolds. self/human splice intra-agent states after the
   // task-state; cross is an A2A round trip with the reviewer agent. Returns the

@@ -273,10 +273,9 @@ describe("normalizeAgentModel — v4 input", () => {
     expect(data.custom).toEqual({ event: "ReceiveMessageEvent", condition: ["a", "b"] })
   })
 
-  it("does not lift other agent edge types (init edges fold into the state's initial marker)", () => {
-    // `normalizeV4Model` canonicalises the legacy `AgentStateTransitionInit`
-    // edge into `data.initial` on its target state — the transition lifter
-    // must never run on it (no `transitionType` / `predefined` appear).
+  it("does not lift other agent edge types (the init edge stays a plain marker edge)", () => {
+    // The transition lifter must never run on an `AgentStateTransitionInit`
+    // edge (no `transitionType` / `predefined` appear).
     const init: BesserEdge = {
       id: "init",
       type: "AgentStateTransitionInit" as BesserEdge["type"],
@@ -289,7 +288,8 @@ describe("normalizeAgentModel — v4 input", () => {
     const m = v4AgentModel([])
     const out = normalizeAgentModel({ ...m, nodes: [state("s"), state("t")], edges: [init] })
     expect(out.edges.some((e) => "transitionType" in e.data)).toBe(false)
-    expect(out.nodes.find((n) => n.id === "t")?.data.initial).toBe(true)
+    expect(out.edges.map((e) => e.type)).toEqual(["AgentStateTransitionInit"])
+    expect(out.nodes.find((n) => n.id === "t")?.data.initial).toBeUndefined()
   })
 
   it("is idempotent and does not mutate v4 input", () => {

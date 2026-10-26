@@ -599,10 +599,9 @@ export type AgentStateNodeProps = Omit<StateNodeProps, "bodies" | "fallbackBodie
    */
   replyType?: string
   /**
-   * Whether this state is the agent's initial (entry) state. Replaces the
-   * former `StateInitialNode` marker + `AgentStateTransitionInit` edge:
-   * exactly one AgentState per diagram should carry `initial: true`. Folded
-   * from the init edge by the v3→v4 migrator; read/emitted by the converters.
+   * Legacy entry-state flag (older v4 saves, backend B-UML import). The
+   * entry state is a `StateInitialNode` marker + `AgentStateTransitionInit`
+   * edge; `normalizeV4Model` turns this flag into them on load.
    */
   initial?: boolean
   /**

@@ -13,9 +13,8 @@
  *     migrated first by the library's `normalizeAgentComponents`.
  *   - `AgentStateTransition` edges carry the canonical
  *     `{transitionType, predefined | custom, params, points}` data.
- *   - The entry state is `data.initial` on the state; the legacy
- *     `StateInitialNode` + `AgentStateTransitionInit` pair is only used when
- *     the model still carries the marker.
+ *   - The entry state is a `StateInitialNode` marker wired to the state by
+ *     an `AgentStateTransitionInit` edge (one marker, one init edge).
  */
 import { AgentComponentType, normalizeAgentComponents } from '@besser/wme';
 import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
@@ -144,13 +143,33 @@ export class AgentDiagramModifier implements DiagramModifier {
     return name.toLowerCase() === 'initial' ? this.findInitialNode(model) : this.findStateNode(model, name);
   }
 
-  /** v4 "initial → state": `data.initial`, single-select like the state inspector. */
-  private setInitialState(model: BESSERModel, target: BesserNode, initial: boolean): BESSERModel {
-    for (const node of ModifierHelpers.findNodesByType(model, AGENT_STATE)) {
-      const data = node.data as any;
-      if (node.id === target.id) data.initial = initial;
-      else if (initial && data.initial) data.initial = false;
+  /** "initial → state": wire the marker (added left of the state if missing) to `target` only. */
+  private setInitialState(model: BESSERModel, target: BesserNode): BESSERModel {
+    let marker = this.findInitialNode(model);
+    if (!marker) {
+      const height = target.height ?? 100;
+      marker = {
+        id: ModifierHelpers.generateUniqueId('initial'),
+        type: STATE_INITIAL as any,
+        position: { x: target.position.x - 120, y: target.position.y + height / 2 - 22.5 },
+        width: 45,
+        height: 45,
+        measured: { width: 45, height: 45 },
+        data: { name: '' },
+      };
+      ModifierHelpers.addNode(model, marker);
     }
+    const m = model as any;
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => e.source !== marker!.id);
+    ModifierHelpers.addEdge(model, {
+      id: ModifierHelpers.generateUniqueId('transition'),
+      source: marker.id,
+      target: target.id,
+      type: 'AgentStateTransitionInit' as any,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      data: { params: {}, points: [] } as any,
+    });
     return model;
   }
 
@@ -309,14 +328,13 @@ export class AgentDiagramModifier implements DiagramModifier {
 
     const sourceNode = this.findEndpoint(model, sourceName);
     const targetNode = this.findStateNode(model, targetName);
-    if (targetNode && !sourceNode && sourceName.toLowerCase() === 'initial') {
-      return this.setInitialState(model, targetNode, true);
+    if (targetNode && (sourceName.toLowerCase() === 'initial' || (sourceNode?.type as string) === STATE_INITIAL)) {
+      return this.setInitialState(model, targetNode);
     }
     if (!sourceNode || !targetNode) {
       throw new Error(`Could not locate source (${sourceName}) or target (${targetName}) for transition.`);
     }
 
-    const isInit = (sourceNode.type as string) === STATE_INITIAL;
     const transitionData: Record<string, unknown> = {
       name: changes.label || changes.name || '',
       params: {} as Record<string, string>,
@@ -324,35 +342,33 @@ export class AgentDiagramModifier implements DiagramModifier {
       isManuallyLayouted: false,
     };
 
-    if (!isInit) {
-      const condition: string = changes.condition || 'when_intent_matched';
-      if (condition === 'custom_transition') {
-        transitionData.transitionType = 'custom';
-        transitionData.custom = {
-          event: changes.event || 'WildcardEvent',
-          condition: changes.conditionValue ? [String(changes.conditionValue)] : [],
-        };
-      } else {
-        const predefined: Record<string, unknown> = { predefinedType: condition };
-        if (condition === 'when_intent_matched') {
-          predefined.intentName = changes.intentName || changes.conditionValue || changes.name || '';
-        } else if (condition === 'when_file_received') {
-          predefined.fileType = changes.fileType || changes.conditionValue || '';
-        } else if (condition === 'when_form_submitted') {
-          predefined.formGuiId = changes.formGuiId || changes.guiId || changes.conditionValue || '';
-        } else if (changes.conditionValue !== undefined && condition !== 'auto' && condition !== 'when_no_intent_matched') {
-          predefined.conditionValue = changes.conditionValue;
-        }
-        transitionData.transitionType = 'predefined';
-        transitionData.predefined = predefined;
+    const condition: string = changes.condition || 'when_intent_matched';
+    if (condition === 'custom_transition') {
+      transitionData.transitionType = 'custom';
+      transitionData.custom = {
+        event: changes.event || 'WildcardEvent',
+        condition: changes.conditionValue ? [String(changes.conditionValue)] : [],
+      };
+    } else {
+      const predefined: Record<string, unknown> = { predefinedType: condition };
+      if (condition === 'when_intent_matched') {
+        predefined.intentName = changes.intentName || changes.conditionValue || changes.name || '';
+      } else if (condition === 'when_file_received') {
+        predefined.fileType = changes.fileType || changes.conditionValue || '';
+      } else if (condition === 'when_form_submitted') {
+        predefined.formGuiId = changes.formGuiId || changes.guiId || changes.conditionValue || '';
+      } else if (changes.conditionValue !== undefined && condition !== 'auto' && condition !== 'when_no_intent_matched') {
+        predefined.conditionValue = changes.conditionValue;
       }
+      transitionData.transitionType = 'predefined';
+      transitionData.predefined = predefined;
     }
 
     const edge: BesserEdge = {
       id: ModifierHelpers.generateUniqueId('transition'),
       source: sourceNode.id,
       target: targetNode.id,
-      type: (isInit ? 'AgentStateTransitionInit' : 'AgentStateTransition') as any,
+      type: 'AgentStateTransition' as any,
       sourceHandle: 'right',
       targetHandle: 'left',
       data: transitionData as any,
@@ -384,9 +400,6 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
     const src = this.findEndpoint(model, sourceName);
     const tgt = this.findStateNode(model, targetName);
-    if (tgt && !src && sourceName.toLowerCase() === 'initial' && (tgt.data as any)?.initial) {
-      return this.setInitialState(model, tgt, false);
-    }
     const match = src && tgt ? edges.find((e) => e.source === src.id && e.target === tgt.id) : undefined;
     if (!match) {
       throw new Error(`No transition from ${sourceName} to ${targetName}.`);
