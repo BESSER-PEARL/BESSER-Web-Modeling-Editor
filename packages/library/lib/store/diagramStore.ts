@@ -601,7 +601,24 @@ export const createDiagramStore = (
           if (filteredChanges.length === 0) return
           const currentNodes = get().nodes
 
-          const nextNodes = applyNodeChanges(filteredChanges, currentNodes)
+          // `applyNodeChanges` writes a dimension change into `node.measured`
+          // in place. Nodes loaded from the webapp's (frozen) Redux state
+          // share a read-only `measured`, so resizing them threw; copy it.
+          const resizedIds = new Set(
+            filteredChanges.flatMap((change) =>
+              change.type === "dimensions" ? [change.id] : []
+            )
+          )
+          const nextNodes = applyNodeChanges(
+            filteredChanges,
+            resizedIds.size === 0
+              ? currentNodes
+              : currentNodes.map((node) =>
+                  resizedIds.has(node.id) && node.measured
+                    ? { ...node, measured: { ...node.measured } }
+                    : node
+                )
+          )
           if (deepEqual(currentNodes, nextNodes)) {
             return
           }
