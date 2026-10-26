@@ -67,6 +67,7 @@ import { openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from
 import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
 import {
   continueFromGithubRepo,
+  describeOpenedRepo,
   getGithubSessionToken,
 } from '../../spec-driven/services/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
@@ -919,18 +920,7 @@ export function useAssistantLogic({
               at: Date.now(),
             }),
           );
-          setMessages((prev) => [
-            ...prev,
-            toKitMessage(
-              'assistant',
-              `Loaded **${result.owner}/${result.repo}**` +
-                (result.branch ? ` (branch \`${result.branch}\`)` : '') +
-                ' — the model is on your canvas and the generated app is armed ' +
-                'as the modify base. Ask for any change (e.g. *"add a search ' +
-                'bar"*) and I will modify this app; a later push can update ' +
-                'the same repo.',
-            ),
-          ]);
+          setMessages((prev) => [...prev, toKitMessage('assistant', describeOpenedRepo(result))]);
         } else {
           setMessages((prev) => [
             ...prev,

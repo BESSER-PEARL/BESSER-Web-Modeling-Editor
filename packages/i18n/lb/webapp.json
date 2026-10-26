@@ -971,7 +971,7 @@
         "noProjects": "Nach keng Projeten.",
         "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen.",
         "cardGithub": {
-          "description": "E Repository, dat BESSER erstallt huet, nees opmaachen a weiderbauen.",
+          "description": "Maach all Repository op, vu BESSER gemaach oder net, a bau weider.",
           "title": "Vu GitHub weidermaachen"
         },
         "cardNew": {
@@ -1019,7 +1019,7 @@
       "github": {
         "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
         "continue": "Weider",
-        "description": "Wiel e Repository, dat BESSER erstallt huet – säi Modell gëtt gelueden, an den nächste Laf vum Spec-Driven Agent ännert säi Code.",
+        "description": "Wiel all Repository. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell. De nächste Laf vum Spec-Driven Agent ännert säi Code.",
         "errors": {
           "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
           "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",

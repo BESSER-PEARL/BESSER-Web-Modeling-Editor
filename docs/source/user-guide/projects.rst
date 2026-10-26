@@ -46,7 +46,7 @@ start:
     and codelists, and turns it into a class diagram: an ``Observation`` class,
     an enumeration per small codelist and a class per large or hierarchical one.
 * **Import Project** — load an exported ``.json`` or a B-UML ``.py`` file.
-* **Continue from GitHub** — reopen a repository BESSER generated earlier and
+* **Continue from GitHub** — reopen a GitHub repository, BESSER-made or not, and
   keep building on it (see `Continuing from a GitHub repository`_).
 
 Recently opened projects are listed underneath.
@@ -204,7 +204,7 @@ One repository per project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A project is linked to **one** repository. The GitHub panel, the Spec-Driven
-Agent's *Push to GitHub* and *Continue from GitHub* all use that same link, and
+Agent's *Save to GitHub* and *Continue from GitHub* all use that same link, and
 the link is also written into the repository, so any browser that opens the repo
 finds its project again. Every repository BESSER writes has the same layout:
 
@@ -294,9 +294,11 @@ secret by default — and opens it in a new tab.
 Continuing from a GitHub repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A repository that BESSER itself generated can be reopened from the project hub's
-**Continue from GitHub** card, which uses the same repository browser. This
-imports the stored model as a new project and links the repo at the imported
-commit, so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep editing the
-application it built earlier. If a project in this browser is already linked to
+Any repository can be reopened from the project hub's **Continue from GitHub**
+card, which uses the same repository browser. A repository BESSER generated
+opens with its stored model; for any other, BESSER reads the model from its code
+and proposes it on the canvas for you to accept (see
+:doc:`spec-driven-agent`). Either way the repo is linked at the imported commit,
+so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep editing that
+application. If a project in this browser is already linked to
 that repository, the hub pulls into that project instead of making a copy.

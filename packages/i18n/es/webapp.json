@@ -971,7 +971,7 @@
         "noProjects": "Aún no hay proyectos.",
         "warningBanner": "Crea, importa o abre un proyecto para entrar en el espacio de trabajo.",
         "cardGithub": {
-          "description": "Vuelve a abrir un repositorio creado por BESSER y sigue construyendo.",
+          "description": "Abre cualquier repositorio, creado con BESSER o no, y sigue construyendo.",
           "title": "Continuar desde GitHub"
         },
         "cardNew": {
@@ -1019,7 +1019,7 @@
       "github": {
         "connectHint": "Conecta tu cuenta de GitHub para elegir uno de tus repositorios. Volverás aquí después de iniciar sesión.",
         "continue": "Continuar",
-        "description": "Elige un repositorio creado por BESSER: se carga su modelo y la siguiente ejecución del Spec-Driven Agent edita su código.",
+        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código.",
         "errors": {
           "generic": "No se pudo continuar desde este repositorio.",
           "noModel": "Este repositorio no tiene un modelo de BESSER: no lo creó BESSER, así que aún no hay nada desde donde continuar.",

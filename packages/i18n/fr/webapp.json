@@ -971,7 +971,7 @@
         "noProjects": "Aucun projet pour l'instant.",
         "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail.",
         "cardGithub": {
-          "description": "Rouvrez un dépôt créé par BESSER et continuez à construire.",
+          "description": "Ouvrez n'importe quel dépôt, créé par BESSER ou non, et continuez à construire.",
           "title": "Continuer depuis GitHub"
         },
         "cardNew": {
@@ -1019,7 +1019,7 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez un dépôt créé par BESSER : son modèle est chargé et la prochaine exécution du Spec-Driven Agent modifie son code.",
+        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",

@@ -224,6 +224,13 @@ export interface DoneEvent {
    * Additive — absent on older/interrupted runs, in which case the card
    * falls back to the blocker-count summary. */
   verification?: SpecDrivenVerificationReport;
+  /** "modify" when the run updated an existing app (e.g. a GitHub repo). */
+  mode?: 'create' | 'modify';
+  /** Paths the agent wrote, edited or deleted (capped; `changedFileCount` is the total). */
+  changedFiles?: string[];
+  changedFileCount?: number;
+  /** How the model differs from the one the base app was built from (modify runs). */
+  modelChanges?: string[];
 }
 
 export interface SpecDrivenErrorEvent {

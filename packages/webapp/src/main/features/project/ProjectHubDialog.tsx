@@ -58,7 +58,8 @@ import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../github/components/RepoBrowser';
 import { useRepoSync } from '../github/hooks/useRepoSync';
 import { getProjectGitHubLink } from '../../shared/services/storage/projectGitHubLink';
-import { continueFromGithubRepo } from '../spec-driven/services/continueFromGithub';
+import { continueFromGithubRepo, describeOpenedRepo } from '../spec-driven/services/continueFromGithub';
+import { postAssistantMessage } from '../assistant/hooks/assistantConversationStore';
 import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
@@ -324,7 +325,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return {
         title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
         description: t('project.hub.github.description', {
-          defaultValue: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
+          defaultValue: 'Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code.',
         }),
         badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
@@ -660,16 +661,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       } else {
         const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
         if (!result.ok || !result.projectId || !result.runId) {
-          setGithubError(
-            result.needsEditorFirst
-              ? t('project.hub.github.errors.noModel', {
-                  defaultValue: "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
-                })
-              : result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }),
-          );
+          setGithubError(result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }));
           return;
         }
         await loadProject(result.projectId);
+        postAssistantMessage(describeOpenedRepo(result));
         dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
       }
 
@@ -898,7 +894,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       icon: Github,
       title: t('project.hub.start.cardGithub.title', { defaultValue: 'Continue From GitHub' }),
       description: t('project.hub.start.cardGithub.description', {
-        defaultValue: 'Reopen a repo BESSER created and keep building.',
+        defaultValue: 'Open any repo, BESSER-made or not, and keep building.',
       }),
       onClick: handleOpenGithubStep,
     },
@@ -1352,6 +1348,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               onAction={handleContinueGithubRepo}
               busy={isBusy}
               error={githubError}
+              allowWithoutModel
+              noModelHint={t('github.repoBrowser.readsCode', {
+                defaultValue: 'No BESSER model yet. BESSER reads its code and proposes one for you to accept.',
+              })}
             />
           )}
         </div>

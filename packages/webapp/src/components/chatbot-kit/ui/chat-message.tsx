@@ -274,6 +274,13 @@ export interface SpecDrivenMessageState {
   generatorUsed?: string
   /** Number of user files the run produced — shown on the compact card. */
   fileCount?: number
+  /** "modify" when the run updated an existing app rather than creating one. */
+  runMode?: "create" | "modify"
+  /** Files the agent changed this run (capped) and their total count. */
+  changedFiles?: string[]
+  changedFileCount?: number
+  /** How the model changed against the app's base model (modify runs). */
+  modelChanges?: string[]
   /** Total LLM tokens this run consumed. NOT shown as a headline number —
    * it is a cumulative sum that re-counts context re-sent each turn, so it
    * overstates effort. Kept only for the deterministic-split badge's tooltip. */
@@ -356,7 +363,7 @@ export interface ChatMessageProps extends Message {
   /** Always-visible status line (e.g. "Applied") rendered under the bubble. */
   status?: React.ReactNode
   /**
-   * Handler for the SpecDrivenCard's "Push to GitHub" button. Supplied by the
+   * Handler for the SpecDrivenCard's "Save to GitHub" button. Supplied by the
    * assistant surface (via MessageList's messageOptions) so the push flow has
    * access to the current project + GitHub auth. When omitted, the button is
    * hidden (e.g. contexts without a project).
@@ -1089,6 +1096,80 @@ function VerificationSection({
   )
 }
 
+/** Paths shown before "Show all", so a large edit does not swamp the card. */
+const CHANGED_FILES_PREVIEW = 4
+
+/** What an update run changed: the model (against its base) and the code files. */
+function RunChangesSummary({
+  modelChanges,
+  changedFiles,
+  changedFileCount,
+}: {
+  modelChanges: string[]
+  changedFiles: string[]
+  changedFileCount: number
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? changedFiles : changedFiles.slice(0, CHANGED_FILES_PREVIEW)
+  const hidden = changedFileCount - shown.length
+
+  return (
+    <section
+      aria-label="What changed"
+      className="space-y-1.5 border-t border-border/60 px-3 py-2 text-[11px]"
+    >
+      <p className="font-medium text-foreground">What changed</p>
+      <div className="flex gap-2">
+        <Sparkles className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <span className="font-medium text-foreground">Model</span>
+          {modelChanges.length ? (
+            <ul className="mt-0.5 space-y-0.5 text-muted-foreground">
+              {modelChanges.map((change) => (
+                <li key={change}>{change}</li>
+              ))}
+            </ul>
+          ) : (
+            <span className="text-muted-foreground"> · unchanged</span>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Code2 className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <span className="font-medium text-foreground">Code</span>
+          <span className="text-muted-foreground">
+            {" "}
+            · {changedFileCount === 0
+              ? "no files changed"
+              : `${changedFileCount} file${changedFileCount === 1 ? "" : "s"} changed`}
+          </span>
+          {shown.length ? (
+            <ul className="mt-0.5 space-y-0.5 font-mono text-muted-foreground">
+              {shown.map((path) => (
+                <li key={path} className="truncate" title={path}>
+                  {path}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {hidden > 0 && changedFiles.length > shown.length ? (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mt-0.5 rounded px-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              Show all {changedFiles.length}
+            </button>
+          ) : hidden > 0 ? (
+            <p className="mt-0.5 text-muted-foreground">and {hidden} more</p>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /**
  * The verification report: three visually distinct states, each labelled
  * with the TRUE total from `counts` rather than the capped list length.
@@ -1381,6 +1462,10 @@ function SpecDrivenCard({
     needsDownload,
     generatorUsed,
     fileCount,
+    runMode,
+    changedFiles,
+    changedFileCount,
+    modelChanges,
     detPct,
     aiPct,
     modPct,
@@ -1652,11 +1737,18 @@ function SpecDrivenCard({
                 onClick={() => onPushToGithub(runId)}
               >
                 <Github />
-                Push to GitHub
+                Save to GitHub
               </Button>
             ) : null}
           </span>
         </div>
+        {runMode === "modify" ? (
+          <RunChangesSummary
+            modelChanges={modelChanges ?? []}
+            changedFiles={changedFiles ?? []}
+            changedFileCount={changedFileCount ?? changedFiles?.length ?? 0}
+          />
+        ) : null}
         {/* What the app actually enforces. Absent on older / interrupted
             runs — the compact summary above then stands on its own. */}
         {verification ? (
@@ -1955,7 +2047,7 @@ function SpecDrivenCard({
                 onClick={() => onPushToGithub(runId)}
               >
                 <Github />
-                Push to GitHub
+                Save to GitHub
               </Button>
             ) : null}
             {showStop ? (

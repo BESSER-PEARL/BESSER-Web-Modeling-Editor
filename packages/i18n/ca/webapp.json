@@ -971,7 +971,7 @@
         "noProjects": "Encara no hi ha projectes.",
         "warningBanner": "Crea, importa o obre un projecte per entrar a l'espai de treball.",
         "cardGithub": {
-          "description": "Torna a obrir un repositori creat per BESSER i continua construint.",
+          "description": "Obre qualsevol repositori, creat amb BESSER o no, i continua construint.",
           "title": "Continua des de GitHub"
         },
         "cardNew": {
@@ -1019,7 +1019,7 @@
       "github": {
         "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
         "continue": "Continua",
-        "description": "Tria un repositori creat per BESSER: se’n carrega el model i la propera execució del Spec-Driven Agent n’edita el codi.",
+        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi.",
         "errors": {
           "generic": "No s’ha pogut continuar des d’aquest repositori.",
           "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",

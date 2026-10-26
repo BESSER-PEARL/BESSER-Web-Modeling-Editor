@@ -984,7 +984,7 @@
         "noProjects": "No projects yet.",
         "warningBanner": "Create, import, or open a project to enter the workspace.",
         "cardGithub": {
-          "description": "Reopen a repo BESSER created and keep building.",
+          "description": "Open any repo, BESSER-made or not, and keep building.",
           "title": "Continue From GitHub"
         },
         "cardNew": {
@@ -1032,7 +1032,7 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.",
+        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
@@ -1298,7 +1298,7 @@
       "selectCurrentFolder": "Select Current Folder"
     },
     "commit": {
-      "title": "Push to GitHub",
+      "title": "Save to GitHub",
       "description": "Write a commit message for your changes.",
       "messageLabel": "Commit Message",
       "messagePlaceholder": "Describe your changes…",
@@ -1416,12 +1416,12 @@
       "noRepositories": "No repositories loaded. The request may have failed.",
       "privateRepoOption": "{{name}} (private)",
       "publicWarning": "This repository will be public. Anyone can see the generated code and model.",
-      "pushUpdate": "Push Update",
+      "pushUpdate": "Save to GitHub",
       "repushHint": "Re-pushing updates this repository.",
       "selectRepository": "Select a repository…",
       "selectRepositoryError": "Select a repository to push to.",
       "successCreated": "Repository created and files pushed.",
-      "successTitle": "Pushed to GitHub",
+      "successTitle": "Saved to GitHub",
       "successUpdated": "Repository updated with your latest generation.",
       "useExisting": "Use Existing Repository",
       "successMerged": "Merged with the commits made on GitHub since your last sync. Nothing was overwritten, and the editor now shows the merged model.",
@@ -1500,7 +1500,8 @@
       "classes": "{{count}} classes",
       "noModel": "No BESSER model in this repository yet.",
       "classes_one": "1 class",
-      "showOthers_one": "Show 1 other repository"
+      "showOthers_one": "Show 1 other repository",
+      "readsCode": "No BESSER model yet. BESSER reads its code and proposes one for you to accept."
     },
     "goLive": {
       "title": "Go live",
@@ -1517,6 +1518,19 @@
       "openRender": "Open Render",
       "useClassic": "Use the classic deploy",
       "prepare": "Prepare {{repo}}"
+    },
+    "proposal": {
+      "label": "Proposed model",
+      "title": "Proposed from {{repo}}: {{count}} classes",
+      "source": "Read from its {{source}} in {{files}}. Edit anything, then accept.",
+      "discard": "Discard",
+      "accept": "Accept model"
+    },
+    "chatHeader": {
+      "diverged": "Changed here and on GitHub",
+      "signedOut": "Connect GitHub to see its status",
+      "label": "Working on {{repo}}: {{state}}. Open the GitHub panel.",
+      "workingOn": "Working on"
     }
   },
   "assistant": {
@@ -1725,6 +1739,18 @@
       "transcribingAudio": "Transcribing audio…",
       "recordingPrompt": "Recording… click here or press mic again to stop and send ({{time}})",
       "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
+    },
+    "startFromRepo": {
+      "entry": "Start from a GitHub repository",
+      "entryHint": "BESSER or not",
+      "failed": "Could not open this repository.",
+      "badLink": "Paste a link like github.com/owner/repo.",
+      "title": "Start from a GitHub repository",
+      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas.",
+      "connect": "Connect GitHub to open one of your repositories.",
+      "linkPlaceholder": "Paste a link: github.com/owner/repo",
+      "linkLabel": "Repository link",
+      "open": "Open"
     }
   },
   "deploy": {

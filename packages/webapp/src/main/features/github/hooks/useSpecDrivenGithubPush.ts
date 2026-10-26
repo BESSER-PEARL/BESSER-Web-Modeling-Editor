@@ -275,8 +275,8 @@ export function useSpecDrivenGithubPush(
         const res: SpecDrivenPushResult = response;
 
         if (!res.success) {
-          toast.error('Push to GitHub failed.');
-          return { ok: false, code: 'other', message: 'Push to GitHub failed.' };
+          toast.error('Save to GitHub failed.');
+          return { ok: false, code: 'other', message: 'Save to GitHub failed.' };
         }
 
         const link: ProjectGitHubLink = {
@@ -334,10 +334,10 @@ export function useSpecDrivenGithubPush(
             toast.error('A repository with that name already exists.');
             return { ok: false, code: 'conflict', message: 'A repository with that name already exists — push to it as an existing repo.' };
           }
-          toast.error(error.message || 'Push to GitHub failed.');
-          return { ok: false, code: 'other', message: error.message || 'Push to GitHub failed.' };
+          toast.error(error.message || 'Save to GitHub failed.');
+          return { ok: false, code: 'other', message: error.message || 'Save to GitHub failed.' };
         }
-        const message = error instanceof Error ? error.message : 'Push to GitHub failed.';
+        const message = error instanceof Error ? error.message : 'Save to GitHub failed.';
         toast.error(message);
         return { ok: false, code: 'other', message };
       } finally {

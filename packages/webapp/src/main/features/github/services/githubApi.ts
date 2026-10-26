@@ -6,6 +6,7 @@
 import { apiClient } from '../../../shared/api/api-client';
 import type { BesserProject } from '../../../shared/types/project';
 import type { ProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
+import type { RepoCodeAnalysis } from '../../../shared/services/storage/projectGitHubLink';
 
 /** The `BESSER-Origin` trailer of a commit; null when a person made it. */
 export type CommitOrigin = 'spec-driven-agent' | 'editor' | null;
@@ -54,6 +55,9 @@ export interface ModelHistoryEntry extends RepoCommit {
   changes: string[];
 }
 
+/** What BESSER read in a repo it did not create. */
+export type RepoAnalysis = RepoCodeAnalysis;
+
 export interface ImportedRun {
   run_id: string;
   project: unknown | null;
@@ -63,6 +67,10 @@ export interface ImportedRun {
   branch: string;
   commit_sha: string;
   message?: string;
+  /** Repos without a BESSER model: what their code holds. */
+  analysis?: RepoAnalysis | null;
+  /** A class diagram read from their data classes, in the shape the editor imports. */
+  proposed_diagram?: { title: string; model: unknown; diagramType: 'ClassDiagram' } | null;
 }
 
 /** The GitHub topic BESSER sets on every repo it pushes to. */
@@ -201,3 +209,6 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
     { owner, repo, branch },
     { ...session(githubSession), timeout: 120_000 },
   );
+
+/** Fired on `window` to open the GitHub panel from anywhere (the chat's repo header). */
+export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';

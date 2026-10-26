@@ -17,6 +17,14 @@ import { localStorageGitHubLinkPrefix, localStoragePrefix } from '../../constant
 import { LocalStorageRepository } from './local-storage-repository';
 import type { BesserProject } from '../../types/project';
 
+/** What BESSER read in the code of a repo it did not create (backend CodeAnalysis). */
+export interface RepoCodeAnalysis {
+  stack: string[];
+  model_source: string | null;
+  source_files: string[];
+  entities: string[];
+}
+
 export interface ProjectGitHubLink {
   owner: string;
   repo: string;
@@ -27,6 +35,8 @@ export interface ProjectGitHubLink {
   lastSyncedAt?: string;
   /** Where the app runs once it went live from this repo. */
   liveUrl?: string;
+  /** Set while the model BESSER read from the repo's code awaits the user's Accept. */
+  modelProposal?: RepoCodeAnalysis;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -51,6 +61,9 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(typeof value.syncedModel === 'string' ? { syncedModel: value.syncedModel } : {}),
         ...(value.baselinePending === true ? { baselinePending: true } : {}),
         ...(typeof value.liveUrl === 'string' ? { liveUrl: value.liveUrl } : {}),
+        ...(value.modelProposal && Array.isArray(value.modelProposal.entities)
+          ? { modelProposal: value.modelProposal as RepoCodeAnalysis }
+          : {}),
         ...(typeof value.lastSyncedAt === 'string' ? { lastSyncedAt: value.lastSyncedAt } : {}),
       };
     }

@@ -47,8 +47,8 @@ The end-to-end flow
 4. **Authorise the run.** See `What you have to confirm`_ below.
 5. **Watch it run.** A run card appears in the chat with a live phase list, an
    elapsed-time meter and streamed commentary. You can **Stop** at any moment.
-6. **Download or push.** When the run finishes, the card offers **Download** and
-   **Push to GitHub**. Nothing is saved to your machine until you click.
+6. **Download or save.** When the run finishes, the card offers **Download** and
+   **Save to GitHub**. Nothing is saved to your machine until you click.
 7. **Iterate.** Ask for a change — *"add a search page"* — and the agent edits
    the application it just produced instead of rebuilding it from scratch.
 
@@ -141,26 +141,36 @@ everything. This works while the previous run is still within the server's
 retention window (about 30 minutes by default); after that you get a fresh
 build.
 
-Continuing from a GitHub repository
------------------------------------
+Starting from a GitHub repository
+---------------------------------
 
-A repository BESSER generated can be reopened later:
+The agent can keep building on any GitHub repository, whether BESSER made it or
+not. In the assistant's welcome view choose **Start from a GitHub repository**
+(or **Continue from GitHub** in the project hub), sign in if prompted, then paste
+a link such as ``github.com/owner/repo`` or pick the repository and branch.
 
-1. Open the project hub and choose **Continue from GitHub** (sign in if
-   prompted).
-2. Pick the repository and branch.
-3. The editor imports the model that BESSER stored in the repo as a **new
-   project**, links the repo at that commit, and primes the modify pointer so
-   your next request edits that application's code as it is on GitHub.
+The repository opens as a **new project**, linked to the repo at that commit,
+and your next request edits that application's code as it is on GitHub:
 
-Repositories BESSER did not create are rejected with *"This repo has no BESSER
-model — it wasn't created by BESSER."* Importing never overwrites the project
-you currently have open.
+- **A BESSER repository** opens with the model stored in it.
+- **Any other repository**: BESSER reads its data classes (SQLAlchemy, Django,
+  Pydantic or dataclass models) and draws them as a class diagram. A banner on
+  the canvas says which files the model came from; edit it, then click
+  **Accept model**, or **Discard** it to work on the code alone. When BESSER finds
+  no data classes the canvas starts empty and the agent works on the code.
 
-Pushing the result to GitHub
-----------------------------
+While a project is linked, a line above the chat shows the repository, its
+branch and whether your model is saved there; click it to open the GitHub
+panel. Importing never overwrites the project you currently have open.
 
-*Push to GitHub* on a finished run card creates a new repository, or pushes into
+When a run updates an existing application, its card shows **What changed**:
+how the model differs from the one the app was built from, and the code files
+the agent wrote, edited or deleted.
+
+Saving the result to GitHub
+---------------------------
+
+*Save to GitHub* on a finished run card creates a new repository, or pushes into
 the project's linked one. If a repository with the chosen name already exists the
 dialog tells you to push to it as an existing repo rather than silently
 overwriting.

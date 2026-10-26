@@ -971,7 +971,7 @@
         "noProjects": "Noch keine Projekte.",
         "warningBanner": "Erstellen, importieren oder öffnen Sie ein Projekt, um den Arbeitsbereich zu betreten.",
         "cardGithub": {
-          "description": "Ein von BESSER erstelltes Repository wieder öffnen und weiterbauen.",
+          "description": "Öffne ein beliebiges Repository, ob von BESSER erstellt oder nicht, und baue weiter.",
           "title": "Aus GitHub fortsetzen"
         },
         "cardNew": {
@@ -1019,7 +1019,7 @@
       "github": {
         "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
         "continue": "Fortsetzen",
-        "description": "Wähle ein von BESSER erstelltes Repository – sein Modell wird geladen, und der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code.",
+        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code.",
         "errors": {
           "generic": "Fortsetzen aus diesem Repository nicht möglich.",
           "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",

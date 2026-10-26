@@ -15,7 +15,8 @@ import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
-import { GO_LIVE_EVENT, isGoLiveAvailable } from '../../features/github/services/githubApi';
+import { GO_LIVE_EVENT, OPEN_GITHUB_PANEL_EVENT, isGoLiveAvailable } from '../../features/github/services/githubApi';
+import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -1073,6 +1074,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
   const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
   useEffect(() => {
+    const openPanel = () => setIsGitHubSidebarOpen(true);
+    window.addEventListener(OPEN_GITHUB_PANEL_EVENT, openPanel);
+    return () => window.removeEventListener(OPEN_GITHUB_PANEL_EVENT, openPanel);
+  }, []);
+  useEffect(() => {
     const onGoLive = () => openDeployDialog();
     window.addEventListener(GO_LIVE_EVENT, onGoLive);
     return () => window.removeEventListener(GO_LIVE_EVENT, onGoLive);
@@ -1241,7 +1247,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               userModelValidationStatusById={userModelValidationStatusById}
             />
           )}
-          <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {children}
+            {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+              <ModelProposalBanner />
+            </div>
+          </div>
 
           {/* Onboarding checklist - fixed bottom-right */}
           {onboarding && !onboarding.checklistDismissed && (

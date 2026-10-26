@@ -156,13 +156,17 @@ export function useRepoSync() {
     async (target: ProjectGitHubLink, intoProjectId: string): Promise<BesserProject> => {
       if (!githubSession) throw new Error('Connect GitHub first.');
       const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch);
-      if (!imported.has_model || !imported.project) {
-        throw new Error(imported.message || 'This repository has no BESSER model.');
-      }
-      const project = storeRepoModelAsProject(imported.project, intoProjectId);
       const at = Date.now();
       writeProjectLastRun(intoProjectId, imported.run_id, at);
       dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at }));
+      if (!imported.has_model || !imported.project) {
+        // A repo without a BESSER model: its latest code becomes the agent's
+        // base, and the project's own model stays as it is.
+        setProjectGitHubLink(intoProjectId, { ...target, branch: imported.branch, baseCommitSha: imported.commit_sha });
+        await loadProject(intoProjectId);
+        return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
+      }
+      const project = storeRepoModelAsProject(imported.project, intoProjectId);
       markSynced({ ...target, branch: imported.branch }, project, imported.commit_sha, { loadedFromRepo: true });
       await loadProject(intoProjectId);
       return project;

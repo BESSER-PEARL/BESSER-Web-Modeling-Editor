@@ -38,6 +38,8 @@ interface RepoBrowserProps {
   error?: string | null;
   /** Allow the action on a repo that holds no BESSER model yet (linking a project to an empty repo). */
   allowWithoutModel?: boolean;
+  /** What a repo without a BESSER model means for this action. */
+  noModelHint?: string;
 }
 
 const DIAGRAM_LABELS: Record<string, string> = {
@@ -61,6 +63,7 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
   busy = false,
   error,
   allowWithoutModel = false,
+  noModelHint,
 }) => {
   const { t, i18n } = useTranslation();
   const [repos, setRepos] = useState<RepoListing[] | null>(null);
@@ -127,6 +130,7 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
             onAction={onAction}
             busy={busy}
             allowWithoutModel={allowWithoutModel}
+            noModelHint={noModelHint}
           />
         )}
       </li>
@@ -227,9 +231,10 @@ interface RepoDetailsProps {
   onAction: (choice: RepoChoice) => void | Promise<void>;
   busy: boolean;
   allowWithoutModel: boolean;
+  noModelHint?: string;
 }
 
-const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLabel, onAction, busy, allowWithoutModel }) => {
+const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLabel, onAction, busy, allowWithoutModel, noModelHint }) => {
   const { t } = useTranslation();
   const owner = ownerOf(repo);
   const [branches, setBranches] = useState<string[]>([repo.default_branch]);
@@ -295,7 +300,7 @@ const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLa
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {t('github.repoBrowser.noModel', { defaultValue: 'No BESSER model in this repository yet.' })}
+          {noModelHint ?? t('github.repoBrowser.noModel', { defaultValue: 'No BESSER model in this repository yet.' })}
         </p>
       )}
 
