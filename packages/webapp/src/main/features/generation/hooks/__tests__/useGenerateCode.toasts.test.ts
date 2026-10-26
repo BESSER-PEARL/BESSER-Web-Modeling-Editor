@@ -8,6 +8,8 @@ const toastMock = vi.hoisted(() => {
 });
 vi.mock('react-toastify', () => ({ toast: toastMock }));
 vi.mock('../../../../shared/services/file-download/useFileDownload', () => ({ useFileDownload: () => vi.fn() }));
+// The once-per-browser GitHub star prompt is its own toast, not part of this check.
+vi.mock('../../../../shared/services/githubStarPrompt', () => ({ promptForGitHubStarOnce: vi.fn() }));
 
 import { useGenerateCode } from '../useGenerateCode';
 

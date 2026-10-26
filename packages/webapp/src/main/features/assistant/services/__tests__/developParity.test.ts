@@ -345,9 +345,9 @@ describe('BPMN add_task placement', () => {
   });
 });
 
-// ── 9. UMLModelingService merges by id (develop) ───────────────────────────
+// ── 9. UMLModelingService merges by id (develop #224) ──────────────────────
 describe('UMLModelingService merge', () => {
-  it('a complete system that reuses an id replaces the node instead of duplicating it', async () => {
+  it('"keep alongside" keeps an existing node whose id the system reuses and adds the new ones', async () => {
     const dispatch: any = vi.fn(() => ({ unwrap: () => Promise.resolve() }));
     const service = new UMLModelingService(null, dispatch);
     service.updateCurrentModel(model('ClassDiagram', [classNode('c1', 'Old'), classNode('c2', 'Keep')]) as any);
@@ -357,6 +357,6 @@ describe('UMLModelingService merge', () => {
       message: '',
     } as any);
     const names = (service.getCurrentModel() as any).nodes.map((n: any) => `${n.id}:${n.data.name}`);
-    expect(names).toEqual(['c1:New', 'c2:Keep', 'c3:Added']);
+    expect(names).toEqual(['c1:Old', 'c2:Keep', 'c3:Added']);
   });
 });
