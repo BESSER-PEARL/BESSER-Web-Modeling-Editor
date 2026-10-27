@@ -157,7 +157,9 @@ and your next request edits that application's code as it is on GitHub:
   Pydantic or dataclass models) and draws them as a class diagram. A banner on
   the canvas says which files the model came from; edit it, then click
   **Accept model**, or **Discard** it to work on the code alone. When BESSER finds
-  no data classes the canvas starts empty and the agent works on the code.
+  no database models, an AI model reads the code (schemas, migrations, entity
+  classes) and proposes the diagram, marked as an AI reading. When neither works,
+  the canvas starts empty and the agent works on the code.
 
 While a project is linked, a line above the chat shows the repository, its
 branch and whether your model is saved there; click it to open the GitHub
