@@ -7,6 +7,7 @@ import { apiClient } from '../../../shared/api/api-client';
 import type { BesserProject } from '../../../shared/types/project';
 import type { ProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { RepoCodeAnalysis } from '../../../shared/services/storage/projectGitHubLink';
+import { getDemoToken } from '../../../shared/services/demoMode';
 
 /** The `BESSER-Origin` trailer of a commit; null when a person made it. */
 export type CommitOrigin = 'spec-driven-agent' | 'editor' | null;
@@ -172,7 +173,8 @@ export const createGist = (githubSession: string, project: BesserProject, descri
 export const importRepoAsRun = (githubSession: string, owner: string, repo: string, branch?: string) =>
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
-    { owner, repo, branch: branch || undefined },
+    // A demo tab (`?demo=<token>`) has repos read by the demo model rather than the keyless one.
+    { owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined },
     // The AI fallback reader can take up to 90 s on top of the download.
     { ...session(githubSession), timeout: 150_000 },
   );
