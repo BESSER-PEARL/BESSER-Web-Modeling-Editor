@@ -28,7 +28,20 @@ export const GlobalConfirmProvider: React.FC = () => {
 
   const handleRequest = useCallback((options: GlobalConfirmOptions): Promise<boolean> => {
     return new Promise<boolean>((resolve) => {
+      // One dialog at a time: a newer request cancels the open one instead of
+      // leaving its caller waiting forever.
+      resolveRef.current?.(false);
       resolveRef.current = resolve;
+      if (options.signal) {
+        const cancel = () => {
+          if (resolveRef.current !== resolve) return;
+          resolveRef.current = null;
+          setState(defaultState);
+          resolve(false);
+        };
+        if (options.signal.aborted) return cancel();
+        options.signal.addEventListener('abort', cancel, { once: true });
+      }
       setState({
         open: true,
         title: options.title,

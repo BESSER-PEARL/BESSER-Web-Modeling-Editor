@@ -28,6 +28,7 @@ export interface ChartTrait {
   value: any;
   changeProp: number;
   options?: { value: string; label: string }[];
+  placeholder?: string;
 }
 
 export interface ChartConfig {
@@ -60,6 +61,8 @@ export const getChartConfigs = (): ChartConfig[] => [
       { type: 'select', label: i18n.t('editors.gui.traits.labelField'), name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: '', options: getAggregationOptions(), changeProp: 1 },
+      // Optional: read the chart's records from this backend path or URL instead of the class's CRUD list
+      { type: 'text', label: i18n.t('editors.gui.traits.dataEndpoint'), name: 'data-endpoint', value: '', placeholder: i18n.t('editors.gui.traits.dataEndpointPlaceholder'), changeProp: 1 },
       // { type: 'select', label: i18n.t('editors.gui.traits.groupBy'), name: 'group-by', value: '', options: [], changeProp: 1 },
       { type: 'number', label: i18n.t('editors.gui.traits.lineWidth'), name: 'line-width', value: 2, changeProp: 1 },
       { type: 'checkbox', label: i18n.t('editors.gui.traits.showGrid'), name: 'show-grid', value: true, changeProp: 1 },
@@ -90,6 +93,8 @@ export const getChartConfigs = (): ChartConfig[] => [
       { type: 'select', label: i18n.t('editors.gui.traits.dataSource'), name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.labelField'), name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
+      // Optional: read the chart's records from this backend path or URL instead of the class's CRUD list
+      { type: 'text', label: i18n.t('editors.gui.traits.dataEndpoint'), name: 'data-endpoint', value: '', placeholder: i18n.t('editors.gui.traits.dataEndpointPlaceholder'), changeProp: 1 },
       { type: 'number', label: i18n.t('editors.gui.traits.barWidth'), name: 'bar-width', value: 30, changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.orientation'), name: 'orientation', value: 'vertical',
         options: [
@@ -141,6 +146,8 @@ export const getChartConfigs = (): ChartConfig[] => [
       { type: 'select', label: i18n.t('editors.gui.traits.dataSource'), name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.labelField'), name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
+      // Optional: read the chart's records from this backend path or URL instead of the class's CRUD list
+      { type: 'text', label: i18n.t('editors.gui.traits.dataEndpoint'), name: 'data-endpoint', value: '', placeholder: i18n.t('editors.gui.traits.dataEndpointPlaceholder'), changeProp: 1 },
       { type: 'checkbox', label: i18n.t('editors.gui.traits.showGrid'), name: 'show-grid', value: true, changeProp: 1 },
       { type: 'checkbox', label: i18n.t('editors.gui.traits.showTooltip'), name: 'show-tooltip', value: true, changeProp: 1 },
       { type: 'checkbox', label: i18n.t('editors.gui.traits.showRadiusAxis'), name: 'show-radius-axis', value: true, changeProp: 1 },

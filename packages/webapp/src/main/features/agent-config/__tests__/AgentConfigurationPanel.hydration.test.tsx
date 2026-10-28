@@ -41,6 +41,7 @@ describe('AgentConfigurationPanel hydration', () => {
     localStorage.clear();
   });
 
+  // Renders the whole panel: ~2.5 s alone, past the 5 s default under full-suite load.
   it('keeps unsaved personalization edits when an unrelated project write lands', () => {
     const storedConfig = { agentStyle: 'formal' } as never;
     const saved = LocalStorageRepository.saveAgentConfiguration('Saved', storedConfig);
@@ -63,5 +64,5 @@ describe('AgentConfigurationPanel hydration', () => {
     rerender(<AgentConfigurationPanel />);
 
     expect(style()).toHaveTextContent('Informal');
-  });
+  }, 15_000);
 });

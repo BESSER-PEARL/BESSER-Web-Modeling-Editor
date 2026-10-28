@@ -84,7 +84,7 @@
       "importProject": "Projet importéieren",
       "import": "Importéieren",
       "importProjectFile": "Projetdatei (.json / .py)…",
-      "fromSpreadsheet": "Aus enger Tabell…",
+      "fromSpreadsheet": "Aus Donnéeën…",
       "fromGithub": "Aus GitHub…",
       "importKgOwl": "KG importéieren"
     },
@@ -115,6 +115,7 @@
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
+        "forecaster": "Zäitreien-Prognos",
         "kgToClassDiagram": "Klassendiagramm"
       },
       "notices": {
@@ -779,6 +780,27 @@
       "numberOfShots": "Zuel vun de Shots",
       "shotsLabel": "Shots"
     },
+    "forecaster": {
+      "title": "Zäitreien-Prognos",
+      "description": "Bett d'Netz an eng Prognos-Pipeline an: d'Netz liest déi lescht Wäerter vun enger Zäitrei a gëtt déi nächst zréck.",
+      "window": "Fënster",
+      "windowHint": "Vergaangen Wäerter, déi d'Netz liest.",
+      "horizon": "Horizont",
+      "horizonHint": "Prognostizéiert Wäerter: d'Gréisst vun der leschter Schicht.",
+      "season": "Saison",
+      "seasonHint": "12 fir Méintsdaten, 4 pro Trimester, 7 deeglech.",
+      "difference": "Differenzéierung",
+      "differenceHint": "Wat d'Netz viraussot: d'Ännerung par rapport zu der selwechter Period eng Saison virdrun, zum leschte Wäert, oder keng.",
+      "differenceSeasonal": "Saisonal (Ofstand = d'Saison)",
+      "differenceFirst": "Éischt Differenz (Ofstand 1)",
+      "differenceLevels": "Keng (Niveauen)",
+      "seed": "Seed",
+      "seedHint": "Mécht den Training reproduzéierbar.",
+      "log": "Logarithmus prognostizéieren (positiv Rei)",
+      "calendar": "Positioun an der Saison als Agab bäisetzen",
+      "standardize": "Rei standardiséieren",
+      "channelLast": "Kanäl um Enn: eng éischt 1D-Konvolutioun mat „permute in“ liest d'Fënster als Sequenz"
+    },
     "webApp": {
       "title": "Web-Applikatioun Generator",
       "description": "Déi folgend Diagrammer gi fir d'Generéierung benotzt.",
@@ -859,6 +881,7 @@
       "jsonSchemaGeneration": "JSON Schema Generéierung",
       "agentGeneration": "Agent-Generéierung",
       "qiskitGeneration": "Qiskit-Generéierung",
+      "forecasterGeneration": "Prognos-Generatioun",
       "webAppGeneration": "Web-App-Generéierung"
     },
     "overlay": {
@@ -901,18 +924,33 @@
         "dropHint": "JSON- oder Python-Projetdateien"
       },
       "spreadsheet": {
-        "title": "Vun engem Spreadsheet ufänken",
-        "description": "Erstellt e Projet a generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien.",
-        "cardTitle": "Spreadsheet-Input",
-        "cardDescription": "Erstellt d'Projet-Metadaten a luet Quelldateien erop.",
+        "title": "Aus Donnéeë starten",
+        "description": "E Projet uleeën an automatesch e Klassendiagramm aus CSV/XLSX-Fichieren oder der Struktur vun engem SDMX-Datefloss generéieren.",
+        "cardTitle": "Donnéeën",
+        "cardDescription": "Projetsinformatiounen aginn a wielen, wou d’Datestruktur hierkënnt.",
         "sourceFiles": "Quelldateien",
         "selectFiles": "CSV / XLSX-Dateien auswielen",
         "submit": "Aus Tabell erstellen",
         "howTitle": "Wéi et funktionéiert",
-        "step1": "De Projet gëtt fir d'éischt mat Äre Metadaten erstallt.",
+        "step1": "De Projet gëtt mat Ären Metadaten erstallt, soubal d'Klassendiagramm fäerdeg ass.",
         "step2": "D'Spreadsheet-Dateie ginn an e Klassendiagramm ëmgewandelt.",
         "step3": "De generéierte Klassendiagramm gëtt automatesch an de Projet importéiert.",
-        "accepted": "Ënnerstëtze Formater: .csv, .xlsx, .xls"
+        "accepted": "Ënnerstëtze Formater: .csv, .xlsx, .xls",
+        "sourceLabel": "Quell",
+        "sourceTabFiles": "Fichieren (CSV, XLSX)",
+        "sourceTabSdmx": "Statistik-API (SDMX)",
+        "sdmxProvider": "Ubidder",
+        "sdmxLoadingProviders": "Ubidder ginn gelueden…",
+        "sdmxProvidersFailed": "D'Lëscht vun den SDMX-Fournisseuren konnt net geluede ginn. Kuckt, ob de Backend leeft, a probéiert nach eng Kéier.",
+        "sdmxCustom": "Aner SDMX-2.1-API (URL)…",
+        "sdmxBaseUrl": "Basis-URL vun der API",
+        "sdmxBaseUrlHint": "D’https-Basis-URL vun enger SDMX-2.1-REST-API.",
+        "sdmxDataflow": "Datefloss",
+        "sdmxDataflowHint": "Seng ID (une_rt_m), oder AGENCE,ID,VERSIOUN (ECB,EXR,1.0).",
+        "sdmxSubmit": "Aus SDMX erstellen",
+        "sdmxWait": "D'Struktur vum Datefloss gëtt beim Fournisseur gelies; grouss Dateflëss kënnen eng Zäit daueren.",
+        "sdmxStep2": "D’Dimensiounen an d’Codelëschte vum Datefloss gi beim Ubidder gelies an zu engem Klassendiagramm ëmgewandelt.",
+        "sdmxAccepted": "SDMX 2.1: Eurostat, EZB, OECD, IWF, ILO, national Statistikinstituter…"
       },
       "open": {
         "title": "Bestoende Projet opmaachen",
@@ -926,8 +964,8 @@
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
         "cardCreate": {},
         "cardSpreadsheet": {
-          "title": "Vun engem Spreadsheet",
-          "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
+          "title": "Aus Donnéeën",
+          "description": "E Klassendiagramm aus CSV/XLSX-Fichieren oder enger Statistik-API (SDMX) generéieren."
         },
         "cardImport": {
           "title": "Projet importéieren",
@@ -974,7 +1012,10 @@
         "noSpreadsheetFile": "Wielt op d'mannst eng CSV/XLSX-Datei.",
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
-        "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+        "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}",
+        "noSdmxDataflow": "Wielt en Ubidder a gitt eng gülteg Datefloss-ID an.",
+        "sdmxGenerateFailed": "Aus dem SDMX-Datefloss konnt kee Klassendiagramm generéiert ginn.",
+        "sdmxImportFailed": "SDMX-Import feelgeschloen: {{error}}"
       },
       "returning": {
         "title": "Projeten",
@@ -2450,6 +2491,9 @@
           "first": "Éischten",
           "last": "Leschten"
         },
+        "dataEndpoint": "Endpunkt (fakultativ)",
+        "dataEndpointPlaceholder": "/stats/verkaf?joer=2025 oder https://… (brauch eng Datequell)",
+        "dataEndpointInvalid": "Ignoréiert: e Wee mat / am Ufank oder eng http(s)://-URL ouni Espacen uginn",
         "groupBy": "Gruppéieren no",
         "dataField": "Datefeld",
         "dataSource": "Datequell",
@@ -2604,6 +2648,8 @@
         "color": "Faarf",
         "filter": "Filter",
         "filterPlaceholder": "Filterausdrock",
+        "endpoint": "Endpunkt (fakultativ)",
+        "endpointPlaceholder": "/stats/verkaf?joer=2025 oder https://… (brauch eng Datequell; Standard: d'Donnéeë vun der Klass)",
         "pickColor": "Faarf wielen",
         "addSeries": "Serie dobäisetzen"
       },

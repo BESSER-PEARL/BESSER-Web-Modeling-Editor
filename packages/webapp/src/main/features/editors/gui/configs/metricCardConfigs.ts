@@ -20,6 +20,7 @@ export interface MetricCardTrait {
   value: any;
   changeProp: number;
   options?: { value: string; label: string }[];
+  placeholder?: string;
 }
 
 export interface MetricCardConfig {
@@ -48,6 +49,8 @@ export const getMetricCardConfig = (): MetricCardConfig => ({
     { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
     // No default: the generated app then sums the data field, or counts the records without one
     { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: '', options: getAggregationOptions(), changeProp: 1 },
+    // Optional: read the records from this backend path or URL instead of the class's CRUD list
+    { type: 'text', label: i18n.t('editors.gui.traits.dataEndpoint'), name: 'data-endpoint', value: '', placeholder: i18n.t('editors.gui.traits.dataEndpointPlaceholder'), changeProp: 1 },
     { type: 'select', label: i18n.t('editors.gui.traits.format'), name: 'format', value: 'number', options: getFormatOptions(), changeProp: 1 },
     { type: 'color', label: i18n.t('editors.gui.traits.valueColor'), name: 'value-color', value: '#2c3e50', changeProp: 1 },
     { type: 'number', label: i18n.t('editors.gui.traits.valueSize'), name: 'value-size', value: 32, changeProp: 1 },

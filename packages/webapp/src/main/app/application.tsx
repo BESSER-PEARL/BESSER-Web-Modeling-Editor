@@ -234,7 +234,7 @@ function AppContentInner() {
 
       {/*
        * Generator configuration dialogs (Django, Spring, SQL, SQLAlchemy,
-       * JSON Schema, Agent, Qiskit). All state lives in the useGeneratorExecution hook;
+       * JSON Schema, Agent, Qiskit, Forecaster). All state lives in the useGeneratorExecution hook;
        * configState is the props bag that wires every field, change handler,
        * and execution callback into the presentational dialog component.
        */}
@@ -275,6 +275,8 @@ function AppContentInner() {
         // ── Qiskit config ────────────────────────────────────────────
         qiskitBackend={configState.qiskitBackend}
         qiskitShots={configState.qiskitShots}
+        // ── Forecaster config ────────────────────────────────────────
+        forecasterConfig={configState.forecasterConfig}
         // ── Web App checklist ────────────────────────────────────────
         webAppChecklist={configState.webAppChecklist}
         webAppVersionMode={configState.webAppVersionMode}
@@ -299,6 +301,7 @@ function AppContentInner() {
         onSelectedAgentLanguagesChange={configState.onSelectedAgentLanguagesChange}
         onQiskitBackendChange={configState.onQiskitBackendChange}
         onQiskitShotsChange={configState.onQiskitShotsChange}
+        onForecasterConfigChange={configState.onForecasterConfigChange}
         onAgentModeChange={configState.onAgentModeChange}
         onStoredAgentConfigToggle={configState.onStoredAgentConfigToggle}
         onSelectedAgentVariantIdChange={configState.onSelectedAgentVariantIdChange}
@@ -313,6 +316,7 @@ function AppContentInner() {
         onSupabaseGenerate={configState.onSupabaseGenerate}
         onAgentGenerate={configState.onAgentGenerate}
         onQiskitGenerate={configState.onQiskitGenerate}
+        onForecasterGenerate={configState.onForecasterGenerate}
         onWebAppGenerate={configState.onWebAppGenerate}
       />
       </Suspense>

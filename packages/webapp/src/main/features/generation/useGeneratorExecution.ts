@@ -33,6 +33,8 @@ import {
   JSONSchemaConfig,
   AgentConfig,
   QiskitConfig,
+  ForecasterConfig,
+  DEFAULT_FORECASTER_CONFIG,
   SpringConfig,
   DEFAULT_SPRING_BOOT_VERSION,
   DEFAULT_SPRING_JAVA_VERSION,
@@ -358,6 +360,7 @@ function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?:
  *  - JSON Schema             – regular vs smart-data mode
  *  - Agent                   – spoken languages, advanced config & personalization
  *  - Qiskit                  – backend type and shot count
+ *  - Forecaster              – window, horizon, season and transforms
  *  - Execution callbacks     – one per generator to trigger code generation
  */
 /** Describes one diagram row in the Web App pre-generation checklist. */
@@ -499,6 +502,9 @@ export interface GeneratorConfigState {
   qiskitBackend: QiskitConfig['backend'];
   qiskitShots: number;
 
+  // ── Forecaster ───────────────────────────────────────────────────────────
+  forecasterConfig: ForecasterConfig;
+
   // ── Field change handlers ────────────────────────────────────────────────
   onDjangoProjectNameChange: (v: string) => void;
   onDjangoAppNameChange: (v: string) => void;
@@ -517,6 +523,8 @@ export interface GeneratorConfigState {
   onSelectedAgentLanguagesChange: (v: string[]) => void;
   onQiskitBackendChange: (v: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (v: number) => void;
+  /** Merge a partial update into the forecaster settings. */
+  onForecasterConfigChange: (v: Partial<ForecasterConfig>) => void;
   onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
   onSelectedAgentVariantIdChange: (v: string) => void;
@@ -543,6 +551,7 @@ export interface GeneratorConfigState {
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
   onQiskitGenerate: () => void;
+  onForecasterGenerate: () => void;
   onWebAppGenerate: () => void;
 }
 
@@ -610,6 +619,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [pendingAgentLanguage, setPendingAgentLanguage] = useState('none');
   const [qiskitBackend, setQiskitBackend] = useState<QiskitConfig['backend']>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [forecasterConfig, setForecasterConfig] = useState<ForecasterConfig>(DEFAULT_FORECASTER_CONFIG);
   const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
@@ -839,7 +849,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           return qiskitResult;
         }
 
-        if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+        if (generatorType === 'pytorch' || generatorType === 'tensorflow' || generatorType === 'forecaster') {
           if (!isNNContext) {
             toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
@@ -1330,12 +1340,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   ]);
 
   const handleQiskitGenerate = useCallback(async () => {
-    await executeGenerator('qiskit', {
+    const result = await executeGenerator('qiskit', {
       backend: qiskitBackend,
       shots: Math.max(1, qiskitShots || 1024),
     } as QiskitConfig);
-    setConfigDialog('none');
+    // A failed generation keeps the dialog open, so the settings can be corrected after the error toast.
+    if (result.ok) setConfigDialog('none');
   }, [qiskitBackend, qiskitShots, executeGenerator]);
+
+  const handleForecasterGenerate = useCallback(async () => {
+    // The backend checks the horizon against the network's last layer: on a 400 the dialog stays open.
+    const result = await executeGenerator('forecaster', forecasterConfig);
+    if (result.ok) setConfigDialog('none');
+  }, [forecasterConfig, executeGenerator]);
+
+  const handleForecasterConfigChange = useCallback((update: Partial<ForecasterConfig>) => {
+    setForecasterConfig((prev) => ({ ...prev, ...update }));
+  }, []);
 
   const handleWebAppGenerate = useCallback(async () => {
     // Flush the live GUI canvas (active page) into its snapshot and persist to
@@ -1396,6 +1417,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentLanguages,
     qiskitBackend,
     qiskitShots,
+    forecasterConfig,
     hasSavedAgentConfiguration,
     agentMode,
     storedAgentConfigurations,
@@ -1426,6 +1448,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onSelectedAgentLanguagesChange: setSelectedAgentLanguages,
     onQiskitBackendChange: setQiskitBackend,
     onQiskitShotsChange: setQiskitShots,
+    onForecasterConfigChange: handleForecasterConfigChange,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
     onSelectedAgentVariantIdChange: setSelectedAgentVariantId,
@@ -1439,6 +1462,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError(t('generation.context.jsonSchemaGeneration'))); },
     onAgentGenerate: () => { handleAgentGenerate().catch(notifyError(t('generation.context.agentGeneration'))); },
     onQiskitGenerate: () => { handleQiskitGenerate().catch(notifyError(t('generation.context.qiskitGeneration'))); },
+    onForecasterGenerate: () => { handleForecasterGenerate().catch(notifyError(t('generation.context.forecasterGeneration'))); },
     onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError(t('generation.context.webAppGeneration'))); },
   };
 

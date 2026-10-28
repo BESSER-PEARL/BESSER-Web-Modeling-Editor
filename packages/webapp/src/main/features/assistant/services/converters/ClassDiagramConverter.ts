@@ -7,6 +7,18 @@ import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
 import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
+/**
+ * Use the spec's id when it is a free string within this build (whole-system
+ * builds only); otherwise generate one.
+ */
+function takeId(specId: unknown, prefix: string, usedIds?: Set<string>): string {
+  const id = usedIds && typeof specId === 'string' && specId.trim() && !usedIds.has(specId)
+    ? specId
+    : generateUniqueId(prefix);
+  usedIds?.add(id);
+  return id;
+}
+
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
 
@@ -14,9 +26,14 @@ export class ClassDiagramConverter implements DiagramConverter {
     return 'ClassDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }, classNames?: Set<string>) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+    classNames?: Set<string>,
+    usedIds?: Set<string>,
+  ) {
     const pos = position || this.positionGenerator.getNextPosition();
-    const classId = generateUniqueId('class');
+    const classId = takeId(spec.id, 'class', usedIds);
     
     const baseHeight = 60;
     const attrHeight = (spec.attributes?.length || 0) * 25 + (spec.attributes?.length > 0 ? 10 : 0);
@@ -50,8 +67,8 @@ export class ClassDiagramConverter implements DiagramConverter {
       classElement.stereotype = 'interface';
     }
     
-    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames);
-    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x);
+    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames, usedIds);
+    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x, usedIds);
     
     classElement.attributes = Object.keys(attributes);
     classElement.methods = Object.keys(methods);
@@ -69,6 +86,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
     const attachedClasses = new Set<string>();
+    const usedIds = new Set<string>();
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -76,7 +94,7 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(classSpec, position, allClassNames);
+      const completeElement = this.convertSingleElement(classSpec, position, allClassNames, usedIds);
       classIdMap[classSpec.className] = completeElement.class.id;
 
       allElements[completeElement.class.id] = completeElement.class;
@@ -104,7 +122,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       }
       
       if (sourceId && targetId) {
-        const relId = generateUniqueId('rel');
+        const relId = takeId(rel.id, 'rel', usedIds);
         const relationship: any = {
           id: relId,
           type: 'ClassBidirectional',
@@ -218,12 +236,19 @@ export class ClassDiagramConverter implements DiagramConverter {
     }
   }
 
-  private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
+  private createAttributes(
+    spec: any,
+    classId: string,
+    startY: number,
+    startX: number,
+    classNames?: Set<string>,
+    usedIds?: Set<string>,
+  ) {
     const attributes: Record<string, any> = {};
     let currentY = startY;
 
     spec.attributes?.forEach((attr: any) => {
-      const attrId = generateUniqueId('attr');
+      const attrId = takeId(attr.id, 'attr', usedIds);
       const visibility = attr.visibility || 'public';
       const normalizedType = normalizeType(attr.type, classNames);
       
@@ -260,12 +285,12 @@ export class ClassDiagramConverter implements DiagramConverter {
     return { attributes, endY: currentY };
   }
 
-  private createMethods(spec: any, classId: string, startY: number, startX: number) {
+  private createMethods(spec: any, classId: string, startY: number, startX: number, usedIds?: Set<string>) {
     const methods: Record<string, any> = {};
     let currentY = startY + ((spec.attributes?.length || 0) > 0 ? 10 : 0);
     
     spec.methods?.forEach((method: any) => {
-      const methodId = generateUniqueId('method');
+      const methodId = takeId(method.id, 'method', usedIds);
       const visibilitySymbol = method.visibility === 'public' ? '+' : 
                              method.visibility === 'private' ? '-' : '#';
       
