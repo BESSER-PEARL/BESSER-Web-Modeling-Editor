@@ -89,7 +89,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
   const [isDeployResultOpen, setIsDeployResultOpen] = useState(false);
   const [githubRepoName, setGithubRepoName] = useState('');
   const [githubRepoDescription, setGithubRepoDescription] = useState('');
-  const [githubRepoPrivate, setGithubRepoPrivate] = useState(false);
+  const [githubRepoPrivate, setGithubRepoPrivate] = useState(true);
   const [useExistingRepo, setUseExistingRepo] = useState(false);
   const [linkedRepo, setLinkedRepo] = useState<{ owner: string; repo: string } | null>(null);
   const [commitMessage, setCommitMessage] = useState('');
@@ -166,7 +166,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       setGithubRepoName(defaultRepoNameForTarget(currentProject.name, initialTarget));
     }
     setGithubRepoDescription(defaultDescriptionForTarget(initialTarget));
-    setGithubRepoPrivate(false);
+    setGithubRepoPrivate(true);
     setIsDeployDialogOpen(true);
   }, [isDeploymentAvailable, isAuthenticated, currentProject, availableDeployTargets]);
 
