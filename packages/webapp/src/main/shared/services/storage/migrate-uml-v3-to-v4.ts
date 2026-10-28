@@ -20,6 +20,7 @@ import {
   normalizeV4Model,
   type UMLModel,
 } from '@besser/wme';
+import type { SupportedDiagramType } from '../../types/project';
 
 export {
   migrateClassDiagramV3ToV4,
@@ -30,22 +31,6 @@ export {
   migrateNNDiagramV3ToV4,
   migrateBpmnDiagramV3ToV4,
 };
-
-type SupportedDiagramType =
-  | 'ClassDiagram'
-  | 'ObjectDiagram'
-  | 'StateMachineDiagram'
-  | 'AgentDiagram'
-  | 'UserDiagram'
-  | 'NNDiagram'
-  | 'BPMN'
-  | 'BPMNDiagram'
-  | 'ComponentDiagram'
-  | 'DeploymentDiagram'
-  // Non-UML kinds — skipped at the caller, but listed for the param's union.
-  | 'GUINoCodeDiagram'
-  | 'QuantumCircuitDiagram'
-  | 'KnowledgeGraphDiagram';
 
 /**
  * Migrate a v3 UMLModel object to v4. The diagram type is taken from the

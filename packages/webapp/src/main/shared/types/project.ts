@@ -1151,16 +1151,18 @@ export const isUserDiagramSeedOnly = (model: UMLModel): boolean => {
   return true;
 };
 
+const UML_DIAGRAM_TYPES: ReadonlySet<string> = new Set(Object.values(UMLDiagramType));
+
 export const isUMLModel = (model: unknown): model is UMLModel => {
   if (!model || typeof model !== 'object') {
     return false;
   }
 
   const candidate = model as Partial<UMLModel>;
+  // The `type` decides: a Knowledge Graph model has `nodes`/`edges` arrays too.
   return (
     typeof candidate.type === 'string' &&
-    // A Knowledge Graph model has `nodes`/`edges` arrays too.
-    (candidate.type as string) !== 'KnowledgeGraphDiagram' &&
+    UML_DIAGRAM_TYPES.has(candidate.type) &&
     typeof candidate.version === 'string' &&
     Array.isArray(candidate.nodes) &&
     Array.isArray(candidate.edges)
@@ -1210,15 +1212,14 @@ export const isKnowledgeGraphData = (model: unknown): model is KnowledgeGraphDat
   if (!model || typeof model !== 'object') {
     return false;
   }
-  const candidate = model as any;
-  // A v4 UML model has `nodes`/`edges` arrays too, and always a UML `type`.
+  const candidate = model as Partial<KnowledgeGraphData>;
+  // `type` is optional on a KG model; a v4 UML model always has a UML one.
   return (
+    (candidate.type === undefined || candidate.type === 'KnowledgeGraphDiagram') &&
     Array.isArray(candidate.nodes) &&
-    Array.isArray(candidate.edges) &&
-    (candidate.type === undefined || candidate.type === 'KnowledgeGraphDiagram')
+    Array.isArray(candidate.edges)
   );
 };
-
 
 /**
  * Find perspectives that are hidden but the project still references them
