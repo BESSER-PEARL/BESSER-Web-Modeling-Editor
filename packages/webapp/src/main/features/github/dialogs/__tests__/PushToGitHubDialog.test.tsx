@@ -170,4 +170,25 @@ describe('PushToGitHubDialog — pushing to the linked repo', () => {
     });
     expect(openConflictPullRequest).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the warnings the push returned', () => {
+    renderDialog({
+      linkedRepo,
+      result: result({ warnings: ['This app can no longer be deployed as before (render.yaml).'] }),
+    });
+    expect(screen.getByText(/can no longer be deployed as before/)).toBeInTheDocument();
+  });
+
+  it('offers the repository picker when the linked repository is gone', async () => {
+    const onChangeRepo = vi.fn();
+    const push = vi.fn().mockResolvedValue({ ok: false, code: 'repo_missing', message: 'This repository no longer exists' });
+    renderDialog({ linkedRepo, push, onChangeRepo });
+
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!);
+    });
+
+    expect(onChangeRepo).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/This repository no longer exists/)).toBeInTheDocument();
+  });
 });

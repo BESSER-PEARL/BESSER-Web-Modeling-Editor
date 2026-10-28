@@ -18,6 +18,7 @@ import {
   Loader2,
   LogOut,
   PlusCircle,
+  RefreshCw,
   Unlink2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,8 @@ const REPO_STATE_DOT: Record<RepoSyncState, string> = {
   'local-changes': 'bg-warning',
   behind: 'bg-warning',
   diverged: 'bg-warning',
+  reconnect: 'bg-destructive',
+  missing: 'bg-destructive',
   checking: 'bg-muted-foreground/50',
   unknown: 'bg-muted-foreground/50',
   unlinked: 'bg-muted-foreground/50',
@@ -69,6 +72,8 @@ const REPO_STATE_LABEL: Record<RepoSyncState, string> = {
   'local-changes': '{{repo}}: model changes not saved to GitHub',
   behind: '{{repo}}: {{count}} new commits on GitHub',
   diverged: '{{repo}}: changed here and on GitHub',
+  reconnect: '{{repo}}: GitHub session expired',
+  missing: '{{repo}}: branch or repository not found on GitHub',
   checking: '{{repo}}: checking GitHub',
   unknown: '{{repo}}: could not reach GitHub',
   unlinked: 'Link this project to a GitHub repository',
@@ -159,6 +164,8 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
     'local-changes': t('github.status.localChanges', { defaultValue: 'Model changes not saved to GitHub' }),
     behind: t('github.status.behind', { defaultValue: '{{count}} new commits on GitHub', count: behind }),
     diverged: t('github.chatHeader.diverged', { defaultValue: 'Changed here and on GitHub' }),
+    reconnect: t('github.status.reconnect', { defaultValue: 'GitHub session expired: reconnect' }),
+    missing: t('github.status.missing', { defaultValue: 'Branch or repository not found on GitHub' }),
     checking: t('github.linked.checking', { defaultValue: 'Checking…' }),
     unknown: t('github.status.unknown', { defaultValue: 'Could not reach the repository' }),
   };
@@ -167,7 +174,16 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       ? t('github.menu.localChangesHint', { defaultValue: 'Save to GitHub to keep them in the repository.' })
       : state === 'diverged'
         ? t('github.menu.divergedHint', { defaultValue: 'Saving merges both versions. Get latest takes the GitHub version instead.' })
-        : null;
+        : state === 'reconnect'
+          ? t('github.menu.reconnectHint', { defaultValue: 'Reconnect GitHub to save and check for new commits. Your project is kept.' })
+          : state === 'missing'
+            ? t('github.menu.missingHint', {
+                defaultValue: 'The branch {{branch}} or the repository was deleted or renamed, or your account lost access. Link another repository to keep saving.',
+                branch: link?.branch,
+              })
+            : null;
+  // Saving cannot work until the session or the link is fixed.
+  const canSave = state !== 'reconnect' && state !== 'missing';
 
   const handlePull = async () => {
     if (hasLocalChanges) {
@@ -288,8 +304,20 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                 {stateHint && <p className="mt-1 text-xs text-muted-foreground/90">{stateHint}</p>}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => setDialog('save')}>
-                <CloudUpload className="size-4 shrink-0 text-brand" aria-hidden="true" />
+              {state === 'reconnect' && (
+                <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => onLogin()}>
+                  <RefreshCw className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                  {t('github.menu.reconnect', { defaultValue: 'Reconnect GitHub' })}
+                </DropdownMenuItem>
+              )}
+              {state === 'missing' && (
+                <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => setDialog('link')}>
+                  <Link2 className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                  {t('github.menu.linkExisting', { defaultValue: 'Link an existing repository…' })}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem className={cn(itemClass, canSave && 'font-medium')} disabled={!canSave} onSelect={() => setDialog('save')}>
+                <CloudUpload className={cn('size-4 shrink-0', canSave ? 'text-brand' : 'text-muted-foreground')} aria-hidden="true" />
                 {t('github.menu.saveToGitHub', { defaultValue: 'Save to GitHub…' })}
               </DropdownMenuItem>
               {(state === 'behind' || state === 'diverged') && (

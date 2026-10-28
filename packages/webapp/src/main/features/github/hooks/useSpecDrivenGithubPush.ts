@@ -33,7 +33,6 @@ import { toast } from 'react-toastify';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import {
-  clearProjectGitHubLink,
   getProjectGitHubLink,
   markProjectGitHubSynced,
   setProjectGitHubLink,
@@ -81,15 +80,53 @@ export interface SpecDrivenPushResult {
   conflict_branch: string | null;
   pull_request_url: string | null;
   base_run_id: string | null;
+  /** E.g. the app's previous deploy settings were kept; shown on the result view. */
+  warnings?: string[];
 }
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
-export type SpecDrivenPushErrorCode = 'expired' | 'auth' | 'conflict' | 'other';
+export type SpecDrivenPushErrorCode =
+  | 'expired'
+  | 'repo_missing'
+  | 'auth'
+  | 'forbidden'
+  | 'conflict'
+  | 'branch_moved'
+  | 'other';
 export type SpecDrivenPushOutcome =
   | { ok: true; result: SpecDrivenPushResult }
   | { ok: false; code: SpecDrivenPushErrorCode; message: string };
 
 type PushResponse = SpecDrivenPushResult;
+
+/**
+ * What a failed push means, from the status and the backend's ``detail``:
+ * ``POST /spec-driven/push-to-github`` answers 404 ``run_expired`` or
+ * ``repo_missing``, and 409 for both a taken repo name and a branch that
+ * moved during the push (GitHub's 422s).
+ */
+export function describePushError(error: unknown): { code: SpecDrivenPushErrorCode; message: string } {
+  if (!(error instanceof ApiError)) {
+    return { code: 'other', message: error instanceof Error ? error.message : 'Save to GitHub failed.' };
+  }
+  const detail = error.message;
+  switch (error.status) {
+    case 401:
+      return { code: 'auth', message: 'Your GitHub session expired. Reconnect and try again.' };
+    case 403:
+      return { code: 'forbidden', message: `GitHub refused the push: your account cannot write to this repository. (${detail})` };
+    case 404:
+      return detail === 'repo_missing'
+        ? { code: 'repo_missing', message: 'This repository no longer exists, or your GitHub account cannot see it. Pick another repository or create a new one.' }
+        : { code: 'expired', message: 'This generation expired — re-generate to push.' };
+    case 409:
+      return /already exists/i.test(detail)
+        ? { code: 'conflict', message: 'A repository with that name already exists — push to it as an existing repo.' }
+        : { code: 'branch_moved', message: `The branch changed on GitHub during the push. Try again. (${detail})` };
+    default:
+      return { code: 'other', message: detail || 'Save to GitHub failed.' };
+  }
+}
 
 export interface UseSpecDrivenGithubPushOptions {
   currentProject: BesserProject | null | undefined;
@@ -205,11 +242,9 @@ export function useSpecDrivenGithubPush(
     dispatch(openPushDialog(intent.runId));
   }, [isAuthenticated, currentProject?.id, dispatch]);
 
+  // Only the dialog forgets the repo: the project's link changes when a push
+  // to another repo succeeds, so Cancel keeps the link and its base commit.
   const onChangeRepo = useCallback(() => {
-    const project = projectRef.current;
-    if (project) {
-      clearProjectGitHubLink(project.id);
-    }
     setLinkedRepo(null);
     setResult(null);
   }, []);
@@ -321,25 +356,9 @@ export function useSpecDrivenGithubPush(
         }
         return { ok: true, result: res };
       } catch (error) {
-        if (error instanceof ApiError) {
-          if (error.status === 401) {
-            toast.error('GitHub session expired — please reconnect.');
-            return { ok: false, code: 'auth', message: 'Your GitHub session expired. Reconnect and try again.' };
-          }
-          if (error.status === 404) {
-            toast.error('This generation expired — re-generate to push.');
-            return { ok: false, code: 'expired', message: 'This generation expired — re-generate to push.' };
-          }
-          if (error.status === 409) {
-            toast.error('A repository with that name already exists.');
-            return { ok: false, code: 'conflict', message: 'A repository with that name already exists — push to it as an existing repo.' };
-          }
-          toast.error(error.message || 'Save to GitHub failed.');
-          return { ok: false, code: 'other', message: error.message || 'Save to GitHub failed.' };
-        }
-        const message = error instanceof Error ? error.message : 'Save to GitHub failed.';
+        const { code, message } = describePushError(error);
         toast.error(message);
-        return { ok: false, code: 'other', message };
+        return { ok: false, code, message };
       } finally {
         setIsPushing(false);
       }

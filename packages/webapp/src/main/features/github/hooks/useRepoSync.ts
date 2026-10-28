@@ -7,12 +7,14 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppDispatch } from '../../../app/store/hooks';
+import { ApiError } from '../../../shared/api/api-client';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
   GITHUB_LINK_CHANGED_EVENT,
   clearProjectGitHubLink,
   getProjectGitHubLink,
+  hasUnsyncedModelChanges,
   markProjectGitHubSynced,
   modelFingerprint,
   setProjectGitHubLink,
@@ -21,12 +23,11 @@ import {
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
-import { writeProjectLastRun } from '../../spec-driven/storage';
+import { pullRepoIntoProject } from '../../spec-driven/services/continueFromGithub';
 import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
 import { useGitHubAuth } from './useGitHubAuth';
 import {
   getSyncStatus,
-  importRepoAsRun,
   loadModelAtCommit,
   saveModel,
   type SaveModelResult,
@@ -41,7 +42,18 @@ export type RepoSyncState =
   | 'local-changes'
   | 'behind'
   | 'diverged'
+  | 'reconnect'
+  | 'missing'
   | 'unknown';
+
+/** Why the last sync check failed: the session expired, the branch or repo is gone, or GitHub could not be reached. */
+export type SyncCheckError = 'auth' | 'missing' | 'unreachable';
+
+export function syncCheckError(error: unknown): SyncCheckError {
+  if (error instanceof ApiError && error.status === 401) return 'auth';
+  if (error instanceof ApiError && error.status === 404) return 'missing';
+  return 'unreachable';
+}
 
 // How often an open editor re-checks the linked repo for new commits.
 const SYNC_POLL_MS = 60_000;
@@ -55,10 +67,13 @@ export function deriveRepoSyncState(input: {
   status: SyncStatus | null;
   isChecking: boolean;
   hasLocalChanges: boolean;
+  checkError?: SyncCheckError | null;
 }): RepoSyncState {
-  const { isAuthenticated, link, status, isChecking, hasLocalChanges } = input;
+  const { isAuthenticated, link, status, isChecking, hasLocalChanges, checkError } = input;
   if (!isAuthenticated) return 'signed-out';
   if (!link) return 'unlinked';
+  if (checkError === 'auth') return 'reconnect';
+  if (checkError === 'missing') return 'missing';
   if (!status) return isChecking ? 'checking' : 'unknown';
   const behind = status.commits_since.length > 0;
   if (behind && hasLocalChanges) return 'diverged';
@@ -84,7 +99,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   );
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [checkFailed, setCheckFailed] = useState(false);
+  const [checkError, setCheckError] = useState<SyncCheckError | null>(null);
 
   useEffect(() => {
     const read = () => setLink(projectId ? getProjectGitHubLink(projectId) : null);
@@ -106,9 +121,9 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     setIsChecking(true);
     try {
       setStatus(await getSyncStatus(githubSession, link.owner, link.repo, link.branch, link.baseCommitSha));
-      setCheckFailed(false);
-    } catch {
-      setCheckFailed(true);
+      setCheckError(null);
+    } catch (error) {
+      setCheckError(syncCheckError(error));
     } finally {
       setIsChecking(false);
     }
@@ -116,6 +131,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
 
   useEffect(() => {
     setStatus(null);
+    setCheckError(null);
     if (!checkRemote || !link || !githubSession) return undefined;
     void refresh();
     const onFocus = () => void refresh();
@@ -140,14 +156,14 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     return () => window.clearTimeout(timer);
   }, [link, currentProject, projectId]);
 
-  const hasLocalChanges = useMemo(() => {
-    if (!currentProject || !link || link.baselinePending) return false;
-    return !link.syncedModel || modelFingerprint(currentProject) !== link.syncedModel;
-  }, [currentProject, link]);
+  const hasLocalChanges = useMemo(
+    () => !!currentProject && !!link && hasUnsyncedModelChanges(currentProject, link),
+    [currentProject, link],
+  );
 
   const state = useMemo(
-    () => deriveRepoSyncState({ isAuthenticated, link, status, isChecking, hasLocalChanges }),
-    [isAuthenticated, link, status, isChecking, hasLocalChanges],
+    () => deriveRepoSyncState({ isAuthenticated, link, status, isChecking, hasLocalChanges, checkError }),
+    [isAuthenticated, link, status, isChecking, hasLocalChanges, checkError],
   );
 
   const markSynced = markProjectGitHubSynced;
@@ -159,23 +175,12 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   const pullInto = useCallback(
     async (target: ProjectGitHubLink, intoProjectId: string): Promise<BesserProject> => {
       if (!githubSession) throw new Error('Connect GitHub first.');
-      const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch);
-      const at = Date.now();
-      writeProjectLastRun(intoProjectId, imported.run_id, at);
-      dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at }));
-      if (!imported.has_model || !imported.project) {
-        // A repo without a BESSER model: its latest code becomes the agent's
-        // base, and the project's own model stays as it is.
-        setProjectGitHubLink(intoProjectId, { ...target, branch: imported.branch, baseCommitSha: imported.commit_sha });
-        await loadProject(intoProjectId);
-        return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
-      }
-      const project = storeRepoModelAsProject(imported.project, intoProjectId);
-      markSynced({ ...target, branch: imported.branch }, project, imported.commit_sha, { loadedFromRepo: true });
+      const imported = await pullRepoIntoProject(githubSession, target, intoProjectId);
+      dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
       await loadProject(intoProjectId);
-      return project;
+      return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
     },
-    [githubSession, dispatch, markSynced, loadProject],
+    [githubSession, dispatch, loadProject],
   );
 
   const pull = useCallback(async () => {
@@ -246,7 +251,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     state,
     hasLocalChanges,
     isChecking,
-    checkFailed,
+    checkError,
     githubSession,
     refresh,
     pull,

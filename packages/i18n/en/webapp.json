@@ -47,7 +47,9 @@
       "unknown": "{{repo}}: could not reach GitHub",
       "unlinked": "Link this project to a GitHub repository",
       "signed-out": "GitHub",
-      "behind_one": "{{repo}}: 1 new commit on GitHub"
+      "behind_one": "{{repo}}: 1 new commit on GitHub",
+      "reconnect": "{{repo}}: GitHub session expired",
+      "missing": "{{repo}}: branch or repository not found on GitHub"
     },
     "linkToGithub": "Link to GitHub"
   },
@@ -1501,7 +1503,9 @@
       "behind": "{{count}} new commits on GitHub",
       "diverged": "Changed here and on GitHub ({{count}} new commits). Save to merge both, or pull to take the GitHub version.",
       "behind_one": "1 new commit on GitHub",
-      "diverged_one": "Changed here and on GitHub (1 new commit). Save to merge both, or pull to take the GitHub version."
+      "diverged_one": "Changed here and on GitHub (1 new commit). Save to merge both, or pull to take the GitHub version.",
+      "reconnect": "GitHub session expired: reconnect",
+      "missing": "Branch or repository not found on GitHub"
     },
     "repoBrowser": {
       "private": "Private",
@@ -1570,7 +1574,10 @@
       "defaultCommitMessage": "Update the model from the BESSER editor",
       "saveDescription": "Commits your model to {{repo}} on {{branch}}. Newer changes on GitHub are merged, never overwritten.",
       "commitMessageOptional": "What changed? (optional)",
-      "save": "Save"
+      "save": "Save",
+      "reconnect": "Reconnect GitHub",
+      "reconnectHint": "Reconnect GitHub to save and check for new commits. Your project is kept.",
+      "missingHint": "The branch {{branch}} or the repository was deleted or renamed, or your account lost access. Link another repository to keep saving."
     }
   },
   "assistant": {

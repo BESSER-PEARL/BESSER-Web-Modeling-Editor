@@ -147,6 +147,12 @@ export function modelFingerprint(project: BesserProject): string {
   return `${text.length}:${(hash >>> 0).toString(16)}`;
 }
 
+/** Whether the project's model changed since the commit its link records. */
+export function hasUnsyncedModelChanges(project: BesserProject, link: ProjectGitHubLink): boolean {
+  if (link.baselinePending) return false;
+  return !link.syncedModel || modelFingerprint(project) !== link.syncedModel;
+}
+
 /**
  * Record that `project` now matches commit `sha` of its linked repo.
  *

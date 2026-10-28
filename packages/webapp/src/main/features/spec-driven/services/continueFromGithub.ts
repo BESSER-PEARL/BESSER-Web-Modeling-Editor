@@ -16,11 +16,18 @@
  * hook-free so it can be unit-tested directly.
  */
 import { ApiError } from '../../../shared/api/api-client';
-import { importProjectFromJson } from '../../../shared/services/project-import/projectImport';
+import i18n from '../../../shared/i18n';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { importProjectFromJson, storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
+  getProjectGitHubLink,
+  hasUnsyncedModelChanges,
   markProjectGitHubSynced,
   setProjectGitHubLink,
+  type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
+import type { BesserProject } from '../../../shared/types/project';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { PROJECT_EXPORT_VERSION } from '../../../shared/utils/projectExportUtils';
@@ -40,6 +47,10 @@ export interface ContinueFromGithubResult {
   proposedModel?: boolean;
   /** The server's explanation when no model could be proposed (e.g. the AI reading failed). */
   message?: string;
+  /** The repo opened in the local project already linked to it, not a new one. */
+  reused?: boolean;
+  /** That project had unsaved model changes and the user kept them instead of pulling. */
+  keptLocalChanges?: boolean;
   error?: string;
 }
 
@@ -75,6 +86,61 @@ function envelopeForCodeRepo(response: ImportedRun): unknown {
   };
 }
 
+/** The local project already linked to `owner/repo` (GitHub names ignore case), or null. */
+export function findProjectLinkedTo(owner: string, repo: string): BesserProject | null {
+  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  for (const project of ProjectStorageRepository.getAllProjects()) {
+    const link = getProjectGitHubLink(project.id);
+    if (link && same(link.owner, owner) && same(link.repo, repo)) return project as BesserProject;
+  }
+  return null;
+}
+
+/**
+ * Make project `projectId` match the head of `target`: the repo's model when it
+ * has one (a repo without one keeps the project's model), and its code as the
+ * next Spec-Driven modify run's base. The caller loads the project.
+ */
+export async function pullRepoIntoProject(
+  githubSession: string,
+  target: ProjectGitHubLink,
+  projectId: string,
+): Promise<ImportedRun> {
+  const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch);
+  writeProjectLastRun(projectId, imported.run_id, Date.now());
+  const link = { ...target, branch: imported.branch };
+  if (imported.has_model && imported.project) {
+    const project = storeRepoModelAsProject(imported.project, projectId);
+    markProjectGitHubSynced(link, project, imported.commit_sha, { loadedFromRepo: true });
+  } else {
+    setProjectGitHubLink(projectId, { ...link, baseCommitSha: imported.commit_sha });
+  }
+  return imported;
+}
+
+/** Open the repo in the project already linked to it; unsaved model changes are replaced only on confirm. */
+async function continueInLinkedProject(
+  project: BesserProject,
+  args: { branch?: string; githubSession: string },
+): Promise<ContinueFromGithubResult> {
+  const link = getProjectGitHubLink(project.id) as ProjectGitHubLink;
+  const opened = { ok: true, projectId: project.id, owner: link.owner, repo: link.repo, reused: true };
+  if (hasUnsyncedModelChanges(project, link)) {
+    const replace = await globalConfirm({
+      title: i18n.t('github.linked.pullConfirmTitle', { defaultValue: 'Replace your local changes?' }),
+      description: i18n.t('github.linked.pullConfirmDescription', {
+        defaultValue: 'Pulling loads the version on GitHub and discards the changes you have not pushed yet.',
+      }),
+      confirmLabel: i18n.t('github.linked.pullConfirmAction', { defaultValue: 'Pull and discard changes' }),
+      cancelLabel: i18n.t('github.linked.keepLocalChanges', { defaultValue: 'Keep my changes' }),
+      variant: 'danger',
+    });
+    if (!replace) return { ...opened, branch: link.branch, keptLocalChanges: true };
+  }
+  const imported = await pullRepoIntoProject(args.githubSession, { ...link, branch: args.branch ?? link.branch }, project.id);
+  return { ...opened, runId: imported.run_id, branch: imported.branch };
+}
+
 export async function continueFromGithubRepo(args: {
   owner: string;
   repo: string;
@@ -82,6 +148,11 @@ export async function continueFromGithubRepo(args: {
   githubSession: string;
 }): Promise<ContinueFromGithubResult> {
   try {
+    // A repo a local project already links to opens in that project: a second
+    // copy would diverge from it, each with its own base commit.
+    const linked = findProjectLinkedTo(args.owner, args.repo);
+    if (linked) return await continueInLinkedProject(linked, args);
+
     const response = await importRepoAsRun(args.githubSession, args.owner, args.repo, args.branch);
     const isBesserRepo = response.has_model && !!response.project;
 
@@ -157,6 +228,13 @@ export async function continueFromGithubRepo(args: {
 /** What the assistant says after a repo opened, in the chat's markdown. */
 export function describeOpenedRepo(result: ContinueFromGithubResult): string {
   const repo = `**${result.owner}/${result.repo}**`;
+  if (result.reused) {
+    return result.keptLocalChanges
+      ? `Opened your project linked to ${repo}, with your unsaved changes. ` +
+          'Use **Get latest** in the GitHub menu when you want the version on GitHub.'
+      : `Opened your project linked to ${repo}, updated to the latest commit on \`${result.branch}\`. ` +
+          'Ask for any change and save it back to GitHub when you are happy.';
+  }
   if (!result.analysis) {
     return (
       `Opened ${repo}. Its model is on the canvas, and I will work on top of its code. ` +

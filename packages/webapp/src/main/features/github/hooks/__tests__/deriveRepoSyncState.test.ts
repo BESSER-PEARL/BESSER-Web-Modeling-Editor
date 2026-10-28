@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveRepoSyncState } from '../useRepoSync';
+import { ApiError } from '../../../../shared/api/api-client';
+import { deriveRepoSyncState, syncCheckError } from '../useRepoSync';
 
 const link = { owner: 'me', repo: 'app', branch: 'main', baseCommitSha: 'a'.repeat(40) };
 const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', date: '', html_url: '', origin: null };
@@ -35,5 +36,14 @@ describe('deriveRepoSyncState', () => {
     expect(state({ status: null })).toBe('unknown');
     expect(state({ link: null })).toBe('unlinked');
     expect(state({ isAuthenticated: false })).toBe('signed-out');
+  });
+
+  it('names why a check failed instead of one "could not reach GitHub"', () => {
+    expect(state({ checkError: 'auth' })).toBe('reconnect');
+    expect(state({ checkError: 'missing', status: null })).toBe('missing');
+    expect(state({ checkError: 'unreachable', status: null })).toBe('unknown');
+    expect(syncCheckError(new ApiError(401, 'GitHub session expired'))).toBe('auth');
+    expect(syncCheckError(new ApiError(404, 'branch_missing'))).toBe('missing');
+    expect(syncCheckError(new TypeError('Failed to fetch'))).toBe('unreachable');
   });
 });

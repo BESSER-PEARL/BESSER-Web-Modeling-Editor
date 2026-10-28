@@ -235,4 +235,25 @@ describe('GitHubMenu', () => {
     await waitFor(() => expect(sync.linkTo).toHaveBeenCalledWith('ana', 'shop', 'main', 'c'.repeat(40)));
     expect(sync.pullInto).not.toHaveBeenCalled();
   });
+
+  it('offers Reconnect instead of Save when the GitHub session expired', () => {
+    linkAs('reconnect');
+    renderMenu();
+    openMenu();
+
+    expect(screen.getByText('GitHub session expired: reconnect')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Save to GitHub…' })).toHaveAttribute('data-disabled');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reconnect GitHub' }));
+    expect(onLogin).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers to link another repository when the branch or repository is gone', () => {
+    linkAs('missing');
+    renderMenu();
+    openMenu();
+
+    expect(screen.getByText(/The branch main or the repository was deleted/)).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Save to GitHub…' })).toHaveAttribute('data-disabled');
+    expect(screen.getByRole('menuitem', { name: 'Link an existing repository…' })).toBeInTheDocument();
+  });
 });

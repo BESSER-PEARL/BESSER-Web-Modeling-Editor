@@ -28,10 +28,12 @@ export const useGitHubAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check for GitHub session in URL parameters (OAuth callback)
+    // The OAuth callback puts the session in the URL fragment (never sent to a
+    // server or logged by a proxy); an error comes back as a query parameter.
     const urlParams = new URLSearchParams(window.location.search);
-    const sessionFromUrl = urlParams.get('github_session');
-    const usernameFromUrl = urlParams.get('username');
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const sessionFromUrl = fragment.get('github_session');
+    const usernameFromUrl = fragment.get('username');
     const error = urlParams.get('error');
 
     const controller = new AbortController();
@@ -108,7 +110,10 @@ export const useGitHubAuth = () => {
       : timeoutController.signal;
 
     try {
-      const response = await fetch(`${BACKEND_URL}/github/auth/status?session_id=${session}`, { signal: combinedSignal });
+      const response = await fetch(`${BACKEND_URL}/github/auth/status`, {
+        headers: { 'X-GitHub-Session': session },
+        signal: combinedSignal,
+      });
       const data: GitHubAuthStatus = await response.json();
 
       if (data.success && data.username) {
@@ -123,8 +128,12 @@ export const useGitHubAuth = () => {
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
       }
-      console.error('Failed to verify GitHub session:', error);
-      logout();
+      // The backend could not answer (e.g. restarting during a deploy): keep the
+      // session; a GitHub call that gets a 401 asks the user to reconnect.
+      console.warn('Could not verify the GitHub session; keeping it:', error);
+      setGithubSession(session);
+      setUsername(localStorage.getItem('github_username'));
+      setIsAuthenticated(true);
     } finally {
       clearTimeout(timeoutId);
     }

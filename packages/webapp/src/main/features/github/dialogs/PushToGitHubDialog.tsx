@@ -225,6 +225,10 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
       if (outcome.code === 'conflict') {
         setMode('existing');
       }
+      // The linked repo is gone: show the picker so another one can be chosen.
+      if (outcome.code === 'repo_missing' && isUpdateMode) {
+        onChangeRepo();
+      }
     }
     // On success the hook updates ``result`` and this renders the success view.
   };
@@ -278,6 +282,12 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
               </p>
               <p className="text-xs">{t('github.push.filesUploaded', { count: result.files_uploaded })}</p>
             </div>
+            {result.warnings?.map((warning) => (
+              <p key={warning} className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                {warning}
+              </p>
+            ))}
             {result.pull_request_url ? (
               <a
                 href={result.pull_request_url}

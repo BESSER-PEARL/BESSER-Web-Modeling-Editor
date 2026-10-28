@@ -59,8 +59,6 @@ import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../github/components/RepoBrowser';
-import { useRepoSync } from '../github/hooks/useRepoSync';
-import { getProjectGitHubLink } from '../../shared/services/storage/projectGitHubLink';
 import { continueFromGithubRepo, describeOpenedRepo } from '../spec-driven/services/continueFromGithub';
 import { postAssistantMessage } from '../assistant/hooks/assistantConversationStore';
 import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
@@ -192,7 +190,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     githubSession,
     login: githubLogin,
   } = useGitHubAuth();
-  const { pullInto: pullRepoIntoProject } = useRepoSync({ checkRemote: false });
 
   const { currentProject, createProject, loadProject, deleteProject } = useProject();
   const importDiagramToProject = useImportDiagramToProject();
@@ -741,25 +738,16 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setGithubError(t('project.hub.github.errors.noSession', { defaultValue: 'GitHub session not found. Please reconnect.' }));
       return;
     }
-    const linkedProjectId = ProjectStorageRepository.getAllProjects()
-      .map((p) => p.id)
-      .find((id) => {
-        const link = getProjectGitHubLink(id);
-        return link?.owner === owner && link.repo === repo;
-      });
-
     try {
       setIsBusy(true);
-      if (linkedProjectId) {
-        await pullRepoIntoProject({ owner, repo, branch }, linkedProjectId);
-      } else {
-        const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
-        if (!result.ok || !result.projectId || !result.runId) {
-          setGithubError(result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }));
-          return;
-        }
-        await loadProject(result.projectId);
-        postAssistantMessage(describeOpenedRepo(result));
+      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
+      if (!result.ok || !result.projectId) {
+        setGithubError(result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }));
+        return;
+      }
+      await loadProject(result.projectId);
+      postAssistantMessage(describeOpenedRepo(result));
+      if (result.runId) {
         dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
       }
 

@@ -5,12 +5,26 @@ vi.mock('../../../github/services/githubApi', () => ({
   importRepoAsRun: (...args: unknown[]) => importRepoAsRun(...args),
 }));
 const importProjectFromJson = vi.fn(async (_file: File) => ({ id: 'p-new', name: 'Library', diagrams: {} }));
+const storeRepoModelAsProject = vi.fn((_project: unknown, id: string) => ({ id, name: 'Library', diagrams: {} }));
 vi.mock('../../../../shared/services/project-import/projectImport', () => ({
   importProjectFromJson: (file: File) => importProjectFromJson(file),
+  storeRepoModelAsProject: (project: unknown, id: string) => storeRepoModelAsProject(project, id),
+}));
+const localProjects: { id: string; name: string; diagrams: Record<string, unknown> }[] = [];
+vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
+  ProjectStorageRepository: { getAllProjects: () => localProjects },
+}));
+const globalConfirm = vi.fn(async () => true);
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
 }));
 
 import { continueFromGithubRepo, describeOpenedRepo } from '../continueFromGithub';
-import { getProjectGitHubLink } from '../../../../shared/services/storage/projectGitHubLink';
+import {
+  getProjectGitHubLink,
+  markProjectGitHubSynced,
+  setProjectGitHubLink,
+} from '../../../../shared/services/storage/projectGitHubLink';
 import { readProjectLastRun } from '../../storage';
 import { consumeAutoLayoutRequest } from '../../../../shared/utils/autoLayoutSignal';
 
@@ -19,6 +33,9 @@ const RUN = 'f'.repeat(32);
 
 afterEach(() => {
   localStorage.clear();
+  localProjects.length = 0;
+  globalConfirm.mockClear();
+  storeRepoModelAsProject.mockClear();
   importRepoAsRun.mockReset();
   importProjectFromJson.mockClear();
   consumeAutoLayoutRequest(); // the layout request is module state
@@ -136,5 +153,70 @@ describe('continueFromGithubRepo', () => {
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
     expect(describeOpenedRepo(result)).toContain('work on its code');
     expect(consumeAutoLayoutRequest()).toBe(false);
+  });
+});
+
+describe('continueFromGithubRepo — a repo a local project already links to', () => {
+  const OLD = 'a'.repeat(40);
+  const local = { id: 'p-local', name: 'Library', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } };
+  const imported = {
+    run_id: RUN, project: { project: {} }, has_model: true,
+    owner: 'Me', repo: 'App', branch: 'main', commit_sha: HEAD,
+  };
+
+  const linkLocal = (changedSinceSync: boolean) => {
+    localProjects.push(local);
+    markProjectGitHubSynced({ owner: 'me', repo: 'app', branch: 'main' }, local as never, OLD);
+    if (changedSinceSync) local.diagrams = { ClassDiagram: [{ model: { v: 2 } }] };
+  };
+
+  afterEach(() => {
+    local.diagrams = { ClassDiagram: [{ model: { v: 1 } }] };
+  });
+
+  it('opens in that project instead of creating a second copy', async () => {
+    linkLocal(false);
+    importRepoAsRun.mockResolvedValue(imported);
+
+    const result = await continueFromGithubRepo({ owner: 'Me', repo: 'App', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, projectId: 'p-local', runId: RUN, reused: true });
+    expect(importProjectFromJson).not.toHaveBeenCalled();
+    expect(globalConfirm).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p-local')?.baseCommitSha).toBe(HEAD);
+  });
+
+  it('asks before replacing unsaved changes, and keeps them when the user says no', async () => {
+    linkLocal(true);
+    globalConfirm.mockResolvedValueOnce(false);
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(globalConfirm).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ ok: true, projectId: 'p-local', reused: true, keptLocalChanges: true });
+    expect(importRepoAsRun).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p-local')?.baseCommitSha).toBe(OLD);
+    expect(describeOpenedRepo(result)).toContain('with your unsaved changes');
+  });
+
+  it('pulls into the project when the user agrees to replace the changes', async () => {
+    linkLocal(true);
+    importRepoAsRun.mockResolvedValue(imported);
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, projectId: 'p-local', runId: RUN });
+    expect(storeRepoModelAsProject).toHaveBeenCalledWith(imported.project, 'p-local');
+    expect(readProjectLastRun('p-local')?.runId).toBe(RUN);
+  });
+
+  it('keeps an unrelated repo as a new project', async () => {
+    localProjects.push(local);
+    setProjectGitHubLink('p-local', { owner: 'me', repo: 'other', branch: 'main' });
+    importRepoAsRun.mockResolvedValue({ ...imported, owner: 'me', repo: 'app' });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result.projectId).toBe('p-new');
   });
 });

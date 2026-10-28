@@ -52,12 +52,14 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
     setError(null);
     try {
       const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
-      if (!result.ok || !result.projectId || !result.runId) {
+      if (!result.ok || !result.projectId) {
         setError(result.error ?? t('assistant.startFromRepo.failed', { defaultValue: 'Could not open this repository.' }));
         return;
       }
       await loadProject(result.projectId);
-      dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
+      if (result.runId) {
+        dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
+      }
       postAssistantMessage(describeOpenedRepo(result));
       onOpenChange(false);
     } finally {

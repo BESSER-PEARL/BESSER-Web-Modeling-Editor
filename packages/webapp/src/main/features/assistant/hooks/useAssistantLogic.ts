@@ -911,15 +911,17 @@ export function useAssistantLogic({
           branch: ghBranch,
           githubSession: ghSession,
         });
-        if (result.ok && result.projectId && result.runId) {
+        if (result.ok && result.projectId) {
           await dispatch(loadProjectThunk(result.projectId)).unwrap();
-          dispatch(
-            setLastRunForProject({
-              projectId: result.projectId,
-              runId: result.runId,
-              at: Date.now(),
-            }),
-          );
+          if (result.runId) {
+            dispatch(
+              setLastRunForProject({
+                projectId: result.projectId,
+                runId: result.runId,
+                at: Date.now(),
+              }),
+            );
+          }
           setMessages((prev) => [...prev, toKitMessage('assistant', describeOpenedRepo(result))]);
         } else {
           setMessages((prev) => [
