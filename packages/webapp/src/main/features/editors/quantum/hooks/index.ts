@@ -1,4 +1,4 @@
-export { useUndoRedo } from './useUndoRedo';
+export { useUndoRedo } from '../../../../shared/hooks/useUndoRedo';
 export { useCircuitPersistence, useAutoSave } from './useCircuitPersistence';
 export type { SaveStatus } from './useCircuitPersistence';
 export { useCircuitDragDrop } from './useCircuitDragDrop';

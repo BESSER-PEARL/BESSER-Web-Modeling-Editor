@@ -10,11 +10,13 @@ interface WorkspaceContext {
   isAgentContext: boolean;
   isNNContext: boolean;
   isBpmnContext: boolean;
+  isKgContext: boolean;
   isDeploymentAvailable: boolean;
   generatorMenuMode: GeneratorMenuMode;
 }
 
-export const getWorkspaceContext = (pathname: string, currentDiagramType?: string): WorkspaceContext => {
+/** What the active diagram type makes available (generator menu, deployment, KG-only entries). */
+export const getWorkspaceContext = (currentDiagramType?: string): WorkspaceContext => {
   const isQuantumContext = currentDiagramType === 'QuantumCircuitDiagram';
   const isGuiContext = currentDiagramType === 'GUINoCodeDiagram';
   const isClassContext = currentDiagramType === 'ClassDiagram';
@@ -24,6 +26,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
   const isAgentContext = currentDiagramType === 'AgentDiagram';
   const isNNContext = currentDiagramType === 'NNDiagram';
   const isBpmnContext = currentDiagramType === 'BPMN';
+  const isKgContext = currentDiagramType === 'KnowledgeGraphDiagram';
 
   const generatorMenuMode: GeneratorMenuMode = isQuantumContext
     ? 'quantum'
@@ -43,7 +46,9 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
                   ? 'nn'
                   : isBpmnContext
                     ? 'bpmn'
-                    : 'none';
+                    : isKgContext
+                      ? 'kg'
+                      : 'none';
 
   return {
     isQuantumContext,
@@ -55,6 +60,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
     isAgentContext,
     isNNContext,
     isBpmnContext,
+    isKgContext,
     isDeploymentAvailable: isGuiContext || isClassContext || isAgentContext,
     generatorMenuMode,
   };

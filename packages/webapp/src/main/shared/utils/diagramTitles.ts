@@ -13,6 +13,7 @@ export const DEFAULT_DIAGRAM_TITLES: Record<SupportedDiagramType, string> = {
   BPMN: 'BPMN Diagram',
   ComponentDiagram: 'Component Diagram',
   DeploymentDiagram: 'Deployment Diagram',
+  KnowledgeGraphDiagram: 'Knowledge Graph',
 };
 
 /**
