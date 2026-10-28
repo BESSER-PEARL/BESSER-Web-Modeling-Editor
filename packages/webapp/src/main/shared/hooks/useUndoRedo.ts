@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-const MAX_UNDO_HISTORY = 100;
+const DEFAULT_MAX_HISTORY = 100;
 
 interface HistoryState<T> {
     past: T[];
@@ -8,13 +8,34 @@ interface HistoryState<T> {
     future: T[];
 }
 
+export interface UseUndoRedoOptions {
+    /** Steps kept for undo. Lower it when each snapshot is large. Default 100. */
+    maxHistory?: number;
+}
+
+export interface SetStateOptions {
+    /**
+     * `false` replaces the current state without making it an undo step, and
+     * leaves the existing history alone. For changes the user did not make
+     * (e.g. an automatic layout). Default `true`.
+     */
+    record?: boolean;
+}
+
 /**
- * @param initialState - The starting state for undo/redo history.
+ * @param initialState - The starting state for undo/redo history. Replacing it
+ *                   with a different value restarts the history, so pass a
+ *                   stable value, and use `reset` to swap the state later.
  * @param resetKey - Optional key that, when changed, forces a full history reset.
  *                   Use this to tie history to a specific diagram or project ID
  *                   so that switching contexts always clears stale undo/redo entries.
+ * @param options  - See {@link UseUndoRedoOptions}.
  */
-export function useUndoRedo<T>(initialState: T, resetKey?: string) {
+export function useUndoRedo<T>(initialState: T, resetKey?: string, options: UseUndoRedoOptions = {}) {
+    const maxHistory = Math.max(1, options.maxHistory ?? DEFAULT_MAX_HISTORY);
+    const maxHistoryRef = useRef(maxHistory);
+    maxHistoryRef.current = maxHistory;
+
     const [state, setState] = useState<HistoryState<T>>(() => ({
         past: [],
         present: initialState,
@@ -81,14 +102,14 @@ export function useUndoRedo<T>(initialState: T, resetKey?: string) {
             const newFuture = future.slice(1);
 
             return {
-                past: [...past.slice(-(MAX_UNDO_HISTORY - 1)), present],
+                past: [...past.slice(-(maxHistoryRef.current - 1)), present],
                 present: next,
                 future: newFuture
             };
         });
     }, []);
 
-    const set = useCallback((newPresent: T | ((current: T) => T)) => {
+    const set = useCallback((newPresent: T | ((current: T) => T), setOptions?: SetStateOptions) => {
         setState(currentState => {
             const { past, present, future } = currentState;
 
@@ -96,17 +117,27 @@ export function useUndoRedo<T>(initialState: T, resetKey?: string) {
 
             if (nextState === present) return currentState;
 
+            if (setOptions?.record === false) {
+                return { past, present: nextState, future };
+            }
+
             return {
-                past: [...past.slice(-(MAX_UNDO_HISTORY - 1)), present],
+                past: [...past.slice(-(maxHistoryRef.current - 1)), present],
                 present: nextState,
                 future: [] // Clear future on new action
             };
         });
     }, []);
 
+    /** Replace the state and start a new, empty history (e.g. a different diagram was loaded). */
+    const reset = useCallback((next: T) => {
+        setState({ past: [], present: next, future: [] });
+    }, []);
+
     return {
         state: state.present,
         setState: set,
+        reset,
         undo,
         redo,
         canUndo,

@@ -28,14 +28,14 @@ const bookSelling = {
   },
 };
 
-/** The open diagram is a class diagram; `landsOn` is where the switch ends up. */
-const renderFromClassDiagram = (landsOn: string) => {
+/** The open diagram is `openType`; `landsOn` is where the switch ends up. */
+const renderFromClassDiagram = (landsOn: string, openType = 'ClassDiagram') => {
   const dispatched: Array<{ type: string; payload?: { model?: { type: string } } }> = [];
   const dispatch = vi.fn((action: (typeof dispatched)[number]) => {
     dispatched.push(action);
     return { unwrap: () => Promise.resolve(action) };
   });
-  const currentDiagramTypeRef = { current: 'ClassDiagram' as string | undefined };
+  const currentDiagramTypeRef = { current: openType as string | undefined };
   const setMessages = vi.fn();
   const { result } = renderHook(() =>
     useModelInjection({
@@ -83,5 +83,28 @@ describe('useModelInjection target diagram', () => {
     expect(written()).toHaveLength(0);
     const added = setMessages.mock.calls.map(([update]) => (typeof update === 'function' ? update([]) : update)).flat();
     expect(added.some((m: { isError?: boolean }) => m.isError)).toBe(true);
+  });
+
+  it('never writes into an open Knowledge Graph, which it has no converter or modifier for', async () => {
+    const { result, written, setMessages } = renderFromClassDiagram('KnowledgeGraphDiagram', 'KnowledgeGraphDiagram');
+    await act(async () => {
+      await result.current.handleInjection({
+        action: 'inject_complete_system',
+        message: 'Here is your model.',
+        model: { type: 'ClassDiagram', elements: {}, relationships: {} },
+      } as unknown as Parameters<typeof result.current.handleInjection>[0]);
+    });
+    expect(written()).toHaveLength(0);
+    const added = setMessages.mock.calls.map(([update]) => (typeof update === 'function' ? update([]) : update)).flat();
+    expect(added.some((m: { isError?: boolean }) => m.isError)).toBe(true);
+  });
+
+  it('still builds another diagram the user asks for while a Knowledge Graph is open', async () => {
+    const { result, written } = renderFromClassDiagram('BPMN', 'KnowledgeGraphDiagram');
+    await act(async () => {
+      await result.current.handleInjection(bookSelling);
+    });
+    expect(written()).toHaveLength(1);
+    expect(written()[0].payload?.model?.type).toBe('BPMNDiagram');
   });
 });

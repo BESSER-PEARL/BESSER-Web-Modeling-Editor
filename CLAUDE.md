@@ -69,11 +69,14 @@ Webapp (`packages/webapp/src/main/`):
 | `app/shell/` | `WorkspaceShell`, top bar, sidebar, `workspace-navigation.tsx`, `menus/` (incl. `generator-menu-config.ts`) |
 | `app/store/` | `store.ts`, `workspaceSlice.ts`, `errorManagementSlice.ts`, typed hooks in `hooks.ts` |
 | `app/hooks/` | `useProject`, `useProjectBootstrap`, `useStorageSync` |
-| `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, rest → Apollon), `uml/`, `gui/`, `quantum/`, `diagram-tabs/` |
+| `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, Knowledge Graph → Cytoscape, rest → Apollon), `uml/`, `gui/`, `quantum/`, `kg/`, `diagram-tabs/` |
 | `features/assistant/` | AI assistant: WebSocket client, `services/converters/`, `services/modifiers/` |
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
-| `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation}/` | One feature module each |
+| `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
+| `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
 | `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
+| `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
+| `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
 | `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
 | `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
 | `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
@@ -93,7 +96,7 @@ First-class part of the app, with two independent backends.
 - `features/assistant/services/AssistantClient.ts`, a module-level singleton (`getSharedAssistantClient`) so the
   floating bubble (`AssistantWidget.tsx`) and the bottom drawer (`AssistantWorkspaceDrawer.tsx`) share one socket
   and conversation. They coordinate via the `besser:assistant-drawer` CustomEvent and `sessionStorage`; the bubble
-  is hidden on `NNDiagram`.
+  is hidden on `NNDiagram` and `KnowledgeGraphDiagram` (`services/assistantSupport.ts`).
 - URL is `UML_BOT_WS_URL` (default `ws://localhost:8765`). The socket carries a per-tab `session_id` and a
   `localStorage`-persisted `user_id` query param — BAF keys backend sessions on it; without it every reconnect
   wipes conversation memory.
@@ -101,7 +104,8 @@ First-class part of the app, with two independent backends.
   structured reply, never scraped out of prose (prompt-injection guard; see
   `services/__tests__/AssistantClient.injection.test.ts`).
 - Converters (agent JSON → editor model) and modifiers (incremental edits) cover 8 types: Class, Object,
-  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent.** A new type
+  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent**, and
+  `KnowledgeGraphDiagram` is not supported (its model is not Apollon's; injection refuses to write one). A new type
   needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
 
@@ -128,7 +132,8 @@ assistant's dialog, and its opt-in flag is kept separate from the key so no plac
 - Never write an API key outside `sessionStorage`, never into Redux, never log one.
 - Never hardcode server-owned limits (cost/runtime caps, free-model ids, download TTL). They come from
   `GET /spec-driven/config`, fetched once per page load by `shared/services/specDrivenConfig.ts`; a stale
-  hardcoded copy silently becomes the binding limit.
+  hardcoded copy silently becomes the binding limit. The Knowledge Graph LLM timeout and orphan batch size come
+  from `GET /kg/config` (`getKgConfig` in `shared/api/knowledgeGraph.ts`), with no fallback.
 
 ## Key Patterns
 
@@ -197,11 +202,13 @@ the diagram package, e.g. `packages/uml-class-diagram/your-element/`.
 Walkthrough: `docs/source/contributing/new-diagram-guide/`.
 
 ## Diagram Types
-- **Project types (9)**, max 5 of each per project: `ClassDiagram`, `ObjectDiagram`, `StateMachineDiagram`,
-  `AgentDiagram`, `UserDiagram`, `GUINoCodeDiagram`, `QuantumCircuitDiagram`, `NNDiagram`, `BPMN`
-  (`BPMN` maps to the wire value `'BPMNDiagram'`).
-- The editor engine also carries Activity, UseCase, Communication, Component, Deployment, PetriNet,
-  ReachabilityGraph, SyntaxTree and Flowchart types; these are **not** reachable from the webapp UI.
+- **Project types (12)**, max 5 of each per project: `ClassDiagram`, `ObjectDiagram`, `StateMachineDiagram`,
+  `AgentDiagram`, `UserDiagram`, `GUINoCodeDiagram`, `QuantumCircuitDiagram`, `NNDiagram`, `BPMN`,
+  `ComponentDiagram`, `DeploymentDiagram`, `KnowledgeGraphDiagram` (`BPMN` maps to the wire value `'BPMNDiagram'`).
+- The editor engine also carries Activity, UseCase, Communication, PetriNet, ReachabilityGraph, SyntaxTree
+  and Flowchart types; these are **not** reachable from the webapp UI.
+- `KnowledgeGraphDiagram` is not an Apollon diagram: its model is `KnowledgeGraphData` (`shared/types/project.ts`)
+  and it has no UML form, so SVG/PNG/UML-JSON exports do not apply to it (see below).
 
 ## Environment Variables
 All configuration is **build time** — no runtime config endpoint. `vite.config.ts` passes exactly seven names to
@@ -227,6 +234,22 @@ Full reference: `docs/source/reference/environment.rst`.
 - User-facing strings go through `react-i18next`; `packages/i18n/en/webapp.json` is the source of truth.
 - GUI editor: GrapesJS loaded dynamically, component registrars in `features/editors/gui/component-registrars/`,
   charts via Recharts. Quantum editor: custom canvas with react-dnd, gates in `features/editors/quantum/gates/`.
+- Knowledge Graph editor (`features/editors/kg/`): Cytoscape.js canvas (+ edgehandles, fcose), inspector,
+  constraint editors. Rules worth knowing before changing it:
+  - a node has two labels in Cytoscape: `label` (stored, round-trips) and `displayLabel` (drawn, never written
+    back); `canvasModel.ts` holds the pure model <-> canvas translation and its tests
+  - which nodes are visible is React state saved into `settings.visibleIds`; compare models with
+    `sameKgContent` (ignores it) or an echo of the editor's own save resets the selection
+  - Space/Delete only act while the canvas has focus (`canvasKeys.ts`); undo/redo is `shared/hooks/useUndoRedo`
+  - the stylesheet follows the page theme (`buildKgStylesheet(dark)`); the standalone HTML export always uses
+    the light one, and its CDN scripts are pinned with integrity hashes that a test checks against the installed
+    packages — after upgrading cytoscape/fcose, update `CDN_SCRIPTS`
+  - backend calls go through `shared/api/knowledgeGraph.ts`; the AI tabs use the shared LLM key
+    (`llmKeyStorage`) and send it with its provider (Anthropic, OpenAI, Mistral or Nebius; PIA and local keys
+    need a custom endpoint the server will not open, so they are refused); the convert/refine dialogs are
+    driven by `features/knowledge-graph/useKgFlows.ts`, RDF export is a section of the Export dialog
+  - the modeling assistant does not support KG: no converter/modifier, the bubble is hidden on it and an
+    injection targeting it is refused
 
 ## Cross-Repo Workflow
 1. Commit and push frontend changes on a branch here

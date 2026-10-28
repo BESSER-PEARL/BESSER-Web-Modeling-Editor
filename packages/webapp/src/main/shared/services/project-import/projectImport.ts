@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DIAGRAM_KIND_BY_TYPE,
   ProjectDiagram,
   PROJECT_SCHEMA_VERSION,
   SupportedDiagramType,
@@ -96,10 +97,8 @@ function migrateOldWebappProject(data: any): BesserProject {
       migratedDiagrams[diagramType] = [
         createEmptyDiagram(
           diagramType.replace(/([A-Z])/g, ' $1').trim(),
-          diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
-            ? null
-            : ((UMLDiagramType as any)[diagramType] ?? null),
-          diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined,
+          DIAGRAM_KIND_BY_TYPE[diagramType] ? null : ((UMLDiagramType as any)[diagramType] ?? null),
+          DIAGRAM_KIND_BY_TYPE[diagramType],
         ),
       ];
     }
@@ -117,6 +116,7 @@ function migrateOldWebappProject(data: any): BesserProject {
     QuantumCircuitDiagram: 0,
     NNDiagram: 0,
     BPMN: 0,
+    KnowledgeGraphDiagram: 0,
   };
 
   return {
@@ -160,6 +160,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram',
     'BPMN',
+    'KnowledgeGraphDiagram',
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -172,6 +173,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     NNDiagram: UMLDiagramType.NNDiagram,
     UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
+    KnowledgeGraphDiagram: null,
     QuantumCircuitDiagram: null,
     BPMN: UMLDiagramType.BPMN,
   };
@@ -188,11 +190,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit',
     BPMN: 'BPMN Diagram',
-  };
-
-  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
-    GUINoCodeDiagram: 'gui',
-    QuantumCircuitDiagram: 'quantum',
+    KnowledgeGraphDiagram: 'Knowledge Graph',
   };
 
   // Ensure all diagram types exist as arrays
@@ -201,8 +199,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     if (!existing) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      const kind = diagramKinds[diagramType];
-      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
+      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, DIAGRAM_KIND_BY_TYPE[diagramType])];
     } else if (!Array.isArray(existing)) {
       // Migrate single diagram to array
       (project.diagrams as any)[diagramType] = [existing];
@@ -450,6 +447,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             QuantumCircuitDiagram: null,
             NNDiagram: UMLDiagramType.NNDiagram,
             BPMN: UMLDiagramType.BPMN,
+            KnowledgeGraphDiagram: null,
           };
           const diagramTitles: Record<SupportedDiagramType, string> = {
             ClassDiagram: 'Class Diagram',
@@ -463,6 +461,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             QuantumCircuitDiagram: 'Quantum Circuit',
             NNDiagram: 'NN Diagram',
             BPMN: 'BPMN Diagram',
+            KnowledgeGraphDiagram: 'Knowledge Graph',
           };
 
 
@@ -481,8 +480,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
                 },
               ];
             } else {
-              const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], kind)];
+              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], DIAGRAM_KIND_BY_TYPE[t])];
             }
           }
 
@@ -507,6 +505,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
               QuantumCircuitDiagram: 0,
               NNDiagram: 0,
               BPMN: 0,
+              KnowledgeGraphDiagram: 0,
             },
             diagrams,
             settings: {

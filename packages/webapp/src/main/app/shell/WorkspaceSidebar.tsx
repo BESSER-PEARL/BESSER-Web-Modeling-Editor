@@ -5,9 +5,9 @@ import { FlaskConical, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
-import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
+import { hasCustomEditor, isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
-  AGENT_ROUTE_ITEMS,
+  DIAGRAM_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
   ROUTE_ITEMS,
   UML_ITEMS,
@@ -50,6 +50,34 @@ const SidebarTooltip: React.FC<{ label: string; collapsed: boolean; children: Re
   );
 };
 
+/** A nested link under a diagram button (agent simulation, agent settings, KG
+ *  settings): indented and smaller while the sidebar is open. */
+const SidebarSubItem: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  isCollapsed: boolean;
+  isSidebarExpanded: boolean;
+  isDarkTheme: boolean;
+}> = ({ label, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme }) => (
+  <SidebarTooltip label={label} collapsed={isCollapsed}>
+    <button
+      type="button"
+      className={`${navButtonClass(active, isSidebarExpanded, isDarkTheme)} ${
+        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
+      }`}
+      onClick={onClick}
+      title={isSidebarExpanded ? label : undefined}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+    >
+      {icon}
+      {isSidebarExpanded && <span>{label}</span>}
+    </button>
+  </SidebarTooltip>
+);
+
 /** Diagram count shown next to the label when more than 1 diagram exists. */
 function labelWithCount(label: string, count: number): string {
   return count > 1 ? `${label} (${count})` : label;
@@ -65,6 +93,55 @@ const NavLabel: React.FC<{ label: string; count?: number }> = ({ label, count = 
       </span>
     )}
   </>
+);
+
+/** The button of one diagram type in the sidebar. */
+const DiagramNavButton: React.FC<{
+  label: string;
+  count: number;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  isCollapsed: boolean;
+  isSidebarExpanded: boolean;
+  isDarkTheme: boolean;
+  /** Set on a button with sub-items: whether they are shown. */
+  expanded?: boolean;
+}> = ({ label, count, icon, active, onClick, isCollapsed, isSidebarExpanded, isDarkTheme, expanded }) => {
+  const displayLabel = labelWithCount(label, count);
+  return (
+    <SidebarTooltip label={displayLabel} collapsed={isCollapsed}>
+      <button
+        type="button"
+        className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+        onClick={onClick}
+        title={isSidebarExpanded ? displayLabel : undefined}
+        aria-label={displayLabel}
+        aria-current={active ? 'page' : undefined}
+        aria-expanded={expanded}
+      >
+        {icon}
+        {isSidebarExpanded && <NavLabel label={label} count={count} />}
+      </button>
+    </SidebarTooltip>
+  );
+};
+
+/** A diagram button with its sub-items (`DIAGRAM_ROUTE_ITEMS`): the group is
+ *  tinted while its editor or one of its sub-routes is open. */
+const DiagramNavGroup: React.FC<{ expanded: boolean; button: React.ReactNode; children: React.ReactNode }> = ({
+  expanded,
+  button,
+  children,
+}) => (
+  <div className={expanded ? 'rounded-xl bg-foreground/[0.03] p-1 dark:bg-white/[0.03]' : ''}>
+    {button}
+    {expanded && (
+      <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
+        {children}
+      </div>
+    )}
+  </div>
 );
 
 const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
@@ -87,12 +164,49 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onTestAgent,
 }) => {
   const { t } = useTranslation();
-  // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
-  const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
-  const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
-  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
-  const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
-  const agentContainerClass = showAgentSubItems ? 'rounded-xl bg-foreground/[0.03] p-1 dark:bg-white/[0.03]' : '';
+  // When a non-UML editor (GUI / Quantum / KG) is active, no UML button should appear selected
+  const isNonUmlActive = hasCustomEditor(activeDiagramType);
+  const subItemProps = { isCollapsed: !isSidebarExpanded, isSidebarExpanded, isDarkTheme };
+
+  /** `button` alone, or grouped with the pages `DIAGRAM_ROUTE_ITEMS` lists
+   *  for `type` (plus the Agent's simulation entry), open while its editor
+   *  (`editorActive`) or one of those pages is. */
+  const withSubItems = (
+    type: SupportedDiagramType,
+    editorActive: boolean,
+    renderButton: (expanded?: boolean) => React.ReactElement,
+  ) => {
+    const routeItems = DIAGRAM_ROUTE_ITEMS[type];
+    if (!routeItems) return renderButton();
+    const simulateAgent = type === 'AgentDiagram' ? onTestAgent : undefined;
+    const expanded =
+      editorActive ||
+      routeItems.some((item) => item.path === locationPath) ||
+      (type === 'AgentDiagram' && locationPath === '/agent-simulation');
+    return (
+      <DiagramNavGroup key={type} expanded={expanded} button={renderButton(expanded)}>
+        {simulateAgent && (
+          <SidebarSubItem
+            label={t('agentSimulation.sidebar.simulateAgent')}
+            icon={<FlaskConical className="size-4" />}
+            active={locationPath === '/agent-simulation'}
+            onClick={simulateAgent}
+            {...subItemProps}
+          />
+        )}
+        {routeItems.map((routeItem) => (
+          <SidebarSubItem
+            key={routeItem.path}
+            label={t(routeItem.labelKey)}
+            icon={routeItem.icon}
+            active={locationPath === routeItem.path}
+            onClick={() => onNavigate(routeItem.path)}
+            {...subItemProps}
+          />
+        ))}
+      </DiagramNavGroup>
+    );
+  };
 
   // Pre-compute diagram count info for all diagram types
   const countMap = useMemo(() => {
@@ -126,109 +240,34 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
         <nav aria-label={t('nav.editors')} className="flex flex-col gap-0.5">
         {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
-          const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
-          const count = countMap[item.type] ?? 0;
-          const displayLabel = labelWithCount(t(item.labelKey), count);
-
-          if (!isAgentItem) {
-            return (
-              <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
-                <button
-                  type="button"
-                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-                  onClick={() => onSwitchUml(item.type)}
-                  title={isSidebarExpanded ? displayLabel : undefined}
-                  aria-label={displayLabel}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {item.icon}
-                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
-                </button>
-              </SidebarTooltip>
-            );
-          }
-
-          return (
-            <div key={item.type} className={agentContainerClass}>
-              <SidebarTooltip label={displayLabel} collapsed={isCollapsed}>
-                <button
-                  type="button"
-                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-                  onClick={() => onSwitchUml(item.type)}
-                  title={isSidebarExpanded ? displayLabel : undefined}
-                  aria-label={displayLabel}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {item.icon}
-                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
-                </button>
-              </SidebarTooltip>
-              {showAgentSubItems && (
-              <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
-                {onTestAgent && (
-                  <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
-                    <button
-                      type="button"
-                      className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
-                        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                      }`}
-                      onClick={onTestAgent}
-                      title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
-                      aria-label={t('agentSimulation.sidebar.simulateAgent')}
-                      aria-current={locationPath === '/agent-simulation' ? 'page' : undefined}
-                    >
-                      <FlaskConical className="size-4" />
-                      {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
-                    </button>
-                  </SidebarTooltip>
-                )}
-                {AGENT_ROUTE_ITEMS.map((routeItem) => {
-                  const isActiveSubItem = locationPath === routeItem.path;
-                  const routeLabel = t(routeItem.labelKey);
-                  return (
-                    <SidebarTooltip key={routeItem.path} label={routeLabel} collapsed={isCollapsed}>
-                      <button
-                        type="button"
-                        className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
-                          isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                        }`}
-                        onClick={() => onNavigate(routeItem.path)}
-                        title={isSidebarExpanded ? routeLabel : undefined}
-                        aria-label={routeLabel}
-                        aria-current={isActiveSubItem ? 'page' : undefined}
-                      >
-                        {routeItem.icon}
-                        {isSidebarExpanded && <span>{routeLabel}</span>}
-                      </button>
-                    </SidebarTooltip>
-                  );
-                })}
-              </div>
-              )}
-            </div>
-          );
+          return withSubItems(toSupportedDiagramType(item.type), active, (expanded) => (
+            <DiagramNavButton
+              key={item.type}
+              label={t(item.labelKey)}
+              count={countMap[item.type] ?? 0}
+              icon={item.icon}
+              active={active}
+              onClick={() => onSwitchUml(item.type)}
+              expanded={expanded}
+              {...subItemProps}
+            />
+          ));
         })}
 
         {visibleNonUmlItems.map((item) => {
           const active = locationPath === '/' && activeDiagramType === item.type;
-          const count = countMap[item.type] ?? 0;
-          const displayLabel = labelWithCount(t(item.labelKey), count);
-
-          return (
-            <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
-              <button
-                type="button"
-                className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-                onClick={() => onSwitchDiagramType(item.type)}
-                title={isSidebarExpanded ? displayLabel : undefined}
-                aria-label={displayLabel}
-                aria-current={active ? 'page' : undefined}
-              >
-                {item.icon}
-                {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
-              </button>
-            </SidebarTooltip>
-          );
+          return withSubItems(item.type, active, (expanded) => (
+            <DiagramNavButton
+              key={item.type}
+              label={t(item.labelKey)}
+              count={countMap[item.type] ?? 0}
+              icon={item.icon}
+              active={active}
+              onClick={() => onSwitchDiagramType(item.type)}
+              expanded={expanded}
+              {...subItemProps}
+            />
+          ));
         })}
 
         <Separator className="my-1" />

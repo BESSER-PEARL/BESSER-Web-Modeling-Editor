@@ -167,6 +167,22 @@ const NN_GENERATORS: GeneratorMenuEntry[] = [
   },
 ];
 
+const KG_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'Convert to B-UML',
+    labelKey: 'menu.generate.groups.kgConvert',
+    actions: [
+      {
+        kind: 'action',
+        label: 'Class Diagram',
+        labelKey: 'menu.generate.actions.kgToClassDiagram',
+        generator: 'kg_to_class',
+      },
+    ],
+  },
+];
+
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'notice', label: 'Not yet available for this diagram', labelKey: 'menu.generate.notices.unavailable' },
 ];
@@ -181,5 +197,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   quantum: QUANTUM_GENERATORS,
   nn: NN_GENERATORS,
   bpmn: BPMN_GENERATORS,
+  kg: KG_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };
