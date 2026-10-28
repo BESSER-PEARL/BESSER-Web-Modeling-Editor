@@ -82,6 +82,8 @@ export interface SpecDrivenPushResult {
   base_run_id: string | null;
   /** E.g. the app's previous deploy settings were kept; shown on the result view. */
   warnings?: string[];
+  /** The model the push wrote when the run changed it (e.g. added classes); null when it is the editor's own. */
+  project_export?: unknown;
 }
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
@@ -320,7 +322,13 @@ export function useSpecDrivenGithubPush(
           repo: res.repo_name,
           branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
         };
-        if (res.status === 'pushed') {
+        if (res.status === 'pushed' && res.project_export) {
+          // The run changed the model: load what the repo now holds, so the
+          // editor shows it and a later save cannot revert it.
+          const updated = storeRepoModelAsProject(res.project_export, project.id);
+          markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+          await loadProject(project.id);
+        } else if (res.status === 'pushed') {
           markProjectGitHubSynced(link, project, res.commit_sha);
         } else if (res.status === 'merged' && githubSession) {
           // The branch now holds this run and the commits made since: load
@@ -353,6 +361,9 @@ export function useSpecDrivenGithubPush(
                 ? `Opened a pull request on ${res.owner}/${res.repo_name}`
                 : `Updated ${res.owner}/${res.repo_name}`,
           );
+        }
+        if (res.status === 'pushed' && res.project_export) {
+          toast.info('The model now includes the classes the agent added.');
         }
         return { ok: true, result: res };
       } catch (error) {

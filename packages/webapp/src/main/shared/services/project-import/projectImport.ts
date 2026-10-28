@@ -17,6 +17,7 @@ import {
   StoredUserProfile,
 } from '../storage/local-storage-types';
 import { BACKEND_URL } from '../../constants/constant';
+import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 // Interface for V2 JSON export format
@@ -388,6 +389,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
  * Store a repository's model file (`buml/diagrams.json`, a V2 export envelope,
  * or an older repo's bare project file) as the project `projectId`, replacing
  * it. Used to pull a linked repo or restore one of its versions in place.
+ * Agent credentials the repo holds as `[REDACTED]` keep their local values.
  */
 export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
   let base: BesserProject;
@@ -402,9 +404,23 @@ export function storeRepoModelAsProject(data: unknown, projectId: string): Besse
   } else {
     throw new Error('This file is not a BESSER model.');
   }
-  const project = fillMissingDiagrams({ ...base, id: projectId });
+  const filled = fillMissingDiagrams({ ...base, id: projectId });
+  const local = ProjectStorageRepository.loadProject(projectId);
+  const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
   storeImportedProject(project, personalization);
   return project;
+}
+
+/** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
+function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {
+  const diagrams = Object.fromEntries(
+    Object.entries(incoming.diagrams ?? {}).map(([type, list]) => {
+      const localList = ((local.diagrams as Record<string, unknown>)?.[type] ?? []) as { id?: string }[];
+      const ids = (Array.isArray(list) ? list : []) as { id?: string }[];
+      return [type, ids.map((diagram) => localList.find((candidate) => candidate.id === diagram.id))];
+    }),
+  );
+  return { ...local, diagrams } as BesserProject;
 }
 
 // Import from JSON file
