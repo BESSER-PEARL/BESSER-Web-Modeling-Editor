@@ -44,7 +44,8 @@ type SupportedDiagramType =
   | 'DeploymentDiagram'
   // Non-UML kinds — skipped at the caller, but listed for the param's union.
   | 'GUINoCodeDiagram'
-  | 'QuantumCircuitDiagram';
+  | 'QuantumCircuitDiagram'
+  | 'KnowledgeGraphDiagram';
 
 /**
  * Migrate a v3 UMLModel object to v4. The diagram type is taken from the

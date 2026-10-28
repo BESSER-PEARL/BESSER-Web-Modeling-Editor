@@ -187,6 +187,7 @@ describe('ProjectSettingsPanel', () => {
       'title', 'Agentic BPMN, agent, component, and deployment diagrams.',
     );
     expect(screen.getByTestId('perspective-preset-fullApp')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-preset-knowledge')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-quantum')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-all')).toBeInTheDocument();
   });
@@ -203,6 +204,21 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByTestId('perspective-toggle-UserDiagram')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-toggle-GUINoCodeDiagram')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-toggle-QuantumCircuitDiagram')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-toggle-KnowledgeGraphDiagram')).toBeInTheDocument();
+  });
+
+  it('marks the Knowledge Engineer preset active for class + object + KG', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives = perspectivesFromDiagramList([
+      'ClassDiagram',
+      'ObjectDiagram',
+      'KnowledgeGraphDiagram',
+    ]);
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    expect(screen.getByTestId('perspective-preset-knowledge')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('perspective-preset-data')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('marks the "Show All" preset active when every perspective is enabled', () => {

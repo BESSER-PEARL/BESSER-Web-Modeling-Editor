@@ -44,6 +44,7 @@ const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {
   NNDiagram: 'nav.diagram.neuralNet',
   GUINoCodeDiagram: 'nav.diagram.gui',
   QuantumCircuitDiagram: 'nav.diagram.quantum',
+  KnowledgeGraphDiagram: 'nav.diagram.kg',
 };
 
 export const ProjectSettingsPanel: React.FC = () => {

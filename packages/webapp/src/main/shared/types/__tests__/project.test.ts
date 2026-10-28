@@ -4,6 +4,7 @@ import {
   ALL_DIAGRAM_TYPES,
   PROJECT_SCHEMA_VERSION,
   type BesserProject,
+  type KnowledgeGraphData,
   type ProjectDiagram,
   type SupportedDiagramType,
   createDefaultPerspectives,
@@ -12,8 +13,10 @@ import {
   defaultPerspectivesAllEnabled,
   ensureProjectMigrated,
   findHiddenReferencedPerspectives,
+  isKnowledgeGraphData,
   isPerspectiveVisible,
   isProject,
+  isUMLModel,
   migrateProjectToV5,
 } from '../project';
 import { PERSPECTIVES, isPresetActive, perspectivesFromDiagramList } from '../../perspectives';
@@ -149,6 +152,156 @@ describe('ensureProjectMigrated → v6 (Component and Deployment perspectives)',
     const migrated = ensureProjectMigrated(project);
     expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
     expect(migrated.settings.perspectives.DeploymentDiagram).toBe(false);
+  });
+});
+
+describe('ensureProjectMigrated → v7 (Knowledge Graph perspective)', () => {
+  const v5Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    project.schemaVersion = 5;
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.KnowledgeGraphDiagram;
+    // A saved v5 map predates the KG type, so it has no KnowledgeGraphDiagram key.
+    const { KnowledgeGraphDiagram: _kg, ...saved } = project.settings.perspectives;
+    project.settings.perspectives = { ...saved, ...perspectives } as BesserProject['settings']['perspectives'];
+    return project;
+  };
+
+  it('adds the Knowledge Graph diagram and hides it where perspectives were already chosen', () => {
+    const migrated = ensureProjectMigrated(v5Project({ AgentDiagram: false }));
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.diagrams.KnowledgeGraphDiagram).toHaveLength(1);
+    expect(migrated.currentDiagramIndices.KnowledgeGraphDiagram).toBe(0);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
+    expect(isPerspectiveVisible(migrated.settings.perspectives, 'KnowledgeGraphDiagram')).toBe(false);
+    // Every other choice is untouched.
+    expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+
+  it('keeps an explicit Knowledge Graph choice saved while the editor was a branch', () => {
+    const migrated = ensureProjectMigrated(v5Project({ KnowledgeGraphDiagram: true }));
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  it('shows the Knowledge Graph type in a project that never had saved perspectives', () => {
+    const project = v5Project({});
+    project.schemaVersion = 3;
+    delete (project.settings as { perspectives?: unknown }).perspectives;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  /** A v5 project holding a graph saved by the first settings revision. */
+  const withKgSettings = (settings: Record<string, unknown>) => {
+    const project = v5Project({});
+    project.diagrams.KnowledgeGraphDiagram = [
+      { ...createEmptyDiagram('KG', null, 'kg'), model: { version: '1.0.0', nodes: [], edges: [], settings } as any },
+    ];
+    return project;
+  };
+  const kgSettings = (project: BesserProject) => (project.diagrams.KnowledgeGraphDiagram[0].model as any).settings;
+
+  it('renames maxVisibleNodes, from the first settings revision, to softLimit', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, layout: 'grid' }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 30, layout: 'grid' });
+  });
+
+  it('keeps an explicit softLimit over the legacy field, and drops the legacy one', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, softLimit: 70 }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 70 });
+  });
+
+  it('leaves a new project untouched', () => {
+    const migrated = ensureProjectMigrated(createDefaultProject('Fresh', '', 'me'));
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+});
+
+const kgModel = (): KnowledgeGraphData => ({
+  type: 'KnowledgeGraphDiagram',
+  version: '1.0.0',
+  nodes: [
+    { id: 'n1', nodeType: 'class', label: 'Person', iri: 'http://ex.org/onto#Person' },
+    { id: 'n2', nodeType: 'class', label: 'Agent', iri: 'http://ex.org/onto#Agent' },
+  ],
+  edges: [{ id: 'e1', source: 'n1', target: 'n2', label: 'subClassOf' }],
+  settings: { softLimit: 50 },
+});
+
+describe('Knowledge Graph models next to v4 UML models', () => {
+  // Both carry `nodes`/`edges` arrays, so the guards tell them apart by `type`.
+  it('isUMLModel rejects a Knowledge Graph model', () => {
+    expect(isUMLModel(kgModel())).toBe(false);
+    expect(isUMLModel(populatedClassModel())).toBe(true);
+  });
+
+  it('isKnowledgeGraphData rejects a v4 UML model', () => {
+    expect(isKnowledgeGraphData(populatedClassModel())).toBe(false);
+    expect(isKnowledgeGraphData(kgModel())).toBe(true);
+    const { type: _type, ...untyped } = kgModel();
+    expect(isKnowledgeGraphData(untyped)).toBe(true);
+  });
+});
+
+describe('ensureProjectMigrated v6 → v7 (schema 6 from the KG build or the React Flow build)', () => {
+  /** What the KG build saved: schema 6, v3 Apollon models, a KG with content. */
+  const kgBuildV6Project = (): BesserProject => {
+    const project = createDefaultProject('KG build', '', 'me');
+    project.schemaVersion = 6;
+    project.diagrams.ClassDiagram[0].model = {
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      size: { width: 0, height: 0 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        c1: { id: 'c1', name: 'Person', type: 'Class', owner: null, bounds: { x: 0, y: 0, width: 200, height: 100 }, attributes: [], methods: [] },
+      },
+      relationships: {},
+      assessments: {},
+    } as any;
+    project.diagrams.KnowledgeGraphDiagram[0].model = kgModel();
+    project.settings.perspectives.ComponentDiagram = false;
+    return project;
+  };
+
+  it('loads a v6 project saved by the Knowledge Graph build', () => {
+    const migrated = ensureProjectMigrated(kgBuildV6Project());
+
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(PROJECT_SCHEMA_VERSION).toBe(7);
+    // The graph keeps its own format and is never lifted to v4.
+    const kg = migrated.diagrams.KnowledgeGraphDiagram[0].model;
+    expect(kg).toEqual(kgModel());
+    expect(isKnowledgeGraphData(kg)).toBe(true);
+    expect(isUMLModel(kg)).toBe(false);
+    // Its v3 class diagram is lifted.
+    const classModel = migrated.diagrams.ClassDiagram[0].model;
+    expect(isUMLModel(classModel)).toBe(true);
+    expect((classModel as UMLModel).nodes.map((n) => n.id)).toEqual(['c1']);
+    // The saved perspective choices stay as they were.
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+
+  it('adds and hides the Knowledge Graph type in a v6 project saved by the React Flow build', () => {
+    const project = createDefaultProject('React Flow build', '', 'me');
+    project.schemaVersion = 6;
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.KnowledgeGraphDiagram;
+    const { KnowledgeGraphDiagram: _kg, ...saved } = project.settings.perspectives;
+    project.settings.perspectives = saved as BesserProject['settings']['perspectives'];
+
+    const migrated = ensureProjectMigrated(project);
+
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(isKnowledgeGraphData(migrated.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
   });
 });
 
@@ -338,6 +491,16 @@ describe('preset helpers', () => {
     expect(isPresetActive(fullApp, map)).toBe(false);
   });
 
+  it('isPresetActive matches the Knowledge Engineer preset for Class+Object+KG', () => {
+    const map = perspectivesFromDiagramList(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    const knowledge = PERSPECTIVES.find((p) => p.key === 'knowledge')!;
+    expect(knowledge.diagrams).toEqual(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    expect(isPresetActive(knowledge, map)).toBe(true);
+    // The Data preset is a strict subset, so it must not also read as active.
+    const data = PERSPECTIVES.find((p) => p.key === 'data')!;
+    expect(isPresetActive(data, map)).toBe(false);
+  });
+
   it('perspectivesFromDiagramList enables exactly the listed types', () => {
     const map = perspectivesFromDiagramList(['QuantumCircuitDiagram']);
     expect(map.QuantumCircuitDiagram).toBe(true);
@@ -487,7 +650,7 @@ describe('migrateProjectToV5 atomicity', () => {
 
   it('ensureProjectMigrated repairs a v5+ project holding a v3 BPMN model', () => {
     const project = createDefaultProject('StampedBpmn', '', 'me');
-    project.schemaVersion = 6 as any;
+    project.schemaVersion = PROJECT_SCHEMA_VERSION;
     project.diagrams.BPMN[0].model = {
       version: '3.0.0',
       type: 'BPMNDiagram',
@@ -502,7 +665,7 @@ describe('migrateProjectToV5 atomicity', () => {
 
     const migrated = ensureProjectMigrated(project);
     // A later stamp is never downgraded.
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     const bpmn = migrated.diagrams.BPMN[0].model as any;
     expect(bpmn.elements).toBeUndefined();
     expect(bpmn.type).toBe('BPMNDiagram');
@@ -539,16 +702,19 @@ describe('migrateProjectToV5 atomicity', () => {
     expect(warnMessage).toContain('Object Diagram');
   });
 
-  it('skips GUI and Quantum diagrams (their models are not UMLModels)', () => {
+  it('skips GUI, Quantum and Knowledge Graph diagrams (their models are not UMLModels)', () => {
     const project = v4Project();
-    // Leave GUI/quantum models as their natural shape; they should not
+    // Leave GUI/quantum/KG models as their natural shape; they should not
     // trigger any migration attempts.
+    project.diagrams.KnowledgeGraphDiagram[0].model = kgModel();
     const guiBefore = project.diagrams.GUINoCodeDiagram[0].model;
     const quantumBefore = project.diagrams.QuantumCircuitDiagram[0].model;
+    const kgBefore = project.diagrams.KnowledgeGraphDiagram[0].model;
 
     const result = migrateProjectToV5(project);
     expect(result.diagrams.GUINoCodeDiagram[0].model).toBe(guiBefore);
     expect(result.diagrams.QuantumCircuitDiagram[0].model).toBe(quantumBefore);
+    expect(result.diagrams.KnowledgeGraphDiagram[0].model).toBe(kgBefore);
     expect(result.schemaVersion).toBe(5);
   });
 });

@@ -18,6 +18,18 @@ export type GeneratorType =
   | 'tensorflow'
   | 'test_case'
   | 'forecaster'
-  | 'bpmn';
+  | 'bpmn'
+  | 'kg_to_class';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'bpmn' | 'none';
+export type GeneratorMenuMode =
+  | 'class'
+  | 'object'
+  | 'user'
+  | 'statemachine'
+  | 'agent'
+  | 'gui'
+  | 'quantum'
+  | 'nn'
+  | 'bpmn'
+  | 'kg'
+  | 'none';

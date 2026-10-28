@@ -2075,7 +2075,8 @@
         "NNDiagram": false,
         "BPMN": true,
         "ComponentDiagram": true,
-        "DeploymentDiagram": true
+        "DeploymentDiagram": true,
+        "KnowledgeGraphDiagram": false
       },
       "preferredInterface": "model"
     },

@@ -595,7 +595,6 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
   const deployLocally = useDeployLocally();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isBpmnContext } = getWorkspaceContext(
-    location.pathname,
     currentProject?.currentDiagramType,
   );
 

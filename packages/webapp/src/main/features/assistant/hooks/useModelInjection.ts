@@ -44,6 +44,7 @@ import { getActiveDiagram, isV3UMLModel } from '../../../shared/types/project';
 import i18n from '../../../shared/i18n';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
+import { canAssistantWriteTo } from '../services/assistantSupport';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -406,6 +407,9 @@ export function useModelInjection({
     try {
       startTimer('injection', 'Model injection');
       const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
+      if (!canAssistantWriteTo(targetDiagramType)) {
+        throw new Error('the assistant cannot edit a Knowledge Graph; use Import or Refine KG instead');
+      }
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;

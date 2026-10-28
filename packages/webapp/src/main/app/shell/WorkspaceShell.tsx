@@ -8,7 +8,7 @@ import { X } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useProject } from '../hooks/useProject';
-import { ALL_DIAGRAM_TYPES, getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
+import { ALL_DIAGRAM_TYPES, getActiveDiagram, hasCustomEditor, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
@@ -61,6 +61,7 @@ import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDi
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
+import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
 import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
@@ -92,6 +93,9 @@ const FeedbackDialog = React.lazy(() =>
 );
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
+);
+const KgImportTargetModal = React.lazy(() =>
+  import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
 );
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
@@ -240,7 +244,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
     [currentDiagramType],
   );
-  const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
+  const { isDeploymentAvailable } = getWorkspaceContext(currentProject?.currentDiagramType);
 
   const simulationDiagramModel = useMemo(
     (): object =>
@@ -291,6 +295,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handleAssistantFileChange,
     handleAssistantImport,
   } = useAssistantImport({ currentProject });
+
+  const {
+    openPickerAndImport: openImportOwlPicker,
+    importTargetModalProps: kgImportTargetModalProps,
+  } = useImportOwlToKg();
 
   const {
     isProjectPreviewOpen,
@@ -603,7 +612,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
+    // (with a GUI / quantum / KG editor open, the UML type is not what is shown)
+    if (location.pathname === '/' && activeUmlType === type && !hasCustomEditor(currentDiagramType)) {
       return;
     }
     switchDiagramType(type);
@@ -1094,6 +1104,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onImportBpmnDiagram={handleImportBpmnDiagram}
         onOpenAssistantImportImage={openAssistantImportImage}
         onOpenAssistantImportKg={openAssistantImportKg}
+        onImportOwl={openImportOwlPicker}
         onOpenProjectPreview={openProjectPreview}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
@@ -1271,6 +1282,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           handleAssistantImport().catch(console.error);
         }}
       />
+
+      {/* Destination prompt for an OWL/RDF import when the active Knowledge
+          Graph tab already has content: merge alongside, or a new tab. */}
+      <Suspense fallback={null}>
+        <KgImportTargetModal {...kgImportTargetModalProps} />
+      </Suspense>
 
       <JsonViewerModal
         isVisible={isProjectPreviewOpen}

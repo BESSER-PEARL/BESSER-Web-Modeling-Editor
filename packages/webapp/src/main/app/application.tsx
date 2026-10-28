@@ -21,6 +21,8 @@ import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
+import { useKgFlows } from '../features/knowledge-graph';
+import { useKgRouting } from './hooks/useKgRouting';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
@@ -42,6 +44,9 @@ const AgentComponentsPanel = React.lazy(() =>
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
+const KnowledgeGraphSettingsPanel = React.lazy(() =>
+  import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
+);
 
 const AgentSimulationPage = React.lazy(() =>
   import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
@@ -56,6 +61,15 @@ const TemplateLibraryDialog = React.lazy(() =>
 );
 const ExportDialog = React.lazy(() =>
   import('../features/export/ExportDialog').then((m) => ({ default: m.ExportDialog })),
+);
+
+const KgRefineModal = React.lazy(() =>
+  import('../features/knowledge-graph/refine/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
+);
+const KgConsistencyConfirmModal = React.lazy(() =>
+  import('../features/knowledge-graph/convert/KgConsistencyConfirmModal').then((m) => ({
+    default: m.KgConsistencyConfirmModal,
+  })),
 );
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
@@ -131,7 +145,7 @@ function AppContentInner() {
       setHubInitialStep(undefined);
     }
   }, [setShowProjectHub]);
-  const { generatorMenuMode } = getWorkspaceContext(location.pathname, currentDiagramType);
+  const { generatorMenuMode, isKgContext } = getWorkspaceContext(currentDiagramType);
 
   // All generator config state, execution handlers, and quality-check logic
   const {
@@ -142,6 +156,18 @@ function AppContentInner() {
     configState,
     isLocalEnvironment,
   } = useGeneratorExecution(editor);
+
+  // Knowledge Graph flows that open their own dialogs: converting to a class
+  // diagram, and refining. They are not code generation, so they stay out of
+  // useGeneratorExecution; the Generate menu and the Quality Check button
+  // reach them from here. The hook owns the open/close state of its dialogs.
+  const kgFlows = useKgFlows();
+  const { onGenerate, onQualityCheck } = useKgRouting({
+    isKgContext,
+    kg: kgFlows,
+    handleGenerateRequest,
+    handleQualityCheck,
+  });
 
   const handleExport = () => {
     setShowExportDialog(true);
@@ -163,11 +189,11 @@ function AppContentInner() {
         onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
-        onGenerate={(type, config) => handleGenerateRequest(type, config)}
-        onQualityCheck={() => handleQualityCheck()}
+        onGenerate={onGenerate}
+        onQualityCheck={onQualityCheck}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
-        isGenerating={isGenerating}
+        isGenerating={isGenerating || kgFlows.isConverting}
         onAssistantGenerate={handleAssistantGenerate}
         onboarding={onboarding}
       >
@@ -177,6 +203,7 @@ function AppContentInner() {
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
             <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
+            <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -293,6 +320,23 @@ function AppContentInner() {
       />
       </Suspense>
       )}
+
+      {/* Refine KG modal: opened from the Quality Check button (refine-only)
+          when a Knowledge Graph diagram is active, or from Generate →
+          Convert to B-UML → Class Diagram (convert mode, when the preflight
+          finds issues). Hosts the Automatic / Consistency / AI tabs and
+          surfaces a Convert button when the KG is clean. */}
+      <Suspense fallback={null}>
+        <KgRefineModal {...kgFlows.refineModalProps} />
+      </Suspense>
+
+      {/* Pre-conversion consistency-gate modal: shown when the OWL/SHACL
+          consistency check (via /kg/consistency) finds issues just
+          before a KG → ClassDiagram / ObjectDiagram conversion runs. Users
+          can fix, proceed, or cancel. */}
+      <Suspense fallback={null}>
+        <KgConsistencyConfirmModal {...kgFlows.consistencyConfirmModalProps} />
+      </Suspense>
 
       {/* Onboarding tutorial — disabled for now
       <Suspense fallback={null}>
