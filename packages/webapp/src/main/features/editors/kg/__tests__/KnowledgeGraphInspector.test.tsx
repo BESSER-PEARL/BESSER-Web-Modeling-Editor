@@ -46,6 +46,31 @@ function renderInspector(model: KnowledgeGraphData, selection: KgSelection) {
   return { onChange, rerender };
 }
 
+describe('KnowledgeGraphInspector — panel', () => {
+  it('is hidden while nothing is selected, like the React Flow properties panel', () => {
+    renderInspector(MODEL, null);
+
+    expect(document.querySelector('aside')).toHaveClass('hidden');
+  });
+
+  it('names the selected node under its kind', () => {
+    renderInspector(MODEL, { kind: 'node', id: 'a' });
+
+    const panel = document.querySelector('aside');
+    expect(panel).toHaveClass('flex');
+    expect(panel?.querySelector('.bp-header__kind')).toHaveTextContent('Class');
+    expect(panel?.querySelector('.bp-header__title')).toHaveTextContent('Person');
+  });
+
+  it('names a selected relation by its label', () => {
+    renderInspector(MODEL, { kind: 'edge', id: 'e1' });
+
+    const panel = document.querySelector('aside');
+    expect(panel?.querySelector('.bp-header__kind')).toHaveTextContent('Relation');
+    expect(panel?.querySelector('.bp-header__title')).toHaveTextContent('reads');
+  });
+});
+
 describe('KnowledgeGraphInspector — deleting the inspected element', () => {
   it('does not ask to discard unsaved changes when the element is deleted elsewhere', () => {
     // Reproduces the canvas Delete/Backspace flow: the editor removes the
@@ -57,7 +82,7 @@ describe('KnowledgeGraphInspector — deleting the inspected element', () => {
     rerender(deleteSelectionFromModel(MODEL, ['a'], []), null);
 
     expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
-    expect(screen.getByText(/Click a node or relation on the canvas/)).toBeInTheDocument();
+    expect(document.querySelector('aside')).toHaveClass('hidden');
   });
 
   it('still guards a genuinely edited draft when the selection changes', () => {

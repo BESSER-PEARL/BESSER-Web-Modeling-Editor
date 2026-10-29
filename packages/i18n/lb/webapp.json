@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Knuetpunkt-Zorten",
-        "hint": "Zitt eng Knuetpunkt-Zort op d'Zeechefläch, fir en neie Knuetpunkt ze erstellen. Fir eng Relatioun tëscht bestehende Knuetpunkten ze erstellen, klickt <action>{{addRelation}}</action> an der Zeechefläch-Symbolleescht, a klickt dann op de Quellknuetpunkt an duerno op den Zilknuetpunkt."
+        "hint": "Zitt eng Knuetpunkt-Zort op d'Zeechefläch, fir en neie Knuetpunkt ze erstellen. Fir eng Relatioun tëscht bestehende Knuetpunkten ze erstellen, klickt <action>{{addRelation}}</action> an der Zeechefläch-Symbolleescht, a klickt dann op de Quellknuetpunkt an duerno op den Zilknuetpunkt.",
+        "canvasHint": "Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen."
       },
       "toolbar": {
         "addRelation": "Relatioun derbäisetzen",
-        "addingRelation": "Relatioun gëtt derbäigesat…",
         "addRelationTooltip": "Eng Relatioun derbäisetzen: zitt vum Quellknuetpunkt op den Zilknuetpunkt",
         "exportHtml": "HTML exportéieren",
         "exportHtmlTooltip": "De aktuelle Graf als eegestänneg interaktiv HTML-Datei eroflueden",
         "connectHint": "Zitt vun engem Quellknuetpunkt op en Zilknuetpunkt, fir eng Relatioun ze erstellen. D'Positioune vun de Knuetpunkte si gespaart, soulaang dëse Modus un ass — Esc fir erauszegoen.",
-        "showingNodes_one": "{{visible}} vun {{count}} Knuetpunkt gëtt gewisen",
-        "showingNodes_other": "{{visible}} vun {{count}} Knuetpunkte ginn gewisen",
         "raiseLimit": "d'Limitt an den KG-Astellungen eropsetzen",
-        "nodesFragment_one": "{{count}} Knuetpunkt",
-        "nodesFragment_other": "{{count}} Knuetpunkten",
-        "relationsFragment_one": "{{count}} Relatioun",
-        "relationsFragment_other": "{{count}} Relatiounen",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Réckgängeg maachen",
-        "redo": "Widderhuelen",
         "undoTooltip": "Réckgängeg maachen (Ctrl+Z)",
         "redoTooltip": "Widderhuelen (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Automatesch Uerdnung",
         "fitToView": "Un d'Usiicht upassen",
         "zoomIn": "Erazoomen",
-        "zoomOut": "Erauszoomen"
+        "zoomOut": "Erauszoomen",
+        "resetZoom": "Zoom op 100% zrécksetzen"
       },
       "nodeList": {
         "heading": "Knuetpunkten ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Knuetpunkt",
         "titleRelation": "Relatioun",
-        "titleInspector": "Inspekter",
         "selectedCount_one": "{{count}} ausgewielt",
         "selectedCount_other": "{{count}} ausgewielt",
         "unsavedChanges": "Net gespäichert Ännerungen",
         "close": "Zoumaachen",
-        "noSelection": "Klickt op e Knuetpunkt oder eng Relatioun op der Zeechefläch, fir se hei z'änneren. Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen.",
         "fields": {
           "type": "Typ",
           "label": "Etikett",

@@ -43,3 +43,11 @@ export type KgSelection =
 
 /** `DataTransfer` type of a palette item dragged onto the canvas; its data is the node kind. */
 export const KG_DRAG_MIME = 'application/x-besser-kg-node';
+
+/** 'off' = move/select only; 'connect' = drag-from-source-onto-target (node
+ *  positions are frozen while this mode is on). */
+export type ConnectMode = 'off' | 'connect';
+
+/** Zoom limits of the canvas; the controls bar disables zoom in/out at them. */
+export const KG_MIN_ZOOM = 0.1;
+export const KG_MAX_ZOOM = 4;

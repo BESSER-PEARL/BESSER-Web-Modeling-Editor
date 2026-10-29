@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Tipus de node",
-        "hint": "Arrossega un tipus de node al llenç per crear un node nou. Per crear una relació entre nodes existents, fes clic a <action>{{addRelation}}</action> a la barra d'eines i després al node d'origen seguit del node de destinació."
+        "hint": "Arrossega un tipus de node al llenç per crear un node nou. Per crear una relació entre nodes existents, fes clic a <action>{{addRelation}}</action> a la barra d'eines i després al node d'origen seguit del node de destinació.",
+        "canvasHint": "Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te."
       },
       "toolbar": {
         "addRelation": "Afegeix una relació",
-        "addingRelation": "S'està afegint una relació…",
         "addRelationTooltip": "Afegeix una relació: arrossega del node d'origen al node de destinació",
         "exportHtml": "Exporta HTML",
         "exportHtmlTooltip": "Baixa el graf actual com a fitxer HTML interactiu autònom",
         "connectHint": "Arrossega d'un node d'origen a un node de destinació per crear una relació. Les posicions dels nodes queden bloquejades mentre aquest mode és actiu: Esc per sortir.",
-        "showingNodes_one": "Es mostra {{visible}} d'{{count}} node",
-        "showingNodes_other": "Es mostren {{visible}} de {{count}} nodes",
         "raiseLimit": "augmenta el límit a la configuració del KG",
-        "nodesFragment_one": "{{count}} node",
-        "nodesFragment_other": "{{count}} nodes",
-        "relationsFragment_one": "{{count}} relació",
-        "relationsFragment_other": "{{count}} relacions",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Desfés",
-        "redo": "Refés",
         "undoTooltip": "Desfés (Ctrl+Z)",
         "redoTooltip": "Refés (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Disposició automàtica",
         "fitToView": "Ajusta a la vista",
         "zoomIn": "Amplia",
-        "zoomOut": "Redueix"
+        "zoomOut": "Redueix",
+        "resetZoom": "Restableix el zoom al 100%"
       },
       "nodeList": {
         "heading": "Nodes ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Node",
         "titleRelation": "Relació",
-        "titleInspector": "Inspector",
         "selectedCount_one": "{{count}} seleccionat",
         "selectedCount_other": "{{count}} seleccionats",
         "unsavedChanges": "Canvis sense desar",
         "close": "Tanca",
-        "noSelection": "Fes clic en un node o relació del llenç per editar-lo aquí. Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te.",
         "fields": {
           "type": "Tipus",
           "label": "Etiqueta",

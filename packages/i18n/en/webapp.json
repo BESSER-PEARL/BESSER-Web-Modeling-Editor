@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Node types",
-        "hint": "Drag a node type onto the canvas to create a new node. To create a relation between existing nodes, click <action>{{addRelation}}</action> in the canvas toolbar, then click the source node followed by the target node."
+        "hint": "Drag a node type onto the canvas to create a new node. To create a relation between existing nodes, click <action>{{addRelation}}</action> in the canvas toolbar, then click the source node followed by the target node.",
+        "canvasHint": "Drag on empty canvas to box-select multiple. Hold Space to pan."
       },
       "toolbar": {
         "addRelation": "Add relation",
-        "addingRelation": "Adding relation…",
         "addRelationTooltip": "Add a relation: drag from the source node to the target node",
         "exportHtml": "Export HTML",
         "exportHtmlTooltip": "Download the current graph as a standalone interactive HTML file",
         "connectHint": "Drag from a source node onto a target node to create a relation. Node positions are locked while this mode is on — Esc to exit.",
-        "showingNodes_one": "Showing {{visible}} of {{count}} node",
-        "showingNodes_other": "Showing {{visible}} of {{count}} nodes",
         "raiseLimit": "raise the limit in KG Settings",
-        "nodesFragment_one": "{{count}} node",
-        "nodesFragment_other": "{{count}} nodes",
-        "relationsFragment_one": "{{count}} relation",
-        "relationsFragment_other": "{{count}} relations",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Undo",
-        "redo": "Redo",
         "undoTooltip": "Undo (Ctrl+Z)",
         "redoTooltip": "Redo (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Auto layout",
         "fitToView": "Fit to view",
         "zoomIn": "Zoom in",
-        "zoomOut": "Zoom out"
+        "zoomOut": "Zoom out",
+        "resetZoom": "Reset zoom to 100%"
       },
       "nodeList": {
         "heading": "Nodes ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Node",
         "titleRelation": "Relation",
-        "titleInspector": "Inspector",
         "selectedCount_one": "{{count}} selected",
         "selectedCount_other": "{{count}} selected",
         "unsavedChanges": "Unsaved changes",
         "close": "Close",
-        "noSelection": "Click a node or relation on the canvas to edit it here. Drag on empty canvas to box-select multiple. Hold Space to pan.",
         "fields": {
           "type": "Type",
           "label": "Label",

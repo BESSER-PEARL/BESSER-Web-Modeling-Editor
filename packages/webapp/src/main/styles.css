@@ -242,6 +242,33 @@ select {
   }
 }
 
+/* ---- Knowledge Graph canvas grid ----
+   The React Flow editors' background (10 px dots, 50 px lines, see the
+   library's CustomBackground), scaled and offset by the Cytoscape viewport
+   through --kg-grid-zoom / --kg-grid-x / --kg-grid-y. */
+.kg-canvas-grid {
+  --kg-grid-minor: calc(10px * var(--kg-grid-zoom, 1));
+  --kg-grid-major: calc(50px * var(--kg-grid-zoom, 1));
+  background-color: var(--besser-background, hsl(var(--background)));
+  background-image:
+    radial-gradient(
+      circle at center,
+      var(--besser-grid-minor, rgba(0, 0, 0, 0.2)) 0.5px,
+      transparent 1px
+    ),
+    linear-gradient(to right, var(--besser-grid, rgba(0, 0, 0, 0.08)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--besser-grid, rgba(0, 0, 0, 0.08)) 1px, transparent 1px);
+  background-size:
+    var(--kg-grid-minor) var(--kg-grid-minor),
+    var(--kg-grid-major) var(--kg-grid-major),
+    var(--kg-grid-major) var(--kg-grid-major);
+  /* Dots are drawn mid-tile, so their layer is shifted half a tile onto the line crossings. */
+  background-position:
+    calc(var(--kg-grid-x, 0px) - var(--kg-grid-minor) / 2) calc(var(--kg-grid-y, 0px) - var(--kg-grid-minor) / 2),
+    var(--kg-grid-x, 0px) var(--kg-grid-y, 0px),
+    var(--kg-grid-x, 0px) var(--kg-grid-y, 0px);
+}
+
 /* ---- Quantum circuit grid utilities ---- */
 @keyframes quantum-drop-pulse {
   0%, 100% { opacity: 0.4; }

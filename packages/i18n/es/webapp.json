@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Tipos de nodo",
-        "hint": "Arrastra un tipo de nodo al lienzo para crear un nodo nuevo. Para crear una relación entre nodos existentes, haz clic en <action>{{addRelation}}</action> en la barra de herramientas y luego en el nodo origen seguido del nodo destino."
+        "hint": "Arrastra un tipo de nodo al lienzo para crear un nodo nuevo. Para crear una relación entre nodos existentes, haz clic en <action>{{addRelation}}</action> en la barra de herramientas y luego en el nodo origen seguido del nodo destino.",
+        "canvasHint": "Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte."
       },
       "toolbar": {
         "addRelation": "Añadir relación",
-        "addingRelation": "Añadiendo relación…",
         "addRelationTooltip": "Añadir una relación: arrastra del nodo origen al nodo destino",
         "exportHtml": "Exportar HTML",
         "exportHtmlTooltip": "Descargar el grafo actual como un archivo HTML interactivo independiente",
         "connectHint": "Arrastra de un nodo origen a un nodo destino para crear una relación. Las posiciones de los nodos quedan bloqueadas mientras este modo está activo: Esc para salir.",
-        "showingNodes_one": "Mostrando {{visible}} de {{count}} nodo",
-        "showingNodes_other": "Mostrando {{visible}} de {{count}} nodos",
         "raiseLimit": "aumentar el límite en los ajustes de KG",
-        "nodesFragment_one": "{{count}} nodo",
-        "nodesFragment_other": "{{count}} nodos",
-        "relationsFragment_one": "{{count}} relación",
-        "relationsFragment_other": "{{count}} relaciones",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Deshacer",
-        "redo": "Rehacer",
         "undoTooltip": "Deshacer (Ctrl+Z)",
         "redoTooltip": "Rehacer (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Diseño automático",
         "fitToView": "Ajustar a la vista",
         "zoomIn": "Acercar",
-        "zoomOut": "Alejar"
+        "zoomOut": "Alejar",
+        "resetZoom": "Restablecer el zoom al 100%"
       },
       "nodeList": {
         "heading": "Nodos ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Nodo",
         "titleRelation": "Relación",
-        "titleInspector": "Inspector",
         "selectedCount_one": "{{count}} seleccionado",
         "selectedCount_other": "{{count}} seleccionados",
         "unsavedChanges": "Cambios sin guardar",
         "close": "Cerrar",
-        "noSelection": "Haz clic en un nodo o relación del lienzo para editarlo aquí. Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte.",
         "fields": {
           "type": "Tipo",
           "label": "Etiqueta",

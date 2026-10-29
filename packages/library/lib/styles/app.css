@@ -184,7 +184,17 @@ html.dark .besser-editor {
    one icon-button look so the whole row reads as a single cohesive pill.
    Theme-aware via --besser-* vars; hover/active tints use color-mix.
 --------------------------------------------------------------------------- */
-.react-flow__panel.react-flow__controls {
+/* The same bar outside React Flow (the Knowledge Graph editor's Cytoscape canvas). */
+.besser-canvas-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  margin: 15px;
+}
+
+.react-flow__panel.react-flow__controls,
+.besser-canvas-controls {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -492,7 +502,8 @@ html.dark .besser-editor {
 
 /* Phone widths: compact bar so it fits beside the narrow palette. */
 @media (max-width: 480px) {
-  .react-flow__panel.react-flow__controls {
+  .react-flow__panel.react-flow__controls,
+  .besser-canvas-controls {
     margin: 10px;
     padding: 3px;
     gap: 0;

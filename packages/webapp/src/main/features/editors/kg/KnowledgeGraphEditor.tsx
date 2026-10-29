@@ -11,8 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import i18n from '../../../shared/i18n';
 import { KnowledgeGraphPalette } from './KnowledgeGraphPalette';
 import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
-import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
 import { KgCanvasControls } from './KgCanvasControls';
+import type { ConnectMode } from './types';
 import { KnowledgeGraphInspector } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
@@ -550,9 +550,28 @@ export const KnowledgeGraphEditor: React.FC = () => {
     return unregister;
   }, [handleFocusOnNodes]);
 
+  const handleExportHtml = () => {
+    const title = currentDiagram?.title ?? 'knowledge-graph';
+    const html = canvasRef.current?.exportHtml(
+      title,
+      {
+        fallbackTitle: t('editors.kg.standaloneHtml.fallbackTitle'),
+        cdnFailed: t('editors.kg.standaloneHtml.cdnFailed'),
+        renderFailedPrefix: t('editors.kg.standaloneHtml.renderFailedPrefix'),
+      },
+      i18n.language,
+    );
+    if (!html) {
+      toast.error(t('editors.kg.editor.toasts.exportNotReady'));
+      return;
+    }
+    downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
+  };
+
   return (
     <div className="flex h-full w-full overflow-hidden">
-      <div className="flex h-full w-64 shrink-0 flex-col overflow-hidden border-r border-border/60 bg-muted/20">
+      {/* Styled like the React Flow editors' palette column. */}
+      <div className="besser-sidebar__palette flex h-full w-64 shrink-0 flex-col overflow-hidden bg-[var(--besser-background,white)]">
         <KnowledgeGraphPalette />
         <KnowledgeGraphNodeList
           model={displayModel}
@@ -562,41 +581,12 @@ export const KnowledgeGraphEditor: React.FC = () => {
           metaVocabCount={hiddenMetaIds.size}
         />
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <KnowledgeGraphToolbar
-          connectMode={connectMode}
-          onConnectModeChange={setConnectMode}
-          nodeCount={displayModel.nodes.length}
-          edgeCount={displayModel.edges.length}
-          hiddenCount={hiddenCount}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onOpenSettings={handleOpenSettings}
-          onExportHtml={() => {
-            const title = currentDiagram?.title ?? 'knowledge-graph';
-            const html = canvasRef.current?.exportHtml(
-              title,
-              {
-                fallbackTitle: t('editors.kg.standaloneHtml.fallbackTitle'),
-                cdnFailed: t('editors.kg.standaloneHtml.cdnFailed'),
-                renderFailedPrefix: t('editors.kg.standaloneHtml.renderFailedPrefix'),
-              },
-              i18n.language,
-            );
-            if (!html) {
-              toast.error(t('editors.kg.editor.toasts.exportNotReady'));
-              return;
-            }
-            downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
-          }}
-        />
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
           {focusedTargetIds && (
             <div
               data-testid="kg-focus-banner"
-              className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow-sm dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+              className="pointer-events-auto rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow-sm dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
             >
               <span className="mr-2">
                 {t('editors.kg.editor.focusBanner', { count: focusedTargetIds.length })}
@@ -611,52 +601,69 @@ export const KnowledgeGraphEditor: React.FC = () => {
               </button>
             </div>
           )}
-          <CytoscapeCanvas
-            ref={canvasRef}
-            model={model}
-            visibleIds={visibleIds}
-            nonVisualizableIds={hiddenMetaIds}
-            layout={layout}
-            connectMode={connectMode}
-            onChange={handleChange}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onSelect={setSelection}
-            onExitConnectMode={() => setConnectMode('off')}
-            onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
-            onRelationRejected={(reason) => toast.warning(reason)}
-            onRequestDelete={setPendingDelete}
-          />
-          <KgCanvasControls
-            onZoomIn={() => canvasRef.current?.zoomIn()}
-            onZoomOut={() => canvasRef.current?.zoomOut()}
-            onFit={() => canvasRef.current?.fit()}
-            onResetLayout={() => canvasRef.current?.relayout()}
-          />
-          {emptyState && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-lg border border-dashed border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
-                {/* The two menu labels are interpolated from their own keys so
-                 * the hint always names the menu items as they actually read
-                 * in the user's language. */}
-                {t('editors.kg.editor.emptyState', {
-                  fileMenu: t('menu.file.title'),
-                  importItem: t('menu.file.importKgOwl'),
-                })}
-              </div>
-            </div>
-          )}
-          {!emptyState && hiddenCount > 0 && (
-            <div className="pointer-events-none absolute left-2 top-2 rounded-md border border-amber-400/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 shadow-sm dark:bg-amber-900/30 dark:text-amber-100">
-              {t('editors.kg.editor.showingCap', {
-                visible: visibleNodeCount,
-                total: displayModel.nodes.length,
-                soft: softLimit,
-                hard: hardLimit,
-              })}
+          {connectMode === 'connect' && (
+            <div className="max-w-md rounded-lg border border-border bg-background/95 px-3 py-1.5 text-center text-xs text-muted-foreground shadow-sm">
+              {t('editors.kg.toolbar.connectHint')}
             </div>
           )}
         </div>
+        <CytoscapeCanvas
+          ref={canvasRef}
+          model={model}
+          visibleIds={visibleIds}
+          nonVisualizableIds={hiddenMetaIds}
+          layout={layout}
+          connectMode={connectMode}
+          onChange={handleChange}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onSelect={setSelection}
+          onExitConnectMode={() => setConnectMode('off')}
+          onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
+          onRelationRejected={(reason) => toast.warning(reason)}
+          onRequestDelete={setPendingDelete}
+        />
+        <KgCanvasControls
+          canvasRef={canvasRef}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          connectMode={connectMode}
+          onConnectModeChange={setConnectMode}
+          onExportHtml={handleExportHtml}
+        />
+        {emptyState && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="rounded-lg border border-dashed border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
+              {/* The two menu labels are interpolated from their own keys so
+               * the hint always names the menu items as they actually read
+               * in the user's language. */}
+              {t('editors.kg.editor.emptyState', {
+                fileMenu: t('menu.file.title'),
+                importItem: t('menu.file.importKgOwl'),
+              })}
+            </div>
+          </div>
+        )}
+        {!emptyState && hiddenCount > 0 && (
+          <div className="absolute left-3 top-3 z-20 rounded-md border border-amber-400/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 shadow-sm dark:bg-amber-900/30 dark:text-amber-100">
+            {t('editors.kg.editor.showingCap', {
+              visible: visibleNodeCount,
+              total: displayModel.nodes.length,
+              soft: softLimit,
+              hard: hardLimit,
+            })}
+            {' — '}
+            <button
+              type="button"
+              onClick={handleOpenSettings}
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              {t('editors.kg.toolbar.raiseLimit')}
+            </button>
+          </div>
+        )}
       </div>
       <KnowledgeGraphInspector
         model={model}

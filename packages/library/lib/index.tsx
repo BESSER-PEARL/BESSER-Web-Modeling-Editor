@@ -125,6 +125,14 @@ export type {
   ISettingsService,
 } from "./services/settingsService"
 
+// Canvas-control glyphs and the bar's overlay offset, for the webapp's
+// Cytoscape (Knowledge Graph) canvas so its controls bar matches the editor's.
+export { UndoIcon } from "./components/Icon/UndoIcon"
+export { RedoIcon } from "./components/Icon/RedoIcon"
+export { AutoLayoutIcon } from "./components/Icon/AutoLayoutIcon"
+export { FitViewIcon, ZoomInIcon, ZoomOutIcon } from "./components/Icon/ZoomIcons"
+export { usePublishControlsRight } from "./hooks/usePublishControlsRight"
+
 // Multiplicity helpers (used by features/editors/uml/__tests__/multiplicity.test.ts).
 // Already covered by `export * from "./utils"` via `./utils/index.ts`, but
 // `./utils/multiplicity.ts` is not in that barrel, so re-export explicitly.

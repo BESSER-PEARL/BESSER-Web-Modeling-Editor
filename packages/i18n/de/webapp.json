@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Knotentypen",
-        "hint": "Ziehen Sie einen Knotentyp auf die Zeichenfläche, um einen neuen Knoten zu erstellen. Um eine Beziehung zwischen bestehenden Knoten zu erstellen, klicken Sie in der Symbolleiste auf <action>{{addRelation}}</action> und dann auf den Quellknoten und anschließend auf den Zielknoten."
+        "hint": "Ziehen Sie einen Knotentyp auf die Zeichenfläche, um einen neuen Knoten zu erstellen. Um eine Beziehung zwischen bestehenden Knoten zu erstellen, klicken Sie in der Symbolleiste auf <action>{{addRelation}}</action> und dann auf den Quellknoten und anschließend auf den Zielknoten.",
+        "canvasHint": "Ziehen Sie auf leerer Fläche, um mehrere auszuwählen. Halten Sie die Leertaste zum Verschieben."
       },
       "toolbar": {
         "addRelation": "Beziehung hinzufügen",
-        "addingRelation": "Beziehung wird hinzugefügt…",
         "addRelationTooltip": "Eine Beziehung hinzufügen: vom Quellknoten zum Zielknoten ziehen",
         "exportHtml": "HTML exportieren",
         "exportHtmlTooltip": "Den aktuellen Graphen als eigenständige interaktive HTML-Datei herunterladen",
         "connectHint": "Ziehen Sie von einem Quellknoten auf einen Zielknoten, um eine Beziehung zu erstellen. Die Knotenpositionen sind gesperrt, solange dieser Modus aktiv ist — Esc zum Beenden.",
-        "showingNodes_one": "{{visible}} von {{count}} Knoten wird angezeigt",
-        "showingNodes_other": "{{visible}} von {{count}} Knoten werden angezeigt",
         "raiseLimit": "das Limit in den KG-Einstellungen erhöhen",
-        "nodesFragment_one": "{{count}} Knoten",
-        "nodesFragment_other": "{{count}} Knoten",
-        "relationsFragment_one": "{{count}} Beziehung",
-        "relationsFragment_other": "{{count}} Beziehungen",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Rückgängig",
-        "redo": "Wiederholen",
         "undoTooltip": "Rückgängig (Ctrl+Z)",
         "redoTooltip": "Wiederholen (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Automatisches Layout",
         "fitToView": "An Ansicht anpassen",
         "zoomIn": "Vergrößern",
-        "zoomOut": "Verkleinern"
+        "zoomOut": "Verkleinern",
+        "resetZoom": "Zoom auf 100% zurücksetzen"
       },
       "nodeList": {
         "heading": "Knoten ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Knoten",
         "titleRelation": "Beziehung",
-        "titleInspector": "Inspektor",
         "selectedCount_one": "{{count}} ausgewählt",
         "selectedCount_other": "{{count}} ausgewählt",
         "unsavedChanges": "Nicht gespeicherte Änderungen",
         "close": "Schließen",
-        "noSelection": "Klicken Sie auf einen Knoten oder eine Beziehung auf der Zeichenfläche, um sie hier zu bearbeiten. Ziehen Sie auf leerer Fläche, um mehrere auszuwählen. Halten Sie die Leertaste zum Verschieben.",
         "fields": {
           "type": "Typ",
           "label": "Bezeichnung",

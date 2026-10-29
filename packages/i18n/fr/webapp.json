@@ -3284,25 +3284,16 @@
       },
       "palette": {
         "heading": "Types de nœuds",
-        "hint": "Faites glisser un type de nœud sur le canevas pour créer un nœud. Pour créer une relation entre des nœuds existants, cliquez sur <action>{{addRelation}}</action> dans la barre d'outils, puis sur le nœud source suivi du nœud cible."
+        "hint": "Faites glisser un type de nœud sur le canevas pour créer un nœud. Pour créer une relation entre des nœuds existants, cliquez sur <action>{{addRelation}}</action> dans la barre d'outils, puis sur le nœud source suivi du nœud cible.",
+        "canvasHint": "Faites glisser sur le canevas vide pour en sélectionner plusieurs. Maintenez Espace pour vous déplacer."
       },
       "toolbar": {
         "addRelation": "Ajouter une relation",
-        "addingRelation": "Ajout d'une relation…",
         "addRelationTooltip": "Ajouter une relation : faites glisser du nœud source vers le nœud cible",
         "exportHtml": "Exporter en HTML",
         "exportHtmlTooltip": "Télécharger le graphe actuel sous forme de fichier HTML interactif autonome",
         "connectHint": "Faites glisser d'un nœud source vers un nœud cible pour créer une relation. Les positions des nœuds sont verrouillées tant que ce mode est actif — Échap pour quitter.",
-        "showingNodes_one": "Affichage de {{visible}} nœud sur {{count}}",
-        "showingNodes_other": "Affichage de {{visible}} nœuds sur {{count}}",
         "raiseLimit": "augmenter la limite dans les paramètres KG",
-        "nodesFragment_one": "{{count}} nœud",
-        "nodesFragment_other": "{{count}} nœuds",
-        "relationsFragment_one": "{{count}} relation",
-        "relationsFragment_other": "{{count}} relations",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Annuler",
-        "redo": "Rétablir",
         "undoTooltip": "Annuler (Ctrl+Z)",
         "redoTooltip": "Rétablir (Ctrl+Y)"
       },
@@ -3310,7 +3301,8 @@
         "autoLayout": "Disposition automatique",
         "fitToView": "Ajuster à la vue",
         "zoomIn": "Zoom avant",
-        "zoomOut": "Zoom arrière"
+        "zoomOut": "Zoom arrière",
+        "resetZoom": "Réinitialiser le zoom à 100%"
       },
       "nodeList": {
         "heading": "Nœuds ({{count}})",
@@ -3353,12 +3345,10 @@
       "inspector": {
         "titleNode": "Nœud",
         "titleRelation": "Relation",
-        "titleInspector": "Inspecteur",
         "selectedCount_one": "{{count}} sélectionné",
         "selectedCount_other": "{{count}} sélectionnés",
         "unsavedChanges": "Modifications non enregistrées",
         "close": "Fermer",
-        "noSelection": "Cliquez sur un nœud ou une relation du canevas pour le modifier ici. Faites glisser sur le canevas vide pour en sélectionner plusieurs. Maintenez Espace pour vous déplacer.",
         "fields": {
           "type": "Type",
           "label": "Libellé",
