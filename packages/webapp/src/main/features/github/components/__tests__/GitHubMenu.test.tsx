@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { toast } from 'react-toastify';
 import type { RepoSyncState } from '../../hooks/useRepoSync';
 import { OPEN_HELP_GUIDE_EVENT } from '../../../../shared/dialogs/helpGuide';
 
@@ -183,6 +184,21 @@ describe('GitHubMenu', () => {
     await waitFor(() => expect(sync.save).toHaveBeenCalledWith('Update the model from the BESSER editor'));
     expect(await screen.findByRole('alert')).toHaveTextContent('besser/save-1');
     expect(screen.getByRole('button', { name: 'Open a pull request to merge it' })).toBeInTheDocument();
+  });
+
+  it('shows what a save could not do as asked', async () => {
+    linkAs('local-changes', 0, true);
+    const warning = 'The B-UML sources could not be rebuilt; the generated files on GitHub were kept.';
+    sync.save.mockResolvedValueOnce({
+      success: true, commit_sha: 'c'.repeat(40), message: '', status: 'pushed', conflict_branch: null, warnings: [warning],
+    });
+    renderMenu();
+
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save to GitHub…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(toast.warn).toHaveBeenCalledWith(warning));
   });
 
   it('unlinks only after the user confirms', async () => {

@@ -56,6 +56,7 @@ export const SaveToGitHubDialog: React.FC<SaveToGitHubDialogProps> = ({ open, on
           ? t('github.panel.savedMerged', { defaultValue: 'Saved, and merged with the newer changes on GitHub.' })
           : t('github.panel.saved', { defaultValue: 'Model saved to GitHub.' }),
       );
+      result.warnings?.forEach((warning) => toast.warn(warning));
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {

@@ -151,6 +151,8 @@ export interface SaveModelResult {
   message: string;
   status: PushStatus;
   conflict_branch: string | null;
+  /** What the save could not do as asked, e.g. the B-UML sources could not be rebuilt. */
+  warnings?: string[];
 }
 
 export const saveModel = (
