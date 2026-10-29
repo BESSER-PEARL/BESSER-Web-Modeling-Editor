@@ -45,7 +45,7 @@ import type { ProjectDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
-import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import {
   type AgentModelVariantSnapshot,
   getActiveAgentVariantId,

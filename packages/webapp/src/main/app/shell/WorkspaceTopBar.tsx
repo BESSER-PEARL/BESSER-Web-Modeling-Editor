@@ -25,6 +25,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   githubLoading,
   hasProject,
   isDeploymentAvailable,
+  deployGoesLive,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
@@ -34,6 +35,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenAssistantImportKg,
   onImportOwl,
   onOpenProjectPreview,
+  onShareAsGist,
   onGenerate,
   onQualityCheck,
   qualityCheckState,
@@ -44,7 +46,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
-  onOpenGitHubSidebar,
   hasStarred,
   starLoading,
   onToggleStar,
@@ -131,6 +132,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onImportOwl={onImportOwl}
             onOpenProjectPreview={onOpenProjectPreview}
+            onShareAsGist={onShareAsGist}
           />
           <GenerateMenu
             mode={generatorMode}
@@ -150,6 +152,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               isAuthenticated={isAuthenticated}
               githubLoading={githubLoading}
               isDeploymentAvailable={isDeploymentAvailable}
+              deployGoesLive={deployGoesLive}
               onGitHubLogin={onGitHubLogin}
               onOpenDeployDialog={onOpenDeployDialog}
             />
@@ -181,7 +184,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
-            onOpenGitHubSidebar={onOpenGitHubSidebar}
             onToggleStar={onToggleStar}
           />
           <div className="hidden sm:contents">
@@ -192,7 +194,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             isDarkTheme={isDarkTheme}
             isAuthenticated={isAuthenticated}
             githubLoading={githubLoading}
-            isDeploymentAvailable={isDeploymentAvailable}
+            isDeploymentAvailable={isDeploymentAvailable || !!deployGoesLive}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
             onOpenDeployDialog={onOpenDeployDialog}

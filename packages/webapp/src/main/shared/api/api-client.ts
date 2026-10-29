@@ -2,6 +2,12 @@ import { BACKEND_URL } from '../constants/constant';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
+/** Fired on `window` when a request carrying the GitHub session gets a 401 (see shared/services/github/githubAuth.ts). */
+export const GITHUB_SESSION_REJECTED_EVENT = 'besser:github-session-rejected';
+
+const carriesGitHubSession = (headers: HeadersInit | undefined): boolean =>
+  !!headers && new Headers(headers).has('X-GitHub-Session');
+
 /**
  * Per-request options. Extends `RequestInit` with an optional `timeout`
  * (milliseconds) that overrides the client's default for slow endpoints
@@ -121,6 +127,10 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && carriesGitHubSession(fetchOptions.headers)) {
+          // The GitHub session is gone (expired, signed out elsewhere, token revoked).
+          window.dispatchEvent(new Event(GITHUB_SESSION_REJECTED_EVENT));
+        }
         throw await errorFromResponse(response, 'Request failed');
       }
 

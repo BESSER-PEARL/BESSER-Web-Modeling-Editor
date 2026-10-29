@@ -148,7 +148,8 @@ performed by the **BESSER Python backend**:
    backend's ``/github/auth/callback`` route.
 #. The backend exchanges the code for an access token using
    ``GITHUB_CLIENT_SECRET``, stores the token server-side, and redirects the
-   browser back to ``<DEPLOYMENT_URL>?github_session=<id>&username=<login>``.
+   browser back to ``<DEPLOYMENT_URL>#github_session=<id>&username=<login>``;
+   the fragment never reaches a server or proxy log.
 #. The webapp keeps only that opaque session id (in ``sessionStorage``); the
    access token never reaches the browser.
 

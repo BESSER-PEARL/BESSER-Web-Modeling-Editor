@@ -1,5 +1,6 @@
 import { apiClient, ApiError } from './api-client';
 import { BACKEND_URL } from '../constants/constant';
+import { getGitHubSession } from '../services/github/githubAuth';
 
 /**
  * API layer for the agent simulation ("Test Agent") feature.
@@ -10,7 +11,6 @@ import { BACKEND_URL } from '../constants/constant';
  * simulation endpoints and WebSocket.
  */
 
-const GITHUB_SESSION_STORAGE_KEY = 'github_session';
 
 /** Generating the agent and starting its container can take a while. */
 const START_SESSION_TIMEOUT_MS = 120_000;
@@ -75,15 +75,6 @@ export interface AgentSimulationLimits {
 // Auth
 // ---------------------------------------------------------------------------
 
-/** The GitHub session token, or an empty string when the user is not signed in. */
-export function getGitHubSession(): string {
-  try {
-    return sessionStorage.getItem(GITHUB_SESSION_STORAGE_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-
 function authHeaders(): Record<string, string> {
   const githubSession = getGitHubSession();
   return githubSession ? { 'X-GitHub-Session': githubSession } : {};
@@ -109,7 +100,7 @@ export function getAgentSimulationWebSocketUrl(sessionId: string, backendUrl: st
 
 /** First frame sent on the simulation WebSocket; never put the session in the URL. */
 export function buildAgentSimulationAuthFrame(): string {
-  return JSON.stringify({ type: 'auth', githubSession: getGitHubSession() });
+  return JSON.stringify({ type: 'auth', githubSession: getGitHubSession() ?? '' });
 }
 
 // ---------------------------------------------------------------------------

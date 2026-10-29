@@ -15,7 +15,6 @@
 import {
   localStorageSpecDrivenActiveRunV1,
   localStorageSpecDrivenActiveRunV2Prefix,
-  localStorageSpecDrivenLastRunPrefix,
   sessionStorageLlmBaseUrl,
   sessionStorageSpecDrivenApiKey,
   sessionStorageSpecDrivenLlmModel,
@@ -23,7 +22,7 @@ import {
   sessionStorageSpecDrivenMaxRuntimeSeconds,
   sessionStorageSpecDrivenProvider,
 } from '../../shared/constants/constant';
-import { isValidRunId, type LastRunRecord } from './runModeDecision';
+import { isValidRunId } from './runModeDecision';
 import type { SpecDrivenProvider } from './types';
 
 export interface SessionKey {
@@ -165,45 +164,8 @@ function _hasLocalStorage(): boolean {
   }
 }
 
-const _lastRunKey = (projectId: string): string =>
-  `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
-
-/**
- * Read the stored last successful run for a project, or `null` when none
- * / unusable. Validates the run id (32-hex) and timestamp so a corrupted
- * or hand-edited entry degrades to "no last run" (a fresh build) rather
- * than sending a bad `base_run_id`.
- */
-export function readProjectLastRun(projectId: string): LastRunRecord | null {
-  if (!projectId || !_hasLocalStorage()) return null;
-  try {
-    const raw = window.localStorage.getItem(_lastRunKey(projectId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<LastRunRecord> | null;
-    if (!parsed || !isValidRunId(parsed.runId)) return null;
-    const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0;
-    return { runId: parsed.runId, at };
-  } catch {
-    return null;
-  }
-}
-
-/** Persist the last successful run for a project. No-op on failure. */
-export function writeProjectLastRun(
-  projectId: string,
-  runId: string,
-  at: number,
-): void {
-  if (!projectId || !isValidRunId(runId) || !_hasLocalStorage()) return;
-  try {
-    window.localStorage.setItem(
-      _lastRunKey(projectId),
-      JSON.stringify({ runId, at }),
-    );
-  } catch {
-    /* ignore */
-  }
-}
+// The last successful run lives in shared/ so the GitHub feature can record one too.
+export { readProjectLastRun, writeProjectLastRun } from '../../shared/services/storage/specDrivenRunRecords';
 
 /* ------------------------------------------------------------------ */
 /*  Active durable run pointer (reload/reattach)                       */

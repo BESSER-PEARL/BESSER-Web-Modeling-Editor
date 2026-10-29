@@ -75,6 +75,8 @@ export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 
 // per-project deploy linkage (suffix: `<projectId>_<target>`)
 export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
+// the GitHub repo a project is linked to (suffix: `<projectId>`); see projectGitHubLink.ts
+export const localStorageGitHubLinkPrefix = localStoragePrefix + 'github_link_';
 
 // external service URLs
 export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';

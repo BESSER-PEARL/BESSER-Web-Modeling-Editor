@@ -8,6 +8,13 @@ import { MoreMenu } from '../menus/MoreMenu';
 import { TopBarUtilities } from '../menus/TopBarUtilities';
 import { LanguageSelector } from '../LanguageSelector';
 
+// The GitHub control has its own tests; here it only has to be mounted once.
+vi.mock('../../../features/github/components/GitHubMenu', () => ({
+  GitHubMenu: ({ isAuthenticated, username }: { isAuthenticated: boolean; username?: string }) => (
+    <div data-testid="github-menu">{isAuthenticated ? `signed in as ${username}` : 'signed out'}</div>
+  ),
+}));
+
 const withTooltips = (ui: React.ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
 const openMenu = (name: string) => fireEvent.keyDown(screen.getByRole('button', { name }), { key: 'ArrowDown' });
 
@@ -34,7 +41,7 @@ describe('GenerateMenu', () => {
 });
 
 describe('FileMenu', () => {
-  const renderOpen = (hasProject = true) => {
+  const renderOpen = (hasProject = true, onShareAsGist = vi.fn()) => {
     withTooltips(
       <FileMenu
         outlineButtonClass=""
@@ -49,6 +56,7 @@ describe('FileMenu', () => {
         onOpenAssistantImportKg={vi.fn()}
         onImportOwl={vi.fn()}
         onOpenProjectPreview={vi.fn()}
+        onShareAsGist={onShareAsGist}
       />,
     );
     openMenu('File');
@@ -60,6 +68,18 @@ describe('FileMenu', () => {
     expect(screen.getAllByRole('menuitem', { name: /import/i })).toHaveLength(1);
     expect(screen.queryByText('Import Class Diagram from')).toBeNull();
     expect(screen.queryByText('Project Actions')).toBeNull();
+  });
+
+  it('shares the project as a secret gist from the File menu', () => {
+    const onShareAsGist = vi.fn();
+    renderOpen(true, onShareAsGist);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' }));
+    expect(onShareAsGist).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables gist sharing without a project', () => {
+    renderOpen(false);
+    expect(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' })).toHaveAttribute('data-disabled');
   });
 
   it('gives every top-level item an icon', () => {
@@ -129,11 +149,33 @@ describe('TopBarUtilities', () => {
         onToggleTheme={vi.fn()}
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
-        onOpenGitHubSidebar={vi.fn()}
         onToggleStar={vi.fn()}
       />,
     );
 
     expect(screen.getByRole('button', { name: 'Quality Check: Validated' })).toBeInTheDocument();
+  });
+
+  it('renders the single GitHub control with the sign-in state', () => {
+    withTooltips(
+      <TopBarUtilities
+        showQualityCheck={false}
+        outlineButtonClass=""
+        isDarkTheme={false}
+        isAuthenticated
+        username="ana"
+        githubLoading={false}
+        hasStarred
+        starLoading={false}
+        onQualityCheck={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onGitHubLogin={vi.fn()}
+        onGitHubLogout={vi.fn()}
+        onToggleStar={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByTestId('github-menu')).toHaveLength(1);
+    expect(screen.getByTestId('github-menu')).toHaveTextContent('signed in as ana');
   });
 });

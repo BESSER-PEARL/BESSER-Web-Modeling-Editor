@@ -12,7 +12,16 @@ import { ALL_DIAGRAM_TYPES, getActiveDiagram, hasCustomEditor, isUMLModel, toUML
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
-import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
+import { useRepoSync } from '../../features/github/hooks/useRepoSync';
+import { isGoLiveAvailable } from '../../shared/api/github';
+import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
+import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
+import {
+  OPEN_HELP_GUIDE_EVENT,
+  type HelpGuideSectionId,
+  type OpenHelpGuideDetail,
+} from '../../shared/dialogs/helpGuide';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -69,11 +78,9 @@ import type { QualityCheckResult, QualityCheckState } from '../../features/gener
 import type { AgentVariantOption } from './topbar-types';
 import { useHasOpened } from '../hooks/useHasOpened';
 import { useStableCallback } from '../hooks/useStableCallback';
+import { sanitizeRepoName } from '../../shared/utils/validation';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
-const GitHubSidebar = React.lazy(() =>
-  import('../../features/github/components/GitHubSidebar').then((m) => ({ default: m.GitHubSidebar })),
-);
 const AssistantWorkspaceDrawer = React.lazy(() =>
   import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({
     default: m.AssistantWorkspaceDrawer,
@@ -84,6 +91,12 @@ const FeedbackDialog = React.lazy(() =>
 );
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
+);
+const GoLiveDialog = React.lazy(() =>
+  import('../../features/github/dialogs/GoLiveDialog').then((m) => ({ default: m.GoLiveDialog })),
+);
+const ShareGistDialog = React.lazy(() =>
+  import('../../features/github/dialogs/ShareGistDialog').then((m) => ({ default: m.ShareGistDialog })),
 );
 const KgImportTargetModal = React.lazy(() =>
   import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
@@ -108,15 +121,6 @@ const thunkErrorMessage = (err: unknown): string => {
     return err.message;
   }
   return String(err);
-};
-
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
 };
 
 interface OnboardingHook {
@@ -229,7 +233,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
-  const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
+  const [isGistDialogOpen, setIsGistDialogOpen] = useState(false);
   // Restore the drawer to wherever the user left it this tab (sessionStorage).
   // Defaults to closed when nothing is stored or storage is unavailable.
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
@@ -1063,20 +1067,50 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const openAssistantImportImage = useCallback(() => openAssistantImportDialog('image'), [openAssistantImportDialog]);
   const openAssistantImportKg = useCallback(() => openAssistantImportDialog('kg'), [openAssistantImportDialog]);
-  const openDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const openClassicDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const [isGoLiveOpen, setIsGoLiveOpen] = useState(false);
+  const [goLiveAvailable, setGoLiveAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void isGoLiveAvailable().then((available) => !cancelled && setGoLiveAvailable(available));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const openProjectPreview = useStableCallback(handleOpenProjectPreview);
-  const toggleGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen((previous) => !previous), []);
-  const closeGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen(false), []);
-  const openHelpDialog = useCallback(() => setIsHelpDialogOpen(true), [setIsHelpDialogOpen]);
+  // The top bar's GitHub menu checks the repo's sync status; the shell needs only the link.
+  const repoSync = useRepoSync({ checkRemote: false });
+  const canGoLive = goLiveAvailable && !!repoSync.link && !!repoSync.githubSession && !!currentProject;
+  // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
+  const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
+  const openGistDialog = useCallback(
+    () => (isAuthenticated ? setIsGistDialogOpen(true) : githubLogin()),
+    [isAuthenticated, githubLogin],
+  );
+  const [helpSection, setHelpSection] = useState<HelpGuideSectionId | undefined>();
+  const openHelpDialog = useCallback(() => {
+    setHelpSection(undefined);
+    setIsHelpDialogOpen(true);
+  }, [setIsHelpDialogOpen]);
+  // Other parts of the app open the guide at a section (e.g. the GitHub menu's "How GitHub works").
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      setHelpSection((event as CustomEvent<OpenHelpGuideDetail>).detail?.section);
+      setIsHelpDialogOpen(true);
+    };
+    window.addEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+  }, [setIsHelpDialogOpen]);
   const openAboutDialog = useCallback(() => setIsAboutDialogOpen(true), [setIsAboutDialogOpen]);
   const openFeedback = useCallback(() => setIsFeedbackDialogOpen(true), [setIsFeedbackDialogOpen]);
   const toggleSidebarExpanded = useCallback(() => setIsSidebarExpanded((previous) => !previous), []);
   const testAgent = showSimulateAgent ? handleSimulateAgent : undefined;
 
   // Lazy panels mount on first open so their chunks are not fetched at startup.
-  const gitHubSidebarMounted = useHasOpened(isGitHubSidebarOpen);
   const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
   const helpDialogMounted = useHasOpened(isHelpDialogOpen);
+  const gistDialogMounted = useHasOpened(isGistDialogOpen);
+  const goLiveDialogMounted = useHasOpened(isGoLiveOpen);
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -1100,6 +1134,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         githubLoading={githubLoading}
         hasProject={Boolean(currentProject)}
         isDeploymentAvailable={isDeploymentAvailable}
+        deployGoesLive={canGoLive}
         onOpenProjectHub={onOpenProjectHub}
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
@@ -1109,6 +1144,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportKg={openAssistantImportKg}
         onImportOwl={openImportOwlPicker}
         onOpenProjectPreview={openProjectPreview}
+        onShareAsGist={openGistDialog}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
@@ -1119,7 +1155,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
-        onOpenGitHubSidebar={toggleGitHubSidebar}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
@@ -1218,7 +1253,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               userModelValidationStatusById={userModelValidationStatusById}
             />
           )}
-          <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {children}
+            {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+              <ModelProposalBanner />
+            </div>
+          </div>
 
           {/* Onboarding checklist - fixed bottom-right */}
           {onboarding && !onboarding.checklistDismissed && (
@@ -1234,12 +1275,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </div>
           )}
         </main>
-
-        {gitHubSidebarMounted && (
-          <Suspense fallback={null}>
-            <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={closeGitHubSidebar} />
-          </Suspense>
-        )}
 
         {/*
           Bottom-sheet assistant drawer. Renders a 28-px drag handle at
@@ -1263,6 +1298,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
             showTrigger={location.pathname === '/'}
+            // The repository this conversation works on, when the project is linked.
+            chatHeader={<RepoChatHeader className="mb-4" />}
           />
         </Suspense>
       </div>
@@ -1319,11 +1356,31 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       {helpDialogMounted && (
         <Suspense fallback={null}>
-          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} initialSection={helpSection} />
         </Suspense>
       )}
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
+
+      <Suspense fallback={null}>
+        {gistDialogMounted && (
+          <ShareGistDialog open={isGistDialogOpen} onOpenChange={setIsGistDialogOpen} githubSession={githubSession} />
+        )}
+
+        {goLiveDialogMounted && canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
+          <GoLiveDialog
+            open={isGoLiveOpen}
+            projectId={currentProject.id}
+            link={repoSync.link}
+            githubSession={repoSync.githubSession}
+            onOpenChange={setIsGoLiveOpen}
+            onUseClassicDeploy={() => {
+              setIsGoLiveOpen(false);
+              openClassicDeployDialog();
+            }}
+          />
+        )}
+      </Suspense>
 
       <DeployDialog
         open={isDeployDialogOpen}

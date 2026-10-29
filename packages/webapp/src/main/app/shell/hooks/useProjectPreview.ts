@@ -7,15 +7,7 @@ import { useProjectBumlPreview } from '../../../features/export/useProjectBumlPr
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { downloadJson, downloadFile, copyToClipboard } from '../../../shared/utils/download';
 import type { BesserProject } from '../../../shared/types/project';
-
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
+import { sanitizeRepoName } from '../../../shared/utils/validation';
 
 interface UseProjectPreviewOptions {
   currentProject: BesserProject | null;

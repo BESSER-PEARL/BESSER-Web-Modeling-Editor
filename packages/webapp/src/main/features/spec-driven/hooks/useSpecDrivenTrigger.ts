@@ -65,6 +65,8 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
+import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
   SseStallError,
@@ -1051,6 +1053,9 @@ export function useSpecDrivenTrigger(
       // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
       const normalisedProject = buildProjectPayloadForBackend(project);
+      // The model this run starts from: a later push of the run must not
+      // silently replace edits made on the canvas after this point.
+      const seedModel = modelFingerprint(project);
 
       // Reserve the GLOBAL run slot as `preparing`. All code from the guard
       // at the top of this function down to here is synchronous, so two
@@ -1200,6 +1205,7 @@ export function useSpecDrivenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
+          recordRunSeedModel(runId, seedModel);
           ownership.claim = claimSpecDrivenRunOwnership(runId);
           writeActiveSpecDrivenRun({
             runId,
