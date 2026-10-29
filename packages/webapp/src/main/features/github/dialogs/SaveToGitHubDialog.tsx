@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { RepoSync } from '../hooks/useRepoSync';
-import { createPullRequest, type SaveModelResult } from '../services/githubApi';
+import type { SaveModelResult } from '../services/githubApi';
 
 interface SaveToGitHubDialogProps {
   open: boolean;
@@ -22,7 +22,7 @@ const errorMessage = (error: unknown) => (error instanceof Error ? error.message
 /** Commit the model to the linked repository; newer commits on GitHub are merged, never reverted. */
 export const SaveToGitHubDialog: React.FC<SaveToGitHubDialogProps> = ({ open, onOpenChange, sync, flushEditor }) => {
   const { t } = useTranslation();
-  const { link, githubSession, hasLocalChanges } = sync;
+  const { link, hasLocalChanges } = sync;
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [conflict, setConflict] = useState<SaveModelResult | null>(null);
@@ -64,17 +64,12 @@ export const SaveToGitHubDialog: React.FC<SaveToGitHubDialogProps> = ({ open, on
   };
 
   const handleOpenPullRequest = async () => {
-    if (!conflict?.conflict_branch || !link || !githubSession) return;
     try {
-      const pr = await createPullRequest(githubSession, {
-        owner: link.owner,
-        repo: link.repo,
-        head: conflict.conflict_branch,
-        base: link.branch,
-        title: message.trim() || t('github.panel.prTitle', { defaultValue: 'Model changes from the BESSER editor' }),
-      });
-      setPullRequestUrl(pr.html_url);
-      window.open(pr.html_url, '_blank', 'noopener,noreferrer');
+      const url = await sync.openPullRequest(
+        message.trim() || t('github.panel.prTitle', { defaultValue: 'Model changes from the BESSER editor' }),
+      );
+      setPullRequestUrl(url);
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       toast.error(errorMessage(error));
     }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetGitHubAuthForTests, signInToGitHubForTests } from '@/main/shared/services/github/githubAuth';
 import { configureStore } from '@reduxjs/toolkit';
 import {
   agentSimulationReducer,
@@ -49,6 +50,7 @@ function lastRequest(index = fetchMock.mock.calls.length - 1) {
 }
 
 beforeEach(() => {
+  resetGitHubAuthForTests();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   agentSimulationCredentialStore.clear();
@@ -62,7 +64,7 @@ afterEach(() => {
 describe('agentSimulation slice — lifecycle', () => {
   it('start → validate → running, with credentials sent but kept out of Redux', async () => {
     const store = makeStore();
-    sessionStorage.setItem('github_session', 'gh-123');
+    signInToGitHubForTests('gh-123');
 
     fetchMock.mockResolvedValueOnce(
       mockResponse({ body: { valid: true, agentCode: 'print(1)', eventList: ['e1'], errors: [] } }),
@@ -248,7 +250,7 @@ describe('agentSimulation API helpers', () => {
   });
 
   it('never puts the GitHub session in the WebSocket URL', () => {
-    sessionStorage.setItem('github_session', 'gh-123');
+    signInToGitHubForTests('gh-123');
     expect(getAgentSimulationWebSocketUrl('abc', 'https://x.org/api')).not.toContain('gh-123');
     expect(JSON.parse(buildAgentSimulationAuthFrame())).toEqual({ type: 'auth', githubSession: 'gh-123' });
   });

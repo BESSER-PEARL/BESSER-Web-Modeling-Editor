@@ -11,7 +11,7 @@ import { describePushError, useSpecDrivenGithubPush } from '../useSpecDrivenGith
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warn: vi.fn() } }));
 // Stable references, as the real hooks return: the hook's effects depend on them.
 const stable = vi.hoisted(() => ({
-  auth: { isAuthenticated: true, githubSession: 'session', login: () => {} },
+  auth: { isAuthenticated: true, isChecking: false, githubSession: 'session' as string | null, login: vi.fn() },
   project: { loadProject: vi.fn(async () => {}) },
   dispatch: () => {},
 }));
@@ -25,7 +25,7 @@ const storeRepoModelAsProject = vi.hoisted(() =>
 );
 vi.mock('../../../../shared/services/project-import/projectImport', () => ({ storeRepoModelAsProject }));
 vi.mock('../../../../shared/utils/projectExportUtils', () => ({ buildProjectExportEnvelope: () => ({}) }));
-vi.mock('../useGitHubAuth', () => ({ useGitHubAuth: () => stable.auth }));
+vi.mock('../../../../shared/hooks/useGitHubAuth', () => ({ useGitHubAuth: () => stable.auth }));
 vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => stable.project }));
 vi.mock('../../../../app/store/hooks', () => ({
   useAppDispatch: () => stable.dispatch,
@@ -111,5 +111,82 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
     expect(storeRepoModelAsProject).not.toHaveBeenCalled();
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe('c'.repeat(40));
     expect(getProjectGitHubLink('p1')?.syncedModel).toBeTruthy();
+  });
+});
+
+describe('useSpecDrivenGithubPush — a push that did not land on the branch', () => {
+  const project = { id: 'p1', name: 'Library', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } } as never;
+  const base = 'a'.repeat(40);
+  const response = (extra: Record<string, unknown>) => ({
+    success: true, repo_url: '', owner: 'acme', repo_name: 'library', is_first_push: false, files_uploaded: 3,
+    branch: 'main', commit_sha: 'c'.repeat(40), conflict_branch: null, pull_request_url: null,
+    pull_request_branch: null, base_run_id: null, warnings: [], project_export: null, ...extra,
+  });
+  const push = async (pushMode: 'commit' | 'pull_request' = 'commit') => {
+    const { result } = renderHook(() => useSpecDrivenGithubPush({ currentProject: project }));
+    await act(async () => {
+      await result.current.dialog.push({ useExisting: true, owner: 'acme', repoName: 'library', isPrivate: true, pushMode });
+    });
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    setProjectGitHubLink('p1', { owner: 'acme', repo: 'library', branch: 'main', baseCommitSha: base });
+    post.mockReset();
+    storeRepoModelAsProject.mockClear();
+    stable.project.loadProject.mockClear();
+  });
+
+  it('sends the owner of the linked repository, e.g. an organization', async () => {
+    post.mockResolvedValue(response({ status: 'pushed' }));
+
+    await push();
+
+    expect(post.mock.calls[0][1].deploy_config).toMatchObject({ owner: 'acme', repo_name: 'library', base_commit_sha: base });
+  });
+
+  it('remembers a conflict branch on the project, so the GitHub menu can offer its pull request later', async () => {
+    post.mockResolvedValue(response({ status: 'conflict', commit_sha: 'd'.repeat(40), conflict_branch: 'besser/sync-ddddddd' }));
+
+    await push();
+
+    const link = getProjectGitHubLink('p1');
+    expect(link?.pendingChange).toMatchObject({ kind: 'conflict', branch: 'besser/sync-ddddddd' });
+    expect(link?.baseCommitSha).toBe(base); // the branch did not move
+  });
+
+  it("shows the run's model after a pull-request push, unsaved against the branch until the PR is merged", async () => {
+    post.mockResolvedValue(response({
+      status: 'pull_request', pull_request_url: 'https://github.com/acme/library/pull/7',
+      pull_request_branch: 'besser/update-1234abcd', project_export: { name: 'Library with Loan' },
+    }));
+
+    await push('pull_request');
+
+    expect(storeRepoModelAsProject).toHaveBeenCalledWith({ name: 'Library with Loan' }, 'p1');
+    expect(stable.project.loadProject).toHaveBeenCalledWith('p1');
+    const link = getProjectGitHubLink('p1');
+    expect(link?.baseCommitSha).toBe(base);
+    expect(link?.syncedModel).toBeUndefined();
+    expect(link?.pendingChange).toMatchObject({
+      kind: 'pull_request', branch: 'besser/update-1234abcd', pullRequestUrl: 'https://github.com/acme/library/pull/7',
+    });
+  });
+});
+
+describe('useSpecDrivenGithubPush — sign-in', () => {
+  beforeEach(() => {
+    stable.auth.login.mockClear();
+    sessionStorage.clear();
+  });
+
+  it('waits while the stored session is being checked instead of starting a new sign-in', () => {
+    Object.assign(stable.auth, { isAuthenticated: false, isChecking: true, githubSession: null });
+    try {
+      renderHook(() => useSpecDrivenGithubPush({ currentProject: { id: 'p1', name: 'Library' } as never }));
+      expect(stable.auth.login).not.toHaveBeenCalled();
+    } finally {
+      Object.assign(stable.auth, { isAuthenticated: true, isChecking: false, githubSession: 'session' });
+    }
   });
 });

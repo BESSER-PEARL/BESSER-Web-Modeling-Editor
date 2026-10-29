@@ -40,6 +40,8 @@ interface RepoBrowserProps {
   allowWithoutModel?: boolean;
   /** What a repo without a BESSER model means for this action. */
   noModelHint?: string;
+  /** The action writes to the repo: repos the user may only read cannot be chosen. */
+  requiresWrite?: boolean;
 }
 
 const DIAGRAM_LABELS: Record<string, string> = {
@@ -64,9 +66,11 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
   error,
   allowWithoutModel = false,
   noModelHint,
+  requiresWrite = false,
 }) => {
   const { t, i18n } = useTranslation();
   const [repos, setRepos] = useState<RepoListing[] | null>(null);
+  const [truncated, setTruncated] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [search, setSearch] = useState('');
   const [showOthers, setShowOthers] = useState(false);
@@ -76,7 +80,9 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
     setRepos(null);
     setLoadFailed(false);
     try {
-      setRepos(await listRepos(githubSession));
+      const list = await listRepos(githubSession);
+      setRepos(list.repositories);
+      setTruncated(list.truncated);
     } catch {
       setLoadFailed(true);
       setRepos([]);
@@ -117,6 +123,11 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
             <span className="flex items-center gap-1.5 truncate text-sm font-medium">
               {repo.full_name}
               {repo.private && <Lock className="size-3 shrink-0 text-muted-foreground" aria-label={t('github.repoBrowser.private', { defaultValue: 'Private' })} />}
+              {repo.can_push === false && (
+                <Badge variant="secondary" size="sm">
+                  {t('github.repoBrowser.readOnly', { defaultValue: 'Read only' })}
+                </Badge>
+              )}
             </span>
             {repo.description && <span className="block truncate text-xs text-muted-foreground">{repo.description}</span>}
           </span>
@@ -131,6 +142,7 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
             busy={busy}
             allowWithoutModel={allowWithoutModel}
             noModelHint={noModelHint}
+            readOnly={requiresWrite && repo.can_push === false}
           />
         )}
       </li>
@@ -215,6 +227,15 @@ export const RepoBrowser: React.FC<RepoBrowserProps> = ({
         </div>
       )}
 
+      {truncated && (
+        <p className="px-1 text-xs text-muted-foreground">
+          {t('github.repoBrowser.truncated', {
+            defaultValue: 'Showing your {{count}} most recently updated repositories. Paste a link to open another one.',
+            count: repos?.length ?? 0,
+          })}
+        </p>
+      )}
+
       {error && (
         <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
@@ -232,9 +253,13 @@ interface RepoDetailsProps {
   busy: boolean;
   allowWithoutModel: boolean;
   noModelHint?: string;
+  /** The user may not write to this repo, and the action needs to. */
+  readOnly: boolean;
 }
 
-const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLabel, onAction, busy, allowWithoutModel, noModelHint }) => {
+const RepoDetails: React.FC<RepoDetailsProps> = ({
+  githubSession, repo, actionLabel, onAction, busy, allowWithoutModel, noModelHint, readOnly,
+}) => {
   const { t } = useTranslation();
   const owner = ownerOf(repo);
   const [branches, setBranches] = useState<string[]>([repo.default_branch]);
@@ -272,7 +297,7 @@ const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLa
         </Badge>
       ))
     : null;
-  const canAct = !!summary && (summary.has_model || allowWithoutModel);
+  const canAct = !!summary && (summary.has_model || allowWithoutModel) && !readOnly;
 
   return (
     <div className="flex flex-col gap-3 border-t border-border/60 px-3 pb-3 pt-3">
@@ -301,6 +326,14 @@ const RepoDetails: React.FC<RepoDetailsProps> = ({ githubSession, repo, actionLa
       ) : (
         <p className="text-xs text-muted-foreground">
           {noModelHint ?? t('github.repoBrowser.noModel', { defaultValue: 'No BESSER model in this repository yet.' })}
+        </p>
+      )}
+
+      {readOnly && (
+        <p className="text-xs text-muted-foreground">
+          {t('github.repoBrowser.readOnlyHint', {
+            defaultValue: 'Your GitHub account can read this repository but not write to it, so BESSER cannot save to it.',
+          })}
         </p>
       )}
 

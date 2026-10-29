@@ -4,18 +4,22 @@ import { freeRepoName, repoSlug, saveProjectOnGithub } from '../saveProjectOnGit
 import { createDefaultProject } from '../../../shared/types/project';
 import { getProjectGitHubLink, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { createRepoForProject, listRepos } from '../../github/services/githubApi';
+import { resetGitHubAuthForTests, startGitHubAuth } from '../../../shared/services/github/githubAuth';
 
+vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 vi.mock('../../github/services/githubApi', () => ({
   listRepos: vi.fn(),
   createRepoForProject: vi.fn(),
 }));
 
-const repo = (name: string) => ({
-  id: 1, name, full_name: `octocat/${name}`, description: null, html_url: '', private: true,
-  updated_at: '', default_branch: 'main', topics: [],
+const repo = (name: string, owner = 'octocat') => ({
+  id: 1, name, full_name: `${owner}/${name}`, description: null, html_url: '', private: true,
+  updated_at: '', default_branch: 'main', topics: [], can_push: true,
 });
+const listing = (...repositories: ReturnType<typeof repo>[]) => ({ repositories, truncated: false });
 
 beforeEach(() => {
+  resetGitHubAuthForTests();
   localStorage.clear();
   vi.mocked(listRepos).mockReset();
   vi.mocked(createRepoForProject).mockReset();
@@ -58,7 +62,7 @@ describe('freeRepoName', () => {
 describe('saveProjectOnGithub', () => {
   it('creates a private repo under a free name and links the project as in sync', async () => {
     const project = createDefaultProject('Shop', 'A shop', 'me');
-    vi.mocked(listRepos).mockResolvedValue([repo('shop'), repo('notes')]);
+    vi.mocked(listRepos).mockResolvedValue(listing(repo('shop'), repo('notes')));
     vi.mocked(createRepoForProject).mockResolvedValue({
       owner: 'octocat', repo_url: 'https://github.com/octocat/shop-2', commit_sha: 'abc123', branch: 'main',
     });
@@ -75,6 +79,20 @@ describe('saveProjectOnGithub', () => {
     const stored = getProjectGitHubLink(project.id);
     expect(stored).toMatchObject({ owner: 'octocat', repo: 'shop-2', branch: 'main', baseCommitSha: 'abc123' });
     expect(stored?.syncedModel).toBe(modelFingerprint(project));
+  });
+
+  it("does not count another owner's repository as taken: the repo is created in the user's account", async () => {
+    window.history.replaceState({}, '', '/#github_session=session_token_1234567890&username=octocat');
+    startGitHubAuth();
+    const project = createDefaultProject('Shop', '', 'me');
+    vi.mocked(listRepos).mockResolvedValue(listing(repo('shop', 'acme')));
+    vi.mocked(createRepoForProject).mockResolvedValue({
+      owner: 'octocat', repo_url: 'https://github.com/octocat/shop', commit_sha: 'abc', branch: 'main',
+    });
+
+    await saveProjectOnGithub('session', project);
+
+    expect(createRepoForProject).toHaveBeenCalledWith('session', expect.objectContaining({ repo_name: 'shop' }));
   });
 
   it('tries the plain slug when the repository list cannot be read', async () => {
@@ -94,7 +112,7 @@ describe('saveProjectOnGithub', () => {
 
   it('leaves the project unlinked when the repository cannot be created', async () => {
     const project = createDefaultProject('Shop', '', 'me');
-    vi.mocked(listRepos).mockResolvedValue([]);
+    vi.mocked(listRepos).mockResolvedValue(listing());
     vi.mocked(createRepoForProject).mockRejectedValue(new Error('An internal error occurred'));
 
     await expect(saveProjectOnGithub('session', project)).rejects.toThrow('An internal error occurred');

@@ -31,6 +31,14 @@ export interface RepoListing {
   updated_at: string;
   default_branch: string;
   topics: string[];
+  /** False for a repository the user may only read. */
+  can_push: boolean;
+}
+
+export interface RepoList {
+  repositories: RepoListing[];
+  /** The account has more repositories than the list holds. */
+  truncated: boolean;
 }
 
 export interface RepoSummary {
@@ -45,11 +53,22 @@ export interface RepoSummary {
   last_commit: RepoCommit | null;
 }
 
+/** Where a save or push kept on its own branch stands (backend `PendingChangeStatus`). */
+export interface PendingChangeStatus {
+  branch: string;
+  branch_exists: boolean;
+  pull_request_number: number | null;
+  pull_request_url: string | null;
+  pull_request_state: 'open' | 'closed' | 'merged' | null;
+}
+
 export interface SyncStatus {
   head_sha: string;
   /** Commits on the branch since the editor's last sync, newest first. */
   commits_since: RepoCommit[];
   in_sync: boolean;
+  /** Set when the request named a pending branch. */
+  pending?: PendingChangeStatus | null;
 }
 
 export interface ModelHistoryEntry extends RepoCommit {
@@ -81,9 +100,11 @@ const session = (githubSession: string) => ({ headers: { 'X-GitHub-Session': git
 const query = (params: Record<string, string | undefined>) =>
   new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
 
-export const listRepos = async (githubSession: string): Promise<RepoListing[]> =>
-  (await apiClient.get<{ repositories: RepoListing[] }>('/github/repos', { ...session(githubSession), timeout: 60_000 }))
-    .repositories ?? [];
+/** Every repository the user can open: their own, their collaborations and their organizations'. */
+export const listRepos = async (githubSession: string): Promise<RepoList> => {
+  const list = await apiClient.get<Partial<RepoList>>('/github/repos', { ...session(githubSession), timeout: 60_000 });
+  return { repositories: list.repositories ?? [], truncated: list.truncated ?? false };
+};
 
 export const listBranches = async (githubSession: string, owner: string, repo: string): Promise<string[]> =>
   (await apiClient.get<{ branches: string[] }>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
@@ -92,9 +113,16 @@ export const listBranches = async (githubSession: string, owner: string, repo: s
 export const getRepoSummary = (githubSession: string, owner: string, repo: string, branch?: string) =>
   apiClient.get<RepoSummary>(`/github/repo-summary?${query({ owner, repo, branch })}`, session(githubSession));
 
-export const getSyncStatus = (githubSession: string, owner: string, repo: string, branch: string, baseSha?: string) =>
+export const getSyncStatus = (
+  githubSession: string,
+  owner: string,
+  repo: string,
+  branch: string,
+  baseSha?: string,
+  pendingBranch?: string,
+) =>
   apiClient.get<SyncStatus>(
-    `/github/sync-status?${query({ owner, repo, branch, base_sha: baseSha })}`,
+    `/github/sync-status?${query({ owner, repo, branch, base_sha: baseSha, pending_branch: pendingBranch })}`,
     session(githubSession),
   );
 

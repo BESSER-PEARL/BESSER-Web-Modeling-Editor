@@ -54,14 +54,6 @@ export interface ContinueFromGithubResult {
   error?: string;
 }
 
-export const getGithubSessionToken = (): string | null => {
-  try {
-    return sessionStorage.getItem('github_session');
-  } catch {
-    return null;
-  }
-};
-
 /** A V2 export envelope for a repo without a BESSER model: its proposed class diagram, or nothing. */
 function envelopeForCodeRepo(response: ImportedRun): unknown {
   const now = new Date().toISOString();

@@ -19,6 +19,11 @@ vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
   },
 }));
 
+const confirm = vi.hoisted(() => ({ answer: true }));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: vi.fn(async () => confirm.answer),
+}));
+
 import { ModelProposalBanner } from '../ModelProposalBanner';
 import { getProjectGitHubLink } from '../../../../shared/services/storage/projectGitHubLink';
 
@@ -73,6 +78,18 @@ describe('ModelProposalBanner', () => {
     expect(link).toMatchObject({ repo: 'shop', baseCommitSha: LINK.baseCommitSha });
     expect(link?.modelProposal).toBeUndefined();
     expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toHaveLength(1);
+  });
+
+  it('Discard asks first, and keeps everything when the user says no', async () => {
+    withProposal();
+    confirm.answer = false;
+    fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
+    const { globalConfirm } = await import('../../../../shared/services/confirm/globalConfirm');
+    await waitFor(() => expect(globalConfirm).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(loadProject).not.toHaveBeenCalled();
+    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements).length).toBeGreaterThan(0);
+    confirm.answer = true;
   });
 
   it('Discard empties the class diagram but keeps the repo linked', async () => {

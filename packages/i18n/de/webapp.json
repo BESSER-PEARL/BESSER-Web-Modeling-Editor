@@ -37,7 +37,21 @@
       "needsRecheck": "Erneut prüfen",
       "notValidated": "Nicht validiert"
     },
-    "more": "Mehr"
+    "more": "Mehr",
+    "linkToGithub": "Mit GitHub verknüpfen",
+    "repoState": {
+      "behind": "{{repo}}: {{count}} neue Commits auf GitHub",
+      "behind_one": "{{repo}}: 1 neuer Commit auf GitHub",
+      "checking": "{{repo}}: GitHub wird geprüft",
+      "diverged": "{{repo}}: hier und auf GitHub geändert",
+      "in-sync": "{{repo}}: synchron mit GitHub",
+      "local-changes": "{{repo}}: Modelländerungen nicht auf GitHub gespeichert",
+      "missing": "{{repo}}: Branch oder Repository auf GitHub nicht gefunden",
+      "reconnect": "{{repo}}: GitHub-Sitzung abgelaufen",
+      "signed-out": "GitHub",
+      "unknown": "{{repo}}: GitHub nicht erreichbar",
+      "unlinked": "Dieses Projekt mit einem GitHub-Repository verknüpfen"
+    }
   },
   "nav": {
     "editors": "Editoren",
@@ -86,7 +100,8 @@
       "importProjectFile": "Projektdatei (.json / .py)…",
       "fromSpreadsheet": "Aus Daten…",
       "fromGithub": "Aus GitHub…",
-      "importKgOwl": "KG importieren"
+      "importKgOwl": "KG importieren",
+      "shareAsGist": "Als geheimen Gist teilen…"
     },
     "generate": {
       "title": "Generieren",
@@ -127,7 +142,8 @@
       "title": "Bereitstellen",
       "connectGitHub": "GitHub zum Bereitstellen verbinden",
       "publishToRender": "Auf Render veröffentlichen…",
-      "connectGitHubFirstHint": "Zuerst GitHub verbinden"
+      "connectGitHubFirstHint": "Zuerst GitHub verbinden",
+      "goLive": "Von GitHub aus online gehen"
     },
     "community": {
       "title": "Community",
@@ -914,7 +930,17 @@
         "detailsTitle": "Projektdetails",
         "detailsDescription": "Geben Sie Ihrem Arbeitsbereich einen Namen und eine Beschreibung.",
         "submit": "Projekt erstellen",
-        "tip": "Tipp: Wählen Sie eine Modellierungsperspektive, um den Arbeitsbereich auf die benötigten Diagramme zu fokussieren."
+        "tip": "Tipp: Wählen Sie eine Modellierungsperspektive, um den Arbeitsbereich auf die benötigten Diagramme zu fokussieren.",
+        "github": {
+          "connect": "GitHub verbinden",
+          "connectHint": "Verbinden Sie GitHub, um dieses Projekt in einem eigenen privaten Repository zu speichern.",
+          "label": "Auf GitHub speichern",
+          "toasts": {
+            "failed": "Ihr Projekt wurde erstellt, aber das Speichern auf GitHub ist fehlgeschlagen: {{error}}",
+            "saved": "Auf GitHub als {{repo}} gespeichert.",
+            "saving": "{{name}} wird auf GitHub gespeichert…"
+          }
+        }
       },
       "import": {
         "title": "Ein Projekt importieren",
@@ -1202,6 +1228,14 @@
         "bumlCopyFailed": "B-UML-Vorschau konnte nicht kopiert werden.",
         "noBumlToDownload": "Keine B-UML-Vorschau zum Herunterladen."
       }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Behalten Sie Ihre Projekte in Ihren eigenen GitHub-Repositorys",
+        "connectedAs": "Verbunden als {{username}}",
+        "connected": "Mit GitHub verbunden",
+        "connect": "GitHub verbinden"
+      }
     }
   },
   "github": {
@@ -1216,7 +1250,8 @@
     "connect": {
       "title": "Mit GitHub verbinden",
       "subtitle": "Melden Sie sich an, um Ihre Projekte mit GitHub zu synchronisieren.",
-      "button": "Mit GitHub verbinden"
+      "button": "Mit GitHub verbinden",
+      "checking": "GitHub-Verbindung wird geprüft…"
     },
     "noProject": {
       "title": "Kein Projekt ausgewählt",
@@ -1249,7 +1284,8 @@
       "unlink": "Repository trennen",
       "unlinkConfirmTitle": "Dieses Repository trennen?",
       "unlinkConfirmDescription": "Das Projekt bleibt in deinem Browser und auf GitHub. Push, Pull und Auto-Commit stoppen, bis du wieder ein Repository verknüpfst.",
-      "unlinkConfirmAction": "Trennen"
+      "unlinkConfirmAction": "Trennen",
+      "keepLocalChanges": "Meine Änderungen behalten"
     },
     "settings": {
       "title": "Einstellungen",
@@ -1420,7 +1456,153 @@
       "successCreated": "Repository erstellt und Dateien gepusht.",
       "successTitle": "Zu GitHub gepusht",
       "successUpdated": "Repository mit deiner neuesten Generierung aktualisiert.",
-      "useExisting": "Vorhandenes Repository verwenden"
+      "useExisting": "Vorhandenes Repository verwenden",
+      "conflict": "Seit Ihrer letzten Synchronisierung hat jemand dieselben Dateien auf GitHub geändert, daher konnte GitHub diesen Push nicht selbst zusammenführen. Ihr Push liegt im Branch {{branch}}; nichts wurde überschrieben.",
+      "conflictTitle": "Zusammenführung nötig",
+      "errors": {
+        "auth": "Ihre GitHub-Sitzung ist abgelaufen. Verbinden Sie sich erneut und versuchen Sie es noch einmal.",
+        "branchMoved": "Der Branch hat sich während des Pushs auf GitHub geändert. Versuchen Sie es erneut. ({{detail}})",
+        "expired": "Diese Generierung ist abgelaufen — generieren Sie neu, um zu pushen.",
+        "failed": "Speichern auf GitHub fehlgeschlagen.",
+        "forbidden": "GitHub hat den Push abgelehnt: Ihr Konto darf nicht in dieses Repository schreiben. ({{detail}})",
+        "nameTaken": "Ein Repository mit diesem Namen existiert bereits — pushen Sie als vorhandenes Repository hinein.",
+        "repoMissing": "Dieses Repository existiert nicht mehr, oder Ihr GitHub-Konto kann es nicht sehen. Wählen Sie ein anderes Repository oder erstellen Sie ein neues."
+      },
+      "howTitle": "Wie pushen",
+      "modeCommit": "In {{branch}} committen",
+      "modeCommitHint": "Commits, die seit Ihrer letzten Synchronisierung auf GitHub gemacht wurden, werden zusammengeführt, nie überschrieben.",
+      "modePullRequest": "Pull Request öffnen",
+      "modePullRequestHint": "Ihr Team prüft die Änderung auf GitHub, bevor sie übernommen wird. Am besten für gemeinsam genutzte Repositorys.",
+      "openPullRequest": "Pull Request zum Zusammenführen öffnen",
+      "successMerged": "Mit den Commits zusammengeführt, die seit Ihrer letzten Synchronisierung auf GitHub gemacht wurden. Nichts wurde überschrieben, und der Editor zeigt jetzt das zusammengeführte Modell.",
+      "successPullRequest": "Ihre Änderungen liegen in einem Pull Request, bereit für das Review.",
+      "toasts": {
+        "conflict": "GitHub konnte diesen Push nicht automatisch zusammenführen.",
+        "connectFirst": "Verbinden Sie GitHub, um Ihre generierte App zu pushen.",
+        "created": "Nach {{repo}} gepusht",
+        "modelUpdated": "Das Modell enthält jetzt die Klassen, die der Agent hinzugefügt hat.",
+        "noProject": "Öffnen Sie ein Projekt, bevor Sie auf GitHub pushen.",
+        "nothingToPush": "Nichts zu pushen.",
+        "pullRequest": "Pull Request in {{repo}} geöffnet",
+        "pullRequestFailed": "Der Pull Request konnte nicht geöffnet werden.",
+        "updated": "{{repo}} aktualisiert"
+      },
+      "viewPullRequest": "Pull Request ansehen"
+    },
+    "chatHeader": {
+      "diverged": "Hier und auf GitHub geändert",
+      "openMenu": "Arbeit an {{repo}}: {{state}}. GitHub-Menü öffnen.",
+      "signedOut": "Verbinden Sie GitHub, um den Status zu sehen",
+      "workingOn": "Arbeit an"
+    },
+    "goLive": {
+      "addresses": "Ihre App wird erreichbar sein unter",
+      "alreadyReady": "{{repo}} war bereits für Render bereit.",
+      "classicHint": "Das klassische Deployment funktioniert weiterhin: Es baut die App aus Ihren Diagrammen in einem separaten Repository neu, ohne die Änderungen des Agenten.",
+      "description": "Stellen Sie die App in {{repo}} online. Online geht genau der Code im Repository.",
+      "freeTier": "Der kostenlose Render-Tarif versetzt die App in den Ruhezustand, wenn niemand sie nutzt (der erste Besuch dauert dann etwa eine Minute), und die Datenbank wird bei jedem neuen Deployment zurückgesetzt.",
+      "next": "Öffnen Sie Render, melden Sie sich mit GitHub an und klicken Sie auf Apply. Ist das Repository privat, fragt Render zuerst nach Zugriff darauf.",
+      "openRender": "Render öffnen",
+      "prepare": "{{repo}} vorbereiten",
+      "ready": "{{repo}} ist bereit für Render.",
+      "step1": "BESSER fügt {{repo}} die Deploy-Datei von Render hinzu, passend zu den Ordnern der App.",
+      "step2": "Sie öffnen Render, melden sich an und klicken einmal auf Apply.",
+      "step3": "Danach aktualisiert jedes Speichern von Code auf GitHub die laufende App. Nur das Modell zu speichern, tut das nicht.",
+      "title": "Online gehen",
+      "useClassic": "Klassisches Deployment verwenden"
+    },
+    "menu": {
+      "changeRepository": "Repository wechseln…",
+      "commitMessageOptional": "Was hat sich geändert? (optional)",
+      "createRepository": "Repository für dieses Projekt erstellen",
+      "defaultCommitMessage": "Modell aus dem BESSER-Editor aktualisieren",
+      "dismissPending": "Nicht mehr verfolgen",
+      "divergedHint": "Speichern führt beide Versionen zusammen. „Neueste Version holen“ übernimmt stattdessen die GitHub-Version.",
+      "getLatest": "Neueste Version holen",
+      "history": "Verlauf…",
+      "linkExisting": "Vorhandenes Repository verknüpfen…",
+      "linkTitle": "Repository verknüpfen",
+      "localChangesHint": "Speichern Sie auf GitHub, um sie im Repository zu behalten.",
+      "missingHint": "Der Branch {{branch}} oder das Repository wurde gelöscht oder umbenannt, oder Ihr Konto hat keinen Zugriff mehr. Verknüpfen Sie ein anderes Repository, um weiter zu speichern.",
+      "pendingConflict": "Ein Speichervorgang konnte nicht mit neueren Änderungen zusammengeführt werden und liegt im Branch {{branch}}. Öffnen Sie einen Pull Request, um ihn auf GitHub aufzulösen.",
+      "pendingPullRequest": "Pull Request #{{number}} wartet auf Review. Sobald er zusammengeführt ist, holt „Neueste Version holen“ ihn herein.",
+      "reconnect": "GitHub erneut verbinden",
+      "reconnectHint": "Verbinden Sie GitHub erneut, um zu speichern und nach neuen Commits zu suchen. Ihr Projekt bleibt erhalten.",
+      "restore": "Wiederherstellen",
+      "save": "Speichern",
+      "saveDescription": "Committet Ihr Modell in {{repo}} auf {{branch}}. Neuere Änderungen auf GitHub werden zusammengeführt, nie überschrieben.",
+      "saveToGitHub": "Auf GitHub speichern…",
+      "signedInAs": "Angemeldet als {{name}}",
+      "unlinkConfirmDescription": "Das Projekt bleibt in Ihrem Browser und das Repository auf GitHub. Das Speichern auf GitHub endet, bis Sie wieder ein Repository verknüpfen."
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Person"
+    },
+    "panel": {
+      "conflict": "Ihre Speicherung und eine neuere Änderung auf GitHub betreffen denselben Teil des Modells, daher konnte GitHub sie nicht zusammenführen. Ihre Speicherung liegt im Branch {{branch}}; nichts wurde überschrieben.",
+      "conflictToast": "GitHub konnte Ihre Speicherung nicht automatisch zusammenführen.",
+      "created": "{{repo}} mit Ihrem Modell erstellt.",
+      "historyFailed": "Der Verlauf konnte nicht geladen werden.",
+      "historyTitle": "Modellverlauf",
+      "linkAction": "Mit diesem Projekt verknüpfen",
+      "linked": "Mit {{repo}} verknüpft. Speichern Sie, um Ihr Modell dort abzulegen.",
+      "loadRepoModel": "Modell des Repositorys laden",
+      "moreChanges": "und {{count}} weitere",
+      "notLinkedHint": "Ein verknüpftes Repository hält Ihr Modell, seinen Verlauf und Ihren App-Code an einem Ort, für Sie und Ihr Team.",
+      "nothingToSave": "Ihr Modell entspricht dem Repository.",
+      "openPr": "Pull Request zum Zusammenführen öffnen",
+      "prOpened": "Pull Request geöffnet",
+      "prTitle": "Modelländerungen aus dem BESSER-Editor",
+      "repoHasModelDescription": "{{repo}} enthält „{{name}}“. In dieses Projekt laden und das geöffnete Modell ersetzen? Wählen Sie Abbrechen, um Ihr Modell zu behalten; es ersetzt das des Repositorys beim nächsten Speichern.",
+      "repoHasModelTitle": "Dieses Repository enthält bereits ein Modell",
+      "saveAction": "Auf GitHub speichern",
+      "saved": "Modell auf GitHub gespeichert.",
+      "savedMerged": "Gespeichert und mit den neueren Änderungen auf GitHub zusammengeführt."
+    },
+    "proposal": {
+      "accept": "Modell übernehmen",
+      "aiSource": "Eine KI-Lesart von {{files}}, keine exakte. Prüfen Sie jede Klasse und übernehmen Sie dann.",
+      "aiTitle": "Von KI aus {{repo}} vorgeschlagen: {{count}} Klassen",
+      "discard": "Verwerfen",
+      "discardConfirmDescription": "Die Klassen, die BESSER aus dem Code gelesen hat, werden von der Arbeitsfläche entfernt. Das Repository und sein Code bleiben unverändert.",
+      "discardConfirmTitle": "Vorgeschlagenes Modell verwerfen?",
+      "label": "Vorgeschlagenes Modell",
+      "source": "Gelesen aus {{source}} in {{files}}. Bearbeiten Sie, was Sie möchten, und übernehmen Sie dann.",
+      "title": "Aus {{repo}} vorgeschlagen: {{count}} Klassen"
+    },
+    "repoBrowser": {
+      "besserRepos": "BESSER-Projekte",
+      "classes": "{{count}} Klassen",
+      "classes_one": "1 Klasse",
+      "loadFailed": "Ihre Repositorys konnten nicht geladen werden. Prüfen Sie Ihre GitHub-Verbindung und versuchen Sie es erneut.",
+      "loading": "Ihre Repositorys werden geladen…",
+      "noBesserMatch": "Kein BESSER-Projekt passt zu Ihrer Suche.",
+      "noBesserRepos": "Noch keine. Repositorys, in die Sie aus BESSER pushen, erscheinen hier.",
+      "noModel": "Noch kein BESSER-Modell in diesem Repository.",
+      "otherRepos": "Andere Repositorys",
+      "private": "Privat",
+      "readOnly": "Nur lesen",
+      "readOnlyHint": "Ihr GitHub-Konto kann dieses Repository lesen, aber nicht hineinschreiben, daher kann BESSER nicht darin speichern.",
+      "reading": "Das Repository wird gelesen…",
+      "readsCode": "Noch kein BESSER-Modell. BESSER liest den Code und schlägt eines vor, das Sie übernehmen.",
+      "refresh": "Repositorys aktualisieren",
+      "search": "Ihre Repositorys durchsuchen",
+      "showOthers": "{{count}} weitere Repositorys anzeigen",
+      "showOthers_one": "1 weiteres Repository anzeigen",
+      "summaryFailed": "Dieses Repository konnte nicht gelesen werden.",
+      "truncated": "Angezeigt werden Ihre {{count}} zuletzt aktualisierten Repositorys. Fügen Sie einen Link ein, um ein anderes zu öffnen."
+    },
+    "status": {
+      "behind": "{{count}} neue Commits auf GitHub",
+      "behind_one": "1 neuer Commit auf GitHub",
+      "inSync": "Synchron mit GitHub",
+      "localChanges": "Modelländerungen nicht auf GitHub gespeichert",
+      "missing": "Branch oder Repository auf GitHub nicht gefunden",
+      "reconnect": "GitHub-Sitzung abgelaufen: erneut verbinden",
+      "unknown": "Das Repository war nicht erreichbar",
+      "unlinked": "Mit keinem Repository verknüpft"
     }
   },
   "assistant": {
@@ -1629,6 +1811,18 @@
       "transcribingAudio": "Audio wird transkribiert…",
       "recordingPrompt": "Aufnahme läuft… Klicken Sie hier oder drücken Sie erneut auf das Mikrofon, um die Aufnahme zu stoppen und zu senden ({{time}})",
       "stopSendVoiceTimer": "Sprachnachricht stoppen und senden ({{time}})"
+    },
+    "startFromRepo": {
+      "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
+      "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",
+      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen.",
+      "entry": "Mit einem GitHub-Repository beginnen",
+      "entryHint": "BESSER oder nicht",
+      "failed": "Dieses Repository konnte nicht geöffnet werden.",
+      "linkLabel": "Repository-Link",
+      "linkPlaceholder": "Link einfügen: github.com/owner/repo",
+      "open": "Öffnen",
+      "title": "Mit einem GitHub-Repository beginnen"
     }
   },
   "deploy": {

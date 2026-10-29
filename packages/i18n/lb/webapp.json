@@ -37,7 +37,21 @@
       "needsRecheck": "Muss nei gepréift ginn",
       "notValidated": "Net validéiert"
     },
-    "more": "Méi"
+    "more": "Méi",
+    "linkToGithub": "Mat GitHub verbannen",
+    "repoState": {
+      "behind": "{{repo}}: {{count}} nei Commits op GitHub",
+      "behind_one": "{{repo}}: 1 neien Commit op GitHub",
+      "checking": "{{repo}}: GitHub gëtt gepréift",
+      "diverged": "{{repo}}: hei an op GitHub geännert",
+      "in-sync": "{{repo}}: synchron mat GitHub",
+      "local-changes": "{{repo}}: Modellännerungen net op GitHub gespäichert",
+      "missing": "{{repo}}: Branch oder Repository op GitHub net fonnt",
+      "reconnect": "{{repo}}: GitHub-Sessioun ofgelaf",
+      "signed-out": "GitHub",
+      "unknown": "{{repo}}: GitHub net erreechbar",
+      "unlinked": "Dëse Projet mat engem GitHub-Repository verbannen"
+    }
   },
   "nav": {
     "editors": "Editoren",
@@ -86,7 +100,8 @@
       "importProjectFile": "Projetdatei (.json / .py)…",
       "fromSpreadsheet": "Aus Donnéeën…",
       "fromGithub": "Aus GitHub…",
-      "importKgOwl": "KG importéieren"
+      "importKgOwl": "KG importéieren",
+      "shareAsGist": "Als geheime Gist deelen…"
     },
     "generate": {
       "title": "Generéieren",
@@ -127,7 +142,8 @@
       "title": "Deployen",
       "connectGitHub": "GitHub verbannen fir ze deployen",
       "publishToRender": "Op Render deployen…",
-      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
+      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen",
+      "goLive": "Vu GitHub aus online goen"
     },
     "community": {
       "title": "Communautéit",
@@ -914,7 +930,17 @@
         "detailsTitle": "Projet-Detailer",
         "detailsDescription": "Gitt Ärem Aarbechtsraum en Numm an eng Beschreiwung.",
         "submit": "Projet erstellen",
-        "tip": "Tipp: wielt eng Modelléierungsperspektiv fir den Aarbechtsraum op déi Diagrammer ze fokusséieren, déi Dir braucht."
+        "tip": "Tipp: wielt eng Modelléierungsperspektiv fir den Aarbechtsraum op déi Diagrammer ze fokusséieren, déi Dir braucht.",
+        "github": {
+          "connect": "GitHub verbannen",
+          "connectHint": "Verbann GitHub, fir dëse Projet an engem eegene private Repository ze halen.",
+          "label": "Op GitHub späicheren",
+          "toasts": {
+            "failed": "Däi Projet gouf erstallt, awer d’Späicheren op GitHub ass feelgeschloen: {{error}}",
+            "saved": "Op GitHub als {{repo}} gespäichert.",
+            "saving": "{{name}} gëtt op GitHub gespäichert…"
+          }
+        }
       },
       "import": {
         "title": "E Projet importéieren",
@@ -1202,6 +1228,14 @@
         "bumlCopyFailed": "D'B-UML-Virschau konnt net kopéiert ginn.",
         "noBumlToDownload": "Keng B-UML-Virschau fir erofzelueden."
       }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Hal deng Projeten an denge eegene GitHub-Repositoryen",
+        "connectedAs": "Verbonnen als {{username}}",
+        "connected": "Mat GitHub verbonnen",
+        "connect": "GitHub verbannen"
+      }
     }
   },
   "github": {
@@ -1216,7 +1250,8 @@
     "connect": {
       "title": "Mat GitHub verbannen",
       "subtitle": "Mell dech un, fir deng Projeten mat GitHub ze synchroniséieren.",
-      "button": "Mat GitHub verbannen"
+      "button": "Mat GitHub verbannen",
+      "checking": "GitHub-Verbindung gëtt gepréift…"
     },
     "noProject": {
       "title": "Kee Projet ausgewielt",
@@ -1249,7 +1284,8 @@
       "unlink": "Repository trennen",
       "unlinkConfirmTitle": "Dëse Repository trennen?",
       "unlinkConfirmDescription": "De Projet bleift an dengem Browser an op GitHub. Push, Pull an Auto-Commit stoppen, bis du erëm e Repository verbënns.",
-      "unlinkConfirmAction": "Trennen"
+      "unlinkConfirmAction": "Trennen",
+      "keepLocalChanges": "Meng Ännerunge behalen"
     },
     "settings": {
       "title": "Astellungen",
@@ -1420,7 +1456,153 @@
       "successCreated": "Repository erstallt an Dateie gepusht.",
       "successTitle": "Op GitHub gepusht",
       "successUpdated": "Repository mat denger neister Generatioun aktualiséiert.",
-      "useExisting": "Bestoende Repository benotzen"
+      "useExisting": "Bestoende Repository benotzen",
+      "conflict": "Zanter denger leschter Synchronisatioun huet een déiselwecht Dateien op GitHub geännert, dofir konnt GitHub dëse Push net eleng zesummeféieren. Däi Push läit am Branch {{branch}}; näischt gouf iwwerschriwwen.",
+      "conflictTitle": "Zesummeféieren néideg",
+      "errors": {
+        "auth": "Deng GitHub-Sessioun ass ofgelaf. Verbann dech nei a probéier nach eng Kéier.",
+        "branchMoved": "De Branch huet sech wärend dem Push op GitHub geännert. Probéier nach eng Kéier. ({{detail}})",
+        "expired": "Dës Generatioun ass ofgelaf — generéier nei, fir ze pushen.",
+        "failed": "Späicheren op GitHub ass feelgeschloen.",
+        "forbidden": "GitHub huet de Push refuséiert: däi Kont däerf net an dëse Repository schreiwen. ({{detail}})",
+        "nameTaken": "E Repository mat deem Numm gëtt et schonn — push dohinner als bestoende Repository.",
+        "repoMissing": "Dëse Repository gëtt et net méi, oder däi GitHub-Kont gesäit en net. Wiel en anere Repository oder erstell en neien."
+      },
+      "howTitle": "Wéi pushen",
+      "modeCommit": "An {{branch}} committen",
+      "modeCommitHint": "Commits, déi zanter denger leschter Synchronisatioun op GitHub gemaach goufen, ginn zesummegefouert, ni iwwerschriwwen.",
+      "modePullRequest": "E Pull Request opmaachen",
+      "modePullRequestHint": "Däin Team kuckt d’Ännerung op GitHub no, ier se iwwerholl gëtt. Am beschte fir gedeelte Repositoryen.",
+      "openPullRequest": "E Pull Request opmaachen, fir en zesummenzeféieren",
+      "successMerged": "Mat de Commits zesummegefouert, déi zanter denger leschter Synchronisatioun op GitHub gemaach goufen. Näischt gouf iwwerschriwwen, an den Editor weist elo dat zesummegefouert Modell.",
+      "successPullRequest": "Deng Ännerunge sinn an engem Pull Request, prett fir de Review.",
+      "toasts": {
+        "conflict": "GitHub konnt dëse Push net automatesch zesummeféieren.",
+        "connectFirst": "Verbann GitHub, fir deng generéiert App ze pushen.",
+        "created": "Op {{repo}} gepusht",
+        "modelUpdated": "De Modell enthält elo d’Klassen, déi den Agent derbäigesat huet.",
+        "noProject": "Maach e Projet op, ier s du op GitHub pushs.",
+        "nothingToPush": "Näischt ze pushen.",
+        "pullRequest": "Pull Request an {{repo}} opgemaach",
+        "pullRequestFailed": "De Pull Request konnt net opgemaach ginn.",
+        "updated": "{{repo}} aktualiséiert"
+      },
+      "viewPullRequest": "Pull Request ukucken"
+    },
+    "chatHeader": {
+      "diverged": "Hei an op GitHub geännert",
+      "openMenu": "Am Gaang u {{repo}}: {{state}}. GitHub-Menü opmaachen.",
+      "signedOut": "Verbann GitHub, fir de Status ze gesinn",
+      "workingOn": "Am Gaang u"
+    },
+    "goLive": {
+      "addresses": "Deng App ass erreechbar ënner",
+      "alreadyReady": "{{repo}} war schonn fir Render prett.",
+      "classicHint": "De klassesche Deployment funktionéiert nach ëmmer: en baut d’App aus denge Diagrammer an engem separate Repository nei op, ouni d’Ännerunge vum Agent.",
+      "description": "Stell d’App an {{repo}} online. Online geet genee de Code am Repository.",
+      "freeTier": "De gratis Render-Plang schléit d’App an, wann keen se notzt (den éischte Besuch dauert dann ongeféier eng Minutt), an hir Datebank gëtt bei all neien Deployment zréckgesat.",
+      "next": "Maach Render op, mell dech mat GitHub un a klick op Apply. Ass de Repository privat, freet Render fir d’éischt no Zougang.",
+      "openRender": "Render opmaachen",
+      "prepare": "{{repo}} virbereeden",
+      "ready": "{{repo}} ass prett fir Render.",
+      "step1": "BESSER setzt d’Deploy-Datei vu Render an {{repo}}, passend fir d’Dossiere vun der App.",
+      "step2": "Du maachs Render op, mells dech un a klicks eemol op Apply.",
+      "step3": "Duerno aktualiséiert all Späichere vu Code op GitHub déi lafend App. Nëmmen de Modell späicheren deet dat net.",
+      "title": "Online goen",
+      "useClassic": "De klassesche Deployment benotzen"
+    },
+    "menu": {
+      "changeRepository": "Repository wiesselen…",
+      "commitMessageOptional": "Wat huet sech geännert? (optional)",
+      "createRepository": "E Repository fir dëse Projet erstellen",
+      "defaultCommitMessage": "Modell aus dem BESSER-Editor aktualiséieren",
+      "dismissPending": "Net méi verfollegen",
+      "divergedHint": "Späicheren féiert béid Versiounen zesummen. „Neist Versioun huelen“ hëlt amplaz d’GitHub-Versioun.",
+      "getLatest": "Neist Versioun huelen",
+      "history": "Verlaf…",
+      "linkExisting": "E bestoende Repository verbannen…",
+      "linkTitle": "Repository verbannen",
+      "localChangesHint": "Späicher op GitHub, fir se am Repository ze behalen.",
+      "missingHint": "De Branch {{branch}} oder de Repository gouf geläscht oder ëmbenannt, oder däi Kont huet keen Zougang méi. Verbann en anere Repository, fir weider ze späicheren.",
+      "pendingConflict": "E Späichervirgang konnt net mat méi neien Ännerunge zesummegefouert ginn a läit am Branch {{branch}}. Maach e Pull Request op, fir en op GitHub ze léisen.",
+      "pendingPullRequest": "De Pull Request #{{number}} waart op e Review. Soubal e zesummegefouert ass, hëlt „Neist Versioun huelen“ en eran.",
+      "reconnect": "GitHub nei verbannen",
+      "reconnectHint": "Verbann GitHub nei, fir ze späicheren an no neie Commits ze kucken. Däi Projet bleift erhalen.",
+      "restore": "Restauréieren",
+      "save": "Späicheren",
+      "saveDescription": "Committ däi Modell an {{repo}} op {{branch}}. Méi nei Ännerungen op GitHub ginn zesummegefouert, ni iwwerschriwwen.",
+      "saveToGitHub": "Op GitHub späicheren…",
+      "signedInAs": "Ugemellt als {{name}}",
+      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an de Repository op GitHub. Späicheren op GitHub hält op, bis s du nees e Repository verbënns."
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Persoun"
+    },
+    "panel": {
+      "conflict": "Däi Späichervirgang an eng méi nei Ännerung op GitHub betreffen deeselwechten Deel vum Modell, dofir konnt GitHub se net zesummeféieren. Däi Späichervirgang läit am Branch {{branch}}; näischt gouf iwwerschriwwen.",
+      "conflictToast": "GitHub konnt däi Späichervirgang net automatesch zesummeféieren.",
+      "created": "{{repo}} mat dengem Modell erstallt.",
+      "historyFailed": "De Verlaf konnt net gelueden ginn.",
+      "historyTitle": "Modellverlaf",
+      "linkAction": "Mat dësem Projet verbannen",
+      "linked": "Mat {{repo}} verbonnen. Späicher, fir däi Modell dohinner ze leeën.",
+      "loadRepoModel": "Modell vum Repository lueden",
+      "moreChanges": "an {{count}} weider",
+      "notLinkedHint": "E verbonnene Repository hält däi Modell, säi Verlaf an de Code vun denger App op enger Plaz, fir dech an däin Team.",
+      "nothingToSave": "Däi Modell entsprécht dem Repository.",
+      "openPr": "E Pull Request opmaachen, fir en zesummenzeféieren",
+      "prOpened": "Pull Request opgemaach",
+      "prTitle": "Modellännerungen aus dem BESSER-Editor",
+      "repoHasModelDescription": "{{repo}} enthält „{{name}}“. An dëse Projet lueden an dat opent Modell ersetzen? Wiel Ofbriechen, fir däi Modell ze behalen; en ersetzt dee vum Repository beim nächste Späicheren.",
+      "repoHasModelTitle": "Dëse Repository enthält schonn e Modell",
+      "saveAction": "Op GitHub späicheren",
+      "saved": "Modell op GitHub gespäichert.",
+      "savedMerged": "Gespäichert a mat de méi neien Ännerungen op GitHub zesummegefouert."
+    },
+    "proposal": {
+      "accept": "Modell iwwerhuelen",
+      "aiSource": "Eng KI-Liesung vu {{files}}, keng exakt. Préif all Klass an iwwerhuel dann.",
+      "aiTitle": "Vun der KI aus {{repo}} proposéiert: {{count}} Klassen",
+      "discard": "Verwerfen",
+      "discardConfirmDescription": "D’Klassen, déi BESSER aus dem Code gelies huet, ginn vun der Leinwand ewechgeholl. De Repository a säi Code bleiwen onverännert.",
+      "discardConfirmTitle": "Proposéiert Modell verwerfen?",
+      "label": "Proposéiert Modell",
+      "source": "Aus {{source}} an {{files}} gelies. Änner wat s du wëlls an iwwerhuel dann.",
+      "title": "Aus {{repo}} proposéiert: {{count}} Klassen"
+    },
+    "repoBrowser": {
+      "besserRepos": "BESSER-Projeten",
+      "classes": "{{count}} Klassen",
+      "classes_one": "1 Klass",
+      "loadFailed": "Deng Repositorye konnten net gelueden ginn. Préif deng GitHub-Verbindung a probéier nach eng Kéier.",
+      "loading": "Deng Repositorye ginn gelueden…",
+      "noBesserMatch": "Kee BESSER-Projet passt op deng Sich.",
+      "noBesserRepos": "Nach keng. Repositoryen, op déi s du aus BESSER pushs, erschéngen hei.",
+      "noModel": "Nach kee BESSER-Modell an dësem Repository.",
+      "otherRepos": "Aner Repositoryen",
+      "private": "Privat",
+      "readOnly": "Nëmme liesen",
+      "readOnlyHint": "Däi GitHub-Kont kann dëse Repository liesen, awer net dra schreiwen, dofir kann BESSER net dra späicheren.",
+      "reading": "De Repository gëtt gelies…",
+      "readsCode": "Nach kee BESSER-Modell. BESSER liest säi Code a proposéiert eent, dat s du iwwerhëls.",
+      "refresh": "Repositoryen aktualiséieren",
+      "search": "An denge Repositorye sichen",
+      "showOthers": "{{count}} aner Repositoryen weisen",
+      "showOthers_one": "1 anere Repository weisen",
+      "summaryFailed": "Dëse Repository konnt net gelies ginn.",
+      "truncated": "Et ginn deng {{count}} zulescht aktualiséiert Repositorye gewisen. Füg e Link an, fir en aneren opzemaachen."
+    },
+    "status": {
+      "behind": "{{count}} nei Commits op GitHub",
+      "behind_one": "1 neien Commit op GitHub",
+      "inSync": "Synchron mat GitHub",
+      "localChanges": "Modellännerungen net op GitHub gespäichert",
+      "missing": "Branch oder Repository op GitHub net fonnt",
+      "reconnect": "GitHub-Sessioun ofgelaf: nei verbannen",
+      "unknown": "De Repository war net erreechbar",
+      "unlinked": "Mat kengem Repository verbonnen"
     }
   },
   "assistant": {
@@ -1629,6 +1811,18 @@
       "transcribingAudio": "Audio gëtt transkribéiert…",
       "recordingPrompt": "Opnam leeft… klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
       "stopSendVoiceTimer": "Sproochnoriicht stoppen an schécken ({{time}})"
+    },
+    "startFromRepo": {
+      "badLink": "Füg e Link wéi github.com/owner/repo an.",
+      "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",
+      "description": "Wiel e Repository, op deem s du weiderbaue wëlls. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell, deen s du op der Leinwand iwwerhëls.",
+      "entry": "Mat engem GitHub-Repository ufänken",
+      "entryHint": "BESSER oder net",
+      "failed": "Dëse Repository konnt net opgemaach ginn.",
+      "linkLabel": "Repository-Link",
+      "linkPlaceholder": "Link afügen: github.com/owner/repo",
+      "open": "Opmaachen",
+      "title": "Mat engem GitHub-Repository ufänken"
     }
   },
   "deploy": {

@@ -68,9 +68,9 @@ import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,
-  getGithubSessionToken,
 } from '../../spec-driven/services/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
+import { getGitHubSession } from '../../../shared/services/github/githubAuth';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
@@ -891,7 +891,7 @@ export function useAssistantLogic({
         ]);
         return;
       }
-      const ghSession = getGithubSessionToken();
+      const ghSession = getGitHubSession();
       if (!ghSession) {
         setMessages((prev) => [
           ...prev,

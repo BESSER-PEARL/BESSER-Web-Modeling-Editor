@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
 import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
-import { useGitHubAuth } from '../../github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../github/components/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../spec-driven/services/continueFromGithub';
 import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
@@ -41,7 +41,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { loadProject } = useProject();
-  const { isAuthenticated, githubSession, login } = useGitHubAuth();
+  const { isAuthenticated, isChecking, githubSession, login } = useGitHubAuth();
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +102,12 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
           </DialogDescription>
         </DialogHeader>
 
-        {!isAuthenticated || !githubSession ? (
+        {isChecking ? (
+          <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            {t('github.connect.checking', { defaultValue: 'Checking your GitHub connection…' })}
+          </div>
+        ) : !isAuthenticated || !githubSession ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               {t('assistant.startFromRepo.connect', {

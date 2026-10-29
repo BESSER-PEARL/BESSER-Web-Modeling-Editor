@@ -37,7 +37,21 @@
       "needsRecheck": "Requiere revisión",
       "notValidated": "No validado"
     },
-    "more": "Más"
+    "more": "Más",
+    "linkToGithub": "Vincular con GitHub",
+    "repoState": {
+      "behind": "{{repo}}: {{count}} commits nuevos en GitHub",
+      "behind_one": "{{repo}}: 1 commit nuevo en GitHub",
+      "checking": "{{repo}}: comprobando GitHub",
+      "diverged": "{{repo}}: cambiado aquí y en GitHub",
+      "in-sync": "{{repo}}: sincronizado con GitHub",
+      "local-changes": "{{repo}}: cambios del modelo sin guardar en GitHub",
+      "missing": "{{repo}}: no se encontró la rama o el repositorio en GitHub",
+      "reconnect": "{{repo}}: sesión de GitHub caducada",
+      "signed-out": "GitHub",
+      "unknown": "{{repo}}: no se pudo acceder a GitHub",
+      "unlinked": "Vincular este proyecto a un repositorio de GitHub"
+    }
   },
   "nav": {
     "editors": "Editores",
@@ -86,7 +100,8 @@
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
       "fromSpreadsheet": "Desde datos…",
       "fromGithub": "Desde GitHub…",
-      "importKgOwl": "Importar KG"
+      "importKgOwl": "Importar KG",
+      "shareAsGist": "Compartir como Gist secreto…"
     },
     "generate": {
       "title": "Generar",
@@ -127,7 +142,8 @@
       "title": "Desplegar",
       "connectGitHub": "Conectar GitHub para desplegar",
       "publishToRender": "Publicar en Render…",
-      "connectGitHubFirstHint": "Conecta GitHub primero"
+      "connectGitHubFirstHint": "Conecta GitHub primero",
+      "goLive": "Publicar en línea desde GitHub"
     },
     "community": {
       "title": "Comunidad",
@@ -914,7 +930,17 @@
         "detailsTitle": "Detalles del proyecto",
         "detailsDescription": "Dale un nombre y una descripción a tu espacio de trabajo.",
         "submit": "Crear proyecto",
-        "tip": "Consejo: elige una perspectiva de modelado para centrar el espacio de trabajo en los diagramas que necesitas."
+        "tip": "Consejo: elige una perspectiva de modelado para centrar el espacio de trabajo en los diagramas que necesitas.",
+        "github": {
+          "connect": "Conectar GitHub",
+          "connectHint": "Conecta GitHub para guardar este proyecto en un repositorio privado propio.",
+          "label": "Guardarlo en GitHub",
+          "toasts": {
+            "failed": "Tu proyecto se creó, pero no se pudo guardar en GitHub: {{error}}",
+            "saved": "Guardado en GitHub como {{repo}}.",
+            "saving": "Guardando {{name}} en GitHub…"
+          }
+        }
       },
       "import": {
         "title": "Importar un proyecto",
@@ -1202,6 +1228,14 @@
         "bumlCopyFailed": "No se pudo copiar la vista previa de B-UML.",
         "noBumlToDownload": "No hay vista previa de B-UML para descargar."
       }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Guarda tus proyectos en tus propios repositorios de GitHub",
+        "connectedAs": "Conectado como {{username}}",
+        "connected": "Conectado a GitHub",
+        "connect": "Conectar GitHub"
+      }
     }
   },
   "github": {
@@ -1216,7 +1250,8 @@
     "connect": {
       "title": "Conectar con GitHub",
       "subtitle": "Inicia sesión para sincronizar tus proyectos con GitHub.",
-      "button": "Conectar con GitHub"
+      "button": "Conectar con GitHub",
+      "checking": "Comprobando tu conexión con GitHub…"
     },
     "noProject": {
       "title": "Ningún proyecto seleccionado",
@@ -1249,7 +1284,8 @@
       "unlink": "Desvincular repositorio",
       "unlinkConfirmTitle": "¿Desvincular este repositorio?",
       "unlinkConfirmDescription": "El proyecto se queda en tu navegador y en GitHub. Push, Pull y el commit automático se detienen hasta que vuelvas a vincular un repositorio.",
-      "unlinkConfirmAction": "Desvincular"
+      "unlinkConfirmAction": "Desvincular",
+      "keepLocalChanges": "Conservar mis cambios"
     },
     "settings": {
       "title": "Ajustes",
@@ -1420,7 +1456,153 @@
       "successCreated": "Repositorio creado y archivos subidos.",
       "successTitle": "Subido a GitHub",
       "successUpdated": "Repositorio actualizado con tu última generación.",
-      "useExisting": "Usar un repositorio existente"
+      "useExisting": "Usar un repositorio existente",
+      "conflict": "Alguien cambió los mismos archivos en GitHub desde tu última sincronización, así que GitHub no pudo combinar este push por sí solo. Tu push está en la rama {{branch}}; no se sobrescribió nada.",
+      "conflictTitle": "Hace falta combinar",
+      "errors": {
+        "auth": "Tu sesión de GitHub ha caducado. Vuelve a conectarte e inténtalo de nuevo.",
+        "branchMoved": "La rama cambió en GitHub durante el push. Inténtalo de nuevo. ({{detail}})",
+        "expired": "Esta generación ha caducado: vuelve a generar para hacer push.",
+        "failed": "No se pudo guardar en GitHub.",
+        "forbidden": "GitHub rechazó el push: tu cuenta no puede escribir en este repositorio. ({{detail}})",
+        "nameTaken": "Ya existe un repositorio con ese nombre: haz push a él como repositorio existente.",
+        "repoMissing": "Este repositorio ya no existe o tu cuenta de GitHub no puede verlo. Elige otro repositorio o crea uno nuevo."
+      },
+      "howTitle": "Cómo hacer push",
+      "modeCommit": "Hacer commit en {{branch}}",
+      "modeCommitHint": "Los commits hechos en GitHub desde tu última sincronización se combinan, nunca se sobrescriben.",
+      "modePullRequest": "Abrir una pull request",
+      "modePullRequestHint": "Tu equipo revisa el cambio en GitHub antes de que se incorpore. Lo mejor para repositorios compartidos.",
+      "openPullRequest": "Abrir una pull request para combinarlo",
+      "successMerged": "Combinado con los commits hechos en GitHub desde tu última sincronización. No se sobrescribió nada y el editor muestra ahora el modelo combinado.",
+      "successPullRequest": "Tus cambios están en una pull request, lista para revisión.",
+      "toasts": {
+        "conflict": "GitHub no pudo combinar este push automáticamente.",
+        "connectFirst": "Conecta GitHub para hacer push de tu aplicación generada.",
+        "created": "Push hecho a {{repo}}",
+        "modelUpdated": "El modelo incluye ahora las clases que añadió el agente.",
+        "noProject": "Abre un proyecto antes de hacer push a GitHub.",
+        "nothingToPush": "Nada que subir.",
+        "pullRequest": "Pull request abierta en {{repo}}",
+        "pullRequestFailed": "No se pudo abrir la pull request.",
+        "updated": "{{repo}} actualizado"
+      },
+      "viewPullRequest": "Ver la pull request"
+    },
+    "chatHeader": {
+      "diverged": "Cambiado aquí y en GitHub",
+      "openMenu": "Trabajando en {{repo}}: {{state}}. Abrir el menú de GitHub.",
+      "signedOut": "Conecta GitHub para ver su estado",
+      "workingOn": "Trabajando en"
+    },
+    "goLive": {
+      "addresses": "Tu aplicación estará en",
+      "alreadyReady": "{{repo}} ya estaba listo para Render.",
+      "classicHint": "El despliegue clásico sigue funcionando: reconstruye la aplicación a partir de tus diagramas en un repositorio aparte, sin los cambios del agente.",
+      "description": "Publica en línea la aplicación de {{repo}}. Lo que se publica es exactamente el código del repositorio.",
+      "freeTier": "El plan gratuito de Render suspende la aplicación cuando nadie la usa (la primera visita tarda entonces cerca de un minuto) y su base de datos se reinicia en cada redespliegue.",
+      "next": "Abre Render, inicia sesión con GitHub y haz clic en Apply. Si el repositorio es privado, Render pide primero acceso a él.",
+      "openRender": "Abrir Render",
+      "prepare": "Preparar {{repo}}",
+      "ready": "{{repo}} está listo para Render.",
+      "step1": "BESSER añade a {{repo}} el archivo de despliegue de Render, escrito para las carpetas de la aplicación.",
+      "step2": "Abres Render, inicias sesión y haces clic en Apply una sola vez.",
+      "step3": "A partir de entonces, cada guardado de código en GitHub actualiza la aplicación en línea. Guardar solo el modelo no lo hace.",
+      "title": "Publicar en línea",
+      "useClassic": "Usar el despliegue clásico"
+    },
+    "menu": {
+      "changeRepository": "Cambiar de repositorio…",
+      "commitMessageOptional": "¿Qué ha cambiado? (opcional)",
+      "createRepository": "Crear un repositorio para este proyecto",
+      "defaultCommitMessage": "Actualizar el modelo desde el editor de BESSER",
+      "dismissPending": "Dejar de seguirlo",
+      "divergedHint": "Guardar combina ambas versiones. «Obtener lo último» toma en su lugar la versión de GitHub.",
+      "getLatest": "Obtener lo último",
+      "history": "Historial…",
+      "linkExisting": "Vincular un repositorio existente…",
+      "linkTitle": "Vincular un repositorio",
+      "localChangesHint": "Guarda en GitHub para conservarlos en el repositorio.",
+      "missingHint": "La rama {{branch}} o el repositorio se eliminó o cambió de nombre, o tu cuenta perdió el acceso. Vincula otro repositorio para seguir guardando.",
+      "pendingConflict": "Un guardado no se pudo combinar con cambios más recientes y está en la rama {{branch}}. Abre una pull request para resolverlo en GitHub.",
+      "pendingPullRequest": "La pull request #{{number}} espera revisión. Cuando se combine, «Obtener lo último» la incorpora.",
+      "reconnect": "Volver a conectar GitHub",
+      "reconnectHint": "Vuelve a conectar GitHub para guardar y buscar commits nuevos. Tu proyecto se conserva.",
+      "restore": "Restaurar",
+      "save": "Guardar",
+      "saveDescription": "Hace commit de tu modelo en {{repo}} sobre {{branch}}. Los cambios más recientes en GitHub se combinan, nunca se sobrescriben.",
+      "saveToGitHub": "Guardar en GitHub…",
+      "signedInAs": "Sesión iniciada como {{name}}",
+      "unlinkConfirmDescription": "El proyecto se queda en tu navegador y el repositorio en GitHub. Guardar en GitHub se detiene hasta que vuelvas a vincular un repositorio."
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Persona"
+    },
+    "panel": {
+      "conflict": "Tu guardado y un cambio más reciente en GitHub afectan a la misma parte del modelo, así que GitHub no pudo combinarlos. Tu guardado está en la rama {{branch}}; no se sobrescribió nada.",
+      "conflictToast": "GitHub no pudo combinar tu guardado automáticamente.",
+      "created": "{{repo}} creado con tu modelo.",
+      "historyFailed": "No se pudo cargar el historial.",
+      "historyTitle": "Historial del modelo",
+      "linkAction": "Vincular a este proyecto",
+      "linked": "Vinculado a {{repo}}. Guarda para poner tu modelo en él.",
+      "loadRepoModel": "Cargar el modelo del repositorio",
+      "moreChanges": "y {{count}} más",
+      "notLinkedHint": "Un repositorio vinculado guarda tu modelo, su historial y el código de tu aplicación en un solo lugar, para ti y tu equipo.",
+      "nothingToSave": "Tu modelo coincide con el repositorio.",
+      "openPr": "Abrir una pull request para combinarlo",
+      "prOpened": "Pull request abierta",
+      "prTitle": "Cambios del modelo desde el editor de BESSER",
+      "repoHasModelDescription": "{{repo}} contiene «{{name}}». ¿Cargarlo en este proyecto y reemplazar el modelo abierto? Elige Cancelar para conservar tu modelo; reemplazará el del repositorio en tu próximo guardado.",
+      "repoHasModelTitle": "Este repositorio ya contiene un modelo",
+      "saveAction": "Guardar en GitHub",
+      "saved": "Modelo guardado en GitHub.",
+      "savedMerged": "Guardado y combinado con los cambios más recientes de GitHub."
+    },
+    "proposal": {
+      "accept": "Aceptar el modelo",
+      "aiSource": "Una lectura de {{files}} hecha por IA, no exacta. Revisa cada clase y luego acepta.",
+      "aiTitle": "Propuesto por IA a partir de {{repo}}: {{count}} clases",
+      "discard": "Descartar",
+      "discardConfirmDescription": "Las clases que BESSER leyó del código se quitan del lienzo. El repositorio y su código no cambian.",
+      "discardConfirmTitle": "¿Descartar el modelo propuesto?",
+      "label": "Modelo propuesto",
+      "source": "Leído de {{source}} en {{files}}. Edita lo que quieras y luego acepta.",
+      "title": "Propuesto a partir de {{repo}}: {{count}} clases"
+    },
+    "repoBrowser": {
+      "besserRepos": "Proyectos de BESSER",
+      "classes": "{{count}} clases",
+      "classes_one": "1 clase",
+      "loadFailed": "No se pudieron cargar tus repositorios. Comprueba tu conexión con GitHub e inténtalo de nuevo.",
+      "loading": "Cargando tus repositorios…",
+      "noBesserMatch": "Ningún proyecto de BESSER coincide con tu búsqueda.",
+      "noBesserRepos": "Ninguno todavía. Los repositorios a los que hagas push desde BESSER aparecen aquí.",
+      "noModel": "Todavía no hay ningún modelo de BESSER en este repositorio.",
+      "otherRepos": "Otros repositorios",
+      "private": "Privado",
+      "readOnly": "Solo lectura",
+      "readOnlyHint": "Tu cuenta de GitHub puede leer este repositorio pero no escribir en él, así que BESSER no puede guardar en él.",
+      "reading": "Leyendo el repositorio…",
+      "readsCode": "Todavía no hay modelo de BESSER. BESSER lee su código y propone uno para que lo aceptes.",
+      "refresh": "Actualizar los repositorios",
+      "search": "Buscar en tus repositorios",
+      "showOthers": "Mostrar {{count}} repositorios más",
+      "showOthers_one": "Mostrar 1 repositorio más",
+      "summaryFailed": "No se pudo leer este repositorio.",
+      "truncated": "Se muestran tus {{count}} repositorios actualizados más recientemente. Pega un enlace para abrir otro."
+    },
+    "status": {
+      "behind": "{{count}} commits nuevos en GitHub",
+      "behind_one": "1 commit nuevo en GitHub",
+      "inSync": "Sincronizado con GitHub",
+      "localChanges": "Cambios del modelo sin guardar en GitHub",
+      "missing": "No se encontró la rama o el repositorio en GitHub",
+      "reconnect": "Sesión de GitHub caducada: vuelve a conectar",
+      "unknown": "No se pudo acceder al repositorio",
+      "unlinked": "No vinculado a ningún repositorio"
     }
   },
   "assistant": {
@@ -1629,6 +1811,18 @@
       "transcribingAudio": "Transcribiendo audio…",
       "recordingPrompt": "Grabando… haz clic aquí o pulsa de nuevo el micrófono para detener y enviar ({{time}})",
       "stopSendVoiceTimer": "Detener y enviar el mensaje de voz ({{time}})"
+    },
+    "startFromRepo": {
+      "badLink": "Pega un enlace como github.com/owner/repo.",
+      "connect": "Conecta GitHub para abrir uno de tus repositorios.",
+      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo.",
+      "entry": "Empezar desde un repositorio de GitHub",
+      "entryHint": "De BESSER o no",
+      "failed": "No se pudo abrir este repositorio.",
+      "linkLabel": "Enlace del repositorio",
+      "linkPlaceholder": "Pega un enlace: github.com/owner/repo",
+      "open": "Abrir",
+      "title": "Empezar desde un repositorio de GitHub"
     }
   },
   "deploy": {

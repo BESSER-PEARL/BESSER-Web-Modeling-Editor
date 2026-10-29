@@ -12,6 +12,7 @@ import {
   CloudUpload,
   ExternalLink,
   FolderGit2,
+  GitPullRequest,
   Github,
   History,
   Link2,
@@ -37,6 +38,8 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
+import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
+import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../services/githubApi';
 import { CreateRepositoryDialog } from '../dialogs/CreateRepositoryDialog';
@@ -80,15 +83,6 @@ const REPO_STATE_LABEL: Record<RepoSyncState, string> = {
   'signed-out': 'GitHub',
 };
 
-const sanitizeRepoName = (value: string): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-_]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 type OpenDialog = 'save' | 'history' | 'link' | 'create' | null;
@@ -103,6 +97,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
 }) => {
   const { t } = useTranslation();
   const { currentProject } = useProject();
+  const { isExpired, isChecking: isCheckingSession } = useGitHubAuth();
   const sync = useRepoSync();
   const { link, state, status, hasLocalChanges, githubSession } = sync;
   const flushEditor = useFlushEditorModel();
@@ -116,7 +111,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
 
   // The chat's repo header (and anything else) opens this menu through the event.
   const openFromEventRef = useRef<() => void>(() => undefined);
-  openFromEventRef.current = () => (isAuthenticated ? setMenuOpen(true) : onLogin());
+  openFromEventRef.current = () => (isAuthenticated || (isExpired && link) ? setMenuOpen(true) : onLogin());
   useEffect(() => {
     const onOpen = () => openFromEventRef.current();
     window.addEventListener(OPEN_GITHUB_PANEL_EVENT, onOpen);
@@ -131,8 +126,12 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const behind = status?.commits_since.length ?? 0;
   const repoFullName = link ? `${link.owner}/${link.repo}` : '';
 
-  if (!isAuthenticated) {
-    const label = t('topbar.connectGithub', { defaultValue: 'Connect GitHub' });
+  // An expired session keeps the repo menu (with Reconnect) when the project is linked.
+  if (!isAuthenticated && !(isExpired && link)) {
+    const label = isExpired
+      ? t('github.menu.reconnect', { defaultValue: 'Reconnect GitHub' })
+      : t('topbar.connectGithub', { defaultValue: 'Connect GitHub' });
+    const busyConnecting = githubLoading || isCheckingSession;
     return (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -141,11 +140,11 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             size="sm"
             className={`gap-2 ${outlineButtonClass}`}
             onClick={onLogin}
-            disabled={githubLoading}
+            disabled={busyConnecting}
             aria-label={label}
           >
-            {githubLoading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Github className="size-4" aria-hidden="true" />}
-            <span className="hidden xl:inline">{githubLoading ? t('common.connecting') : label}</span>
+            {busyConnecting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Github className="size-4" aria-hidden="true" />}
+            <span className="hidden xl:inline">{busyConnecting ? t('common.connecting') : label}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="xl:hidden">
@@ -184,6 +183,33 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             : null;
   // Saving cannot work until the session or the link is fixed.
   const canSave = state !== 'reconnect' && state !== 'missing';
+  const pending = link?.pendingChange;
+
+  const handleOpenPullRequest = async () => {
+    setBusy(true);
+    try {
+      const url = await sync.openPullRequest(
+        t('github.panel.prTitle', { defaultValue: 'Model changes from the BESSER editor' }),
+      );
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pendingText = !pending
+    ? null
+    : pending.pullRequestUrl
+      ? t('github.menu.pendingPullRequest', {
+          defaultValue: 'Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in.',
+          number: pending.pullRequestNumber,
+        })
+      : t('github.menu.pendingConflict', {
+          defaultValue: 'A save could not be merged with newer changes and is on the branch {{branch}}. Open a pull request to resolve it on GitHub.',
+          branch: pending.branch,
+        });
 
   const handlePull = async () => {
     if (hasLocalChanges) {
@@ -303,6 +329,38 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                 </p>
                 {stateHint && <p className="mt-1 text-xs text-muted-foreground/90">{stateHint}</p>}
               </div>
+              {pending && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div className="px-2.5 py-2" role="status">
+                    <p className="flex items-start gap-1.5 text-xs text-foreground">
+                      <GitPullRequest className="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
+                      {pendingText}
+                    </p>
+                  </div>
+                  {pending.pullRequestUrl ? (
+                    <DropdownMenuItem className={cn(itemClass, 'font-medium')} asChild>
+                      <a href={pending.pullRequestUrl} target="_blank" rel="noopener noreferrer">
+                        <GitPullRequest className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                        {t('github.push.viewPullRequest', { defaultValue: 'View the pull request' })}
+                      </a>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      className={cn(itemClass, 'font-medium')}
+                      disabled={!canSave}
+                      onSelect={() => void handleOpenPullRequest()}
+                    >
+                      <GitPullRequest className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                      {t('github.panel.openPr', { defaultValue: 'Open a pull request to merge it' })}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem className={itemClass} onSelect={() => sync.dismissPending()}>
+                    <Unlink2 className={iconClass} aria-hidden="true" />
+                    {t('github.menu.dismissPending', { defaultValue: 'Stop tracking it' })}
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               {state === 'reconnect' && (
                 <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => onLogin()}>

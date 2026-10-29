@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
-import { validateRepoName } from '../../../shared/utils/validation';
+import { sanitizeRepoName, validateRepoName } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 import type { ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import { listBranches, listRepos, type RepoListing } from '../services/githubApi';
@@ -42,15 +42,6 @@ import type {
 } from '../hooks/useSpecDrivenGithubPush';
 
 const DEFAULT_BRANCH = 'main';
-
-/** Mirror DeployMenu's repo-name sanitizer for the create-new default. */
-const sanitizeRepoName = (name: string): string =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
 
 const defaultRepoName = (projectName: string): string =>
   sanitizeRepoName(projectName) || 'besser-app';
@@ -87,7 +78,8 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
   const fetchRepositories = async (session: string) => {
     setReposLoading(true);
     try {
-      setRepositories(await listRepos(session));
+      // Only repositories the user may write to can take a push.
+      setRepositories((await listRepos(session)).repositories.filter((repo) => repo.can_push));
     } catch {
       setRepositories([]);
     } finally {
@@ -183,6 +175,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
     if (isUpdateMode && linkedRepo) {
       config = {
         useExisting: true,
+        owner: linkedRepo.owner,
         repoName: linkedRepo.repo,
         isPrivate,
         branch: linkedRepo.branch || DEFAULT_BRANCH,
@@ -197,6 +190,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
       }
       config = {
         useExisting: true,
+        owner: repo.full_name.split('/')[0],
         repoName: repo.name,
         isPrivate: repo.private,
         branch: selectedBranch || repo.default_branch || DEFAULT_BRANCH,

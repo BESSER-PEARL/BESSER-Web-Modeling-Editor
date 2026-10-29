@@ -6,11 +6,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, FileCode2, X } from 'lucide-react';
+import { UMLDiagramType } from '@besser/wme';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { setProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { createEmptyDiagram } from '../../../shared/types/project';
 import { useRepoSync } from '../hooks/useRepoSync';
 
 export const ModelProposalBanner: React.FC<{ className?: string }> = ({ className }) => {
@@ -26,11 +29,20 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
   };
 
   const discard = async () => {
+    const confirmed = await globalConfirm({
+      title: t('github.proposal.discardConfirmTitle', { defaultValue: 'Discard the proposed model?' }),
+      description: t('github.proposal.discardConfirmDescription', {
+        defaultValue: 'The classes BESSER read from the code are removed from the canvas. The repository and its code stay as they are.',
+      }),
+      confirmLabel: t('github.proposal.discard', { defaultValue: 'Discard' }),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     const project = ProjectStorageRepository.loadProject(currentProject.id);
     const index = project?.currentDiagramIndices?.ClassDiagram ?? 0;
     const diagram = project?.diagrams.ClassDiagram?.[index];
     if (project && diagram?.model) {
-      diagram.model = { ...diagram.model, elements: {}, relationships: {} } as typeof diagram.model;
+      diagram.model = createEmptyDiagram(diagram.title, UMLDiagramType.ClassDiagram).model;
       ProjectStorageRepository.saveProject(project);
     }
     settle();

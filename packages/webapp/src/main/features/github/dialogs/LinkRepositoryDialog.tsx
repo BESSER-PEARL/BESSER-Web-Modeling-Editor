@@ -70,6 +70,7 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
             onAction={handleLink}
             busy={isLinking}
             allowWithoutModel
+            requiresWrite
           />
         )}
       </DialogContent>

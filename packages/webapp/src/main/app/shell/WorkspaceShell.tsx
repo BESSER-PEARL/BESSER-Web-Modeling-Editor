@@ -12,7 +12,7 @@ import { ALL_DIAGRAM_TYPES, getActiveDiagram, hasCustomEditor, isUMLModel, toUML
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
-import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
 import { ShareGistDialog } from '../../features/github/dialogs/ShareGistDialog';
@@ -74,6 +74,7 @@ import type { QualityCheckResult, QualityCheckState } from '../../features/gener
 import type { AgentVariantOption } from './topbar-types';
 import { useHasOpened } from '../hooks/useHasOpened';
 import { useStableCallback } from '../hooks/useStableCallback';
+import { sanitizeRepoName } from '../../shared/utils/validation';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
 const AssistantWorkspaceDrawer = React.lazy(() =>
@@ -110,15 +111,6 @@ const thunkErrorMessage = (err: unknown): string => {
     return err.message;
   }
   return String(err);
-};
-
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
 };
 
 interface OnboardingHook {

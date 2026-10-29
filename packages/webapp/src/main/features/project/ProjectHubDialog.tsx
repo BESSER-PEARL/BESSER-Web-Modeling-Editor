@@ -57,7 +57,7 @@ import {
 } from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { useAppDispatch } from '../../app/store/hooks';
-import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../github/components/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../spec-driven/services/continueFromGithub';
 import { postAssistantMessage } from '../assistant/hooks/assistantConversationStore';
@@ -186,6 +186,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const dispatch = useAppDispatch();
   const {
     isAuthenticated: isGithubAuthenticated,
+    isChecking: isGithubChecking,
     username: githubUsername,
     githubSession,
     login: githubLogin,
@@ -714,7 +715,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // off OAuth, and let the hub reopen on the repo picker once we're back.
   const handleOpenGithubStep = () => {
     setGithubError(null);
-    if (!isGithubAuthenticated) {
+    // While a stored session is being verified, the step waits for it rather than signing in again.
+    if (!isGithubAuthenticated && !isGithubChecking) {
       try {
         sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
       } catch {
@@ -1474,7 +1476,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'github' && !isGithubAuthenticated && (
+          {step === 'github' && isGithubChecking && (
+            <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              {t('github.connect.checking', { defaultValue: 'Checking your GitHub connection…' })}
+            </div>
+          )}
+
+          {step === 'github' && !isGithubAuthenticated && !isGithubChecking && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 {t('project.hub.github.connectHint', {

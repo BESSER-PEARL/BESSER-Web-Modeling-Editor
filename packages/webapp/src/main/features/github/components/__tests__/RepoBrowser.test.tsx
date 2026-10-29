@@ -55,7 +55,7 @@ const renderBrowser = async (onAction = vi.fn(), allowWithoutModel = false) => {
 
 describe('RepoBrowser', () => {
   it('lists BESSER projects first and folds the other repositories away', async () => {
-    listRepos.mockResolvedValue([repo(1, 'notes'), repo(2, 'library-app', ['besser']), repo(3, 'dotfiles')]);
+    listRepos.mockResolvedValue({ repositories: [repo(1, 'notes'), repo(2, 'library-app', ['besser']), repo(3, 'dotfiles')], truncated: false });
     await renderBrowser();
 
     expect(screen.getByText('me/library-app')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('RepoBrowser', () => {
   });
 
   it('searches every repository, not only the BESSER ones', async () => {
-    listRepos.mockResolvedValue([repo(1, 'notes'), repo(2, 'library-app', ['besser'])]);
+    listRepos.mockResolvedValue({ repositories: [repo(1, 'notes'), repo(2, 'library-app', ['besser'])], truncated: false });
     await renderBrowser();
 
     fireEvent.change(screen.getByLabelText('Search your repositories'), { target: { value: 'not' } });
@@ -74,7 +74,7 @@ describe('RepoBrowser', () => {
   });
 
   it('shows what a repo holds and who changed it last before acting on it', async () => {
-    listRepos.mockResolvedValue([repo(2, 'library-app', ['besser'])]);
+    listRepos.mockResolvedValue({ repositories: [repo(2, 'library-app', ['besser'])], truncated: false });
     getRepoSummary.mockResolvedValue(summary);
     const onAction = await renderBrowser();
 
@@ -92,7 +92,7 @@ describe('RepoBrowser', () => {
   });
 
   it('will not open a repo without a model unless the caller links empty repos', async () => {
-    listRepos.mockResolvedValue([repo(1, 'notes')]);
+    listRepos.mockResolvedValue({ repositories: [repo(1, 'notes')], truncated: false });
     getRepoSummary.mockResolvedValue({ ...summary, has_model: false, last_commit: null });
     await renderBrowser();
 

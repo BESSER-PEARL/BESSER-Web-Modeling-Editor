@@ -6,16 +6,17 @@ import { PushToGitHubDialog, type PushToGitHubDialogProps } from '../PushToGitHu
 import type { SpecDrivenPushResult } from '../../hooks/useSpecDrivenGithubPush';
 
 const repositories = [
-  { id: 1, name: 'slow', full_name: 'me/slow', private: false, default_branch: 'main', topics: [] },
-  { id: 2, name: 'fast', full_name: 'me/fast', private: false, default_branch: 'trunk', topics: [] },
+  { id: 1, name: 'slow', full_name: 'me/slow', private: false, default_branch: 'main', topics: [], can_push: true },
+  { id: 2, name: 'fast', full_name: 'me/fast', private: false, default_branch: 'trunk', topics: [], can_push: true },
 ];
+const listing = (repos: unknown[]) => ({ repositories: repos, truncated: false });
 
 const pendingBranches = new Map<string, (branches: string[]) => void>();
 const listBranches = vi.fn(
   (_session: string, _owner: string, repo: string) =>
     new Promise<string[]>((resolve) => pendingBranches.set(repo, resolve)),
 );
-const listRepos = vi.fn(async () => repositories);
+const listRepos = vi.fn(async () => listing(repositories));
 
 vi.mock('../../services/githubApi', () => ({
   listRepos: (...args: unknown[]) => listRepos(...(args as [])),
@@ -57,7 +58,7 @@ const result = (overrides: Partial<SpecDrivenPushResult>): SpecDrivenPushResult 
 
 beforeEach(() => {
   listRepos.mockReset();
-  listRepos.mockImplementation(async () => repositories);
+  listRepos.mockImplementation(async () => listing(repositories));
 });
 
 describe('PushToGitHubDialog — existing-repo branch picker', () => {
@@ -92,7 +93,7 @@ describe('PushToGitHubDialog — empty repository list', () => {
   });
 
   it('fetches once when the list comes back empty, then refetches only on Retry', async () => {
-    listRepos.mockImplementation(async () => []);
+    listRepos.mockImplementation(async () => listing([]));
 
     renderDialog();
     await act(async () => {

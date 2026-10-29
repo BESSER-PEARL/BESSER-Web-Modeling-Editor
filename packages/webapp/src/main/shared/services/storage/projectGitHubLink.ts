@@ -12,6 +12,10 @@
  * sync, so the editor can tell whether the model changed since. After a pull
  * the editor rewrites the loaded model into its current format, so the
  * fingerprint is taken once it has settled (`baselinePending`).
+ *
+ * `pendingChange` is a save or push that did not land on the branch: GitHub
+ * could not merge it, or it went to a pull request. It is kept until its
+ * pull request is merged or closed, or the user dismisses it.
  */
 import { localStorageGitHubLinkPrefix, localStoragePrefix } from '../../constants/constant';
 import { LocalStorageRepository } from './local-storage-repository';
@@ -27,6 +31,16 @@ export interface RepoCodeAnalysis {
   ai?: boolean;
 }
 
+/** A save or push kept on its own branch instead of the linked one. */
+export interface PendingGitHubChange {
+  /** `conflict`: GitHub could not merge it. `pull_request`: it was sent for review. */
+  kind: 'conflict' | 'pull_request';
+  branch: string;
+  pullRequestUrl?: string;
+  pullRequestNumber?: number;
+  createdAt: string;
+}
+
 export interface ProjectGitHubLink {
   owner: string;
   repo: string;
@@ -39,6 +53,7 @@ export interface ProjectGitHubLink {
   liveUrl?: string;
   /** Set while the model BESSER read from the repo's code awaits the user's Accept. */
   modelProposal?: RepoCodeAnalysis;
+  pendingChange?: PendingGitHubChange;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -49,6 +64,12 @@ const LEGACY_PUSH_TARGET = 'github';
 const LEGACY_SIDEBAR_LINKS_KEY = `${localStoragePrefix}github_linked_repos`;
 
 const linkKey = (projectId: string): string => `${localStorageGitHubLinkPrefix}${projectId}`;
+
+const isPendingChange = (value: unknown): value is PendingGitHubChange => {
+  const pending = value as Partial<PendingGitHubChange> | null;
+  return !!pending && (pending.kind === 'conflict' || pending.kind === 'pull_request')
+    && typeof pending.branch === 'string' && typeof pending.createdAt === 'string';
+};
 
 const parseLink = (raw: string | null): ProjectGitHubLink | null => {
   if (!raw) return null;
@@ -67,6 +88,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
           ? { modelProposal: value.modelProposal as RepoCodeAnalysis }
           : {}),
         ...(typeof value.lastSyncedAt === 'string' ? { lastSyncedAt: value.lastSyncedAt } : {}),
+        ...(isPendingChange(value.pendingChange) ? { pendingChange: value.pendingChange } : {}),
       };
     }
   } catch {
@@ -127,6 +149,14 @@ export function getProjectGitHubLink(projectId: string): ProjectGitHubLink | nul
 export function setProjectGitHubLink(projectId: string, link: ProjectGitHubLink): void {
   writeLink(projectId, link);
   notify(projectId);
+}
+
+/** Record (or, with null, forget) the change of a project's link that waits on its own branch. */
+export function setPendingGitHubChange(projectId: string, pending: PendingGitHubChange | null): void {
+  const link = getProjectGitHubLink(projectId);
+  if (!link) return;
+  const { pendingChange: _old, ...rest } = link;
+  setProjectGitHubLink(projectId, pending ? { ...rest, pendingChange: pending } : rest);
 }
 
 export function clearProjectGitHubLink(projectId: string): void {
