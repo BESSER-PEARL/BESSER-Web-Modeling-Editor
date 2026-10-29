@@ -212,9 +212,11 @@ the chat, the push dialog and the repository browser at once. When you reload,
 the editor checks the stored session with the backend before offering
 **Connect GitHub** again, so a GitHub action clicked during that check waits for
 it instead of sending you to GitHub. If the backend no longer accepts the
-session (it expired, or you signed out in another tab), every GitHub control
-switches to **Reconnect GitHub**, and a linked project keeps its repository and
-your unsaved changes.
+session, or it is over 24 hours old, every GitHub control switches to
+**Reconnect GitHub**, and a linked project keeps its repository and your unsaved
+changes. A new tab starts without a session even when you are signed in
+elsewhere: it shows a plain **Connect GitHub** ("not connected in this tab"),
+not an expired session.
 
 The GitHub menu
 ~~~~~~~~~~~~~~~
@@ -273,7 +275,13 @@ can:
   can only read is marked **Read only** and cannot be linked, since BESSER
   could not save to it. Selecting one shows its model, its diagrams and
   classes, and its last commit with who made it. If it already holds a model
-  you choose between loading that model and keeping yours.
+  you choose between **Load the repository model** (it replaces the model you
+  have open) and **Keep my model and link** (your next save replaces the
+  repository's model). **Cancel**, Escape or closing the dialog links nothing.
+
+A project linked by the earlier GitHub sidebar, which saved the model as
+``<folder>/<project-name>.json``, keeps that file name; the first save to
+``buml/diagrams.json`` removes the old file in the same commit.
 
 **Change repository…** in the menu of a linked project opens the same browser.
 
@@ -283,7 +291,8 @@ Staying in sync
 The top bar shows the linked repository and a dot for its state: in sync,
 model changes not saved yet, new commits on GitHub, or both. The editor checks
 the repository when you open the menu, when you return to the tab and once a
-minute.
+minute. The GitHub menu and the chat's repository line share that one check,
+so they always show the same state.
 
 - **Save to GitHub…** commits the model. The commit message is optional. If
   someone pushed since your last sync, BESSER merges their commits with yours
@@ -327,7 +336,8 @@ on Render. What goes live is exactly the repository's code, so the app the
 Spec-Driven Agent built, with every change it made, is the app people use.
 
 1. BESSER adds Render's deploy file to the repository, written for the app's
-   real folders, and commits nothing else.
+   real folders, and commits nothing else. A project that was in sync before
+   stays in sync: that commit does not count as a new commit on GitHub.
 2. You open Render, sign in with GitHub and click **Apply**, once. A private
    repository needs Render to be given access to it first.
 3. From then on every code save to GitHub updates the live app, and saving only
@@ -361,7 +371,10 @@ Any repository can be reopened from the project hub's **Continue from GitHub**
 card, which uses the same repository browser. A repository BESSER generated
 opens with its stored model; for any other, BESSER reads the model from its code
 and proposes it on the canvas for you to accept (see
-:doc:`spec-driven-agent`). Either way the repo is linked at the imported commit,
+:doc:`spec-driven-agent`). When BESSER cannot read the data classes directly it
+asks before anything is read with AI (see :ref:`github-ai-reading`).
+**Discard** on the proposal empties only the diagram BESSER proposed, never
+another class diagram of the project. Either way the repo is linked at the imported commit,
 so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep editing that
 application. If a project in this browser is already linked to
 that repository, the hub pulls into that project instead of making a copy.

@@ -157,8 +157,9 @@ and your next request edits that application's code as it is on GitHub:
   Pydantic or dataclass models) and draws them as a class diagram. A banner on
   the canvas says which files the model came from; edit it, then click
   **Accept model**, or **Discard** it to work on the code alone. When BESSER finds
-  no database models, an AI model reads the code (schemas, migrations, entity
-  classes) and proposes the diagram, marked as an AI reading. When neither works,
+  no database models, it can have an AI model read the code (schemas,
+  migrations, entity classes) and propose the diagram, marked as an AI reading,
+  but only after you agree (see below). When neither works, or you decline,
   the canvas starts empty and the agent works on the code.
 
 While a project is linked, a line above the chat shows the repository, its
@@ -168,6 +169,21 @@ panel. Importing never overwrites the project you currently have open.
 When a run updates an existing application, its card shows **What changed**:
 how the model differs from the one the app was built from, and the code files
 the agent wrote, edited or deleted.
+
+.. _github-ai-reading:
+
+Reading a repository with AI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nothing in a repository is read with AI unless you agree. When BESSER cannot
+read the data classes directly, it asks first, from every place that opens a
+repository (the project hub, *Start from a GitHub repository* and the chat):
+it can send a short excerpt of the code, up to about 40,000 characters with
+secret files and keys removed, to the AI model the BESSER server uses. That
+model may be run by a third-party provider, so the excerpt leaves BESSER's
+server. **Read with AI** sends it and opens the proposed model; **Not now**
+opens the repository without a proposal, and the agent can still work on its
+code.
 
 Saving the result to GitHub
 ---------------------------
@@ -196,6 +212,12 @@ branch and the GitHub menu keeps offering its pull request. You can also choose
 **Open a pull request** up front, so your team reviews the change before it
 lands. Either way, when the run changed the model the editor shows that model,
 counted as not yet saved to the branch until the pull request is merged.
+
+The run's model replaces the one on the canvas only while the canvas still holds
+the model the run started from. If you edited the model during the run, the
+editor asks: **Take the run's model** (your edits since the run started are
+lost) or **Keep my model**, which keeps your edits as unsaved changes you can
+save to GitHub on top of the run's commit.
 
 Pushes go to the repository's real owner, so a project linked to an
 organization's repository, or to one you collaborate on, pushes there. When
