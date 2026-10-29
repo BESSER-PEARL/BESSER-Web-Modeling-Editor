@@ -12,7 +12,7 @@ import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
 // Initialise i18next (language detection + resource bundles) before first render.
-import './shared/i18n';
+import { i18nReady } from './shared/i18n';
 
 import './styles.css';
 
@@ -67,9 +67,12 @@ if (themePreference === 'dark') {
 
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
-root.render(
-  <>
-    <RoutedApplication />
-    <OfflineBanner />
-  </>,
+// Wait for the active language's chunk so the first paint is already translated.
+void i18nReady.then(() =>
+  root.render(
+    <>
+      <RoutedApplication />
+      <OfflineBanner />
+    </>,
+  ),
 );

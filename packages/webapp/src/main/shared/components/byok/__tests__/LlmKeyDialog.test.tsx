@@ -150,6 +150,63 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
   });
 
+  describe('preferProvider', () => {
+    const providerSelect = () => document.getElementById('llm-key-provider') as HTMLSelectElement;
+
+    it('opens on the preferred provider when no key is saved', () => {
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" />);
+
+      expect(providerSelect().value).toBe('openai');
+    });
+
+    it('opens on the preferred provider even when a key for another one is saved', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" />);
+
+      expect(providerSelect().value).toBe('openai');
+    });
+
+    it('saves a key for the preferred provider, replacing the saved one', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+      const onSaved = vi.fn();
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="openai" onSaved={onSaved} />);
+
+      fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+        target: { value: 'sk-openai-key' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+      expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-openai-key');
+      expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('openai');
+      expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openai', apiKey: 'sk-openai-key' }));
+    });
+
+    it("does not carry the saved provider's model into the preferred provider's form", () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'pia-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'pia');
+      window.sessionStorage.setItem('besser_llm_model', 'gpt-5.4');
+      window.sessionStorage.setItem('besser_llm_base_url', 'https://pia.example/v1');
+
+      render(<LlmKeyDialog open onOpenChange={() => {}} preferProvider="anthropic" />);
+
+      expect(providerSelect().value).toBe('anthropic');
+      expect(document.getElementById('llm-key-model-custom')).toBeNull();
+      expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).not.toBe('gpt-5.4');
+    });
+
+    it('changes nothing for callers that do not ask', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-saved');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+
+      render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+      expect(providerSelect().value).toBe('anthropic');
+    });
+  });
+
   it('offers Nebius Token Factory with the Qwen3-30B-A3B endpoint preselectable', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
 
@@ -313,6 +370,21 @@ describe('LlmKeyDialog — model pickers', () => {
     ]);
   });
 
+  // PIA's recommended set (2026-10-26). gpt-5.4 / gpt-5.4-mini were listed by
+  // /v1/models but rejected on /chat/completions as invalid model names.
+  it('offers the PIA gateway recommended models, one Claude and one GPT per tier', () => {
+    expect(modelOptions('pia')).toEqual([
+      '',
+      'claude-sonnet-5-5',
+      'gpt-6.1-sol',
+      'claude-opus-5-5',
+      'gpt-6-astra',
+      'claude-haiku-4-5-20251001',
+      'gpt-6-luna',
+      '__custom__',
+    ]);
+  });
+
   it('offers GPT-6 alongside the GPT-5.6 family', () => {
     expect(modelOptions('openai')).toEqual([
       '',
@@ -378,6 +450,41 @@ describe('LlmKeyDialog — model pickers', () => {
     expect(onSaved).toHaveBeenCalledWith(
       expect.objectContaining({ provider: 'anthropic', model: 'claude-opus-4-1' }),
     );
+  });
+
+  // pia/local have no server-side default model: "Recommended default" would
+  // let the backend request a model the gateway does not serve.
+  it.each([
+    ['pia', 'claude-sonnet-5-5'],
+    ['local', 'qwen2.5-coder:7b'],
+  ])('preselects the first %s preset when switching provider', (provider, firstPreset) => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const model = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(model.value).toBe('');
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: provider },
+    });
+    expect(model.value).toBe(firstPreset);
+  });
+
+  it('replaces a preset the PIA gateway does not serve with its first preset', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const model = document.getElementById('llm-key-model') as HTMLSelectElement;
+    fireEvent.change(model, { target: { value: 'claude-fable-5-1' } });
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'pia' },
+    });
+    expect(model.value).toBe('claude-sonnet-5-5');
+  });
+
+  it('keeps "Recommended default" when switching to a provider with a server default', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('');
   });
 
   it('keeps the dated Haiku id on PIA, whose preset list is unchanged', () => {

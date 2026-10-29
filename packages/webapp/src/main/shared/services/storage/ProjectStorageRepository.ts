@@ -7,6 +7,7 @@ import {
   ProjectDiagram,
   createDefaultProject,
   createEmptyDiagram,
+  DIAGRAM_KIND_BY_TYPE,
   ensureProjectMigrated,
   getActiveDiagram,
   isProject,
@@ -113,6 +114,14 @@ export class ProjectStorageRepository {
       this.updateProjectsList(project.id);
     } catch (error) {
       console.error('Error saving project:', error);
+      // Say what actually went wrong: a full browser store is the one failure
+      // the user can fix themselves, and a bare "Failed to save project" hides it.
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        throw new Error(
+          'Browser storage is full, so the project could not be saved. ' +
+          'Export it and delete unused projects to free space.',
+        );
+      }
       throw new Error('Failed to save project');
     } finally {
       ProjectStorageRepository.isWriting = false;
@@ -261,7 +270,7 @@ export class ProjectStorageRepository {
     }
 
     const umlType = toUMLDiagramType(diagramType);
-    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+    const kind = DIAGRAM_KIND_BY_TYPE[diagramType];
 
     // Pick a title that doesn't collide with an existing one (case-insensitive).
     // If the caller passed a title, start from it and append " 2", " 3", ... on

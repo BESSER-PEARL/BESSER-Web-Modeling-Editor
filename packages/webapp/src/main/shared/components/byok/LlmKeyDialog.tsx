@@ -104,6 +104,16 @@ export interface LlmKeyDialogProps {
    * reflect the current selection).
    */
   preferKeyEntry?: boolean;
+  /**
+   * Provider preselected on open, ahead of the stored key's provider. For
+   * surfaces that cannot use the saved one (e.g. Knowledge Graph refinement
+   * accepts Anthropic, OpenAI, Mistral or Nebius keys, not PIA or local, so it
+   * passes `anthropic` when the saved key is unusable there): the user lands on
+   * a provider that works instead of whatever was saved last. The saved model
+   * is only carried over when it belongs to the preselected provider. The user
+   * can still pick another; saving replaces the single shared key either way.
+   */
+  preferProvider?: LlmProvider;
 }
 
 interface ProviderOption {
@@ -149,7 +159,7 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     value: 'pia',
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
-    hint: 'Your personal LIST PIA Gateway key (starts with sk-). Runs on LIST infrastructure.',
+    hint: "Your personal LIST PIA Gateway key (starts with sk-). Goes through LIST's governed AI gateway.",
     expectedPrefix: 'sk-',
   },
   {
@@ -285,13 +295,15 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
-  // PIA gateway serves both GPT and Claude model names.
+  // PIA's recommended models, one Claude and one GPT per tier. The gateway lists
+  // more (older Claude/GPT-5.6); those stay reachable as a custom model ID.
   pia: [
-    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced (default)' },
-    { value: 'claude-opus-4-8', label: 'Claude Opus 4.8 — most capable' },
-    { value: 'gpt-5.4', label: 'GPT-5.4 — strong for code' },
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
-    { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
+    { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — writing, analysis, coding (default)' },
+    { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol — writing, analysis, coding' },
+    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — demanding planning or coding' },
+    { value: 'gpt-6-astra', label: 'GPT-6 Astra — demanding planning or coding' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — routine work, fast & cheap' },
+    { value: 'gpt-6-luna', label: 'GPT-6 Luna — routine work, fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   // Local model names are whatever the user has pulled (common Ollama tags).
@@ -378,6 +390,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   saveLabel,
   showRunBudget = true,
   preferKeyEntry = false,
+  preferProvider,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -479,7 +492,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     setProviderLockedByUser(false);
     providerLockedRef.current = false;
     const stored = readLlmKey();
-    let nextProvider = stored?.provider ?? 'anthropic';
+    let nextProvider = preferProvider ?? stored?.provider ?? 'anthropic';
     // A pia/local selection stored on a machine that later opens the hosted
     // editor would otherwise render a provider that isn't in the list.
     if (_needsBaseUrl(nextProvider) && !_isLocalDeployment()) {
@@ -487,7 +500,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     setProvider(nextProvider);
     setKeyPresent(stored !== null);
-    const classified = _classifyStoredModel(nextProvider, stored?.model);
+    // A saved model belongs to the saved provider: when another provider is
+    // preselected (preferProvider, or a pia/local key on the hosted editor),
+    // its id would land in the custom-model box of the wrong provider.
+    const classified = _classifyStoredModel(
+      nextProvider,
+      stored?.provider === nextProvider ? stored?.model : undefined,
+    );
     setModelChoice(classified.choice);
     setCustomModel(classified.custom);
     // Prefill the base URL: 'local' uses the stored/user value (default Ollama);
@@ -503,7 +522,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       ),
     );
     setBudgetOpen(false);
-  }, [open]);
+  }, [open, preferProvider]);
 
   useEffect(() => {
     const presetValues = new Set(MODEL_PRESETS[provider].map((p) => p.value));
@@ -559,6 +578,15 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     providerLockedRef.current = true;
     if (next === 'local' && baseUrl.trim() === '') {
       setBaseUrl(DEFAULT_LOCAL_BASE_URL);
+    }
+    // pia/local have no server-side default model (see _classifyStoredModel),
+    // so preselect their first preset instead of "Recommended default".
+    if (
+      _needsBaseUrl(next) &&
+      modelChoice !== CUSTOM_MODEL_VALUE &&
+      !MODEL_PRESETS[next].some((p) => p.value === modelChoice)
+    ) {
+      setModelChoice(MODEL_PRESETS[next][0].value);
     }
   };
 

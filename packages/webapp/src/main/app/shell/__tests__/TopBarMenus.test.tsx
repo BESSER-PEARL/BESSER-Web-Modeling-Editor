@@ -54,6 +54,7 @@ describe('FileMenu', () => {
         onImportBpmnDiagram={vi.fn()}
         onOpenAssistantImportImage={vi.fn()}
         onOpenAssistantImportKg={vi.fn()}
+        onImportOwl={vi.fn()}
         onOpenProjectPreview={vi.fn()}
         onShareAsGist={onShareAsGist}
       />,
