@@ -5,6 +5,9 @@
  * Agent built is the app people use. BESSER commits Render's deploy file into
  * the repo once; after the user connects the repo on Render, every code save
  * updates the live app, and saves that only change the model do not.
+ *
+ * The deploy-file commit does not touch the model: a project that was at the
+ * branch head before stays in sync after it.
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,8 +15,12 @@ import { AlertTriangle, CheckCircle2, ExternalLink, Globe, Loader2, Rocket } fro
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ApiError } from '../../../shared/api/api-client';
-import { setProjectGitHubLink, type ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
-import { goLive, type GoLiveResult } from '../../../shared/api/github';
+import {
+  getProjectGitHubLink,
+  setProjectGitHubLink,
+  type ProjectGitHubLink,
+} from '../../../shared/services/storage/projectGitHubLink';
+import { getSyncStatus, goLive, type GoLiveResult } from '../../../shared/api/github';
 
 interface GoLiveDialogProps {
   open: boolean;
@@ -23,6 +30,17 @@ interface GoLiveDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Fall back to the classic deploy, which rebuilds the app from the diagrams. */
   onUseClassicDeploy: () => void;
+}
+
+/** Whether the link's base commit is the branch head; false when GitHub cannot say. */
+async function isAtBranchHead(githubSession: string, link: ProjectGitHubLink): Promise<boolean> {
+  if (!link.baseCommitSha) return false;
+  try {
+    const status = await getSyncStatus(githubSession, link.owner, link.repo, link.branch, link.baseCommitSha);
+    return status.head_sha === link.baseCommitSha;
+  } catch {
+    return false;
+  }
 }
 
 type Stage =
@@ -51,8 +69,19 @@ export const GoLiveDialog: React.FC<GoLiveDialogProps> = ({
   const prepare = async () => {
     setStage({ kind: 'working' });
     try {
-      const result = await goLive(githubSession, link.owner, link.repo, link.branch);
-      setProjectGitHubLink(projectId, { ...link, liveUrl: result.frontend_url ?? result.backend_url });
+      // The stored link, not the prop: a save may have moved its base since the dialog opened.
+      const before = getProjectGitHubLink(projectId) ?? link;
+      const atHead = await isAtBranchHead(githubSession, before);
+      const result = await goLive(githubSession, before.owner, before.repo, before.branch);
+      const latest = getProjectGitHubLink(projectId) ?? before;
+      // Go live's commit holds only deploy files: when the project was at the
+      // head, it still is, and the commit must not show as "1 new commit".
+      const advance = atHead && result.changed && latest.baseCommitSha === before.baseCommitSha;
+      setProjectGitHubLink(projectId, {
+        ...latest,
+        liveUrl: result.frontend_url ?? result.backend_url,
+        ...(advance ? { baseCommitSha: result.commit_sha } : {}),
+      });
       setStage({ kind: 'ready', result });
     } catch (error) {
       if (error instanceof ApiError && (error.status === 422 || error.status === 409)) {

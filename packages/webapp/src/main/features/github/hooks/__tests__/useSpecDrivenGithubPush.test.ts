@@ -4,9 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../../shared/api/api-client';
 import {
   getProjectGitHubLink,
+  modelFingerprint,
   setProjectGitHubLink,
 } from '../../../../shared/services/storage/projectGitHubLink';
+import { recordRunSeedModel } from '../../../../shared/services/storage/specDrivenRunRecords';
 import { describePushError, useSpecDrivenGithubPush } from '../useSpecDrivenGithubPush';
+
+const RUN_ID = 'e'.repeat(32);
+const confirm = vi.hoisted(() => ({ answer: false, fn: null as unknown as ReturnType<typeof vi.fn> }));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => {
+  confirm.fn = vi.fn(async () => confirm.answer);
+  return { globalConfirm: confirm.fn };
+});
 
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warn: vi.fn() } }));
 // Stable references, as the real hooks return: the hook's effects depend on them.
@@ -29,7 +38,7 @@ vi.mock('../../../../shared/hooks/useGitHubAuth', () => ({ useGitHubAuth: () => 
 vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => stable.project }));
 vi.mock('../../../../app/store/hooks', () => ({
   useAppDispatch: () => stable.dispatch,
-  useAppSelector: (select: (state: unknown) => unknown) => select({ specDriven: { pushDialogRunId: 'run-1' } }),
+  useAppSelector: (select: (state: unknown) => unknown) => select({ specDriven: { pushDialogRunId: RUN_ID } }),
 }));
 
 describe('describePushError', () => {
@@ -87,9 +96,13 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
   beforeEach(() => {
     localStorage.clear();
     setProjectGitHubLink('p1', { owner: 'me', repo: 'library', branch: 'main', baseCommitSha: 'a'.repeat(40) });
+    // The run started from the model the project still holds.
+    recordRunSeedModel(RUN_ID, modelFingerprint(project));
     post.mockReset();
     storeRepoModelAsProject.mockClear();
     stable.project.loadProject.mockClear();
+    confirm.fn.mockClear();
+    confirm.answer = false;
   });
 
   it('loads the model the push wrote, so the editor matches the repo', async () => {
@@ -97,6 +110,7 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
 
     await push();
 
+    expect(confirm.fn).not.toHaveBeenCalled();
     expect(storeRepoModelAsProject).toHaveBeenCalledWith({ name: 'Library with User' }, 'p1');
     expect(stable.project.loadProject).toHaveBeenCalledWith('p1');
     // Synced at the pushed commit, its fingerprint taken once the editor settles on the new model.
@@ -111,6 +125,45 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
     expect(storeRepoModelAsProject).not.toHaveBeenCalled();
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe('c'.repeat(40));
     expect(getProjectGitHubLink('p1')?.syncedModel).toBeTruthy();
+  });
+
+  it('keeps canvas edits made after the run started when the user keeps their model', async () => {
+    // The class added on the canvas during the run must not vanish on Save to GitHub.
+    recordRunSeedModel(RUN_ID, modelFingerprint({ id: 'p1', diagrams: { ClassDiagram: [{ model: { v: 0 } }] } } as never));
+    post.mockResolvedValue(response({ name: 'Library with User' }));
+
+    await push();
+
+    expect(confirm.fn).toHaveBeenCalledTimes(1);
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    expect(stable.project.loadProject).not.toHaveBeenCalled();
+    // Linked at the pushed commit, with the user's model counted as not saved there yet.
+    const link = getProjectGitHubLink('p1');
+    expect(link?.baseCommitSha).toBe('c'.repeat(40));
+    expect(link?.syncedModel).toBeUndefined();
+    expect(link?.baselinePending).toBeUndefined();
+  });
+
+  it("takes the run's model over canvas edits only when the user says so", async () => {
+    recordRunSeedModel(RUN_ID, modelFingerprint({ id: 'p1', diagrams: { ClassDiagram: [{ model: { v: 0 } }] } } as never));
+    confirm.answer = true;
+    post.mockResolvedValue(response({ name: 'Library with User' }));
+
+    await push();
+
+    expect(confirm.fn).toHaveBeenCalledTimes(1);
+    expect(storeRepoModelAsProject).toHaveBeenCalledWith({ name: 'Library with User' }, 'p1');
+  });
+
+  it('asks when it cannot tell which model the run started from', async () => {
+    localStorage.clear();
+    setProjectGitHubLink('p1', { owner: 'me', repo: 'library', branch: 'main', baseCommitSha: 'a'.repeat(40) });
+    post.mockResolvedValue(response({ name: 'Library with User' }));
+
+    await push();
+
+    expect(confirm.fn).toHaveBeenCalledTimes(1);
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
   });
 });
 
@@ -132,6 +185,9 @@ describe('useSpecDrivenGithubPush — a push that did not land on the branch', (
   beforeEach(() => {
     localStorage.clear();
     setProjectGitHubLink('p1', { owner: 'acme', repo: 'library', branch: 'main', baseCommitSha: base });
+    recordRunSeedModel(RUN_ID, modelFingerprint(project));
+    confirm.fn.mockClear();
+    confirm.answer = false;
     post.mockReset();
     storeRepoModelAsProject.mockClear();
     stable.project.loadProject.mockClear();
@@ -171,6 +227,20 @@ describe('useSpecDrivenGithubPush — a push that did not land on the branch', (
     expect(link?.pendingChange).toMatchObject({
       kind: 'pull_request', branch: 'besser/update-1234abcd', pullRequestUrl: 'https://github.com/acme/library/pull/7',
     });
+  });
+
+  it("keeps the user's newer canvas after a pull-request push when they keep their model", async () => {
+    recordRunSeedModel(RUN_ID, 'another model');
+    post.mockResolvedValue(response({
+      status: 'pull_request', pull_request_url: 'https://github.com/acme/library/pull/7',
+      pull_request_branch: 'besser/update-1234abcd', project_export: { name: 'Library with Loan' },
+    }));
+
+    await push('pull_request');
+
+    expect(confirm.fn).toHaveBeenCalledTimes(1);
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p1')?.pendingChange).toMatchObject({ kind: 'pull_request' });
   });
 });
 

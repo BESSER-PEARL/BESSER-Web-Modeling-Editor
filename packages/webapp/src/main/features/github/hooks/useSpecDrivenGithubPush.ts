@@ -11,6 +11,8 @@
  *   - what follows a push: the link's new base commit, the merged model and
  *     modify base after a merge, and the branch a conflict or a pull request
  *     waits on (the link's ``pendingChange``, shown in the GitHub menu).
+ *   - the run's model replaces the canvas only while the canvas still holds
+ *     the model the run started from; otherwise the user chooses.
  *
  * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenKeyDialogHost``):
  * whether it's open comes from ``specDriven.pushDialogRunId`` in the store,
@@ -37,11 +39,14 @@ import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportU
 import {
   getProjectGitHubLink,
   markProjectGitHubSynced,
+  modelFingerprint,
   setPendingGitHubChange,
   setProjectGitHubLink,
   type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
+import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { sessionStorageSpecDrivenPushIntent } from '../../../shared/constants/constant';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { BesserProject } from '../../../shared/types/project';
@@ -52,7 +57,6 @@ import {
   openPushDialog,
   setLastRunForProject,
 } from '../../spec-driven/state/specDrivenSlice';
-import { writeProjectLastRun } from '../../spec-driven/storage';
 import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 
@@ -145,6 +149,30 @@ export function describePushError(error: unknown): { code: SpecDrivenPushErrorCo
       return { code: 'other', message: detail || t('failed', 'Save to GitHub failed.') };
   }
 }
+
+/**
+ * Whether the run's model may replace the project's: yes while the project
+ * still holds the model run `runId` started from, else only if the user says so.
+ */
+export async function mayReplaceWithRunModel(runId: string, project: BesserProject): Promise<boolean> {
+  const seed = readRunSeedModel(runId);
+  if (seed && seed === modelFingerprint(project)) return true;
+  return globalConfirm({
+    title: i18n.t('github.push.modelChoice.title', { defaultValue: "Keep your model or take the run's?" }),
+    description: i18n.t('github.push.modelChoice.description', {
+      defaultValue:
+        "This run changed the model, and the model on the canvas changed after the run started. Take the run's model and lose the edits you made since, or keep your model and save it to GitHub later.",
+    }),
+    confirmLabel: i18n.t('github.push.modelChoice.takeRun', { defaultValue: "Take the run's model" }),
+    cancelLabel: i18n.t('github.push.modelChoice.keepMine', { defaultValue: 'Keep my model' }),
+  });
+}
+
+/** The link at `sha` with the project's model counted as not saved there. */
+const linkedWithUnsavedModel = (link: ProjectGitHubLink, sha: string): ProjectGitHubLink => {
+  const { syncedModel: _synced, baselinePending: _pending, ...rest } = link;
+  return { ...rest, baseCommitSha: sha, lastSyncedAt: new Date().toISOString() };
+};
 
 export interface UseSpecDrivenGithubPushOptions {
   currentProject: BesserProject | null | undefined;
@@ -345,14 +373,23 @@ export function useSpecDrivenGithubPush(
           repo: res.repo_name,
           branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
         };
+        // The run changed the model; it replaces the canvas only if the canvas
+        // still holds the model the run started from, or the user agrees.
+        const takeRunModel = !!res.project_export && (await mayReplaceWithRunModel(id, project));
         if (res.status === 'pushed' && res.project_export) {
-          // The run changed the model: load what the repo now holds, so the
-          // editor shows it and a later save cannot revert it.
-          const updated = storeRepoModelAsProject(res.project_export, project.id);
-          markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
-          await loadProject(project.id);
+          if (takeRunModel) {
+            // Load what the repo now holds, so the editor shows it and a later save cannot revert it.
+            const updated = storeRepoModelAsProject(res.project_export, project.id);
+            markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+            await loadProject(project.id);
+          } else {
+            // The user's model stays, unsaved against the run's commit until they save it.
+            setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
+          }
         } else if (res.status === 'pushed') {
           markProjectGitHubSynced(link, project, res.commit_sha);
+        } else if (res.status === 'merged' && githubSession && res.project_export && !takeRunModel) {
+          setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
         } else if (res.status === 'merged' && githubSession) {
           // The branch now holds this run and the commits made since: load
           // that model, and start the next run from that code.
@@ -379,7 +416,7 @@ export function useSpecDrivenGithubPush(
               createdAt: new Date().toISOString(),
             });
           }
-          if (res.project_export) {
+          if (takeRunModel) {
             // The run's code has the model it changed: show that model, unsaved
             // against the branch until its pull request is merged.
             storeRepoModelAsProject(res.project_export, project.id);
@@ -403,7 +440,7 @@ export function useSpecDrivenGithubPush(
                 : i18n.t('github.push.toasts.updated', { defaultValue: 'Updated {{repo}}', repo }),
           );
         }
-        if (res.project_export) {
+        if (takeRunModel) {
           toast.info(i18n.t('github.push.toasts.modelUpdated', { defaultValue: 'The model now includes the classes the agent added.' }));
         }
         return { ok: true, result: res };
