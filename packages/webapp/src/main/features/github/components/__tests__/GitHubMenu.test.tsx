@@ -52,6 +52,7 @@ vi.mock('../../../../shared/components/github/RepoBrowser', () => ({
 
 import { GitHubMenu } from '../GitHubMenu';
 import { OPEN_GITHUB_PANEL_EVENT } from '../../../../shared/api/github';
+import { resetGitHubAuthForTests } from '../../../../shared/services/github/githubAuth';
 
 const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', date: '', html_url: '', origin: null };
 const onLogin = vi.fn();
@@ -228,26 +229,44 @@ describe('GitHubMenu', () => {
   });
 
   it('loads the model of a repository that already holds one when the user chooses to', async () => {
-    globalConfirm.mockResolvedValueOnce(true);
     sync.pullInto.mockResolvedValueOnce(undefined);
     renderMenu();
 
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Link an existing repository…' }));
     fireEvent.click(await screen.findByRole('button', { name: 'pick ana/shop' }));
+    fireEvent.click(screen.getByRole('button', { name: /Load the repository model/ }));
     await waitFor(() => expect(sync.pullInto).toHaveBeenCalledWith({ owner: 'ana', repo: 'shop', branch: 'main' }, 'p1'));
     expect(sync.linkTo).not.toHaveBeenCalled();
   });
 
-  it('keeps the local model and links on top of the repository head when the user declines', async () => {
-    globalConfirm.mockResolvedValueOnce(false);
+  it('keeps the local model and links on top of the repository head when the user says so', async () => {
     renderMenu();
 
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Link an existing repository…' }));
     fireEvent.click(await screen.findByRole('button', { name: 'pick ana/shop' }));
+    fireEvent.click(screen.getByRole('button', { name: /Keep my model and link/ }));
     await waitFor(() => expect(sync.linkTo).toHaveBeenCalledWith('ana', 'shop', 'main', 'c'.repeat(40)));
     expect(sync.pullInto).not.toHaveBeenCalled();
+  });
+
+  it('offers a plain Connect, not Reconnect, in a tab that has not connected yet', () => {
+    // Review repro: a new tab showed "GitHub session expired" (username in localStorage, session in another tab).
+    resetGitHubAuthForTests();
+    sessionStorage.clear();
+    localStorage.setItem('github_username', 'ana');
+    linkAs('not-in-tab');
+    try {
+      renderMenu(false);
+
+      expect(screen.getByRole('button', { name: 'Connect GitHub' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Reconnect GitHub' })).toBeNull();
+      expect(screen.queryByText(/expired/)).toBeNull();
+    } finally {
+      localStorage.removeItem('github_username');
+      resetGitHubAuthForTests();
+    }
   });
 
   it('offers Reconnect instead of Save when the GitHub session expired', () => {

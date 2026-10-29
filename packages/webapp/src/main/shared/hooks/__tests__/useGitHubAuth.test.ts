@@ -40,6 +40,62 @@ describe('useGitHubAuth', () => {
     expect(window.location.hash).toBe('');
   });
 
+  it('still accepts the older ?github_session=&username= callback, and clears it from the URL', async () => {
+    // One release of grace while the backend moves the session to the fragment.
+    window.history.replaceState({}, '', `/?github_session=${SESSION}&username=octocat`);
+
+    const { result } = renderHook(() => useGitHubAuth());
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+    expect(result.current.githubSession).toBe(SESSION);
+    expect(result.current.username).toBe('octocat');
+    expect(window.location.search).toBe('');
+    expect(window.location.href).not.toContain(SESSION);
+  });
+
+  it('signs in from a fragment that carries only the session, asking the backend for the account', async () => {
+    window.history.replaceState({}, '', `/#github_session=${SESSION}`);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(statusResponse({ success: true, username: 'octocat' })));
+
+    const { result } = renderHook(() => useGitHubAuth());
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+    expect(result.current.username).toBe('octocat');
+    expect(window.location.href).not.toContain(SESSION);
+  });
+
+  it('rejects a malformed session in the URL, and still clears it', () => {
+    window.history.replaceState({}, '', '/?github_session=bad&username=octocat');
+
+    const { result } = renderHook(() => useGitHubAuth());
+
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(sessionStorage.getItem('github_session')).toBeNull();
+    expect(window.location.search).toBe('');
+  });
+
+  it('is "not connected in this tab", not expired, in a new tab of a signed-in user', () => {
+    // Review repro: the username is in localStorage, the session in another tab's sessionStorage.
+    localStorage.setItem('github_username', 'octocat');
+
+    const { result } = renderHook(() => useGitHubAuth());
+
+    expect(result.current.status).toBe('not-in-tab');
+    expect(result.current.isNotInTab).toBe(true);
+    expect(result.current.isExpired).toBe(false);
+    expect(result.current.username).toBe('octocat');
+  });
+
+  it('is expired when the stored session is over a day old', () => {
+    storeSession();
+    sessionStorage.setItem('github_session_timestamp', String(Date.now() - 25 * 60 * 60 * 1000));
+
+    const { result } = renderHook(() => useGitHubAuth());
+
+    expect(result.current.isExpired).toBe(true);
+    expect(sessionStorage.getItem('github_session')).toBeNull();
+  });
+
   it('verifies a stored session with a header, never in the URL', async () => {
     storeSession();
     const fetchMock = vi.fn().mockResolvedValue(statusResponse({ success: true, username: 'octocat' }));

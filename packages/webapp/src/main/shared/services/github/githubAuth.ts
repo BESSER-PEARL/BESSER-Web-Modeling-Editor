@@ -11,7 +11,11 @@
  * - `checking`: a stored session is being verified; do not start a sign-in yet.
  * - `signed-in`: the session works.
  * - `expired`: the backend rejected the session (401) or it is over a day old;
- *   the username is kept so the UI can offer "Reconnect".
+ *   the username is kept so the UI can offer "Reconnect". The tab remembers
+ *   it (sessionStorage), so a reload still says so.
+ * - `not-in-tab`: signed in before, in another tab or an earlier visit, but
+ *   this tab has no session (a session is tab-scoped). Nothing failed: the UI
+ *   offers a plain Connect.
  * - `signed-out`.
  */
 import { toast } from 'react-toastify';
@@ -19,7 +23,7 @@ import i18n from '../../i18n';
 import { BACKEND_URL } from '../../constants/constant';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../../api/api-client';
 
-export type GitHubAuthStatus = 'checking' | 'signed-in' | 'expired' | 'signed-out';
+export type GitHubAuthStatus = 'checking' | 'signed-in' | 'expired' | 'not-in-tab' | 'signed-out';
 
 export interface GitHubAuthState {
   status: GitHubAuthStatus;
@@ -32,6 +36,7 @@ export interface GitHubAuthState {
 const SESSION_KEY = 'github_session';
 const SESSION_TIMESTAMP_KEY = 'github_session_timestamp';
 const USERNAME_KEY = 'github_username';
+const EXPIRED_KEY = 'github_session_expired';
 // The backend keeps sessions in memory for a day.
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const VERIFY_TIMEOUT_MS = 30_000;
@@ -55,6 +60,12 @@ const clearStoredSession = () => {
   sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
 };
 
+/** This tab's session ended (rejected or too old): keep saying "expired" after a reload. */
+const expireStoredSession = () => {
+  clearStoredSession();
+  sessionStorage.setItem(EXPIRED_KEY, '1');
+};
+
 export const getGitHubAuthState = (): GitHubAuthState => state;
 
 /** The session id for `X-GitHub-Session`, or null when not signed in. */
@@ -68,7 +79,7 @@ export function subscribeGitHubAuth(listener: () => void): () => void {
 /** The session the backend or GitHub refused: keep the username, ask to reconnect. */
 export function markGitHubSessionExpired(): void {
   if (state.status !== 'signed-in' && state.status !== 'checking') return;
-  clearStoredSession();
+  expireStoredSession();
   setState({ status: 'expired', session: null });
 }
 
@@ -108,43 +119,53 @@ export function startGitHubAuth(): void {
   window.addEventListener(GITHUB_SESSION_REJECTED_EVENT, markGitHubSessionExpired);
 
   // The callback puts the session in the fragment (never sent to a server or
-  // logged by a proxy); an error comes back as a query parameter.
+  // logged by a proxy); an error comes back as a query parameter. For one
+  // release a backend may still send `?github_session=&username=`: accepted
+  // too, and removed from the address bar at once like the fragment.
   const query = new URLSearchParams(window.location.search);
   const fragment = new URLSearchParams(window.location.hash.slice(1));
-  const sessionFromUrl = fragment.get('github_session');
-  const usernameFromUrl = fragment.get('username');
+  const sessionFromUrl = fragment.get('github_session') ?? query.get('github_session');
+  const usernameFromUrl = fragment.get('username') ?? query.get('username');
   const error = query.get('error');
   const cleanUrl = () => window.history.replaceState({}, document.title, window.location.pathname);
 
   if (error) {
     toast.error(i18n.t('github.toasts.authFailed', { error }));
     cleanUrl();
-  } else if (sessionFromUrl && usernameFromUrl) {
+  } else if (sessionFromUrl) {
     cleanUrl();
-    if (!isValidSessionToken(sessionFromUrl) || !isValidGitHubUsername(usernameFromUrl)) {
+    if (!isValidSessionToken(sessionFromUrl) || (usernameFromUrl !== null && !isValidGitHubUsername(usernameFromUrl))) {
       console.warn('Invalid GitHub sign-in callback rejected');
     } else {
       sessionStorage.setItem(SESSION_KEY, sessionFromUrl);
       sessionStorage.setItem(SESSION_TIMESTAMP_KEY, String(Date.now()));
-      localStorage.setItem(USERNAME_KEY, usernameFromUrl);
-      setState({ status: 'signed-in', session: sessionFromUrl, username: usernameFromUrl });
-      toast.success(i18n.t('github.toasts.signedInAs', { username: usernameFromUrl }));
+      sessionStorage.removeItem(EXPIRED_KEY);
+      if (usernameFromUrl) {
+        localStorage.setItem(USERNAME_KEY, usernameFromUrl);
+        setState({ status: 'signed-in', session: sessionFromUrl, username: usernameFromUrl });
+        toast.success(i18n.t('github.toasts.signedInAs', { username: usernameFromUrl }));
+      } else {
+        // A callback without the username: the backend names the account.
+        setState({ status: 'checking', session: sessionFromUrl, username: localStorage.getItem(USERNAME_KEY) });
+        void verifySession(sessionFromUrl);
+      }
       return;
     }
   }
 
   const stored = sessionStorage.getItem(SESSION_KEY);
   const username = localStorage.getItem(USERNAME_KEY);
-  // Signing out forgets the username; a username without a session is one that
-  // expired (or was rejected) earlier, also in another tab or before a reload.
+  // Signing out forgets the username. A username without a session in this
+  // tab is "expired" when this tab's session ended, else a tab that has not
+  // connected yet (sessions are tab-scoped, the username is not).
   if (!stored) {
-    if (username) setState({ status: 'expired', username });
+    if (username) setState({ status: sessionStorage.getItem(EXPIRED_KEY) ? 'expired' : 'not-in-tab', username });
     return;
   }
   if (!username) return;
   const age = Date.now() - parseInt(sessionStorage.getItem(SESSION_TIMESTAMP_KEY) || '0', 10);
   if (age > SESSION_MAX_AGE_MS) {
-    clearStoredSession();
+    expireStoredSession();
     setState({ status: 'expired', username });
     return;
   }
@@ -162,6 +183,7 @@ export function signInWithGitHub(): void {
 export async function signOutOfGitHub(): Promise<void> {
   const { session } = state;
   clearStoredSession();
+  sessionStorage.removeItem(EXPIRED_KEY);
   localStorage.removeItem(USERNAME_KEY);
   setState(SIGNED_OUT);
   if (!session) return;

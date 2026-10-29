@@ -3,11 +3,11 @@
  * repo (in sync, behind, local changes), and the actions that move it.
  *
  * Shared by the GitHub menu in the top bar and the chat's repo header, so both
- * always show the same state.
+ * always show the same state: the sync checks run in one store
+ * (shared/services/github/repoSyncStatus.ts), once however many are mounted.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAppDispatch } from '../../../app/store/hooks';
-import { ApiError } from '../../../shared/api/api-client';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -19,27 +19,38 @@ import {
   modelFingerprint,
   setPendingGitHubChange,
   setProjectGitHubLink,
-  type PendingGitHubChange,
   type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
-import { pullRepoIntoProject } from '../../spec-driven/services/continueFromGithub';
+import { pullRepoIntoProject } from '../../../shared/services/github/pullRepoIntoProject';
+import {
+  getRepoSyncSnapshot,
+  refreshRepoSync,
+  repoSyncKey,
+  subscribeRepoSync,
+  type SyncCheckError,
+} from '../../../shared/services/github/repoSyncStatus';
 import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import {
   createPullRequest,
-  getSyncStatus,
   loadModelAtCommit,
   saveModel,
-  type PendingChangeStatus,
   type SaveModelResult,
   type SyncStatus,
 } from '../../../shared/api/github';
 
+export {
+  followPendingChange,
+  syncCheckError,
+  type SyncCheckError,
+} from '../../../shared/services/github/repoSyncStatus';
+
 export type RepoSyncState =
   | 'signed-out'
+  | 'not-in-tab'
   | 'unlinked'
   | 'checking'
   | 'in-sync'
@@ -50,17 +61,6 @@ export type RepoSyncState =
   | 'missing'
   | 'unknown';
 
-/** Why the last sync check failed: the session expired, the branch or repo is gone, or GitHub could not be reached. */
-export type SyncCheckError = 'auth' | 'missing' | 'unreachable';
-
-export function syncCheckError(error: unknown): SyncCheckError {
-  if (error instanceof ApiError && error.status === 401) return 'auth';
-  if (error instanceof ApiError && error.status === 404) return 'missing';
-  return 'unreachable';
-}
-
-// How often an open editor re-checks the linked repo for new commits.
-const SYNC_POLL_MS = 60_000;
 // Quiet time after a pull before the loaded model counts as the synced one.
 const BASELINE_SETTLE_MS = 1_500;
 
@@ -69,14 +69,17 @@ export function deriveRepoSyncState(input: {
   isAuthenticated: boolean;
   /** The GitHub session was rejected (see shared/services/github/githubAuth.ts). */
   isExpired?: boolean;
+  /** Signed in before, but not in this tab: nothing failed. */
+  isNotInTab?: boolean;
   link: ProjectGitHubLink | null;
   status: SyncStatus | null;
   isChecking: boolean;
   hasLocalChanges: boolean;
   checkError?: SyncCheckError | null;
 }): RepoSyncState {
-  const { isAuthenticated, isExpired, link, status, isChecking, hasLocalChanges, checkError } = input;
+  const { isAuthenticated, isExpired, isNotInTab, link, status, isChecking, hasLocalChanges, checkError } = input;
   if (isExpired && link) return 'reconnect';
+  if (isNotInTab && link) return 'not-in-tab';
   if (!isAuthenticated) return 'signed-out';
   if (!link) return 'unlinked';
   if (checkError === 'auth') return 'reconnect';
@@ -91,22 +94,13 @@ export function deriveRepoSyncState(input: {
 const projectExport = (project: BesserProject) =>
   buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
 
-/**
- * The pending change once GitHub says where it stands: null when its pull
- * request was merged or closed, or its branch is gone; else the change with
- * the pull request GitHub knows of.
- */
-export function followPendingChange(
-  pending: PendingGitHubChange,
-  remote: PendingChangeStatus,
-): PendingGitHubChange | null {
-  if (remote.pull_request_state === 'merged' || remote.pull_request_state === 'closed') return null;
-  if (!remote.branch_exists) return null;
-  if (remote.pull_request_url && remote.pull_request_url !== pending.pullRequestUrl) {
-    return { ...pending, pullRequestUrl: remote.pull_request_url, pullRequestNumber: remote.pull_request_number ?? undefined };
-  }
-  return pending;
-}
+/** Forget the legacy model file once a save removed it from the repo. */
+const forgetLegacyFile = (projectId: string) => {
+  const current = getProjectGitHubLink(projectId);
+  if (!current?.legacyFilePath) return;
+  const { legacyFilePath: _removed, ...rest } = current;
+  setProjectGitHubLink(projectId, rest);
+};
 
 /**
  * `checkRemote: false` skips the sync-status checks, for callers that only
@@ -115,15 +109,12 @@ export function followPendingChange(
 export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = {}) {
   const dispatch = useAppDispatch();
   const { currentProject, loadProject } = useProject();
-  const { isAuthenticated, isExpired, githubSession } = useGitHubAuth();
+  const { isAuthenticated, isExpired, isNotInTab, githubSession } = useGitHubAuth();
   const projectId = currentProject?.id ?? null;
 
   const [link, setLink] = useState<ProjectGitHubLink | null>(() =>
     projectId ? getProjectGitHubLink(projectId) : null,
   );
-  const [status, setStatus] = useState<SyncStatus | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
-  const [checkError, setCheckError] = useState<SyncCheckError | null>(null);
 
   useEffect(() => {
     const read = () => setLink(projectId ? getProjectGitHubLink(projectId) : null);
@@ -140,52 +131,18 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     };
   }, [projectId]);
 
-  // Only the newest check may set the status: a save moves the link's base,
-  // and an answer for the old base would show the save as "new commits".
-  const checkSeq = useRef(0);
-  const refresh = useCallback(async () => {
-    const current = projectId ? getProjectGitHubLink(projectId) : null;
-    if (!current || !githubSession || !projectId) return;
-    const seq = ++checkSeq.current;
-    setIsChecking(true);
-    try {
-      const next = await getSyncStatus(
-        githubSession, current.owner, current.repo, current.branch, current.baseCommitSha,
-        current.pendingChange?.branch,
-      );
-      if (seq !== checkSeq.current) return;
-      setStatus(next);
-      setCheckError(null);
-      if (current.pendingChange && next.pending) {
-        const followed = followPendingChange(current.pendingChange, next.pending);
-        if (followed !== current.pendingChange) setPendingGitHubChange(projectId, followed);
-      }
-    } catch (error) {
-      if (seq === checkSeq.current) setCheckError(syncCheckError(error));
-    } finally {
-      if (seq === checkSeq.current) setIsChecking(false);
-    }
-  }, [projectId, githubSession]);
+  // One shared check per project link, however many components subscribe.
+  const syncKey = checkRemote && link && projectId && githubSession ? repoSyncKey(projectId, githubSession, link) : null;
+  const subscribe = useCallback(
+    (listener: () => void) =>
+      syncKey && projectId && githubSession ? subscribeRepoSync(syncKey, projectId, githubSession, listener) : () => undefined,
+    [syncKey, projectId, githubSession],
+  );
+  const { status, isChecking, checkError } = useSyncExternalStore(subscribe, () => getRepoSyncSnapshot(syncKey));
 
-  // What a sync check depends on; a pull request URL arriving does not start a new one.
-  const checkKey = link
-    ? `${link.owner}/${link.repo}@${link.branch}#${link.baseCommitSha ?? ''}|${link.pendingChange?.branch ?? ''}`
-    : null;
-  useEffect(() => {
-    setStatus(null);
-    setCheckError(null);
-    if (!checkRemote || !checkKey || !githubSession) return undefined;
-    void refresh();
-    const onFocus = () => void refresh();
-    window.addEventListener('focus', onFocus);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh();
-    }, SYNC_POLL_MS);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.clearInterval(timer);
-    };
-  }, [checkRemote, checkKey, githubSession, refresh]);
+  const refresh = useCallback(async () => {
+    if (projectId && githubSession) await refreshRepoSync(projectId, githubSession);
+  }, [projectId, githubSession]);
 
   // After a pull the editor rewrites the model into its current format: take
   // the sync fingerprint once the project has stopped changing.
@@ -204,8 +161,8 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   );
 
   const state = useMemo(
-    () => deriveRepoSyncState({ isAuthenticated, isExpired, link, status, isChecking, hasLocalChanges, checkError }),
-    [isAuthenticated, isExpired, link, status, isChecking, hasLocalChanges, checkError],
+    () => deriveRepoSyncState({ isAuthenticated, isExpired, isNotInTab, link, status, isChecking, hasLocalChanges, checkError }),
+    [isAuthenticated, isExpired, isNotInTab, link, status, isChecking, hasLocalChanges, checkError],
   );
 
   const markSynced = markProjectGitHubSynced;
@@ -228,7 +185,6 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   const pull = useCallback(async () => {
     if (!link || !projectId) return;
     await pullInto(link, projectId);
-    setStatus(null);
     await refresh();
   }, [link, projectId, pullInto, refresh]);
 
@@ -246,12 +202,16 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
         project_data: project,
         project_export: projectExport(project),
         base_commit_sha: link.baseCommitSha,
+        // The old sidebar's model file: this save commit deletes it.
+        ...(link.legacyFilePath ? { legacy_file_path: link.legacyFilePath } : {}),
       });
       if (result.status === 'merged') {
         // The branch now holds both sides: load it so the editor shows the merge.
         await pullInto(link, projectId);
+        forgetLegacyFile(projectId);
       } else if (result.status === 'pushed') {
         markSynced(link, project, result.commit_sha);
+        forgetLegacyFile(projectId);
       } else if (result.status === 'conflict' && result.conflict_branch) {
         setPendingGitHubChange(projectId, {
           kind: 'conflict', branch: result.conflict_branch, title: commitMessage, createdAt: new Date().toISOString(),

@@ -15,7 +15,7 @@ const project = { id: 'p1', name: 'Library', diagrams: { ClassDiagram: [{ model:
 
 // Stable references, as the real hooks return: the hook's effects depend on them.
 const stable = vi.hoisted(() => ({
-  auth: { isAuthenticated: true, isExpired: false, githubSession: 'session' as string | null },
+  auth: { isAuthenticated: true, isExpired: false, isNotInTab: false, githubSession: 'session' as string | null },
   project: { currentProject: null as unknown, loadProject: vi.fn(async () => {}) },
   dispatch: vi.fn(),
 }));
@@ -33,7 +33,8 @@ vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
   ProjectStorageRepository: { loadProject: () => project },
 }));
 vi.mock('../../../../shared/utils/projectExportUtils', () => ({ buildProjectExportEnvelope: () => ({}) }));
-vi.mock('../../../spec-driven/services/continueFromGithub', () => ({ pullRepoIntoProject: vi.fn() }));
+const pullRepoIntoProject = vi.hoisted(() => vi.fn());
+vi.mock('../../../../shared/services/github/pullRepoIntoProject', () => ({ pullRepoIntoProject }));
 
 const status = (commitsSince = 0, pending: SyncStatus['pending'] = null): SyncStatus => ({
   head_sha: 'f'.repeat(40),
@@ -47,7 +48,8 @@ const status = (commitsSince = 0, pending: SyncStatus['pending'] = null): SyncSt
 beforeEach(() => {
   localStorage.clear();
   stable.project.currentProject = project;
-  Object.assign(stable.auth, { isAuthenticated: true, isExpired: false, githubSession: 'session' });
+  Object.assign(stable.auth, { isAuthenticated: true, isExpired: false, isNotInTab: false, githubSession: 'session' });
+  pullRepoIntoProject.mockReset();
   Object.values(api).forEach((fn) => fn.mockReset());
   setProjectGitHubLink('p1', {
     owner: 'me', repo: 'library', branch: 'main', baseCommitSha: BASE, syncedModel: modelFingerprint(project as never),
@@ -115,6 +117,91 @@ describe('useRepoSync', () => {
 
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(SAVED);
     expect(result.current.state).toBe('in-sync');
+  });
+
+  it('checks GitHub once for every component showing the repo, also on focus (review repro)', async () => {
+    // The GitHub menu and the chat header each polled sync-status on their own, and could disagree.
+    api.getSyncStatus.mockResolvedValue(status());
+    const menu = renderHook(() => useRepoSync());
+    const chatHeader = renderHook(() => useRepoSync());
+
+    await waitFor(() => expect(menu.result.current.state).toBe('in-sync'));
+    expect(chatHeader.result.current.state).toBe('in-sync');
+    expect(api.getSyncStatus).toHaveBeenCalledTimes(1);
+
+    api.getSyncStatus.mockClear();
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(api.getSyncStatus).toHaveBeenCalledTimes(1);
+
+    // Both see the same answer.
+    api.getSyncStatus.mockResolvedValue(status(2));
+    await act(async () => {
+      await menu.result.current.refresh();
+    });
+    expect(menu.result.current.state).toBe('behind');
+    expect(chatHeader.result.current.state).toBe('behind');
+  });
+
+  it('stops checking once nothing shows the repo any more', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      api.getSyncStatus.mockResolvedValue(status());
+      const { unmount } = renderHook(() => useRepoSync());
+      await waitFor(() => expect(api.getSyncStatus).toHaveBeenCalledTimes(1));
+      unmount();
+      api.getSyncStatus.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(120_000);
+        window.dispatchEvent(new Event('focus'));
+      });
+      expect(api.getSyncStatus).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends the old sidebar's model file on the first save, and forgets it once saved", async () => {
+    // Models the old sidebar saved at <dir>/<project>.json stayed in the repo, invisible to the new menu.
+    setProjectGitHubLink('p1', { ...getProjectGitHubLink('p1')!, legacyFilePath: 'models/library.json' });
+    api.getSyncStatus.mockResolvedValue(status());
+    api.saveModel.mockResolvedValue({ success: true, commit_sha: SAVED, message: '', status: 'pushed', conflict_branch: null });
+    const { result } = renderHook(() => useRepoSync());
+
+    await act(async () => {
+      await result.current.save('First save');
+    });
+    expect(api.saveModel.mock.calls[0][1]).toMatchObject({ legacy_file_path: 'models/library.json' });
+    expect(getProjectGitHubLink('p1')?.legacyFilePath).toBeUndefined();
+
+    await act(async () => {
+      await result.current.save('Second save');
+    });
+    expect(api.saveModel.mock.calls[1][1]).not.toHaveProperty('legacy_file_path');
+  });
+
+  it("keeps the old sidebar's file to delete when the save did not reach the branch", async () => {
+    setProjectGitHubLink('p1', { ...getProjectGitHubLink('p1')!, legacyFilePath: 'models/library.json' });
+    api.getSyncStatus.mockResolvedValue(status());
+    api.saveModel.mockResolvedValue({
+      success: false, commit_sha: SAVED, message: '', status: 'conflict', conflict_branch: 'besser/sync-bbbbbbb',
+    });
+    const { result } = renderHook(() => useRepoSync());
+
+    await act(async () => {
+      await result.current.save('Rename Author');
+    });
+    expect(getProjectGitHubLink('p1')?.legacyFilePath).toBe('models/library.json');
+  });
+
+  it('says "not connected in this tab" on a linked project in a tab without a session', () => {
+    Object.assign(stable.auth, { isAuthenticated: false, isNotInTab: true, githubSession: null });
+
+    const { result } = renderHook(() => useRepoSync());
+
+    expect(result.current.state).toBe('not-in-tab');
+    expect(api.getSyncStatus).not.toHaveBeenCalled();
   });
 
   it('offers Reconnect on a linked project when the session expired', () => {

@@ -15,6 +15,11 @@ const state = (over: Partial<Parameters<typeof deriveRepoSyncState>[0]>) =>
   deriveRepoSyncState({ isAuthenticated: true, link, status: status(0), isChecking: false, hasLocalChanges: false, ...over });
 
 describe('deriveRepoSyncState', () => {
+  it('says "not connected in this tab", not "reconnect", for a tab without a session', () => {
+    expect(state({ isAuthenticated: false, isNotInTab: true, status: null })).toBe('not-in-tab');
+    expect(state({ isAuthenticated: false, isExpired: true, status: null })).toBe('reconnect');
+  });
+
   it('is in sync when nothing changed on either side', () => {
     expect(state({})).toBe('in-sync');
   });

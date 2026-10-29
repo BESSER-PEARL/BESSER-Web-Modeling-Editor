@@ -19,6 +19,7 @@ const DOT: Record<RepoSyncState, string> = {
   checking: 'bg-muted-foreground/50',
   unknown: 'bg-muted-foreground/50',
   unlinked: 'bg-muted-foreground/50',
+  'not-in-tab': 'bg-muted-foreground/50',
   'signed-out': 'bg-muted-foreground/50',
 };
 
@@ -38,6 +39,7 @@ export const RepoChatHeader: React.FC<{ className?: string }> = ({ className }) 
     checking: t('github.linked.checking'),
     unknown: t('github.status.unknown', { defaultValue: 'Could not reach the repository' }),
     unlinked: '',
+    'not-in-tab': t('github.chatHeader.notInTab', { defaultValue: 'Not connected in this tab' }),
     'signed-out': t('github.chatHeader.signedOut', { defaultValue: 'Connect GitHub to see its status' }),
   };
 

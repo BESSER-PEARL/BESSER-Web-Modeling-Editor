@@ -3,7 +3,7 @@
  * in it shows the project's repository and its sync state, and opens a menu
  * with everything you do with that repository.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
@@ -35,6 +35,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useProject } from '../../../app/hooks/useProject';
+import { useHasOpened } from '../../../app/hooks/useHasOpened';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
@@ -44,10 +45,20 @@ import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
-import { CreateRepositoryDialog } from '../dialogs/CreateRepositoryDialog';
-import { SaveToGitHubDialog } from '../dialogs/SaveToGitHubDialog';
-import { ModelHistoryDialog } from '../dialogs/ModelHistoryDialog';
-import { LinkRepositoryDialog } from '../dialogs/LinkRepositoryDialog';
+
+// The menu is in the top bar from the start; its dialogs load on first open.
+const CreateRepositoryDialog = React.lazy(() =>
+  import('../dialogs/CreateRepositoryDialog').then((m) => ({ default: m.CreateRepositoryDialog })),
+);
+const SaveToGitHubDialog = React.lazy(() =>
+  import('../dialogs/SaveToGitHubDialog').then((m) => ({ default: m.SaveToGitHubDialog })),
+);
+const ModelHistoryDialog = React.lazy(() =>
+  import('../dialogs/ModelHistoryDialog').then((m) => ({ default: m.ModelHistoryDialog })),
+);
+const LinkRepositoryDialog = React.lazy(() =>
+  import('../dialogs/LinkRepositoryDialog').then((m) => ({ default: m.LinkRepositoryDialog })),
+);
 
 interface GitHubMenuProps {
   outlineButtonClass: string;
@@ -69,6 +80,7 @@ const REPO_STATE_DOT: Record<RepoSyncState, string> = {
   checking: 'bg-muted-foreground/50',
   unknown: 'bg-muted-foreground/50',
   unlinked: 'bg-muted-foreground/50',
+  'not-in-tab': 'bg-muted-foreground/50',
   'signed-out': 'bg-muted-foreground/50',
 };
 
@@ -82,6 +94,7 @@ const REPO_STATE_LABEL: Record<RepoSyncState, string> = {
   checking: '{{repo}}: checking GitHub',
   unknown: '{{repo}}: could not reach GitHub',
   unlinked: 'Link this project to a GitHub repository',
+  'not-in-tab': '{{repo}}: GitHub is not connected in this tab',
   'signed-out': 'GitHub',
 };
 
@@ -99,7 +112,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
 }) => {
   const { t } = useTranslation();
   const { currentProject } = useProject();
-  const { isExpired, isChecking: isCheckingSession } = useGitHubAuth();
+  const { isExpired, isNotInTab, isChecking: isCheckingSession } = useGitHubAuth();
   const sync = useRepoSync();
   const { link, state, status, hasLocalChanges, githubSession } = sync;
   const flushEditor = useFlushEditorModel();
@@ -110,6 +123,10 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const [newRepoName, setNewRepoName] = useState('');
   const [newRepoDescription, setNewRepoDescription] = useState('');
   const [isRepoPrivate, setIsRepoPrivate] = useState(true);
+  const saveMounted = useHasOpened(dialog === 'save');
+  const historyMounted = useHasOpened(dialog === 'history');
+  const linkMounted = useHasOpened(dialog === 'link');
+  const createMounted = useHasOpened(dialog === 'create');
 
   // The chat's repo header (and anything else) opens this menu through the event.
   const openFromEventRef = useRef<() => void>(() => undefined);
@@ -134,6 +151,10 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       ? t('github.menu.reconnect', { defaultValue: 'Reconnect GitHub' })
       : t('topbar.connectGithub', { defaultValue: 'Connect GitHub' });
     const busyConnecting = githubLoading || isCheckingSession;
+    // Signed in in another tab: a plain Connect, saying why, never an error.
+    const hint = isNotInTab
+      ? t('github.menu.notInTabHint', { defaultValue: 'GitHub is not connected in this tab. Connect it to use it here.' })
+      : label;
     return (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -144,13 +165,14 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             onClick={onLogin}
             disabled={busyConnecting}
             aria-label={label}
+            aria-description={isNotInTab ? hint : undefined}
           >
             {busyConnecting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Github className="size-4" aria-hidden="true" />}
             <span className="hidden xl:inline">{busyConnecting ? t('common.connecting') : label}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="xl:hidden">
-          {label}
+        <TooltipContent side="bottom" className={isNotInTab ? undefined : 'xl:hidden'}>
+          {hint}
         </TooltipContent>
       </Tooltip>
     );
@@ -448,21 +470,31 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <SaveToGitHubDialog open={dialog === 'save'} onOpenChange={(open) => setDialog(open ? 'save' : null)} sync={sync} flushEditor={flushEditor} />
-      <ModelHistoryDialog open={dialog === 'history'} onOpenChange={(open) => setDialog(open ? 'history' : null)} sync={sync} />
-      <LinkRepositoryDialog open={dialog === 'link'} onOpenChange={(open) => setDialog(open ? 'link' : null)} sync={sync} />
-      <CreateRepositoryDialog
-        open={dialog === 'create'}
-        isLoading={busy}
-        repoName={newRepoName}
-        repoDescription={newRepoDescription}
-        isRepoPrivate={isRepoPrivate}
-        onOpenChange={(open) => setDialog(open ? 'create' : null)}
-        onRepoNameChange={setNewRepoName}
-        onRepoDescriptionChange={setNewRepoDescription}
-        onRepoPrivateChange={setIsRepoPrivate}
-        onCreate={() => void handleCreateRepo()}
-      />
+      <Suspense fallback={null}>
+        {saveMounted && (
+          <SaveToGitHubDialog open={dialog === 'save'} onOpenChange={(open) => setDialog(open ? 'save' : null)} sync={sync} flushEditor={flushEditor} />
+        )}
+        {historyMounted && (
+          <ModelHistoryDialog open={dialog === 'history'} onOpenChange={(open) => setDialog(open ? 'history' : null)} sync={sync} />
+        )}
+        {linkMounted && (
+          <LinkRepositoryDialog open={dialog === 'link'} onOpenChange={(open) => setDialog(open ? 'link' : null)} sync={sync} />
+        )}
+        {createMounted && (
+          <CreateRepositoryDialog
+            open={dialog === 'create'}
+            isLoading={busy}
+            repoName={newRepoName}
+            repoDescription={newRepoDescription}
+            isRepoPrivate={isRepoPrivate}
+            onOpenChange={(open) => setDialog(open ? 'create' : null)}
+            onRepoNameChange={setNewRepoName}
+            onRepoDescriptionChange={setNewRepoDescription}
+            onRepoPrivateChange={setIsRepoPrivate}
+            onCreate={() => void handleCreateRepo()}
+          />
+        )}
+      </Suspense>
     </>
   );
 };
