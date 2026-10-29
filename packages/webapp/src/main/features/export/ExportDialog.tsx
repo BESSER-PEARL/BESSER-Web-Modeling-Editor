@@ -29,6 +29,7 @@ import { exportProjectAsSingleBUMLFile } from './useExportProjectBUML';
 import { useAppSelector } from '../../app/store/hooks';
 import { selectActiveDiagram } from '../../app/store/workspaceSlice';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
+import { useProjectTrace } from '../../shared/traceability/traceStore';
 
 interface ExportDialogProps {
   open: boolean;
@@ -52,6 +53,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const exportKgRdf = useExportKgRdf();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
+  // The trace is offered only once something was recorded, and is never pre-selected.
+  const traceOperationCount = useProjectTrace(currentProject?.id)?.operations.length ?? 0;
+  const [includeTrace, setIncludeTrace] = useState(false);
   // The ref blocks a second click in the same tick; the state drives the UI.
   const pendingRef = useRef<ExportFormat | null>(null);
   const [pendingFormat, setPendingFormat] = useState<ExportFormat | null>(null);
@@ -82,6 +86,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
     const hasClass = diagramEntries.some(([type]) => type === 'ClassDiagram');
     setSelectedDiagrams(hasClass ? ['ClassDiagram'] : []);
+    setIncludeTrace(false);
     setHasInitializedSelection(true);
   }, [open, diagramEntries, hasInitializedSelection]);
 
@@ -123,9 +128,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       } else if (format === 'PNG') {
         await exportAsPNG(editor!, normalizedTitle, false);
       } else if (format === 'JSON') {
-        await exportProjectById(currentProject, selectedDiagrams);
+        await exportProjectById(currentProject, selectedDiagrams, includeTrace && traceOperationCount > 0);
       } else if (format === 'BUML') {
-        await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams);
+        await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams, includeTrace && traceOperationCount > 0);
       } else if (format === 'SINGLE_BUML') {
         // Include the referenced ClassDiagram data for diagram types that depend on it
         let refData: UMLModel | undefined;
@@ -217,6 +222,19 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                       </div>
                     </label>
                   ))}
+                  {traceOperationCount > 0 && (
+                    <label className="mt-1 flex cursor-pointer items-start gap-2.5 rounded-md border-t border-border/40 px-1.5 pb-1 pt-2.5 text-sm transition-colors hover:bg-muted/30">
+                      <span className="mt-0.5 inline-flex">
+                        <Checkbox checked={includeTrace} onCheckedChange={() => setIncludeTrace((value) => !value)} />
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{t('export.dialog.traceability')}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t('export.dialog.traceabilityDescription', { count: traceOperationCount })}
+                        </span>
+                      </div>
+                    </label>
+                  )}
                 </div>
 
                 <div className="mt-4 grid gap-2">

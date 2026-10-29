@@ -8,7 +8,8 @@ import { downloadFile } from '../../shared/utils/download';
 
 export async function exportProjectAsSingleBUMLFile(
   project: BesserProject,
-  diagramTypes?: SupportedDiagramType[]
+  diagramTypes?: SupportedDiagramType[],
+  includeTrace = false,
 ): Promise<void> {
   if (!project) {
     toast.error(i18n.t('export.toasts.noProjectData'));
@@ -21,7 +22,7 @@ export async function exportProjectAsSingleBUMLFile(
 
   console.log('[BUML Export] Using project data:', projectToUse.id);
 
-  const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes);
+  const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes, { includeTrace });
 
   try {
     const response = await fetch(`${BACKEND_URL}/export-project-as-buml`, {

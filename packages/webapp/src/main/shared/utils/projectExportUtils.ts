@@ -10,6 +10,8 @@ import {
 import { normalizeProjectName } from './projectName';
 import { EDITOR_VERSION } from '../constants/constant';
 import { getCachedBesserVersion } from '../services/besserVersion';
+import { getProjectTrace } from '../traceability/traceStore';
+import type { TraceFile } from '../types/traceability';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
 
@@ -140,8 +142,13 @@ export const buildExportableProjectPayload = (
 export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
+  options: { includeTrace?: boolean } = {},
 ): Record<string, unknown> => {
-  const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
+  const payload: ExportableProjectPayload & { trace?: TraceFile } = buildExportableProjectPayload(
+    project,
+    selectedDiagramTypes,
+  );
+  if (options.includeTrace) payload.trace = getProjectTrace(project.id);
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {
@@ -194,6 +201,8 @@ export interface ProjectExportEnvelope {
   agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
   activeAgentConfigurationId?: string | null;
   agentBaseModels?: Record<string, UMLModel>;
+  /** The project trace, when the user exports the project with it. Kept apart from `project`. */
+  trace?: TraceFile;
 }
 
 export interface BuildProjectExportEnvelopeOptions {
@@ -204,6 +213,8 @@ export interface BuildProjectExportEnvelopeOptions {
    * profiles don't end up in a public repo.
    */
   includePersonalization?: boolean;
+  /** Bundle the project trace (`besser_traces_<id>`). Default: ``false``; the user opts in per export. */
+  includeTrace?: boolean;
 }
 
 /**
@@ -232,6 +243,8 @@ export function buildProjectExportEnvelope(
     version: PROJECT_EXPORT_VERSION,
     ...versionMetadata(),
   };
+
+  if (options.includeTrace) envelope.trace = getProjectTrace(project.id);
 
   if (includePersonalization) {
     const agentConfigurations = LocalStorageRepository.getAgentConfigurations();

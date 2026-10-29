@@ -18,6 +18,7 @@ import {
   StoredUserProfile,
 } from '../storage/local-storage-types';
 import { BACKEND_URL } from '../../constants/constant';
+import { importProjectTrace } from '../../traceability/traceStore';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 // Interface for V2 JSON export format
@@ -30,6 +31,8 @@ interface V2ExportData {
   agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
   activeAgentConfigurationId?: string | null;
   agentBaseModels?: Record<string, UMLModel>;
+  /** The project trace, when it was exported with the project (validated on import). */
+  trace?: unknown;
 }
 
 // Interface for legacy import validation (V1 format)
@@ -292,6 +295,15 @@ interface ImportedPersonalization {
   agentBaseModels?: Record<string, UMLModel>;
 }
 
+/**
+ * Store the trace an imported project file carried, under the project's new id. A B-UML file has
+ * no project settings, so a project imported from one with a trace goes on recording traces.
+ */
+function storeImportedTrace(project: BesserProject, trace: unknown, fromBuml: boolean): void {
+  if (trace == null || !importProjectTrace(project.id, trace)) return;
+  if (fromBuml) project.settings = { ...project.settings, traceabilityEnabled: true };
+}
+
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
   // Check if the imported GUI model is empty
@@ -370,6 +382,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
     });
+    storeImportedTrace(project, jsonData.trace, true);
     storeImportedProject(project, extractPersonalization(jsonData));
     return project;
   } else if (validateLegacyImportData(jsonData)) {
@@ -410,6 +423,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           });
 
           // Store using project storage
+          storeImportedTrace(importedProject, jsonData.trace, false);
           storeImportedProject(importedProject, extractPersonalization(jsonData));
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
