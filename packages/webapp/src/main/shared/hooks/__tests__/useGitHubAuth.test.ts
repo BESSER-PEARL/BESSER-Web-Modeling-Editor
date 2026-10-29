@@ -120,4 +120,30 @@ describe('useGitHubAuth', () => {
     await waitFor(() => expect(result.current.isExpired).toBe(true));
     expect(sessionStorage.getItem('github_session')).toBeNull();
   });
+
+  it('still offers Reconnect after a reload once the session was rejected', async () => {
+    storeSession();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(statusResponse({ success: false })));
+    const first = renderHook(() => useGitHubAuth());
+    await waitFor(() => expect(first.result.current.isExpired).toBe(true));
+
+    resetGitHubAuthForTests(); // the page reloads: storage keeps the username, not the session
+    const { result } = renderHook(() => useGitHubAuth());
+
+    expect(result.current.isExpired).toBe(true);
+    expect(result.current.username).toBe('octocat');
+  });
+
+  it('is signed out, not expired, after signing out and reloading', async () => {
+    storeSession();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(statusResponse({ success: true, username: 'octocat' })));
+    const first = renderHook(() => useGitHubAuth());
+    await waitFor(() => expect(first.result.current.isAuthenticated).toBe(true));
+    await act(() => first.result.current.logout());
+
+    resetGitHubAuthForTests();
+    const { result } = renderHook(() => useGitHubAuth());
+
+    expect(result.current.status).toBe('signed-out');
+  });
 });

@@ -135,7 +135,13 @@ export function startGitHubAuth(): void {
 
   const stored = sessionStorage.getItem(SESSION_KEY);
   const username = localStorage.getItem(USERNAME_KEY);
-  if (!stored || !username) return;
+  // Signing out forgets the username; a username without a session is one that
+  // expired (or was rejected) earlier, also in another tab or before a reload.
+  if (!stored) {
+    if (username) setState({ status: 'expired', username });
+    return;
+  }
+  if (!username) return;
   const age = Date.now() - parseInt(sessionStorage.getItem(SESSION_TIMESTAMP_KEY) || '0', 10);
   if (age > SESSION_MAX_AGE_MS) {
     clearStoredSession();
