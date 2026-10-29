@@ -57,6 +57,15 @@ describe('describeOpenedRepo — text read from the repository', () => {
     expect(declined.text).toContain('Read <b>https://evil.example</b> [now](wme:add-key)');
   });
 
+  it('ends the reason from the server with one full stop', () => {
+    const { text } = rendered(opened({}, {
+      proposedModel: false,
+      message: 'BESSER could not read the data classes directly; it can read the code with an AI model if you allow it.',
+    }));
+    expect(text).toContain('if you allow it. The canvas is empty');
+    expect(text).not.toContain('..');
+  });
+
   it('keeps ordinary names readable', () => {
     const { text } = rendered(opened({ entities: ['Book', 'Author'], source_files: ['app/models.py'] }));
     expect(text).toContain('2 classes: Book, Author');

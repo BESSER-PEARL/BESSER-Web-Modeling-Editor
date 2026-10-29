@@ -258,7 +258,7 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
   if (!result.proposedModel) {
     // The server says why (no readable classes, AI reading unavailable, declined or failed).
     const why = result.message
-      ? `${escapeMarkdownText(result.message.replace(/;\s*you can still work on its code\.?$/i, ''))}.`
+      ? `${escapeMarkdownText(result.message.replace(/;\s*you can still work on its code\.?$/i, '').replace(/[.!?\s]+$/, ''))}.`
       : 'It has no BESSER model, and I found no data classes I can read into one.';
     return (
       `Opened ${repo}${stackText}. ${why} The canvas is empty, but I can still work on its code: ` +
