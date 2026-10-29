@@ -18,6 +18,7 @@ import {
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
 import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
+import { deleteProjectTrace } from '../../traceability/traceStore';
 
 export class ProjectStorageRepository {
 
@@ -430,6 +431,9 @@ export class ProjectStorageRepository {
 
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
+
+      // The project's trace is stored under its own key
+      deleteProjectTrace(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();

@@ -357,6 +357,12 @@ export interface BesserProject {
      * projects created before this field load unchanged, so no schema bump.
      */
     preferredInterface?: InterfaceMode;
+    /**
+     * Record traces (modelling edits, generation runs) for this project. Off
+     * unless set; the trace itself is stored apart from the project (see
+     * `shared/traceability/traceStore.ts`). Optional, so no schema bump.
+     */
+    traceabilityEnabled?: boolean;
   };
   /** derivedDiagramId → ElementLineageMap. Sidecar; populated
    *  by the inter-diagram derivation hooks after the derived diagram

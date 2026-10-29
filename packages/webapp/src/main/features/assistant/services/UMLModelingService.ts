@@ -355,6 +355,7 @@ export class UMLModelingService {
       // Persist to Redux store first, then update editor
       await this.dispatch(updateDiagramModelThunk({
         model: updatedModel as any,
+        traceSource: 'ASSISTANT_MODELLING',
       })).unwrap();
 
       if (this.editor) {
@@ -420,6 +421,7 @@ export class UMLModelingService {
     // Persist to Redux store first, then update editor
     await this.dispatch(updateDiagramModelThunk({
       model: mergedModel as any,
+      traceSource: 'ASSISTANT_MODELLING',
     })).unwrap();
 
     if (this.editor) {

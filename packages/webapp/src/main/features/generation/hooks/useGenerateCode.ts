@@ -14,6 +14,14 @@ import {
   stripAgentConfigToSystem,
 } from '../../deploy/utils/restoreBaseAgentModels';
 import type { GenerationOptions, GenerationResult } from '../types';
+import { getActiveDiagram } from '../../../shared/types/project';
+import { ApiError } from '../../../shared/api/api-client';
+import { generateWithTrace, TRACED_GENERATORS, tracedFileBlob } from '../../../shared/api/traceability';
+import {
+  isTraceabilityEnabled,
+  recordGenerationTrace,
+  traceActorName,
+} from '../../../shared/traceability/traceStore';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
 // Add type definitions
@@ -367,6 +375,35 @@ export const useGenerateCode = () => {
           : undefined;
         if (typeof activeAgentDiagram?.configYaml === 'string') {
           body.configYaml = activeAgentDiagram.configYaml;
+        }
+      }
+
+      // A project that records traces gets the run's trace links along with the
+      // file, from the traced endpoint (same file, same download).
+      const project = ProjectStorageRepository.getCurrentProject();
+      const classDiagram = project ? getActiveDiagram(project, 'ClassDiagram') : undefined;
+      if (project && classDiagram && !modelOverride && isTraceabilityEnabled(project) && TRACED_GENERATORS.has(generatorType)) {
+        try {
+          const traced = await generateWithTrace({
+            id: classDiagram.id,
+            title: diagramTitle,
+            model: modelForGeneration,
+            generator: generatorType,
+            config,
+            actorName: traceActorName(project),
+          });
+          recordGenerationTrace(project.id, { ...traced.trace, projectId: project.id });
+          const blob = tracedFileBlob(traced);
+          if (opts?.autoDownload === false) {
+            return { ok: true, filename: traced.fileName, blob };
+          }
+          downloadFile({ file: blob, filename: traced.fileName });
+          toast.success(t('generation.toasts.codeGenerationCompleted'));
+          return { ok: true, filename: traced.fileName };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : t('generation.toasts.unknownError');
+          toast.error(error instanceof ApiError ? opts?.describeError?.(error.status, message) ?? message : message);
+          return { ok: false, error: message };
         }
       }
 

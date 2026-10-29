@@ -328,11 +328,11 @@ export function useModelInjection({
             // This tab bypasses the GUI editor's load path, so mark agent text
             // editable here too (no-op for UML models). See markTextEditable.
             if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
-            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+            await dispatch(updateDiagramModelThunk({ model: convertedModel, traceSource: 'ASSISTANT_MODELLING' }));
             appliedModel = convertedModel;
           } else if (command.model) {
             if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
-            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+            await dispatch(updateDiagramModelThunk({ model: command.model as any, traceSource: 'ASSISTANT_MODELLING' }));
             appliedModel = command.model;
           }
           // Freshly generated class diagram in a new tab -> let ELK arrange it
@@ -557,7 +557,7 @@ export function useModelInjection({
                   : 'Applied model modification',
             });
           } else {
-            await dispatch(updateDiagramModelThunk({ model: newModel }));
+            await dispatch(updateDiagramModelThunk({ model: newModel, traceSource: 'ASSISTANT_MODELLING' }));
             // A freshly generated complete class diagram should be ELK-arranged
             // on the recreated editor. Incremental edits and merges keep their positions.
             if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram' && !mergeIntoCurrent) {
@@ -603,7 +603,7 @@ export function useModelInjection({
           // bypasses the GUI editor's load path, so mark agent text editable
           // before persisting so the reloaded GUI is double-click editable.
           if (targetDiagramIsGui) markTextEditable(command.model as any);
-          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any, traceSource: 'ASSISTANT_MODELLING' }));
           if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
@@ -679,7 +679,7 @@ export function useModelInjection({
       if (editor) {
         editor.model = snapshot.model;
       }
-      dispatch(updateDiagramModelThunk({ model: snapshot.model }));
+      dispatch(updateDiagramModelThunk({ model: snapshot.model, traceSource: 'ASSISTANT_MODELLING' }));
 
       setMessages((prev) => [...prev, toKitMessage('assistant', `Undone: ${snapshot.description}`)]);
     } catch (error) {

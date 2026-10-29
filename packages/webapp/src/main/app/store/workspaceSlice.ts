@@ -22,6 +22,8 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
+import { recordClassDiagramUpdate } from '../../shared/traceability/traceStore';
+import type { ModellingSource } from '../../shared/traceability/traceRecorder';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -266,10 +268,15 @@ export const openDiagramThunk = createAsyncThunk(
   },
 );
 
+export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>> & {
+  /** Who made the change, for the project trace: the user on the canvas (default) or the assistant. */
+  traceSource?: ModellingSource;
+};
+
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (
-    updates: Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>>,
+    { traceSource = 'MANUAL_MODELLING', ...updates }: DiagramModelUpdate,
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -304,7 +311,27 @@ export const updateDiagramModelThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update diagram');
+    if (activeDiagramType === 'ClassDiagram' && updates.model) {
+      recordClassDiagramUpdate(project, updated, current.model, updated.model, traceSource);
+    }
     return updated;
+  },
+);
+
+/** Turn trace recording on or off for the open project (view-only, no revision bump). */
+export const setTraceabilityEnabledThunk = createAsyncThunk(
+  'workspace/setTraceabilityEnabled',
+  async (enabled: boolean, { getState }) => {
+    const { project } = (getState() as { workspace: WorkspaceState }).workspace;
+    if (!project) throw new Error('No active project');
+    const updatedProject: BesserProject = {
+      ...project,
+      settings: { ...project.settings, traceabilityEnabled: enabled },
+    };
+    ProjectStorageRepository.withoutNotify(() => {
+      ProjectStorageRepository.saveProject(updatedProject);
+    });
+    return enabled;
   },
 );
 
@@ -889,6 +916,14 @@ const workspaceSlice = createSlice({
             perspectives,
           };
         }
+      })
+      .addCase(setTraceabilityEnabledThunk.fulfilled, (state, action) => {
+        if (state.project) {
+          state.project.settings = { ...state.project.settings, traceabilityEnabled: action.payload };
+        }
+      })
+      .addCase(setTraceabilityEnabledThunk.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update traceability';
       })
       .addCase(applyPerspectivePresetThunk.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to apply perspective preset';
