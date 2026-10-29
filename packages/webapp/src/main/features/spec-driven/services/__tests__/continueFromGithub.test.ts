@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const importRepoAsRun = vi.fn();
-vi.mock('../../../github/services/githubApi', () => ({
+vi.mock('../../../../shared/api/github', () => ({
   importRepoAsRun: (...args: unknown[]) => importRepoAsRun(...args),
 }));
 const importProjectFromJson = vi.fn(async (_file: File) => ({ id: 'p-new', name: 'Library', diagrams: {} }));

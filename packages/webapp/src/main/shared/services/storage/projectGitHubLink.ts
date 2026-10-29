@@ -29,6 +29,8 @@ export interface RepoCodeAnalysis {
   entities: string[];
   /** True when an AI model proposed the classes because no data classes were readable directly. */
   ai?: boolean;
+  /** Relationships read from the code that the proposed model could not take, as "Source -> Target". */
+  skipped_relationships?: string[];
 }
 
 /** A save or push kept on its own branch instead of the linked one. */

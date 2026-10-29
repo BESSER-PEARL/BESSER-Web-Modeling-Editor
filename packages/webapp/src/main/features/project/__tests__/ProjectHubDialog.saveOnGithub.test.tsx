@@ -38,7 +38,7 @@ vi.mock('../saveProjectOnGithub', async (importOriginal) => ({
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn(), loading: vi.fn(() => 'toast-id'), update: vi.fn() },
 }));
-vi.mock('../../github/components/RepoBrowser', () => ({ RepoBrowser: () => <div data-testid="repo-browser" /> }));
+vi.mock('../../../shared/components/github/RepoBrowser', () => ({ RepoBrowser: () => <div data-testid="repo-browser" /> }));
 vi.mock('../../import/useImportDiagram', () => ({ useImportDiagramToProject: () => vi.fn() }));
 vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('../../../shared/services/project-import/projectImport', () => ({ importProject: vi.fn() }));

@@ -36,7 +36,7 @@ import {
   type PendingChangeStatus,
   type SaveModelResult,
   type SyncStatus,
-} from '../services/githubApi';
+} from '../../../shared/api/github';
 
 export type RepoSyncState =
   | 'signed-out'

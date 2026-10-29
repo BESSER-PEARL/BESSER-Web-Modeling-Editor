@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ApiError } from '../../../shared/api/api-client';
 import { setProjectGitHubLink, type ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
-import { goLive, type GoLiveResult } from '../services/githubApi';
+import { goLive, type GoLiveResult } from '../../../shared/api/github';
 
 interface GoLiveDialogProps {
   open: boolean;

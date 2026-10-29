@@ -16,7 +16,7 @@ import { useAppDispatch } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
 import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
-import { RepoBrowser, type RepoChoice } from '../../github/components/RepoBrowser';
+import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../spec-driven/services/continueFromGithub';
 import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
 import { postAssistantMessage } from '../hooks/assistantConversationStore';

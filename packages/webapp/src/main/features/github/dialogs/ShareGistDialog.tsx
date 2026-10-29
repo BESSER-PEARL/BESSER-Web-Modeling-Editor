@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
-import { createGist } from '../services/githubApi';
+import { createGist } from '../../../shared/api/github';
 import { CreateGistDialog } from './CreateGistDialog';
 
 interface ShareGistDialogProps {

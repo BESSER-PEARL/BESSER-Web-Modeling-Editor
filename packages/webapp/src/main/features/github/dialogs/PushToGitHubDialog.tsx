@@ -34,7 +34,7 @@ import { FormField } from '@/components/ui/form-field';
 import { sanitizeRepoName, validateRepoName } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 import type { ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
-import { listBranches, listRepos, type RepoListing } from '../services/githubApi';
+import { listBranches, listRepos, type RepoListing } from '../../../shared/api/github';
 import type {
   SpecDrivenPushConfig,
   SpecDrivenPushResult,

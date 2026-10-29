@@ -53,7 +53,7 @@ import {
   setLastRunForProject,
 } from '../../spec-driven/state/specDrivenSlice';
 import { writeProjectLastRun } from '../../spec-driven/storage';
-import { createPullRequest, loadModel, type PushStatus } from '../services/githubApi';
+import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 
 const DEFAULT_BRANCH = 'main';

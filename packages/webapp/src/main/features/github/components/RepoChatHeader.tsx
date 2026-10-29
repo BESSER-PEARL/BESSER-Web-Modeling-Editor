@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
-import { OPEN_GITHUB_PANEL_EVENT } from '../services/githubApi';
+import { OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
 
 const DOT: Record<RepoSyncState, string> = {
   'in-sync': 'bg-success',

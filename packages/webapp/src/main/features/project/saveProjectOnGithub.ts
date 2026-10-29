@@ -2,7 +2,7 @@
  * "Save it on GitHub" at project creation: a private repository for the new
  * project, holding its model, linked so the editor reads it as in sync.
  */
-import { createRepoForProject, listRepos } from '../github/services/githubApi';
+import { createRepoForProject, listRepos } from '../../shared/api/github';
 import { markProjectGitHubSynced, type ProjectGitHubLink } from '../../shared/services/storage/projectGitHubLink';
 import { getGitHubAuthState } from '../../shared/services/github/githubAuth';
 import { sanitizeRepoName } from '../../shared/utils/validation';

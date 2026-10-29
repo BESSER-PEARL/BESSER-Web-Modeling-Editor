@@ -16,8 +16,9 @@ import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
 import { ShareGistDialog } from '../../features/github/dialogs/ShareGistDialog';
-import { isGoLiveAvailable } from '../../features/github/services/githubApi';
+import { isGoLiveAvailable } from '../../shared/api/github';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
+import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -1273,6 +1274,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
             showTrigger={location.pathname === '/'}
+            // The repository this conversation works on, when the project is linked.
+            chatHeader={<RepoChatHeader className="mb-4" />}
           />
         </Suspense>
       </div>

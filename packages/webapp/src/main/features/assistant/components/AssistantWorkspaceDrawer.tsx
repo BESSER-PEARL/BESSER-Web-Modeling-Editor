@@ -25,7 +25,6 @@ import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { StartFromRepoDialog } from './StartFromRepoDialog';
-import { RepoChatHeader } from '../../github/components/RepoChatHeader';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
@@ -43,6 +42,8 @@ interface AssistantWorkspaceDrawerProps {
   onSwitchDiagram?: (diagramType: string) => Promise<boolean>;
   /** Show the floating trigger pill (only on the editor canvas, where it doesn't cover page content). */
   showTrigger?: boolean;
+  /** Shown above the conversation, e.g. the repository the project is linked to. */
+  chatHeader?: React.ReactNode;
 }
 
 interface DragState {
@@ -162,6 +163,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   onTriggerGenerator,
   onSwitchDiagram,
   showTrigger = true,
+  chatHeader,
 }) => {
   /* ---- Redux ---- */
 
@@ -999,8 +1001,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="mx-auto w-full max-w-4xl">
                     {/* Study-mode notice (regular sessions render nothing) */}
                     <PilotSessionNotice className="mb-4" />
-                    {/* The repository this conversation works on, when the project is linked. */}
-                    <RepoChatHeader className="mb-4" />
+                    {chatHeader}
                     <MessageList
                       messages={messages}
                       isTyping={isGenerating && !hasLiveSpecDrivenRun}

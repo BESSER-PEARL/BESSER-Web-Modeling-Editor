@@ -6,7 +6,7 @@ import {
   modelFingerprint,
   setProjectGitHubLink,
 } from '../../../../shared/services/storage/projectGitHubLink';
-import type { SyncStatus } from '../../services/githubApi';
+import type { SyncStatus } from '../../../../shared/api/github';
 import { useRepoSync } from '../useRepoSync';
 
 const BASE = 'a'.repeat(40);
@@ -25,7 +25,7 @@ const api = vi.hoisted(() => ({
   createPullRequest: vi.fn(),
   loadModelAtCommit: vi.fn(),
 }));
-vi.mock('../../services/githubApi', () => api);
+vi.mock('../../../../shared/api/github', () => api);
 vi.mock('../../../../shared/hooks/useGitHubAuth', () => ({ useGitHubAuth: () => stable.auth }));
 vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => stable.project }));
 vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => stable.dispatch }));

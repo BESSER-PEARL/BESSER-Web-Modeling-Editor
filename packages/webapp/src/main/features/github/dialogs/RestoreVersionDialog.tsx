@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { RepoCommit } from '../services/githubApi';
-import { CommitAuthor } from '../components/CommitAuthor';
+import type { RepoCommit } from '../../../shared/api/github';
+import { CommitAuthor } from '../../../shared/components/github/CommitAuthor';
 
 interface RestoreVersionDialogProps {
   open: boolean;

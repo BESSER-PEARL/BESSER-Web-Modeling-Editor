@@ -57,6 +57,10 @@ const AgentSimulationPage = React.lazy(() =>
 const ProjectHubDialog = React.lazy(() =>
   import('../features/project/ProjectHubDialog').then((m) => ({ default: m.ProjectHubDialog })),
 );
+// The assistant store stays out of the entry chunk: it is loaded when a repo is opened.
+const postRepoSummaryToAssistant = (summary: string) => {
+  void import('../features/assistant/hooks/assistantConversationStore').then((m) => m.postAssistantMessage(summary));
+};
 const TemplateLibraryDialog = React.lazy(() =>
   import('../features/project/TemplateLibraryDialog').then((m) => ({ default: m.TemplateLibraryDialog })),
 );
@@ -213,7 +217,12 @@ function AppContentInner() {
 
       {projectHubMounted && (
         <Suspense fallback={null}>
-          <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
+          <ProjectHubDialog
+            open={showProjectHub}
+            onOpenChange={handleProjectHubOpenChange}
+            initialStep={hubInitialStep}
+            onRepoOpened={postRepoSummaryToAssistant}
+          />
         </Suspense>
       )}
       {templateDialogMounted && (

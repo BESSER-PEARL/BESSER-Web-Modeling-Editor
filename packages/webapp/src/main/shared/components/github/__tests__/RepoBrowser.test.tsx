@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 const listRepos = vi.fn();
 const listBranches = vi.fn(async () => ['main']);
 const getRepoSummary = vi.fn();
-vi.mock('../../services/githubApi', () => ({
+vi.mock('../../../api/github', () => ({
   BESSER_TOPIC: 'besser',
   listRepos: (...args: unknown[]) => listRepos(...args),
   listBranches: (...args: unknown[]) => listBranches(...(args as [])),

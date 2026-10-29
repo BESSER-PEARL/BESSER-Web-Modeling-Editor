@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { RepoSync } from '../hooks/useRepoSync';
-import { getModelHistory, type ModelHistoryEntry } from '../services/githubApi';
-import { CommitAuthor } from '../components/CommitAuthor';
+import { getModelHistory, type ModelHistoryEntry } from '../../../shared/api/github';
+import { CommitAuthor } from '../../../shared/components/github/CommitAuthor';
 import { RestoreVersionDialog } from './RestoreVersionDialog';
 
 interface ModelHistoryDialogProps {

@@ -20,7 +20,7 @@ import {
   listRepos,
   type RepoListing,
   type RepoSummary,
-} from '../services/githubApi';
+} from '../../api/github';
 import { CommitAuthor, formatWhen } from './CommitAuthor';
 
 export interface RepoChoice {

@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const goLive = vi.fn();
-vi.mock('../../services/githubApi', () => ({
+vi.mock('../../../../shared/api/github', () => ({
   goLive: (...args: unknown[]) => goLive(...args),
 }));
 

@@ -18,7 +18,7 @@ const listBranches = vi.fn(
 );
 const listRepos = vi.fn(async () => listing(repositories));
 
-vi.mock('../../services/githubApi', () => ({
+vi.mock('../../../../shared/api/github', () => ({
   listRepos: (...args: unknown[]) => listRepos(...(args as [])),
   listBranches: (...args: unknown[]) => listBranches(...(args as [string, string, string])),
 }));

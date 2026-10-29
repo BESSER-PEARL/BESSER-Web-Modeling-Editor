@@ -41,7 +41,7 @@ import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
-import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../services/githubApi';
+import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
 import { CreateRepositoryDialog } from '../dialogs/CreateRepositoryDialog';
 import { SaveToGitHubDialog } from '../dialogs/SaveToGitHubDialog';
 import { ModelHistoryDialog } from '../dialogs/ModelHistoryDialog';

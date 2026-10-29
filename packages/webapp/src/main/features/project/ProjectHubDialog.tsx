@@ -58,9 +58,8 @@ import {
 import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
-import { RepoBrowser, type RepoChoice } from '../github/components/RepoBrowser';
+import { RepoBrowser, type RepoChoice } from '../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../spec-driven/services/continueFromGithub';
-import { postAssistantMessage } from '../assistant/hooks/assistantConversationStore';
 import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
@@ -75,6 +74,8 @@ interface ProjectHubDialogProps {
    * auto-open first-run path (which shows the 'welcome' chooser).
    */
   initialStep?: ProjectHubOpenStep;
+  /** Called with a summary of the repository "Continue from GitHub" opened, for the assistant chat. */
+  onRepoOpened?: (summary: string) => void;
 }
 
 type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
@@ -152,7 +153,7 @@ const readableFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep }) => {
+export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep, onRepoOpened }) => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
@@ -748,7 +749,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         return;
       }
       await loadProject(result.projectId);
-      postAssistantMessage(describeOpenedRepo(result));
+      onRepoOpened?.(describeOpenedRepo(result));
       if (result.runId) {
         dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
       }

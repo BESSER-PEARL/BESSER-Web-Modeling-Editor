@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { freeRepoName, repoSlug, saveProjectOnGithub } from '../saveProjectOnGithub';
 import { createDefaultProject } from '../../../shared/types/project';
 import { getProjectGitHubLink, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
-import { createRepoForProject, listRepos } from '../../github/services/githubApi';
+import { createRepoForProject, listRepos } from '../../../shared/api/github';
 import { resetGitHubAuthForTests, startGitHubAuth } from '../../../shared/services/github/githubAuth';
 
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
-vi.mock('../../github/services/githubApi', () => ({
+vi.mock('../../../shared/api/github', () => ({
   listRepos: vi.fn(),
   createRepoForProject: vi.fn(),
 }));

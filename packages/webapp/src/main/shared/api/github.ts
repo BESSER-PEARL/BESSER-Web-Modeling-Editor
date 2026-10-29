@@ -3,11 +3,11 @@
  * repository in step. Contract: BESSER `services/deployment/github_deploy_api.py`
  * (`/github/*`) and `routers/spec_driven_router.py` (`/spec-driven/*`).
  */
-import { apiClient } from '../../../shared/api/api-client';
-import type { BesserProject } from '../../../shared/types/project';
-import type { ProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
-import type { RepoCodeAnalysis } from '../../../shared/services/storage/projectGitHubLink';
-import { getDemoToken } from '../../../shared/services/demoMode';
+import { apiClient } from './api-client';
+import type { BesserProject } from '../types/project';
+import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
+import type { RepoCodeAnalysis } from '../services/storage/projectGitHubLink';
+import { getDemoToken } from '../services/demoMode';
 
 /** The `BESSER-Origin` trailer of a commit; null when a person made it. */
 export type CommitOrigin = 'spec-driven-agent' | 'editor' | null;

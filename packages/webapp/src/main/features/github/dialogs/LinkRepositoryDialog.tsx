@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useProject } from '../../../app/hooks/useProject';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import type { RepoSync } from '../hooks/useRepoSync';
-import { RepoBrowser, type RepoChoice } from '../components/RepoBrowser';
+import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 
 interface LinkRepositoryDialogProps {
   open: boolean;

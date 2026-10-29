@@ -30,8 +30,8 @@ vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
 }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 const createRepoForProject = vi.fn();
-vi.mock('../../services/githubApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../services/githubApi')>()),
+vi.mock('../../../../shared/api/github', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/api/github')>()),
   createRepoForProject: (...args: unknown[]) => createRepoForProject(...args),
 }));
 const storedProject = { id: 'p1', name: 'Library', description: '', diagrams: {} };
@@ -41,7 +41,7 @@ vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
 vi.mock('../../../../shared/utils/projectExportUtils', () => ({ buildProjectExportEnvelope: () => ({}) }));
 // The browser itself is covered by RepoBrowser.test; here it only hands back a choice.
 const repoChoice = { owner: 'ana', repo: 'shop', branch: 'main', summary: { has_model: true, project_name: 'Shop', head_sha: 'c'.repeat(40) } };
-vi.mock('../RepoBrowser', () => ({
+vi.mock('../../../../shared/components/github/RepoBrowser', () => ({
   RepoBrowser: ({ onAction }: { onAction: (choice: unknown) => void }) => (
     <button type="button" onClick={() => onAction(repoChoice)}>
       pick ana/shop
@@ -50,7 +50,7 @@ vi.mock('../RepoBrowser', () => ({
 }));
 
 import { GitHubMenu } from '../GitHubMenu';
-import { OPEN_GITHUB_PANEL_EVENT } from '../../services/githubApi';
+import { OPEN_GITHUB_PANEL_EVENT } from '../../../../shared/api/github';
 
 const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', date: '', html_url: '', origin: null };
 const onLogin = vi.fn();

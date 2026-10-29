@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { RepoSync } from '../hooks/useRepoSync';
-import type { SaveModelResult } from '../services/githubApi';
+import type { SaveModelResult } from '../../../shared/api/github';
 
 interface SaveToGitHubDialogProps {
   open: boolean;

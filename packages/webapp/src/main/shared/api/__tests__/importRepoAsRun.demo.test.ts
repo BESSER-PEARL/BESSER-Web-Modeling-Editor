@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const post = vi.fn(async (_path: string, _body: Record<string, unknown>, _options?: unknown) => ({}));
-vi.mock('../../../../shared/api/api-client', () => ({ apiClient: { post: (path: string, body: Record<string, unknown>, options?: unknown) => post(path, body, options) } }));
+vi.mock('../api-client', () => ({ apiClient: { post: (path: string, body: Record<string, unknown>, options?: unknown) => post(path, body, options) } }));
 
-import { importRepoAsRun } from '../githubApi';
+import { importRepoAsRun } from '../github';
 
 afterEach(() => {
   sessionStorage.clear();

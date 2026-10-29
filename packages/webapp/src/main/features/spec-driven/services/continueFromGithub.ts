@@ -31,7 +31,7 @@ import type { BesserProject } from '../../../shared/types/project';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { PROJECT_EXPORT_VERSION } from '../../../shared/utils/projectExportUtils';
-import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../github/services/githubApi';
+import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../../shared/api/github';
 import { writeProjectLastRun } from '../storage';
 
 export interface ContinueFromGithubResult {

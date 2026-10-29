@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, PenLine, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RepoCommit } from '../services/githubApi';
+import type { RepoCommit } from '../../api/github';
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
