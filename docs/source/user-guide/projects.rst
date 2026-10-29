@@ -233,6 +233,9 @@ the state in words, and click it for everything you do with the repository:
 - **History…**: the model's earlier versions, with a restore for each.
 - **Open on GitHub**: the repository's branch in a new tab.
 - **Change repository…** and **Unlink**.
+- **How GitHub works in BESSER**: opens the Help guide at its GitHub section,
+  which explains linking, what a save writes to the repository, merging, pull
+  requests, history and starting from any repository.
 - **Sign Out**, under *Signed in as …* at the bottom of the menu.
 
 The chat's *Working on …* line above the conversation opens the same menu.

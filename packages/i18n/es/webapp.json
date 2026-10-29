@@ -1050,7 +1050,7 @@
       "github": {
         "connectHint": "Conecta tu cuenta de GitHub para elegir uno de tus repositorios. Volverás aquí después de iniciar sesión.",
         "continue": "Continuar",
-        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código.",
+        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código. Si BESSER no puede leer directamente sus clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
         "errors": {
           "generic": "No se pudo continuar desde este repositorio.",
           "noModel": "Este repositorio no tiene un modelo de BESSER: no lo creó BESSER, así que aún no hay nada desde donde continuar.",
@@ -1533,7 +1533,8 @@
       "saveDescription": "Hace commit de tu modelo en {{repo}} sobre {{branch}}. Los cambios más recientes en GitHub se combinan, nunca se sobrescriben.",
       "saveToGitHub": "Guardar en GitHub…",
       "signedInAs": "Sesión iniciada como {{name}}",
-      "unlinkConfirmDescription": "El proyecto se queda en tu navegador y el repositorio en GitHub. Guardar en GitHub se detiene hasta que vuelvas a vincular un repositorio."
+      "unlinkConfirmDescription": "El proyecto se queda en tu navegador y el repositorio en GitHub. Guardar en GitHub se detiene hasta que vuelvas a vincular un repositorio.",
+      "howItWorks": "Cómo funciona GitHub en BESSER"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1815,7 +1816,7 @@
     "startFromRepo": {
       "badLink": "Pega un enlace como github.com/owner/repo.",
       "connect": "Conecta GitHub para abrir uno de tus repositorios.",
-      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo.",
+      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo. Si BESSER no puede leer directamente sus clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
       "entry": "Empezar desde un repositorio de GitHub",
       "entryHint": "De BESSER o no",
       "failed": "No se pudo abrir este repositorio.",
@@ -2187,6 +2188,39 @@
         "elementTypes": {
           "title": "Definir tipos de elementos",
           "body": "<p>Haz doble clic en una tarea, evento o compuerta para definir su tipo, por ejemplo una tarea de usuario o de servicio, un evento de inicio de temporizador, o una compuerta exclusiva o paralela.</p>"
+        }
+      },
+      "projectHeading": "Tu proyecto",
+      "github": {
+        "label": "GitHub",
+        "summary": "Guarda cada proyecto en tu propio repositorio de GitHub: guarda y fusiona tu modelo, revisa los cambios y deja que el Spec-Driven Agent construya sobre cualquier repositorio.",
+        "connect": {
+          "title": "Conectar y vincular",
+          "body": "<p>Conecta GitHub desde la pantalla de inicio o el botón de GitHub de la barra superior. Cada proyecto se vincula a un repositorio: crea uno privado para él o vincula uno que ya tengáis tú, un colaborador o tu organización.</p><p>Marcar <strong>Guardarlo en GitHub</strong> al crear un proyecto crea y vincula un repositorio privado en un solo paso.</p>"
+        },
+        "repoContents": {
+          "title": "Qué va al repositorio",
+          "body": "<p>Al guardar se escribe todo tu proyecto en <code>buml/diagrams.json</code>, el Python B-UML de tus diagramas a su lado en <code>buml/</code>, y <code>.besser/project.json</code>, que marca el repositorio como proyecto BESSER. Tras una ejecución del Spec-Driven Agent, el código de la aplicación está en el mismo repositorio.</p><p>Las claves, tokens y contraseñas de la configuración de tu agente se quitan antes de escribir nada. Tu navegador las conserva y vuelven cuando cargas el modelo en el mismo proyecto.</p>"
+        },
+        "saveLatest": {
+          "title": "Guardar y obtener lo último",
+          "body": "<p>El punto del botón de GitHub muestra tu estado: sincronizado, cambios sin guardar, commits nuevos en GitHub o cambiado en ambos lados.</p><ul><li><strong>Guardar en GitHub</strong> hace commit de tu modelo. Si la rama cambió desde la última sincronización, se fusionan ambas versiones, el modelo como datos, así que dos personas que añaden una clase cada una conservan ambas.</li><li><strong>Obtener lo último</strong> carga la versión de GitHub en el editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflictos y pull requests",
+          "body": "<p>Cuando el mismo elemento se cambió de forma distinta en ambos lados, no se sobrescribe nada: tu guardado se conserva en su propia rama y el menú de GitHub ofrece abrir una pull request. También puedes enviar cualquier guardado como pull request, para que tu equipo lo revise primero.</p><p>Cuando la pull request se fusione, usa <strong>Obtener lo último</strong> para traer el resultado al editor.</p>"
+        },
+        "history": {
+          "title": "Historial",
+          "body": "<p><strong>Historial…</strong> lista los commits que cambiaron el modelo, con lo que cambió cada uno (clases añadidas, renombradas o eliminadas), y carga cualquier versión anterior en el editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Empezar desde cualquier repositorio",
+          "body": "<p>Usa <strong>Continuar desde GitHub</strong> en la pantalla de inicio, o <strong>Empezar desde un repositorio de GitHub</strong> en el asistente. Un repositorio BESSER se abre con su modelo. Para cualquier otro, BESSER lee sus clases de datos (SQLAlchemy, Django, Pydantic, dataclasses) y propone un diagrama de clases que aceptas o descartas en el lienzo. No se escribe nada en el repositorio hasta que guardas.</p><p>Si BESSER no puede leer directamente las clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA que propone el diagrama.</p><p>Después, el Spec-Driven Agent trabaja sobre ese código y sus cambios vuelven al mismo repositorio.</p>"
+        },
+        "publish": {
+          "title": "Publicar y compartir",
+          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p><strong>Archivo → Compartir como Gist secreto…</strong> comparte una copia del proyecto con un enlace, sin las credenciales del agente.</p>"
         }
       }
     }

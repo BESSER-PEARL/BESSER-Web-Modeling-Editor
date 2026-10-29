@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { RepoSyncState } from '../../hooks/useRepoSync';
+import { OPEN_HELP_GUIDE_EVENT } from '../../../../shared/dialogs/helpGuide';
 
 const sync = {
   link: null as null | { owner: string; repo: string; branch: string },
@@ -111,6 +112,19 @@ describe('GitHubMenu', () => {
     expect(screen.getByText('Signed in as ana')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Sign Out' }));
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the Help guide at its GitHub section from "How GitHub works in BESSER"', () => {
+    const opened = vi.fn();
+    const listener = (event: Event) => opened((event as CustomEvent).detail);
+    window.addEventListener(OPEN_HELP_GUIDE_EVENT, listener);
+    renderMenu();
+    openMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'How GitHub works in BESSER' }));
+
+    expect(opened).toHaveBeenCalledWith({ section: 'github' });
+    window.removeEventListener(OPEN_HELP_GUIDE_EVENT, listener);
   });
 
   it('shows the linked repository with its state, and the linked actions', () => {

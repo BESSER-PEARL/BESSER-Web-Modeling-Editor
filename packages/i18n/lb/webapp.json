@@ -1050,7 +1050,7 @@
       "github": {
         "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
         "continue": "Weider",
-        "description": "Wiel all Repository. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell. De nächste Laf vum Spec-Driven Agent ännert säi Code.",
+        "description": "Wiel all Repository. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell. De nächste Laf vum Spec-Driven Agent ännert säi Code. Wann BESSER d’Dateklassen net direkt liese kann, schéckt et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell, dat ee Modell virschléit.",
         "errors": {
           "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
           "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",
@@ -1533,7 +1533,8 @@
       "saveDescription": "Committ däi Modell an {{repo}} op {{branch}}. Méi nei Ännerungen op GitHub ginn zesummegefouert, ni iwwerschriwwen.",
       "saveToGitHub": "Op GitHub späicheren…",
       "signedInAs": "Ugemellt als {{name}}",
-      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an de Repository op GitHub. Späicheren op GitHub hält op, bis s du nees e Repository verbënns."
+      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an de Repository op GitHub. Späicheren op GitHub hält op, bis s du nees e Repository verbënns.",
+      "howItWorks": "Wéi GitHub a BESSER funktionéiert"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1815,7 +1816,7 @@
     "startFromRepo": {
       "badLink": "Füg e Link wéi github.com/owner/repo an.",
       "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",
-      "description": "Wiel e Repository, op deem s du weiderbaue wëlls. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell, deen s du op der Leinwand iwwerhëls.",
+      "description": "Wiel e Repository, op deem s du weiderbaue wëlls. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell, deen s du op der Leinwand iwwerhëls. Wann BESSER d’Dateklassen net direkt liese kann, schéckt et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell, dat ee Modell virschléit.",
       "entry": "Mat engem GitHub-Repository ufänken",
       "entryHint": "BESSER oder net",
       "failed": "Dëse Repository konnt net opgemaach ginn.",
@@ -2187,6 +2188,39 @@
         "elementTypes": {
           "title": "Elementtypen setzen",
           "body": "<p>Duebelklick op eng Aufgab, en Evenement oder e Gateway fir den Typ ze setzen, zum Beispill eng Benotzer- oder Serviceaufgab, en Timer-Startevenement, oder en exklusiven oder parallele Gateway.</p>"
+        }
+      },
+      "projectHeading": "Äre Projet",
+      "github": {
+        "label": "GitHub",
+        "summary": "Halt all Projet an engem eegene GitHub-Repository: Modell späicheren an zesummeféieren, Ännerunge kucken an de Spec-Driven Agent op all Repository weiderbaue loossen.",
+        "connect": {
+          "title": "Verbannen a verknäppen",
+          "body": "<p>Verbannt GitHub vum Startecran aus oder iwwer de GitHub-Knäppchen uewen an der Leescht. All Projet ass mat engem Repository verknäppt: Maacht e private fir de Projet, oder verknäppt een, deen Dir, e Mataarbechter oder Är Organisatioun schonn huet.</p><p>Mat <strong>Op GitHub späicheren</strong> beim Uleeë vun engem Projet gëtt an engem Schrëtt e private Repository gemaach a verknäppt.</p>"
+        },
+        "repoContents": {
+          "title": "Wat an de Repository kënnt",
+          "body": "<p>Beim Späicheren gëtt de ganze Projet an <code>buml/diagrams.json</code> geschriwwen, dernieft an <code>buml/</code> de B-UML-Python vun Ären Diagrammer, an <code>.besser/project.json</code>, dat de Repository als BESSER-Projet markéiert. No engem Laf vum Spec-Driven Agent ass de Code vun der App am selwechte Repository.</p><p>Schlësselen, Tokens a Passwierder aus Ärer Agent-Konfiguratioun ginn ewechgeholl, ier eppes geschriwwe gëtt. Äre Browser behält se, a si kommen zréck, wann Dir de Modell an dee selwechte Projet laadt.</p>"
+        },
+        "saveLatest": {
+          "title": "Späicheren an neist Versioun huelen",
+          "body": "<p>De Punkt um GitHub-Knäppchen weist, wou Dir sidd: synchron, net gespäichert Ännerungen, nei Commits op GitHub oder op béide Säite geännert.</p><ul><li><strong>Op GitHub späicheren</strong> commit Äre Modell. Wann de Branch sech zënter der leschter Synchronisatioun beweegt huet, ginn déi zwou Versiounen zesummegefouert, de Modell als Donnéeën, sou datt zwou Persounen, déi all eng Klass derbäisetzen, béid behalen.</li><li><strong>Neist Versioun huelen</strong> luet d’Versioun vu GitHub an den Editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Konflikter a Pull Requests",
+          "body": "<p>Wann datselwecht Element op béide Säiten anescht geännert gouf, gëtt näischt iwwerschriwwen: Är Späicherung bleift op engem eegene Branch, an de GitHub-Menü bitt un, e Pull Request opzemaachen. Dir kënnt och all Späicherung als Pull Request schécken, fir datt Är Equipe se fir d’éischt kuckt.</p><p>Wann de Pull Request zesummegefouert ass, bréngt <strong>Neist Versioun huelen</strong> d’Resultat an den Editor.</p>"
+        },
+        "history": {
+          "title": "Verlaf",
+          "body": "<p><strong>Verlaf…</strong> weist d’Commits, déi de Modell geännert hunn, mat deem, wat all eenzelen geännert huet (Klassen derbäigesat, ëmbenannt oder ewechgeholl), a luet all méi al Versioun an den Editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Vun all Repository ufänken",
+          "body": "<p>Benotzt <strong>Vu GitHub weidermaachen</strong> um Startecran oder <strong>Mat engem GitHub-Repository ufänken</strong> am Assistent. E BESSER-Repository geet mat sengem Modell op. Bei all anerem liest BESSER seng Dateklassen (SQLAlchemy, Django, Pydantic, Dataclasses) a proposéiert e Klassendiagramm, deen Dir um Canvas unhuelt oder verwerft. Näischt gëtt an de Repository geschriwwen, ier Dir späichert.</p><p>Wann BESSER d’Dateklassen net direkt liese kann, schéckt et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell, dat den Diagramm virschléit.</p><p>De Spec-Driven Agent schafft duerno un deem Code, a seng Ännerunge ginn an dee selwechte Repository zréck.</p>"
+        },
+        "publish": {
+          "title": "Live goen an deelen",
+          "body": "<p><strong>Deployen → Vu GitHub aus online goen</strong> stellt d’App aus dem verknäppte Repository online, genee sou wéi de Repository se huet, wann de Server et ubitt.</p><p><strong>Datei → Als geheime Gist deelen…</strong> deelt eng Kopie vum Projet iwwer e Link, ouni d’Zougangsdate vum Agent.</p>"
         }
       }
     }

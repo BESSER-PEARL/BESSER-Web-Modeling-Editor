@@ -171,6 +171,13 @@ test.describe('GitHub: save a new project in its own repository', () => {
     const header = page.locator('header').first();
     await expect(header.getByRole('button', { name: /e2e-user\/shop: in sync with github/i })).toBeVisible({ timeout: 10_000 });
     await expect(header.getByRole('button', { name: GITHUB_MENU_SIGNED_IN })).toHaveCount(0);
+
+    // The menu explains itself: "How GitHub works in BESSER" opens the Help guide at its GitHub section.
+    await header.getByRole('button', { name: /e2e-user\/shop/i }).click();
+    await page.getByRole('menuitem', { name: /how github works in besser/i }).click();
+    const guide = page.getByRole('dialog');
+    await expect(guide.getByRole('button', { name: 'GitHub', pressed: true })).toBeVisible();
+    await expect(guide.getByText('What Goes in the Repository')).toBeVisible();
   });
 });
 

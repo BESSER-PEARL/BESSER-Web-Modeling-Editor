@@ -97,7 +97,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
           <DialogDescription>
             {t('assistant.startFromRepo.description', {
               defaultValue:
-                'Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas.',
+                'Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
             })}
           </DialogDescription>
         </DialogHeader>

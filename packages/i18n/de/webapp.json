@@ -1050,7 +1050,7 @@
       "github": {
         "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
         "continue": "Fortsetzen",
-        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code.",
+        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code. Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das ein Modell vorschlägt.",
         "errors": {
           "generic": "Fortsetzen aus diesem Repository nicht möglich.",
           "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",
@@ -1533,7 +1533,8 @@
       "saveDescription": "Committet Ihr Modell in {{repo}} auf {{branch}}. Neuere Änderungen auf GitHub werden zusammengeführt, nie überschrieben.",
       "saveToGitHub": "Auf GitHub speichern…",
       "signedInAs": "Angemeldet als {{name}}",
-      "unlinkConfirmDescription": "Das Projekt bleibt in Ihrem Browser und das Repository auf GitHub. Das Speichern auf GitHub endet, bis Sie wieder ein Repository verknüpfen."
+      "unlinkConfirmDescription": "Das Projekt bleibt in Ihrem Browser und das Repository auf GitHub. Das Speichern auf GitHub endet, bis Sie wieder ein Repository verknüpfen.",
+      "howItWorks": "So funktioniert GitHub in BESSER"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1815,7 +1816,7 @@
     "startFromRepo": {
       "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
       "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",
-      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen.",
+      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen. Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das ein Modell vorschlägt.",
       "entry": "Mit einem GitHub-Repository beginnen",
       "entryHint": "BESSER oder nicht",
       "failed": "Dieses Repository konnte nicht geöffnet werden.",
@@ -2187,6 +2188,39 @@
         "elementTypes": {
           "title": "Elementtypen festlegen",
           "body": "<p>Doppelklicke eine Aufgabe, ein Ereignis oder ein Gateway, um den Typ festzulegen, zum Beispiel eine Benutzer- oder Serviceaufgabe, ein Timer-Startereignis oder ein exklusives oder paralleles Gateway.</p>"
+        }
+      },
+      "projectHeading": "Dein Projekt",
+      "github": {
+        "label": "GitHub",
+        "summary": "Halte jedes Projekt in einem eigenen GitHub-Repository: Modell speichern und zusammenführen, Änderungen prüfen und den Spec-Driven Agent auf jedem Repository weiterbauen lassen.",
+        "connect": {
+          "title": "Verbinden und verknüpfen",
+          "body": "<p>Verbinde GitHub über den Startbildschirm oder die GitHub-Schaltfläche in der oberen Leiste. Jedes Projekt ist mit einem Repository verknüpft: Erstelle ein privates dafür oder verknüpfe eines, das du, ein Mitwirkender oder deine Organisation bereits hat.</p><p>Mit <strong>Auf GitHub speichern</strong> beim Erstellen eines Projekts wird in einem Schritt ein privates Repository erstellt und verknüpft.</p>"
+        },
+        "repoContents": {
+          "title": "Was im Repository landet",
+          "body": "<p>Beim Speichern wird dein ganzes Projekt nach <code>buml/diagrams.json</code> geschrieben, daneben in <code>buml/</code> der B-UML-Python-Code deiner Diagramme, und <code>.besser/project.json</code>, das das Repository als BESSER-Projekt kennzeichnet. Nach einem Lauf des Spec-Driven Agent liegt der Code der App im selben Repository.</p><p>Schlüssel, Tokens und Passwörter aus deiner Agentenkonfiguration werden vor dem Schreiben entfernt. Dein Browser behält sie, und sie kommen zurück, wenn du das Modell in dasselbe Projekt lädst.</p>"
+        },
+        "saveLatest": {
+          "title": "Speichern und neueste Version holen",
+          "body": "<p>Der Punkt auf der GitHub-Schaltfläche zeigt den Stand: synchron, ungespeicherte Änderungen, neue Commits auf GitHub oder auf beiden Seiten geändert.</p><ul><li><strong>Auf GitHub speichern</strong> committet dein Modell. Hat sich der Branch seit der letzten Synchronisierung bewegt, werden beide Versionen zusammengeführt, das Modell als Daten, sodass zwei Personen, die je eine Klasse hinzufügen, beide behalten.</li><li><strong>Neueste Version holen</strong> lädt die Version von GitHub in den Editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Konflikte und Pull Requests",
+          "body": "<p>Wurde dasselbe Element auf beiden Seiten unterschiedlich geändert, wird nichts überschrieben: Deine Speicherung bleibt auf einem eigenen Branch, und das GitHub-Menü bietet an, dafür einen Pull Request zu öffnen. Du kannst auch jede Speicherung als Pull Request senden, damit dein Team sie zuerst prüft.</p><p>Ist der Pull Request gemergt, holst du das Ergebnis mit <strong>Neueste Version holen</strong> in den Editor.</p>"
+        },
+        "history": {
+          "title": "Verlauf",
+          "body": "<p><strong>Verlauf…</strong> listet die Commits, die das Modell geändert haben, mit ihren Änderungen (Klassen hinzugefügt, umbenannt oder entfernt), und lädt jede frühere Version in den Editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Mit jedem Repository starten",
+          "body": "<p>Nutze <strong>Aus GitHub fortsetzen</strong> auf dem Startbildschirm oder <strong>Mit einem GitHub-Repository beginnen</strong> im Assistenten. Ein BESSER-Repository öffnet sich mit seinem Modell. Bei jedem anderen liest BESSER die Datenklassen (SQLAlchemy, Django, Pydantic, Dataclasses) und schlägt ein Klassendiagramm vor, das du auf der Arbeitsfläche annimmst oder verwirfst. Bis du speicherst, wird nichts ins Repository geschrieben.</p><p>Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das das Diagramm vorschlägt.</p><p>Der Spec-Driven Agent arbeitet dann an diesem Code, und seine Änderungen gehen in dasselbe Repository zurück.</p>"
+        },
+        "publish": {
+          "title": "Live schalten und teilen",
+          "body": "<p><strong>Bereitstellen → Von GitHub aus online gehen</strong> stellt die App aus dem verknüpften Repository online, genau so, wie das Repository sie enthält, sofern der Server es anbietet.</p><p><strong>Datei → Als geheimen Gist teilen…</strong> teilt eine Kopie des Projekts über einen Link, ohne Zugangsdaten des Agenten.</p>"
         }
       }
     }

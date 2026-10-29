@@ -70,7 +70,9 @@ The *Community* menu connects you with the BESSER community:
 
 The *Help* menu provides guidance and information:
 
-- **How does this editor work?**: Overview of the editor's features.
+- **How does this editor work?**: Overview of the editor's features: one
+  section per diagram type, and a *GitHub* section on keeping a project in a
+  repository.
 - **Start Tutorial**: Launches an interactive walkthrough of the editor.
 - **Keyboard Shortcuts**: Displays available keyboard shortcuts.
 - **About BESSER**: Information about the BESSER project.

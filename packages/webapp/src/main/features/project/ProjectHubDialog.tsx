@@ -360,7 +360,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return {
         title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
         description: t('project.hub.github.description', {
-          defaultValue: 'Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code.',
+          defaultValue: 'Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
         }),
         badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };

@@ -1050,7 +1050,7 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code.",
+        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
@@ -1602,7 +1602,8 @@
       "missingHint": "The branch {{branch}} or the repository was deleted or renamed, or your account lost access. Link another repository to keep saving.",
       "dismissPending": "Stop tracking it",
       "pendingConflict": "A save could not be merged with newer changes and is on the branch {{branch}}. Open a pull request to resolve it on GitHub.",
-      "pendingPullRequest": "Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in."
+      "pendingPullRequest": "Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in.",
+      "howItWorks": "How GitHub works in BESSER"
     }
   },
   "assistant": {
@@ -1818,7 +1819,7 @@
       "failed": "Could not open this repository.",
       "badLink": "Paste a link like github.com/owner/repo.",
       "title": "Start from a GitHub repository",
-      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas.",
+      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
       "connect": "Connect GitHub to open one of your repositories.",
       "linkPlaceholder": "Paste a link: github.com/owner/repo",
       "linkLabel": "Repository link",
@@ -2187,6 +2188,39 @@
         "elementTypes": {
           "title": "Set Element Types",
           "body": "<p>Double-click a task, event or gateway to set its type, for example a user or service task, a timer start event, or an exclusive or parallel gateway.</p>"
+        }
+      },
+      "projectHeading": "Your Project",
+      "github": {
+        "label": "GitHub",
+        "summary": "Keep each project in a GitHub repository of your own: save and merge your model, review changes, and let the Spec-Driven Agent build on any repository.",
+        "connect": {
+          "title": "Connect and Link",
+          "body": "<p>Connect GitHub from the start screen or the GitHub button in the top bar. Each project links to one repository: create a private one for it, or link one that you, a collaborator or your organisation already has.</p><p>Ticking <strong>Save it on GitHub</strong> when you create a project creates and links a private repository in one step.</p>"
+        },
+        "repoContents": {
+          "title": "What Goes in the Repository",
+          "body": "<p>A save writes your whole project to <code>buml/diagrams.json</code>, the B-UML Python of your diagrams next to it in <code>buml/</code>, and <code>.besser/project.json</code>, which marks the repository as a BESSER project. After a Spec-Driven Agent run, the app’s code is in the same repository.</p><p>Keys, tokens and passwords in your agent configuration are removed before anything is written. Your browser keeps them, and they come back when you load the model into the same project.</p>"
+        },
+        "saveLatest": {
+          "title": "Save and Get Latest",
+          "body": "<p>The dot on the GitHub button shows where you stand: in sync, unsaved changes, new commits on GitHub, or changed on both sides.</p><ul><li><strong>Save to GitHub</strong> commits your model. If the branch moved since your last sync, both versions are merged, the model as data, so two people who each add a class keep both.</li><li><strong>Get latest</strong> loads the version on GitHub into the editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflicts and Pull Requests",
+          "body": "<p>When the same element was changed differently on both sides, nothing is overwritten: your save is kept on its own branch, and the GitHub menu offers to open a pull request for it. You can also send any save as a pull request, for your team to review first.</p><p>Once the pull request is merged, use <strong>Get latest</strong> to bring the result into the editor.</p>"
+        },
+        "history": {
+          "title": "History",
+          "body": "<p><strong>History…</strong> lists the commits that changed the model, with what each one changed (classes added, renamed or removed), and loads any earlier version into the editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Start From Any Repository",
+          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository</strong> in the assistant. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose the diagram.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
+        },
+        "publish": {
+          "title": "Go Live and Share",
+          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p><strong>File → Share as Secret Gist…</strong> shares a copy of the project through a link, with agent credentials removed.</p>"
         }
       }
     }

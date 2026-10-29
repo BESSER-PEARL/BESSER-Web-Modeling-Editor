@@ -26,17 +26,30 @@ describe('KeyboardShortcutsDialog', () => {
 });
 
 describe('HelpGuideDialog', () => {
-  it('lists all nine diagram types, including BPMN and User diagrams', () => {
+  it('lists all nine diagram types, including BPMN and User diagrams, then the project sections', () => {
     render(<HelpGuideDialog open onOpenChange={vi.fn()} />);
     const nav = screen.getByText(i18n.t('dialogs.guide.diagramTypesHeading')).closest('aside') as HTMLElement;
     expect(nav.querySelector('p')?.className).not.toContain('uppercase');
-    expect(within(nav).getAllByRole('button')).toHaveLength(9);
+    expect(within(nav).getAllByRole('button')).toHaveLength(10);
+    expect(within(nav).getByText(i18n.t('dialogs.guide.projectHeading'))).toBeInTheDocument();
 
     fireEvent.click(within(nav).getByRole('button', { name: i18n.t('dialogs.guide.bpmn.label') }));
     expect(screen.getByText(i18n.t('dialogs.guide.bpmn.buildProcess.title'))).toBeInTheDocument();
 
     fireEvent.click(within(nav).getByRole('button', { name: i18n.t('dialogs.guide.user.label') }));
     expect(screen.getByText(i18n.t('dialogs.guide.user.editAsForm.title'))).toBeInTheDocument();
+  });
+
+  it('explains GitHub: what is saved, merging, pull requests and the AI reading of a repo', () => {
+    render(<HelpGuideDialog open onOpenChange={vi.fn()} initialSection="github" />);
+
+    expect(screen.getByRole('button', { name: 'GitHub' })).toHaveAttribute('aria-pressed', 'true');
+    for (const detail of ['connect', 'repoContents', 'saveLatest', 'pullRequests', 'history', 'anyRepo', 'publish']) {
+      expect(screen.getByText(i18n.t(`dialogs.guide.github.${detail}.title`))).toBeInTheDocument();
+    }
+    expect(screen.getByText('buml/diagrams.json')).toBeInTheDocument();
+    expect(screen.getByText(/to an AI model to propose the diagram/)).toBeInTheDocument();
+    expect(screen.getByText(/removed before anything is written/)).toBeInTheDocument();
   });
 });
 

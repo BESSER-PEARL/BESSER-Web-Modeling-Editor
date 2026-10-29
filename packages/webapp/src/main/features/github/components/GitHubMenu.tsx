@@ -14,6 +14,7 @@ import {
   FolderGit2,
   GitPullRequest,
   Github,
+  HelpCircle,
   History,
   Link2,
   Loader2,
@@ -40,6 +41,7 @@ import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { sanitizeRepoName } from '../../../shared/utils/validation';
+import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
 import { CreateRepositoryDialog } from '../dialogs/CreateRepositoryDialog';
@@ -432,6 +434,10 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             </>
           )}
           <DropdownMenuSeparator />
+          <DropdownMenuItem className={itemClass} onSelect={() => openHelpGuide('github')}>
+            <HelpCircle className={iconClass} aria-hidden="true" />
+            {t('github.menu.howItWorks', { defaultValue: 'How GitHub works in BESSER' })}
+          </DropdownMenuItem>
           <DropdownMenuLabel className="truncate px-2.5 py-1.5 text-xs font-normal text-muted-foreground">
             {t('github.menu.signedInAs', { defaultValue: 'Signed in as {{name}}', name: username || 'GitHub' })}
           </DropdownMenuLabel>

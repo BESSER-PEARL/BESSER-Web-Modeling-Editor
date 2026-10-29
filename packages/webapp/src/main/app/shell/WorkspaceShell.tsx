@@ -19,6 +19,11 @@ import { ShareGistDialog } from '../../features/github/dialogs/ShareGistDialog';
 import { isGoLiveAvailable } from '../../shared/api/github';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
+import {
+  OPEN_HELP_GUIDE_EVENT,
+  type HelpGuideSectionId,
+  type OpenHelpGuideDetail,
+} from '../../shared/dialogs/helpGuide';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -1078,7 +1083,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => (isAuthenticated ? setIsGistDialogOpen(true) : githubLogin()),
     [isAuthenticated, githubLogin],
   );
-  const openHelpDialog = useCallback(() => setIsHelpDialogOpen(true), [setIsHelpDialogOpen]);
+  const [helpSection, setHelpSection] = useState<HelpGuideSectionId | undefined>();
+  const openHelpDialog = useCallback(() => {
+    setHelpSection(undefined);
+    setIsHelpDialogOpen(true);
+  }, [setIsHelpDialogOpen]);
+  // Other parts of the app open the guide at a section (e.g. the GitHub menu's "How GitHub works").
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      setHelpSection((event as CustomEvent<OpenHelpGuideDetail>).detail?.section);
+      setIsHelpDialogOpen(true);
+    };
+    window.addEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+  }, [setIsHelpDialogOpen]);
   const openAboutDialog = useCallback(() => setIsAboutDialogOpen(true), [setIsAboutDialogOpen]);
   const openFeedback = useCallback(() => setIsFeedbackDialogOpen(true), [setIsFeedbackDialogOpen]);
   const toggleSidebarExpanded = useCallback(() => setIsSidebarExpanded((previous) => !previous), []);
@@ -1332,7 +1350,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       {helpDialogMounted && (
         <Suspense fallback={null}>
-          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} initialSection={helpSection} />
         </Suspense>
       )}
 

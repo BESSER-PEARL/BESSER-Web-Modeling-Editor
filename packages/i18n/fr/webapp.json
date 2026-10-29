@@ -1050,7 +1050,7 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code.",
+        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
@@ -1533,7 +1533,8 @@
       "saveDescription": "Enregistre votre modèle dans {{repo}} sur {{branch}}. Les modifications plus récentes sur GitHub sont fusionnées, jamais écrasées.",
       "saveToGitHub": "Enregistrer sur GitHub…",
       "signedInAs": "Connecté en tant que {{name}}",
-      "unlinkConfirmDescription": "Le projet reste dans votre navigateur et le dépôt sur GitHub. L’enregistrement sur GitHub s’arrête jusqu’à ce que vous liiez à nouveau un dépôt."
+      "unlinkConfirmDescription": "Le projet reste dans votre navigateur et le dépôt sur GitHub. L’enregistrement sur GitHub s’arrête jusqu’à ce que vous liiez à nouveau un dépôt.",
+      "howItWorks": "Comment GitHub fonctionne dans BESSER"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1815,7 +1816,7 @@
     "startFromRepo": {
       "badLink": "Collez un lien comme github.com/owner/repo.",
       "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",
-      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas.",
+      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
       "entry": "Partir d’un dépôt GitHub",
       "entryHint": "BESSER ou non",
       "failed": "Impossible d’ouvrir ce dépôt.",
@@ -2187,6 +2188,39 @@
         "elementTypes": {
           "title": "Définir les types d’éléments",
           "body": "<p>Double-cliquez sur une tâche, un événement ou une passerelle pour définir son type, par exemple une tâche utilisateur ou de service, un événement de début minuté, ou une passerelle exclusive ou parallèle.</p>"
+        }
+      },
+      "projectHeading": "Votre projet",
+      "github": {
+        "label": "GitHub",
+        "summary": "Gardez chaque projet dans votre propre dépôt GitHub : enregistrez et fusionnez votre modèle, relisez les changements et laissez le Spec-Driven Agent bâtir sur n’importe quel dépôt.",
+        "connect": {
+          "title": "Connecter et lier",
+          "body": "<p>Connectez GitHub depuis l’écran d’accueil ou le bouton GitHub de la barre supérieure. Chaque projet est lié à un dépôt : créez-en un privé pour lui, ou liez-en un que vous, un collaborateur ou votre organisation possédez déjà.</p><p>Cocher <strong>L’enregistrer sur GitHub</strong> en créant un projet crée et lie un dépôt privé en une seule étape.</p>"
+        },
+        "repoContents": {
+          "title": "Ce que contient le dépôt",
+          "body": "<p>Un enregistrement écrit tout votre projet dans <code>buml/diagrams.json</code>, le Python B-UML de vos diagrammes à côté dans <code>buml/</code>, et <code>.besser/project.json</code>, qui marque le dépôt comme projet BESSER. Après une exécution du Spec-Driven Agent, le code de l’application se trouve dans le même dépôt.</p><p>Les clés, jetons et mots de passe de la configuration de votre agent sont retirés avant toute écriture. Votre navigateur les garde, et ils reviennent quand vous chargez le modèle dans le même projet.</p>"
+        },
+        "saveLatest": {
+          "title": "Enregistrer et récupérer la dernière version",
+          "body": "<p>Le point sur le bouton GitHub indique où vous en êtes : synchronisé, modifications non enregistrées, nouveaux commits sur GitHub, ou modifié des deux côtés.</p><ul><li><strong>Enregistrer sur GitHub</strong> commite votre modèle. Si la branche a bougé depuis la dernière synchronisation, les deux versions sont fusionnées, le modèle en tant que données : deux personnes qui ajoutent chacune une classe gardent les deux.</li><li><strong>Récupérer la dernière version</strong> charge la version de GitHub dans l’éditeur.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflits et pull requests",
+          "body": "<p>Quand le même élément a été modifié différemment des deux côtés, rien n’est écrasé : votre enregistrement est gardé sur sa propre branche, et le menu GitHub propose d’ouvrir une pull request. Vous pouvez aussi envoyer n’importe quel enregistrement en pull request, pour que votre équipe le relise d’abord.</p><p>Une fois la pull request fusionnée, utilisez <strong>Récupérer la dernière version</strong> pour amener le résultat dans l’éditeur.</p>"
+        },
+        "history": {
+          "title": "Historique",
+          "body": "<p><strong>Historique…</strong> liste les commits qui ont changé le modèle, avec ce que chacun a changé (classes ajoutées, renommées ou supprimées), et charge n’importe quelle version antérieure dans l’éditeur.</p>"
+        },
+        "anyRepo": {
+          "title": "Partir de n’importe quel dépôt",
+          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub</strong> dans l’assistant. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui propose le diagramme.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
+        },
+        "publish": {
+          "title": "Mettre en ligne et partager",
+          "body": "<p><strong>Déployer → Mettre en ligne depuis GitHub</strong> met en ligne l’application du dépôt lié, exactement telle que le dépôt la contient, lorsque le serveur le propose.</p><p><strong>Fichier → Partager en Gist secret…</strong> partage une copie du projet par un lien, sans les identifiants de l’agent.</p>"
         }
       }
     }
