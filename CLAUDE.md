@@ -164,8 +164,9 @@ All keys are prefixed `besser_`; most constants live in `shared/constants/consta
 tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYOK key
 (`besser_llm_api_key` / `_provider` / `_model` / `_base_url`), free-tier opt-in, run budget, the GitHub
 session id, and assistant UI state. `localStorage` holds projects (`besser_projects`, `besser_latest_project`,
-`besser_project_<id>`), preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery
-pointer (no key, prompt or content). Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
+`besser_project_<id>`), project traces (`besser_traces_<id>`, apart from the project, see `shared/traceability/`),
+preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery pointer (no key, prompt
+or content). Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
 (the v3 storage migration deletes the old `besser_systemConfig`). Project storage format:
 `docs/source/webapp/local-projects.rst`.
 

@@ -48,6 +48,9 @@ const ProjectSettingsPanel = React.lazy(() =>
 const KnowledgeGraphSettingsPanel = React.lazy(() =>
   import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
 );
+const TraceabilityPage = React.lazy(() =>
+  import('../features/traceability').then((m) => ({ default: m.TraceabilityPage })),
+);
 
 const AgentSimulationPage = React.lazy(() =>
   import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
@@ -205,6 +208,7 @@ function AppContentInner() {
             <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
+            <Route path="/traceability" element={<TraceabilityPage />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

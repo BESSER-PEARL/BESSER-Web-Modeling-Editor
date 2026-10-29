@@ -64,7 +64,8 @@
       "agentPersonalization": "Agent Personalization",
       "agentMappings": "Agent Mappings",
       "agentComponents": "Components",
-      "kgSettings": "KG Settings"
+      "kgSettings": "KG Settings",
+      "traceability": "Traceability"
     }
   },
   "menu": {
@@ -3499,7 +3500,10 @@
       "untitledDiagram": "Untitled diagram",
       "exportPngWhite": "Export PNG (White)",
       "currentDescription": "Export the current UML diagram as image assets.",
-      "diagramCount": "{{count}} diagrams: {{titles}}"
+      "diagramCount": "{{count}} diagrams: {{titles}}",
+      "traceability": "Traceability",
+      "traceabilityDescription_one": "The project trace ({{count}} recorded operation)",
+      "traceabilityDescription_other": "The project trace ({{count}} recorded operations)"
     },
     "toasts": {
       "unknownError": "Unknown error",
@@ -4099,6 +4103,161 @@
       "ioUnresolvedOut": "The flow to “{{peer}}” does not start at a task in this lane, so no state sends it.",
       "mergeNoProducers": "The governed merge gateway “{{gateway}}” has no incoming flow, so its decision state has no inbound transition. Add one by hand.",
       "mergeNoSuccessors": "The governed merge gateway “{{gateway}}” leads to no task in this lane, so its decision state has no outgoing transition. Add one by hand."
+    }
+  },
+  "traceability": {
+    "title": "Traceability",
+    "description": "What was modelled, by whom and with which tool, and the code generated from each element.",
+    "backToEditor": "Back to editor",
+    "noProject": "Open a project to see its traces.",
+    "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
+    "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modelling edits and code generation.",
+    "export": "Export trace",
+    "toggle": {
+      "label": "Record traces for this project",
+      "help": "Class diagram edits and SQLAlchemy generations are recorded in this browser, in a trace file kept apart from the project. Export it to share it."
+    },
+    "import": {
+      "button": "Import trace",
+      "confirmTitle": "Replace the recorded traces?",
+      "confirmDescription": "The imported trace file replaces everything recorded for this project so far.",
+      "confirm": "Replace",
+      "done": "Trace imported."
+    },
+    "clear": {
+      "button": "Clear",
+      "confirmTitle": "Clear all traces?",
+      "confirmDescription": "Everything recorded for this project is deleted. Export the trace first to keep a copy.",
+      "confirm": "Clear traces"
+    },
+    "tabs": {
+      "timeline": "Timeline",
+      "elements": "Elements",
+      "coverage": "Coverage"
+    },
+    "timeline": {
+      "filters": {
+        "ALL": "All",
+        "MANUAL_MODELLING": "Manual modelling",
+        "ASSISTANT_MODELLING": "Assistant",
+        "CODE_GENERATION": "Code generation"
+      },
+      "search": "Search changes…",
+      "empty": "No operations match.",
+      "changeCount_one": "{{count}} change",
+      "changeCount_other": "{{count}} changes",
+      "linkCount_one": "{{count}} trace link",
+      "linkCount_other": "{{count}} trace links",
+      "files": "Files",
+      "tracedElements": "Traced elements",
+      "models": "Models"
+    },
+    "elements": {
+      "search": "Search diagrams and elements…",
+      "empty": "No elements recorded yet.",
+      "pick": "Pick a diagram or an element to see its history and the code generated from it.",
+      "expand": "Expand {{name}}",
+      "collapse": "Collapse {{name}}",
+      "generatedFiles": "Generated files",
+      "showFile_one": "Show the file ({{count}} line)",
+      "showFile_other": "Show the file ({{count}} lines)",
+      "deleted": "Deleted",
+      "generatedCode": "Generated code",
+      "noCode": "No code has been generated from this element yet.",
+      "showOlder_one": "Show {{count}} fragment from older generations",
+      "showOlder_other": "Show {{count}} fragments from older generations",
+      "history": "History",
+      "noHistory": "No edits recorded (the element existed before recording started).",
+      "contentNotKept": "The content of this generated file was not kept (it was over the size limit or superseded by newer generations).",
+      "evidence": "Evidence: template rule {{rule}} · confidence {{confidence}}",
+      "suspectHelp": "The element changed after this code was generated: regenerate to bring the code up to date."
+    },
+    "coverage": {
+      "element": "Diagram / element",
+      "noGenerations": "No code generated yet. Generate SQLAlchemy code from the class diagram to fill this matrix.",
+      "legend": {
+        "generated": "Generated, unchanged since",
+        "suspect": "Changed after generation (code may be stale)",
+        "none": "Not in this generation"
+      }
+    },
+    "status": {
+      "suspect": "Suspect",
+      "upToDate": "Up to date"
+    },
+    "operations": {
+      "MANUAL_MODELLING": "Manual modelling session",
+      "ASSISTANT_MODELLING": "Assistant modelling",
+      "IMPORT": "Import",
+      "CODE_GENERATION": "Code generation",
+      "CODE_GENERATION_with": "Generated {{generator}}",
+      "LLM_CODE_EDITING": "LLM code editing",
+      "VALIDATION": "Validation"
+    },
+    "changes": {
+      "created": "Created {{type}} {{name}}",
+      "deleted": "Deleted {{type}} {{name}}",
+      "renamed": "Renamed {{type}} {{from}} to {{to}}",
+      "updated": "Changed {{feature}} of {{type}} {{name}}: {{from}} → {{to}}"
+    },
+    "elementTypes": {
+      "DomainModel": "class diagram",
+      "ObjectModel": "object diagram",
+      "StateMachine": "state machine diagram",
+      "Agent": "agent diagram",
+      "GUIModel": "GUI diagram",
+      "BPMNModel": "BPMN diagram",
+      "NN": "neural network diagram",
+      "QuantumCircuit": "quantum circuit",
+      "ComponentModel": "component diagram",
+      "DeploymentModel": "deployment diagram",
+      "KnowledgeGraph": "knowledge graph",
+      "Class": "class",
+      "AssociationClass": "association class",
+      "Enumeration": "enumeration",
+      "EnumerationLiteral": "literal",
+      "Property": "attribute",
+      "Method": "method",
+      "Constraint": "constraint",
+      "BinaryAssociation": "association",
+      "Generalization": "generalization"
+    },
+    "features": {
+      "name": "name",
+      "type": "type",
+      "visibility": "visibility",
+      "isOptional": "optional",
+      "isDerived": "derived",
+      "isId": "id",
+      "isExternalId": "external id",
+      "defaultValue": "default value",
+      "code": "code",
+      "constraint": "expression",
+      "isAbstract": "abstract",
+      "owner": "owner",
+      "associationKind": "kind",
+      "source": "source",
+      "target": "target",
+      "sourceRole": "source role",
+      "sourceMultiplicity": "source multiplicity",
+      "sourceNavigable": "source navigability",
+      "targetRole": "target role",
+      "targetMultiplicity": "target multiplicity",
+      "targetNavigable": "target navigability",
+      "specific": "subclass",
+      "general": "superclass"
+    },
+    "errors": {
+      "notATrace": "This is not a BESSER trace file.",
+      "schemaVersion": "Unsupported trace file version {{found}} (expected {{expected}}).",
+      "otherProject": "This trace file belongs to another project."
+    },
+    "toasts": {
+      "storedTraceUnusable": "The stored trace of this project could not be read; a new one was started.",
+      "storagePruned_one": "Trace storage was full: the content of {{count}} older generated file was dropped (its trace links are kept).",
+      "storagePruned_other": "Trace storage was full: the content of {{count}} older generated files was dropped (their trace links are kept).",
+      "storageFull": "Trace storage is full and the latest change was not recorded. Export the trace and clear it to continue.",
+      "importedTraceUnusable": "The project was imported without its trace: {{problem}}"
     }
   }
 }
