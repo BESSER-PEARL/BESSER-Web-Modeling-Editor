@@ -1441,8 +1441,6 @@
       "descriptionCreate": "Sube el código generado y el modelo del proyecto a un repositorio de GitHub.",
       "descriptionUpdate": "Actualiza el repositorio vinculado con tu último código generado y tu modelo.",
       "done": "Listo",
-      "filesUploaded_one": "{{count}} archivo subido.",
-      "filesUploaded_other": "{{count}} archivos subidos.",
       "linkedTo": "Vinculado a",
       "loadingBranches": "Cargando ramas…",
       "loadingRepositories": "Cargando repositorios…",
@@ -1487,7 +1485,9 @@
         "pullRequestFailed": "No se pudo abrir la pull request.",
         "updated": "{{repo}} actualizado"
       },
-      "viewPullRequest": "Ver la pull request"
+      "viewPullRequest": "Ver la pull request",
+      "filesChanged_one": "{{count}} archivo cambiado.",
+      "filesChanged_other": "{{count}} archivos cambiados."
     },
     "chatHeader": {
       "diverged": "Cambiado aquí y en GitHub",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Los cambios de tu agente se han enviado a GitHub. Activa un redespliegue en Render para aplicarlos.",
       "descCreated": "Continúa con el despliegue en un clic en Render o inspecciona el repositorio generado.",
       "descCreatedAgent": "Continúa con el despliegue en un clic en Render para tu agente independiente o inspecciona el repositorio generado.",
-      "filesUploaded": "{{count}} archivos subidos.",
       "notSeeingChanges": "¿Aún no ves tus cambios?",
       "manualSyncIntro": "Abre tu Blueprint en Render y haz clic en",
       "manualSyncLabel": "Manual Sync",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Abrir aplicación en vivo",
       "openRenderDeployment": "Abrir despliegue de Render",
       "openBlueprint": "Abrir Blueprint de Render",
-      "viewRepo": "Ver repositorio de GitHub"
+      "viewRepo": "Ver repositorio de GitHub",
+      "filesChanged_one": "{{count}} archivo cambiado.",
+      "filesChanged_other": "{{count}} archivos cambiados."
     },
     "toasts": {
       "availableFor": "El despliegue está disponible para diagramas de aplicación web y de agente.",

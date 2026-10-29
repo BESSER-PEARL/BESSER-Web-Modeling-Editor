@@ -374,6 +374,7 @@ export function useSpecDrivenGithubPush(
             setPendingGitHubChange(project.id, {
               kind: res.status === 'conflict' ? 'conflict' : 'pull_request',
               branch,
+              ...(config.commitMessage ? { title: config.commitMessage } : {}),
               ...(res.pull_request_url ? { pullRequestUrl: res.pull_request_url } : {}),
               createdAt: new Date().toISOString(),
             });
@@ -425,7 +426,8 @@ export function useSpecDrivenGithubPush(
         repo: result.repo_name,
         head: result.conflict_branch,
         base: result.branch,
-        title: 'Update from the BESSER Spec-Driven Agent',
+        title: getProjectGitHubLink(projectRef.current?.id ?? '')?.pendingChange?.title
+          || 'Update from the BESSER Spec-Driven Agent',
       });
       const project = projectRef.current;
       const pending = project ? getProjectGitHubLink(project.id)?.pendingChange : undefined;

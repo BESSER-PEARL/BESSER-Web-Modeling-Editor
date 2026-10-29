@@ -1441,8 +1441,6 @@
       "descriptionCreate": "Den generierten Code und das Projektmodell in ein GitHub-Repository pushen.",
       "descriptionUpdate": "Das verknüpfte Repository mit deinem neuesten generierten Code und Modell aktualisieren.",
       "done": "Fertig",
-      "filesUploaded_one": "{{count}} Datei hochgeladen.",
-      "filesUploaded_other": "{{count}} Dateien hochgeladen.",
       "linkedTo": "Verknüpft mit",
       "loadingBranches": "Branches werden geladen…",
       "loadingRepositories": "Repositories werden geladen…",
@@ -1487,7 +1485,9 @@
         "pullRequestFailed": "Der Pull Request konnte nicht geöffnet werden.",
         "updated": "{{repo}} aktualisiert"
       },
-      "viewPullRequest": "Pull Request ansehen"
+      "viewPullRequest": "Pull Request ansehen",
+      "filesChanged_one": "{{count}} Datei geändert.",
+      "filesChanged_other": "{{count}} Dateien geändert."
     },
     "chatHeader": {
       "diverged": "Hier und auf GitHub geändert",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Ihre Agent-Änderungen wurden an GitHub übertragen. Lösen Sie auf Render eine erneute Bereitstellung aus, um sie zu übernehmen.",
       "descCreated": "Fahren Sie mit der Ein-Klick-Bereitstellung auf Render fort oder sehen Sie sich das generierte Repository an.",
       "descCreatedAgent": "Fahren Sie mit der Ein-Klick-Bereitstellung auf Render für Ihren eigenständigen Agenten fort oder sehen Sie sich das generierte Repository an.",
-      "filesUploaded": "{{count}} Dateien hochgeladen.",
       "notSeeingChanges": "Sehen Sie Ihre Änderungen noch nicht?",
       "manualSyncIntro": "Öffnen Sie Ihren Blueprint auf Render und klicken Sie auf",
       "manualSyncLabel": "Manual Sync",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Live-App öffnen",
       "openRenderDeployment": "Render-Bereitstellung öffnen",
       "openBlueprint": "Render-Blueprint öffnen",
-      "viewRepo": "GitHub-Repository ansehen"
+      "viewRepo": "GitHub-Repository ansehen",
+      "filesChanged_one": "{{count}} Datei geändert.",
+      "filesChanged_other": "{{count}} Dateien geändert."
     },
     "toasts": {
       "availableFor": "Die Bereitstellung ist für Web-App- und Agentendiagramme verfügbar.",

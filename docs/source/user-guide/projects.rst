@@ -207,6 +207,15 @@ opaque session id. That session id is held in this browser tab
 (``sessionStorage``) and expires after **24 hours**; your username is kept in
 ``localStorage`` for convenience.
 
+The whole editor shares one sign-in: signing out in the GitHub menu signs out
+the chat, the push dialog and the repository browser at once. When you reload,
+the editor checks the stored session with the backend before offering
+**Connect GitHub** again, so a GitHub action clicked during that check waits for
+it instead of sending you to GitHub. If the backend no longer accepts the
+session (it expired, or you signed out in another tab), every GitHub control
+switches to **Reconnect GitHub**, and a linked project keeps its repository and
+your unsaved changes.
+
 The GitHub menu
 ~~~~~~~~~~~~~~~
 
@@ -218,6 +227,9 @@ the state in words, and click it for everything you do with the repository:
 
 - **Save to GitHub…**: commit the model, with an optional message.
 - **Get latest**: appears when GitHub has commits you do not have.
+- **Open a pull request to merge it** / **View the pull request**: appear while
+  a save or push waits on its own branch (see `Changes waiting for a pull
+  request`_).
 - **History…**: the model's earlier versions, with a restore for each.
 - **Open on GitHub**: the repository's branch in a new tab.
 - **Change repository…** and **Unlink**.
@@ -253,9 +265,12 @@ can:
 - **Create a repository for this project**: name it and choose private or
   public. The first commit holds the model and a README.
 - **Link an existing repository…**: the browser lists your BESSER projects first
-  (search reaches every repository). Selecting one shows its model, its
-  diagrams and classes, and its last commit with who made it. If it already
-  holds a model you choose between loading that model and keeping yours.
+  (search reaches every repository). It holds every repository you can open:
+  your own, those you collaborate on and your organizations'. A repository you
+  can only read is marked **Read only** and cannot be linked, since BESSER
+  could not save to it. Selecting one shows its model, its diagrams and
+  classes, and its last commit with who made it. If it already holds a model
+  you choose between loading that model and keeping yours.
 
 **Change repository…** in the menu of a linked project opens the same browser.
 
@@ -268,17 +283,37 @@ the repository when you open the menu, when you return to the tab and once a
 minute.
 
 - **Save to GitHub…** commits the model. The commit message is optional. If
-  someone pushed since your last sync,
-  BESSER merges their commits with yours instead of overwriting them, and the
-  editor then shows the merged model. When GitHub cannot merge the two on its own
-  (both changed the same part of the model), your save goes to a ``besser/sync-…``
-  branch and the save dialog offers a pull request. Nothing is overwritten.
+  someone pushed since your last sync, BESSER merges their commits with yours
+  instead of overwriting them, and the editor then shows the merged model. The
+  model is merged element by element, not line by line: two people who each
+  add a class, or change different classes, both keep their work. Only a value
+  both of you changed differently (the same class renamed twice, a class one of
+  you deleted and the other edited) is a conflict; moving the same box is not.
+  On a conflict your save goes to a ``besser/sync-…`` branch and nothing is
+  overwritten (see `Changes waiting for a pull request`_).
 - **Get latest** loads the repository's model, and its code as the starting
   point of the next Spec-Driven Agent run. It asks first when you have unsaved
   model changes.
 
 To bring the repository's app code in line with your model, ask the Spec-Driven
 Agent in the chat; you review the run, then push it.
+
+Changes waiting for a pull request
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A save or push that did not land on the branch, because GitHub could not merge
+it or because you chose to open a pull request, is remembered with the project,
+also after you close the dialog or reload. The GitHub menu then shows it:
+
+- before a pull request exists: **Open a pull request to merge it**. The pull
+  request takes the message you saved with, and its description lists the
+  model changes (``class Loan added``) and the files. GitHub shows any conflict
+  to resolve before merging.
+- once it is open: **View the pull request**.
+- **Stop tracking it** forgets it here; the branch stays on GitHub.
+
+When the pull request is merged or closed, or its branch deleted, the menu
+drops it on its own; after a merge, **Get latest** brings the merged model in.
 
 Going live
 ~~~~~~~~~~

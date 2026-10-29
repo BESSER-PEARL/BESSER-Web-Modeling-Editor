@@ -1441,8 +1441,6 @@
       "descriptionCreate": "Push the generated code and project model to a GitHub repository.",
       "descriptionUpdate": "Update the linked repository with your latest generated code and model.",
       "done": "Done",
-      "filesUploaded_one": "{{count}} file uploaded.",
-      "filesUploaded_other": "{{count}} files uploaded.",
       "linkedTo": "Linked to",
       "loadingBranches": "Loading branches…",
       "loadingRepositories": "Loading repositories…",
@@ -1487,7 +1485,9 @@
         "expired": "This generation expired — re-generate to push.",
         "nameTaken": "A repository with that name already exists — push to it as an existing repo.",
         "branchMoved": "The branch changed on GitHub during the push. Try again. ({{detail}})"
-      }
+      },
+      "filesChanged_one": "{{count}} file changed.",
+      "filesChanged_other": "{{count}} files changed."
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Your agent changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.",
       "descCreated": "Continue with one-click Render deployment or inspect the generated repository.",
       "descCreatedAgent": "Continue with one-click Render deployment for your standalone agent or inspect the generated repository.",
-      "filesUploaded": "{{count}} files uploaded.",
       "notSeeingChanges": "Don't see your changes yet?",
       "manualSyncIntro": "Open your Blueprint on Render and click",
       "manualSyncLabel": "Manual Sync",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Open Live App",
       "openRenderDeployment": "Open Render Deployment",
       "openBlueprint": "Open Render Blueprint",
-      "viewRepo": "View GitHub Repository"
+      "viewRepo": "View GitHub Repository",
+      "filesChanged_one": "{{count}} file changed.",
+      "filesChanged_other": "{{count}} files changed."
     },
     "toasts": {
       "availableFor": "Deploy is available for Web App and Agent diagrams.",

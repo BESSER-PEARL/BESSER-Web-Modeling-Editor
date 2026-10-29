@@ -177,13 +177,27 @@ the project's linked one. If a repository with the chosen name already exists th
 dialog tells you to push to it as an existing repo rather than silently
 overwriting.
 
+A push changes only what the run changed. It is compared with the commit the run
+started from: files the run did not touch are not sent, an executable file stays
+executable, and what the run never held is left alone, such as ``build/`` and
+``dist/`` output, ``*.db`` files, symlinks and secret ``.env`` files. A file the
+run deleted is deleted. A push that changes nothing makes no commit, so
+pushing the same run twice is harmless. The result counts the files changed.
+
 A push to the linked repository never reverts other people's work. If commits
 landed on the branch since your last sync (a teammate's push, an edit on
 github.com), BESSER merges them with the run's changes, then loads the merged
-model and uses the merged code as the next run's starting point. If GitHub cannot
-merge them on its own, the push stays on a ``besser/sync-…`` branch and the
-dialog offers a pull request. You can also choose **Open a pull request** up
-front, so your team reviews the change before it lands.
+model and uses the merged code as the next run's starting point. The code is
+merged by GitHub and the model element by element (see :doc:`projects`). If
+they cannot be merged, the push stays on a ``besser/sync-…``
+branch and the GitHub menu keeps offering its pull request. You can also choose
+**Open a pull request** up front, so your team reviews the change before it
+lands. Either way, when the run changed the model the editor shows that model,
+counted as not yet saved to the branch until the pull request is merged.
+
+Pushes go to the repository's real owner, so a project linked to an
+organization's repository, or to one you collaborate on, pushes there. When
+picking a repository to push to, the dialog lists only those you can write to.
 
 Configuration
 -------------

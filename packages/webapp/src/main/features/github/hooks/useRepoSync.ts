@@ -254,7 +254,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
         markSynced(link, project, result.commit_sha);
       } else if (result.status === 'conflict' && result.conflict_branch) {
         setPendingGitHubChange(projectId, {
-          kind: 'conflict', branch: result.conflict_branch, createdAt: new Date().toISOString(),
+          kind: 'conflict', branch: result.conflict_branch, title: commitMessage, createdAt: new Date().toISOString(),
         });
       }
       await refresh();
@@ -263,13 +263,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     [link, projectId, githubSession, pullInto, markSynced, refresh],
   );
 
-  /** Open (or find) the pull request of the pending change; returns its URL. */
+  /** Open (or find) the pull request of the pending change; returns its URL. `title` when the change has none. */
   const openPullRequest = useCallback(
     async (title: string): Promise<string> => {
       const pending = link?.pendingChange;
       if (!link || !pending || !projectId || !githubSession) throw new Error('Nothing waits for a pull request.');
       const pr = await createPullRequest(githubSession, {
-        owner: link.owner, repo: link.repo, head: pending.branch, base: link.branch, title,
+        owner: link.owner, repo: link.repo, head: pending.branch, base: link.branch, title: pending.title || title,
       });
       setPendingGitHubChange(projectId, { ...pending, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number });
       return pr.html_url;

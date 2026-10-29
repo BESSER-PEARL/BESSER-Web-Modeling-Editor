@@ -1441,8 +1441,6 @@
       "descriptionCreate": "De generéierte Code an de Projetmodell an e GitHub-Repository pushen.",
       "descriptionUpdate": "De verlinkte Repository mat dengem neiste generéierte Code a Modell aktualiséieren.",
       "done": "Fäerdeg",
-      "filesUploaded_one": "{{count}} Datei eropgelueden.",
-      "filesUploaded_other": "{{count}} Dateien eropgelueden.",
       "linkedTo": "Verlinkt mat",
       "loadingBranches": "Branche gi gelueden…",
       "loadingRepositories": "Repositorye gi gelueden…",
@@ -1487,7 +1485,9 @@
         "pullRequestFailed": "De Pull Request konnt net opgemaach ginn.",
         "updated": "{{repo}} aktualiséiert"
       },
-      "viewPullRequest": "Pull Request ukucken"
+      "viewPullRequest": "Pull Request ukucken",
+      "filesChanged_one": "{{count}} Datei geännert.",
+      "filesChanged_other": "{{count}} Dateien geännert."
     },
     "chatHeader": {
       "diverged": "Hei an op GitHub geännert",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Är Agent-Ännerunge goufen op GitHub gepuscht. Léist en Redeploy op Render aus fir se z'iwwerhuelen.",
       "descCreated": "Maacht weider mat engem Een-Klick-Render-Deployment oder kuckt dat generéiert Repository un.",
       "descCreatedAgent": "Maacht weider mat engem Een-Klick-Render-Deployment fir ären eegestännegen Agent oder kuckt dat generéiert Repository un.",
-      "filesUploaded": "{{count}} Dateien eropgelueden.",
       "notSeeingChanges": "Gesitt Dir Är Ännerungen nach net?",
       "manualSyncIntro": "Maacht Äre Blueprint op Render op a klickt op",
       "manualSyncLabel": "Manual Sync",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Live-App opmaachen",
       "openRenderDeployment": "Render-Deployment opmaachen",
       "openBlueprint": "Render-Blueprint opmaachen",
-      "viewRepo": "GitHub-Repository uweisen"
+      "viewRepo": "GitHub-Repository uweisen",
+      "filesChanged_one": "{{count}} Datei geännert.",
+      "filesChanged_other": "{{count}} Dateien geännert."
     },
     "toasts": {
       "availableFor": "D'Deployment ass fir Web-App- an Agent-Diagrammer verfügbar.",

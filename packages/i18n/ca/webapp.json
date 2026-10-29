@@ -1441,8 +1441,6 @@
       "descriptionCreate": "Puja el codi generat i el model del projecte a un repositori de GitHub.",
       "descriptionUpdate": "Actualitza el repositori enllaçat amb el teu darrer codi generat i el model.",
       "done": "Fet",
-      "filesUploaded_one": "{{count}} fitxer pujat.",
-      "filesUploaded_other": "{{count}} fitxers pujats.",
       "linkedTo": "Enllaçat amb",
       "loadingBranches": "S’estan carregant les branques…",
       "loadingRepositories": "S’estan carregant els repositoris…",
@@ -1487,7 +1485,9 @@
         "pullRequestFailed": "No s’ha pogut obrir la pull request.",
         "updated": "{{repo}} actualitzat"
       },
-      "viewPullRequest": "Mostra la pull request"
+      "viewPullRequest": "Mostra la pull request",
+      "filesChanged_one": "{{count}} fitxer canviat.",
+      "filesChanged_other": "{{count}} fitxers canviats."
     },
     "chatHeader": {
       "diverged": "Canviat aquí i a GitHub",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Els canvis del teu agent s'han enviat a GitHub. Activa un redesplegament a Render per aplicar-los.",
       "descCreated": "Continua amb el desplegament amb un clic a Render o inspecciona el repositori generat.",
       "descCreatedAgent": "Continua amb el desplegament amb un clic a Render per al teu agent independent o inspecciona el repositori generat.",
-      "filesUploaded": "{{count}} fitxers pujats.",
       "notSeeingChanges": "Encara no veus els teus canvis?",
       "manualSyncIntro": "Obre el teu Blueprint a Render i fes clic a",
       "manualSyncLabel": "Sincronització Manual",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Obre l'aplicació en directe",
       "openRenderDeployment": "Obre el desplegament de Render",
       "openBlueprint": "Obre el Blueprint de Render",
-      "viewRepo": "Mostra el repositori de GitHub"
+      "viewRepo": "Mostra el repositori de GitHub",
+      "filesChanged_one": "{{count}} fitxer canviat.",
+      "filesChanged_other": "{{count}} fitxers canviats."
     },
     "toasts": {
       "availableFor": "El desplegament està disponible per a diagrames d'aplicació web i d'agent.",

@@ -58,7 +58,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               <p className="break-all font-medium">
                 {deploymentResult.owner}/{deploymentResult.repo_name}
               </p>
-              <p className="text-xs">{t('deploy.result.filesUploaded', { count: deploymentResult.files_uploaded })}</p>
+              <p className="text-xs">{t('deploy.result.filesChanged', { count: deploymentResult.files_uploaded })}</p>
             </div>
             {isRedeploy && (
               <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">

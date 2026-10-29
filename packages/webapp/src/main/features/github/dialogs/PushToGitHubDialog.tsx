@@ -274,7 +274,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                 {result.owner}/{result.repo_name}
                 <span className="text-xs opacity-80">@{result.branch}</span>
               </p>
-              <p className="text-xs">{t('github.push.filesUploaded', { count: result.files_uploaded })}</p>
+              <p className="text-xs">{t('github.push.filesChanged', { count: result.files_uploaded })}</p>
             </div>
             {result.warnings?.map((warning) => (
               <p key={warning} className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">

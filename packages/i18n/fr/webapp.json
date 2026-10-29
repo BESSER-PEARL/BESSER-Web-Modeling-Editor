@@ -1441,8 +1441,6 @@
       "descriptionCreate": "Envoyez le code généré et le modèle du projet vers un dépôt GitHub.",
       "descriptionUpdate": "Mettez à jour le dépôt lié avec votre dernier code généré et votre modèle.",
       "done": "Terminé",
-      "filesUploaded_one": "{{count}} fichier envoyé.",
-      "filesUploaded_other": "{{count}} fichiers envoyés.",
       "linkedTo": "Lié à",
       "loadingBranches": "Chargement des branches…",
       "loadingRepositories": "Chargement des dépôts…",
@@ -1487,7 +1485,9 @@
         "pullRequestFailed": "Impossible d’ouvrir la pull request.",
         "updated": "{{repo}} mis à jour"
       },
-      "viewPullRequest": "Voir la pull request"
+      "viewPullRequest": "Voir la pull request",
+      "filesChanged_one": "{{count}} fichier modifié.",
+      "filesChanged_other": "{{count}} fichiers modifiés."
     },
     "chatHeader": {
       "diverged": "Modifié ici et sur GitHub",
@@ -1872,7 +1872,6 @@
       "descUpdatedAgent": "Les modifications de votre agent ont été poussées sur GitHub. Déclenchez un redéploiement sur Render pour les prendre en compte.",
       "descCreated": "Poursuivez avec le déploiement en un clic sur Render ou inspectez le dépôt généré.",
       "descCreatedAgent": "Poursuivez avec le déploiement en un clic sur Render pour votre agent autonome ou inspectez le dépôt généré.",
-      "filesUploaded": "{{count}} fichiers téléversés.",
       "notSeeingChanges": "Vous ne voyez pas encore vos modifications ?",
       "manualSyncIntro": "Ouvrez votre Blueprint sur Render et cliquez sur",
       "manualSyncLabel": "Manual Sync",
@@ -1882,7 +1881,9 @@
       "openLiveApp": "Ouvrir l'application en ligne",
       "openRenderDeployment": "Ouvrir le déploiement Render",
       "openBlueprint": "Ouvrir le Blueprint Render",
-      "viewRepo": "Voir le dépôt GitHub"
+      "viewRepo": "Voir le dépôt GitHub",
+      "filesChanged_one": "{{count}} fichier modifié.",
+      "filesChanged_other": "{{count}} fichiers modifiés."
     },
     "toasts": {
       "availableFor": "Le déploiement est disponible pour les diagrammes d'application web et d'agent.",

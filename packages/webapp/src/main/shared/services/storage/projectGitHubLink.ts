@@ -36,6 +36,8 @@ export interface PendingGitHubChange {
   /** `conflict`: GitHub could not merge it. `pull_request`: it was sent for review. */
   kind: 'conflict' | 'pull_request';
   branch: string;
+  /** What the user said the change does; the pull request's title. */
+  title?: string;
   pullRequestUrl?: string;
   pullRequestNumber?: number;
   createdAt: string;

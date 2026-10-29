@@ -68,14 +68,15 @@ describe('useRepoSync', () => {
     });
     expect(getProjectGitHubLink('p1')?.pendingChange).toMatchObject({ kind: 'conflict', branch: 'besser/sync-bbbbbbb' });
 
+    // Opened later from the GitHub menu, which knows no message: the save's own message titles it.
     let url = '';
     await act(async () => {
-      url = await result.current.openPullRequest('Rename Author');
+      url = await result.current.openPullRequest('Model changes from the BESSER editor');
     });
 
     expect(url).toBe('https://github.com/me/library/pull/4');
     expect(api.createPullRequest).toHaveBeenCalledWith('session', expect.objectContaining({
-      head: 'besser/sync-bbbbbbb', base: 'main',
+      head: 'besser/sync-bbbbbbb', base: 'main', title: 'Rename Author',
     }));
     expect(getProjectGitHubLink('p1')?.pendingChange).toMatchObject({ pullRequestNumber: 4 });
   });
