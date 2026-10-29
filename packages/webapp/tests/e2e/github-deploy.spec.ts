@@ -15,6 +15,7 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 const REPO_NAME = 'deploy-e2e-repo';
+const GITHUB_MENU_SIGNED_IN = /link this project to a github repository/i;
 const REPO_DESCRIPTION = 'E2E deploy contract test';
 
 test.describe('GitHub deploy: projectExport envelope', () => {
@@ -22,15 +23,7 @@ test.describe('GitHub deploy: projectExport envelope', () => {
 
   test.beforeEach(async ({ page }) => {
     capturedBody = null;
-
-    // Mock GitHub auth status so useGitHubAuth treats the user as signed in.
-    await page.route('**/besser_api/github/auth/status**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, username: 'e2e-user' }),
-      });
-    });
+    await signInToGitHub(page);
 
     // Mock the deploy endpoint and capture the outgoing request body.
     await page.route('**/besser_api/github/deploy-webapp', async (route) => {
@@ -54,33 +47,8 @@ test.describe('GitHub deploy: projectExport envelope', () => {
       });
     });
 
-    // Seed storage BEFORE the first navigation so useGitHubAuth's mount-effect
-    // sees the session/username on the very first render. (Setting after goto
-    // and reloading races the React.StrictMode double-mount + verifySession
-    // AbortController cleanup, which can reject the in-flight fetch and
-    // trigger logout(), wiping the seed.)
-    await page.addInitScript(() => {
-      try {
-        localStorage.setItem(
-          'besser_analytics_consent',
-          JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() })
-        );
-        // Pin storage migrations as already-applied so runStorageMigrations
-        // doesn't strip ``github_username`` (the v2 migration clears it).
-        localStorage.setItem('besser_storage_version', '2');
-        // Token format must match useGitHubAuth.isValidSessionToken:
-        // /^[a-zA-Z0-9_-]{10,200}$/
-        sessionStorage.setItem('github_session', 'e2e-session-token-1234');
-        sessionStorage.setItem('github_session_timestamp', String(Date.now()));
-        localStorage.setItem('github_username', 'e2e-user');
-      } catch {
-        // Storage may not be available on the about:blank pre-navigation page;
-        // that's fine — the script re-runs on every document load.
-      }
-    });
-
     await page.goto('/');
-    await createBlankProject(page, 'Deploy_E2E_Project');
+    await createProject(page, 'Deploy_E2E_Project', { saveOnGithub: false });
 
     // The envelope filters out empty diagrams (see diagramHasContent), so seed
     // one Class element into the active project's ClassDiagram before opening
@@ -121,16 +89,14 @@ test.describe('GitHub deploy: projectExport envelope', () => {
 
     // Wait for the GitHub auth status mock to resolve so useGitHubAuth flips
     // ``isAuthenticated`` to true (otherwise handleOpenDeployDialog bails with
-    // a "Connect to GitHub first" toast). The "Toggle GitHub version control
-    // panel" button only renders when isAuthenticated is true.
-    await expect(
-      header.getByRole('button', { name: /toggle github version control panel/i }),
-    ).toBeVisible({ timeout: 10_000 });
+    // a "Connect to GitHub first" toast). Signed out, the GitHub menu is a
+    // "Connect GitHub" button; signed in, it offers to link the project.
+    await expect(header.getByRole('button', { name: GITHUB_MENU_SIGNED_IN })).toBeVisible({ timeout: 10_000 });
 
     // Open the Deploy dropdown and click "Publish Web App to Render".
     const deployButton = header.getByRole('button', { name: /^deploy$/i });
     await deployButton.click();
-    await page.getByRole('menuitem', { name: /^publish to render$/i }).click();
+    await page.getByRole('menuitem', { name: /^publish to render…?$/i }).click();
 
     // The deploy dialog should appear in create-new-repo mode.
     const dialog = page.getByRole('dialog');
@@ -169,20 +135,99 @@ test.describe('GitHub deploy: projectExport envelope', () => {
   });
 });
 
+test.describe('GitHub: save a new project in its own repository', () => {
+  test('creating a project with "Save it on GitHub" makes a private repo and links it', async ({ page }) => {
+    let createBody: any = null;
+    await signInToGitHub(page);
+    await page.route('**/besser_api/github/repos', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repositories: [], truncated: false }) });
+    });
+    await page.route('**/besser_api/github/project/create-repo', async (route) => {
+      createBody = JSON.parse(route.request().postData() || '{}');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ owner: 'e2e-user', repo_url: 'https://github.com/e2e-user/shop', commit_sha: 'a'.repeat(40), branch: 'main' }),
+      });
+    });
+    await page.route('**/besser_api/github/sync-status**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ head_sha: 'a'.repeat(40), commits_since: [], in_sync: true }),
+      });
+    });
+
+    await page.goto('/');
+    await createProject(page, 'Shop', { saveOnGithub: true });
+
+    await expect.poll(() => createBody, { timeout: 10_000 }).not.toBeNull();
+    expect(createBody.repo_name).toBe('shop');
+    expect(createBody.is_private).toBe(true);
+    expect(createBody.project_export.version).toBe('2.0.0');
+    expect(createBody.project_export.project.name).toBe('Shop');
+
+    // The GitHub menu now names the linked repository instead of offering to link one.
+    const header = page.locator('header').first();
+    await expect(header.getByRole('button', { name: /e2e-user\/shop: in sync with github/i })).toBeVisible({ timeout: 10_000 });
+    await expect(header.getByRole('button', { name: GITHUB_MENU_SIGNED_IN })).toHaveCount(0);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function createBlankProject(page: Page, name: string) {
+/** Mock the GitHub auth check and seed a session, so the editor starts signed in as e2e-user. */
+async function signInToGitHub(page: Page) {
+  await page.route('**/besser_api/github/auth/status**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, username: 'e2e-user' }),
+    });
+  });
+
+  // Seed storage BEFORE the first navigation so useGitHubAuth's mount-effect
+  // sees the session/username on the very first render. (Setting after goto
+  // and reloading races the React.StrictMode double-mount + verifySession
+  // AbortController cleanup, which can reject the in-flight fetch and
+  // trigger logout(), wiping the seed.)
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        'besser_analytics_consent',
+        JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() })
+      );
+      // Pin storage migrations as already-applied so runStorageMigrations
+      // doesn't strip ``github_username`` (the v2 migration clears it).
+      localStorage.setItem('besser_storage_version', '2');
+      // Token format must match useGitHubAuth.isValidSessionToken:
+      // /^[a-zA-Z0-9_-]{10,200}$/
+      sessionStorage.setItem('github_session', 'e2e-session-token-1234');
+      sessionStorage.setItem('github_session_timestamp', String(Date.now()));
+      localStorage.setItem('github_username', 'e2e-user');
+    } catch {
+      // Storage may not be available on the about:blank pre-navigation page;
+      // that's fine — the script re-runs on every document load.
+    }
+  });
+}
+
+/** First-run landing > Model it > the create form, with "Save it on GitHub" set as asked. */
+async function createProject(page: Page, name: string, { saveOnGithub }: { saveOnGithub: boolean }) {
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
+  await dialog.getByRole('button', { name: /Model it/ }).click();
+  await expect(dialog.getByText('Create a Project')).toBeVisible();
 
-  const nameInput = dialog.getByLabel(/name/i);
+  const nameInput = dialog.getByLabel(/^name/i);
   await nameInput.clear();
   await nameInput.fill(name);
+
+  const saveBox = dialog.getByTestId('create-save-github');
+  if ((await saveBox.isChecked()) !== saveOnGithub) await saveBox.click();
 
   await dialog.getByRole('button', { name: /create project/i }).click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
