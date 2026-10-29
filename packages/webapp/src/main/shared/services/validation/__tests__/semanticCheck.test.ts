@@ -8,6 +8,7 @@ import {
   SemanticSearchIncompleteError,
   checkSemanticConsistency,
   generateObjectDiagram,
+  isSemanticSearchRunning,
   semanticSearchErrorMessage,
   type SemanticSearchEvent,
 } from '../semanticCheck';
@@ -95,6 +96,49 @@ describe('generateObjectDiagram', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it('passes the abort signal to the stream', async () => {
+    streamOf(found);
+    const controller = new AbortController();
+    await generateObjectDiagram('Library', {}, vi.fn(), controller.signal);
+    expect(vi.mocked(streamSse)).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+});
+
+describe('isSemanticSearchRunning', () => {
+  it('is true while a search runs', async () => {
+    let release: (event: SemanticSearchEvent) => void = () => {};
+    vi.mocked(streamSse).mockImplementation(
+      () =>
+        (async function* () {
+          yield await new Promise<SemanticSearchEvent>((resolve) => {
+            release = resolve;
+          });
+        })() as AsyncGenerator<never, void, void>,
+    );
+    const search = checkSemanticConsistency('Library', {}, vi.fn());
+    expect(isSemanticSearchRunning()).toBe(true);
+    release(found);
+    await search;
+  });
+
+  it('is false after a search', async () => {
+    streamOf(found);
+    await checkSemanticConsistency('Library', {}, vi.fn());
+    expect(isSemanticSearchRunning()).toBe(false);
+  });
+
+  it('is false after a failed search', async () => {
+    streamOf(searching);
+    await expect(checkSemanticConsistency('Library', {}, vi.fn())).rejects.toBeInstanceOf(
+      SemanticSearchIncompleteError,
+    );
+    expect(isSemanticSearchRunning()).toBe(false);
   });
 });
 

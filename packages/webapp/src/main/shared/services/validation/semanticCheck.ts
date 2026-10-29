@@ -49,24 +49,40 @@ export class SemanticSearchIncompleteError extends Error {
   }
 }
 
+/** Each semantic search starts an Alloy Analyzer on the server, so the editor runs one at a time. */
+let searchRunning = false;
+
+/** Whether a semantic search, from any entry point, is running. */
+export function isSemanticSearchRunning(): boolean {
+  return searchRunning;
+}
+
 /**
  * Streams the semantic search of `endpoint` for `body`; passes each progress
- * event to `onProgress` and resolves with the last (`done`) event.
+ * event to `onProgress` and resolves with the last (`done`) event. Aborting
+ * `signal` closes the stream, which stops the search on the server.
  */
 export async function streamSemanticSearch(
   endpoint: string,
   body: { title: string; model: unknown },
   onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
-  const events = streamSse<SemanticSearchEvent>(endpoint, body, {
-    stallTimeoutMs: SEMANTIC_CHECK_STALL_TIMEOUT_MS,
-    responseTimeoutMs: SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
-  });
-  for await (const event of events) {
-    if (event.done) return event;
-    onProgress(event);
+  searchRunning = true;
+  try {
+    const events = streamSse<SemanticSearchEvent>(endpoint, body, {
+      stallTimeoutMs: SEMANTIC_CHECK_STALL_TIMEOUT_MS,
+      responseTimeoutMs: SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
+      signal,
+    });
+    for await (const event of events) {
+      if (event.done) return event;
+      onProgress(event);
+    }
+    throw new SemanticSearchIncompleteError();
+  } finally {
+    searchRunning = false;
   }
-  throw new SemanticSearchIncompleteError();
 }
 
 /** Searches for an instance of the class diagram `model`. */
@@ -74,8 +90,9 @@ export function checkSemanticConsistency(
   title: string,
   model: unknown,
   onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
-  return streamSemanticSearch(SEMANTIC_CHECK_ENDPOINT, { title, model }, onProgress);
+  return streamSemanticSearch(SEMANTIC_CHECK_ENDPOINT, { title, model }, onProgress, signal);
 }
 
 /** Searches for an instance of the class diagram `model`; a found one comes as an object diagram. */
@@ -83,8 +100,9 @@ export function generateObjectDiagram(
   title: string,
   model: unknown,
   onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
-  return streamSemanticSearch(GENERATE_OBJECT_DIAGRAM_ENDPOINT, { title, model }, onProgress);
+  return streamSemanticSearch(GENERATE_OBJECT_DIAGRAM_ENDPOINT, { title, model }, onProgress, signal);
 }
 
 /** Long, multi-line toasts for lists of errors and warnings. */
