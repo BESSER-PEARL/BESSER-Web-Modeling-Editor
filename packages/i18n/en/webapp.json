@@ -4133,7 +4133,8 @@
     "tabs": {
       "timeline": "Timeline",
       "elements": "Elements",
-      "coverage": "Coverage"
+      "coverage": "Coverage",
+      "lineage": "Lineage"
     },
     "timeline": {
       "filters": {
@@ -4171,6 +4172,40 @@
       "contentNotKept": "The content of this generated file was not kept (it was over the size limit or superseded by newer generations).",
       "evidence": "Evidence: template rule {{rule}} · confidence {{confidence}}",
       "suspectHelp": "The element changed after this code was generated: regenerate to bring the code up to date."
+    },
+    "lineage": {
+      "show": "Show lineage",
+      "startFrom": "Lineage of",
+      "olderGenerations": "Show older generations",
+      "file": "Generated file",
+      "code": "code",
+      "lines": "Lines {{start}}–{{end}}",
+      "focus": "Show its lineage",
+      "openInElements": "Open in Elements",
+      "linkTitle": "Trace link",
+      "confidence": "Confidence",
+      "evidence": "Evidence",
+      "noEvidence": "No evidence recorded.",
+      "madeBy": "Made by",
+      "evidenceKinds": {
+        "rule": "Deterministic rule: {{rule}}",
+        "ai_one": "AI ({{algorithm}}), based on {{count}} log record",
+        "ai_other": "AI ({{algorithm}}), based on {{count}} log records",
+        "change_one": "Inferred from {{count}} change",
+        "change_other": "Inferred from {{count}} changes"
+      },
+      "state": {
+        "current": "Holds: the source has not changed since the link was made.",
+        "suspect": "Suspect: the source changed after the link was made, so the target may be out of date. Changes since:",
+        "staleUpstream": "Stale upstream: this link holds, but something its source was derived from changed since."
+      },
+      "legend": {
+        "rule": "Rule",
+        "ai": "AI",
+        "suspect": "Suspect",
+        "staleUpstream": "Stale upstream",
+        "confidence": "Thicker line, higher confidence"
+      }
     },
     "coverage": {
       "element": "Diagram / element",

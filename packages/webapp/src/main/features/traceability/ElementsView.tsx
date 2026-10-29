@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, GitFork } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type { ModelArtifact } from '../../shared/types/traceability';
@@ -21,10 +22,11 @@ interface ElementsViewProps {
   index: TraceIndex;
   selectedId: string | null;
   onSelect: (artifactId: string) => void;
+  onShowLineage: (artifactId: string) => void;
 }
 
 /** The project's diagrams as a tree of their elements on the left; the selection's history and generated code on the right. */
-export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, onSelect }) => {
+export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, onSelect, onShowLineage }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   // Nodes whose open state the user flipped: diagrams start open, everything else closed.
@@ -79,7 +81,7 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
         </ul>
       </div>
       {selected ? (
-        <ElementDetail index={index} artifactId={selected.id} />
+        <ElementDetail index={index} artifactId={selected.id} onShowLineage={onShowLineage} />
       ) : (
         <p className="self-center text-center text-sm text-muted-foreground">{t('traceability.elements.pick')}</p>
       )}
@@ -156,7 +158,11 @@ const TreeNode: React.FC<{ artifact: ModelArtifact; tree: TreeContext }> = ({ ar
   );
 };
 
-const ElementDetail: React.FC<{ index: TraceIndex; artifactId: string }> = ({ index, artifactId }) => {
+const ElementDetail: React.FC<{ index: TraceIndex; artifactId: string; onShowLineage: (artifactId: string) => void }> = ({
+  index,
+  artifactId,
+  onShowLineage,
+}) => {
   const { t, i18n } = useTranslation();
   const artifact = index.artifacts.get(artifactId)!;
   const history = useMemo(() => historyOf(index, artifactId), [index, artifactId]);
@@ -171,6 +177,10 @@ const ElementDetail: React.FC<{ index: TraceIndex; artifactId: string }> = ({ in
         <h3 className="text-lg font-semibold">{artifact.name}</h3>
         {artifact.type === 'ModelArtifact' && <Badge variant="soft">{elementTypeLabel(t, artifact.elementType)}</Badge>}
         {isDeleted(index, artifactId) && <Badge variant="destructive">{t('traceability.elements.deleted')}</Badge>}
+        <Button size="sm" variant="outline" className="ml-auto" onClick={() => onShowLineage(artifactId)}>
+          <GitFork className="mr-1 size-3.5" />
+          {t('traceability.lineage.show')}
+        </Button>
       </div>
 
       <section className="space-y-2">

@@ -23,10 +23,11 @@ import {
 import type { TraceFile } from '../../shared/types/traceability';
 import { CoverageView } from './CoverageView';
 import { ElementsView } from './ElementsView';
+import { LineageView } from './LineageView';
 import { TimelineView } from './TimelineView';
 
-type Tab = 'timeline' | 'elements' | 'coverage';
-const TABS: Tab[] = ['timeline', 'elements', 'coverage'];
+type Tab = 'timeline' | 'elements' | 'coverage' | 'lineage';
+const TABS: Tab[] = ['timeline', 'elements', 'coverage', 'lineage'];
 
 /** The project's traces: what was modelled, by whom, and which code was generated from it. */
 export const TraceabilityPage: React.FC = () => {
@@ -50,6 +51,11 @@ export const TraceabilityPage: React.FC = () => {
   const openElement = (artifactId: string) => {
     setSelectedElement(artifactId);
     setTab('elements');
+  };
+
+  const showLineage = (artifactId: string) => {
+    setSelectedElement(artifactId);
+    setTab('lineage');
   };
 
   const exportTrace = () => {
@@ -169,8 +175,13 @@ export const TraceabilityPage: React.FC = () => {
           ) : (
             <>
               {tab === 'timeline' && <TimelineView index={index} onOpenElement={openElement} />}
-              {tab === 'elements' && <ElementsView index={index} selectedId={selectedElement} onSelect={setSelectedElement} />}
+              {tab === 'elements' && (
+                <ElementsView index={index} selectedId={selectedElement} onSelect={setSelectedElement} onShowLineage={showLineage} />
+              )}
               {tab === 'coverage' && <CoverageView index={index} onOpenElement={openElement} />}
+              {tab === 'lineage' && (
+                <LineageView index={index} rootId={selectedElement} onRootChange={setSelectedElement} onOpenElement={openElement} />
+              )}
             </>
           )}
         </CardContent>
