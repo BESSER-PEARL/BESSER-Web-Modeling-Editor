@@ -1,10 +1,5 @@
 import React, { Component } from 'react';
 import en from '../../../../../i18n/en/editor.json';
-import lb from '../../../../../i18n/lb/editor.json';
-import de from '../../../../../i18n/de/editor.json';
-import fr from '../../../../../i18n/fr/editor.json';
-import es from '../../../../../i18n/es/editor.json';
-import ca from '../../../../../i18n/ca/editor.json';
 import { Locale } from '../../services/editor/editor-types';
 import { I18nContext, I18nProvider as Provider } from './i18n-context';
 
@@ -34,14 +29,22 @@ const resolve = (key: string, translations: object | undefined): string | undefi
   return typeof current === 'string' ? current : undefined;
 };
 
-const dictionary: { [key in Locale]: object } = {
-  [Locale.en]: en,
-  [Locale.lb]: lb,
-  [Locale.de]: de,
-  [Locale.fr]: fr,
-  [Locale.es]: es,
-  [Locale.ca]: ca,
+// English is bundled as the fallback; every other locale is its own chunk, added by `loadLocale`.
+const dictionary: Partial<Record<Locale, object>> = { [Locale.en]: en };
+
+const loaders: Record<Exclude<Locale, Locale.en>, () => Promise<{ default: object }>> = {
+  [Locale.lb]: () => import('../../../../../i18n/lb/editor.json'),
+  [Locale.de]: () => import('../../../../../i18n/de/editor.json'),
+  [Locale.fr]: () => import('../../../../../i18n/fr/editor.json'),
+  [Locale.es]: () => import('../../../../../i18n/es/editor.json'),
+  [Locale.ca]: () => import('../../../../../i18n/ca/editor.json'),
 };
+
+/** Fetch a locale's labels. Until it resolves, an editor in that locale shows English. */
+export async function loadLocale(locale: Locale): Promise<void> {
+  if (dictionary[locale]) return;
+  dictionary[locale] = (await loaders[locale as Exclude<Locale, Locale.en>]()).default;
+}
 
 export class I18nProvider extends Component<Props> {
   static defaultProps = {

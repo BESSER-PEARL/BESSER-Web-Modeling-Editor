@@ -38,6 +38,9 @@ export * from './services/diagram-bridge';
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
 
+// Export the on-demand loader for non-English UI labels
+export { loadLocale } from './components/i18n/i18n-provider';
+
 // Export BPMN flow semantics + validation (consumed by the webapp's BPMN
 // import / export + the Phase C vitest coverage).
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
