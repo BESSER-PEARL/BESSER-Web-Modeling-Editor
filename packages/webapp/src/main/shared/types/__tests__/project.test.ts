@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UMLDiagramType, type UMLModel } from '@besser/wme';
 import {
   ALL_DIAGRAM_TYPES,
+  DIAGRAM_KIND_BY_TYPE,
   PROJECT_SCHEMA_VERSION,
   type BesserProject,
   type KnowledgeGraphData,
@@ -13,11 +14,14 @@ import {
   defaultPerspectivesAllEnabled,
   ensureProjectMigrated,
   findHiddenReferencedPerspectives,
+  isGrapesJSProjectData,
   isKnowledgeGraphData,
   isPerspectiveVisible,
   isProject,
+  isQuantumCircuitData,
   isUMLModel,
   migrateProjectToV5,
+  toUMLDiagramType,
 } from '../project';
 import { PERSPECTIVES, isPresetActive, perspectivesFromDiagramList } from '../../perspectives';
 
@@ -243,6 +247,27 @@ describe('Knowledge Graph models next to v4 UML models', () => {
     expect(isKnowledgeGraphData(kgModel())).toBe(true);
     const { type: _type, ...untyped } = kgModel();
     expect(isKnowledgeGraphData(untyped)).toBe(true);
+  });
+});
+
+describe('empty model shapes', () => {
+  // Each kind's model must pass exactly one guard, its own: content checks and
+  // migrations route a model by these guards (a KG model passing isUMLModel was
+  // lifted and counted as a UML diagram).
+  const guards = {
+    uml: isUMLModel,
+    gui: isGrapesJSProjectData,
+    quantum: isQuantumCircuitData,
+    kg: isKnowledgeGraphData,
+  } as const;
+
+  it.each(ALL_DIAGRAM_TYPES)('an empty %s matches only its own guard', (type) => {
+    const kind = DIAGRAM_KIND_BY_TYPE[type];
+    const { model } = createEmptyDiagram('Empty', toUMLDiagramType(type), kind);
+    const matching = Object.entries(guards)
+      .filter(([, guard]) => guard(model))
+      .map(([name]) => name);
+    expect(matching).toEqual([kind ?? 'uml']);
   });
 });
 
