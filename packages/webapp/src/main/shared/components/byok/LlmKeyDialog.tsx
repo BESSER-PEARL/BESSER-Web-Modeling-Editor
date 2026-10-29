@@ -104,6 +104,16 @@ export interface LlmKeyDialogProps {
    * reflect the current selection).
    */
   preferKeyEntry?: boolean;
+  /**
+   * Provider preselected on open, ahead of the stored key's provider. For
+   * surfaces that cannot use the saved one (e.g. Knowledge Graph refinement
+   * accepts Anthropic, OpenAI, Mistral or Nebius keys, not PIA or local, so it
+   * passes `anthropic` when the saved key is unusable there): the user lands on
+   * a provider that works instead of whatever was saved last. The saved model
+   * is only carried over when it belongs to the preselected provider. The user
+   * can still pick another; saving replaces the single shared key either way.
+   */
+  preferProvider?: LlmProvider;
 }
 
 interface ProviderOption {
@@ -380,6 +390,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   saveLabel,
   showRunBudget = true,
   preferKeyEntry = false,
+  preferProvider,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -481,7 +492,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     setProviderLockedByUser(false);
     providerLockedRef.current = false;
     const stored = readLlmKey();
-    let nextProvider = stored?.provider ?? 'anthropic';
+    let nextProvider = preferProvider ?? stored?.provider ?? 'anthropic';
     // A pia/local selection stored on a machine that later opens the hosted
     // editor would otherwise render a provider that isn't in the list.
     if (_needsBaseUrl(nextProvider) && !_isLocalDeployment()) {
@@ -489,7 +500,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     setProvider(nextProvider);
     setKeyPresent(stored !== null);
-    const classified = _classifyStoredModel(nextProvider, stored?.model);
+    // A saved model belongs to the saved provider: when another provider is
+    // preselected (preferProvider, or a pia/local key on the hosted editor),
+    // its id would land in the custom-model box of the wrong provider.
+    const classified = _classifyStoredModel(
+      nextProvider,
+      stored?.provider === nextProvider ? stored?.model : undefined,
+    );
     setModelChoice(classified.choice);
     setCustomModel(classified.custom);
     // Prefill the base URL: 'local' uses the stored/user value (default Ollama);
@@ -505,7 +522,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       ),
     );
     setBudgetOpen(false);
-  }, [open]);
+  }, [open, preferProvider]);
 
   useEffect(() => {
     const presetValues = new Set(MODEL_PRESETS[provider].map((p) => p.value));

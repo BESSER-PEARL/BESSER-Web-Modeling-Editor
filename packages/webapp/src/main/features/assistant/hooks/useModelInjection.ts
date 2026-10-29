@@ -38,6 +38,7 @@ import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
+import { canAssistantWriteTo } from '../services/assistantSupport';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -296,6 +297,9 @@ export function useModelInjection({
     try {
       startTimer('injection', 'Model injection');
       const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
+      if (!canAssistantWriteTo(targetDiagramType)) {
+        throw new Error('the assistant cannot edit a Knowledge Graph; use Import or Refine KG instead');
+      }
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;

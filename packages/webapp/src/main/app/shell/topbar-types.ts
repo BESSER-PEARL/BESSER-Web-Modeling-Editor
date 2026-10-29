@@ -30,6 +30,7 @@ export interface WorkspaceTopBarProps {
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;

@@ -13,6 +13,7 @@ import {
   Github,
   Image,
   LayoutTemplate,
+  Network,
   Share2,
   Upload,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { getWorkspaceContext } from '../../../shared/utils/workspaceContext';
 import { HeaderTooltip } from './HeaderTooltip';
 
 interface FileMenuProps {
@@ -44,6 +46,7 @@ interface FileMenuProps {
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
 }
 
@@ -64,9 +67,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
 }) => {
   const { t } = useTranslation();
+  const { isKgContext } = getWorkspaceContext(activeDiagramType);
   const title = t('menu.file.title');
   return (
     <DropdownMenu>
@@ -144,6 +149,12 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
             <FileInput className="mr-2 size-4" />
             {t('menu.file.importBpmnDiagram')}
+          </DropdownMenuItem>
+        )}
+        {isKgContext && (
+          <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            <Network className="mr-2 size-4" />
+            {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
