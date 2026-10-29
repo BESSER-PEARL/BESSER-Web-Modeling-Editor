@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "The generated instance replaces the objects and links of this diagram.",
       "replaceConfirmAction": "Replace",
       "payloadMissing": "An instance was found, but the server did not send its object diagram.",
+      "generationDiscarded": "Semantic generation stopped: you left the object diagram.",
       "noClassDiagramsAvailable": "No Class Diagrams available",
       "tablistLabel": "Diagrams",
       "editAsForm": "Edit as form",
@@ -3938,6 +3939,7 @@
       "searching": "Searching for an instance of the class diagram…",
       "connectionLost": "The connection to the server was lost during the semantic check.",
       "noResult": "The semantic check ended without a result.",
+      "alreadyRunning": "A semantic check is already running.",
       "failed": "Semantic check failed: {{error}}",
       "errorsLabel": "Errors:",
       "warningsLabel": "Warnings:"

@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "Die generierte Instanz ersetzt die Objekte und Links dieses Diagramms.",
       "replaceConfirmAction": "Ersetzen",
       "payloadMissing": "Eine Instanz wurde gefunden, aber der Server hat ihr Objektdiagramm nicht gesendet.",
+      "generationDiscarded": "Semantische Generierung abgebrochen: Sie haben das Objektdiagramm verlassen.",
       "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
       "tablistLabel": "Diagramme",
       "editAsForm": "Als Formular bearbeiten",
@@ -3938,6 +3939,7 @@
       "searching": "Suche nach einer Instanz des Klassendiagramms…",
       "connectionLost": "Die Verbindung zum Server ist während der semantischen Prüfung abgebrochen.",
       "noResult": "Die semantische Prüfung wurde ohne Ergebnis beendet.",
+      "alreadyRunning": "Eine semantische Prüfung läuft bereits.",
       "failed": "Semantische Prüfung fehlgeschlagen: {{error}}",
       "errorsLabel": "Fehler:",
       "warningsLabel": "Warnungen:"

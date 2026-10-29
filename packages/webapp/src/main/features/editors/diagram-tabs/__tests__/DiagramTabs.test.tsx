@@ -1,10 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { DiagramTabs } from '../DiagramTabs';
+import { ApollonEditorContext } from '../../uml/apollon-editor-context';
 import { MAX_DIAGRAMS_PER_TYPE, ProjectDiagram, SupportedDiagramType } from '../../../../shared/types/project';
 import { createDefaultProject } from '../../../../shared/types/project';
+import { streamSse } from '../../../../shared/services/sse/sseClient';
+import type { SemanticSearchEvent } from '../../../../shared/services/validation/semanticCheck';
 
 // ── Mocks ────────────────────────────────────────────────────────────────
 
@@ -22,6 +25,7 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
   removeDiagramThunk: vi.fn((payload: any) => ({ type: 'removeDiagram', payload })),
   renameDiagramThunk: vi.fn((payload: any) => ({ type: 'renameDiagram', payload })),
   switchDiagramIndexThunk: vi.fn((payload: any) => ({ type: 'switchDiagramIndex', payload })),
+  updateDiagramModelThunk: vi.fn((payload: any) => ({ type: 'updateDiagramModel', payload })),
   updateDiagramReferencesThunk: vi.fn((payload: any) => ({ type: 'updateRefs', payload })),
   bumpEditorRevision: vi.fn(() => ({ type: 'bumpRevision' })),
   selectActiveDiagramIndex: (state: any) => state.workspace.activeDiagramIndex,
@@ -46,8 +50,17 @@ vi.mock('react-toastify', () => ({
     success: vi.fn(),
     warning: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(() => 'toast-id'),
+    update: vi.fn(),
+    dismiss: vi.fn(),
   },
 }));
+
+vi.mock('../../../../shared/services/sse/sseClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../shared/services/sse/sseClient')>();
+  return { ...actual, streamSse: vi.fn() };
+});
 
 vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
   getPostHog: () => null,
@@ -503,5 +516,132 @@ describe('DiagramTabs', () => {
     expect(
       screen.getByRole('img', { name: 'The referenced diagram was deleted. Please select a new one.' }),
     ).toBeInTheDocument();
+  });
+});
+
+// ── Semantic generation ──────────────────────────────────────────────────
+
+const umlModel = (type: UMLDiagramType, elements: Record<string, unknown> = {}) => ({
+  version: '3.0.0' as const,
+  type,
+  size: { width: 1400, height: 740 },
+  elements,
+  relationships: {},
+  interactive: { elements: {}, relationships: {} },
+  assessments: {},
+});
+
+const generatedObjectDiagram = umlModel(UMLDiagramType.ObjectDiagram, {
+  o1: { id: 'o1', type: 'ObjectName', name: 'book_0' },
+});
+
+const instanceFound: SemanticSearchEvent = {
+  done: true,
+  isValid: true,
+  message: 'Instance found within 5 objects per class.',
+  object_model: generatedObjectDiagram,
+};
+
+describe('semantic generation', () => {
+  let releaseSearch: (event: SemanticSearchEvent) => void;
+  let editor: { model: unknown; nextRender: Promise<void> };
+
+  /** Makes the object diagram `id` active, referencing a class diagram with one class. */
+  const activateObjectDiagram = (id: string) => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram[0].model = umlModel(UMLDiagramType.ClassDiagram, {
+      c1: { id: 'c1', type: 'Class', name: 'Book' },
+    }) as any;
+    setMockState({ diagrams: [makeDiagram(id, 'Object Diagram')], activeDiagramType: 'ObjectDiagram', project });
+  };
+
+  const tabs = () => (
+    <ApollonEditorContext.Provider value={{ editor: editor as any, setEditor: vi.fn() }}>
+      <DiagramTabs />
+    </ApollonEditorContext.Provider>
+  );
+
+  const clickSemanticGeneration = () => fireEvent.click(screen.getByText('Semantic generation'));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDispatch.mockImplementation(
+      () => Object.assign(Promise.resolve(), { unwrap: () => Promise.resolve() }) as any,
+    );
+    editor = { model: umlModel(UMLDiagramType.ObjectDiagram), nextRender: Promise.resolve() };
+    // The search runs until the test releases its last event
+    vi.mocked(streamSse).mockImplementation(
+      () =>
+        (async function* () {
+          yield await new Promise<SemanticSearchEvent>((resolve) => {
+            releaseSearch = resolve;
+          });
+        })() as AsyncGenerator<never, void, void>,
+    );
+    activateObjectDiagram('od1');
+  });
+
+  afterEach(() => {
+    mockDispatch.mockImplementation(() => Promise.resolve());
+  });
+
+  it('asks to confirm before replacing a non-empty object diagram', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const objects = umlModel(UMLDiagramType.ObjectDiagram, { o9: { id: 'o9', type: 'ObjectName', name: 'mine' } });
+    editor.model = objects;
+    mockGlobalConfirm.mockResolvedValueOnce(false);
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(mockGlobalConfirm).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(streamSse).not.toHaveBeenCalled();
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toBe(objects);
+  });
+
+  it('replaces the object diagram with the generated one', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    releaseSearch(instanceFound);
+
+    await waitFor(() => expect(editor.model).toEqual(generatedObjectDiagram));
+    expect(updateDiagramModelThunk).toHaveBeenCalledWith({ model: generatedObjectDiagram });
+  });
+
+  it('discards the result when the user leaves the diagram during the search', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const { toast } = await import('react-toastify');
+    const { rerender } = render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    activateObjectDiagram('od2');
+    rerender(tabs());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you left the object diagram.'),
+    );
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toEqual(umlModel(UMLDiagramType.ObjectDiagram));
+  });
+
+  it('ignores a second click while a search runs', async () => {
+    const { toast } = await import('react-toastify');
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    clickSemanticGeneration();
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('A semantic check is already running.'));
+    expect(streamSse).toHaveBeenCalledTimes(1);
+    releaseSearch(instanceFound);
+    await waitFor(() => expect(editor.model).toEqual(generatedObjectDiagram));
   });
 });

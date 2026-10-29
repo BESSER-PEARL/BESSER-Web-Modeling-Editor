@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "Déi generéiert Instanz ersetzt d'Objeten an d'Linke vun dësem Diagramm.",
       "replaceConfirmAction": "Ersetzen",
       "payloadMissing": "Eng Instanz gouf fonnt, mee de Server huet hiren Objetdiagramm net geschéckt.",
+      "generationDiscarded": "Semantesch Generatioun gestoppt: Dir hutt den Objetdiagramm verlooss.",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",
@@ -3938,6 +3939,7 @@
       "searching": "Sich no enger Instanz vum Klassendiagramm…",
       "connectionLost": "D'Verbindung mam Server ass wärend der semantescher Prüfung verluer gaangen.",
       "noResult": "D'semantesch Prüfung ass ouni Resultat eriwwer gaangen.",
+      "alreadyRunning": "Eng semantesch Prüfung leeft schonn.",
       "failed": "Semantesch Prüfung feelgeschloen: {{error}}",
       "errorsLabel": "Feeler:",
       "warningsLabel": "Warnungen:"

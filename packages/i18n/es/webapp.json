@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "La instancia generada reemplaza los objetos y enlaces de este diagrama.",
       "replaceConfirmAction": "Reemplazar",
       "payloadMissing": "Se encontró una instancia, pero el servidor no envió su diagrama de objetos.",
+      "generationDiscarded": "Generación semántica detenida: ha salido del diagrama de objetos.",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
@@ -3938,6 +3939,7 @@
       "searching": "Buscando una instancia del diagrama de clases…",
       "connectionLost": "Se perdió la conexión con el servidor durante la comprobación semántica.",
       "noResult": "La comprobación semántica terminó sin resultado.",
+      "alreadyRunning": "Ya hay una comprobación semántica en curso.",
       "failed": "Falló la comprobación semántica: {{error}}",
       "errorsLabel": "Errores:",
       "warningsLabel": "Advertencias:"

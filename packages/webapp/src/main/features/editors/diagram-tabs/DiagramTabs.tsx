@@ -10,6 +10,7 @@ import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import {
   generateObjectDiagram,
+  isSemanticSearchRunning,
   semanticSearchErrorMessage,
   showSemanticSearchResult,
 } from '../../../shared/services/validation/semanticCheck';
@@ -195,10 +196,19 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
 
+  // The semantic generation in progress, aborted when the user leaves its diagram: its result
+  // would otherwise replace whichever diagram is active when the search ends.
+  const generationRef = useRef<AbortController | null>(null);
+  useEffect(() => () => generationRef.current?.abort(), [activeDiagram?.id]);
+
   // Replaces the object diagram with an instance of the referenced class diagram that satisfies
   // its OCL constraints, searched for by the backend's semantic check.
   const handleGenerateFromConstraints = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
     if (!apollonEditor || !apollonEditor.model) {
       toast.error(t('editors.diagramTabs.editorNotReady'));
       return;
@@ -222,12 +232,18 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       if (!confirmed) return;
     }
 
+    const generation = new AbortController();
+    generationRef.current = generation;
     const toastId = toast.loading(t('editors.diagramTabs.searchingInstance'));
     try {
       const result = await generateObjectDiagram(refDiagram.title, refModel, (event) => {
         toast.update(toastId, { render: event.message });
-      });
+      }, generation.signal);
       toast.dismiss(toastId);
+      if (generation.signal.aborted) {
+        toast.info(t('editors.diagramTabs.generationDiscarded'));
+        return;
+      }
       if (!result.isValid) {
         showSemanticSearchResult(result);
         return;
@@ -250,7 +266,14 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       });
     } catch (error) {
       toast.dismiss(toastId);
+      // Leaving the diagram aborts the stream, which then ends as an error
+      if (generation.signal.aborted) {
+        toast.info(t('editors.diagramTabs.generationDiscarded'));
+        return;
+      }
       toast.error(semanticSearchErrorMessage(error));
+    } finally {
+      if (generationRef.current === generation) generationRef.current = null;
     }
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);
 

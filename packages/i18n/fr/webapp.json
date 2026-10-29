@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "L'instance générée remplace les objets et les liens de ce diagramme.",
       "replaceConfirmAction": "Remplacer",
       "payloadMissing": "Une instance a été trouvée, mais le serveur n'a pas envoyé son diagramme d'objets.",
+      "generationDiscarded": "Génération sémantique arrêtée : vous avez quitté le diagramme d'objets.",
       "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
       "tablistLabel": "Diagrammes",
       "editAsForm": "Modifier comme formulaire",
@@ -3938,6 +3939,7 @@
       "searching": "Recherche d'une instance du diagramme de classes…",
       "connectionLost": "La connexion au serveur a été perdue pendant la vérification sémantique.",
       "noResult": "La vérification sémantique s'est terminée sans résultat.",
+      "alreadyRunning": "Une vérification sémantique est déjà en cours.",
       "failed": "Échec de la vérification sémantique : {{error}}",
       "errorsLabel": "Erreurs :",
       "warningsLabel": "Avertissements :"

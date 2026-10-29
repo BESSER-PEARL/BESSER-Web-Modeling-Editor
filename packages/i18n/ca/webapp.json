@@ -2381,6 +2381,7 @@
       "replaceConfirmDescription": "La instància generada substitueix els objectes i els enllaços d'aquest diagrama.",
       "replaceConfirmAction": "Substitueix",
       "payloadMissing": "S'ha trobat una instància, però el servidor no n'ha enviat el diagrama d'objectes.",
+      "generationDiscarded": "Generació semàntica aturada: heu sortit del diagrama d'objectes.",
       "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
       "tablistLabel": "Diagrames",
       "editAsForm": "Edita com a formulari",
@@ -3938,6 +3939,7 @@
       "searching": "Cercant una instància del diagrama de classes…",
       "connectionLost": "S'ha perdut la connexió amb el servidor durant la comprovació semàntica.",
       "noResult": "La comprovació semàntica ha acabat sense cap resultat.",
+      "alreadyRunning": "Ja hi ha una comprovació semàntica en curs.",
       "failed": "Ha fallat la comprovació semàntica: {{error}}",
       "errorsLabel": "Errors:",
       "warningsLabel": "Avisos:"

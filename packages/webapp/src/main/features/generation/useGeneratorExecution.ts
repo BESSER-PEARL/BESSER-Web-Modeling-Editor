@@ -61,6 +61,7 @@ import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import {
   checkSemanticConsistency,
+  isSemanticSearchRunning,
   semanticSearchErrorMessage,
   showSemanticSearchResult,
 } from '../../shared/services/validation/semanticCheck';
@@ -1070,6 +1071,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
 
   const handleSemanticCheck = useCallback(async (): Promise<void> => {
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
     if (!currentProject) {
       toast.error(t('generation.toasts.createOrLoadProjectValidate'));
       return;
