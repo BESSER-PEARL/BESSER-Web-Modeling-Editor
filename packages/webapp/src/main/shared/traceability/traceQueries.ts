@@ -31,6 +31,7 @@ export interface TraceIndex {
   /** Every change on an artifact, oldest first. */
   changesByArtifact: Map<string, LocatedChange[]>;
   linksBySource: Map<string, TraceLink[]>;
+  linksByTarget: Map<string, TraceLink[]>;
 }
 
 const push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
@@ -53,8 +54,12 @@ export function indexTrace(trace: TraceFile): TraceIndex {
   }
   for (const list of changesByArtifact.values()) list.sort((a, b) => a.change.timestamp.localeCompare(b.change.timestamp));
   const linksBySource = new Map<string, TraceLink[]>();
-  for (const link of trace.traceLinks) push(linksBySource, link.sourceId, link);
-  return { trace, artifacts, operations, children, changesByArtifact, linksBySource };
+  const linksByTarget = new Map<string, TraceLink[]>();
+  for (const link of trace.traceLinks) {
+    push(linksBySource, link.sourceId, link);
+    push(linksByTarget, link.targetId, link);
+  }
+  return { trace, artifacts, operations, children, changesByArtifact, linksBySource, linksByTarget };
 }
 
 /** The artifact and all its fragments, recursively. */
@@ -166,7 +171,7 @@ export function generatedFrom(index: TraceIndex, artifactId: string): GeneratedF
 }
 
 /** The lines of a fragment, or of a whole file for a link to the file itself, when the file's content was kept. */
-export function fragmentLines(entry: GeneratedFragment): string[] | null {
+export function fragmentLines(entry: Pick<GeneratedFragment, 'fragment' | 'file'>): string[] | null {
   const { fragment, file } = entry;
   const content = file?.content ?? fragment.content;
   if (content === undefined) return null;
