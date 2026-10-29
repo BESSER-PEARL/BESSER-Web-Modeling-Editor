@@ -1,11 +1,6 @@
 import { useCallback, useContext } from "react"
 import { StoreApi, useStore } from "zustand"
 import en from "../../../i18n/en/editor.json"
-import lb from "../../../i18n/lb/editor.json"
-import de from "../../../i18n/de/editor.json"
-import fr from "../../../i18n/fr/editor.json"
-import es from "../../../i18n/es/editor.json"
-import ca from "../../../i18n/ca/editor.json"
 import { MetadataStoreContext } from "@/store/context"
 import { Locale } from "@/typings"
 
@@ -21,13 +16,23 @@ import { Locale } from "@/typings"
 
 type Bundle = Record<string, unknown>
 
-const dictionary: Record<Locale, Bundle> = {
-  [Locale.en]: en,
-  [Locale.lb]: lb,
-  [Locale.de]: de,
-  [Locale.fr]: fr,
-  [Locale.es]: es,
-  [Locale.ca]: ca,
+// English is bundled as the fallback; every other locale is its own chunk, added by `loadLocale`.
+const dictionary: Partial<Record<Locale, Bundle>> = { [Locale.en]: en }
+
+const loaders: Record<Exclude<Locale, Locale.en>, () => Promise<{ default: Bundle }>> = {
+  [Locale.lb]: () => import("../../../i18n/lb/editor.json"),
+  [Locale.de]: () => import("../../../i18n/de/editor.json"),
+  [Locale.fr]: () => import("../../../i18n/fr/editor.json"),
+  [Locale.es]: () => import("../../../i18n/es/editor.json"),
+  [Locale.ca]: () => import("../../../i18n/ca/editor.json"),
+}
+
+export const isLocaleLoaded = (locale: Locale): boolean => dictionary[locale] !== undefined
+
+/** Fetch a locale's labels. Until it resolves, an editor in that locale shows English. */
+export const loadLocale = async (locale: Locale): Promise<void> => {
+  if (dictionary[locale]) return
+  dictionary[locale] = (await loaders[locale as Exclude<Locale, Locale.en>]()).default
 }
 
 export type TranslationParams = Record<string, string | number>

@@ -27,6 +27,7 @@ import { liftClassOCLConstraintRows } from "./utils/oclConstraintRows"
 import { createOffscreenExportContainer } from "./utils/exportContainer"
 import { inlineSvgImages, snapshotLightPalette } from "./utils/exportUtils"
 import { UMLDiagramType } from "./types"
+import { isLocaleLoaded, loadLocale } from "./i18n"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
 import { createMetadataStore, MetadataStore } from "@/store/metadataStore"
 import { createPopoverStore, PopoverStore } from "@/store/popoverStore"
@@ -87,6 +88,8 @@ export class BesserEditor {
   private readonly assessmentSelectionStore: StoreApi<AssessmentSelectionStore>
   private readonly alignmentGuidesStore: StoreApi<AlignmentGuidesStore>
   private subscribers: Besser.Subscribers = {}
+  /** The last locale asked for, so an older locale that finishes loading later does not win. */
+  private requestedLocale?: Besser.Locale
   /** `options.scale` at construction (v3 `getScaleFactor()`). */
   private scaleFactor = 1
   /**
@@ -212,7 +215,7 @@ export class BesserEditor {
       this.metadataStore.getState().setScrollLock(options.scrollLock)
     }
     if (options?.locale !== undefined) {
-      this.metadataStore.getState().setLocale(options.locale)
+      this.applyLocale(options.locale)
     }
     if (options?.agenticEnabled !== undefined) {
       this.metadataStore.getState().setAgenticEnabled(options.agenticEnabled)
@@ -1007,7 +1010,17 @@ export class BesserEditor {
    * @param locale supported locale
    */
   set locale(locale: Besser.Locale) {
-    this.metadataStore.getState().setLocale(locale)
+    this.applyLocale(locale)
+  }
+
+  /** Switch now when the locale's labels are loaded, otherwise once they are. */
+  private applyLocale(locale: Besser.Locale) {
+    this.requestedLocale = locale
+    const apply = () => {
+      if (this.requestedLocale === locale) this.metadataStore.getState().setLocale(locale)
+    }
+    if (isLocaleLoaded(locale)) apply()
+    else void loadLocale(locale).then(apply)
   }
 
   /**

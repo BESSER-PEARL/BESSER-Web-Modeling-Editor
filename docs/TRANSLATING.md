@@ -62,9 +62,9 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
 1. **Register the editor locale.** The diagram editor is the React Flow library
    (`packages/library`, published as `@besser/wme`):
    - In `packages/library/lib/typings.ts`, add `it = "it",` to the `Locale` enum.
-   - In `packages/library/lib/i18n/index.ts`, import the new bundle next to the others
-     (`import it from "../../../i18n/it/editor.json"`) and add it to the `dictionary`
-     map (`[Locale.it]: it,`). TypeScript will flag the map as incomplete until you do.
+   - In `packages/library/lib/i18n/index.ts`, add an `import()` of the new bundle to the
+     `loaders` map (`[Locale.it]: () => import("../../../i18n/it/editor.json"),`).
+     TypeScript flags the map as incomplete until you do.
 
 2. **Register the webapp language.** In
    `packages/webapp/src/main/shared/i18n/languages.ts`, add an entry to `SUPPORTED_LANGUAGES`:
@@ -73,15 +73,9 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
    { code: 'it', nativeName: 'Italiano', englishName: 'Italian' },
    ```
 
-   Then import and register its resource in `packages/webapp/src/main/shared/i18n/index.ts`:
-   - Add a new import line with the other language imports at the top:
-     ```ts
-     import it from '../../../../../i18n/it/webapp.json';
-     ```
-   - Add an entry in the `resources` object:
-     ```ts
-     it: { translation: it },
-     ```
+   Nothing else to register: `packages/webapp/src/main/shared/i18n/index.ts` loads
+   `packages/i18n/<code>/webapp.json` on demand when the language is selected. Only English is
+   bundled with the app; every other language is downloaded as its own chunk.
 
 3. **Create the files** by copying the English ones:
    - `packages/i18n/en/webapp.json` → `packages/i18n/it/webapp.json`
@@ -286,5 +280,4 @@ node scripts/i18n-check.mjs --complete
 - [ ] `npm run test --workspace=webapp` passes.
 - [ ] Reviewed by a native/fluent speaker — name them or note "self, native speaker" in the PR.
 - [ ] For a brand-new language: registered in the library's `typings.ts` (`Locale` enum)
-      and `lib/i18n/index.ts` (`dictionary`), and in the webapp's `languages.ts` and
-      `shared/i18n/index.ts`.
+      and `lib/i18n/index.ts` (`loaders`), and in the webapp's `languages.ts`.

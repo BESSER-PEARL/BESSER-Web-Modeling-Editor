@@ -1,4 +1,11 @@
 import "@testing-library/jest-dom/vitest"
+import { beforeAll } from "vitest"
+import { loadLocale } from "@/i18n"
+import { Locale } from "@/typings"
+
+// Only English is bundled. The suites check translated labels, so every
+// locale is loaded up front (tests/unit/lazyLocales.test.ts covers loading).
+beforeAll(() => Promise.all(Object.values(Locale).map(loadLocale)))
 
 // Mock canvas for jsdom (required for text measurement, SVG rendering, etc.)
 class MockCanvasRenderingContext2D {
