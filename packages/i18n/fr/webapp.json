@@ -50,7 +50,8 @@
       "reconnect": "{{repo}} : session GitHub expirée",
       "signed-out": "GitHub",
       "unknown": "{{repo}} : impossible de joindre GitHub",
-      "unlinked": "Lier ce projet à un dépôt GitHub"
+      "unlinked": "Lier ce projet à un dépôt GitHub",
+      "not-in-tab": "{{repo}} : GitHub n’est pas connecté dans cet onglet"
     }
   },
   "nav": {
@@ -939,7 +940,8 @@
             "failed": "Votre projet a été créé, mais son enregistrement sur GitHub a échoué : {{error}}",
             "saved": "Enregistré sur GitHub sous {{repo}}.",
             "saving": "Enregistrement de {{name}} sur GitHub…"
-          }
+          },
+          "privateRepo": "Un dépôt privé nommé <repo>{{repo}}</repo> conserve votre modèle et votre code."
         }
       },
       "import": {
@@ -1050,13 +1052,14 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
           "noSession": "Session GitHub introuvable. Veuillez vous reconnecter.",
           "selectRepo": "Sélectionnez un dépôt à partir duquel continuer.",
-          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez."
+          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez.",
+          "repoNotFound": "{{repo}} est introuvable, ou votre compte GitHub n’y a pas accès."
         },
         "loadingBranches": "Chargement des branches…",
         "loadingRepos": "Chargement des dépôts…",
@@ -1380,13 +1383,20 @@
       },
       "viewPullRequest": "Voir la pull request",
       "filesChanged_one": "{{count}} fichier modifié.",
-      "filesChanged_other": "{{count}} fichiers modifiés."
+      "filesChanged_other": "{{count}} fichiers modifiés.",
+      "modelChoice": {
+        "title": "Garder votre modèle ou prendre celui de l’exécution ?",
+        "description": "Cette exécution a modifié le modèle, et le modèle du canevas a changé après son démarrage. Prenez le modèle de l’exécution et perdez les modifications faites depuis, ou gardez votre modèle et enregistrez-le sur GitHub plus tard.",
+        "takeRun": "Prendre le modèle de l’exécution",
+        "keepMine": "Garder mon modèle"
+      }
     },
     "chatHeader": {
       "diverged": "Modifié ici et sur GitHub",
       "openMenu": "Travail sur {{repo}} : {{state}}. Ouvrir le menu GitHub.",
       "signedOut": "Connectez GitHub pour voir son état",
-      "workingOn": "Travail sur"
+      "workingOn": "Travail sur",
+      "notInTab": "Non connecté dans cet onglet"
     },
     "goLive": {
       "addresses": "Votre application sera à",
@@ -1427,7 +1437,8 @@
       "saveToGitHub": "Enregistrer sur GitHub…",
       "signedInAs": "Connecté en tant que {{name}}",
       "unlinkConfirmDescription": "Le projet reste dans votre navigateur et le dépôt sur GitHub. L’enregistrement sur GitHub s’arrête jusqu’à ce que vous liiez à nouveau un dépôt.",
-      "howItWorks": "Comment GitHub fonctionne dans BESSER"
+      "howItWorks": "Comment GitHub fonctionne dans BESSER",
+      "notInTabHint": "GitHub n’est pas connecté dans cet onglet. Connectez-le pour l’utiliser ici."
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1449,11 +1460,12 @@
       "openPr": "Ouvrir une pull request pour la fusionner",
       "prOpened": "Pull request ouverte",
       "prTitle": "Modifications du modèle depuis l’éditeur BESSER",
-      "repoHasModelDescription": "{{repo}} contient « {{name}} ». Le charger dans ce projet en remplaçant le modèle ouvert ? Choisissez Annuler pour garder votre modèle ; il remplacera celui du dépôt au prochain enregistrement.",
       "repoHasModelTitle": "Ce dépôt contient déjà un modèle",
       "saveAction": "Enregistrer sur GitHub",
       "saved": "Modèle enregistré sur GitHub.",
-      "savedMerged": "Enregistré et fusionné avec les modifications plus récentes sur GitHub."
+      "savedMerged": "Enregistré et fusionné avec les modifications plus récentes sur GitHub.",
+      "repoHasModelChoice": "{{repo}} contient « {{name}} ». Chargez-le dans ce projet, en remplaçant le modèle ouvert, ou gardez votre modèle et liez : votre prochain enregistrement remplacera alors le modèle du dépôt.",
+      "keepModelAndLink": "Garder mon modèle et lier"
     },
     "proposal": {
       "accept": "Accepter le modèle",
@@ -1486,7 +1498,18 @@
       "showOthers": "Afficher {{count}} autres dépôts",
       "showOthers_one": "Afficher 1 autre dépôt",
       "summaryFailed": "Impossible de lire ce dépôt.",
-      "truncated": "Affichage de vos {{count}} dépôts mis à jour le plus récemment. Collez un lien pour en ouvrir un autre."
+      "truncated": "Affichage de vos {{count}} dépôts mis à jour le plus récemment. Collez un lien pour en ouvrir un autre.",
+      "diagramKinds": {
+        "ClassDiagram": "Classes",
+        "ObjectDiagram": "Objets",
+        "StateMachineDiagram": "Machine à états",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "Utilisateur",
+        "GUINoCodeDiagram": "IHM",
+        "QuantumCircuitDiagram": "Quantique",
+        "NNDiagram": "Réseau neuronal",
+        "BPMN": "BPMN"
+      }
     },
     "status": {
       "behind": "{{count}} nouveaux commits sur GitHub",
@@ -1497,6 +1520,12 @@
       "reconnect": "Session GitHub expirée : reconnectez-vous",
       "unknown": "Impossible de joindre le dépôt",
       "unlinked": "Lié à aucun dépôt"
+    },
+    "aiReading": {
+      "title": "Lire ce dépôt avec l’IA ?",
+      "description": "BESSER n’a pas pu lire directement les classes de données de {{repo}}. Il peut envoyer un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER, qui peut être exploité par un fournisseur tiers. Votre code quitte alors le serveur de BESSER. Rien n’est envoyé sans votre accord.",
+      "accept": "Lire avec l’IA",
+      "decline": "Pas maintenant"
     }
   },
   "assistant": {
@@ -1704,12 +1733,23 @@
       "dropFiles": "Déposez vos fichiers ici pour les joindre.",
       "transcribingAudio": "Transcription de l'audio…",
       "recordingPrompt": "Enregistrement… cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
-      "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
+      "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})",
+      "runChanges": {
+        "title": "Ce qui a changé",
+        "model": "Modèle",
+        "unchanged": "inchangé",
+        "code": "Code",
+        "noFiles": "aucun fichier modifié",
+        "filesChanged_one": "{{count}} fichier modifié",
+        "filesChanged_other": "{{count}} fichiers modifiés",
+        "showAll": "Tout afficher ({{count}})",
+        "more": "et {{count}} de plus"
+      }
     },
     "startFromRepo": {
       "badLink": "Collez un lien comme github.com/owner/repo.",
       "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",
-      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
       "entry": "Partir d’un dépôt GitHub",
       "entryHint": "BESSER ou non",
       "failed": "Impossible d’ouvrir ce dépôt.",
@@ -2109,7 +2149,7 @@
         },
         "anyRepo": {
           "title": "Partir de n’importe quel dépôt",
-          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub</strong> dans l’assistant. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il envoie un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui propose le diagramme.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
+          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub</strong> dans l’assistant. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il vous le demande d’abord. Ce n’est qu’avec votre accord qu’il envoie un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER pour proposer le diagramme. Ce modèle peut être exploité par un fournisseur tiers : l’extrait quitte alors le serveur de BESSER.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
         },
         "publish": {
           "title": "Mettre en ligne et partager",

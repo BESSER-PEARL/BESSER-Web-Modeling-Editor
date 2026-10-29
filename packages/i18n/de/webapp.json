@@ -50,7 +50,8 @@
       "reconnect": "{{repo}}: GitHub-Sitzung abgelaufen",
       "signed-out": "GitHub",
       "unknown": "{{repo}}: GitHub nicht erreichbar",
-      "unlinked": "Dieses Projekt mit einem GitHub-Repository verknüpfen"
+      "unlinked": "Dieses Projekt mit einem GitHub-Repository verknüpfen",
+      "not-in-tab": "{{repo}}: GitHub ist in diesem Tab nicht verbunden"
     }
   },
   "nav": {
@@ -939,7 +940,8 @@
             "failed": "Ihr Projekt wurde erstellt, aber das Speichern auf GitHub ist fehlgeschlagen: {{error}}",
             "saved": "Auf GitHub als {{repo}} gespeichert.",
             "saving": "{{name}} wird auf GitHub gespeichert…"
-          }
+          },
+          "privateRepo": "Ein privates Repository namens <repo>{{repo}}</repo> bewahrt Ihr Modell und Ihren Code auf."
         }
       },
       "import": {
@@ -1050,13 +1052,14 @@
       "github": {
         "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
         "continue": "Fortsetzen",
-        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code. Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das ein Modell vorschlägt.",
+        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code. Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
         "errors": {
           "generic": "Fortsetzen aus diesem Repository nicht möglich.",
           "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",
           "noSession": "GitHub-Sitzung nicht gefunden. Bitte erneut verbinden.",
           "selectRepo": "Wähle ein Repository zum Fortsetzen.",
-          "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Verbinde dich erneut und versuche es noch einmal."
+          "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Verbinde dich erneut und versuche es noch einmal.",
+          "repoNotFound": "{{repo}} wurde nicht gefunden, oder Ihr GitHub-Konto hat keinen Zugriff darauf."
         },
         "loadingBranches": "Branches werden geladen…",
         "loadingRepos": "Repositories werden geladen…",
@@ -1380,13 +1383,20 @@
       },
       "viewPullRequest": "Pull Request ansehen",
       "filesChanged_one": "{{count}} Datei geändert.",
-      "filesChanged_other": "{{count}} Dateien geändert."
+      "filesChanged_other": "{{count}} Dateien geändert.",
+      "modelChoice": {
+        "title": "Ihr Modell behalten oder das des Laufs übernehmen?",
+        "description": "Dieser Lauf hat das Modell geändert, und das Modell auf der Arbeitsfläche wurde nach dem Start des Laufs geändert. Übernehmen Sie das Modell des Laufs und verlieren Sie Ihre Änderungen seitdem, oder behalten Sie Ihr Modell und speichern Sie es später auf GitHub.",
+        "takeRun": "Modell des Laufs übernehmen",
+        "keepMine": "Mein Modell behalten"
+      }
     },
     "chatHeader": {
       "diverged": "Hier und auf GitHub geändert",
       "openMenu": "Arbeit an {{repo}}: {{state}}. GitHub-Menü öffnen.",
       "signedOut": "Verbinden Sie GitHub, um den Status zu sehen",
-      "workingOn": "Arbeit an"
+      "workingOn": "Arbeit an",
+      "notInTab": "In diesem Tab nicht verbunden"
     },
     "goLive": {
       "addresses": "Ihre App wird erreichbar sein unter",
@@ -1427,7 +1437,8 @@
       "saveToGitHub": "Auf GitHub speichern…",
       "signedInAs": "Angemeldet als {{name}}",
       "unlinkConfirmDescription": "Das Projekt bleibt in Ihrem Browser und das Repository auf GitHub. Das Speichern auf GitHub endet, bis Sie wieder ein Repository verknüpfen.",
-      "howItWorks": "So funktioniert GitHub in BESSER"
+      "howItWorks": "So funktioniert GitHub in BESSER",
+      "notInTabHint": "GitHub ist in diesem Tab nicht verbunden. Verbinden Sie es, um es hier zu nutzen."
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1449,11 +1460,12 @@
       "openPr": "Pull Request zum Zusammenführen öffnen",
       "prOpened": "Pull Request geöffnet",
       "prTitle": "Modelländerungen aus dem BESSER-Editor",
-      "repoHasModelDescription": "{{repo}} enthält „{{name}}“. In dieses Projekt laden und das geöffnete Modell ersetzen? Wählen Sie Abbrechen, um Ihr Modell zu behalten; es ersetzt das des Repositorys beim nächsten Speichern.",
       "repoHasModelTitle": "Dieses Repository enthält bereits ein Modell",
       "saveAction": "Auf GitHub speichern",
       "saved": "Modell auf GitHub gespeichert.",
-      "savedMerged": "Gespeichert und mit den neueren Änderungen auf GitHub zusammengeführt."
+      "savedMerged": "Gespeichert und mit den neueren Änderungen auf GitHub zusammengeführt.",
+      "repoHasModelChoice": "{{repo}} enthält „{{name}}“. Laden Sie es in dieses Projekt und ersetzen Sie das geöffnete Modell, oder behalten Sie Ihr Modell und verknüpfen Sie: Ihr nächstes Speichern ersetzt dann das Modell des Repositorys.",
+      "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
     "proposal": {
       "accept": "Modell übernehmen",
@@ -1486,7 +1498,18 @@
       "showOthers": "{{count}} weitere Repositorys anzeigen",
       "showOthers_one": "1 weiteres Repository anzeigen",
       "summaryFailed": "Dieses Repository konnte nicht gelesen werden.",
-      "truncated": "Angezeigt werden Ihre {{count}} zuletzt aktualisierten Repositorys. Fügen Sie einen Link ein, um ein anderes zu öffnen."
+      "truncated": "Angezeigt werden Ihre {{count}} zuletzt aktualisierten Repositorys. Fügen Sie einen Link ein, um ein anderes zu öffnen.",
+      "diagramKinds": {
+        "ClassDiagram": "Klasse",
+        "ObjectDiagram": "Objekt",
+        "StateMachineDiagram": "Zustandsautomat",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "Benutzer",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Quanten",
+        "NNDiagram": "Neuronales Netz",
+        "BPMN": "BPMN"
+      }
     },
     "status": {
       "behind": "{{count}} neue Commits auf GitHub",
@@ -1497,6 +1520,12 @@
       "reconnect": "GitHub-Sitzung abgelaufen: erneut verbinden",
       "unknown": "Das Repository war nicht erreichbar",
       "unlinked": "Mit keinem Repository verknüpft"
+    },
+    "aiReading": {
+      "title": "Dieses Repository mit KI lesen?",
+      "description": "BESSER konnte die Datenklassen von {{repo}} nicht direkt lesen. Es kann einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell senden, das der BESSER-Server verwendet und das von einem Drittanbieter betrieben werden kann. Ihr Code verlässt dann den Server von BESSER. Ohne Ihre Zustimmung wird nichts gesendet.",
+      "accept": "Mit KI lesen",
+      "decline": "Nicht jetzt"
     }
   },
   "assistant": {
@@ -1704,12 +1733,23 @@
       "dropFiles": "Dateien hier ablegen, um sie anzuhängen.",
       "transcribingAudio": "Audio wird transkribiert…",
       "recordingPrompt": "Aufnahme läuft… Klicken Sie hier oder drücken Sie erneut auf das Mikrofon, um die Aufnahme zu stoppen und zu senden ({{time}})",
-      "stopSendVoiceTimer": "Sprachnachricht stoppen und senden ({{time}})"
+      "stopSendVoiceTimer": "Sprachnachricht stoppen und senden ({{time}})",
+      "runChanges": {
+        "title": "Was sich geändert hat",
+        "model": "Modell",
+        "unchanged": "unverändert",
+        "code": "Code",
+        "noFiles": "keine Dateien geändert",
+        "filesChanged_one": "{{count}} Datei geändert",
+        "filesChanged_other": "{{count}} Dateien geändert",
+        "showAll": "Alle {{count}} anzeigen",
+        "more": "und {{count}} weitere"
+      }
     },
     "startFromRepo": {
       "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
       "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",
-      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen. Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das ein Modell vorschlägt.",
+      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen. Kann BESSER die Datenklassen nicht direkt lesen, fragt es Sie, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
       "entry": "Mit einem GitHub-Repository beginnen",
       "entryHint": "BESSER oder nicht",
       "failed": "Dieses Repository konnte nicht geöffnet werden.",
@@ -2109,7 +2149,7 @@
         },
         "anyRepo": {
           "title": "Mit jedem Repository starten",
-          "body": "<p>Nutze <strong>Aus GitHub fortsetzen</strong> auf dem Startbildschirm oder <strong>Mit einem GitHub-Repository beginnen</strong> im Assistenten. Ein BESSER-Repository öffnet sich mit seinem Modell. Bei jedem anderen liest BESSER die Datenklassen (SQLAlchemy, Django, Pydantic, Dataclasses) und schlägt ein Klassendiagramm vor, das du auf der Arbeitsfläche annimmst oder verwirfst. Bis du speicherst, wird nichts ins Repository geschrieben.</p><p>Kann BESSER die Datenklassen nicht direkt lesen, sendet es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell, das das Diagramm vorschlägt.</p><p>Der Spec-Driven Agent arbeitet dann an diesem Code, und seine Änderungen gehen in dasselbe Repository zurück.</p>"
+          "body": "<p>Nutze <strong>Aus GitHub fortsetzen</strong> auf dem Startbildschirm oder <strong>Mit einem GitHub-Repository beginnen</strong> im Assistenten. Ein BESSER-Repository öffnet sich mit seinem Modell. Bei jedem anderen liest BESSER die Datenklassen (SQLAlchemy, Django, Pydantic, Dataclasses) und schlägt ein Klassendiagramm vor, das du auf der Arbeitsfläche annimmst oder verwirfst. Bis du speicherst, wird nichts ins Repository geschrieben.</p><p>Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich zuerst. Nur wenn du zustimmst, sendet es einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell, das der BESSER-Server verwendet, um das Diagramm vorzuschlagen. Dieses Modell kann von einem Drittanbieter betrieben werden, der Auszug verlässt also den Server von BESSER.</p><p>Der Spec-Driven Agent arbeitet dann an diesem Code, und seine Änderungen gehen in dasselbe Repository zurück.</p>"
         },
         "publish": {
           "title": "Live schalten und teilen",

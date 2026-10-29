@@ -64,6 +64,22 @@ describe('RepoBrowser', () => {
     expect(screen.getByText('me/notes')).toBeInTheDocument();
   });
 
+  it("names the repository's diagrams in the UI language", async () => {
+    const i18n = (await import('../../../i18n')).default;
+    await i18n.changeLanguage('de');
+    try {
+      listRepos.mockResolvedValue({ repositories: [repo(2, 'library-app', ['besser'])], truncated: false });
+      getRepoSummary.mockResolvedValue(summary);
+      await renderBrowser();
+      await act(async () => {
+        fireEvent.click(screen.getByText('me/library-app'));
+      });
+      expect(await screen.findByText('Klasse')).toBeInTheDocument();
+    } finally {
+      await i18n.changeLanguage('en');
+    }
+  });
+
   it('searches every repository, not only the BESSER ones', async () => {
     listRepos.mockResolvedValue({ repositories: [repo(1, 'notes'), repo(2, 'library-app', ['besser'])], truncated: false });
     await renderBrowser();

@@ -48,7 +48,8 @@ describe('HelpGuideDialog', () => {
       expect(screen.getByText(i18n.t(`dialogs.guide.github.${detail}.title`))).toBeInTheDocument();
     }
     expect(screen.getByText('buml/diagrams.json')).toBeInTheDocument();
-    expect(screen.getByText(/to an AI model to propose the diagram/)).toBeInTheDocument();
+    // Nothing is read with AI before the user agrees.
+    expect(screen.getByText(/it asks you first\. Only if you agree/)).toBeInTheDocument();
     expect(screen.getByText(/removed before anything is written/)).toBeInTheDocument();
   });
 });

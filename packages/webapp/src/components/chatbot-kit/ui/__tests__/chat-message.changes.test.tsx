@@ -57,6 +57,19 @@ describe('run card — what changed', () => {
     expect(summary.getByText(/1 file changed/)).toBeTruthy();
   });
 
+  it('speaks the UI language', async () => {
+    const i18n = (await import('../../../../main/shared/i18n')).default;
+    await i18n.changeLanguage('de');
+    try {
+      renderCard(doneCard({ runMode: 'modify', modelChanges: [], changedFiles: ['a.py', 'b.py'], changedFileCount: 2 }));
+      const summary = within(screen.getByRole('region', { name: 'Was sich geändert hat' }));
+      expect(summary.getByText(/unverändert/)).toBeTruthy();
+      expect(summary.getByText(/2 Dateien geändert/)).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage('en');
+    }
+  });
+
   it('shows no change summary for a run that created a new app', () => {
     renderCard(doneCard({ runMode: 'create', changedFiles: ['app.py'], changedFileCount: 1 }));
     expect(screen.queryByRole('region', { name: 'What changed' })).toBeNull();

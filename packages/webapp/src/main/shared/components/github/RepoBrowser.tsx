@@ -44,18 +44,6 @@ interface RepoBrowserProps {
   requiresWrite?: boolean;
 }
 
-const DIAGRAM_LABELS: Record<string, string> = {
-  ClassDiagram: 'Class',
-  ObjectDiagram: 'Object',
-  StateMachineDiagram: 'State machine',
-  AgentDiagram: 'Agent',
-  UserDiagram: 'User',
-  GUINoCodeDiagram: 'GUI',
-  QuantumCircuitDiagram: 'Quantum',
-  NNDiagram: 'Neural network',
-  BPMN: 'BPMN',
-};
-
 const ownerOf = (repo: RepoListing) => repo.full_name.split('/')[0];
 
 export const RepoBrowser: React.FC<RepoBrowserProps> = ({
@@ -292,7 +280,7 @@ const RepoDetails: React.FC<RepoDetailsProps> = ({
   const diagramChips = summary
     ? Object.entries(summary.diagram_counts).map(([kind, count]) => (
         <Badge key={kind} variant="secondary" size="sm">
-          {DIAGRAM_LABELS[kind] ?? kind}
+          {t(`github.repoBrowser.diagramKinds.${kind}`, { defaultValue: kind })}
           {count > 1 ? ` ×${count}` : ''}
         </Badge>
       ))

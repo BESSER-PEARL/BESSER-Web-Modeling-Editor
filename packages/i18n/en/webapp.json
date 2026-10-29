@@ -49,7 +49,8 @@
       "signed-out": "GitHub",
       "behind_one": "{{repo}}: 1 new commit on GitHub",
       "reconnect": "{{repo}}: GitHub session expired",
-      "missing": "{{repo}}: branch or repository not found on GitHub"
+      "missing": "{{repo}}: branch or repository not found on GitHub",
+      "not-in-tab": "{{repo}}: GitHub is not connected in this tab"
     },
     "linkToGithub": "Link to GitHub"
   },
@@ -939,7 +940,8 @@
           },
           "label": "Save it on GitHub",
           "connectHint": "Connect GitHub to keep this project in a private repository of your own.",
-          "connect": "Connect GitHub"
+          "connect": "Connect GitHub",
+          "privateRepo": "A private repository named <repo>{{repo}}</repo> keeps your model and code."
         }
       },
       "import": {
@@ -1050,13 +1052,14 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
           "noSession": "GitHub session not found. Please reconnect.",
           "selectRepo": "Select a repository to continue from.",
-          "sessionExpired": "Your GitHub session expired. Reconnect and try again."
+          "sessionExpired": "Your GitHub session expired. Reconnect and try again.",
+          "repoNotFound": "{{repo}} was not found, or your GitHub account has no access to it."
         },
         "loadingBranches": "Loading branches…",
         "loadingRepos": "Loading repositories…",
@@ -1380,7 +1383,13 @@
         "branchMoved": "The branch changed on GitHub during the push. Try again. ({{detail}})"
       },
       "filesChanged_one": "{{count}} file changed.",
-      "filesChanged_other": "{{count}} files changed."
+      "filesChanged_other": "{{count}} files changed.",
+      "modelChoice": {
+        "title": "Keep your model or take the run's?",
+        "description": "This run changed the model, and the model on the canvas changed after the run started. Take the run's model and lose the edits you made since, or keep your model and save it to GitHub later.",
+        "takeRun": "Take the run's model",
+        "keepMine": "Keep my model"
+      }
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1393,7 +1402,6 @@
       "saved": "Model saved to GitHub.",
       "prTitle": "Model changes from the BESSER editor",
       "repoHasModelTitle": "This repository already holds a model",
-      "repoHasModelDescription": "{{repo}} holds \"{{name}}\". Load it into this project, replacing the model you have open? Choose Cancel to keep your model; it replaces the repository's on your next save.",
       "loadRepoModel": "Load the repository model",
       "linked": "Linked to {{repo}}. Save to put your model in it.",
       "created": "Created {{repo}} with your model.",
@@ -1406,7 +1414,9 @@
       "openPr": "Open a pull request to merge it",
       "historyTitle": "Model history",
       "historyFailed": "Could not load the history.",
-      "moreChanges": "and {{count}} more"
+      "moreChanges": "and {{count}} more",
+      "repoHasModelChoice": "{{repo}} holds \"{{name}}\". Load it into this project, replacing the model you have open, or keep your model and link: your next save then replaces the repository's model.",
+      "keepModelAndLink": "Keep my model and link"
     },
     "status": {
       "unlinked": "Not linked to a repository",
@@ -1438,7 +1448,18 @@
       "readsCode": "No BESSER model yet. BESSER reads its code and proposes one for you to accept.",
       "readOnly": "Read only",
       "readOnlyHint": "Your GitHub account can read this repository but not write to it, so BESSER cannot save to it.",
-      "truncated": "Showing your {{count}} most recently updated repositories. Paste a link to open another one."
+      "truncated": "Showing your {{count}} most recently updated repositories. Paste a link to open another one.",
+      "diagramKinds": {
+        "ClassDiagram": "Class",
+        "ObjectDiagram": "Object",
+        "StateMachineDiagram": "State machine",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "User",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Quantum",
+        "NNDiagram": "Neural network",
+        "BPMN": "BPMN"
+      }
     },
     "goLive": {
       "title": "Go live",
@@ -1471,7 +1492,8 @@
       "diverged": "Changed here and on GitHub",
       "signedOut": "Connect GitHub to see its status",
       "workingOn": "Working on",
-      "openMenu": "Working on {{repo}}: {{state}}. Open the GitHub menu."
+      "openMenu": "Working on {{repo}}: {{state}}. Open the GitHub menu.",
+      "notInTab": "Not connected in this tab"
     },
     "menu": {
       "localChangesHint": "Save to GitHub to keep them in the repository.",
@@ -1496,7 +1518,14 @@
       "dismissPending": "Stop tracking it",
       "pendingConflict": "A save could not be merged with newer changes and is on the branch {{branch}}. Open a pull request to resolve it on GitHub.",
       "pendingPullRequest": "Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in.",
-      "howItWorks": "How GitHub works in BESSER"
+      "howItWorks": "How GitHub works in BESSER",
+      "notInTabHint": "GitHub is not connected in this tab. Connect it to use it here."
+    },
+    "aiReading": {
+      "title": "Read this repository with AI?",
+      "description": "BESSER could not read the data classes of {{repo}} directly. It can send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses, which may be run by a third-party provider. Your code then leaves BESSER's server. Nothing is sent unless you agree.",
+      "accept": "Read with AI",
+      "decline": "Not now"
     }
   },
   "assistant": {
@@ -1704,7 +1733,18 @@
       "dropFiles": "Drop your files here to attach them.",
       "transcribingAudio": "Transcribing audio…",
       "recordingPrompt": "Recording… click here or press mic again to stop and send ({{time}})",
-      "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
+      "stopSendVoiceTimer": "Stop & send voice message ({{time}})",
+      "runChanges": {
+        "title": "What changed",
+        "model": "Model",
+        "unchanged": "unchanged",
+        "code": "Code",
+        "noFiles": "no files changed",
+        "filesChanged_one": "{{count}} file changed",
+        "filesChanged_other": "{{count}} files changed",
+        "showAll": "Show all {{count}}",
+        "more": "and {{count}} more"
+      }
     },
     "startFromRepo": {
       "entry": "Start from a GitHub repository",
@@ -1712,7 +1752,7 @@
       "failed": "Could not open this repository.",
       "badLink": "Paste a link like github.com/owner/repo.",
       "title": "Start from a GitHub repository",
-      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
       "connect": "Connect GitHub to open one of your repositories.",
       "linkPlaceholder": "Paste a link: github.com/owner/repo",
       "linkLabel": "Repository link",
@@ -2109,7 +2149,7 @@
         },
         "anyRepo": {
           "title": "Start From Any Repository",
-          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository</strong> in the assistant. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose the diagram.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
+          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository</strong> in the assistant. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it asks you first. Only if you agree does it send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses to propose the diagram. That model may be run by a third-party provider, so the excerpt leaves BESSER's server.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
         },
         "publish": {
           "title": "Go Live and Share",

@@ -50,7 +50,8 @@
       "reconnect": "{{repo}}: sesión de GitHub caducada",
       "signed-out": "GitHub",
       "unknown": "{{repo}}: no se pudo acceder a GitHub",
-      "unlinked": "Vincular este proyecto a un repositorio de GitHub"
+      "unlinked": "Vincular este proyecto a un repositorio de GitHub",
+      "not-in-tab": "{{repo}}: GitHub no está conectado en esta pestaña"
     }
   },
   "nav": {
@@ -939,7 +940,8 @@
             "failed": "Tu proyecto se creó, pero no se pudo guardar en GitHub: {{error}}",
             "saved": "Guardado en GitHub como {{repo}}.",
             "saving": "Guardando {{name}} en GitHub…"
-          }
+          },
+          "privateRepo": "Un repositorio privado llamado <repo>{{repo}}</repo> guarda tu modelo y tu código."
         }
       },
       "import": {
@@ -1050,13 +1052,14 @@
       "github": {
         "connectHint": "Conecta tu cuenta de GitHub para elegir uno de tus repositorios. Volverás aquí después de iniciar sesión.",
         "continue": "Continuar",
-        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código. Si BESSER no puede leer directamente sus clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
+        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
         "errors": {
           "generic": "No se pudo continuar desde este repositorio.",
           "noModel": "Este repositorio no tiene un modelo de BESSER: no lo creó BESSER, así que aún no hay nada desde donde continuar.",
           "noSession": "No se encontró la sesión de GitHub. Vuelve a conectarte.",
           "selectRepo": "Selecciona un repositorio desde el que continuar.",
-          "sessionExpired": "Tu sesión de GitHub ha caducado. Vuelve a conectarte e inténtalo de nuevo."
+          "sessionExpired": "Tu sesión de GitHub ha caducado. Vuelve a conectarte e inténtalo de nuevo.",
+          "repoNotFound": "No se encontró {{repo}}, o tu cuenta de GitHub no tiene acceso a él."
         },
         "loadingBranches": "Cargando ramas…",
         "loadingRepos": "Cargando repositorios…",
@@ -1380,13 +1383,20 @@
       },
       "viewPullRequest": "Ver la pull request",
       "filesChanged_one": "{{count}} archivo cambiado.",
-      "filesChanged_other": "{{count}} archivos cambiados."
+      "filesChanged_other": "{{count}} archivos cambiados.",
+      "modelChoice": {
+        "title": "¿Conservar tu modelo o usar el de la ejecución?",
+        "description": "Esta ejecución cambió el modelo, y el modelo del lienzo cambió después de que empezara. Usa el modelo de la ejecución y pierde los cambios que hiciste desde entonces, o conserva tu modelo y guárdalo en GitHub más tarde.",
+        "takeRun": "Usar el modelo de la ejecución",
+        "keepMine": "Conservar mi modelo"
+      }
     },
     "chatHeader": {
       "diverged": "Cambiado aquí y en GitHub",
       "openMenu": "Trabajando en {{repo}}: {{state}}. Abrir el menú de GitHub.",
       "signedOut": "Conecta GitHub para ver su estado",
-      "workingOn": "Trabajando en"
+      "workingOn": "Trabajando en",
+      "notInTab": "Sin conexión en esta pestaña"
     },
     "goLive": {
       "addresses": "Tu aplicación estará en",
@@ -1427,7 +1437,8 @@
       "saveToGitHub": "Guardar en GitHub…",
       "signedInAs": "Sesión iniciada como {{name}}",
       "unlinkConfirmDescription": "El proyecto se queda en tu navegador y el repositorio en GitHub. Guardar en GitHub se detiene hasta que vuelvas a vincular un repositorio.",
-      "howItWorks": "Cómo funciona GitHub en BESSER"
+      "howItWorks": "Cómo funciona GitHub en BESSER",
+      "notInTabHint": "GitHub no está conectado en esta pestaña. Conéctalo para usarlo aquí."
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1449,11 +1460,12 @@
       "openPr": "Abrir una pull request para combinarlo",
       "prOpened": "Pull request abierta",
       "prTitle": "Cambios del modelo desde el editor de BESSER",
-      "repoHasModelDescription": "{{repo}} contiene «{{name}}». ¿Cargarlo en este proyecto y reemplazar el modelo abierto? Elige Cancelar para conservar tu modelo; reemplazará el del repositorio en tu próximo guardado.",
       "repoHasModelTitle": "Este repositorio ya contiene un modelo",
       "saveAction": "Guardar en GitHub",
       "saved": "Modelo guardado en GitHub.",
-      "savedMerged": "Guardado y combinado con los cambios más recientes de GitHub."
+      "savedMerged": "Guardado y combinado con los cambios más recientes de GitHub.",
+      "repoHasModelChoice": "{{repo}} contiene «{{name}}». Cárgalo en este proyecto, sustituyendo el modelo abierto, o conserva tu modelo y vincula: tu próximo guardado sustituirá entonces el modelo del repositorio.",
+      "keepModelAndLink": "Conservar mi modelo y vincular"
     },
     "proposal": {
       "accept": "Aceptar el modelo",
@@ -1486,7 +1498,18 @@
       "showOthers": "Mostrar {{count}} repositorios más",
       "showOthers_one": "Mostrar 1 repositorio más",
       "summaryFailed": "No se pudo leer este repositorio.",
-      "truncated": "Se muestran tus {{count}} repositorios actualizados más recientemente. Pega un enlace para abrir otro."
+      "truncated": "Se muestran tus {{count}} repositorios actualizados más recientemente. Pega un enlace para abrir otro.",
+      "diagramKinds": {
+        "ClassDiagram": "Clases",
+        "ObjectDiagram": "Objetos",
+        "StateMachineDiagram": "Máquina de estados",
+        "AgentDiagram": "Agente",
+        "UserDiagram": "Usuario",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Cuántico",
+        "NNDiagram": "Red neuronal",
+        "BPMN": "BPMN"
+      }
     },
     "status": {
       "behind": "{{count}} commits nuevos en GitHub",
@@ -1497,6 +1520,12 @@
       "reconnect": "Sesión de GitHub caducada: vuelve a conectar",
       "unknown": "No se pudo acceder al repositorio",
       "unlinked": "No vinculado a ningún repositorio"
+    },
+    "aiReading": {
+      "title": "¿Leer este repositorio con IA?",
+      "description": "BESSER no pudo leer directamente las clases de datos de {{repo}}. Puede enviar un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER, que puede estar gestionado por un proveedor externo. Tu código sale entonces del servidor de BESSER. No se envía nada sin tu consentimiento.",
+      "accept": "Leer con IA",
+      "decline": "Ahora no"
     }
   },
   "assistant": {
@@ -1704,12 +1733,23 @@
       "dropFiles": "Suelta tus archivos aquí para adjuntarlos.",
       "transcribingAudio": "Transcribiendo audio…",
       "recordingPrompt": "Grabando… haz clic aquí o pulsa de nuevo el micrófono para detener y enviar ({{time}})",
-      "stopSendVoiceTimer": "Detener y enviar el mensaje de voz ({{time}})"
+      "stopSendVoiceTimer": "Detener y enviar el mensaje de voz ({{time}})",
+      "runChanges": {
+        "title": "Qué ha cambiado",
+        "model": "Modelo",
+        "unchanged": "sin cambios",
+        "code": "Código",
+        "noFiles": "ningún archivo modificado",
+        "filesChanged_one": "{{count}} archivo modificado",
+        "filesChanged_other": "{{count}} archivos modificados",
+        "showAll": "Mostrar los {{count}}",
+        "more": "y {{count}} más"
+      }
     },
     "startFromRepo": {
       "badLink": "Pega un enlace como github.com/owner/repo.",
       "connect": "Conecta GitHub para abrir uno de tus repositorios.",
-      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo. Si BESSER no puede leer directamente sus clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
+      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
       "entry": "Empezar desde un repositorio de GitHub",
       "entryHint": "De BESSER o no",
       "failed": "No se pudo abrir este repositorio.",
@@ -2109,7 +2149,7 @@
         },
         "anyRepo": {
           "title": "Empezar desde cualquier repositorio",
-          "body": "<p>Usa <strong>Continuar desde GitHub</strong> en la pantalla de inicio, o <strong>Empezar desde un repositorio de GitHub</strong> en el asistente. Un repositorio BESSER se abre con su modelo. Para cualquier otro, BESSER lee sus clases de datos (SQLAlchemy, Django, Pydantic, dataclasses) y propone un diagrama de clases que aceptas o descartas en el lienzo. No se escribe nada en el repositorio hasta que guardas.</p><p>Si BESSER no puede leer directamente las clases de datos, envía un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA que propone el diagrama.</p><p>Después, el Spec-Driven Agent trabaja sobre ese código y sus cambios vuelven al mismo repositorio.</p>"
+          "body": "<p>Usa <strong>Continuar desde GitHub</strong> en la pantalla de inicio, o <strong>Empezar desde un repositorio de GitHub</strong> en el asistente. Un repositorio BESSER se abre con su modelo. Para cualquier otro, BESSER lee sus clases de datos (SQLAlchemy, Django, Pydantic, dataclasses) y propone un diagrama de clases que aceptas o descartas en el lienzo. No se escribe nada en el repositorio hasta que guardas.</p><p>Si BESSER no puede leer directamente las clases de datos, primero te lo pregunta. Solo si aceptas envía un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER para proponer el diagrama. Ese modelo puede estar gestionado por un proveedor externo, así que el extracto sale del servidor de BESSER.</p><p>Después, el Spec-Driven Agent trabaja sobre ese código y sus cambios vuelven al mismo repositorio.</p>"
         },
         "publish": {
           "title": "Publicar y compartir",

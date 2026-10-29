@@ -50,7 +50,8 @@
       "reconnect": "{{repo}}: sessió de GitHub caducada",
       "signed-out": "GitHub",
       "unknown": "{{repo}}: no s’ha pogut accedir a GitHub",
-      "unlinked": "Vincula aquest projecte a un repositori de GitHub"
+      "unlinked": "Vincula aquest projecte a un repositori de GitHub",
+      "not-in-tab": "{{repo}}: GitHub no està connectat en aquesta pestanya"
     }
   },
   "nav": {
@@ -939,7 +940,8 @@
             "failed": "El teu projecte s’ha creat, però no s’ha pogut desar a GitHub: {{error}}",
             "saved": "Desat a GitHub com a {{repo}}.",
             "saving": "S’està desant {{name}} a GitHub…"
-          }
+          },
+          "privateRepo": "Un repositori privat anomenat <repo>{{repo}}</repo> guarda el teu model i el teu codi."
         }
       },
       "import": {
@@ -1050,13 +1052,14 @@
       "github": {
         "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
         "continue": "Continua",
-        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi. Si BESSER no pot llegir directament les seves classes de dades, envia un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
         "errors": {
           "generic": "No s’ha pogut continuar des d’aquest repositori.",
           "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",
           "noSession": "No s’ha trobat la sessió de GitHub. Torna’t a connectar.",
           "selectRepo": "Selecciona un repositori des d’on continuar.",
-          "sessionExpired": "La teva sessió de GitHub ha caducat. Torna’t a connectar i torna-ho a provar."
+          "sessionExpired": "La teva sessió de GitHub ha caducat. Torna’t a connectar i torna-ho a provar.",
+          "repoNotFound": "No s’ha trobat {{repo}}, o el teu compte de GitHub no hi té accés."
         },
         "loadingBranches": "S’estan carregant les branques…",
         "loadingRepos": "S’estan carregant els repositoris…",
@@ -1380,13 +1383,20 @@
       },
       "viewPullRequest": "Mostra la pull request",
       "filesChanged_one": "{{count}} fitxer canviat.",
-      "filesChanged_other": "{{count}} fitxers canviats."
+      "filesChanged_other": "{{count}} fitxers canviats.",
+      "modelChoice": {
+        "title": "Vols conservar el teu model o fer servir el de l’execució?",
+        "description": "Aquesta execució ha canviat el model, i el model del llenç ha canviat després que comencés. Fes servir el model de l’execució i perd els canvis que has fet des de llavors, o conserva el teu model i desa’l a GitHub més tard.",
+        "takeRun": "Fes servir el model de l’execució",
+        "keepMine": "Conserva el meu model"
+      }
     },
     "chatHeader": {
       "diverged": "Canviat aquí i a GitHub",
       "openMenu": "Treballant a {{repo}}: {{state}}. Obre el menú de GitHub.",
       "signedOut": "Connecta GitHub per veure’n l’estat",
-      "workingOn": "Treballant a"
+      "workingOn": "Treballant a",
+      "notInTab": "Sense connexió en aquesta pestanya"
     },
     "goLive": {
       "addresses": "La teva aplicació serà a",
@@ -1427,7 +1437,8 @@
       "saveToGitHub": "Desa a GitHub…",
       "signedInAs": "Sessió iniciada com a {{name}}",
       "unlinkConfirmDescription": "El projecte es queda al teu navegador i el repositori a GitHub. Desar a GitHub s’atura fins que tornis a vincular un repositori.",
-      "howItWorks": "Com funciona GitHub a BESSER"
+      "howItWorks": "Com funciona GitHub a BESSER",
+      "notInTabHint": "GitHub no està connectat en aquesta pestanya. Connecta’l per fer-lo servir aquí."
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1449,11 +1460,12 @@
       "openPr": "Obre una pull request per combinar-lo",
       "prOpened": "Pull request oberta",
       "prTitle": "Canvis del model des de l’editor de BESSER",
-      "repoHasModelDescription": "{{repo}} conté «{{name}}». Vols carregar-lo en aquest projecte i substituir el model obert? Tria Cancel·la per conservar el teu model; substituirà el del repositori al proper desament.",
       "repoHasModelTitle": "Aquest repositori ja conté un model",
       "saveAction": "Desa a GitHub",
       "saved": "Model desat a GitHub.",
-      "savedMerged": "Desat i combinat amb els canvis més recents de GitHub."
+      "savedMerged": "Desat i combinat amb els canvis més recents de GitHub.",
+      "repoHasModelChoice": "{{repo}} conté «{{name}}». Carrega’l en aquest projecte, substituint el model obert, o conserva el teu model i vincula: el teu proper desament substituirà llavors el model del repositori.",
+      "keepModelAndLink": "Conserva el meu model i vincula"
     },
     "proposal": {
       "accept": "Accepta el model",
@@ -1486,7 +1498,18 @@
       "showOthers": "Mostra {{count}} repositoris més",
       "showOthers_one": "Mostra 1 repositori més",
       "summaryFailed": "No s’ha pogut llegir aquest repositori.",
-      "truncated": "Es mostren els teus {{count}} repositoris actualitzats més recentment. Enganxa un enllaç per obrir-ne un altre."
+      "truncated": "Es mostren els teus {{count}} repositoris actualitzats més recentment. Enganxa un enllaç per obrir-ne un altre.",
+      "diagramKinds": {
+        "ClassDiagram": "Classes",
+        "ObjectDiagram": "Objectes",
+        "StateMachineDiagram": "Màquina d’estats",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "Usuari",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Quàntic",
+        "NNDiagram": "Xarxa neuronal",
+        "BPMN": "BPMN"
+      }
     },
     "status": {
       "behind": "{{count}} commits nous a GitHub",
@@ -1497,6 +1520,12 @@
       "reconnect": "Sessió de GitHub caducada: torna a connectar",
       "unknown": "No s’ha pogut accedir al repositori",
       "unlinked": "No vinculat a cap repositori"
+    },
+    "aiReading": {
+      "title": "Vols llegir aquest repositori amb IA?",
+      "description": "BESSER no ha pogut llegir directament les classes de dades de {{repo}}. Pot enviar un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER, que pot estar gestionat per un proveïdor extern. Llavors el teu codi surt del servidor de BESSER. No s’envia res sense el teu consentiment.",
+      "accept": "Llegeix amb IA",
+      "decline": "Ara no"
     }
   },
   "assistant": {
@@ -1704,12 +1733,23 @@
       "dropFiles": "Deixa anar els fitxers aquí per adjuntar-los.",
       "transcribingAudio": "S'està transcrivint l'àudio…",
       "recordingPrompt": "Gravant… fes clic aquí o torna a prémer el micròfon per aturar i enviar ({{time}})",
-      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})"
+      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})",
+      "runChanges": {
+        "title": "Què ha canviat",
+        "model": "Model",
+        "unchanged": "sense canvis",
+        "code": "Codi",
+        "noFiles": "cap fitxer modificat",
+        "filesChanged_one": "{{count}} fitxer modificat",
+        "filesChanged_other": "{{count}} fitxers modificats",
+        "showAll": "Mostra’ls tots ({{count}})",
+        "more": "i {{count}} més"
+      }
     },
     "startFromRepo": {
       "badLink": "Enganxa un enllaç com github.com/owner/repo.",
       "connect": "Connecta GitHub per obrir un dels teus repositoris.",
-      "description": "Tria un repositori per continuar-hi construint. Un repositori de BESSER s’obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model que acceptes al llenç. Si BESSER no pot llegir directament les seves classes de dades, envia un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+      "description": "Tria un repositori per continuar-hi construint. Un repositori de BESSER s’obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model que acceptes al llenç. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
       "entry": "Comença des d’un repositori de GitHub",
       "entryHint": "De BESSER o no",
       "failed": "No s’ha pogut obrir aquest repositori.",
@@ -2109,7 +2149,7 @@
         },
         "anyRepo": {
           "title": "Començar des de qualsevol repositori",
-          "body": "<p>Fes servir <strong>Continua des de GitHub</strong> a la pantalla d’inici, o <strong>Comença des d’un repositori de GitHub</strong> a l’assistent. Un repositori BESSER s’obre amb el seu model. Per a qualsevol altre, BESSER llegeix les seves classes de dades (SQLAlchemy, Django, Pydantic, dataclasses) i proposa un diagrama de classes que acceptes o descartes al llenç. No s’escriu res al repositori fins que desis.</p><p>Si BESSER no pot llegir directament les classes de dades, envia un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA que proposa el diagrama.</p><p>Després, el Spec-Driven Agent treballa sobre aquest codi i els seus canvis tornen al mateix repositori.</p>"
+          "body": "<p>Fes servir <strong>Continua des de GitHub</strong> a la pantalla d’inici, o <strong>Comença des d’un repositori de GitHub</strong> a l’assistent. Un repositori BESSER s’obre amb el seu model. Per a qualsevol altre, BESSER llegeix les seves classes de dades (SQLAlchemy, Django, Pydantic, dataclasses) i proposa un diagrama de classes que acceptes o descartes al llenç. No s’escriu res al repositori fins que desis.</p><p>Si BESSER no pot llegir directament les classes de dades, primer t’ho pregunta. Només si hi estàs d’acord envia un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER per proposar el diagrama. Aquest model pot estar gestionat per un proveïdor extern, de manera que l’extracte surt del servidor de BESSER.</p><p>Després, el Spec-Driven Agent treballa sobre aquest codi i els seus canvis tornen al mateix repositori.</p>"
         },
         "publish": {
           "title": "Publicar i compartir",

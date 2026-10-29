@@ -1109,20 +1109,24 @@ function RunChangesSummary({
   changedFiles: string[]
   changedFileCount: number
 }) {
+  const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const shown = showAll ? changedFiles : changedFiles.slice(0, CHANGED_FILES_PREVIEW)
   const hidden = changedFileCount - shown.length
+  const title = t("assistant.chatKit.runChanges.title", { defaultValue: "What changed" })
 
   return (
     <section
-      aria-label="What changed"
+      aria-label={title}
       className="space-y-1.5 border-t border-border/60 px-3 py-2 text-[11px]"
     >
-      <p className="font-medium text-foreground">What changed</p>
+      <p className="font-medium text-foreground">{title}</p>
       <div className="flex gap-2">
         <Sparkles className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
-          <span className="font-medium text-foreground">Model</span>
+          <span className="font-medium text-foreground">
+            {t("assistant.chatKit.runChanges.model", { defaultValue: "Model" })}
+          </span>
           {modelChanges.length ? (
             <ul className="mt-0.5 space-y-0.5 text-muted-foreground">
               {modelChanges.map((change) => (
@@ -1130,19 +1134,27 @@ function RunChangesSummary({
               ))}
             </ul>
           ) : (
-            <span className="text-muted-foreground"> · unchanged</span>
+            <span className="text-muted-foreground">
+              {" · "}
+              {t("assistant.chatKit.runChanges.unchanged", { defaultValue: "unchanged" })}
+            </span>
           )}
         </div>
       </div>
       <div className="flex gap-2">
         <Code2 className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
-          <span className="font-medium text-foreground">Code</span>
+          <span className="font-medium text-foreground">
+            {t("assistant.chatKit.runChanges.code", { defaultValue: "Code" })}
+          </span>
           <span className="text-muted-foreground">
-            {" "}
-            · {changedFileCount === 0
-              ? "no files changed"
-              : `${changedFileCount} file${changedFileCount === 1 ? "" : "s"} changed`}
+            {" · "}
+            {changedFileCount === 0
+              ? t("assistant.chatKit.runChanges.noFiles", { defaultValue: "no files changed" })
+              : t("assistant.chatKit.runChanges.filesChanged", {
+                  defaultValue: "{{count}} files changed",
+                  count: changedFileCount,
+                })}
           </span>
           {shown.length ? (
             <ul className="mt-0.5 space-y-0.5 font-mono text-muted-foreground">
@@ -1159,10 +1171,15 @@ function RunChangesSummary({
               onClick={() => setShowAll(true)}
               className="mt-0.5 rounded px-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              Show all {changedFiles.length}
+              {t("assistant.chatKit.runChanges.showAll", {
+                defaultValue: "Show all {{count}}",
+                count: changedFiles.length,
+              })}
             </button>
           ) : hidden > 0 ? (
-            <p className="mt-0.5 text-muted-foreground">and {hidden} more</p>
+            <p className="mt-0.5 text-muted-foreground">
+              {t("assistant.chatKit.runChanges.more", { defaultValue: "and {{count}} more", count: hidden })}
+            </p>
           ) : null}
         </div>
       </div>
