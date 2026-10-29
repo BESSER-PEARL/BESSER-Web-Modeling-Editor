@@ -11,10 +11,11 @@
  */
 
 import { toast } from 'react-toastify';
+import { formatErrorDetail } from '../../api/api-client';
 import { GENERATE_OBJECT_DIAGRAM_ENDPOINT, SEMANTIC_CHECK_ENDPOINT } from '../../constants/constant';
 import i18n from '../../i18n';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
-import { SseResponseTimeoutError, SseStallError, streamSse } from '../sse/sseClient';
+import { SseHttpError, SseResponseTimeoutError, SseStallError, streamSse } from '../sse/sseClient';
 
 /** An event of the semantic check stream. */
 export interface SemanticSearchEvent {
@@ -129,10 +130,23 @@ export function showSemanticSearchResult(event: SemanticSearchEvent): void {
   }
 }
 
+/** The `detail` of a FastAPI error body, or `undefined` when `body` is not one (e.g. a proxy's error page). */
+function errorBodyDetail(body: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return parsed && typeof parsed === 'object' ? (parsed as { detail?: unknown }).detail : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The user-facing text of an error thrown by a semantic search. */
 export function semanticSearchErrorMessage(error: unknown): string {
   if (error instanceof SseStallError) return i18n.t('validation.semantic.connectionLost');
   if (error instanceof SemanticSearchIncompleteError) return i18n.t('validation.semantic.noResult');
   if (error instanceof SseResponseTimeoutError || isNetworkError(error)) return describeNetworkError(error);
-  return i18n.t('validation.semantic.failed', { error: error instanceof Error ? error.message : String(error) });
+  const failed = i18n.t('validation.semantic.failed', { error: error instanceof Error ? error.message : String(error) });
+  // The backend explains a refused search, e.g. the 503 sent when it already runs its maximum of checks
+  if (error instanceof SseHttpError) return formatErrorDetail(errorBodyDetail(error.body), failed);
+  return failed;
 }

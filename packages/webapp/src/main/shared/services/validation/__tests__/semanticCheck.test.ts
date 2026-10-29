@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GENERATE_OBJECT_DIAGRAM_ENDPOINT, SEMANTIC_CHECK_ENDPOINT } from '../../../constants/constant';
-import { SseStallError, streamSse } from '../../sse/sseClient';
+import { SseHttpError, SseStallError, streamSse } from '../../sse/sseClient';
 import {
   SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
   SEMANTIC_CHECK_STALL_TIMEOUT_MS,
@@ -152,6 +152,22 @@ describe('semanticSearchErrorMessage', () => {
   it('reports a stream without a result', () => {
     expect(semanticSearchErrorMessage(new SemanticSearchIncompleteError())).toBe(
       'The semantic check ended without a result.',
+    );
+  });
+
+  it('reports an HTTP error with the backend message', () => {
+    const busy = new SseHttpError(
+      503,
+      JSON.stringify({ detail: 'Another semantic check is running on this server; try again in a minute' }),
+    );
+    expect(semanticSearchErrorMessage(busy)).toBe(
+      'Another semantic check is running on this server; try again in a minute',
+    );
+  });
+
+  it('reports an HTTP error without a backend message with its status', () => {
+    expect(semanticSearchErrorMessage(new SseHttpError(502, '<html>Bad Gateway</html>'))).toBe(
+      'Semantic check failed: SSE request failed: 502',
     );
   });
 
