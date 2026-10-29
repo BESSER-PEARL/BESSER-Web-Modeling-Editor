@@ -755,7 +755,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       }
 
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.github.toasts.continuing', {
         defaultValue: 'Continuing from {{repo}}.',
         repo: `${owner}/${repo}`,

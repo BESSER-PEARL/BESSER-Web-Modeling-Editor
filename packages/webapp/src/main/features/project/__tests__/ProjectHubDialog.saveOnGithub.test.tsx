@@ -10,6 +10,7 @@ import { createDefaultProject, type BesserProject } from '../../../shared/types/
 import { getProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
 import { importProject } from '../../../shared/services/project-import/projectImport';
+import { continueFromGithubRepo } from '../../spec-driven/services/continueFromGithub';
 
 const mockCreateProject = vi.fn();
 const mockGithubLogin = vi.fn();
@@ -38,7 +39,15 @@ vi.mock('../saveProjectOnGithub', async (importOriginal) => ({
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn(), loading: vi.fn(() => 'toast-id'), update: vi.fn() },
 }));
-vi.mock('../../../shared/components/github/RepoBrowser', () => ({ RepoBrowser: () => <div data-testid="repo-browser" /> }));
+vi.mock('../../../shared/components/github/RepoBrowser', () => ({
+  RepoBrowser: ({ onAction }: { onAction: (choice: { owner: string; repo: string; branch: string }) => void }) => (
+    <button data-testid="repo-browser" onClick={() => onAction({ owner: 'octocat', repo: 'shop', branch: 'main' })} />
+  ),
+}));
+vi.mock('../../spec-driven/services/continueFromGithub', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../spec-driven/services/continueFromGithub')>()),
+  continueFromGithubRepo: vi.fn(),
+}));
 vi.mock('../../import/useImportDiagram', () => ({ useImportDiagramToProject: () => vi.fn() }));
 vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('../../../shared/services/project-import/projectImport', () => ({ importProject: vi.fn() }));
@@ -190,6 +199,23 @@ describe('Landing GitHub row', () => {
     fireEvent.change(input, { target: { files: [new File(['{}'], 'shop.json', { type: 'application/json' })] } });
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  // First run: no project was open, so the hub's own close guard would refuse
+  // and leave it over the project the repo just opened.
+  it('closes itself and tells the assistant after continuing from a repo on first run', async () => {
+    const project = createdProject();
+    vi.mocked(continueFromGithubRepo).mockResolvedValue({ ok: true, projectId: project.id });
+    sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
+    mockGithubAuthenticated = true;
+    const onOpenChange = vi.fn();
+    const onRepoOpened = vi.fn();
+    render(<ProjectHubDialog open onOpenChange={onOpenChange} onRepoOpened={onRepoOpened} />);
+    fireEvent.click(screen.getByTestId('repo-browser'));
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(continueFromGithubRepo).toHaveBeenCalledWith(expect.objectContaining({ owner: 'octocat', repo: 'shop' }));
+    expect(onRepoOpened).toHaveBeenCalledWith(expect.any(String));
   });
 
   it('still resumes "Continue from GitHub" on the repo picker', () => {
