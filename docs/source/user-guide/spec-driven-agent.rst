@@ -181,7 +181,9 @@ A push changes only what the run changed. It is compared with the commit the run
 started from: files the run did not touch are not sent, an executable file stays
 executable, and what the run never held is left alone, such as ``build/`` and
 ``dist/`` output, ``*.db`` files, symlinks and secret ``.env`` files. A file the
-run deleted is deleted. A push that changes nothing makes no commit, so
+run deleted is deleted; a run that did not start from the repository (a first
+generation from the model) never deletes anything, so the repository's README
+and other files stay. A push that changes nothing makes no commit, so
 pushing the same run twice is harmless. The result counts the files changed.
 
 A push to the linked repository never reverts other people's work. If commits
