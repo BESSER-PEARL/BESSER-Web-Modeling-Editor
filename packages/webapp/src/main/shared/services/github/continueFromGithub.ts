@@ -11,28 +11,32 @@
  * and proposes one (`analysis` + `proposed_diagram`); the project then opens
  * with that model marked as a proposal the user accepts on the canvas. With no
  * readable data classes the project opens empty and the agent works on code.
+ * Before an AI model reads any of its code, the user is asked
+ * (`ai_reading_offered`): an excerpt of private code would leave BESSER.
  *
  * The caller owns store dispatch and loading the project; this module stays
  * hook-free so it can be unit-tested directly.
  */
-import { ApiError } from '../../../shared/api/api-client';
-import i18n from '../../../shared/i18n';
-import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
-import { importProjectFromJson, storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
-import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import { ApiError } from '../../api/api-client';
+import i18n from '../../i18n';
+import { globalConfirm } from '../confirm/globalConfirm';
+import { importProjectFromJson } from '../project-import/projectImport';
+import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import {
   getProjectGitHubLink,
   hasUnsyncedModelChanges,
   markProjectGitHubSynced,
   setProjectGitHubLink,
   type ProjectGitHubLink,
-} from '../../../shared/services/storage/projectGitHubLink';
-import type { BesserProject } from '../../../shared/types/project';
-import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
-import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
-import { PROJECT_EXPORT_VERSION } from '../../../shared/utils/projectExportUtils';
-import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../../shared/api/github';
-import { writeProjectLastRun } from '../storage';
+} from '../storage/projectGitHubLink';
+import type { BesserProject } from '../../types/project';
+import { emitDeliveryEvent } from '../telemetry/pilotTelemetry';
+import { requestAutoLayoutOnNextSetup } from '../../utils/autoLayoutSignal';
+import { PROJECT_EXPORT_VERSION } from '../../utils/projectExportUtils';
+import { escapeMarkdownText, markdownCode } from '../../utils/markdownText';
+import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../api/github';
+import { pullRepoIntoProject } from './pullRepoIntoProject';
+import { writeProjectLastRun } from '../storage/specDrivenRunRecords';
 
 export interface ContinueFromGithubResult {
   ok: boolean;
@@ -54,6 +58,9 @@ export interface ContinueFromGithubResult {
   error?: string;
 }
 
+/** The id of the class diagram that holds a proposed model in the new project. */
+const proposalDiagramId = (response: ImportedRun): string => `class_${response.commit_sha.slice(0, 8)}`;
+
 /** A V2 export envelope for a repo without a BESSER model: its proposed class diagram, or nothing. */
 function envelopeForCodeRepo(response: ImportedRun): unknown {
   const now = new Date().toISOString();
@@ -69,7 +76,7 @@ function envelopeForCodeRepo(response: ImportedRun): unknown {
       currentDiagramType: 'ClassDiagram',
       currentDiagramIndices: { ClassDiagram: 0 },
       diagrams: diagram
-        ? { ClassDiagram: [{ id: `class_${response.commit_sha.slice(0, 8)}`, title: diagram.title, model: diagram.model, lastUpdate: now }] }
+        ? { ClassDiagram: [{ id: proposalDiagramId(response), title: diagram.title, model: diagram.model, lastUpdate: now }] }
         : {},
       settings: {},
     },
@@ -88,26 +95,33 @@ export function findProjectLinkedTo(owner: string, repo: string): BesserProject 
   return null;
 }
 
-/**
- * Make project `projectId` match the head of `target`: the repo's model when it
- * has one (a repo without one keeps the project's model), and its code as the
- * next Spec-Driven modify run's base. The caller loads the project.
- */
-export async function pullRepoIntoProject(
+/** Ask before an AI model reads the repo's code: an excerpt of it goes to the server's model provider. */
+export function confirmAiReading(owner: string, repo: string): Promise<boolean> {
+  return globalConfirm({
+    title: i18n.t('github.aiReading.title', { defaultValue: 'Read this repository with AI?' }),
+    description: i18n.t('github.aiReading.description', {
+      defaultValue:
+        'BESSER could not read the data classes of {{repo}} directly. It can send a short excerpt of the code '
+        + '(up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server '
+        + 'uses, which may be run by a third-party provider. Your code then leaves BESSER\'s server. '
+        + 'Nothing is sent unless you agree.',
+      repo: `${owner}/${repo}`,
+    }),
+    confirmLabel: i18n.t('github.aiReading.accept', { defaultValue: 'Read with AI' }),
+    cancelLabel: i18n.t('github.aiReading.decline', { defaultValue: 'Not now' }),
+  });
+}
+
+/** Import the repo; when only an AI reading could propose a model, import again with AI once the user agrees. */
+async function importAskingForAiReading(
   githubSession: string,
-  target: ProjectGitHubLink,
-  projectId: string,
+  owner: string,
+  repo: string,
+  branch?: string,
 ): Promise<ImportedRun> {
-  const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch);
-  writeProjectLastRun(projectId, imported.run_id, Date.now());
-  const link = { ...target, branch: imported.branch };
-  if (imported.has_model && imported.project) {
-    const project = storeRepoModelAsProject(imported.project, projectId);
-    markProjectGitHubSynced(link, project, imported.commit_sha, { loadedFromRepo: true });
-  } else {
-    setProjectGitHubLink(projectId, { ...link, baseCommitSha: imported.commit_sha });
-  }
-  return imported;
+  const response = await importRepoAsRun(githubSession, owner, repo, branch);
+  if (!response.ai_reading_offered || !(await confirmAiReading(response.owner, response.repo))) return response;
+  return importRepoAsRun(githubSession, owner, repo, response.branch, { allowAiReading: true });
 }
 
 /** Open the repo in the project already linked to it; unsaved model changes are replaced only on confirm. */
@@ -145,7 +159,7 @@ export async function continueFromGithubRepo(args: {
     const linked = findProjectLinkedTo(args.owner, args.repo);
     if (linked) return await continueInLinkedProject(linked, args);
 
-    const response = await importRepoAsRun(args.githubSession, args.owner, args.repo, args.branch);
+    const response = await importAskingForAiReading(args.githubSession, args.owner, args.repo, args.branch);
     const isBesserRepo = response.has_model && !!response.project;
 
     // The repo's own model, or (any other repo) a project built from what
@@ -165,7 +179,9 @@ export async function continueFromGithubRepo(args: {
       setProjectGitHubLink(imported.id, {
         ...link,
         baseCommitSha: response.commit_sha,
-        ...(response.proposed_diagram && response.analysis ? { modelProposal: response.analysis } : {}),
+        ...(response.proposed_diagram && response.analysis
+          ? { modelProposal: { ...response.analysis, diagramId: proposalDiagramId(response) } }
+          : {}),
       });
       // A proposed diagram has no layout of its own: let ELK arrange it when the canvas opens.
       if (response.proposed_diagram) requestAutoLayoutOnNextSetup();
@@ -195,36 +211,40 @@ export async function continueFromGithubRepo(args: {
     if (error instanceof ApiError && error.status === 401) {
       return {
         ok: false,
-        error:
-          'Your GitHub session expired — sign in with GitHub again, then retry.',
+        error: i18n.t('project.hub.github.errors.sessionExpired', {
+          defaultValue: 'Your GitHub session expired. Reconnect and try again.',
+        }),
       };
     }
     if (error instanceof ApiError && error.status === 404) {
       return {
         ok: false,
-        error:
-          `Repo ${args.owner}/${args.repo} was not found (or your GitHub ` +
-          'account has no access to it).',
+        error: i18n.t('project.hub.github.errors.repoNotFound', {
+          defaultValue: '{{repo}} was not found, or your GitHub account has no access to it.',
+          repo: `${args.owner}/${args.repo}`,
+        }),
       };
     }
     const message =
-      error instanceof ApiError
+      error instanceof Error && error.message
         ? error.message
-        : error instanceof Error
-          ? error.message
-          : 'Could not continue from this repository.';
+        : i18n.t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
     return { ok: false, error: message };
   }
 }
 
-/** What the assistant says after a repo opened, in the chat's markdown. */
+/**
+ * What the assistant says after a repo opened, in the chat's markdown. Every
+ * value read from the repo (names, files, classes) or sent by the server is
+ * escaped, so a crafted file name cannot render a link in the chat.
+ */
 export function describeOpenedRepo(result: ContinueFromGithubResult): string {
-  const repo = `**${result.owner}/${result.repo}**`;
+  const repo = `**${escapeMarkdownText(`${result.owner}/${result.repo}`)}**`;
   if (result.reused) {
     return result.keptLocalChanges
       ? `Opened your project linked to ${repo}, with your unsaved changes. ` +
           'Use **Get latest** in the GitHub menu when you want the version on GitHub.'
-      : `Opened your project linked to ${repo}, updated to the latest commit on \`${result.branch}\`. ` +
+      : `Opened your project linked to ${repo}, updated to the latest commit on ${markdownCode(result.branch ?? '')}. ` +
           'Ask for any change and save it back to GitHub when you are happy.';
   }
   if (!result.analysis) {
@@ -234,19 +254,21 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
     );
   }
   const { stack, model_source: source, source_files: files, entities } = result.analysis;
-  const stackText = stack.length ? ` (${stack.join(' + ')})` : '';
+  const stackText = stack.length ? ` (${stack.map(escapeMarkdownText).join(' + ')})` : '';
   if (!result.proposedModel) {
-    // The server says why (no readable classes, AI reading unavailable or failed).
+    // The server says why (no readable classes, AI reading unavailable, declined or failed).
     const why = result.message
-      ? `${result.message.replace(/;\s*you can still work on its code\.?$/i, '')}.`
+      ? `${escapeMarkdownText(result.message.replace(/;\s*you can still work on its code\.?$/i, ''))}.`
       : 'It has no BESSER model, and I found no data classes I can read into one.';
     return (
       `Opened ${repo}${stackText}. ${why} The canvas is empty, but I can still work on its code: ` +
       'tell me what to change.'
     );
   }
-  const where = files.length ? ` in \`${files.slice(0, 3).join('`, `')}\`${files.length > 3 ? ' and more' : ''}` : '';
-  const classes = `${entities.length} class${entities.length === 1 ? '' : 'es'}: ${entities.join(', ')}`;
+  const where = files.length
+    ? ` in ${files.slice(0, 3).map(markdownCode).join(', ')}${files.length > 3 ? ' and more' : ''}`
+    : '';
+  const classes = `${entities.length} class${entities.length === 1 ? '' : 'es'}: ${entities.map(markdownCode).join(', ')}`;
   if (result.analysis.ai) {
     return (
       `Opened ${repo}${stackText}. It has no data classes I can read exactly, so an AI model read its code${where} ` +
@@ -255,7 +277,7 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
     );
   }
   return (
-    `Opened ${repo}${stackText}. It has no BESSER model yet, so I read its ${source}${where} ` +
+    `Opened ${repo}${stackText}. It has no BESSER model yet, so I read its ${escapeMarkdownText(source ?? 'code')}${where} ` +
     `and drew ${classes}. ` +
     'Check them on the canvas and click **Accept model**, or edit them first. ' +
     'Then ask for changes to the model or the code.'

@@ -91,6 +91,11 @@ export interface ImportedRun {
   analysis?: RepoAnalysis | null;
   /** A class diagram read from their data classes, in the shape the editor imports. */
   proposed_diagram?: { title: string; model: unknown; diagramType: 'ClassDiagram' } | null;
+  /**
+   * No data classes were readable directly and an AI reading could propose a
+   * model: import again with `allowAiReading` once the user agreed.
+   */
+  ai_reading_offered?: boolean;
 }
 
 /** The GitHub topic BESSER sets on every repo it pushes to. */
@@ -158,6 +163,8 @@ export const saveModel = (
     project_data: BesserProject;
     project_export: ProjectExportEnvelope;
     base_commit_sha?: string;
+    /** A model file the old GitHub sidebar saved (e.g. `models/shop.json`); the save commit deletes it. */
+    legacy_file_path?: string;
   },
 ) => apiClient.post<SaveModelResult>('/github/project/save', body, { ...session(githubSession), timeout: 60_000 });
 
@@ -197,12 +204,21 @@ export const createGist = (githubSession: string, project: BesserProject, descri
     session(githubSession),
   );
 
-/** Register the repo's code as a run the next Spec-Driven modify run can start from. */
-export const importRepoAsRun = (githubSession: string, owner: string, repo: string, branch?: string) =>
+/**
+ * Register the repo's code as a run the next Spec-Driven modify run can start from.
+ * `allowAiReading`: the user agreed that an excerpt of the code goes to the server's AI model.
+ */
+export const importRepoAsRun = (
+  githubSession: string,
+  owner: string,
+  repo: string,
+  branch?: string,
+  { allowAiReading = false }: { allowAiReading?: boolean } = {},
+) =>
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
     // A demo tab (`?demo=<token>`) has repos read by the demo model rather than the keyless one.
-    { owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined },
+    { owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined, allow_ai_reading: allowAiReading },
     // The AI fallback reader can take up to 90 s on top of the download.
     { ...session(githubSession), timeout: 150_000 },
   );

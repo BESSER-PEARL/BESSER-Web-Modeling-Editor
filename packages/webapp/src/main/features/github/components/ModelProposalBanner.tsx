@@ -38,9 +38,12 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
       variant: 'danger',
     });
     if (!confirmed) return;
+    // Only the diagram that holds the proposal is emptied, never the user's
+    // own; a proposal recorded without its diagram just stops being one.
     const project = ProjectStorageRepository.loadProject(currentProject.id);
-    const index = project?.currentDiagramIndices?.ClassDiagram ?? 0;
-    const diagram = project?.diagrams.ClassDiagram?.[index];
+    const diagram = proposal.diagramId
+      ? project?.diagrams.ClassDiagram?.find((candidate) => candidate.id === proposal.diagramId)
+      : undefined;
     if (project && diagram?.model) {
       diagram.model = createEmptyDiagram(diagram.title, UMLDiagramType.ClassDiagram).model;
       ProjectStorageRepository.saveProject(project);

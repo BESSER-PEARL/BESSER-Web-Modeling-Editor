@@ -32,6 +32,7 @@ const PROPOSAL = {
   model_source: 'SQLAlchemy models',
   source_files: ['app/models.py'],
   entities: ['Book', 'Author'],
+  diagramId: 'class_bbbbbbbb',
 };
 const LINK = { owner: 'me', repo: 'shop', branch: 'main', baseCommitSha: 'b'.repeat(40), modelProposal: PROPOSAL };
 
@@ -40,7 +41,9 @@ function withProposal(proposal: Record<string, unknown> = PROPOSAL) {
   saved.project = {
     id: PROJECT_ID,
     currentDiagramIndices: { ClassDiagram: 0 },
-    diagrams: { ClassDiagram: [{ model: { type: 'ClassDiagram', elements: { a: {} }, relationships: { r: {} } } }] },
+    diagrams: {
+      ClassDiagram: [{ id: 'class_bbbbbbbb', model: { type: 'ClassDiagram', elements: { a: {} }, relationships: { r: {} } } }],
+    },
   };
   render(<ModelProposalBanner />);
 }
@@ -98,6 +101,35 @@ describe('ModelProposalBanner', () => {
     await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
     expect(saved.project.diagrams.ClassDiagram[0].model).toMatchObject({ elements: {}, relationships: {} });
     expect(getProjectGitHubLink(PROJECT_ID)).toMatchObject({ repo: 'shop' });
+    expect(getProjectGitHubLink(PROJECT_ID)?.modelProposal).toBeUndefined();
+  });
+
+  it("Discard empties the proposal's diagram, not the class diagram the user has open", async () => {
+    // Review repro: the user opened their own diagram (index 1) and Discard wiped it, keeping the proposal.
+    repo.link = LINK;
+    saved.project = {
+      id: PROJECT_ID,
+      currentDiagramIndices: { ClassDiagram: 1 },
+      diagrams: {
+        ClassDiagram: [
+          { id: 'class_bbbbbbbb', title: 'Proposed', model: { type: 'ClassDiagram', elements: { proposed: {} }, relationships: {} } },
+          { id: 'mine', title: 'My work', model: { type: 'ClassDiagram', elements: { mine: {} }, relationships: {} } },
+        ],
+      },
+    };
+    render(<ModelProposalBanner />);
+    fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
+    await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
+    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toEqual([]);
+    expect(Object.keys(saved.project.diagrams.ClassDiagram[1].model.elements)).toEqual(['mine']);
+  });
+
+  it('Discard of a proposal that does not name its diagram leaves every diagram as it is', async () => {
+    const { diagramId: _none, ...older } = PROPOSAL;
+    withProposal(older);
+    fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
+    await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
+    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toEqual(['a']);
     expect(getProjectGitHubLink(PROJECT_ID)?.modelProposal).toBeUndefined();
   });
 });

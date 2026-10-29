@@ -68,7 +68,7 @@ import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,
-} from '../../spec-driven/services/continueFromGithub';
+} from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
 import { getGitHubSession } from '../../../shared/services/github/githubAuth';
 import {

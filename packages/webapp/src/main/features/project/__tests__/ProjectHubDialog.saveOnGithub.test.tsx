@@ -10,7 +10,7 @@ import { createDefaultProject, type BesserProject } from '../../../shared/types/
 import { getProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
 import { importProject } from '../../../shared/services/project-import/projectImport';
-import { continueFromGithubRepo } from '../../spec-driven/services/continueFromGithub';
+import { continueFromGithubRepo } from '../../../shared/services/github/continueFromGithub';
 
 const mockCreateProject = vi.fn();
 const mockGithubLogin = vi.fn();
@@ -44,8 +44,8 @@ vi.mock('../../../shared/components/github/RepoBrowser', () => ({
     <button data-testid="repo-browser" onClick={() => onAction({ owner: 'octocat', repo: 'shop', branch: 'main' })} />
   ),
 }));
-vi.mock('../../spec-driven/services/continueFromGithub', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../spec-driven/services/continueFromGithub')>()),
+vi.mock('../../../shared/services/github/continueFromGithub', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../shared/services/github/continueFromGithub')>()),
   continueFromGithubRepo: vi.fn(),
 }));
 vi.mock('../../import/useImportDiagram', () => ({ useImportDiagramToProject: () => vi.fn() }));

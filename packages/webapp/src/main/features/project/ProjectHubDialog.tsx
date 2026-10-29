@@ -59,7 +59,7 @@ import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../shared/components/github/RepoBrowser';
-import { continueFromGithubRepo, describeOpenedRepo } from '../spec-driven/services/continueFromGithub';
+import { continueFromGithubRepo, describeOpenedRepo } from '../../shared/services/github/continueFromGithub';
 import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */

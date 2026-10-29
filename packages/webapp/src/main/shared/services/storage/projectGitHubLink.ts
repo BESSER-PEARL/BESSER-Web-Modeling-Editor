@@ -16,6 +16,10 @@
  * `pendingChange` is a save or push that did not land on the branch: GitHub
  * could not merge it, or it went to a pull request. It is kept until its
  * pull request is merged or closed, or the user dismisses it.
+ *
+ * `legacyFilePath` is the model file the old GitHub sidebar saved (e.g.
+ * `models/shop.json`); the next save sends it so the commit that writes
+ * `buml/diagrams.json` deletes it, and then forgets it.
  */
 import { localStorageGitHubLinkPrefix, localStoragePrefix } from '../../constants/constant';
 import { LocalStorageRepository } from './local-storage-repository';
@@ -31,6 +35,12 @@ export interface RepoCodeAnalysis {
   ai?: boolean;
   /** Relationships read from the code that the proposed model could not take, as "Source -> Target". */
   skipped_relationships?: string[];
+}
+
+/** The model BESSER proposed from a repo's code, waiting for the user's Accept. */
+export interface ModelProposal extends RepoCodeAnalysis {
+  /** The class diagram that holds the proposal; Discard empties only this one. */
+  diagramId?: string;
 }
 
 /** A save or push kept on its own branch instead of the linked one. */
@@ -56,8 +66,9 @@ export interface ProjectGitHubLink {
   /** Where the app runs once it went live from this repo. */
   liveUrl?: string;
   /** Set while the model BESSER read from the repo's code awaits the user's Accept. */
-  modelProposal?: RepoCodeAnalysis;
+  modelProposal?: ModelProposal;
   pendingChange?: PendingGitHubChange;
+  legacyFilePath?: string;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -68,6 +79,14 @@ const LEGACY_PUSH_TARGET = 'github';
 const LEGACY_SIDEBAR_LINKS_KEY = `${localStoragePrefix}github_linked_repos`;
 
 const linkKey = (projectId: string): string => `${localStorageGitHubLinkPrefix}${projectId}`;
+
+// Where saves write the model now; never a legacy file to delete.
+const CURRENT_MODEL_FILES = new Set(['buml/diagrams.json', '.besser/project.json']);
+
+/** A relative `.json` path inside the repo, other than the files a save writes now. */
+const isLegacyModelPath = (value: unknown): value is string =>
+  typeof value === 'string' && value.endsWith('.json') && !value.startsWith('/') && !value.includes('\\')
+  && !value.split('/').includes('..') && !CURRENT_MODEL_FILES.has(value);
 
 const isPendingChange = (value: unknown): value is PendingGitHubChange => {
   const pending = value as Partial<PendingGitHubChange> | null;
@@ -89,10 +108,11 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(value.baselinePending === true ? { baselinePending: true } : {}),
         ...(typeof value.liveUrl === 'string' ? { liveUrl: value.liveUrl } : {}),
         ...(value.modelProposal && Array.isArray(value.modelProposal.entities)
-          ? { modelProposal: value.modelProposal as RepoCodeAnalysis }
+          ? { modelProposal: value.modelProposal as ModelProposal }
           : {}),
         ...(typeof value.lastSyncedAt === 'string' ? { lastSyncedAt: value.lastSyncedAt } : {}),
         ...(isPendingChange(value.pendingChange) ? { pendingChange: value.pendingChange } : {}),
+        ...(isLegacyModelPath(value.legacyFilePath) ? { legacyFilePath: value.legacyFilePath } : {}),
       };
     }
   } catch {
@@ -114,14 +134,26 @@ const readLegacySidebarLinks = (): Record<string, unknown> => {
 const adoptLegacyLink = (projectId: string): ProjectGitHubLink | null => {
   const sidebarLinks = readLegacySidebarLinks();
   const pushLink = LocalStorageRepository.getDeployLinkedRepo(projectId, LEGACY_PUSH_TARGET);
-  const legacySidebar = sidebarLinks[projectId] as { lastCommitSha?: unknown } | undefined;
+  const legacySidebar = sidebarLinks[projectId] as { lastCommitSha?: unknown; filePath?: unknown } | undefined;
+  // The sidebar saved the model at its own `filePath`; keep it so the next save removes that file.
   const sidebarLink = parseLink(JSON.stringify(
-    legacySidebar && typeof legacySidebar.lastCommitSha === 'string'
-      ? { ...legacySidebar, baseCommitSha: legacySidebar.lastCommitSha }
-      : legacySidebar ?? null,
+    legacySidebar
+      ? {
+          ...legacySidebar,
+          ...(typeof legacySidebar.lastCommitSha === 'string' ? { baseCommitSha: legacySidebar.lastCommitSha } : {}),
+          legacyFilePath: legacySidebar.filePath,
+        }
+      : null,
   ));
-  const adopted = pushLink
-    ? { owner: pushLink.owner, repo: pushLink.repo, branch: pushLink.branch || 'main' }
+  const sameRepo = (a: ProjectGitHubLink, b: { owner: string; repo: string }) =>
+    a.owner.toLowerCase() === b.owner.toLowerCase() && a.repo.toLowerCase() === b.repo.toLowerCase();
+  const adopted: ProjectGitHubLink | null = pushLink
+    ? {
+        owner: pushLink.owner,
+        repo: pushLink.repo,
+        branch: pushLink.branch || 'main',
+        ...(sidebarLink?.legacyFilePath && sameRepo(sidebarLink, pushLink) ? { legacyFilePath: sidebarLink.legacyFilePath } : {}),
+      }
     : sidebarLink;
   if (!adopted) return null;
 

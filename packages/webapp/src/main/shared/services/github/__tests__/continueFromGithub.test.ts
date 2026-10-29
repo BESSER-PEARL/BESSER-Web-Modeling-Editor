@@ -1,21 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../../api/api-client';
 
 const importRepoAsRun = vi.fn();
-vi.mock('../../../../shared/api/github', () => ({
+vi.mock('../../../api/github', () => ({
   importRepoAsRun: (...args: unknown[]) => importRepoAsRun(...args),
 }));
 const importProjectFromJson = vi.fn(async (_file: File) => ({ id: 'p-new', name: 'Library', diagrams: {} }));
 const storeRepoModelAsProject = vi.fn((_project: unknown, id: string) => ({ id, name: 'Library', diagrams: {} }));
-vi.mock('../../../../shared/services/project-import/projectImport', () => ({
+vi.mock('../../../services/project-import/projectImport', () => ({
   importProjectFromJson: (file: File) => importProjectFromJson(file),
   storeRepoModelAsProject: (project: unknown, id: string) => storeRepoModelAsProject(project, id),
 }));
 const localProjects: { id: string; name: string; diagrams: Record<string, unknown> }[] = [];
-vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
+vi.mock('../../../services/storage/ProjectStorageRepository', () => ({
   ProjectStorageRepository: { getAllProjects: () => localProjects },
 }));
 const globalConfirm = vi.fn(async () => true);
-vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+vi.mock('../../../services/confirm/globalConfirm', () => ({
   globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
 }));
 
@@ -24,9 +25,9 @@ import {
   getProjectGitHubLink,
   markProjectGitHubSynced,
   setProjectGitHubLink,
-} from '../../../../shared/services/storage/projectGitHubLink';
-import { readProjectLastRun } from '../../storage';
-import { consumeAutoLayoutRequest } from '../../../../shared/utils/autoLayoutSignal';
+} from '../../../services/storage/projectGitHubLink';
+import { readProjectLastRun } from '../../storage/specDrivenRunRecords';
+import { consumeAutoLayoutRequest } from '../../../utils/autoLayoutSignal';
 
 const HEAD = 'b'.repeat(40);
 const RUN = 'f'.repeat(32);
@@ -87,6 +88,8 @@ describe('continueFromGithubRepo', () => {
     expect(envelope.project.diagrams.ClassDiagram[0].model).toEqual(model);
     // Linked at the imported commit, with the proposal waiting for review on the canvas.
     expect(getProjectGitHubLink('p-new')).toMatchObject({ repo: 'shop', baseCommitSha: HEAD, modelProposal: ANALYSIS });
+    // The proposal names its diagram, so Discard empties that one and no other.
+    expect(getProjectGitHubLink('p-new')?.modelProposal?.diagramId).toBe(envelope.project.diagrams.ClassDiagram[0].id);
     // Not marked synced: the repo holds no model, so the project's is unsaved.
     expect(getProjectGitHubLink('p-new')?.syncedModel).toBeUndefined();
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
@@ -116,7 +119,7 @@ describe('continueFromGithubRepo', () => {
     const text = describeOpenedRepo(result);
     expect(text).toContain('an AI model read its code');
     expect(text).toContain('`prisma/schema.prisma`');
-    expect(text).toContain('2 classes: Customer, Order');
+    expect(text).toContain('2 classes: `Customer`, `Order`');
     expect(text).toContain('**Accept model**');
   });
 
@@ -218,5 +221,82 @@ describe('continueFromGithubRepo — a repo a local project already links to', (
     const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
 
     expect(result.projectId).toBe('p-new');
+  });
+});
+
+describe('continueFromGithubRepo — reading the code with AI', () => {
+  const offered = {
+    run_id: RUN, project: null, has_model: false, owner: 'me', repo: 'shop', branch: 'dev', commit_sha: HEAD,
+    analysis: { ...ANALYSIS, model_source: null, source_files: [], entities: [] }, proposed_diagram: null,
+    message: 'This repo has no data classes BESSER can read directly', ai_reading_offered: true,
+  };
+  const aiRead = {
+    ...offered, run_id: 'e'.repeat(32), ai_reading_offered: false, message: undefined,
+    analysis: { ...ANALYSIS, ai: true },
+    proposed_diagram: { title: 'shop model', model: { elements: {}, relationships: {}, type: 'ClassDiagram' }, diagramType: 'ClassDiagram' },
+  };
+
+  it('asks before any code goes to the AI model, and reads it with AI once the user agrees', async () => {
+    importRepoAsRun.mockResolvedValueOnce(offered).mockResolvedValueOnce(aiRead);
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+
+    // The first import never allows AI reading; the second one does, on the same branch.
+    expect(importRepoAsRun.mock.calls[0]).toEqual(['s', 'me', 'shop', undefined]);
+    expect(globalConfirm).toHaveBeenCalledTimes(1);
+    const notice = (globalConfirm.mock.calls[0] as unknown[])[0] as { description: string; confirmLabel: string };
+    expect(notice.description).toContain('40,000 characters');
+    expect(notice.description).toContain('third-party provider');
+    expect(notice.confirmLabel).toBe('Read with AI');
+    expect(importRepoAsRun.mock.calls[1]).toEqual(['s', 'me', 'shop', 'dev', { allowAiReading: true }]);
+    expect(result).toMatchObject({ ok: true, runId: 'e'.repeat(32), proposedModel: true });
+    expect(getProjectGitHubLink('p-new')?.modelProposal).toMatchObject({ ai: true });
+  });
+
+  it('keeps the first import when the user declines: nothing is read with AI', async () => {
+    importRepoAsRun.mockResolvedValueOnce(offered);
+    globalConfirm.mockResolvedValueOnce(false);
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+
+    expect(importRepoAsRun).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ ok: true, runId: RUN, proposedModel: false });
+    expect(getProjectGitHubLink('p-new')?.modelProposal).toBeUndefined();
+  });
+
+  it('does not ask when the server offers no AI reading', async () => {
+    importRepoAsRun.mockResolvedValueOnce({ ...offered, ai_reading_offered: false });
+
+    await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+
+    expect(globalConfirm).not.toHaveBeenCalled();
+    expect(importRepoAsRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('continueFromGithubRepo — errors', () => {
+  it('says a session expired in the UI language, without an em dash', async () => {
+    importRepoAsRun.mockRejectedValueOnce(new ApiError(401, 'Unauthorized'));
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+    expect(result).toEqual({ ok: false, error: 'Your GitHub session expired. Reconnect and try again.' });
+  });
+
+  it('names a repository it cannot find, without an em dash', async () => {
+    importRepoAsRun.mockRejectedValueOnce(new ApiError(404, 'Not Found'));
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+    expect(result.error).toBe('me/shop was not found, or your GitHub account has no access to it.');
+  });
+
+  it('reads the error messages from the translations', async () => {
+    const i18n = (await import('../../../i18n')).default;
+    await i18n.changeLanguage('de');
+    try {
+      importRepoAsRun.mockRejectedValueOnce(new ApiError(401, 'Unauthorized'));
+      const result = await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's' });
+      expect(result.error).toBe(i18n.t('project.hub.github.errors.sessionExpired'));
+      expect(result.error).not.toMatch(/session expired/);
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 });

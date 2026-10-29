@@ -44,6 +44,39 @@ describe('one GitHub link per project', () => {
     expect(Object.keys(JSON.parse(localStorage.getItem('besser_github_linked_repos')!))).toEqual(['p2']);
   });
 
+  it("keeps the old sidebar's model file, so the next save can remove it from the repo", () => {
+    // The sidebar saved models at <dir>/<project-name>.json; the new menu reads buml/diagrams.json only.
+    localStorage.setItem(
+      'besser_github_linked_repos',
+      JSON.stringify({ p1: { owner: 'me', repo: 'models', branch: 'main', filePath: 'models/library.json' } }),
+    );
+
+    expect(getProjectGitHubLink('p1')?.legacyFilePath).toBe('models/library.json');
+    // Still there once the adopted link is read back from the unified store.
+    expect(getProjectGitHubLink('p1')?.legacyFilePath).toBe('models/library.json');
+  });
+
+  it('keeps the sidebar file when the agent-push link wins for the same repository', () => {
+    localStorage.setItem('besser_deploy_linked_p1_github', JSON.stringify({ owner: 'Me', repo: 'Models' }));
+    localStorage.setItem(
+      'besser_github_linked_repos',
+      JSON.stringify({ p1: { owner: 'me', repo: 'models', branch: 'main', filePath: 'library.json' } }),
+    );
+
+    expect(getProjectGitHubLink('p1')).toMatchObject({ repo: 'Models', legacyFilePath: 'library.json' });
+  });
+
+  it('never names a file a save writes now, or a path outside the repo, as the legacy file', () => {
+    for (const filePath of ['buml/diagrams.json', '../secrets.json', '/etc/x.json', 'notes.txt']) {
+      localStorage.clear();
+      localStorage.setItem(
+        'besser_github_linked_repos',
+        JSON.stringify({ p1: { owner: 'me', repo: 'models', branch: 'main', filePath } }),
+      );
+      expect(getProjectGitHubLink('p1')?.legacyFilePath).toBeUndefined();
+    }
+  });
+
   it('prefers the agent-push link when both old links exist', () => {
     localStorage.setItem('besser_deploy_linked_p1_github', JSON.stringify({ owner: 'me', repo: 'app' }));
     localStorage.setItem('besser_github_linked_repos', JSON.stringify({ p1: { owner: 'me', repo: 'models', branch: 'main' } }));
