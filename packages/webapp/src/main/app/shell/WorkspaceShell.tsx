@@ -14,8 +14,6 @@ import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, 
 import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
-import { GoLiveDialog } from '../../features/github/dialogs/GoLiveDialog';
-import { ShareGistDialog } from '../../features/github/dialogs/ShareGistDialog';
 import { isGoLiveAvailable } from '../../shared/api/github';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
@@ -93,6 +91,12 @@ const FeedbackDialog = React.lazy(() =>
 );
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
+);
+const GoLiveDialog = React.lazy(() =>
+  import('../../features/github/dialogs/GoLiveDialog').then((m) => ({ default: m.GoLiveDialog })),
+);
+const ShareGistDialog = React.lazy(() =>
+  import('../../features/github/dialogs/ShareGistDialog').then((m) => ({ default: m.ShareGistDialog })),
 );
 const KgImportTargetModal = React.lazy(() =>
   import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
@@ -1105,6 +1109,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   // Lazy panels mount on first open so their chunks are not fetched at startup.
   const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
   const helpDialogMounted = useHasOpened(isHelpDialogOpen);
+  const gistDialogMounted = useHasOpened(isGistDialogOpen);
+  const goLiveDialogMounted = useHasOpened(isGoLiveOpen);
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -1356,21 +1362,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
 
-      <ShareGistDialog open={isGistDialogOpen} onOpenChange={setIsGistDialogOpen} githubSession={githubSession} />
+      <Suspense fallback={null}>
+        {gistDialogMounted && (
+          <ShareGistDialog open={isGistDialogOpen} onOpenChange={setIsGistDialogOpen} githubSession={githubSession} />
+        )}
 
-      {canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
-        <GoLiveDialog
-          open={isGoLiveOpen}
-          projectId={currentProject.id}
-          link={repoSync.link}
-          githubSession={repoSync.githubSession}
-          onOpenChange={setIsGoLiveOpen}
-          onUseClassicDeploy={() => {
-            setIsGoLiveOpen(false);
-            openClassicDeployDialog();
-          }}
-        />
-      )}
+        {goLiveDialogMounted && canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
+          <GoLiveDialog
+            open={isGoLiveOpen}
+            projectId={currentProject.id}
+            link={repoSync.link}
+            githubSession={repoSync.githubSession}
+            onOpenChange={setIsGoLiveOpen}
+            onUseClassicDeploy={() => {
+              setIsGoLiveOpen(false);
+              openClassicDeployDialog();
+            }}
+          />
+        )}
+      </Suspense>
 
       <DeployDialog
         open={isDeployDialogOpen}
