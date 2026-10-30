@@ -129,10 +129,6 @@ export const KG_ROUTE_ITEMS = [
   { path: '/kg-settings', label: 'KG Settings', labelKey: 'nav.route.kgSettings', icon: <SlidersHorizontal className="size-4" /> },
 ] as const;
 
-export const CLASS_ROUTE_ITEMS = [
-  { path: '/traceability', label: 'Traceability', labelKey: 'nav.route.traceability', icon: <GitBranch className="size-4" /> },
-] as const;
-
 export interface NavRouteItem {
   path: string;
   label: string;
@@ -144,12 +140,15 @@ export interface NavRouteItem {
  *  or one of these pages is open). A diagram type gets sub-items by having an
  *  entry here. */
 export const DIAGRAM_ROUTE_ITEMS: Partial<Record<SupportedDiagramType, readonly NavRouteItem[]>> = {
-  ClassDiagram: CLASS_ROUTE_ITEMS,
   AgentDiagram: AGENT_ROUTE_ITEMS,
   KnowledgeGraphDiagram: KG_ROUTE_ITEMS,
 };
 
-export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> }] as const;
+/** Project-wide pages, below the diagram editors: they concern every diagram of the project. */
+export const ROUTE_ITEMS = [
+  { path: '/traceability', label: 'Traceability', labelKey: 'nav.route.traceability', icon: <GitBranch className="size-4" /> },
+  { path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> },
+] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

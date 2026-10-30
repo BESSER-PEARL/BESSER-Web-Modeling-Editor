@@ -39,8 +39,7 @@ handles read/write operations:
 * ``besser_projects`` lists all known project IDs to populate the home modal.
 * ``besser_traces_<projectId>`` holds the project's trace file when the project records
   traces (``settings.traceabilityEnabled``). It is kept apart from the project, written by
-  ``shared/traceability/traceStore.ts``, exported as ``<project>.trace.json`` and deleted
-  with the project. The *Export Project* dialog can bundle it into a project export
+  ``shared/traceability/traceStore.ts``, and deleted with the project. The *Export Project* dialog can bundle it into a project export
   (``trace`` of the JSON envelope, or a ``TRACEABILITY`` section of the B-UML file);
   importing that file stores it under the new project id (``importProjectTrace``). Its format mirrors the backend traceability metamodel
   (``shared/types/traceability.ts``).

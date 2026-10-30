@@ -4108,26 +4108,16 @@
   "traceability": {
     "title": "Traceability",
     "description": "What was modelled, by whom and with which tool, and the code generated from each element.",
-    "backToEditor": "Back to editor",
     "noProject": "Open a project to see its traces.",
     "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
     "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modelling edits and code generation.",
-    "export": "Export trace",
     "toggle": {
-      "label": "Record traces for this project",
-      "help": "Class diagram edits and SQLAlchemy generations are recorded in this browser, in a trace file kept apart from the project. Export it to share it."
-    },
-    "import": {
-      "button": "Import trace",
-      "confirmTitle": "Replace the recorded traces?",
-      "confirmDescription": "The imported trace file replaces everything recorded for this project so far.",
-      "confirm": "Replace",
-      "done": "Trace imported."
+      "label": "Record traces for this project"
     },
     "clear": {
       "button": "Clear",
       "confirmTitle": "Clear all traces?",
-      "confirmDescription": "Everything recorded for this project is deleted. Export the trace first to keep a copy.",
+      "confirmDescription": "Everything recorded for this project is deleted. To keep a copy, first export the project with its trace (Export Project, then tick Traceability).",
       "confirm": "Clear traces"
     },
     "tabs": {
