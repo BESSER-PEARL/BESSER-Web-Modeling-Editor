@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, ChevronDown, ChevronRight, Code2, MessagesSquare, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,8 @@ const OPERATION_ICONS: Record<OperationKind, React.ReactNode> = {
 };
 
 const FILTERS: Array<OperationKind | 'all'> = ['all', 'modeling', 'generation', 'conversation'];
+/** Operations shown at first, and added by each "Show more": a long history renders a page at a time. */
+export const TIMELINE_PAGE_SIZE = 50;
 
 interface TimelineViewProps {
   index: TraceIndex;
@@ -34,6 +36,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
   const [filter, setFilter] = useState<OperationKind | 'all'>('all');
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [shown, setShown] = useState(TIMELINE_PAGE_SIZE);
+  useEffect(() => setShown(TIMELINE_PAGE_SIZE), [filter, query]);
 
   const operations = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -77,7 +81,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
       {operations.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t('traceability.timeline.empty')}</p>}
 
       <ol className="relative space-y-2 border-l border-border pl-5">
-        {operations.map((op) => (
+        {operations.slice(0, shown).map((op) => (
           <li key={op.id} className="relative">
             <span className="absolute -left-[29px] top-2 flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
               {op.type === 'Modeling' && byAgent(op, index) ? <Bot className="size-4" /> : OPERATION_ICONS[operationKind(op)]}
@@ -93,6 +97,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
           </li>
         ))}
       </ol>
+      {operations.length > shown && (
+        <button
+          type="button"
+          onClick={() => setShown((count) => count + TIMELINE_PAGE_SIZE)}
+          className="ml-5 text-sm text-brand-dark hover:underline dark:text-brand-light"
+        >
+          {t('traceability.timeline.showMore', { count: Math.min(TIMELINE_PAGE_SIZE, operations.length - shown), total: operations.length - shown })}
+        </button>
+      )}
     </div>
   );
 };

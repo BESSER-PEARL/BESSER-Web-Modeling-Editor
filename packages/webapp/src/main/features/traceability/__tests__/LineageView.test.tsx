@@ -55,3 +55,34 @@ describe('LineageView', () => {
     expect(screen.getAllByText('Class Diagram').length).toBeGreaterThan(0);
   });
 });
+
+describe('LineageView with many links', () => {
+  /** A diagram whose 20 classes were each generated into a fragment of one file: 42 nodes. */
+  function large(): TraceFile {
+    const base = trace();
+    const classes = Array.from({ length: 20 }, (_, i) => i);
+    return {
+      ...base,
+      artifacts: [
+        base.artifacts[0], base.artifacts[2],
+        ...classes.map((i) => ({ id: `c${i}`, type: 'ModelArtifact' as const, name: `Class${i}`, elementId: `e${i}`, elementType: 'Class', parentId: 'cd', timestamp: time })),
+        ...classes.map((i) => ({ id: `l${i}`, type: 'CodeArtifact' as const, name: `Class${i}`, path: 'sql_alchemy.py', contentHash: 'h', startLine: i + 1, endLine: i + 1, parentId: 'file', timestamp: time })),
+      ],
+      operations: [base.operations[0]],
+      traceLinks: classes.map((i) => ({
+        id: `k${i}`, sourceId: `c${i}`, targetId: `l${i}`, operationId: 'run', timestamp: time,
+        evidence: [{ id: `e${i}`, type: 'RuleEvidence' as const, rule: 'r', timestamp: time }], confidence: { id: `f${i}`, value: 1, timestamp: time },
+      })),
+    };
+  }
+
+  it('starts with each generated file collapsed, and expands it on demand', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON: () => ({}) });
+    render(<LineageView index={indexTrace(large())} rootId="cd" onRootChange={() => {}} onOpenElement={() => {}} />);
+    const row = screen.getByRole('button', { name: /20 fragments/ });
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: /^Lines 1–1/ })).toBeNull();
+    fireEvent.click(row);
+    expect(screen.getByRole('button', { name: /^Lines 1–1/ })).toBeTruthy();
+  });
+});

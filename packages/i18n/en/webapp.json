@@ -4140,6 +4140,7 @@
       "changeCount_other": "{{count}} changes",
       "linkCount_one": "{{count}} trace link",
       "linkCount_other": "{{count}} trace links",
+      "showMore": "Show {{count}} more ({{total}} older)",
       "messageCount_one": "{{count}} message",
       "messageCount_other": "{{count}} messages",
       "logTypes": {
@@ -4187,6 +4188,9 @@
       "focus": "Show its lineage",
       "openInElements": "Open in Diagrams",
       "linkTitle": "Trace link",
+      "fragments_one": "{{count}} fragment",
+      "fragments_other": "{{count}} fragments",
+      "expandBundle": "Show the links into this file one by one",
       "confidence": "Confidence",
       "evidence": "Evidence",
       "noEvidence": "No evidence recorded.",

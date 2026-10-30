@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Crosshair, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Crosshair, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +18,7 @@ import {
   modelChildren,
   qualifiedName,
 } from '../../shared/traceability/traceQueries';
-import type { Lineage, LineageEdge, LineageEdgeState, LineageNode } from '../../shared/traceability/lineage';
+import type { Lineage, LineageEdge, LineageEdgeState, LineageGroup, LineageNode } from '../../shared/traceability/lineage';
 import { lineageOf } from '../../shared/traceability/lineage';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 
@@ -29,6 +29,8 @@ const EVIDENCE_STROKES: Record<TraceEvidence['type'], string> = {
   ChangeEvidence: 'stroke-sky-500',
 };
 const STALE_STROKE = 'stroke-amber-500';
+/** Above this many nodes, generated files start collapsed to one row each (a diagram's lineage). */
+export const LINEAGE_DETAIL_LIMIT = 30;
 
 interface LineageViewProps {
   index: TraceIndex;
@@ -66,7 +68,7 @@ export const LineageView: React.FC<LineageViewProps> = ({ index, rootId, onRootC
         <Legend />
       </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <LineageGraph index={index} lineage={lineage} selected={selected} onSelect={setSelection} />
+        <LineageGraph key={root} index={index} lineage={lineage} selected={selected} onSelect={setSelection} />
         {selected?.kind === 'edge' ? (
           <EdgeDetail index={index} edge={lineage.edges.find((e) => e.link.id === selected.id)!} onSelectNode={(id) => setSelection({ kind: 'node', id })} />
         ) : (
@@ -134,11 +136,17 @@ const Legend: React.FC = () => {
   );
 };
 
+/** One connector: a link, or the links from one node into a collapsed file, bundled. */
 interface EdgeGeometry {
-  edge: LineageEdge;
+  edges: LineageEdge[];
+  /** The collapsed file the bundle goes into (clicking its pill expands it). */
+  into?: string;
   path: string;
   mid: { x: number; y: number };
 }
+
+const groupAnchor = (group: LineageGroup) => (group.containerIsNode ? group.container.id : `group:${group.container.id}`);
+const isCodeGroup = (group: LineageGroup) => group.container.type === 'CodeArtifact' && group.nodes.length > 0;
 
 const LineageGraph: React.FC<{
   index: TraceIndex;
@@ -150,6 +158,29 @@ const LineageGraph: React.FC<{
   const canvas = useRef<HTMLDivElement>(null);
   const anchors = useRef(new Map<string, HTMLElement>());
   const [geometry, setGeometry] = useState<EdgeGeometry[]>([]);
+  // Files whose open state the user flipped; a large lineage starts with its files collapsed.
+  const [toggled, setToggled] = useState<Set<string>>(new Set());
+  const collapsedByDefault = lineage.nodes.size > LINEAGE_DETAIL_LIMIT;
+  const toggle = (id: string) =>
+    setToggled((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const groups = lineage.columns.flat();
+  const isCollapsed = (group: LineageGroup) => isCodeGroup(group) && collapsedByDefault !== toggled.has(group.container.id);
+
+  // Where each node is drawn: itself, or the header of the collapsed file that hides it.
+  const anchorOf = useMemo(() => {
+    const hidden = new Map<string, { anchor: string; container: string }>();
+    for (const group of groups) {
+      if (!isCollapsed(group)) continue;
+      for (const node of group.nodes) hidden.set(node.artifact.id, { anchor: groupAnchor(group), container: group.container.id });
+    }
+    return (id: string) => hidden.get(id) ?? { anchor: id, container: undefined };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineage, toggled, collapsedByDefault]);
 
   // Connectors are drawn between the measured boxes, after layout and whenever the canvas resizes.
   useLayoutEffect(() => {
@@ -158,17 +189,26 @@ const LineageGraph: React.FC<{
     const measure = () => {
       const origin = element.getBoundingClientRect();
       const box = (id: string) => anchors.current.get(id)?.getBoundingClientRect();
+      const bundles = new Map<string, { edges: LineageEdge[]; from: string; to: string; into?: string }>();
+      for (const edge of lineage.edges) {
+        const from = anchorOf(edge.link.sourceId).anchor;
+        const target = anchorOf(edge.link.targetId);
+        const key = `${from}->${target.anchor}`;
+        const bundle = bundles.get(key);
+        if (bundle) bundle.edges.push(edge);
+        else bundles.set(key, { edges: [edge], from, to: target.anchor, into: target.container });
+      }
       setGeometry(
-        lineage.edges.flatMap((edge) => {
-          const from = box(edge.link.sourceId);
-          const to = box(edge.link.targetId);
+        [...bundles.values()].flatMap(({ edges, from: fromId, to: toId, into }) => {
+          const from = box(fromId);
+          const to = box(toId);
           if (!from || !to) return [];
           const sx = from.right - origin.left + element.scrollLeft;
           const sy = from.top + from.height / 2 - origin.top + element.scrollTop;
           const tx = to.left - origin.left + element.scrollLeft;
           const ty = to.top + to.height / 2 - origin.top + element.scrollTop;
           const bend = Math.max(40, (tx - sx) / 2);
-          return [{ edge, path: `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`, mid: { x: (sx + tx) / 2, y: (sy + ty) / 2 } }];
+          return [{ edges, into, path: `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`, mid: { x: (sx + tx) / 2, y: (sy + ty) / 2 } }];
         }),
       );
     };
@@ -177,7 +217,7 @@ const LineageGraph: React.FC<{
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [lineage]);
+  }, [lineage, anchorOf]);
 
   const register = (id: string) => (node: HTMLElement | null) => {
     if (node) anchors.current.set(id, node);
@@ -188,17 +228,20 @@ const LineageGraph: React.FC<{
   return (
     <div ref={canvas} className="relative min-h-[320px] overflow-auto rounded-lg border border-border bg-muted/20 p-4">
       <svg className="pointer-events-none absolute left-0 top-0 h-full w-full overflow-visible" aria-hidden>
-        {geometry.map(({ edge, path }) => (
-          <path
-            key={edge.link.id}
-            d={path}
-            fill="none"
-            strokeWidth={(1 + 2.5 * (edge.link.confidence?.value ?? 1)) * (isSelected('edge', edge.link.id) ? 1.6 : 1)}
-            strokeOpacity={0.35 + 0.65 * (edge.link.confidence?.value ?? 1)}
-            strokeDasharray={edge.state === 'staleUpstream' ? '6 4' : undefined}
-            className={edge.state === 'current' ? EVIDENCE_STROKES[edge.link.evidence[0]?.type ?? 'RuleEvidence'] : STALE_STROKE}
-          />
-        ))}
+        {geometry.map(({ edges, path }) => {
+          const edge = bundleLook(edges);
+          return (
+            <path
+              key={edges[0].link.id}
+              d={path}
+              fill="none"
+              strokeWidth={(1 + 2.5 * (edge.link.confidence?.value ?? 1)) * (edges.some((e) => isSelected('edge', e.link.id)) ? 1.6 : 1)}
+              strokeOpacity={0.35 + 0.65 * (edge.link.confidence?.value ?? 1)}
+              strokeDasharray={edge.state === 'staleUpstream' ? '6 4' : undefined}
+              className={edge.state === 'current' ? EVIDENCE_STROKES[edge.link.evidence[0]?.type ?? 'RuleEvidence'] : STALE_STROKE}
+            />
+          );
+        })}
       </svg>
       <div className="relative flex min-w-max items-start gap-28">
         {lineage.columns.map((groups, column) => (
@@ -216,11 +259,25 @@ const LineageGraph: React.FC<{
                     onClick={() => onSelect({ kind: 'node', id: group.container.id })}
                   />
                 ) : (
-                  <div className="truncate border-b border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+                  <div ref={register(groupAnchor(group))} className="truncate border-b border-border px-2.5 py-1.5 text-xs text-muted-foreground">
                     {containerCaption(t, group.container)}
                   </div>
                 )}
-                {group.nodes.length > 0 && (
+                {isCodeGroup(group) && (
+                  <button
+                    type="button"
+                    onClick={() => toggle(group.container.id)}
+                    aria-expanded={!isCollapsed(group)}
+                    className="flex w-full items-center gap-1 px-2.5 py-1 text-left text-xs text-muted-foreground hover:bg-accent"
+                  >
+                    {isCollapsed(group) ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                    {t('traceability.lineage.fragments', { count: group.nodes.length })}
+                    {isCollapsed(group) && group.nodes.some((n) => n.stale) && (
+                      <AlertTriangle className="ml-auto size-3.5 text-amber-500" aria-label={t('traceability.status.suspect')} />
+                    )}
+                  </button>
+                )}
+                {group.nodes.length > 0 && !isCollapsed(group) && (
                   <ul className="space-y-0.5 p-1">
                     {group.nodes.map((node) => (
                       <li key={node.artifact.id}>
@@ -241,26 +298,37 @@ const LineageGraph: React.FC<{
           </div>
         ))}
       </div>
-      {/* Confidence pills sit on the connectors; their position is measured, hence the inline style. */}
-      {geometry.map(({ edge, mid }) => (
-        <button
-          key={edge.link.id}
-          type="button"
-          onClick={() => onSelect({ kind: 'edge', id: edge.link.id })}
-          title={t('traceability.lineage.linkTitle')}
-          className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 text-[10px] font-medium tabular-nums shadow-sm ${
-            isSelected('edge', edge.link.id) ? 'border-brand bg-brand text-white' : edge.state === 'current' ? 'border-border bg-background' : 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
-          }`}
-          style={{ left: mid.x, top: mid.y }}
-        >
-          {formatConfidence(edge.link.confidence?.value)}
-        </button>
-      ))}
+      {/* Confidence pills sit on the connectors; their position is measured, hence the inline style.
+          A bundle's pill counts its links and expands the file they go into. */}
+      {geometry.map(({ edges, into, mid }) => {
+        const edge = bundleLook(edges);
+        const bundled = edges.length > 1 && into !== undefined;
+        return (
+          <button
+            key={edges[0].link.id}
+            type="button"
+            onClick={() => (bundled ? toggle(into) : onSelect({ kind: 'edge', id: edge.link.id }))}
+            title={bundled ? t('traceability.lineage.expandBundle') : t('traceability.lineage.linkTitle')}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 text-[10px] font-medium tabular-nums shadow-sm ${
+              edges.some((e) => isSelected('edge', e.link.id)) ? 'border-brand bg-brand text-white' : edge.state === 'current' ? 'border-border bg-background' : 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+            }`}
+            style={{ left: mid.x, top: mid.y }}
+          >
+            {bundled ? `×${edges.length}` : formatConfidence(edge.link.confidence?.value)}
+          </button>
+        );
+      })}
     </div>
   );
 };
 
 const formatConfidence = (value: number | undefined) => (value === undefined ? '–' : value.toFixed(2));
+
+/** How a bundle of links is drawn: as its least sure link, amber when any of them may not hold. */
+function bundleLook(edges: LineageEdge[]): LineageEdge {
+  const weakest = edges.reduce((a, b) => ((b.link.confidence?.value ?? 1) < (a.link.confidence?.value ?? 1) ? b : a));
+  return edges.find((e) => e.state === 'suspect') ?? edges.find((e) => e.state === 'staleUpstream') ?? weakest;
+}
 
 const containerCaption = (t: ReturnType<typeof useTranslation>['t'], container: TraceArtifact) =>
   isModelArtifact(container) ? `${container.name} · ${elementTypeLabel(t, container.elementType)}` : container.name;
