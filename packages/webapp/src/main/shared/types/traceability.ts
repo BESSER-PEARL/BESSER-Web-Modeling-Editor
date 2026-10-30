@@ -144,7 +144,6 @@ export type TraceEvidence =
 export interface TraceConfidence {
   id: string;
   value: number;
-  basedOn: string[];
   explanation?: string;
   timestamp: string;
 }

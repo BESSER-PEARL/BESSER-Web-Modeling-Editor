@@ -23,7 +23,7 @@ const operation = (id: string, type: TraceOperation['type'], minute: number, ext
 const link = (id: string, sourceId: string, targetId: string, operationId: string, minute: number, confidence = 1): TraceLink => ({
   id, sourceId, targetId, operationId, timestamp: at(minute),
   evidence: [{ id: `${id}-e`, type: confidence < 1 ? 'AIEvidence' : 'RuleEvidence', ...(confidence < 1 ? { algorithm: 'llm', logIds: [] } : { rule: 'r' }), timestamp: at(minute) } as TraceLink['evidence'][number]],
-  confidence: { id: `${id}-c`, value: confidence, basedOn: [`${id}-e`], timestamp: at(minute) },
+  confidence: { id: `${id}-c`, value: confidence, timestamp: at(minute) },
 });
 
 /**

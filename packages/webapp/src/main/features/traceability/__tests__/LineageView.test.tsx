@@ -30,7 +30,7 @@ function trace(): TraceFile {
     traceLinks: [{
       id: 'link', sourceId: 'book', targetId: 'lines', operationId: 'run', timestamp: time,
       evidence: [{ id: 'ev', type: 'RuleEvidence', rule: 'sql_alchemy_template.py.j2#class', timestamp: time }],
-      confidence: { id: 'cf', value: 1, basedOn: ['ev'], timestamp: time },
+      confidence: { id: 'cf', value: 1, timestamp: time },
     }],
   };
 }

@@ -162,7 +162,7 @@ function generationFragment(ms: number, content = 'line\n'.repeat(12)): TraceFil
       performedBy: ['fa'], uses: ['ft'], consumes: ['fm', 'fc'], produces: ['ff', 'fr'], logs: [] }],
     traceLinks: [{ id: 'fl', sourceId: 'fc', targetId: 'fr', operationId: 'fo', timestamp: time,
       evidence: [{ id: 'fe', type: 'RuleEvidence', rule: 'sql_alchemy_template.py.j2#class', timestamp: time }],
-      confidence: { id: 'fk', value: 1, basedOn: ['fe'], timestamp: time } }],
+      confidence: { id: 'fk', value: 1, timestamp: time } }],
   };
 }
 
