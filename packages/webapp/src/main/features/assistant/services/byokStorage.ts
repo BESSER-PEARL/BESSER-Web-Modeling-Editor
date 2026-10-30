@@ -33,7 +33,7 @@ export interface AssistantApiKey {
   apiKey: string;
   /** Explicit model override; undefined = use the backend default for the provider. */
   model?: string;
-  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  /** The user's OpenAI-compatible base URL for the 'local' provider. */
   baseUrl?: string;
 }
 

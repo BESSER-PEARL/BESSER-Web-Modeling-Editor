@@ -27,16 +27,17 @@ import {
   sessionStorageSpecDrivenMaxRuntimeSeconds,
 } from '../constants/constant';
 
-// 'pia' and 'local' are OpenAI-compatible endpoints selected in the dialog for
-// UX; on the wire they are sent as provider='openai' + a base_url (see the
-// dialog / SSE client / AssistantClient). They only work when the WME backend
-// runs locally (and, for 'pia', on the LIST VPN).
+// 'local' is the user's OpenAI-compatible server, sent on the wire as
+// provider='openai' + a base_url (see the SSE client / AssistantClient); it only
+// works when the WME backend runs locally. 'pia' is a gateway whose endpoint the
+// server resolves from its model catalog; the dialog offers it only where the
+// server lists it.
 // 'free' is the keyless server-hosted tier (Spec-Driven Agent only — NOT offered in the
 // assistant key dialog). It carries no key; the model list is a single pinned
-// entry. Kept in this union so MODEL_PRESETS['free'] type-checks.
+// entry.
 // 'nebius' is Nebius Token Factory — an OpenAI-compatible cloud endpoint the
 // BACKEND pins server-side (no base_url travels with the request, so it is not
-// subject to the custom-endpoint gate that pia/local are). Spec-Driven Agent
+// subject to the custom-endpoint gate that local is). Spec-Driven Agent
 // only: the modeling assistant's own BYOK layer does not support it, so a
 // Nebius key leaves the assistant on the server's default model (see
 // features/assistant/services/byokStorage.ts).
@@ -54,7 +55,7 @@ export interface LlmKey {
   apiKey: string;
   /** Explicit model override; undefined = use the backend default for the provider. */
   model?: string;
-  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  /** The user's OpenAI-compatible base URL for the 'local' provider. */
   baseUrl?: string;
 }
 

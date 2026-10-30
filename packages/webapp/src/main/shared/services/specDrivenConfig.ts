@@ -60,6 +60,27 @@ export interface SpecDrivenFreeTier {
   models: SpecDrivenFreeModel[];
 }
 
+/** One model a provider offers in the key dialog. */
+export interface SpecDrivenCatalogModel {
+  id: string;
+  label: string;
+  /** The model the dialog preselects for providers without a server default. */
+  default: boolean;
+}
+
+/**
+ * One provider of the server's model catalog (BESSER_MODEL_CATALOG). The
+ * server keeps gateway endpoints and rates to itself; the dialog gets only
+ * what it renders.
+ */
+export interface SpecDrivenCatalogProvider {
+  id: string;
+  label: string;
+  hint: string | null;
+  key_prefix: string | null;
+  models: SpecDrivenCatalogModel[];
+}
+
 export interface SpecDrivenConfig {
   caps: SpecDrivenConfigCaps;
   /**
@@ -74,6 +95,12 @@ export interface SpecDrivenConfig {
   supported_providers: string[];
   /** Whether the keyless free tier is offered (and its pinned model). */
   free_tier: SpecDrivenFreeTier;
+  /**
+   * The key dialog's providers and models, in display order. Empty when the
+   * server is too old to send them or unreachable: the dialog then falls back
+   * to its built-in minimal lists.
+   */
+  providers: SpecDrivenCatalogProvider[];
 }
 
 /**
@@ -103,6 +130,7 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   // Off by default — an old backend that doesn't advertise it must not
   // surface a free option that would 500.
   free_tier: { available: false, model: null, models: [] },
+  providers: [],
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
@@ -156,7 +184,40 @@ function _normalize(raw: unknown): SpecDrivenConfig {
             models: _normalizeFreeModels(data.free_tier.models),
           }
         : FALLBACK_SMART_GEN_CONFIG.free_tier,
+    providers: _normalizeProviders(data.providers),
   };
+}
+
+const _optionalString = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() ? value : null;
+
+/** Keep only well-formed providers and models; malformed entries are dropped. */
+function _normalizeProviders(raw: unknown): SpecDrivenCatalogProvider[] {
+  if (!Array.isArray(raw)) return [];
+  const providers: SpecDrivenCatalogProvider[] = [];
+  for (const entry of raw) {
+    const id = _optionalString(entry?.id);
+    const label = _optionalString(entry?.label);
+    if (!id || !label) continue;
+    const models: SpecDrivenCatalogModel[] = [];
+    for (const model of Array.isArray(entry.models) ? entry.models : []) {
+      const modelId = _optionalString(model?.id)?.trim();
+      if (!modelId) continue;
+      models.push({
+        id: modelId,
+        label: _optionalString(model.label) ?? modelId,
+        default: model.default === true,
+      });
+    }
+    providers.push({
+      id,
+      label,
+      hint: _optionalString(entry.hint),
+      key_prefix: typeof entry.key_prefix === 'string' ? entry.key_prefix : null,
+      models,
+    });
+  }
+  return providers;
 }
 
 /**
@@ -243,6 +304,15 @@ export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): stri
 }
 
 let _configPromise: Promise<SpecDrivenConfig> | null = null;
+let _loadedConfig: SpecDrivenConfig | null = null;
+
+/**
+ * The config from the last successful load, or null before one. Lets a dialog
+ * render the server's lists on its first frame instead of the fallback.
+ */
+export function peekSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig;
+}
 
 /**
  * Resolve the Spec-Driven Agent config. Never rejects — failures resolve to
@@ -257,7 +327,8 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
         if (!response.ok) {
           throw new Error(`config endpoint returned ${response.status}`);
         }
-        return _normalize(await response.json());
+        _loadedConfig = _normalize(await response.json());
+        return _loadedConfig;
       } catch (err) {
         console.warn('[specDrivenConfig] falling back to defaults:', err);
         // Allow a retry on the next call — the backend may just be
@@ -273,4 +344,5 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
 /** Test-only: reset the module-level promise cache. */
 export function _resetSpecDrivenConfigCacheForTests(): void {
   _configPromise = null;
+  _loadedConfig = null;
 }

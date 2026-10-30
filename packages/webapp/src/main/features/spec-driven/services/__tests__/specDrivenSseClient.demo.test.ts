@@ -45,6 +45,29 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('the endpoint providers', () => {
+  it('sends a gateway run as itself, without a base URL', async () => {
+    const body = await bodyOf({
+      provider: 'pia',
+      apiKey: 'sk-gateway',
+      baseUrl: 'https://stale-stored-url.test/v1',
+    });
+    expect(body.provider).toBe('pia');
+    expect(body.api_key).toBe('sk-gateway');
+    expect('base_url' in body).toBe(false);
+  });
+
+  it("sends a local run as openai with the user's base URL", async () => {
+    const body = await bodyOf({
+      provider: 'local',
+      apiKey: 'ollama',
+      baseUrl: 'http://localhost:11434/v1',
+    });
+    expect(body.provider).toBe('openai');
+    expect(body.base_url).toBe('http://localhost:11434/v1');
+  });
+});
+
 describe('a demo run', () => {
   it('sends the sponsored provider with the demo secret', async () => {
     const body = await bodyOf({
