@@ -21,9 +21,9 @@ function trace(): TraceFile {
       { id: 'lines', type: 'CodeArtifact', name: 'Book (2-3)', path: 'sql_alchemy.py', contentHash: 'h2', startLine: 2, endLine: 3, parentId: 'file', timestamp: time },
     ],
     operations: [
-      { id: 'run', operationType: 'CODE_GENERATION', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'], uses: ['gen'],
-        consumes: ['cd', 'book'], produces: ['file', 'lines'], changes: [], logs: [] },
-      { id: 'edit', operationType: 'MANUAL_MODELLING', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], uses: [],
+      { id: 'run', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'], uses: ['gen'],
+        consumes: ['cd', 'book'], produces: ['file', 'lines'], logs: [] },
+      { id: 'edit', type: 'Modeling', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], uses: [],
         consumes: [], produces: [], logs: [],
         changes: [{ id: 'ch', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: later }] },
     ],

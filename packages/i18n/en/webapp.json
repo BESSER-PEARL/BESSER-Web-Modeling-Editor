@@ -4107,10 +4107,10 @@
   },
   "traceability": {
     "title": "Traceability",
-    "description": "What was modelled, by whom and with which tool, and the code generated from each element.",
+    "description": "What was modeled, by whom and with which tool, and the code generated from each element.",
     "noProject": "Open a project to see its traces.",
     "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
-    "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modelling edits and code generation.",
+    "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modeling edits and code generation.",
     "toggle": {
       "label": "Record traces for this project"
     },
@@ -4122,16 +4122,16 @@
     },
     "tabs": {
       "timeline": "Timeline",
-      "elements": "Elements",
+      "elements": "Diagrams",
       "coverage": "Coverage",
       "lineage": "Lineage"
     },
     "timeline": {
       "filters": {
-        "ALL": "All",
-        "MANUAL_MODELLING": "Manual modelling",
-        "ASSISTANT_MODELLING": "Assistant",
-        "CODE_GENERATION": "Code generation"
+        "all": "All",
+        "modeling": "Modeling",
+        "generation": "Code generation",
+        "conversation": "Conversations"
       },
       "search": "Search changes…",
       "empty": "No operations match.",
@@ -4139,9 +4139,20 @@
       "changeCount_other": "{{count}} changes",
       "linkCount_one": "{{count}} trace link",
       "linkCount_other": "{{count}} trace links",
+      "messageCount_one": "{{count}} message",
+      "messageCount_other": "{{count}} messages",
+      "logTypes": {
+        "INPUT_REQUEST": "User",
+        "OUTPUT_RESPONSE": "Assistant",
+        "INTERMEDIATE_MESSAGE": "Assistant",
+        "TOOL_CALL": "Tool call",
+        "TOOL_RESULT": "Tool result",
+        "ERROR": "Error",
+        "INFO": "Info"
+      },
       "files": "Files",
       "tracedElements": "Traced elements",
-      "models": "Models"
+      "models": "Diagrams"
     },
     "elements": {
       "search": "Search diagrams and elements…",
@@ -4169,9 +4180,10 @@
       "olderGenerations": "Show older generations",
       "file": "Generated file",
       "code": "code",
+      "prompt": "prompt",
       "lines": "Lines {{start}}–{{end}}",
       "focus": "Show its lineage",
-      "openInElements": "Open in Elements",
+      "openInElements": "Open in Diagrams",
       "linkTitle": "Trace link",
       "confidence": "Confidence",
       "evidence": "Evidence",
@@ -4211,13 +4223,10 @@
       "upToDate": "Up to date"
     },
     "operations": {
-      "MANUAL_MODELLING": "Manual modelling session",
-      "ASSISTANT_MODELLING": "Assistant modelling",
-      "IMPORT": "Import",
-      "CODE_GENERATION": "Code generation",
-      "CODE_GENERATION_with": "Generated {{generator}}",
-      "LLM_CODE_EDITING": "LLM code editing",
-      "VALIDATION": "Validation"
+      "modeling": "Modeling session",
+      "assistant": "Modeling session with the assistant",
+      "generation": "Generated {{generator}}",
+      "conversation": "Conversation with the assistant"
     },
     "changes": {
       "created": "Created {{type}} {{name}}",
@@ -4281,8 +4290,9 @@
       "storedTraceUnusable": "The stored trace of this project could not be read; a new one was started.",
       "storagePruned_one": "Trace storage was full: the content of {{count}} older generated file was dropped (its trace links are kept).",
       "storagePruned_other": "Trace storage was full: the content of {{count}} older generated files was dropped (their trace links are kept).",
-      "storageFull": "Trace storage is full and the latest change was not recorded. Export the trace and clear it to continue.",
-      "importedTraceUnusable": "The project was imported without its trace: {{problem}}"
+      "storageFull": "Trace storage is full and the latest change was not recorded. Export the project with its trace, then clear the trace to continue.",
+      "importedTraceUnusable": "The project was imported without its trace: {{problem}}",
+      "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}"
     }
   }
 }

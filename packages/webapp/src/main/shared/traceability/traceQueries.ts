@@ -7,7 +7,7 @@ import type {
   TraceLink,
   TraceOperation,
 } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact } from '../types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact } from '../types/traceability';
 
 /** Read-only views over a trace, for the traceability page. Pure functions of the trace. */
 
@@ -47,7 +47,7 @@ export function indexTrace(trace: TraceFile): TraceIndex {
   for (const artifact of trace.artifacts) if (artifact.parentId) push(children, artifact.parentId, artifact);
   const changesByArtifact = new Map<string, LocatedChange[]>();
   for (const operation of trace.operations) {
-    for (const change of operation.changes) {
+    for (const change of changesOf(operation)) {
       const artifact = artifacts.get(change.artifactId);
       if (artifact) push(changesByArtifact, change.artifactId, { change, operation, artifact });
     }
@@ -91,9 +91,15 @@ export function isDeleted(index: TraceIndex, artifactId: string): boolean {
   return false;
 }
 
-/** True when the link's source, or a fragment of it, changed after the link was made: the code may be stale. */
+/** The changes to a link's source (or its fragments) made after the link: why it is suspect. */
+export function changesSince(index: TraceIndex, link: TraceLink): LocatedChange[] {
+  return historyOf(index, link.sourceId).filter((c) => c.change.timestamp > link.timestamp);
+}
+
+/** True when the link's source, or a fragment of it, changed after the link was made:
+ *  the target may no longer match it (`TraceModel.is_suspect` in the metamodel). */
 export function isSuspect(index: TraceIndex, link: TraceLink): boolean {
-  return historyOf(index, link.sourceId).some((c) => c.change.timestamp > link.timestamp);
+  return changesSince(index, link).length > 0;
 }
 
 /** A diagram: a model artifact that is not a fragment of another one. */
@@ -138,7 +144,7 @@ export function diagramOf(index: TraceIndex, artifact: TraceArtifact): ModelArti
 /** The diagrams an operation worked on: those it changed and those it read (a generator can read several). */
 export function diagramsOfOperation(index: TraceIndex, operation: TraceOperation): ModelArtifact[] {
   const diagrams = new Map<string, ModelArtifact>();
-  for (const id of [...operation.changes.map((c) => c.artifactId), ...operation.consumes]) {
+  for (const id of [...changesOf(operation).map((c) => c.artifactId), ...operation.consumes]) {
     const artifact = index.artifacts.get(id);
     const diagram = artifact ? diagramOf(index, artifact) : undefined;
     if (diagram) diagrams.set(diagram.id, diagram);
@@ -205,7 +211,7 @@ export interface CoverageMatrix {
  */
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
   const generations = index.trace.operations
-    .filter((o) => o.operationType === 'CODE_GENERATION')
+    .filter((o) => o.type === 'CodeGeneration')
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .slice(0, maxGenerations);
   const row = (element: ModelArtifact): CoverageRow => {

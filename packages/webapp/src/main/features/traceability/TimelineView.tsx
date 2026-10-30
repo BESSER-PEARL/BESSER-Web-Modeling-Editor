@@ -1,28 +1,27 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, ChevronDown, ChevronRight, Code2, Pencil, Upload } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, Code2, MessagesSquare, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type {
   CodeArtifact,
   ModelArtifact,
-  OperationType,
   TraceChange,
   TraceOperation,
 } from '../../shared/types/traceability';
-import { isCodeArtifact, isModelArtifact } from '../../shared/types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { diagramsOfOperation, isDiagram, topLevelOf } from '../../shared/traceability/traceQueries';
-import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
+import type { OperationKind } from './traceLabels';
+import { actorNames, byAgent, describeChange, elementTypeLabel, formatTime, operationKind, operationLabel } from './traceLabels';
 
-const OPERATION_ICONS: Partial<Record<OperationType, React.ReactNode>> = {
-  MANUAL_MODELLING: <Pencil className="size-4" />,
-  ASSISTANT_MODELLING: <Bot className="size-4" />,
-  CODE_GENERATION: <Code2 className="size-4" />,
-  IMPORT: <Upload className="size-4" />,
+const OPERATION_ICONS: Record<OperationKind, React.ReactNode> = {
+  modeling: <Pencil className="size-4" />,
+  generation: <Code2 className="size-4" />,
+  conversation: <MessagesSquare className="size-4" />,
 };
 
-const FILTERS: Array<OperationType | 'ALL'> = ['ALL', 'MANUAL_MODELLING', 'ASSISTANT_MODELLING', 'CODE_GENERATION'];
+const FILTERS: Array<OperationKind | 'all'> = ['all', 'modeling', 'generation', 'conversation'];
 
 interface TimelineViewProps {
   index: TraceIndex;
@@ -32,15 +31,15 @@ interface TimelineViewProps {
 /** Operations, newest first, each expandable to its changes grouped by element. */
 export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement }) => {
   const { t, i18n } = useTranslation();
-  const [filter, setFilter] = useState<OperationType | 'ALL'>('ALL');
+  const [filter, setFilter] = useState<OperationKind | 'all'>('all');
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const operations = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return [...index.trace.operations]
-      .filter((op) => filter === 'ALL' || op.operationType === filter)
-      .filter((op) => !needle || op.changes.some((c) => describeChange(t, c, index).toLowerCase().includes(needle)))
+      .filter((op) => filter === 'all' || operationKind(op) === filter)
+      .filter((op) => !needle || changesOf(op).some((c) => describeChange(t, c, index).toLowerCase().includes(needle)))
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   }, [index, filter, query, t]);
 
@@ -81,7 +80,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
         {operations.map((op) => (
           <li key={op.id} className="relative">
             <span className="absolute -left-[29px] top-2 flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
-              {OPERATION_ICONS[op.operationType] ?? <Pencil className="size-4" />}
+              {op.type === 'Modeling' && byAgent(op, index) ? <Bot className="size-4" /> : OPERATION_ICONS[operationKind(op)]}
             </span>
             <OperationCard
               operation={op}
@@ -109,14 +108,14 @@ interface OperationCardProps {
 
 const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, onToggle, onOpenElement, locale }) => {
   const { t } = useTranslation();
-  const isGeneration = operation.operationType === 'CODE_GENERATION';
+  const isGeneration = operation.type === 'CodeGeneration';
   const linkCount = isGeneration ? index.trace.traceLinks.filter((l) => l.operationId === operation.id).length : 0;
   const diagrams = useMemo(() => diagramsOfOperation(index, operation), [index, operation]);
 
   // Changes grouped under the element they belong to (a class and its attributes together).
   const groups = useMemo(() => {
     const byElement = new Map<string, TraceChange[]>();
-    for (const change of operation.changes) {
+    for (const change of changesOf(operation)) {
       const artifact = index.artifacts.get(change.artifactId);
       const key = artifact ? topLevelOf(index, artifact).id : change.artifactId;
       byElement.set(key, [...(byElement.get(key) ?? []), change]);
@@ -141,7 +140,9 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
         <Badge variant="secondary" size="sm">
           {isGeneration
             ? t('traceability.timeline.linkCount', { count: linkCount })
-            : t('traceability.timeline.changeCount', { count: operation.changes.length })}
+            : operation.type === 'Conversation'
+              ? t('traceability.timeline.messageCount', { count: operation.logs.length })
+              : t('traceability.timeline.changeCount', { count: changesOf(operation).length })}
         </Badge>
       </button>
       {diagrams.length > 0 && (
@@ -164,6 +165,17 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
         <div className="space-y-2 border-t border-border px-4 py-3 text-sm">
           {isGeneration ? (
             <GenerationSummary operation={operation} index={index} onOpenElement={onOpenElement} />
+          ) : operation.type === 'Conversation' ? (
+            <ol className="space-y-1">
+              {operation.logs.map((log) => (
+                <li key={log.id} className="text-sm">
+                  <span className="mr-2 text-[10px] uppercase text-muted-foreground">
+                    {t(`traceability.timeline.logTypes.${log.logType}`, { defaultValue: log.logType })}
+                  </span>
+                  {log.content}
+                </li>
+              ))}
+            </ol>
           ) : (
             groups.map(([elementId, changes]) => (
               <div key={elementId}>

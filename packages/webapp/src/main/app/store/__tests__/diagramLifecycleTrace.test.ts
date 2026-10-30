@@ -12,6 +12,7 @@ import {
 import { getProjectTrace } from '../../../shared/traceability/traceStore';
 import { indexTrace, isDeleted } from '../../../shared/traceability/traceQueries';
 import type { ModelArtifact } from '../../../shared/types/traceability';
+import { changesOf } from '../../../shared/types/traceability';
 
 const book = {
   version: '3.0.0', type: 'ClassDiagram', size: { width: 0, height: 0 }, interactive: { elements: {}, relationships: {} },
@@ -35,7 +36,7 @@ const diagramArtifact = (projectId: string, diagramId: string) =>
 
 const diagramChanges = (projectId: string, diagramId: string) => {
   const artifact = diagramArtifact(projectId, diagramId);
-  return getProjectTrace(projectId).operations.flatMap((o) => o.changes).filter((c) => c.artifactId === artifact.id);
+  return getProjectTrace(projectId).operations.flatMap(changesOf).filter((c) => c.artifactId === artifact.id);
 };
 
 describe('diagram renames and deletions in the trace', () => {

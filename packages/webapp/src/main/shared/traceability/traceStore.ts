@@ -7,7 +7,8 @@ import type { TraceFile } from '../types/traceability';
 import { diffClassModel } from './classModelDiff';
 import type { ClassModelLike, ElementChange } from './classModelDiff';
 import { findModelArtifact, mergeTraceFragment, pruneStoredContents, recordElementChanges } from './traceRecorder';
-import type { ModellingSource } from './traceRecorder';
+import { migrateTraceFile } from './traceMigration';
+import type { ModelingSource } from './traceRecorder';
 
 /**
  * The project trace, kept in `localStorage` under `besser_traces_<projectId>`,
@@ -49,7 +50,7 @@ function load(projectId: string): TraceFile {
   const raw = localStorage.getItem(traceKey(projectId));
   if (!raw) return emptyTraceFile(projectId);
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = migrateTraceFile(JSON.parse(raw));
     const problem = traceFileProblem(parsed, projectId);
     if (!problem) return parsed as TraceFile;
     console.warn(`Stored trace of project ${projectId} is unusable (${problem}); starting a new one.`);
@@ -109,7 +110,8 @@ export function replaceProjectTrace(projectId: string, trace: TraceFile): void {
  * the project it was imported as. An imported project gets a new id, so the trace is re-keyed.
  * An unusable trace is left out, with a warning: the project itself still imports.
  */
-export function importProjectTrace(projectId: string, value: unknown): boolean {
+export function importProjectTrace(projectId: string, imported: unknown): boolean {
+  const value = migrateTraceFile(imported);
   const problem = traceFileProblem(value);
   if (problem) {
     console.warn(`The imported project's trace is unusable (${problem}); importing the project without it.`);
@@ -142,7 +144,7 @@ export function recordClassDiagramUpdate(
   diagram: ProjectDiagram,
   previousModel: unknown,
   nextModel: unknown,
-  source: ModellingSource,
+  source: ModelingSource,
 ): void {
   if (!isTraceabilityEnabled(project)) return;
   const changes = diffClassModel(previousModel as ClassModelLike, nextModel as ClassModelLike);
@@ -176,7 +178,7 @@ function recordDiagramChange(
     recordElementChanges(
       trace,
       [{ ...change, elementId: diagramId, elementType: diagram.elementType, name: title, parentElementId: null }],
-      { diagramId, diagramTitle: title, actorName: traceActorName(project), source: 'MANUAL_MODELLING', now: new Date().toISOString() },
+      { diagramId, diagramTitle: title, actorName: traceActorName(project), source: 'user', now: new Date().toISOString() },
     ),
   );
 }
@@ -190,7 +192,17 @@ export function recordDiagramDeleted(project: BesserProject, diagramId: string, 
   recordDiagramChange(project, diagramId, title, { kind: 'DELETED', oldValue: title });
 }
 
-/** Merge the trace fragment of a generation run into the project trace. */
-export function recordGenerationTrace(projectId: string, fragment: TraceFile): void {
-  updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment));
+/** Merge the trace fragment of a generation run into the project trace; false when it was left out. */
+export function recordGenerationTrace(projectId: string, received: unknown): boolean {
+  // The backend may run an older version than the editor: its fragment is migrated like a stored trace,
+  // and one that still cannot be used is left out rather than merged in a shape the views cannot read.
+  const fragment = migrateTraceFile(received);
+  const problem = traceFileProblem(fragment);
+  if (problem) {
+    console.warn(`The trace of this generation is unusable (${problem}); it was not recorded.`);
+    toast.warn(i18n.t('traceability.toasts.generationTraceUnusable', { problem }));
+    return false;
+  }
+  updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment as TraceFile));
+  return true;
 }

@@ -1,7 +1,7 @@
 import type { TraceArtifact, TraceLink } from '../types/traceability';
 import { isCodeArtifact, isModelArtifact } from '../types/traceability';
-import type { LocatedChange, TraceIndex } from './traceQueries';
-import { diagramOf, historyOf, withDescendants } from './traceQueries';
+import type { TraceIndex } from './traceQueries';
+import { diagramOf, isSuspect, withDescendants } from './traceQueries';
 
 /**
  * The lineage of an artifact: everything it was derived from and everything derived from it,
@@ -46,12 +46,6 @@ export interface LineageOptions {
   latestGenerationOnly: boolean;
 }
 
-/** The changes to a link's source (or its fragments) made after the link: why it is suspect. */
-export function changesSince(index: TraceIndex, link: TraceLink): LocatedChange[] {
-  return historyOf(index, link.sourceId).filter((c) => c.change.timestamp > link.timestamp);
-}
-
-const isSuspectLink = (index: TraceIndex, link: TraceLink) => changesSince(index, link).length > 0;
 
 /** `links` without generation links superseded by a newer run of the same generator. */
 function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLink[] {
@@ -59,7 +53,7 @@ function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLi
   const started = (operationId: string) => index.operations.get(operationId)?.startedAt ?? '';
   const keyOf = (link: TraceLink) => {
     const operation = index.operations.get(link.operationId);
-    return operation?.operationType === 'CODE_GENERATION' ? operation.uses.join(',') : undefined;
+    return operation?.type === 'CodeGeneration' ? operation.uses.join(',') : undefined;
   };
   for (const link of links) {
     const key = keyOf(link);
@@ -146,7 +140,7 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
   for (const id of ordered) {
     let stale = false;
     for (const link of links.filter((l) => l.targetId === id)) {
-      const state: LineageEdgeState = isSuspectLink(index, link)
+      const state: LineageEdgeState = isSuspect(index, link)
         ? 'suspect'
         : nodes.get(link.sourceId)?.stale
           ? 'staleUpstream'

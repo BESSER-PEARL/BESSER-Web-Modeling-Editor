@@ -19,7 +19,7 @@ import { TimelineView } from './TimelineView';
 type Tab = 'timeline' | 'elements' | 'coverage' | 'lineage';
 const TABS: Tab[] = ['timeline', 'elements', 'coverage', 'lineage'];
 
-/** The project's traces: what was modelled, by whom, and which code was generated from it. */
+/** The project's traces: what was modeled, by whom, and which code was generated from it. */
 export const TraceabilityPage: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();

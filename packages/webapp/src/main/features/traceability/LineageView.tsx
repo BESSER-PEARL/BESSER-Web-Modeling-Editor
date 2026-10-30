@@ -7,11 +7,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { TraceArtifact, TraceEvidence } from '../../shared/types/traceability';
-import { isCodeArtifact, isModelArtifact } from '../../shared/types/traceability';
+import { isCodeArtifact, isModelArtifact, isPromptArtifact } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
-import { diagramsOf, fragmentLines, historyOf, isDeleted, modelChildren, qualifiedName } from '../../shared/traceability/traceQueries';
+import {
+  changesSince,
+  diagramsOf,
+  fragmentLines,
+  historyOf,
+  isDeleted,
+  modelChildren,
+  qualifiedName,
+} from '../../shared/traceability/traceQueries';
 import type { Lineage, LineageEdge, LineageEdgeState, LineageNode } from '../../shared/traceability/lineage';
-import { changesSince, lineageOf } from '../../shared/traceability/lineage';
+import { lineageOf } from '../../shared/traceability/lineage';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 
 /** Stroke colour per evidence kind; a link that may no longer hold is amber whatever its evidence. */
@@ -324,11 +332,16 @@ const NodeDetail: React.FC<{
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-semibold">{nodeLabel(t, index, artifact)}</h3>
         <Badge variant="soft" size="sm">
-          {isModelArtifact(artifact) ? elementTypeLabel(t, artifact.elementType) : t('traceability.lineage.code')}
+          {isModelArtifact(artifact)
+            ? elementTypeLabel(t, artifact.elementType)
+            : t(isPromptArtifact(artifact) ? 'traceability.lineage.prompt' : 'traceability.lineage.code')}
         </Badge>
         {node.stale && <Badge variant="destructive" size="sm">{t('traceability.status.suspect')}</Badge>}
       </div>
       {isCodeArtifact(artifact) && <code className="block truncate text-xs text-muted-foreground">{artifact.path}</code>}
+      {isPromptArtifact(artifact) && (
+        <blockquote className="max-h-48 overflow-auto whitespace-pre-wrap border-l-2 border-border pl-2 text-xs">{artifact.content}</blockquote>
+      )}
       <div className="flex flex-wrap gap-2">
         {!isRoot && (
           <Button size="sm" variant="outline" onClick={() => onFocus(artifact.id)}>

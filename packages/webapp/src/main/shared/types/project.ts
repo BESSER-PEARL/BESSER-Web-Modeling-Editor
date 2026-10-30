@@ -358,7 +358,7 @@ export interface BesserProject {
      */
     preferredInterface?: InterfaceMode;
     /**
-     * Record traces (modelling edits, generation runs) for this project. Off
+     * Record traces (modeling edits, generation runs) for this project. Off
      * unless set; the trace itself is stored apart from the project (see
      * `shared/traceability/traceStore.ts`). Optional, so no schema bump.
      */

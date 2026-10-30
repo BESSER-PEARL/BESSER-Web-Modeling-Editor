@@ -21,7 +21,7 @@ import {
   isSuspect,
   modelChildren,
 } from '../traceQueries';
-import { emptyTraceFile } from '../../types/traceability';
+import { changesOf, emptyTraceFile } from '../../types/traceability';
 import type { CodeArtifact, ModelArtifact, TraceFile } from '../../types/traceability';
 
 const T0 = Date.parse('2026-10-29T10:00:00.000Z');
@@ -42,7 +42,7 @@ const assoc = (id: string, source: string, target: string, extra: Record<string,
 });
 
 const ctx = (ms: number, overrides: Partial<RecordContext> = {}): RecordContext => ({
-  diagramId: 'diagram-1', diagramTitle: 'Library', actorName: 'BESSER User', source: 'MANUAL_MODELLING', now: at(ms), ...overrides,
+  diagramId: 'diagram-1', diagramTitle: 'Library', actorName: 'BESSER User', source: 'user', now: at(ms), ...overrides,
 });
 
 const record = (trace: TraceFile, previous: ClassModelLike, next: ClassModelLike, ms: number, overrides?: Partial<RecordContext>) =>
@@ -110,7 +110,7 @@ describe('recordElementChanges', () => {
     const trace = emptyTraceFile('p1');
     record(trace, model([]), model([cls('c1', 'Class')]), 0);
     record(trace, model([cls('c1', 'Class')]), model([cls('c1', 'Book')]), CREATION_FOLD_MS - 1);
-    const changes = trace.operations[0].changes;
+    const changes = changesOf(trace.operations[0]);
     expect(changes).toHaveLength(1);
     expect(changes[0]).toMatchObject({ kind: 'CREATED', newValue: 'Book' });
   });
@@ -121,7 +121,7 @@ describe('recordElementChanges', () => {
     const base = CREATION_FOLD_MS + 1000; // the class existed before recording
     record(trace, v('Book'), v('Boo'), base);
     record(trace, v('Boo'), v('Bo'), base + COALESCE_MS - 1);
-    expect(trace.operations[0].changes).toEqual([expect.objectContaining({ feature: 'name', oldValue: 'Book', newValue: 'Bo' })]);
+    expect(changesOf(trace.operations[0])).toEqual([expect.objectContaining({ feature: 'name', oldValue: 'Book', newValue: 'Bo' })]);
     record(trace, v('Bo'), v('Book'), base + 2 * COALESCE_MS - 2);
     expect(trace.operations).toHaveLength(0);
   });
@@ -130,7 +130,7 @@ describe('recordElementChanges', () => {
     const trace = emptyTraceFile('p1');
     record(trace, model([]), model([cls('c1', 'Book')]), 0);
     record(trace, model([cls('c1', 'Book')]), model([]), 1000);
-    expect(trace.operations[0].changes.map((c) => c.kind)).toEqual(['CREATED', 'DELETED']);
+    expect(changesOf(trace.operations[0]).map((c) => c.kind)).toEqual(['CREATED', 'DELETED']);
   });
 
   it('starts a new session after the idle time, or for the assistant', () => {
@@ -138,8 +138,9 @@ describe('recordElementChanges', () => {
     record(trace, model([]), model([cls('c1', 'A')]), 0);
     record(trace, model([cls('c1', 'A')]), model([cls('c1', 'A'), cls('c2', 'B')]), SESSION_IDLE_MS + 1);
     record(trace, model([cls('c1', 'A'), cls('c2', 'B')]), model([cls('c1', 'A'), cls('c2', 'B'), cls('c3', 'C')]),
-      SESSION_IDLE_MS + 2, { source: 'ASSISTANT_MODELLING' });
-    expect(trace.operations.map((o) => o.operationType)).toEqual(['MANUAL_MODELLING', 'MANUAL_MODELLING', 'ASSISTANT_MODELLING']);
+      SESSION_IDLE_MS + 2, { source: 'assistant' });
+    // All three are Modeling sessions; the third is told apart by its actors, not by its type.
+    expect(trace.operations.map((o) => o.type)).toEqual(['Modeling', 'Modeling', 'Modeling']);
     expect(trace.operations[2].performedBy).toHaveLength(2); // the user and the assistant
   });
 });
@@ -157,8 +158,8 @@ function generationFragment(ms: number, content = 'line\n'.repeat(12)): TraceFil
       { id: 'fc', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', parentId: 'fm', timestamp: time },
       { id: 'fr', type: 'CodeArtifact', name: 'Book (3-9)', path: 'sql_alchemy.py', contentHash: 'h2', startLine: 3, endLine: 9, parentId: 'ff', timestamp: time },
     ],
-    operations: [{ id: 'fo', operationType: 'CODE_GENERATION', status: 'SUCCEEDED', startedAt: time, endedAt: time,
-      performedBy: ['fa'], uses: ['ft'], consumes: ['fm', 'fc'], produces: ['ff', 'fr'], changes: [], logs: [] }],
+    operations: [{ id: 'fo', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time,
+      performedBy: ['fa'], uses: ['ft'], consumes: ['fm', 'fc'], produces: ['ff', 'fr'], logs: [] }],
     traceLinks: [{ id: 'fl', sourceId: 'fc', targetId: 'fr', operationId: 'fo', timestamp: time,
       evidence: [{ id: 'fe', type: 'RuleEvidence', rule: 'sql_alchemy_template.py.j2#class', timestamp: time }],
       confidence: { id: 'fk', value: 1, basedOn: ['fe'], timestamp: time } }],
@@ -226,7 +227,7 @@ describe('diagram trees', () => {
 
   it('names the diagrams an operation changed or read', () => {
     const index = indexTrace(twoDiagrams());
-    // Both diagrams were edited in one modelling session; the generation read one of them.
+    // Both diagrams were edited in one modeling session; the generation read one of them.
     const [session, generation] = index.trace.operations;
     expect(diagramsOfOperation(index, session).map((d) => d.name)).toEqual(['Library', 'Shop']);
     expect(diagramsOfOperation(index, generation).map((d) => d.name)).toEqual(['Library']);

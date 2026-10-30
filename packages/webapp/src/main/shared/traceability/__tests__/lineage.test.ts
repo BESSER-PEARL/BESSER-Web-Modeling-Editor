@@ -13,10 +13,13 @@ const code = (id: string, parentId?: string, lines?: [number, number]): TraceArt
   id, type: 'CodeArtifact', name: id, path: 'sql_alchemy.py', contentHash: 'h', timestamp: at(0),
   ...(parentId ? { parentId } : {}), ...(lines ? { startLine: lines[0], endLine: lines[1] } : {}),
 });
-const operation = (id: string, type: TraceOperation['operationType'], minute: number, extra: Partial<TraceOperation> = {}): TraceOperation => ({
-  id, operationType: type, status: 'SUCCEEDED', startedAt: at(minute), endedAt: at(minute),
-  performedBy: ['ada'], uses: [], consumes: [], produces: [], changes: [], logs: [], ...extra,
-});
+const operation = (id: string, type: TraceOperation['type'], minute: number, extra: Record<string, unknown> = {}): TraceOperation =>
+  ({
+    id, type, status: 'SUCCEEDED', startedAt: at(minute), endedAt: at(minute),
+    performedBy: ['ada'], uses: [], consumes: [], produces: [], logs: [],
+    ...(type === 'Modeling' ? { changes: [] } : {}),
+    ...extra,
+  }) as TraceOperation;
 const link = (id: string, sourceId: string, targetId: string, operationId: string, minute: number, confidence = 1): TraceLink => ({
   id, sourceId, targetId, operationId, timestamp: at(minute),
   evidence: [{ id: `${id}-e`, type: confidence < 1 ? 'AIEvidence' : 'RuleEvidence', ...(confidence < 1 ? { algorithm: 'llm', logIds: [] } : { rule: 'r' }), timestamp: at(minute) } as TraceLink['evidence'][number]],
@@ -38,9 +41,9 @@ function chain(): TraceFile {
       code('f1'), code('b1', 'f1', [3, 9]), code('f2'), code('b2', 'f2', [5, 11]),
     ],
     operations: [
-      operation('convert', 'ASSISTANT_MODELLING', 1),
-      operation('run1', 'CODE_GENERATION', 2, { uses: ['gen'], produces: ['f1', 'b1'] }),
-      operation('run2', 'CODE_GENERATION', 4, { uses: ['gen'], produces: ['f2', 'b2'] }),
+      operation('convert', 'Modeling', 1),
+      operation('run1', 'CodeGeneration', 2, { uses: ['gen'], produces: ['f1', 'b1'] }),
+      operation('run2', 'CodeGeneration', 4, { uses: ['gen'], produces: ['f2', 'b2'] }),
     ],
     traceLinks: [
       link('k', 'concept', 'book', 'convert', 1, 0.8),
@@ -80,7 +83,7 @@ describe('lineageOf', () => {
   it('marks a changed source suspect and everything derived from it stale', () => {
     const trace = chain();
     // The concept changes after the conversion: the class may be out of date, and so its code.
-    trace.operations.push(operation('edit', 'MANUAL_MODELLING', 6, {
+    trace.operations.push(operation('edit', 'Modeling', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'concept', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);
@@ -91,9 +94,21 @@ describe('lineageOf', () => {
     expect(lineage.nodes.get('concept')!.stale).toBe(false);
   });
 
+  it('follows a chain that starts from a prompt in a conversation', () => {
+    const trace = chain();
+    trace.artifacts.push({ id: 'prompt', type: 'PromptArtifact', name: 'Library prompt', content: 'Books have a title.',
+      contentHash: 'h', timestamp: at(0) });
+    trace.operations.push(operation('chat', 'Conversation', 0, { performedBy: ['ada', 'assistant'] }));
+    trace.traceLinks.push(link('p', 'prompt', 'concept', 'chat', 0, 0.9));
+    const lineage = lineageOf(indexTrace(trace), 'book', latest);
+    expect([...lineage.nodes.values()].map((n) => [n.artifact.id, n.column])).toEqual(
+      expect.arrayContaining([['prompt', 0], ['concept', 1], ['book', 2], ['b2', 3]]),
+    );
+  });
+
   it('marks code suspect when a member of its element changes', () => {
     const trace = chain();
-    trace.operations.push(operation('edit', 'MANUAL_MODELLING', 6, {
+    trace.operations.push(operation('edit', 'Modeling', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'title', feature: 'type', oldValue: 'str', newValue: 'int', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);

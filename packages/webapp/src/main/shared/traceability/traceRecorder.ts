@@ -1,14 +1,14 @@
 import type {
   CodeArtifact,
   ModelArtifact,
-  OperationType,
+  ModelingOperation,
   TraceActor,
   TraceChange,
   TraceFile,
   TraceOperation,
   TraceTool,
 } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact } from '../types/traceability';
+import { isCodeArtifact, isModelArtifact, isModeling } from '../types/traceability';
 import type { ElementChange } from './classModelDiff';
 
 /**
@@ -17,7 +17,7 @@ import type { ElementChange } from './classModelDiff';
  * publishes a new reference after each update.
  */
 
-/** A modelling session ends after this long without an edit. */
+/** A modeling session ends after this long without an edit. */
 export const SESSION_IDLE_MS = 10 * 60 * 1000;
 /** Updates of the same feature this close together are one change (typing a name). */
 export const COALESCE_MS = 5 * 1000;
@@ -31,13 +31,14 @@ export const KEPT_CONTENTS_PER_PATH = 3;
 export const EDITOR_TOOL_NAME = 'BESSER Web Modeling Editor';
 export const ASSISTANT_AGENT_NAME = 'BESSER modeling assistant';
 
-export type ModellingSource = Extract<OperationType, 'MANUAL_MODELLING' | 'ASSISTANT_MODELLING'>;
+/** Who made an edit: the user alone, or the assistant for the user (both are recorded as actors). */
+export type ModelingSource = 'user' | 'assistant';
 
 export interface RecordContext {
   diagramId: string;
   diagramTitle: string;
   actorName: string;
-  source: ModellingSource;
+  source: ModelingSource;
   /** ISO 8601 UTC. */
   now: string;
 }
@@ -86,27 +87,26 @@ function sameIds(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((id) => b.includes(id));
 }
 
-/** The open session of `source` by these actors, or a new one when the last operation is another one or idle. */
-function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], toolIds: string[]): TraceOperation {
+/** The open modeling session of these actors, or a new one when the last operation is another one or idle. */
+function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], toolIds: string[]): ModelingOperation {
   const last = trace.operations[trace.operations.length - 1];
   const lastActivity = last ? ms(last.endedAt ?? last.startedAt) : 0;
   if (
-    last &&
-    last.operationType === ctx.source &&
+    isModeling(last) &&
     sameIds(last.performedBy, actorIds) &&
     ms(ctx.now) - lastActivity <= SESSION_IDLE_MS
   ) {
     return last;
   }
-  const session: TraceOperation = {
-    id: newId(), operationType: ctx.source, status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
+  const session: ModelingOperation = {
+    id: newId(), type: 'Modeling', status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
     performedBy: actorIds, uses: toolIds, consumes: [], produces: [], changes: [], logs: [],
   };
   trace.operations.push(session);
   return session;
 }
 
-function lastChange(session: TraceOperation, match: (c: TraceChange) => boolean): TraceChange | undefined {
+function lastChange(session: ModelingOperation, match: (c: TraceChange) => boolean): TraceChange | undefined {
   for (let i = session.changes.length - 1; i >= 0; i -= 1) {
     if (match(session.changes[i])) return session.changes[i];
   }
@@ -114,7 +114,7 @@ function lastChange(session: TraceOperation, match: (c: TraceChange) => boolean)
 }
 
 /** Fold an update into an earlier change of the session when the merging rules say so. Returns true when folded. */
-function foldUpdate(session: TraceOperation, artifactId: string, change: ElementChange, now: string): boolean {
+function foldUpdate(session: ModelingOperation, artifactId: string, change: ElementChange, now: string): boolean {
   // The element's latest creation or deletion: an update folds into a creation only while it still stands.
   const lifecycle = lastChange(session, (c) => c.artifactId === artifactId && c.kind !== 'UPDATED');
   const created = lifecycle?.kind === 'CREATED' ? lifecycle : undefined;
@@ -136,7 +136,7 @@ function foldUpdate(session: TraceOperation, artifactId: string, change: Element
 export function recordElementChanges(trace: TraceFile, changes: ElementChange[], ctx: RecordContext): void {
   if (changes.length === 0) return;
   const actors = [ensureActor(trace, 'Person', ctx.actorName, ctx.now)];
-  if (ctx.source === 'ASSISTANT_MODELLING') actors.push(ensureActor(trace, 'Agent', ASSISTANT_AGENT_NAME, ctx.now));
+  if (ctx.source === 'assistant') actors.push(ensureActor(trace, 'Agent', ASSISTANT_AGENT_NAME, ctx.now));
   const editor = ensureTool(trace, 'Editor', EDITOR_TOOL_NAME, ctx.now);
   const model = ensureModelArtifact(trace, ctx.diagramId, 'DomainModel', ctx.diagramTitle, undefined, ctx.now);
   model.name = ctx.diagramTitle || model.name;
@@ -193,15 +193,16 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
     if (artifact.parentId && idMap.has(artifact.parentId)) artifact.parentId = mapped(artifact.parentId);
   }
   for (const op of fragment.operations) {
-    trace.operations.push({
+    const merged: TraceOperation = {
       ...op,
       performedBy: op.performedBy.map(mapped),
       uses: op.uses.map(mapped),
       consumes: op.consumes.map(mapped),
       produces: op.produces.map(mapped),
-      changes: op.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) })),
       logs: op.logs.map((l) => ({ ...l, ...(l.toolId ? { toolId: mapped(l.toolId) } : {}) })),
-    });
+    };
+    if (merged.type === 'Modeling') merged.changes = merged.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) }));
+    trace.operations.push(merged);
   }
   for (const link of fragment.traceLinks) {
     trace.traceLinks.push({ ...link, sourceId: mapped(link.sourceId), targetId: mapped(link.targetId) });

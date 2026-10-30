@@ -9,15 +9,7 @@
  */
 
 /** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. */
-export const TRACE_SCHEMA_VERSION = 1;
-
-export type OperationType =
-  | 'MANUAL_MODELLING'
-  | 'ASSISTANT_MODELLING'
-  | 'IMPORT'
-  | 'CODE_GENERATION'
-  | 'LLM_CODE_EDITING'
-  | 'VALIDATION';
+export const TRACE_SCHEMA_VERSION = 2;
 
 export type OperationStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
 
@@ -76,7 +68,14 @@ export interface CodeArtifact extends ArtifactBase {
   endLine?: number;
 }
 
-export type TraceArtifact = ModelArtifact | CodeArtifact;
+/** A message given to an agent, kept as an artifact because something was derived from it. */
+export interface PromptArtifact extends ArtifactBase {
+  type: 'PromptArtifact';
+  content: string;
+  contentHash: string;
+}
+
+export type TraceArtifact = ModelArtifact | CodeArtifact | PromptArtifact;
 
 export interface TraceChange {
   id: string;
@@ -98,19 +97,44 @@ export interface TraceLogRecord {
   timestamp: string;
 }
 
-export interface TraceOperation {
+interface OperationBase {
   id: string;
-  operationType: OperationType;
   status: OperationStatus;
   startedAt: string;
   endedAt?: string;
+  /** A Person, an Agent, or both: who did the work tells manual from assistant modeling. */
   performedBy: string[];
   uses: string[];
   consumes: string[];
   produces: string[];
-  changes: TraceChange[];
   logs: TraceLogRecord[];
 }
+
+/** Edits made to models, change by change. */
+export interface ModelingOperation extends OperationBase {
+  type: 'Modeling';
+  changes: TraceChange[];
+}
+
+/** A generator run: code derived from models (a Transformation in the metamodel). */
+export interface CodeGenerationOperation extends OperationBase {
+  type: 'CodeGeneration';
+}
+
+/** A dialogue between a user and an agent, with its messages in `logs`. It may consume prompts and
+ *  produce artifacts (requirements), or produce nothing (a clarification question). */
+export interface ConversationOperation extends OperationBase {
+  type: 'Conversation';
+}
+
+/** An operation is one of these, told apart by `type` (the metamodel class name). */
+export type TraceOperation = ModelingOperation | CodeGenerationOperation | ConversationOperation;
+
+export const isModeling = (operation: TraceOperation | undefined): operation is ModelingOperation =>
+  operation?.type === 'Modeling';
+
+/** The changes of an operation: only a Modeling has any. */
+export const changesOf = (operation: TraceOperation): TraceChange[] => (isModeling(operation) ? operation.changes : []);
 
 export type TraceEvidence =
   | { id: string; type: 'RuleEvidence'; rule: string; timestamp: string }
@@ -158,3 +182,4 @@ export const emptyTraceFile = (projectId: string): TraceFile => ({
 
 export const isModelArtifact = (a: TraceArtifact | undefined): a is ModelArtifact => a?.type === 'ModelArtifact';
 export const isCodeArtifact = (a: TraceArtifact | undefined): a is CodeArtifact => a?.type === 'CodeArtifact';
+export const isPromptArtifact = (a: TraceArtifact | undefined): a is PromptArtifact => a?.type === 'PromptArtifact';

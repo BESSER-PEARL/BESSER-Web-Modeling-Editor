@@ -27,7 +27,7 @@ import {
   recordDiagramDeleted,
   recordDiagramRenamed,
 } from '../../shared/traceability/traceStore';
-import type { ModellingSource } from '../../shared/traceability/traceRecorder';
+import type { ModelingSource } from '../../shared/traceability/traceRecorder';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -274,13 +274,13 @@ export const openDiagramThunk = createAsyncThunk(
 
 export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>> & {
   /** Who made the change, for the project trace: the user on the canvas (default) or the assistant. */
-  traceSource?: ModellingSource;
+  traceSource?: ModelingSource;
 };
 
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (
-    { traceSource = 'MANUAL_MODELLING', ...updates }: DiagramModelUpdate,
+    { traceSource = 'user', ...updates }: DiagramModelUpdate,
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
