@@ -40,6 +40,15 @@ if (fs.existsSync(webappPath)) {
 }
 
 registerStudySite(app);
+
+// Study mode: serve the prebuilt default museum website (SPA, built with base /study-default/).
+const studyDefaultSite = path.resolve(process.cwd(), 'study-default');
+if (process.env.STUDY_AGENT_URL_PATH && fs.existsSync(studyDefaultSite)) {
+  app.use('/study-default', express.static(studyDefaultSite, { index: 'index.html', fallthrough: true }), (req, res) => {
+    if (req.path.includes('.')) { res.sendStatus(404); return; }
+    res.sendFile(path.join(studyDefaultSite, 'index.html'));
+  });
+}
 app.use('/', express.static(webappPath));
 app.use(bodyParser.json() as RequestHandler);
 app.use(

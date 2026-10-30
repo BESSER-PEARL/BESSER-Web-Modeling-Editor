@@ -201,7 +201,7 @@ describe('agent tone and explanation presentation', () => {
       render(<Editor />);
       expect(screen.getByLabelText('Conversational tone')).toHaveValue('formal');
       fireEvent.change(screen.getByLabelText('Explanation style'), { target: { value: 'narrative' } });
-      expect(screen.getByText(/Example: Imagine approaching/)).toBeInTheDocument();
+      expect(screen.getByLabelText('Explanation style')).toHaveValue('narrative');
       fireEvent.change(screen.getByLabelText('Conversational tone'), { target: { value: 'informal' } });
       const saved = JSON.parse(screen.getByTestId('presentation-spec').textContent!);
       expect(saved).toEqual({

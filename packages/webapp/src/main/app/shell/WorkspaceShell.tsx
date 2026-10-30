@@ -310,14 +310,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       toast.error(t('deploy.study.toasts.noProject'));
       return;
     }
-    resetStudyDeploy();
+    // Keep showing the links of a previous successful deployment (the dialog
+    // offers a Redeploy button); only clear stale errors.
+    if (!studyDeployResult?.success) resetStudyDeploy();
     setIsStudyDeployDialogOpen(true);
-  }, [currentProject, resetStudyDeploy, t]);
+  }, [currentProject, resetStudyDeploy, studyDeployResult, t]);
 
-  const handleStudyDeploy = useCallback(() => {
+  const handleStudyDeploy = useCallback(async () => {
     if (!currentProject) return;
+    // Deploying also submits the participant's models (part of the study). An
+    // upload failure is reported by the upload handler but must not block deploying.
+    await handleUploadStudyModel();
     deployToStudyServer(currentProject, isPersonalizedStudyDeploy).catch(console.error);
-  }, [currentProject, deployToStudyServer, isPersonalizedStudyDeploy]);
+  }, [currentProject, deployToStudyServer, handleUploadStudyModel, isPersonalizedStudyDeploy]);
 
   const {
     assistantImportMode,
@@ -1161,7 +1166,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         isPersonalized={isPersonalizedStudyDeploy}
         onPersonalizedChange={setIsPersonalizedStudyDeploy}
         onOpenChange={setIsStudyDeployDialogOpen}
-        onDeploy={handleStudyDeploy}
+        onDeploy={() => { void handleStudyDeploy(); }}
+        onRedeploy={resetStudyDeploy}
         onOpenAgent={(url) => openExternalUrl(url)}
         onOpenWebsite={(url) => openExternalUrl(url)}
       />

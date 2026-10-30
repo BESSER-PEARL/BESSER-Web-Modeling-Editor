@@ -3,6 +3,12 @@ import { setupPageSystem } from '../setup/setupPageSystem';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient } from '../../../../shared/api/api-client';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import {
+  GUI_PERSONALIZE_EVENT,
+  GUI_VARIANT_SELECT_EVENT,
+  GUI_VARIANTS_STATE_EVENT,
+  type GuiVariantsState,
+} from '../../../../shared/constants/gui-personalize-event';
 
 vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
   ProjectStorageRepository: { getCurrentProject: vi.fn() },
@@ -22,6 +28,8 @@ const userModel = (size?: number) => ({
   relationships: {},
 });
 
+const createdEditors: any[] = [];
+
 function createEditor(withTextNode = false) {
   const attrs: Record<string, any> = {};
   let components: any[] = [{ type: 'text', tagName: 'p', attributes: { id: 'message' }, content: 'Hello', style: { 'font-size': '12px' } }];
@@ -35,7 +43,8 @@ function createEditor(withTextNode = false) {
   const page = { getId: () => 'home', getName: () => 'Home', getMainComponent: () => main, get: (key: string) => attrs[key], set: (key: string, value: any) => { attrs[key] = value; } };
   const editor: any = {
     Panels: {},
-    on: vi.fn(),
+    off: vi.fn(),
+    on: vi.fn((event: string, fn: () => void) => { if (event === 'destroy') (editor.__destroyHandlers ??= []).push(fn); }),
     Commands: { add: (key: string, command: any) => commands.set(key, command) },
     runCommand: (key: string) => commands.get(key)?.run(editor),
     Pages: { getAll: () => [page], getSelected: () => page },
@@ -51,21 +60,26 @@ function createEditor(withTextNode = false) {
     },
   };
   setupPageSystem(editor);
+  createdEditors.push(editor);
   editor.runCommand('open-pages-tab');
   return { page, getComponents: () => components };
 }
 
 async function openPicker() {
   await vi.advanceTimersByTimeAsync(20);
-  (document.querySelector('.add-variant-btn') as HTMLButtonElement).click();
+  window.dispatchEvent(new CustomEvent(GUI_PERSONALIZE_EVENT));
   await vi.advanceTimersByTimeAsync(60);
 }
 
-async function confirmChoices(ai: boolean, rules: boolean) {
-  (document.getElementById('gjs-personalization-ai-toggle') as HTMLInputElement).checked = ai;
-  (document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement).checked = rules;
+async function confirmChoices() {
   document.getElementById('gjs-personalization-confirm-btn')!.click();
   await vi.advanceTimersByTimeAsync(20);
+}
+
+const confirmDisabled = () => (document.getElementById('gjs-personalization-confirm-btn') as HTMLButtonElement).disabled;
+
+function selectVariant(variantId: string | null) {
+  window.dispatchEvent(new CustomEvent(GUI_VARIANT_SELECT_EVENT, { detail: { variantId } }));
 }
 
 describe('GUI page personalization panel', () => {
@@ -74,7 +88,7 @@ describe('GUI page personalization panel', () => {
     await vi.advanceTimersByTimeAsync(20);
     expect(document.querySelector('.audio-page-btn')).toBeNull();
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(document.querySelector('.audio-page-btn')).toBeNull();
   });
 
@@ -84,18 +98,15 @@ describe('GUI page personalization panel', () => {
     vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     const editor = createEditor();
     await openPicker();
-    expect((document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement).disabled).toBe(false);
-    expect((document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement).checked).toBe(true);
-    await confirmChoices(false, true);
+    expect(confirmDisabled()).toBe(false);
+    await confirmChoices();
     expect(editor.getComponents()[0].attributes['data-besser-read-aloud']).toBe('true');
     expect(apiClient.post).not.toHaveBeenCalled();
     expect(document.querySelector('.audio-page-btn')).toBeNull();
     const hint = document.querySelector('.gjs-page-audio-hint')!;
     expect(hint.textContent).toContain('Play in the canvas');
     expect(getComputedStyle(hint).color).toBe('rgb(255, 255, 255)');
-    const base = document.querySelector('.gjs-page-variants-select') as HTMLSelectElement;
-    base.value = '';
-    base.dispatchEvent(new Event('change', { bubbles: true }));
+    selectVariant(null);
     await vi.advanceTimersByTimeAsync(40);
     expect(document.querySelector('.audio-page-btn')).toBeNull();
   });
@@ -110,8 +121,8 @@ describe('GUI page personalization panel', () => {
     ], css: [] } });
     const editor = createEditor();
     await openPicker();
-    expect((document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement).disabled).toBe(false);
-    await confirmChoices(false, true);
+    expect(confirmDisabled()).toBe(false);
+    await confirmChoices();
     expect(apiClient.post).toHaveBeenCalledWith('/personalize-gui-page', expect.objectContaining({
       adaptFromProfile: false,
       guiPersonalization: { presentation: {}, content: { summarizeLongContent: true } },
@@ -127,8 +138,8 @@ describe('GUI page personalization panel', () => {
     vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     const editor = createEditor();
     await openPicker();
-    expect((document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement).disabled).toBe(false);
-    await confirmChoices(false, true);
+    expect(confirmDisabled()).toBe(false);
+    await confirmChoices();
     expect(apiClient.post).toHaveBeenCalledWith('/personalize-gui-page', expect.objectContaining({
       adaptFromProfile: false,
       userProfileModel: expect.any(Object),
@@ -144,7 +155,7 @@ describe('GUI page personalization panel', () => {
     vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     const editor = createEditor();
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(apiClient.post).toHaveBeenCalledWith('/personalize-gui-page', expect.objectContaining({
       adaptFromProfile: false,
       guiPersonalization: { presentation: { sentenceLength: 'concise' } },
@@ -159,7 +170,7 @@ describe('GUI page personalization panel', () => {
     vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     const editor = createEditor();
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(apiClient.post).toHaveBeenCalledWith('/personalize-gui-page', expect.objectContaining({
       adaptFromProfile: false,
       guiPersonalization: { presentation: { size: 24, language: 'french' } },
@@ -174,7 +185,7 @@ describe('GUI page personalization panel', () => {
     vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     const editor = createEditor();
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(apiClient.post).toHaveBeenCalledWith('/personalize-gui-page', expect.objectContaining({
       adaptFromProfile: false,
       guiPersonalization: { presentation: { size: 24, languageComplexity: 'simple' } },
@@ -186,7 +197,7 @@ describe('GUI page personalization panel', () => {
   it('applies rules when the live editor contains DOM text nodes', async () => {
     const editor = createEditor(true);
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(editor.getComponents()[0].style['font-size']).toBe('24px !important');
     expect(editor.page.get('besserPageVariants')).toBeDefined();
   });
@@ -200,6 +211,7 @@ describe('GUI page personalization panel', () => {
     vi.mocked(apiClient.post).mockResolvedValue({ guiPage: { components: [{ type: 'text', tagName: 'p', content: 'Bonjour', style: { 'font-size': '10px' } }], css: [] } });
   });
   afterEach(() => {
+    createdEditors.splice(0).forEach((editor) => (editor.__destroyHandlers ?? []).forEach((fn: () => void) => fn()));
     vi.clearAllTimers();
     vi.useRealTimers();
     document.body.innerHTML = '';
@@ -208,33 +220,11 @@ describe('GUI page personalization panel', () => {
   it('applies rules without calling the LLM, saves a variant, and preserves Base', async () => {
     const editor = createEditor();
     await openPicker();
-    await confirmChoices(false, true);
+    await confirmChoices();
     expect(apiClient.post).not.toHaveBeenCalled();
     expect(editor.getComponents()[0].style['font-size']).toBe('24px !important');
     expect(JSON.parse(editor.page.get('besserPageVariants'))[0].snapshot.components[0].style['font-size']).toBe('24px !important');
     expect(JSON.parse(editor.page.get('besserBaseSnapshot')).components[0].style['font-size']).toBe('12px');
-  });
-
-  it('applies explicit rules after the LLM while preserving rewritten content', async () => {
-    const editor = createEditor();
-    await openPicker();
-    await confirmChoices(true, true);
-    expect(apiClient.post).toHaveBeenCalledOnce();
-    expect(editor.getComponents()[0]).toMatchObject({ content: 'Bonjour', style: { 'font-size': '24px !important' } });
-  });
-
-  it('preserves the existing LLM-only and plain-copy choices', async () => {
-    const editor = createEditor();
-    await openPicker();
-    await confirmChoices(true, false);
-    expect(editor.getComponents()[0].style['font-size']).toBe('10px');
-    const baseSelect = document.querySelector('.gjs-page-variants-select') as HTMLSelectElement;
-    baseSelect.value = '';
-    baseSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    await openPicker();
-    await confirmChoices(false, false);
-    expect(apiClient.post).toHaveBeenCalledOnce();
-    expect(editor.getComponents()[0].style['font-size']).toBe('12px');
   });
 
   it('updates rule availability when the selected profile changes', async () => {
@@ -244,23 +234,53 @@ describe('GUI page personalization panel', () => {
     ] } } as any);
     createEditor();
     await openPicker();
-    const rules = document.getElementById('gjs-personalization-rules-toggle') as HTMLInputElement;
-    expect(rules.disabled).toBe(false);
-    rules.checked = true;
+    expect(confirmDisabled()).toBe(false);
+    expect(document.getElementById('gjs-personalization-ai-toggle')).toBeNull();
+    expect(document.getElementById('gjs-personalization-rules-toggle')).toBeNull();
     const select = document.getElementById('gjs-personalization-profile-select') as HTMLSelectElement;
     select.value = 'empty';
     select.dispatchEvent(new Event('change'));
-    expect(rules.disabled).toBe(true);
-    expect(rules.checked).toBe(false);
+    expect(confirmDisabled()).toBe(true);
     expect(document.getElementById('gjs-personalization-rules-status')!.textContent).toContain('No GUI rules defined');
   });
 
-  it('can fall back to defined rules if the LLM fails', async () => {
+  it('can fall back to the visual rules if the LLM fails', async () => {
+    const model = userModel(24);
+    (model.elements.user.personalization!.gui.presentation as any).languageComplexity = 'simple';
+    vi.mocked(ProjectStorageRepository.getCurrentProject).mockReturnValue({ diagrams: { UserDiagram: [{ id: 'users', title: 'Users', model }] } } as any);
     vi.mocked(apiClient.post).mockRejectedValue(new Error('LLM unavailable'));
     const editor = createEditor();
     await openPicker();
-    await confirmChoices(true, true);
-    expect(globalConfirm).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: 'Apply rules' }));
+    await confirmChoices();
+    expect(globalConfirm).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: 'Apply visual rules' }));
     expect(editor.getComponents()[0]).toMatchObject({ content: 'Hello', style: { 'font-size': '24px !important' } });
+  });
+
+  it('keeps the page cards free of personalization controls', async () => {
+    createEditor();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(document.querySelector('.add-variant-btn')).toBeNull();
+    expect(document.querySelector('.gjs-page-variants-select')).toBeNull();
+  });
+
+  it('shares the variants of the selected page with the top bar and switches them on request', async () => {
+    const states: GuiVariantsState[] = [];
+    const onState = (event: Event) => states.push((event as CustomEvent<GuiVariantsState>).detail);
+    window.addEventListener(GUI_VARIANTS_STATE_EVENT, onState);
+    const editor = createEditor();
+    await openPicker();
+    await confirmChoices();
+    const afterCreate = states[states.length - 1];
+    expect(afterCreate.options).toHaveLength(1);
+    expect(afterCreate.activeId).toBe(afterCreate.options[0].id);
+    selectVariant(null);
+    await vi.advanceTimersByTimeAsync(40);
+    expect(states[states.length - 1].activeId).toBeNull();
+    expect(editor.getComponents()[0].style['font-size']).toBe('12px');
+    selectVariant(afterCreate.options[0].id);
+    await vi.advanceTimersByTimeAsync(40);
+    expect(states[states.length - 1].activeId).toBe(afterCreate.options[0].id);
+    expect(editor.getComponents()[0].style['font-size']).toBe('24px !important');
+    window.removeEventListener(GUI_VARIANTS_STATE_EVENT, onState);
   });
 });

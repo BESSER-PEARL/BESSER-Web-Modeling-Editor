@@ -22,6 +22,7 @@ interface StudyDeployDialogProps {
   onPersonalizedChange?: (value: boolean) => void;
   onOpenChange: (open: boolean) => void;
   onDeploy: () => void;
+  onRedeploy?: () => void;
   onOpenAgent: (url: string) => void;
   onOpenWebsite: (url: string) => void;
 }
@@ -36,6 +37,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
   onPersonalizedChange,
   onOpenChange,
   onDeploy,
+  onRedeploy,
   onOpenAgent,
   onOpenWebsite,
 }) => {
@@ -56,7 +58,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-md"
+        className="grid-cols-[minmax(0,1fr)] sm:max-w-lg"
         onEscapeKeyDown={(e) => isDeploying && e.preventDefault()}
         onInteractOutside={(e) => isDeploying && e.preventDefault()}
         {...(isDeploying ? { 'data-deploying': '' } : {})}
@@ -69,7 +71,13 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
           )}
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
+          {!isDeploying && !result?.success && (
+            <p className="rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              {t('deploy.study.uploadNotice')}
+            </p>
+          )}
+
           {hasPersonalizationVariants && !isDeploying && !result && (
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input
@@ -95,7 +103,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
           )}
 
           {result?.success && (
-            <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
               <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
                 <div>
@@ -119,7 +127,7 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
                 const websiteLink = `${result.websiteUrl}${version}/`;
                 return (
                   <div key={version} className="flex items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    <span className="font-medium">{t('deploy.study.websiteLabel', { version })}</span>
+                    <span className="shrink-0 font-medium">{t('deploy.study.websiteLabel', { version })}</span>
                     <span className="min-w-0 flex-1 truncate font-mono">{websiteLink}</span>
                     <button type="button" onClick={() => handleCopy(websiteLink)} className="shrink-0 rounded p-1 hover:bg-muted" title={t('deploy.study.copyUrl')}>
                       <Copy className="size-3.5" />
@@ -149,13 +157,18 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-wrap gap-2">
           <Button variant="outline" onClick={handleClose} disabled={isDeploying}>
             {t('common.close')}
           </Button>
+          {result?.success && onRedeploy && (
+            <Button variant="outline" onClick={onRedeploy}>
+              {t('deploy.study.redeploy')}
+            </Button>
+          )}
 
           {result?.success ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" className="gap-2" onClick={() => onOpenAgent(result.url)}>
                 <ExternalLink className="size-4" />
                 {t('deploy.study.openAgent')}

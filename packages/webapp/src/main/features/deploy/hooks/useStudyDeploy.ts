@@ -10,7 +10,7 @@ import type { AgentRuntimeConfig } from '../../../shared/services/storage/local-
 import type { BesserProject } from '../../../shared/types/project';
 import type { GrapesJSProjectData } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { buildAllWebAppVersions, buildVersionGuiModel } from '../../../shared/utils/buildWebAppVersions';
+import { buildAllWebAppVersions, buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
 import { restoreBaseAgentModels, stripAgentConfigToSystem } from '../utils/restoreBaseAgentModels';
 import {
   buildPersonalizationMapping,
@@ -58,6 +58,22 @@ export const useStudyDeploy = () => {
       const guiModel = guiDiagram.model as GrapesJSProjectData;
       if (!Array.isArray(guiModel.pages) || guiModel.pages.length === 0) {
         throw new Error('The study website needs at least one modeled GUI page.');
+      }
+      if (personalized) {
+        // A personalized deployment needs BOTH products personalized, otherwise
+        // one of the two would silently ship its default version.
+        const storedVariants = (agentDiagram.config as Record<string, unknown> | undefined)?.personalizedVariants;
+        const agentPersonalized = Array.isArray(storedVariants) && storedVariants.length > 0;
+        const websitePersonalized = collectVariantProfiles(guiModel).length > 0;
+        if (!agentPersonalized && !websitePersonalized) {
+          throw new Error('Neither the agent nor the website has a personalized version yet. Complete the personalization process for both before deploying the personalized versions.');
+        }
+        if (!agentPersonalized) {
+          throw new Error('The agent has no personalized version yet. Complete the personalization process for the agent (Personalize button in the agent editor) before deploying the personalized versions.');
+        }
+        if (!websitePersonalized) {
+          throw new Error('The website has no personalized version yet. Complete the personalization process for the website (Personalize button in the GUI editor) before deploying the personalized versions.');
+        }
       }
       const versions = personalized ? buildAllWebAppVersions(guiModel, 'all', null) : [];
       const webAppVersions = versions.length ? versions : [{ slug: 'base', name: 'Base', guiModel: buildVersionGuiModel(guiModel, null) }];

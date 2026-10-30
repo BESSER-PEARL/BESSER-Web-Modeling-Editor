@@ -6,10 +6,9 @@ paths for compatibility with saved profiles. GUI rules are stored independently
 under `gui.content` for semantic adaptation and
 under `gui.presentation` and cover `language`, `languageComplexity`, `sentenceLength` plus text styling:
 `size`, `font`, `lineSpacing`, `alignment`, `color`, and `contrast`. These GUI fields are always
-available. In the GUI editor's **Create page variant** panel, select a user profile
-and enable **Apply defined GUI personalization rules** to apply these fields.
-This can be used alone or with **Auto-personalize with AI**. When combined, the
-explicit GUI rules are applied after the LLM result, so they take priority.
+available. Press **Personalize** in the top bar of the GUI editor and select a user profile:
+the profile's defined GUI rules are always applied (there is no separate AI-only
+option). Switch between Base and the variants with the **Variant** dropdown in the top bar.
 Rule-based variants start from the Base page and preserve its structure and
 bindings. Their snapshots are used by the existing profile-version generation.
 
@@ -23,8 +22,8 @@ component. The prompt prohibits inventing facilities, facts, or actions.
 Only modeled text slots are replaced; structure, styling, bindings, and stored
 data are preserved. Content runs before language, simplicity, and sentence length,
 so those explicit presentation choices also apply to the adapted content.
-Enable **Apply defined GUI personalization rules** in the page variant panel;
-this checkbox works independently of **Auto-personalize with AI** and Agent rules.
+These rules are applied when a page variant is created with **Personalize**;
+they work independently of Agent rules.
 
 GUI **Content â†’ Summarize long content** adds a short, easy-to-understand summary
 above prose blocks of at least 150 whitespace-separated words. Summaries use two
@@ -80,13 +79,11 @@ The GUI prompt follows W3C cognitive accessibility guidance on everyday words,
 short sentences, clear actions, and consistent labels. It asks for further
 simplification even when wording already meets A1â€“A2, while preserving facts,
 conditions, and exceptions. This is a rewriting objective, not a WCAG assessment.
-Enable **Apply defined GUI
-personalization rules** when creating a page variant; the general AI option can
-remain unchecked. The backend module `besser/generators/gui/gui_personalization.py`
+Creating a page variant with **Personalize**
+applies this rule. The backend module `besser/generators/gui/gui_personalization.py`
 extracts visible text and labels, rewrites them in a batch, and reinserts them
 without changing CSS, component structure, IDs, bindings, or stored data values.
-Original makes no text rewrite. If general AI is enabled as well, simplification
-is applied to its result before the deterministic styling rules.
+Original makes no text rewrite.
 
 Font size is a minimum expressed in pixels: smaller text is enlarged, while
 larger existing text keeps its size. This applies to table text as well.

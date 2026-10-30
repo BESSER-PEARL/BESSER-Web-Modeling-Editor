@@ -1,6 +1,11 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
-import { GUI_PERSONALIZE_EVENT } from '../../../../shared/constants/gui-personalize-event';
+import {
+  GUI_PERSONALIZE_EVENT,
+  GUI_VARIANTS_REQUEST_EVENT,
+  GUI_VARIANTS_STATE_EVENT,
+  GUI_VARIANT_SELECT_EVENT,
+} from '../../../../shared/constants/gui-personalize-event';
 import { isReadAloudVariant, setPageReadAloud, setupGuiReadAloudControls } from './guiReadAloudControls';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { apiClient, ApiError } from '../../../../shared/api/api-client';
@@ -339,8 +344,6 @@ const openProfilePickerModal = async (
     title: string;
     description: string;
     confirmLabel: string;
-    // When true, shows an "Auto-personalize with AI" checkbox.
-    personalizeToggle?: boolean;
     // Pages to choose from. The checklist is only shown for two or more pages.
     pages?: Array<{ id: string; name: string }>;
     onConfirm: (
@@ -362,26 +365,12 @@ const openProfilePickerModal = async (
 
   const modal = editor.Modal;
   const selectId = 'gjs-personalization-profile-select';
-  const toggleId = 'gjs-personalization-ai-toggle';
-  const rulesToggleId = 'gjs-personalization-rules-toggle';
-  const toggleHtml = options.personalizeToggle
-    ? `
-      <label style="display:flex; align-items:flex-start; gap:8px; margin-top:14px; cursor:pointer;">
-        <input type="checkbox" id="${toggleId}" style="margin-top:3px;" />
-        <span style="font-size:13px; color:#444; line-height:1.4;">
-          <strong>✨ Auto-personalize with AI</strong><br/>
-          <span style="color:#777;">Use an LLM to adapt the page's content and style to this profile.</span>
-        </span>
-      </label>
-      <label style="display:flex; align-items:flex-start; gap:8px; margin-top:12px; cursor:pointer;">
-        <input type="checkbox" id="${rulesToggleId}" style="margin-top:3px;" />
-        <span style="font-size:13px; color:#444; line-height:1.4;">
-          <strong>Apply defined GUI personalization rules</strong><br/>
-          <span style="color:#777;">Apply this profile's GUI content, text, and styling rules. Content adaptation and text changes use an LLM. Can be used alone or together with AI; defined rules take priority.</span>
-          <span id="gjs-personalization-rules-status" role="status" style="display:block; color:#777; margin-top:4px;"></span>
-        </span>
-      </label>`
-    : '';
+  const toggleHtml = `
+      <div style="margin-top:14px; font-size:13px; color:#444; line-height:1.4;">
+        <strong>Defined GUI personalization rules</strong><br/>
+        <span style="color:#777;">The page is adapted with this profile's GUI content, text and styling rules. Content adaptation and text changes use an LLM.</span>
+        <span id="gjs-personalization-rules-status" role="status" style="display:block; color:#777; margin-top:4px;"></span>
+      </div>`;
   const pageChoices = options.pages && options.pages.length >= 2 ? options.pages : [];
   const pagesHtml = pageChoices.length
     ? `
@@ -422,23 +411,23 @@ const openProfilePickerModal = async (
     const cancelBtn = document.getElementById('gjs-personalization-cancel-btn');
     const confirmBtn = document.getElementById('gjs-personalization-confirm-btn');
     const select = document.getElementById(selectId) as HTMLSelectElement | null;
-    const toggle = document.getElementById(toggleId) as HTMLInputElement | null;
-    const rulesToggle = document.getElementById(rulesToggleId) as HTMLInputElement | null;
     const rulesStatus = document.getElementById('gjs-personalization-rules-status');
-    let rulesAvailabilityInitialized = false;
+    let hasRules = false;
+    let hasPages = true;
+    const refreshConfirm = () => {
+      if (!confirmBtn) return;
+      const enabled = hasRules && hasPages;
+      (confirmBtn as HTMLButtonElement).disabled = !enabled;
+      confirmBtn.style.opacity = enabled ? '1' : '0.5';
+    };
     const updateRulesAvailability = () => {
       const profile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
       const count = Object.keys(aggregateGuiPresentation(profile.model)).length + Object.keys(aggregateGuiContent(profile.model)).length + (guiReadAloudEnabled(profile.model) ? 1 : 0);
-      if (rulesToggle) {
-        const wasDisabled = rulesToggle.disabled;
-        rulesToggle.disabled = count === 0;
-        if (count === 0) rulesToggle.checked = false;
-        else if (!rulesAvailabilityInitialized || wasDisabled) rulesToggle.checked = true;
-      }
+      hasRules = count > 0;
       if (rulesStatus) rulesStatus.textContent = count > 0
         ? `${count} GUI setting${count === 1 ? '' : 's'} defined for this profile.${guiReadAloudEnabled(profile.model) ? ' Read aloud adds Play controls below text blocks.' : ''}`
-        : 'No GUI rules defined. Add them under GUI → Presentation, Content, or Modality in the user profile.';
-      rulesAvailabilityInitialized = true;
+        : 'No GUI rules defined for this profile. Add them under GUI \u2192 Presentation, Content, or Modality in the user profile first.';
+      refreshConfirm();
     };
     updateRulesAvailability();
     select?.addEventListener('change', updateRulesAvailability);
@@ -453,11 +442,8 @@ const openProfilePickerModal = async (
         allPages.checked = count === pageChecks.length;
         allPages.indeterminate = count > 0 && count < pageChecks.length;
       }
-      if (confirmBtn) {
-        const noPage = pageChecks.length > 0 && count === 0;
-        (confirmBtn as HTMLButtonElement).disabled = noPage;
-        confirmBtn.style.opacity = noPage ? '0.5' : '1';
-      }
+      hasPages = !(pageChecks.length > 0 && count === 0);
+      refreshConfirm();
     };
     allPages?.addEventListener('change', () => {
       pageChecks.forEach((check) => { check.checked = allPages.checked; });
@@ -468,8 +454,8 @@ const openProfilePickerModal = async (
     cancelBtn?.addEventListener('click', () => modal.close());
     confirmBtn?.addEventListener('click', async () => {
       const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
-      const personalize = !!toggle?.checked;
-      const applyRules = !!rulesToggle?.checked && !rulesToggle.disabled;
+      const personalize = false; // the AI-only adaptation was removed: defined rules are the only option
+      const applyRules = true;
       const pageIds = pageChecks.length ? selectedPageIds() : (options.pages ?? []).map((choice) => choice.id);
       modal.close();
       await options.onConfirm(selectedProfile, { personalize, applyRules, pageIds });
@@ -716,7 +702,6 @@ const openAddVariantModal = async (editor: Editor, pages: any[], options?: { cho
       ? 'Choose a user profile and the pages to personalize.'
       : `Choose a user profile to create a personalized variant of "${pages[0]?.getName?.()}".`,
     confirmLabel: choosePages ? 'Create variants' : 'Create variant',
-    personalizeToggle: true,
     pages: choosePages ? pages.map((page) => ({ id: page.getId(), name: page.getName() })) : undefined,
     onConfirm: async (profile, { personalize, applyRules, pageIds }) => {
       const targets = choosePages ? pages.filter((page) => pageIds.includes(page.getId())) : pages;
@@ -748,7 +733,25 @@ export function setupPageSystem(editor: Editor) {
   // The top bar button cannot reach the editor instance, so it sends an event.
   const onTopBarPersonalize = () => editor.runCommand('personalization:add-variant');
   window.addEventListener(GUI_PERSONALIZE_EVENT, onTopBarPersonalize);
-  editor.on('destroy', () => window.removeEventListener(GUI_PERSONALIZE_EVENT, onTopBarPersonalize));
+
+  // The variant dropdown of the top bar switches the selected page between Base and a profile variant.
+  const onTopBarVariantSelect = (event: Event) => {
+    const page = editor.Pages?.getSelected();
+    if (!page) return;
+    const variantId = (event as CustomEvent<{ variantId?: string | null }>).detail?.variantId || null;
+    switchVariant(editor, page, variantId);
+    updatePagesList(editor);
+    captureAnalyticsEvent('gui_personalization_variant_selected', { variant: variantId ? 'profile' : 'base' });
+  };
+  const onTopBarVariantsRequest = () => publishVariantState(editor);
+  window.addEventListener(GUI_VARIANT_SELECT_EVENT, onTopBarVariantSelect);
+  window.addEventListener(GUI_VARIANTS_REQUEST_EVENT, onTopBarVariantsRequest);
+  editor.on('destroy', () => {
+    window.removeEventListener(GUI_PERSONALIZE_EVENT, onTopBarPersonalize);
+    window.removeEventListener(GUI_VARIANT_SELECT_EVENT, onTopBarVariantSelect);
+    window.removeEventListener(GUI_VARIANTS_REQUEST_EVENT, onTopBarVariantsRequest);
+    window.dispatchEvent(new CustomEvent(GUI_VARIANTS_STATE_EVENT, { detail: { options: [], activeId: null } }));
+  });
   
   // Suppress harmless ResizeObserver warning in development
   if (import.meta.env.DEV) {
@@ -970,7 +973,24 @@ function restoreOtherPanels() {
   });
 }
 
+// Tell the top bar which variants the selected page has (Base + one per profile).
+function publishVariantState(editor: Editor) {
+  try {
+    const page = editor.Pages?.getSelected();
+    const variants = page ? getPageVariants(page) : [];
+    window.dispatchEvent(new CustomEvent(GUI_VARIANTS_STATE_EVENT, {
+      detail: {
+        options: variants.map((v) => ({ id: v.id, label: v.profileName })),
+        activeId: page ? getActiveVariantId(page) : null,
+      },
+    }));
+  } catch (err) {
+    console.warn('[Personalization] could not publish variant state:', err);
+  }
+}
+
 function updatePagesList(editor: Editor) {
+  publishVariantState(editor);
   const list = document.getElementById('gjs-pages-list');
   if (!list || !editor.Pages) return;
   
@@ -994,8 +1014,8 @@ function updatePagesList(editor: Editor) {
       const item = document.createElement('div');
       item.className = 'gjs-page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
       
-      // Only the page name + route are shown here. Personalized variants stay
-      // accessible via the variant dropdown in the actions row.
+      // Only the page name + route are shown here. Personalized variants are created with
+      // the Personalize button and switched with the variant dropdown of the top bar.
       item.innerHTML = `
         <div class="gjs-page-info">
           <span class="gjs-page-name">${escapeHtml(page.getName())}</span>
@@ -1017,22 +1037,11 @@ function updatePagesList(editor: Editor) {
               <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn add-variant-btn" title="Add personalized variant" aria-label="Add personalized variant">
-            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
-              <path d="M12,12A4,4 0 1,0 8,8A4,4 0 0,0 12,12M12,14C9.33,14 4,15.33 4,18V20H20V18C20,15.33 14.67,14 12,14M19,8V5H17V8H14V10H17V13H19V10H22V8Z" />
-            </svg>
-          </button>
           <button class="gjs-page-btn read-aloud-btn" title="${isReadAloudVariant(page) ? 'Disable' : 'Enable'} read aloud" aria-label="Toggle read aloud" aria-pressed="${isReadAloudVariant(page)}" style="${isReadAloudVariant(page) ? 'color:#1d4ed8;' : ''}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M3,9V15H7L12,20V4L7,9M16.5,12A4.5,4.5 0 0,0 14,7.97V16.02C15.5,15.29 16.5,13.77 16.5,12M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23Z" />
             </svg>
           </button>
-          ${variants.length > 0 ? `
-          <select class="gjs-page-variants-select" title="Switch variant" aria-label="Switch variant" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
-            <option value="">Base</option>
-            ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${escapeHtml(v.profileName)}</option>`).join('')}
-          </select>
-          ` : ''}
           <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
@@ -1109,22 +1118,6 @@ function updatePagesList(editor: Editor) {
         updatePagesList(editor);
       });
 
-      // Variant dropdown: switch between personalization variants ('' = Base).
-      // switchVariant() saves the live canvas into the outgoing record before
-      // loading the incoming one, so edits never leak across profiles.
-      (item.querySelector('.gjs-page-variants-select') as HTMLSelectElement)?.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const select = e.target as HTMLSelectElement;
-        switchVariant(editor, page, select.value || null);
-        updatePagesList(editor);
-        captureAnalyticsEvent('gui_personalization_variant_selected', { variant: select.value ? 'profile' : 'base' });
-      });
-
-      // Add variant button
-      item.querySelector('.add-variant-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        void openAddVariantModal(editor, [page]);
-      });
       
       item.querySelector('.delete-page-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();

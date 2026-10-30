@@ -4,10 +4,13 @@ import { GraduationCap, Layers, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type TutorialId = 'personalization';
+type SectionId = 'agent' | 'gui';
 
 interface TutorialStep {
   titleKey: string;
   bodyKey: string;
+  /** Branch of the tutorial; steps without a section are shared by all branches. */
+  section?: SectionId;
   image?: {
     src: string;
     altKey: string;
@@ -21,39 +24,46 @@ interface Tutorial {
   steps: TutorialStep[];
 }
 
+const P = 'tutorials.personalization';
+
 const tutorials: Tutorial[] = [
   {
     id: 'personalization',
-    labelKey: 'tutorials.personalization.label',
-    summaryKey: 'tutorials.personalization.summary',
+    labelKey: `${P}.label`,
+    summaryKey: `${P}.summary`,
     steps: [
+      { titleKey: `${P}.modelUsers.title`, bodyKey: `${P}.modelUsers.body` },
       {
-        titleKey: 'tutorials.personalization.modelUsers.title',
-        bodyKey: 'tutorials.personalization.modelUsers.body',
+        titleKey: `${P}.defineSpecs.title`,
+        bodyKey: `${P}.defineSpecs.body`,
+        image: { src: '/images/help/tutorials/help-tutorials-user-diagram.png', altKey: `${P}.defineSpecs.imageAlt` },
       },
       {
-        titleKey: 'tutorials.personalization.defineSpecs.title',
-        bodyKey: 'tutorials.personalization.defineSpecs.body',
-        image: {
-          src: '/images/help/tutorials/help-tutorials-user-diagram.png',
-          altKey: 'tutorials.personalization.defineSpecs.imageAlt',
-        },
+        section: 'agent',
+        titleKey: `${P}.createVariants.title`,
+        bodyKey: `${P}.createVariants.body`,
+        image: { src: '/images/help/tutorials/help-tutorials-agent-variants.png', altKey: `${P}.createVariants.imageAlt` },
       },
+      { section: 'agent', titleKey: `${P}.agentRecommendation.title`, bodyKey: `${P}.agentRecommendation.body` },
       {
-        titleKey: 'tutorials.personalization.createVariants.title',
-        bodyKey: 'tutorials.personalization.createVariants.body',
-        image: {
-          src: '/images/help/tutorials/help-tutorials-agent-variants.png',
-          altKey: 'tutorials.personalization.createVariants.imageAlt',
-        },
+        section: 'gui',
+        titleKey: `${P}.gui.base.title`,
+        bodyKey: `${P}.gui.base.body`,
+        image: { src: '/images/help/tutorials/help-tutorials-gui-original.png', altKey: `${P}.gui.base.imageAlt` },
       },
+      { section: 'gui', titleKey: `${P}.gui.rules.title`, bodyKey: `${P}.gui.rules.body` },
+      { section: 'gui', titleKey: `${P}.gui.apply.title`, bodyKey: `${P}.gui.apply.body` },
       {
-        titleKey: 'tutorials.personalization.agentRecommendation.title',
-        bodyKey: 'tutorials.personalization.agentRecommendation.body',
+        section: 'gui',
+        titleKey: `${P}.gui.result.title`,
+        bodyKey: `${P}.gui.result.body`,
+        image: { src: '/images/help/tutorials/help-tutorials-gui-adapted.png', altKey: `${P}.gui.result.imageAlt` },
       },
     ],
   },
 ];
+
+const sections: SectionId[] = ['agent', 'gui'];
 
 const bodyComponents = {
   p: <p />,
@@ -116,14 +126,40 @@ export const TutorialsPage: React.FC = () => {
               <Layers className="size-4 text-brand" />
               <h2 className="text-base font-semibold">{t(selectedTutorial.labelKey)}</h2>
             </div>
-            <p className="mb-6 text-sm text-muted-foreground">{t(selectedTutorial.summaryKey)}</p>
+            <p className="mb-4 text-sm text-muted-foreground">{t(selectedTutorial.summaryKey)}</p>
+            <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t('tutorials.personalization.jumpTo')}</span>
+              {sections.map((section) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => document.getElementById(`tutorial-section-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="rounded-md border border-border/70 bg-background px-3 py-1 text-muted-foreground transition hover:border-brand/30 hover:text-foreground"
+                >
+                  {t(`tutorials.personalization.sections.${section}`)}
+                </button>
+              ))}
+            </div>
 
             <div className="space-y-4">
-              {selectedTutorial.steps.map((step, index) => (
-                <div key={step.titleKey} className="rounded-lg border border-border/70 bg-card p-5">
+              {selectedTutorial.steps.map((step, index) => {
+                const sharedCount = selectedTutorial.steps.filter((x) => !x.section).length;
+                const number = step.section
+                  ? sharedCount + selectedTutorial.steps.filter((x, i) => i <= index && x.section === step.section).length
+                  : index + 1;
+                const startsSection =
+                  !!step.section && selectedTutorial.steps.findIndex((x) => x.section === step.section) === index;
+                return (
+                <React.Fragment key={step.titleKey}>
+                {startsSection && (
+                  <h2 id={`tutorial-section-${step.section}`} className="scroll-mt-4 pt-4 text-base font-semibold text-foreground">
+                    {t(`tutorials.personalization.sections.${step.section}`)}
+                  </h2>
+                )}
+                <div className="rounded-lg border border-border/70 bg-card p-5">
                   <div className="mb-3 flex items-start gap-3">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-bold text-brand">
-                      {index + 1}
+                      {number}
                     </span>
                     <h3 className="pt-0.5 font-semibold text-foreground">{t(step.titleKey)}</h3>
                   </div>
@@ -141,7 +177,9 @@ export const TutorialsPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-              ))}
+                </React.Fragment>
+                );
+              })}
             </div>
 
             {/* Footer link back */}

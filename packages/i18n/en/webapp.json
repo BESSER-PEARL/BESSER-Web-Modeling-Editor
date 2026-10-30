@@ -35,7 +35,9 @@
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
       "notValidated": "Not validated"
-    }
+    },
+    "baseGuiPage": "Base page",
+    "selectGuiVariant": "Select page variant"
   },
   "nav": {
     "editors": "Editors",
@@ -47,7 +49,7 @@
       "state": "State",
       "agent": "Agent",
       "bpmn": "BPMN",
-      "user": "User",
+      "user": "User Profile",
       "neuralNet": "Neural Net",
       "gui": "GUI",
       "quantum": "Quantum"
@@ -1258,6 +1260,8 @@
       "successTitle": "Study applications are ready!",
       "successDesc": "Your website and agent are deployed and ready to test.",
       "openAgent": "Open Agent",
+      "redeploy": "Redeploy",
+      "uploadNotice": "Note: deploying also uploads your models to the study server. This is part of the study.",
       "openWebsite": "Open Website",
       "agentLabel": "Agent",
       "websiteLabel": "Website ({{version}})",
@@ -2462,24 +2466,49 @@
     "docsLink": "Open BESSER Documentation",
     "personalization": {
       "label": "Personalization",
-      "summary": "People differ in their needs, abilities, preferences, and expectations. The default application might not be inclusive, accessible, or user friendly enough for everyone. In BESSER, you start from a single base application and describe the groups of people who will use it. The tool then generates one adapted version per group automatically, while keeping the core behavior shared across all of them. This tutorial walks you through that process using a gym chatbot as a running example, designed for two groups with very different needs.",
+      "summary": "People differ in their needs, abilities, preferences, and expectations. The default application might not be inclusive, accessible, or user friendly enough for everyone. In BESSER, you start from a single base application and describe the groups of people who will use it. The tool then generates one adapted version per group automatically, while keeping the core behavior shared across all of them. This tutorial starts with the user model, shared by every target, then shows how to adapt an agent and how to adapt a GUI.",
       "modelUsers": {
-        "title": "Step 1. Model Your Users",
-        "body": "<p>Open the sidebar and switch to the <strong>User Diagram</strong>. This is where you describe the people your system is designed for.</p><p>Drag a <strong>User</strong> element onto the canvas for each group you want to support. For the gym chatbot, add one named <code>YoungParaplegic</code> and one named <code>OlderAdult</code>. Each element represents a category of users, not a single individual. These become the foundation for everything that follows.</p>"
+        "title": "Model Your Users",
+        "body": "<p>Open the sidebar and switch to the <strong>User Diagram</strong>. This is where you describe the people your system is designed for, whether you adapt an agent or a GUI.</p><p>Drag a <strong>User</strong> element onto the canvas for each group you want to support, for example <code>YoungParaplegic</code> and <code>OlderAdult</code>. Each element represents a category of users, not a single individual. The same profiles are used for every target: the only difference is the model you personalize afterwards.</p>"
       },
       "defineSpecs": {
-        "title": "Step 2. Describe What Makes Each Group Different",
+        "title": "Describe What Makes Each Group Different",
         "imageAlt": "User Diagram with a ParaplegicYoung user connected to a Disability element and an age attribute set to under 14, an Elderly user with an age attribute set to over 65, and the personalization properties panel open on the right",
         "body": "<p>Click a User element to open its properties. Fill in the attributes that describe that group. For <code>YoungParaplegic</code>, you might indicate a young age range, a physical disability, and a need for exercise guidance adapted to limited lower-body mobility. For <code>OlderAdult</code>, you might indicate an older age range, a preference for simple and encouraging language, and a slower interaction pace.</p><p>The available attributes include age, skills, language, education, and accessibility needs. You do not need to fill in everything. Focus on the differences that actually matter for how your system should behave with each group.</p>"
       },
       "createVariants": {
-        "title": "Step 3. Generate the Adapted Variants",
+        "title": "Generate the Adapted Variants",
         "imageAlt": "Agent Diagram showing a gym chatbot with the variant selector dropdown open, listing Base agent model, ParaplegicYoung, and Elderly as available variants",
         "body": "<p>Once your users are described, open the model you want to adapt. Switch to your <strong>Agent Diagram</strong> and click the <strong>Personalize</strong> button in the top bar (the people icon). Select the user groups you want to target and confirm.</p><p>The editor creates one adapted variant of your agent per selected group. For the gym chatbot, you get a YoungParaplegic variant and an OlderAdult variant, each adjusted to fit that group while sharing the same conversation structure. You can switch between them using the selector in the top bar and edit each one independently before deploying.</p>"
       },
       "agentRecommendation": {
-        "title": "Not Sure Where to Start. Let the Tool Suggest Adaptations",
+        "title": "Optional: Let the Tool Suggest Adaptations",
         "body": "<p>If you are not sure how your agent should behave differently for each user group, BESSER can help you figure that out. While viewing your <strong>User Diagram</strong>, click the <strong>Recommend</strong> button in the top bar (the sparkle icon). The tool looks at your user descriptions and suggests what adaptations would make sense for each group.</p><p>You can review those suggestions, adjust anything that does not fit, and then apply them to generate your variants. This works well as a starting point when you have described your users but are still thinking through what the differences should mean in practice.</p>"
+      },
+      "jumpTo": "Jump to:",
+      "sections": {
+        "agent": "Adapting an agent",
+        "gui": "Adapting a GUI"
+      },
+      "gui": {
+        "base": {
+          "title": "Start from the Base Page",
+          "imageAlt": "GUI editor showing the Madrid Residence Certificate page in its original version, with normal text size and spacing",
+          "body": "<p>Design the page once in the <strong>GUI Diagram</strong>. This is the <strong>Base</strong> version, shared by all users. The example is a city council page.</p>"
+        },
+        "rules": {
+          "title": "Define the Profile's GUI Rules",
+          "body": "<p>In the <strong>User Diagram</strong>, open the personalization settings of the profile (here <code>Elderly</code>) and set the GUI rules:</p><ul><li>a <strong>larger text size</strong></li><li>a <strong>larger line spacing</strong></li><li>a <strong>simpler language complexity</strong> and shorter sentences</li></ul>"
+        },
+        "apply": {
+          "title": "Personalize the Page",
+          "body": "<p>In the <strong>GUI Diagram</strong>, click <strong>Personalize</strong> in the top bar and choose the profile (and the pages to adapt). The defined GUI rules of the profile are applied to a copy of the page. The Base page stays unchanged.</p>"
+        },
+        "result": {
+          "title": "Review the Variant",
+          "imageAlt": "GUI editor showing the Elderly variant of the same page, with larger text, more spacing and shorter, simpler sentences",
+          "body": "<p>Use the <strong>Variant</strong> dropdown in the top bar (here <code>Elderly</code>) to switch between the Base page and the variant of the selected page: bigger text, more spacing, simpler and shorter wording. You can still edit the variant by hand.</p><p>Deploy or generate the app to get one version per profile.</p>"
+        }
       }
     }
   }

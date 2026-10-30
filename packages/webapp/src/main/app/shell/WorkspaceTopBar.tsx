@@ -10,6 +10,7 @@ import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
+import { GuiVariantSelector } from './menus/GuiVariantSelector';
 import { HelpMenu } from './menus/HelpMenu';
 import { MobileNavigation } from './menus/MobileNavigation';
 import { TopBarUtilities } from './menus/TopBarUtilities';
@@ -193,6 +194,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalize.title')}</span>
             </Button>
           )}
+          {activeDiagramType === 'GUINoCodeDiagram' && <GuiVariantSelector />}
           {activeDiagramType === 'UserDiagram' && onOpenRecommendPersonalizationDialog && (
             <Button
               variant="outline"

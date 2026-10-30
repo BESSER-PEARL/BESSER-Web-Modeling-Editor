@@ -7,7 +7,7 @@
     "description": "Workspace to create the museum assistant. ",
     "owner": "Study Participant",
     "createdAt": "2026-10-20T11:40:26.029Z",
-    "currentDiagramType": "GUINoCodeDiagram",
+    "currentDiagramType": "UserDiagram",
     "currentDiagramIndices": {
       "ClassDiagram": 0,
       "ObjectDiagram": 0,

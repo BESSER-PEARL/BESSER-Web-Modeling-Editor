@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { SketchPicker } from 'react-color';
 import styled from 'styled-components';
 import { Divider } from '../../../components/controls/divider/divider';
@@ -57,14 +58,6 @@ const SectionTitle = styled.div`
   opacity: 0.7;
 `;
 
-const SubTitle = styled.div`
-  font-weight: 500;
-  margin: 8px 0 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.5;
-`;
-
 const Row = styled.label`
   display: flex;
   align-items: center;
@@ -101,37 +94,25 @@ const ToggleButton = styled.button<{ active?: boolean }>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 6px;
-  border: 1px solid ${({ active }) => (active ? 'rgba(120, 100, 255, 0.55)' : 'rgba(127, 127, 127, 0.3)')};
-  border-radius: 6px;
-  padding: 7px 10px;
+  gap: 8px;
+  border: 2px solid ${({ active }) => (active ? 'rgba(120, 100, 255, 0.8)' : 'rgba(120, 100, 255, 0.45)')};
+  border-radius: 8px;
+  padding: 11px 14px;
   background: ${({ active }) =>
     active
-      ? 'linear-gradient(135deg, rgba(120, 100, 255, 0.15) 0%, rgba(80, 150, 255, 0.08) 100%)'
-      : 'rgba(127, 127, 127, 0.07)'};
+      ? 'linear-gradient(135deg, rgba(120, 100, 255, 0.24) 0%, rgba(80, 150, 255, 0.14) 100%)'
+      : 'linear-gradient(135deg, rgba(120, 100, 255, 0.12) 0%, rgba(80, 150, 255, 0.06) 100%)'};
   color: inherit;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 700;
   box-sizing: border-box;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   &:hover {
-    background: ${({ active }) =>
-      active
-        ? 'linear-gradient(135deg, rgba(120, 100, 255, 0.22) 0%, rgba(80, 150, 255, 0.14) 100%)'
-        : 'rgba(127, 127, 127, 0.13)'};
-    border-color: ${({ active }) => (active ? 'rgba(120, 100, 255, 0.75)' : 'rgba(127, 127, 127, 0.5)')};
-    box-shadow: ${({ active }) => (active ? '0 0 0 3px rgba(120, 100, 255, 0.08)' : 'none')};
+    background: linear-gradient(135deg, rgba(120, 100, 255, 0.28) 0%, rgba(80, 150, 255, 0.18) 100%);
+    border-color: rgba(120, 100, 255, 0.9);
+    box-shadow: 0 0 0 3px rgba(120, 100, 255, 0.12);
   }
-`;
-
-const ButtonDescription = styled.div`
-  font-size: 12px;
-  opacity: 0.5;
-  margin-top: 5px;
-  margin-bottom: 2px;
-  line-height: 1.4;
-  padding: 0 2px;
 `;
 
 const ShowAllToggle = styled.button`
@@ -148,6 +129,83 @@ const ShowAllToggle = styled.button`
   &:hover {
     opacity: 0.9;
     text-decoration: underline;
+  }
+`;
+
+const InfoButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px auto;
+  border: 1px solid rgba(120, 100, 255, 0.5);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: rgba(120, 100, 255, 0.1);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  &:hover {
+    background: rgba(120, 100, 255, 0.2);
+  }
+`;
+
+const HelpOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+`;
+
+const HelpDialog = styled.div`
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background: ${(props) => props.theme.color.background};
+  color: ${(props) => props.theme.color.primaryContrast};
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+  line-height: 1.5;
+  h3 {
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+  h4 {
+    margin: 16px 0 6px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  p {
+    margin: 0 0 6px;
+  }
+  ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  li {
+    margin: 3px 0;
+  }
+`;
+
+const HelpClose = styled.button`
+  float: right;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  &:hover {
+    opacity: 1;
   }
 `;
 
@@ -487,7 +545,51 @@ const TextStyleFields: React.FC<{
   </>
 );
 
+const PersonalizationHelp: React.FC<{ onClose: () => void }> = ({ onClose }) =>
+  createPortal(
+    <HelpOverlay onClick={onClose}>
+      <HelpDialog role="dialog" aria-label="What can I set?" onClick={(e) => e.stopPropagation()}>
+        <HelpClose type="button" aria-label="Close" onClick={onClose}>×</HelpClose>
+        <h3>What can I set?</h3>
+        <p>
+          Describe how the agent and the website should change for this group of users.
+          Leave a setting on <strong>Original</strong> to keep things as they are.
+        </p>
+
+        <h4>Agent</h4>
+        <ul>
+          <li><strong>Language</strong>: the language the agent answers in.</li>
+          <li><strong>Conversational tone</strong>: how the agent talks to the user (formal, friendly, ...).</li>
+          <li><strong>Explanation style</strong>: direct (just the facts), step-by-step, or told as a short story.</li>
+          <li><strong>Language complexity</strong>: simple or complex words.</li>
+          <li><strong>Sentence length</strong>: shorter or longer sentences.</li>
+          <li><strong>Use abbreviations</strong>: allow short forms such as "e.g.".</li>
+          <li><strong>Interface</strong>: text size, font, line spacing, alignment, contrast and color of the chat.</li>
+          <li><strong>Adapt content to this user profile</strong>: the agent adjusts what it says to the profile, using the information it already has.</li>
+          <li><strong>Input / Output</strong>: how the user talks to the agent and how it answers (text or speech).</li>
+          <li><strong>Voice gender / speed</strong>: the voice used when the agent speaks. Needs speech output.</li>
+        </ul>
+
+        <h4>GUI (website)</h4>
+        <ul>
+          <li><strong>Language</strong>: the language of the page text.</li>
+          <li><strong>Text complexity and sentence length</strong>: simpler words and shorter sentences.</li>
+          <li><strong>Text styling</strong>: bigger text, other font, more line spacing, alignment, contrast and color.</li>
+          <li><strong>Adapt content to this user profile</strong>: rewrites parts of the page so they fit the profile.</li>
+          <li><strong>Summarize long content</strong>: adds a short, easy summary above long texts. The full text stays.</li>
+          <li><strong>Read text aloud</strong>: adds Play buttons below the texts so they can be listened to.</li>
+        </ul>
+
+        <p style={{ marginTop: 14, opacity: 0.75 }}>
+          Changes to wording, summaries and content are made automatically by an AI model, keeping the meaning of the text.
+        </p>
+      </HelpDialog>
+    </HelpOverlay>,
+    document.body,
+  );
+
 export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label, defaultOpen, suggestedFields }) => {
+  const [helpOpen, setHelpOpen] = useState(false);
   const [open, setOpen] = useState<boolean>(defaultOpen ?? !isPersonalizationSpecEmpty(value));
   const [showAll, setShowAll] = useState(false);
   const spec = value ?? {};
@@ -585,19 +687,21 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
         title="Configure agent and GUI personalization for this user group"
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ opacity: 0.7, fontSize: 12, lineHeight: 1 }}>✦</span>
+          <span style={{ opacity: 0.9, fontSize: 18, lineHeight: 1 }}>✦</span>
           {label ?? 'Personalization'}
           {active && <Dot />}
         </span>
-        <span style={{ opacity: 0.55, fontSize: 11 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ opacity: 0.75, fontSize: 14 }}>{open ? '▾' : '▸'}</span>
       </ToggleButton>
-      <ButtonDescription>
-        Define agent and GUI personalization separately for this user group.
-        {' '}Original keeps the current setting. Choose another option or enter a value to change it.
-      </ButtonDescription>
 
       {open && (
         <div style={{ marginTop: 6 }}>
+          <div style={{ display: 'flex' }}>
+            <InfoButton type="button" onClick={() => setHelpOpen(true)} title="Explains everything you can set">
+              <span aria-hidden>ⓘ</span> What can I set?
+            </InfoButton>
+          </div>
+          {helpOpen && <PersonalizationHelp onClose={() => setHelpOpen(false)} />}
           <TargetSection aria-label="Agent personalization">
             <TargetTitle>AGENT</TargetTitle>
             {/* Section 1: language/style/complexity + interface styling */}
@@ -647,12 +751,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                         ))}
                       </Select>
                     </Row>
-                    <ButtonDescription>
-                      {EXPLANATION_STYLE_HELP}{' '}
-                      {presentation.explanationStyle && presentation.explanationStyle !== 'original' && (
-                        <>Example: {EXPLANATION_STYLE_OPTIONS.find((option) => option.value === presentation.explanationStyle)?.example}</>
-                      )}
-                    </ButtonDescription>
                   </>
                 )}
                 {isVisible('presentation.languageComplexity') && (
@@ -694,7 +792,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
 
                 {interfaceVisible && (
                   <>
-                    <SubTitle>Interface</SubTitle>
                     <TextStyleFields
                       presentation={presentation}
                       onChange={patchPresentation}
@@ -768,9 +865,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                       </CheckLabel>
                     </CheckGroup>
                   </CheckRow>
-                )}
-                {!speechOutputEnabled && (isVisible('modality.voiceGender') || isVisible('modality.voiceSpeed')) && (
-                  <ButtonDescription>Enable speech in Output to set voice gender and voice speed.</ButtonDescription>
                 )}
                 {isVisible('modality.voiceGender') && (
                   <Row style={{ opacity: speechOutputEnabled ? 1 : 0.45 }}>
@@ -848,8 +942,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                   ))}
                 </Select>
               </Row>
-              <ButtonDescription>Language, Simple text, and sentence length use an LLM to adapt wording while keeping its meaning.</ButtonDescription>
-              <SubTitle>Text styling</SubTitle>
               <TextStyleFields presentation={guiPresentation} onChange={patchGuiPresentation} />
             </Section>
             <Section>
@@ -863,7 +955,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                   onChange={(event) => patchGuiContent({ adaptContentToUserProfile: event.target.checked || undefined })}
                 />
               </CheckRow>
-              <ButtonDescription>Use an LLM to review each component and adapt relevant content to this profile, using information already available on the page.</ButtonDescription>
               <CheckRow as="label" style={{ alignItems: 'flex-start' }}>
                 <RowLabel style={{ whiteSpace: 'normal' }}>Summarize long content</RowLabel>
                 <input
@@ -872,7 +963,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                   onChange={(event) => patchGuiContent({ summarizeLongContent: event.target.checked || undefined })}
                 />
               </CheckRow>
-              <ButtonDescription>Add a short, easy-to-understand summary above text blocks of 150 words or more. The full text stays available. Uses an LLM.</ButtonDescription>
             </Section>
             <Section>
               <SectionTitle>Modality</SectionTitle>
@@ -884,7 +974,6 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                     recordGuiRuleChange('readAloud', event.target.checked);
                   }} />
               </CheckRow>
-              <ButtonDescription>Show Play controls below text blocks and summaries after applying GUI rules. Click Play to generate and listen to a temporary preview. The exported app also includes listening controls.</ButtonDescription>
             </Section>
           </TargetSection>
         </div>
