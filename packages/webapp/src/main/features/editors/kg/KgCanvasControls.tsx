@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, Link2 } from 'lucide-react';
 import {
@@ -8,7 +8,6 @@ import {
   UndoIcon,
   ZoomInIcon,
   ZoomOutIcon,
-  usePublishControlsRight,
 } from '@besser/wme';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CytoscapeCanvasHandle } from './CytoscapeCanvas';
@@ -57,7 +56,7 @@ const ControlButton: React.FC<{
         </button>
       </span>
     </TooltipTrigger>
-    <TooltipContent side="top" className="max-w-64">
+    <TooltipContent side="left" className="max-w-64">
       {tooltip ?? label}
     </TooltipContent>
   </Tooltip>
@@ -77,8 +76,6 @@ export const KgCanvasControls: React.FC<Props> = ({
   onExportHtml,
 }) => {
   const { t } = useTranslation();
-  const [bar, setBar] = useState<HTMLDivElement | null>(null);
-  usePublishControlsRight(bar, bar?.parentElement);
   const zoom = useSyncExternalStore(
     useCallback((onChange: () => void) => canvasRef.current?.subscribeZoom(onChange) ?? (() => {}), [canvasRef]),
     () => canvasRef.current?.getZoom() ?? 1,
@@ -88,7 +85,7 @@ export const KgCanvasControls: React.FC<Props> = ({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div ref={setBar} className="besser-canvas-controls" role="toolbar">
+      <div className="besser-canvas-controls" role="toolbar" aria-orientation="vertical">
         <ControlButton
           label={t('editors.kg.canvasControls.zoomIn')}
           onClick={() => canvasRef.current?.zoomIn()}
@@ -129,7 +126,7 @@ export const KgCanvasControls: React.FC<Props> = ({
               {Math.round(zoom * 100)}%
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top">{resetZoom}</TooltipContent>
+          <TooltipContent side="left">{resetZoom}</TooltipContent>
         </Tooltip>
         <span className="control-divider" aria-hidden="true" />
         <ControlButton

@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react"
+import { useState, type MouseEvent } from "react"
 import { Controls, useReactFlow, useStore } from "@xyflow/react"
 import {
   useDiagramStore,
@@ -11,7 +11,6 @@ import { RedoIcon } from "./Icon/RedoIcon"
 import { AutoLayoutIcon } from "./Icon/AutoLayoutIcon"
 import { MapIcon } from "./Icon/MapIcon"
 import { FitViewIcon, ZoomInIcon, ZoomOutIcon } from "./Icon/ZoomIcons"
-import { usePublishControlsRight } from "@/hooks/usePublishControlsRight"
 import { CustomMiniMap } from "./CustomMiniMap"
 import { ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material"
 import { ThemeProvider } from "@mui/material/styles"
@@ -43,14 +42,6 @@ export const CustomControls = () => {
   const zoomLevel = useStore((state) => state.transform[2])
   const minZoomReached = useStore((state) => state.transform[2] <= state.minZoom)
   const maxZoomReached = useStore((state) => state.transform[2] >= state.maxZoom)
-  const domNode = useStore((state) => state.domNode)
-
-  // Rendered by <Controls> below, so it is looked up once mounted.
-  const [controlsBar, setControlsBar] = useState<HTMLElement | null>(null)
-  useEffect(() => {
-    setControlsBar(domNode?.querySelector<HTMLElement>(".react-flow__controls") ?? null)
-  }, [domNode])
-  usePublishControlsRight(controlsBar, domNode)
   const zoomLevelPercent = Math.round(zoomLevel * 100)
   const [isLayouting, setIsLayouting] = useState(false)
 
@@ -101,13 +92,14 @@ export const CustomControls = () => {
   return (
     <ThemeProvider theme={inspectorTheme}>
       <Controls
-        orientation="horizontal"
+        orientation="vertical"
+        position="top-right"
         showZoom={false}
         showFitView={false}
         showInteractive={false}
       >
         {/* Zoom group: own buttons so the labels are translated. */}
-        <Tooltip title={t("zoomPane.zoomIn", "Zoom in")}>
+        <Tooltip placement="left" title={t("zoomPane.zoomIn", "Zoom in")}>
           <span>
             <button
               type="button"
@@ -120,7 +112,7 @@ export const CustomControls = () => {
             </button>
           </span>
         </Tooltip>
-        <Tooltip title={t("zoomPane.zoomOut", "Zoom out")}>
+        <Tooltip placement="left" title={t("zoomPane.zoomOut", "Zoom out")}>
           <span>
             <button
               type="button"
@@ -133,7 +125,7 @@ export const CustomControls = () => {
             </button>
           </span>
         </Tooltip>
-        <Tooltip title={t("zoomPane.fitView", "Fit view")}>
+        <Tooltip placement="left" title={t("zoomPane.fitView", "Fit view")}>
           <button
             type="button"
             className="control-button"
@@ -147,7 +139,7 @@ export const CustomControls = () => {
         {undoManagerExist && (
           <>
             <span className="control-divider" aria-hidden="true" />
-            <Tooltip title={t("toolbar.undo", "Undo (Ctrl+Z)")}>
+            <Tooltip placement="left" title={t("toolbar.undo", "Undo (Ctrl+Z)")}>
               <span>
                 <button
                   className={`control-button ${!canUndo ? "disabled" : ""}`}
@@ -167,7 +159,7 @@ export const CustomControls = () => {
                 </button>
               </span>
             </Tooltip>
-            <Tooltip title={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}>
+            <Tooltip placement="left" title={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}>
               <span>
                 <button
                   className={`control-button ${!canRedo ? "disabled" : ""}`}
@@ -192,6 +184,7 @@ export const CustomControls = () => {
         {/* Auto-layout group */}
         <span className="control-divider" aria-hidden="true" />
         <Tooltip
+          placement="left"
           title={
             strategies.length > 1
               ? `${t("toolbar.autoLayout", "Auto-layout diagram")} (${t(
@@ -222,7 +215,7 @@ export const CustomControls = () => {
         </Tooltip>
         {strategies.length > 1 && (
           <>
-            <Tooltip title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
+            <Tooltip placement="left" title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
               <span>
                 <button
                   className={`control-button control-button--caret ${isLayouting || !hasNodes ? "disabled" : ""}`}
@@ -230,11 +223,10 @@ export const CustomControls = () => {
                   aria-label={t("toolbar.autoLayoutOptions", "Auto-layout options")}
                   onClick={(e: MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget)}
                   disabled={isLayouting || !hasNodes}
-                  style={{ width: 16, minWidth: 16 }}
                 >
                   <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden="true">
                     <path
-                      d="M1.5 3.5 5 7l3.5-3.5"
+                      d="M6.5 1.5 3 5l3.5 3.5"
                       fill="none"
                       stroke="var(--besser-primary-contrast, #000000)"
                       strokeWidth="1.5"
@@ -249,8 +241,8 @@ export const CustomControls = () => {
               anchorEl={menuAnchor}
               open={menuAnchor !== null}
               onClose={() => setMenuAnchor(null)}
-              anchorOrigin={{ vertical: "top", horizontal: "left" }}
-              transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+              anchorOrigin={{ vertical: "center", horizontal: "left" }}
+              transformOrigin={{ vertical: "center", horizontal: "right" }}
             >
               {strategies.map((strategy) => (
                 <MenuItem
@@ -274,7 +266,7 @@ export const CustomControls = () => {
         )}
         {/* Zoom-percentage readout — click to reset to 100% */}
         <span className="control-divider" aria-hidden="true" />
-        <Tooltip title={t("toolbar.resetZoom", "Reset zoom to 100%")}>
+        <Tooltip placement="left" title={t("toolbar.resetZoom", "Reset zoom to 100%")}>
           <button
             type="button"
             className="control-zoom-readout"
@@ -284,9 +276,9 @@ export const CustomControls = () => {
             {zoomLevelPercent}%
           </button>
         </Tooltip>
-        {/* Minimap toggle — the map opens above this bar. */}
+        {/* Minimap toggle — the map opens beside this bar. */}
         <span className="control-divider" aria-hidden="true" />
-        <Tooltip title={t("toolbar.minimap", "Minimap")}>
+        <Tooltip placement="left" title={t("toolbar.minimap", "Minimap")}>
           <button
             type="button"
             className="control-button"

@@ -634,7 +634,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
           onExportHtml={handleExportHtml}
         />
         {emptyState && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          // Right padding keeps the hint clear of the controls bar on the canvas's right edge.
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 pr-20">
             <div className="rounded-lg border border-dashed border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
               {/* The two menu labels are interpolated from their own keys so
                * the hint always names the menu items as they actually read

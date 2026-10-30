@@ -69,15 +69,16 @@ import {
 } from "@/types/nodes/NodeProps"
 
 /**
- * The open minimap. Its toggle lives in the controls bar (CustomControls),
- * which mounts this above the bar so the bottom-right corner stays free for
- * host overlays (the webapp's assistant button). Theming: app.css
+ * The open minimap. Its toggle lives in the controls bar (CustomControls) on
+ * the canvas's right edge, which mounts this beside the bar, clear of the
+ * bottom row where hosts put their overlays (the webapp's assistant button).
+ * Theming: app.css
  * (`.besser-minimap`, `--xy-minimap-*`).
  */
 export const CustomMiniMap = ({ onClose }: { onClose: () => void }) => (
   <MiniMap
     className="besser-minimap"
-    position="bottom-left"
+    position="top-right"
     zoomable
     onClick={onClose}
     nodeComponent={MiniMapNode}

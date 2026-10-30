@@ -47,6 +47,12 @@ const mount = () => {
 }
 
 describe("CustomControls", () => {
+  it("is a vertical bar on the canvas's right edge, clear of the bottom row", () => {
+    mount()
+    const bar = document.querySelector(".react-flow__controls")
+    expect(bar).toHaveClass("vertical", "top", "right")
+  })
+
   it("names the auto-layout button and makes the zoom readout a button", () => {
     mount()
     expect(

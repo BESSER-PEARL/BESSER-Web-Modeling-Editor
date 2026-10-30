@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen } from "@testing-library/react"
 import * as Y from "yjs"
-import { ReactFlowProvider, useStoreApi, type Node } from "@xyflow/react"
+import { ReactFlowProvider, type Node } from "@xyflow/react"
 import type { StoreApi } from "zustand"
 import {
   AssessmentSelectionStoreContext,
@@ -19,7 +18,6 @@ import {
   DraggableGhost,
   getClickInsertPosition,
 } from "@/components/DraggableGhost"
-import { CustomControls } from "@/components/CustomControls"
 import { ClassOCLConstraintSVG } from "@/components/svgs/nodes/classDiagram"
 import { CommentConfig, dropElementConfigs } from "@/constants"
 import { UMLDiagramType } from "@/types"
@@ -290,35 +288,6 @@ describe("palette drag and click insert", () => {
     expect(spot.y + size.height).toBeLessThanOrEqual(600)
     // Nearest free spot to the centre, not just any free spot.
     expect(Math.hypot(spot.x - 320, spot.y - 250)).toBeLessThan(250)
-  })
-})
-
-describe("canvas controls CSS variable", () => {
-  const VAR = "--besser-canvas-controls-right"
-
-  // CustomControls only publishes once React Flow has a DOM node.
-  const Host = () => {
-    const ref = useRef<HTMLDivElement>(null)
-    const api = useStoreApi()
-    useEffect(() => {
-      api.setState({ domNode: ref.current })
-    }, [api])
-    return (
-      <div ref={ref}>
-        <CustomControls />
-      </div>
-    )
-  }
-  const mountControls = () => setup(<Host />)
-
-  it("a replaced editor's cleanup keeps the value the new editor published", () => {
-    const first = mountControls()
-    expect(document.documentElement.style.getPropertyValue(VAR)).not.toBe("")
-    const second = mountControls()
-    first.unmount()
-    expect(document.documentElement.style.getPropertyValue(VAR)).not.toBe("")
-    second.unmount()
-    expect(document.documentElement.style.getPropertyValue(VAR)).toBe("")
   })
 })
 

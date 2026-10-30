@@ -620,10 +620,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     };
   }, [isDragging]);
 
-  // Keep the pill clear of the canvas controls bar and the assistant button.
-  // Re-measured when the row or pill resizes, the window resizes, or the
-  // engine republishes the controls / properties-panel widths (CSS variables
-  // on <html>); again once the assistant button's 0.2 s slide has finished.
+  // Keep the pill clear of the assistant button. Re-measured when the row or
+  // pill resizes, the window resizes, or the engine republishes the
+  // properties-panel width (a CSS variable on <html>, which moves the button);
+  // again once the assistant button's 0.2 s slide has finished.
   const [pillPlacement, setPillPlacement] = useState<PillPlacement | null>(null);
   useLayoutEffect(() => {
     const row = pillRowRef.current;
@@ -633,25 +633,18 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       const rowRect = row.getBoundingClientRect();
       if (rowRect.width === 0) return;
       // Measure the pill's natural size and row position.
-      const { maxWidth, marginBottom } = pill.style;
+      const { maxWidth } = pill.style;
       pill.style.maxWidth = '';
-      pill.style.marginBottom = '';
       const pillRect = pill.getBoundingClientRect();
       pill.style.maxWidth = maxWidth;
-      pill.style.marginBottom = marginBottom;
-      const controls = parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue('--besser-canvas-controls-right'),
-      );
       const fab = document.querySelector('[aria-controls="assistant-widget-panel"]')?.getBoundingClientRect();
       const next = placeDrawerPill({
         row: { left: rowRect.left, right: rowRect.right, top: pillRect.top, bottom: pillRect.bottom },
         pillWidth: pillRect.width,
-        controlsRight: Number.isFinite(controls) ? controls : null,
         obstacle: fab && fab.width > 0 ? fab : null,
       });
       setPillPlacement((prev) =>
         prev &&
-        prev.lift === next.lift &&
         Math.abs(prev.left - next.left) < 0.5 &&
         Math.abs(prev.maxWidth - next.maxWidth) < 0.5
           ? prev
@@ -714,8 +707,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes.
           First in DOM order so Tab goes pill → sheet; z-index keeps it on top. */}
-      {/* Centered, but kept clear of the canvas controls bar and the assistant button, or lifted above the bar when too narrow (see pillPlacement);
-          18px from the bottom puts its centre on the controls bar's centre line. */}
+      {/* Centered, but kept clear of the assistant button (see pillPlacement);
+          18px from the bottom puts its centre on that button's centre line. */}
       <div
         ref={pillRowRef}
         className={cn(
@@ -731,7 +724,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               ? {
                   marginLeft: pillPlacement.left,
                   maxWidth: pillPlacement.maxWidth,
-                  marginBottom: pillPlacement.lift || undefined,
                 }
               : undefined
           }

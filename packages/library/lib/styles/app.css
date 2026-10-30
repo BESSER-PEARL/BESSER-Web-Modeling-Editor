@@ -178,24 +178,32 @@ html.dark .besser-editor {
 }
 
 /* ---------------------------------------------------------------------------
-   Floating controls bar (bottom-left): zoom out/in, fit-view, undo, redo,
-   auto-layout, and a zoom-% readout. The built-in React Flow zoom/fit buttons
-   (.react-flow__controls-button) and the custom buttons (.control-button) share
-   one icon-button look so the whole row reads as a single cohesive pill.
+   Floating controls bar, vertical on the canvas's right edge: zoom in/out,
+   fit-view, undo, redo, auto-layout, a zoom-% readout and the minimap toggle.
+   The built-in React Flow zoom/fit buttons (.react-flow__controls-button) and
+   the custom buttons (.control-button) share one icon-button look so the whole
+   column reads as a single cohesive pill. Vertically centred, it stays clear
+   of the bottom row, where the host puts its assistant button and pill.
    Theme-aware via --besser-* vars; hover/active tints use color-mix.
 --------------------------------------------------------------------------- */
 /* The same bar outside React Flow (the Knowledge Graph editor's Cytoscape canvas). */
 .besser-canvas-controls {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  right: 0;
   z-index: 5;
-  margin: 15px;
+}
+
+.react-flow__panel.react-flow__controls.top.right,
+.besser-canvas-controls {
+  top: 50%;
+  margin: 0 15px 0 0;
+  transform: translateY(-50%);
 }
 
 .react-flow__panel.react-flow__controls,
 .besser-canvas-controls {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 2px;
   padding: 4px;
@@ -451,9 +459,14 @@ html.dark .besser-editor {
 .control-divider {
   flex: 0 0 auto;
   align-self: stretch;
-  width: 1px;
-  margin: 4px 3px;
+  height: 1px;
+  margin: 3px 4px;
   background-color: var(--besser-gray, #e9ecef);
+}
+
+/* Auto-layout options: a short strip under the layout button. */
+.control-button.control-button--caret {
+  height: 16px;
 }
 
 /* Integrated, muted zoom-percentage readout — click resets to 100%. */
@@ -466,11 +479,11 @@ html.dark .besser-editor {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
   height: 32px;
-  min-width: 46px;
-  padding: 0 8px;
+  padding: 0;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--besser-gray-variant, #64748b);
@@ -481,10 +494,12 @@ html.dark .besser-editor {
     transform 120ms var(--besser-ease-out, ease-out);
 }
 
-/* Minimap: opens above the controls bar, same floating surface. */
+/* Minimap: opens beside the controls bar (15 px margin + 42 px bar + gap), same floating surface. */
 .react-flow__panel.react-flow__minimap.besser-minimap {
+  top: 50%;
+  transform: translateY(-50%);
   padding: 0;
-  margin-bottom: 64px;
+  margin: 0 67px 0 0;
   overflow: hidden;
   border: 1px solid var(--besser-chrome-border, #e9ecef);
   border-radius: 12px;
@@ -504,7 +519,7 @@ html.dark .besser-editor {
 @media (max-width: 480px) {
   .react-flow__panel.react-flow__controls,
   .besser-canvas-controls {
-    margin: 10px;
+    margin-right: 10px;
     padding: 3px;
     gap: 0;
   }
@@ -515,15 +530,14 @@ html.dark .besser-editor {
     min-width: 28px;
   }
   .control-divider {
-    margin: 4px 2px;
+    margin: 2px 4px;
   }
   .control-zoom-readout {
+    width: 28px;
     height: 28px;
-    min-width: 40px;
-    padding: 0 4px;
   }
   .react-flow__panel.react-flow__minimap.besser-minimap {
-    margin: 0 10px 54px;
+    margin: 0 50px 0 0;
   }
 }
 
