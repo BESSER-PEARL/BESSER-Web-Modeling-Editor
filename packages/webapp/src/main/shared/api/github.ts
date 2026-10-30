@@ -1,0 +1,260 @@
+/**
+ * Typed calls to the backend's GitHub endpoints that keep a project and its
+ * repository in step. Contract: BESSER `services/deployment/github_deploy_api.py`
+ * (`/github/*`) and `routers/spec_driven_router.py` (`/spec-driven/*`).
+ */
+import { apiClient } from './api-client';
+import type { BesserProject } from '../types/project';
+import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
+import type { RepoCodeAnalysis } from '../services/storage/projectGitHubLink';
+import { getDemoToken } from '../services/demoMode';
+
+/** The `BESSER-Origin` trailer of a commit; null when a person made it. */
+export type CommitOrigin = 'spec-driven-agent' | 'editor' | null;
+
+export interface RepoCommit {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+  html_url: string;
+  origin: CommitOrigin;
+}
+
+export interface RepoListing {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  private: boolean;
+  updated_at: string;
+  default_branch: string;
+  topics: string[];
+  /** False for a repository the user may only read. */
+  can_push: boolean;
+}
+
+export interface RepoList {
+  repositories: RepoListing[];
+  /** The account has more repositories than the list holds. */
+  truncated: boolean;
+}
+
+export interface RepoSummary {
+  has_model: boolean;
+  branch: string;
+  head_sha: string;
+  project_name: string;
+  project_id: string | null;
+  diagram_counts: Record<string, number>;
+  class_count: number;
+  class_names: string[];
+  last_commit: RepoCommit | null;
+}
+
+/** Where a save or push kept on its own branch stands (backend `PendingChangeStatus`). */
+export interface PendingChangeStatus {
+  branch: string;
+  branch_exists: boolean;
+  pull_request_number: number | null;
+  pull_request_url: string | null;
+  pull_request_state: 'open' | 'closed' | 'merged' | null;
+}
+
+export interface SyncStatus {
+  head_sha: string;
+  /** Commits on the branch since the editor's last sync, newest first. */
+  commits_since: RepoCommit[];
+  in_sync: boolean;
+  /** Set when the request named a pending branch. */
+  pending?: PendingChangeStatus | null;
+}
+
+export interface ModelHistoryEntry extends RepoCommit {
+  changes: string[];
+}
+
+/** What BESSER read in a repo it did not create. */
+export type RepoAnalysis = RepoCodeAnalysis;
+
+export interface ImportedRun {
+  run_id: string;
+  project: unknown | null;
+  has_model: boolean;
+  owner: string;
+  repo: string;
+  branch: string;
+  commit_sha: string;
+  message?: string;
+  /** Repos without a BESSER model: what their code holds. */
+  analysis?: RepoAnalysis | null;
+  /** A class diagram read from their data classes, in the shape the editor imports. */
+  proposed_diagram?: { title: string; model: unknown; diagramType: 'ClassDiagram' } | null;
+  /**
+   * No data classes were readable directly and an AI reading could propose a
+   * model: import again with `allowAiReading` once the user agreed.
+   */
+  ai_reading_offered?: boolean;
+}
+
+/** The GitHub topic BESSER sets on every repo it pushes to. */
+export const BESSER_TOPIC = 'besser';
+
+const session = (githubSession: string) => ({ headers: { 'X-GitHub-Session': githubSession } });
+const query = (params: Record<string, string | undefined>) =>
+  new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
+
+/** Every repository the user can open: their own, their collaborations and their organizations'. */
+export const listRepos = async (githubSession: string): Promise<RepoList> => {
+  const list = await apiClient.get<Partial<RepoList>>('/github/repos', { ...session(githubSession), timeout: 60_000 });
+  return { repositories: list.repositories ?? [], truncated: list.truncated ?? false };
+};
+
+export const listBranches = async (githubSession: string, owner: string, repo: string): Promise<string[]> =>
+  (await apiClient.get<{ branches: string[] }>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
+    .branches ?? [];
+
+export const getRepoSummary = (githubSession: string, owner: string, repo: string, branch?: string) =>
+  apiClient.get<RepoSummary>(`/github/repo-summary?${query({ owner, repo, branch })}`, session(githubSession));
+
+export const getSyncStatus = (
+  githubSession: string,
+  owner: string,
+  repo: string,
+  branch: string,
+  baseSha?: string,
+  pendingBranch?: string,
+) =>
+  apiClient.get<SyncStatus>(
+    `/github/sync-status?${query({ owner, repo, branch, base_sha: baseSha, pending_branch: pendingBranch })}`,
+    session(githubSession),
+  );
+
+export const getModelHistory = async (githubSession: string, owner: string, repo: string, branch: string) =>
+  (await apiClient.get<{ commits: ModelHistoryEntry[] }>(
+    `/github/model-history?${query({ owner, repo, branch })}`,
+    { ...session(githubSession), timeout: 60_000 },
+  )).commits ?? [];
+
+export const createPullRequest = (
+  githubSession: string,
+  body: { owner: string; repo: string; head: string; base: string; title: string; body?: string },
+) => apiClient.post<{ number: number; html_url: string }>('/github/pull-request', body, session(githubSession));
+
+/** Outcome of a commit that must not revert newer commits (see GitHubService.commit_tree). */
+export type PushStatus = 'pushed' | 'merged' | 'conflict' | 'pull_request';
+
+export interface SaveModelResult {
+  success: boolean;
+  commit_sha: string;
+  message: string;
+  status: PushStatus;
+  conflict_branch: string | null;
+  /** What the save could not do as asked, e.g. the B-UML sources could not be rebuilt. */
+  warnings?: string[];
+}
+
+export const saveModel = (
+  githubSession: string,
+  body: {
+    owner: string;
+    repo: string;
+    branch: string;
+    commit_message: string;
+    project_data: BesserProject;
+    project_export: ProjectExportEnvelope;
+    base_commit_sha?: string;
+    /** A model file the old GitHub sidebar saved (e.g. `models/shop.json`); the save commit deletes it. */
+    legacy_file_path?: string;
+  },
+) => apiClient.post<SaveModelResult>('/github/project/save', body, { ...session(githubSession), timeout: 60_000 });
+
+/** The repo's model file as stored (a V2 envelope or a legacy project) and the head it was read at. */
+export const loadModel = (githubSession: string, owner: string, repo: string, branch: string) =>
+  apiClient.get<{ project: unknown; sha: string }>(
+    `/github/project/load?${query({ owner, repo, branch })}`,
+    { ...session(githubSession), timeout: 60_000 },
+  );
+
+export const loadModelAtCommit = (githubSession: string, owner: string, repo: string, commitSha: string) =>
+  apiClient.get<{ project: unknown; commit_sha: string }>(
+    `/github/project/load-commit?${query({ owner, repo, commit_sha: commitSha })}`,
+    { ...session(githubSession), timeout: 60_000 },
+  );
+
+export const createRepoForProject = (
+  githubSession: string,
+  body: {
+    repo_name: string;
+    description: string;
+    is_private: boolean;
+    project_data: BesserProject;
+    project_export: ProjectExportEnvelope;
+  },
+) =>
+  apiClient.post<{ owner: string; repo_url: string; commit_sha: string; branch: string }>(
+    '/github/project/create-repo',
+    body,
+    { ...session(githubSession), timeout: 60_000 },
+  );
+
+export const createGist = (githubSession: string, project: BesserProject, description: string, isPublic: boolean) =>
+  apiClient.post<{ gist_url: string }>(
+    '/github/gist/create',
+    { project_data: project, description, is_public: isPublic },
+    session(githubSession),
+  );
+
+/**
+ * Register the repo's code as a run the next Spec-Driven modify run can start from.
+ * `allowAiReading`: the user agreed that an excerpt of the code goes to the server's AI model.
+ */
+export const importRepoAsRun = (
+  githubSession: string,
+  owner: string,
+  repo: string,
+  branch?: string,
+  { allowAiReading = false }: { allowAiReading?: boolean } = {},
+) =>
+  apiClient.post<ImportedRun>(
+    '/spec-driven/import-github-run',
+    // A demo tab (`?demo=<token>`) has repos read by the demo model rather than the keyless one.
+    { owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined, allow_ai_reading: allowAiReading },
+    // The AI fallback reader can take up to 90 s on top of the download.
+    { ...session(githubSession), timeout: 150_000 },
+  );
+
+export interface GoLiveResult {
+  commit_sha: string;
+  /** False when the repo already held these exact deploy files. */
+  changed: boolean;
+  render_deploy_url: string;
+  backend_url: string;
+  frontend_url: string | null;
+  backend_dir: string;
+  frontend_dir: string | null;
+  warnings: string[];
+}
+
+let goLiveAvailable: Promise<boolean> | null = null;
+
+/** Whether the server deploys the project's own repo ("Go live"); asked once per page load. */
+export const isGoLiveAvailable = (): Promise<boolean> => {
+  goLiveAvailable ??= apiClient
+    .get<{ go_live: boolean }>('/github/app/capabilities')
+    .then((caps) => caps.go_live === true)
+    .catch(() => false);
+  return goLiveAvailable;
+};
+
+/** Commit Render deploy files for the app in the repo; 422 carries the reason a repo cannot go live. */
+export const goLive = (githubSession: string, owner: string, repo: string, branch: string) =>
+  apiClient.post<GoLiveResult>(
+    '/github/app/go-live',
+    { owner, repo, branch },
+    { ...session(githubSession), timeout: 120_000 },
+  );
+
+/** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
+export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';

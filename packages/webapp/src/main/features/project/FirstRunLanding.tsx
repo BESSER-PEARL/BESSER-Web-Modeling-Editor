@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ArrowRight, Check, Github } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { InterfaceMode } from '../../shared/types/project';
+
+export interface FirstRunLandingGithub {
+  connected: boolean;
+  username: string | null;
+  /** Starts the OAuth sign-in; the hub returns to this landing afterwards. */
+  onConnect: () => void;
+}
 
 interface FirstRunLandingProps {
   /** Fires when a portal is chosen — `remember` reflects the checkbox state. */
@@ -12,6 +21,8 @@ interface FirstRunLandingProps {
   onMoreOptions: () => void;
   /** Pre-tick "Remember my choice" (e.g. the user set a default before). */
   defaultRemember?: boolean;
+  /** GitHub connection shown under the portals. */
+  github: FirstRunLandingGithub;
 }
 
 /**
@@ -28,7 +39,9 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
   onChoose,
   onMoreOptions,
   defaultRemember = false,
+  github,
 }) => {
+  const { t } = useTranslation();
   const [remember, setRemember] = useState(defaultRemember);
 
   return (
@@ -36,7 +49,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
       <style>{`
         .frl-rise{opacity:0;translate:0 12px;animation:frlRise .7s cubic-bezier(.2,.7,.2,1) forwards}
         .frl-d1{animation-delay:.04s}.frl-d2{animation-delay:.12s}.frl-d3{animation-delay:.22s}
-        .frl-d4{animation-delay:.32s}.frl-d5{animation-delay:.42s}.frl-d6{animation-delay:.54s}
+        .frl-d4{animation-delay:.32s}.frl-d5{animation-delay:.42s}.frl-d6{animation-delay:.54s}.frl-d7{animation-delay:.64s}
         @keyframes frlRise{to{opacity:1;translate:none}}
         .frl-edge{stroke-dasharray:150;stroke-dashoffset:150;animation:frlDraw 1.1s .5s cubic-bezier(.6,0,.2,1) forwards}
         @keyframes frlDraw{to{stroke-dashoffset:0}}
@@ -196,8 +209,31 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
           </button>
         </div>
 
+        {/* ---- GitHub as the projects' home ---- */}
+        <div
+          className="frl-rise frl-d6 mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border/70 bg-muted/30 px-4 py-2.5"
+          data-testid="landing-github"
+        >
+          <p className="flex min-w-0 items-center gap-2.5 text-sm text-muted-foreground">
+            <Github aria-hidden className="size-4 shrink-0 text-foreground/70" />
+            {t('project.landing.github.pitch', { defaultValue: 'Keep your projects in your own GitHub repositories' })}
+          </p>
+          {github.connected ? (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-foreground">
+              <Check aria-hidden className="size-4 text-brand" />
+              {github.username
+                ? t('project.landing.github.connectedAs', { defaultValue: 'Connected as {{username}}', username: github.username })
+                : t('project.landing.github.connected', { defaultValue: 'Connected to GitHub' })}
+            </span>
+          ) : (
+            <Button type="button" variant="outline" size="xs" onClick={github.onConnect}>
+              {t('project.landing.github.connect', { defaultValue: 'Connect GitHub' })}
+            </Button>
+          )}
+        </div>
+
         {/* ---- remember + more options ---- */}
-        <div className="frl-rise frl-d6 mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="frl-rise frl-d7 mt-5 flex flex-wrap items-center justify-between gap-3">
           <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
             <input
               type="checkbox"

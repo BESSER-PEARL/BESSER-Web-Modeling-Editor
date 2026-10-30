@@ -22,6 +22,8 @@ export interface WorkspaceTopBarProps {
   githubLoading: boolean;
   hasProject: boolean;
   isDeploymentAvailable: boolean;
+  /** Deploy puts the linked repo online (Go live) instead of rebuilding the app. */
+  deployGoesLive?: boolean;
   /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
   onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
@@ -32,6 +34,8 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
   onOpenProjectPreview: () => void;
+  /** Shares the project as a secret GitHub gist (signs in first when needed). */
+  onShareAsGist: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;
@@ -42,7 +46,6 @@ export interface WorkspaceTopBarProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
-  onOpenGitHubSidebar: () => void;
   hasStarred: boolean;
   starLoading: boolean;
   onToggleStar: () => void;

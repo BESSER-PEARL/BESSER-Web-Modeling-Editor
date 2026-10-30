@@ -18,7 +18,10 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
   useEffect(() => {
     if (!isAuthenticated || !githubSession) return;
     const controller = new AbortController();
-    fetch(`${BACKEND_URL}/github/star/status?session_id=${githubSession}`, { signal: controller.signal })
+    fetch(`${BACKEND_URL}/github/star/status`, {
+      headers: { 'X-GitHub-Session': githubSession },
+      signal: controller.signal,
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.starred) {
@@ -36,7 +39,10 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
     setStarLoading(true);
     try {
       const method = hasStarred ? 'DELETE' : 'PUT';
-      const res = await fetch(`${BACKEND_URL}/github/star?session_id=${githubSession}`, { method });
+      const res = await fetch(`${BACKEND_URL}/github/star`, {
+        method,
+        headers: { 'X-GitHub-Session': githubSession },
+      });
       if (res.ok) {
         setHasStarred(!hasStarred);
         if (!hasStarred) {

@@ -37,7 +37,22 @@
       "needsRecheck": "Needs recheck",
       "notValidated": "Not validated"
     },
-    "more": "More"
+    "more": "More",
+    "repoState": {
+      "in-sync": "{{repo}}: in sync with GitHub",
+      "local-changes": "{{repo}}: model changes not saved to GitHub",
+      "behind": "{{repo}}: {{count}} new commits on GitHub",
+      "diverged": "{{repo}}: changed here and on GitHub",
+      "checking": "{{repo}}: checking GitHub",
+      "unknown": "{{repo}}: could not reach GitHub",
+      "unlinked": "Link this project to a GitHub repository",
+      "signed-out": "GitHub",
+      "behind_one": "{{repo}}: 1 new commit on GitHub",
+      "reconnect": "{{repo}}: GitHub session expired",
+      "missing": "{{repo}}: branch or repository not found on GitHub",
+      "not-in-tab": "{{repo}}: GitHub is not connected in this tab"
+    },
+    "linkToGithub": "Link to GitHub"
   },
   "nav": {
     "editors": "Editors",
@@ -86,6 +101,7 @@
       "importGroupClassDiagram": "Class Diagram from",
       "importImage": "Image…",
       "importKnowledgeGraph": "Knowledge Graph…",
+      "shareAsGist": "Share as Secret Gist…",
       "importKgOwl": "Import KG"
     },
     "generate": {
@@ -127,7 +143,8 @@
       "title": "Deploy",
       "connectGitHub": "Connect GitHub to Deploy",
       "publishToRender": "Publish to Render…",
-      "connectGitHubFirstHint": "Connect GitHub first"
+      "connectGitHubFirstHint": "Connect GitHub first",
+      "goLive": "Go live from GitHub"
     },
     "community": {
       "title": "Community",
@@ -914,7 +931,18 @@
         "detailsTitle": "Project Details",
         "detailsDescription": "Give your workspace a name and description.",
         "submit": "Create Project",
-        "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need."
+        "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need.",
+        "github": {
+          "toasts": {
+            "saving": "Saving {{name}} on GitHub…",
+            "saved": "Saved on GitHub as {{repo}}.",
+            "failed": "Your project was created, but saving it on GitHub failed: {{error}}"
+          },
+          "label": "Save it on GitHub",
+          "connectHint": "Connect GitHub to keep this project in a private repository of your own.",
+          "connect": "Connect GitHub",
+          "privateRepo": "A private repository named <repo>{{repo}}</repo> keeps your model and code."
+        }
       },
       "import": {
         "title": "Import a Project",
@@ -976,7 +1004,7 @@
         "noProjects": "No projects yet.",
         "warningBanner": "Create, import, or open a project to enter the workspace.",
         "cardGithub": {
-          "description": "Reopen a repo BESSER created and keep building.",
+          "description": "Open any repo, BESSER-made or not, and keep building.",
           "title": "Continue From GitHub"
         },
         "cardNew": {
@@ -1024,13 +1052,14 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.",
+        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
           "noSession": "GitHub session not found. Please reconnect.",
           "selectRepo": "Select a repository to continue from.",
-          "sessionExpired": "Your GitHub session expired. Reconnect and try again."
+          "sessionExpired": "Your GitHub session expired. Reconnect and try again.",
+          "repoNotFound": "{{repo}} was not found, or your GitHub account has no access to it."
         },
         "loadingBranches": "Loading branches…",
         "loadingRepos": "Loading repositories…",
@@ -1202,105 +1231,48 @@
         "bumlCopyFailed": "Failed to copy B-UML preview.",
         "noBumlToDownload": "No B-UML preview to download."
       }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Keep your projects in your own GitHub repositories",
+        "connectedAs": "Connected as {{username}}",
+        "connected": "Connected to GitHub",
+        "connect": "Connect GitHub"
+      }
     }
   },
   "github": {
-    "sync": "GitHub Sync",
-    "closeSidebar": "Close GitHub sidebar",
-    "fullPath": "Full path:",
-    "folderPathLabel": "Folder Path (optional)",
-    "folderPathPlaceholder": "e.g., projects/my-models",
-    "fileNameLabel": "File Name",
     "defaultRepoDescription": "BESSER project: {{name}}",
     "defaultGistDescription": "BESSER Project: {{name}}",
     "connect": {
-      "title": "Connect to GitHub",
-      "subtitle": "Sign in to sync your projects with GitHub.",
-      "button": "Connect GitHub"
+      "button": "Connect GitHub",
+      "checking": "Checking your GitHub connection…"
     },
     "noProject": {
       "title": "No Project Selected",
       "subtitle": "Open or create a project to use GitHub sync."
     },
-    "notLinked": {
-      "title": "Link a Repository",
-      "subtitle": "Connect this project to a GitHub repo for version control.",
-      "linkExisting": "Link Existing",
-      "createNew": "Create New"
-    },
     "linked": {
       "repository": "Repository",
       "checking": "Checking…",
-      "unsavedChanges": "You have unsaved changes",
-      "upToDate": "Up to date",
-      "push": "Push",
-      "pull": "Pull",
       "pullConfirmTitle": "Replace your local changes?",
       "pullConfirmDescription": "Pulling loads the version on GitHub and discards the changes you have not pushed yet.",
       "pullConfirmAction": "Pull and discard changes",
-      "history": "History",
       "refreshHistory": "Refresh commit history",
       "latest": "Latest",
-      "clickToRestore": "Click to restore",
       "noCommits": "No commits yet",
-      "share": "Share",
-      "createSecretGist": "Create Secret Gist",
       "openOnGitHub": "Open on GitHub",
-      "unlink": "Unlink repository",
       "unlinkConfirmTitle": "Unlink this repository?",
-      "unlinkConfirmDescription": "The project stays in your browser and on GitHub. Push, Pull and auto-commit stop until you link a repository again.",
-      "unlinkConfirmAction": "Unlink"
-    },
-    "settings": {
-      "title": "Settings",
-      "autoCommit": "Auto-commit",
-      "enabledWithInterval": "Enabled ({{minutes}}m)",
-      "disabled": "Disabled",
-      "intervalLabel": "Interval (minutes)",
-      "interval5": "5 minutes",
-      "interval10": "10 minutes",
-      "interval15": "15 minutes",
-      "interval30": "30 minutes",
-      "interval60": "1 hour",
-      "autoSaving": "Auto-saving…"
+      "unlinkConfirmAction": "Unlink",
+      "keepLocalChanges": "Keep my changes"
     },
     "linkModal": {
-      "goBack": "Go back to repository selection",
-      "titleSelect": "Link to Repository",
-      "titleConfigure": "Configure Link",
-      "descriptionSelect": "Select a repository to sync your project with.",
-      "descriptionConfigure": "Set branch and file path for this project sync.",
-      "private": "Private",
-      "updated": "Updated: {{date}}",
-      "noRepositories": "No repositories found",
-      "branch": "Branch",
-      "browseFiles": "Browse repository files",
-      "browseHint": "Pick an existing project file without typing the path.",
-      "checkFileExists": "Check if file exists",
-      "fileExistsPrompt": "File already exists in repository. Choose how to proceed:",
-      "loadAndLinkRecommended": "Load & link (recommended)",
-      "linkWithoutLoading": "Link without loading (may overwrite)",
-      "filePathAvailable": "File path is available. Click \"Link Repository\" to continue.",
-      "loadAndLink": "Load & Link",
-      "linkRepository": "Link Repository",
-      "selectProjectFile": "Select project file"
-    },
-    "fileBrowser": {
-      "selectFile": "Select File",
-      "loadFailed": "Failed to load directory contents",
-      "root": "root",
-      "upOneLevel": "Up one level",
-      "emptyDirectory": "Empty directory",
-      "dirHint": "Navigate to the target folder, then click \"Select Current Folder\".",
-      "selectCurrentFolder": "Select Current Folder"
+      "branch": "Branch"
     },
     "commit": {
-      "title": "Push to GitHub",
-      "description": "Write a commit message for your changes.",
+      "title": "Save to GitHub",
       "messageLabel": "Commit Message",
-      "messagePlaceholder": "Describe your changes…",
-      "pushing": "Pushing…",
-      "push": "Push"
+      "pushing": "Pushing…"
     },
     "gist": {
       "title": "Create Gist",
@@ -1330,60 +1302,20 @@
       "restoring": "Restoring…",
       "restoreButton": "Restore This Version"
     },
-    "context": {
-      "loadingDirectory": "Loading directory contents",
-      "githubPush": "GitHub push",
-      "githubPull": "GitHub pull",
-      "fetchingRepositories": "Fetching repositories",
-      "fetchingCommits": "Fetching commits",
-      "checkingChanges": "Checking for changes",
-      "selectingRepository": "Selecting repository",
-      "checkingFile": "Checking file existence",
-      "linkingRepository": "Linking repository",
-      "creatingRepository": "Creating repository",
-      "committing": "Committing to GitHub",
-      "restoringCommit": "Restoring commit",
-      "creatingGist": "Creating gist",
-      "unlinkingRepository": "Unlinking repository"
-    },
     "toasts": {
-      "loadProjectFailed": "Failed to load project",
       "couldNotLoadProjectData": "Could not load project data",
       "projectPulled": "Project pulled from GitHub",
       "projectLoadedFromRepo": "Project loaded from GitHub repository",
-      "loadFromRepoFailedLinking": "Could not load from repo; linking without loading.",
-      "linkedReconnectToPush": "Repository linked. Reconnect GitHub to push the initial project file.",
-      "linkedInitialPushReadFailed": "Repository linked, but initial push failed because the local project could not be read.",
-      "initialSyncCommitMessage": "Initial sync from BESSER Web Modeling Editor",
-      "linkedInitialPushFailed": "Repository linked, but initial push failed. You can push manually from GitHub Sync.",
-      "couldNotLoadRepoContents": "Could not load repository contents",
       "repoUnlinked": "Repository unlinked",
-      "alreadyLatest": "This is already the latest version",
       "projectRestored": "Project restored from selected commit",
       "authFailed": "GitHub authentication failed: {{error}}",
       "signedInAs": "Signed in as {{username}}",
-      "autoSaveCommitMessage": "Auto-save: {{timestamp}}",
-      "autoSaved": "Auto-saved to GitHub",
       "noProjectToDeploy": "No project to deploy.",
       "notSignedIn": "Not signed in to GitHub.",
       "repoUpdated": "Repository updated: {{name}}",
       "repoCreated": "Repository created: {{name}}",
       "deploymentFailed": "Deployment failed",
       "repoCreationFailed": "Repository creation failed",
-      "requestTimedOut": "Request timed out. Please try again.",
-      "fetchReposFailed": "Failed to fetch GitHub repositories",
-      "repoLinkedPushToSync": "Repository linked! Push to sync your project.",
-      "fetchCommitsFailed": "Failed to fetch commit history",
-      "saveProjectFailed": "Failed to save project to GitHub",
-      "projectSaved": "Project saved to GitHub!",
-      "saveProjectFailedShort": "Failed to save project",
-      "loadProjectFromGitHubFailed": "Failed to load project from GitHub",
-      "loadFromCommitFailed": "Failed to load project from commit",
-      "restoredFromCommitFallback": "commit",
-      "restoredVersionFrom": "Restored version from {{source}}",
-      "createRepoFailed": "Failed to create repository",
-      "repoCreatedQuoted": "Repository \"{{name}}\" created!",
-      "createGistFailed": "Failed to create Gist",
       "gistCreated": "Gist created successfully!",
       "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
       "fetchingFromGitHub": "Fetching {{filename}} from GitHub…",
@@ -1405,22 +1337,195 @@
       "descriptionCreate": "Push the generated code and project model to a GitHub repository.",
       "descriptionUpdate": "Update the linked repository with your latest generated code and model.",
       "done": "Done",
-      "filesUploaded_one": "{{count}} file uploaded.",
-      "filesUploaded_other": "{{count}} files uploaded.",
       "linkedTo": "Linked to",
       "loadingBranches": "Loading branches…",
       "loadingRepositories": "Loading repositories…",
       "noRepositories": "No repositories loaded. The request may have failed.",
       "privateRepoOption": "{{name}} (private)",
       "publicWarning": "This repository will be public. Anyone can see the generated code and model.",
-      "pushUpdate": "Push Update",
+      "pushUpdate": "Save to GitHub",
       "repushHint": "Re-pushing updates this repository.",
       "selectRepository": "Select a repository…",
       "selectRepositoryError": "Select a repository to push to.",
       "successCreated": "Repository created and files pushed.",
-      "successTitle": "Pushed to GitHub",
+      "successTitle": "Saved to GitHub",
       "successUpdated": "Repository updated with your latest generation.",
-      "useExisting": "Use Existing Repository"
+      "useExisting": "Use Existing Repository",
+      "successMerged": "Merged with the commits made on GitHub since your last sync. Nothing was overwritten, and the editor now shows the merged model.",
+      "successPullRequest": "Your changes are in a pull request, ready for review.",
+      "conflict": "Someone changed the same files on GitHub since your last sync, so GitHub could not merge this push on its own. Your push is on the branch {{branch}}; nothing was overwritten.",
+      "conflictTitle": "Needs a merge",
+      "viewPullRequest": "View the pull request",
+      "openPullRequest": "Open a pull request to merge it",
+      "howTitle": "How to push",
+      "modeCommit": "Commit to {{branch}}",
+      "modePullRequest": "Open a pull request",
+      "modeCommitHint": "Commits made on GitHub since your last sync are merged in, never overwritten.",
+      "modePullRequestHint": "Your team reviews the change on GitHub before it lands. Best for shared repositories.",
+      "toasts": {
+        "conflict": "GitHub could not merge this push automatically.",
+        "connectFirst": "Connect GitHub to push your generated app.",
+        "created": "Pushed to {{repo}}",
+        "modelUpdated": "The model now includes the classes the agent added.",
+        "noProject": "Open a project before pushing to GitHub.",
+        "nothingToPush": "Nothing to push.",
+        "pullRequest": "Opened a pull request on {{repo}}",
+        "pullRequestFailed": "Could not open the pull request.",
+        "updated": "Updated {{repo}}"
+      },
+      "errors": {
+        "failed": "Save to GitHub failed.",
+        "auth": "Your GitHub session expired. Reconnect and try again.",
+        "forbidden": "GitHub refused the push: your account cannot write to this repository. ({{detail}})",
+        "repoMissing": "This repository no longer exists, or your GitHub account cannot see it. Pick another repository or create a new one.",
+        "expired": "This generation expired — re-generate to push.",
+        "nameTaken": "A repository with that name already exists — push to it as an existing repo.",
+        "branchMoved": "The branch changed on GitHub during the push. Try again. ({{detail}})"
+      },
+      "filesChanged_one": "{{count}} file changed.",
+      "filesChanged_other": "{{count}} files changed.",
+      "modelChoice": {
+        "title": "Keep your model or take the run's?",
+        "description": "This run changed the model, and the model on the canvas changed after the run started. Take the run's model and lose the edits you made since, or keep your model and save it to GitHub later.",
+        "takeRun": "Take the run's model",
+        "keepMine": "Keep my model"
+      }
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Person"
+    },
+    "panel": {
+      "conflictToast": "GitHub could not merge your save automatically.",
+      "savedMerged": "Saved, and merged with the newer changes on GitHub.",
+      "saved": "Model saved to GitHub.",
+      "prTitle": "Model changes from the BESSER editor",
+      "repoHasModelTitle": "This repository already holds a model",
+      "loadRepoModel": "Load the repository model",
+      "linked": "Linked to {{repo}}. Save to put your model in it.",
+      "created": "Created {{repo}} with your model.",
+      "notLinkedHint": "A linked repository keeps your model, its history and your app code in one place, for you and your team.",
+      "linkAction": "Link to this project",
+      "saveAction": "Save to GitHub",
+      "nothingToSave": "Your model matches the repository.",
+      "conflict": "Your save and a newer change on GitHub touch the same part of the model, so GitHub could not merge them. Your save is on the branch {{branch}}; nothing was overwritten.",
+      "prOpened": "Pull request opened",
+      "openPr": "Open a pull request to merge it",
+      "historyTitle": "Model history",
+      "historyFailed": "Could not load the history.",
+      "moreChanges": "and {{count}} more",
+      "repoHasModelChoice": "{{repo}} holds \"{{name}}\". Load it into this project, replacing the model you have open, or keep your model and link: your next save then replaces the repository's model.",
+      "keepModelAndLink": "Keep my model and link"
+    },
+    "status": {
+      "unlinked": "Not linked to a repository",
+      "unknown": "Could not reach the repository",
+      "inSync": "In sync with GitHub",
+      "localChanges": "Model changes not saved to GitHub",
+      "behind": "{{count}} new commits on GitHub",
+      "behind_one": "1 new commit on GitHub",
+      "reconnect": "GitHub session expired: reconnect",
+      "missing": "Branch or repository not found on GitHub"
+    },
+    "repoBrowser": {
+      "private": "Private",
+      "search": "Search your repositories",
+      "refresh": "Refresh repositories",
+      "loading": "Loading your repositories…",
+      "loadFailed": "Could not load your repositories. Check your GitHub connection and try again.",
+      "besserRepos": "BESSER projects",
+      "noBesserMatch": "No BESSER project matches your search.",
+      "noBesserRepos": "None yet. Repositories you push from BESSER show up here.",
+      "otherRepos": "Other repositories",
+      "showOthers": "Show {{count}} other repositories",
+      "reading": "Reading the repository…",
+      "summaryFailed": "Could not read this repository.",
+      "classes": "{{count}} classes",
+      "noModel": "No BESSER model in this repository yet.",
+      "classes_one": "1 class",
+      "showOthers_one": "Show 1 other repository",
+      "readsCode": "No BESSER model yet. BESSER reads its code and proposes one for you to accept.",
+      "readOnly": "Read only",
+      "readOnlyHint": "Your GitHub account can read this repository but not write to it, so BESSER cannot save to it.",
+      "truncated": "Showing your {{count}} most recently updated repositories. Paste a link to open another one.",
+      "diagramKinds": {
+        "ClassDiagram": "Class",
+        "ObjectDiagram": "Object",
+        "StateMachineDiagram": "State machine",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "User",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Quantum",
+        "NNDiagram": "Neural network",
+        "BPMN": "BPMN"
+      }
+    },
+    "goLive": {
+      "title": "Go live",
+      "freeTier": "Render's free plan puts the app to sleep when nobody uses it (the first visit then takes about a minute), and its database resets on each redeploy.",
+      "description": "Put the app in {{repo}} online. What goes live is exactly the code in the repository.",
+      "step1": "BESSER adds Render's deploy file to {{repo}}, written for the app's folders.",
+      "step2": "You open Render, sign in and click Apply, once.",
+      "step3": "From then on, every code save to GitHub updates the live app. Saving only the model does not.",
+      "ready": "{{repo}} is ready for Render.",
+      "alreadyReady": "{{repo}} was already ready for Render.",
+      "next": "Open Render, sign in with GitHub and click Apply. If the repository is private, Render asks for access to it first.",
+      "addresses": "Your app will be at",
+      "classicHint": "The classic deploy still works: it rebuilds the app from your diagrams into a separate repository, without the changes the agent made.",
+      "openRender": "Open Render",
+      "useClassic": "Use the classic deploy",
+      "prepare": "Prepare {{repo}}"
+    },
+    "proposal": {
+      "label": "Proposed model",
+      "title": "Proposed from {{repo}}: {{count}} classes",
+      "source": "Read from its {{source}} in {{files}}. Edit anything, then accept.",
+      "discard": "Discard",
+      "accept": "Accept model",
+      "aiTitle": "Proposed by AI from {{repo}}: {{count}} classes",
+      "aiSource": "An AI reading of {{files}}, not an exact one. Check each class, then accept.",
+      "discardConfirmDescription": "The classes BESSER read from the code are removed from the canvas. The repository and its code stay as they are.",
+      "discardConfirmTitle": "Discard the proposed model?"
+    },
+    "chatHeader": {
+      "diverged": "Changed here and on GitHub",
+      "signedOut": "Connect GitHub to see its status",
+      "workingOn": "Working on",
+      "openMenu": "Working on {{repo}}: {{state}}. Open the GitHub menu.",
+      "notInTab": "Not connected in this tab"
+    },
+    "menu": {
+      "localChangesHint": "Save to GitHub to keep them in the repository.",
+      "divergedHint": "Saving merges both versions. Get latest takes the GitHub version instead.",
+      "unlinkConfirmDescription": "The project stays in your browser and the repository stays on GitHub. Saving to GitHub stops until you link a repository again.",
+      "saveToGitHub": "Save to GitHub…",
+      "getLatest": "Get latest",
+      "history": "History…",
+      "changeRepository": "Change repository…",
+      "createRepository": "Create a repository for this project",
+      "linkExisting": "Link an existing repository…",
+      "signedInAs": "Signed in as {{name}}",
+      "linkTitle": "Link a repository",
+      "restore": "Restore",
+      "defaultCommitMessage": "Update the model from the BESSER editor",
+      "saveDescription": "Commits your model to {{repo}} on {{branch}}. Newer changes on GitHub are merged, never overwritten.",
+      "commitMessageOptional": "What changed? (optional)",
+      "save": "Save",
+      "reconnect": "Reconnect GitHub",
+      "reconnectHint": "Reconnect GitHub to save and check for new commits. Your project is kept.",
+      "missingHint": "The branch {{branch}} or the repository was deleted or renamed, or your account lost access. Link another repository to keep saving.",
+      "dismissPending": "Stop tracking it",
+      "pendingConflict": "A save could not be merged with newer changes and is on the branch {{branch}}. Open a pull request to resolve it on GitHub.",
+      "pendingPullRequest": "Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in.",
+      "howItWorks": "How GitHub works in BESSER",
+      "notInTabHint": "GitHub is not connected in this tab. Connect it to use it here."
+    },
+    "aiReading": {
+      "title": "Read this repository with AI?",
+      "description": "BESSER could not read the data classes of {{repo}} directly. It can send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses, which may be run by a third-party provider. Your code then leaves BESSER's server. Nothing is sent unless you agree.",
+      "accept": "Read with AI",
+      "decline": "Not now"
     }
   },
   "assistant": {
@@ -1628,7 +1733,30 @@
       "dropFiles": "Drop your files here to attach them.",
       "transcribingAudio": "Transcribing audio…",
       "recordingPrompt": "Recording… click here or press mic again to stop and send ({{time}})",
-      "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
+      "stopSendVoiceTimer": "Stop & send voice message ({{time}})",
+      "runChanges": {
+        "title": "What changed",
+        "model": "Model",
+        "unchanged": "unchanged",
+        "code": "Code",
+        "noFiles": "no files changed",
+        "filesChanged_one": "{{count}} file changed",
+        "filesChanged_other": "{{count}} files changed",
+        "showAll": "Show all {{count}}",
+        "more": "and {{count}} more"
+      }
+    },
+    "startFromRepo": {
+      "entry": "Start from a GitHub repository",
+      "entryHint": "BESSER or not",
+      "failed": "Could not open this repository.",
+      "badLink": "Paste a link like github.com/owner/repo.",
+      "title": "Start from a GitHub repository",
+      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+      "connect": "Connect GitHub to open one of your repositories.",
+      "linkPlaceholder": "Paste a link: github.com/owner/repo",
+      "linkLabel": "Repository link",
+      "open": "Open"
     }
   },
   "deploy": {
@@ -1678,7 +1806,6 @@
       "descUpdatedAgent": "Your agent changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.",
       "descCreated": "Continue with one-click Render deployment or inspect the generated repository.",
       "descCreatedAgent": "Continue with one-click Render deployment for your standalone agent or inspect the generated repository.",
-      "filesUploaded": "{{count}} files uploaded.",
       "notSeeingChanges": "Don't see your changes yet?",
       "manualSyncIntro": "Open your Blueprint on Render and click",
       "manualSyncLabel": "Manual Sync",
@@ -1688,7 +1815,9 @@
       "openLiveApp": "Open Live App",
       "openRenderDeployment": "Open Render Deployment",
       "openBlueprint": "Open Render Blueprint",
-      "viewRepo": "View GitHub Repository"
+      "viewRepo": "View GitHub Repository",
+      "filesChanged_one": "{{count}} file changed.",
+      "filesChanged_other": "{{count}} files changed."
     },
     "toasts": {
       "availableFor": "Deploy is available for Web App and Agent diagrams.",
@@ -1992,6 +2121,39 @@
         "elementTypes": {
           "title": "Set Element Types",
           "body": "<p>Double-click a task, event or gateway to set its type, for example a user or service task, a timer start event, or an exclusive or parallel gateway.</p>"
+        }
+      },
+      "projectHeading": "Your Project",
+      "github": {
+        "label": "GitHub",
+        "summary": "Keep each project in a GitHub repository of your own: save and merge your model, review changes, and let the Spec-Driven Agent build on any repository.",
+        "connect": {
+          "title": "Connect and Link",
+          "body": "<p>Connect GitHub from the start screen or the GitHub button in the top bar. Each project links to one repository: create a private one for it, or link one that you, a collaborator or your organisation already has.</p><p>Ticking <strong>Save it on GitHub</strong> when you create a project creates and links a private repository in one step.</p>"
+        },
+        "repoContents": {
+          "title": "What Goes in the Repository",
+          "body": "<p>A save writes your whole project to <code>buml/diagrams.json</code>, the B-UML Python of your diagrams next to it in <code>buml/</code>, and <code>.besser/project.json</code>, which marks the repository as a BESSER project. After a Spec-Driven Agent run, the app’s code is in the same repository.</p><p>Keys, tokens and passwords in your agent configuration are removed before anything is written. Your browser keeps them, and they come back when you load the model into the same project.</p>"
+        },
+        "saveLatest": {
+          "title": "Save and Get Latest",
+          "body": "<p>The dot on the GitHub button shows where you stand: in sync, unsaved changes, new commits on GitHub, or changed on both sides.</p><ul><li><strong>Save to GitHub</strong> commits your model. If the branch moved since your last sync, both versions are merged, the model as data, so two people who each add a class keep both.</li><li><strong>Get latest</strong> loads the version on GitHub into the editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflicts and Pull Requests",
+          "body": "<p>When the same element was changed differently on both sides, nothing is overwritten: your save is kept on its own branch, and the GitHub menu offers to open a pull request for it. You can also send any save as a pull request, for your team to review first.</p><p>Once the pull request is merged, use <strong>Get latest</strong> to bring the result into the editor.</p>"
+        },
+        "history": {
+          "title": "History",
+          "body": "<p><strong>History…</strong> lists the commits that changed the model, with what each one changed (classes added, renamed or removed), and loads any earlier version into the editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Start From Any Repository",
+          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository</strong> in the assistant. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it asks you first. Only if you agree does it send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses to propose the diagram. That model may be run by a third-party provider, so the excerpt leaves BESSER's server.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
+        },
+        "publish": {
+          "title": "Go Live and Share",
+          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p><strong>File → Share as Secret Gist…</strong> shares a copy of the project through a link, with agent credentials removed.</p>"
         }
       }
     }

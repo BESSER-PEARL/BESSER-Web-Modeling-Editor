@@ -36,6 +36,8 @@ vi.mock('../../hooks/useAssistantLogic', () => ({
   }),
 }));
 vi.mock('../AssistantByokDialog', () => ({ AssistantByokDialog: () => null }));
+vi.mock('../StartFromRepoDialog', () => ({ StartFromRepoDialog: () => null }));
+vi.mock('../../../github/components/RepoChatHeader', () => ({ RepoChatHeader: () => null }));
 
 import { AssistantWorkspaceDrawer } from '../AssistantWorkspaceDrawer';
 

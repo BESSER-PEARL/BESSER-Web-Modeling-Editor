@@ -17,21 +17,9 @@ import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import { fetchModelChange, modelChangeQuestion } from './services/modelChange';
 import type { ModelChange } from './services/modelChange';
 import type { SpecDrivenMode } from './types';
+import { isValidRunId, type LastRunRecord } from '../../shared/services/storage/specDrivenRunRecords';
 
-/** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
-const RUN_ID_RE = /^[a-f0-9]{32}$/i;
-
-/** Narrow an arbitrary value to a valid 32-hex run id. */
-export function isValidRunId(value: unknown): value is string {
-  return typeof value === 'string' && RUN_ID_RE.test(value);
-}
-
-/** A previously recorded successful run for a project. */
-export interface LastRunRecord {
-  runId: string;
-  /** Epoch ms at which the run completed. */
-  at: number;
-}
+export { isValidRunId, type LastRunRecord };
 
 export interface RunModeDecision {
   mode: SpecDrivenMode;

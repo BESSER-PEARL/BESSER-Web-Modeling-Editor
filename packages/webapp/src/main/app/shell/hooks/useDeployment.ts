@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { useGitHubAuth } from '../../../features/github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
 import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
@@ -17,15 +17,7 @@ import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
 } from '../../../features/deploy/utils/restoreBaseAgentModels';
-
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
+import { sanitizeRepoName } from '../../../shared/utils/validation';
 
 const hasWebAppDeploymentInputs = (project: BesserProject | null): boolean => {
   if (!project) return false;
@@ -89,7 +81,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
   const [isDeployResultOpen, setIsDeployResultOpen] = useState(false);
   const [githubRepoName, setGithubRepoName] = useState('');
   const [githubRepoDescription, setGithubRepoDescription] = useState('');
-  const [githubRepoPrivate, setGithubRepoPrivate] = useState(false);
+  const [githubRepoPrivate, setGithubRepoPrivate] = useState(true);
   const [useExistingRepo, setUseExistingRepo] = useState(false);
   const [linkedRepo, setLinkedRepo] = useState<{ owner: string; repo: string } | null>(null);
   const [commitMessage, setCommitMessage] = useState('');
@@ -166,7 +158,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       setGithubRepoName(defaultRepoNameForTarget(currentProject.name, initialTarget));
     }
     setGithubRepoDescription(defaultDescriptionForTarget(initialTarget));
-    setGithubRepoPrivate(false);
+    setGithubRepoPrivate(true);
     setIsDeployDialogOpen(true);
   }, [isDeploymentAvailable, isAuthenticated, currentProject, availableDeployTargets]);
 
