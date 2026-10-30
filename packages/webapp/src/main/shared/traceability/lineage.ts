@@ -133,13 +133,20 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
     if (!moved) break;
   }
 
+  const into = new Map<string, TraceLink[]>();
+  for (const link of links) {
+    const list = into.get(link.targetId);
+    if (list) list.push(link);
+    else into.set(link.targetId, [link]);
+  }
+
   // Staleness flows left to right: a node is stale when a link into it is suspect or comes from a stale node.
   const ordered = [...nodeIds].filter((id) => index.artifacts.has(id)).sort((a, b) => column.get(a)! - column.get(b)!);
   const nodes = new Map<string, LineageNode>();
   const states = new Map<string, LineageEdgeState>();
   for (const id of ordered) {
     let stale = false;
-    for (const link of links.filter((l) => l.targetId === id)) {
+    for (const link of into.get(id) ?? []) {
       const state: LineageEdgeState = isSuspect(index, link)
         ? 'suspect'
         : nodes.get(link.sourceId)?.stale
@@ -164,7 +171,7 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
     if (container.id === node.artifact.id) group.containerIsNode = true;
     else group.nodes.push(node);
   }
-  orderColumns(columns, links);
+  orderColumns(columns, into);
 
   return { rootId, nodes, edges: links.map((link) => ({ link, state: states.get(link.id) ?? 'current' })), columns };
 }
@@ -173,11 +180,18 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
  * Order each column so links cross as little as possible: the first column by name, every later
  * one by the mean position of its nodes' sources (the barycentre heuristic), name as a tie-break.
  */
-function orderColumns(columns: LineageGroup[][], links: TraceLink[]): void {
+function orderColumns(columns: LineageGroup[][], into: Map<string, TraceLink[]>): void {
   const position = new Map<string, number>();
+  // Each node's score is computed once per column (its sources are all in earlier columns).
+  const scores = new Map<string, number>();
   const barycentre = (id: string) => {
-    const sources = links.filter((l) => l.targetId === id && position.has(l.sourceId)).map((l) => position.get(l.sourceId)!);
-    return sources.length ? sources.reduce((a, b) => a + b, 0) / sources.length : Number.POSITIVE_INFINITY;
+    let score = scores.get(id);
+    if (score === undefined) {
+      const sources = (into.get(id) ?? []).filter((l) => position.has(l.sourceId)).map((l) => position.get(l.sourceId)!);
+      score = sources.length ? sources.reduce((a, b) => a + b, 0) / sources.length : Number.POSITIVE_INFINITY;
+      scores.set(id, score);
+    }
+    return score;
   };
   for (const groups of columns) {
     for (const group of groups) group.nodes.sort((a, b) => barycentre(a.artifact.id) - barycentre(b.artifact.id) || nodeOrder(a, b));

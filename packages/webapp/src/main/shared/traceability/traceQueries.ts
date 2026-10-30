@@ -32,6 +32,8 @@ export interface TraceIndex {
   changesByArtifact: Map<string, LocatedChange[]>;
   linksBySource: Map<string, TraceLink[]>;
   linksByTarget: Map<string, TraceLink[]>;
+  /** The latest change on each artifact or any of its fragments (ISO time), for suspect checks. */
+  latestChangeBelow: Map<string, string>;
 }
 
 const push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
@@ -59,7 +61,35 @@ export function indexTrace(trace: TraceFile): TraceIndex {
     push(linksBySource, link.sourceId, link);
     push(linksByTarget, link.targetId, link);
   }
-  return { trace, artifacts, operations, children, changesByArtifact, linksBySource, linksByTarget };
+  return {
+    trace, artifacts, operations, children, changesByArtifact, linksBySource, linksByTarget,
+    latestChangeBelow: latestChangeBelow(artifacts, changesByArtifact),
+  };
+}
+
+/**
+ * Each artifact's latest change, its own or a fragment's, computed once so that checking whether a
+ * link is suspect is a lookup rather than a walk of its source's history (a diagram is the source
+ * of every whole-file link, and has every change of the diagram below it).
+ */
+function latestChangeBelow(
+  artifacts: Map<string, TraceArtifact>,
+  changesByArtifact: Map<string, LocatedChange[]>,
+): Map<string, string> {
+  const latest = new Map<string, string>();
+  for (const [artifactId, changes] of changesByArtifact) {
+    const time = changes[changes.length - 1].change.timestamp; // the list is oldest first
+    // Up the parent chain; an ancestor already as recent passed it further up itself. The step cap
+    // guards against a parent cycle in a hand-edited trace.
+    let artifact = artifacts.get(artifactId);
+    for (let steps = 0; artifact && steps <= artifacts.size; steps += 1) {
+      const known = latest.get(artifact.id);
+      if (known !== undefined && known >= time) break;
+      latest.set(artifact.id, time);
+      artifact = artifact.parentId ? artifacts.get(artifact.parentId) : undefined;
+    }
+  }
+  return latest;
 }
 
 /** The artifact and all its fragments, recursively. */
@@ -99,7 +129,7 @@ export function changesSince(index: TraceIndex, link: TraceLink): LocatedChange[
 /** True when the link's source, or a fragment of it, changed after the link was made:
  *  the target may no longer match it (`TraceModel.is_suspect` in the metamodel). */
 export function isSuspect(index: TraceIndex, link: TraceLink): boolean {
-  return changesSince(index, link).length > 0;
+  return (index.latestChangeBelow.get(link.sourceId) ?? '') > link.timestamp;
 }
 
 /** A diagram: a model artifact that is not a fragment of another one. */
@@ -210,8 +240,10 @@ export interface CoverageMatrix {
  * changing a member makes its element's code suspect.
  */
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
+  // Runs compacted by retention have no links left: they say nothing about coverage.
+  const linked = new Set(index.trace.traceLinks.map((link) => link.operationId));
   const generations = index.trace.operations
-    .filter((o) => o.type === 'CodeGeneration')
+    .filter((o) => o.type === 'CodeGeneration' && linked.has(o.id))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .slice(0, maxGenerations);
   const row = (element: ModelArtifact): CoverageRow => {

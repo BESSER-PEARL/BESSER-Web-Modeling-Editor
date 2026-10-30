@@ -11,6 +11,7 @@ import {
 } from '../traceRecorder';
 import type { RecordContext } from '../traceRecorder';
 import {
+  changesSince,
   coverageMatrix,
   diagramsOf,
   diagramsOfOperation,
@@ -195,6 +196,18 @@ describe('mergeTraceFragment and queries', () => {
     expect(historyOf(index, book.id).map((c) => c.change.kind)).toEqual(['CREATED', 'CREATED', 'UPDATED']);
     const [group] = coverageMatrix(index, 5).groups;
     expect(group.elements.find((r) => r.element.id === book.id)!.cells).toEqual(['suspect']);
+  });
+
+  it('decides suspect links from the index exactly as from their history', () => {
+    const trace = recordedThenGenerated();
+    const book = model([cls('c1', 'Book'), attr('a1', 'c1', 'title')]);
+    // A change before the generation, one after on a member, and a second generation after both.
+    record(trace, book, model([cls('c1', 'Book'), attr('a1', 'c1', 'title', { attributeType: 'int' })]), 120_000);
+    mergeTraceFragment(trace, { ...generationFragment(180_000), traceLinks: generationFragment(180_000).traceLinks.map((l) => ({ ...l, id: 'fl2' })) });
+    record(trace, book, model([cls('c1', 'Volume'), attr('a1', 'c1', 'title')]), 240_000);
+    const index = indexTrace(trace);
+    for (const link of trace.traceLinks) expect(isSuspect(index, link)).toBe(changesSince(index, link).length > 0);
+    expect(trace.traceLinks.map((l) => isSuspect(index, l))).toEqual([true, true]);
   });
 
   it('keeps file contents only for the newest generations of a path', () => {
