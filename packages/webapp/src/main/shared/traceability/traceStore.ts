@@ -5,16 +5,15 @@ import type { BesserProject, ProjectDiagram } from '../types/project';
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { TraceFile } from '../types/traceability';
 import { diffClassModel } from './classModelDiff';
-import type { ClassModelLike } from './classModelDiff';
-import { mergeTraceFragment, pruneStoredContents, recordElementChanges } from './traceRecorder';
+import type { ClassModelLike, ElementChange } from './classModelDiff';
+import { findModelArtifact, mergeTraceFragment, pruneStoredContents, recordElementChanges } from './traceRecorder';
 import type { ModellingSource } from './traceRecorder';
 
 /**
  * The project trace, kept in `localStorage` under `besser_traces_<projectId>`,
  * apart from the project itself (`besser_project_<projectId>`), and exported
- * as its own `<project>.trace.json` file, or with the project when the user
- * ticks it in the Export dialog (the `trace` of the JSON envelope, the
- * TRACEABILITY section of the B-UML file).
+ * with the project when the user ticks it in the Export dialog (the `trace` of
+ * the JSON envelope, the TRACEABILITY section of the B-UML file).
  *
  * Recording is opt-in per project (`settings.traceabilityEnabled`).
  */
@@ -157,6 +156,38 @@ export function recordClassDiagramUpdate(
       now: new Date().toISOString(),
     }),
   );
+}
+
+/**
+ * Record a change of a diagram itself (renamed, deleted), whatever its type. Only a diagram the
+ * trace already knows is recorded: one that was never edited while recording enters the trace
+ * with its current title on its first recorded edit.
+ */
+function recordDiagramChange(
+  project: BesserProject,
+  diagramId: string,
+  title: string,
+  change: Pick<ElementChange, 'kind' | 'feature' | 'oldValue' | 'newValue'>,
+): void {
+  if (!isTraceabilityEnabled(project)) return;
+  const diagram = findModelArtifact(getProjectTrace(project.id), diagramId);
+  if (!diagram || diagram.parentId) return;
+  updateProjectTrace(project.id, (trace) =>
+    recordElementChanges(
+      trace,
+      [{ ...change, elementId: diagramId, elementType: diagram.elementType, name: title, parentElementId: null }],
+      { diagramId, diagramTitle: title, actorName: traceActorName(project), source: 'MANUAL_MODELLING', now: new Date().toISOString() },
+    ),
+  );
+}
+
+export function recordDiagramRenamed(project: BesserProject, diagramId: string, oldTitle: string, newTitle: string): void {
+  if (oldTitle.trim() === newTitle.trim()) return;
+  recordDiagramChange(project, diagramId, newTitle, { kind: 'UPDATED', feature: 'name', oldValue: oldTitle, newValue: newTitle });
+}
+
+export function recordDiagramDeleted(project: BesserProject, diagramId: string, title: string): void {
+  recordDiagramChange(project, diagramId, title, { kind: 'DELETED', oldValue: title });
 }
 
 /** Merge the trace fragment of a generation run into the project trace. */

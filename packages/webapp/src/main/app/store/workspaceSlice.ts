@@ -22,7 +22,11 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
-import { recordClassDiagramUpdate } from '../../shared/traceability/traceStore';
+import {
+  recordClassDiagramUpdate,
+  recordDiagramDeleted,
+  recordDiagramRenamed,
+} from '../../shared/traceability/traceStore';
 import type { ModellingSource } from '../../shared/traceability/traceRecorder';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
@@ -314,6 +318,7 @@ export const updateDiagramModelThunk = createAsyncThunk(
     if (activeDiagramType === 'ClassDiagram' && updates.model) {
       recordClassDiagramUpdate(project, updated, current.model, updated.model, traceSource);
     }
+    if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
     return updated;
   },
 );
@@ -602,6 +607,7 @@ export const removeDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    const removed = project.diagrams[diagramType]?.[index];
     let success = false;
     let updatedProject: BesserProject | null = null;
     ProjectStorageRepository.withoutNotify(() => {
@@ -612,6 +618,7 @@ export const removeDiagramThunk = createAsyncThunk(
     });
     if (!success) throw new Error('Cannot remove diagram');
     if (!updatedProject) throw new Error('Failed to reload project after removal');
+    if (removed) recordDiagramDeleted(project, removed.id, removed.title);
     return { project: updatedProject as BesserProject, diagramType };
   },
 );
@@ -651,6 +658,7 @@ export const renameDiagramThunk = createAsyncThunk(
     ProjectStorageRepository.withoutNotify(() => {
       ProjectStorageRepository.updateDiagram(project.id, diagramType, updated, index);
     });
+    recordDiagramRenamed(project, updated.id, diagrams[index].title, newTitle);
     return { diagramType, index, diagram: updated };
   },
 );

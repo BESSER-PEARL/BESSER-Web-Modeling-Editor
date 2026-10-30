@@ -82,9 +82,13 @@ export function historyOf(index: TraceIndex, artifactId: string): LocatedChange[
     .sort((a, b) => a.change.timestamp.localeCompare(b.change.timestamp));
 }
 
+/** Whether the artifact was deleted, itself or with what holds it (an element of a deleted diagram). */
 export function isDeleted(index: TraceIndex, artifactId: string): boolean {
-  const lifecycle = (index.changesByArtifact.get(artifactId) ?? []).filter((c) => c.change.kind !== 'UPDATED');
-  return lifecycle.length > 0 && lifecycle[lifecycle.length - 1].change.kind === 'DELETED';
+  for (let id: string | undefined = artifactId; id; id = index.artifacts.get(id)?.parentId) {
+    const lifecycle = (index.changesByArtifact.get(id) ?? []).filter((c) => c.change.kind !== 'UPDATED');
+    if (lifecycle.length > 0 && lifecycle[lifecycle.length - 1].change.kind === 'DELETED') return true;
+  }
+  return false;
 }
 
 /** True when the link's source, or a fragment of it, changed after the link was made: the code may be stale. */
