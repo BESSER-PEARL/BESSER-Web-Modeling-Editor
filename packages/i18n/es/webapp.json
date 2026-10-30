@@ -1438,7 +1438,8 @@
       "signedInAs": "Sesión iniciada como {{name}}",
       "unlinkConfirmDescription": "El proyecto se queda en tu navegador y el repositorio en GitHub. Guardar en GitHub se detiene hasta que vuelvas a vincular un repositorio.",
       "howItWorks": "Cómo funciona GitHub en BESSER",
-      "notInTabHint": "GitHub no está conectado en esta pestaña. Conéctalo para usarlo aquí."
+      "notInTabHint": "GitHub no está conectado en esta pestaña. Conéctalo para usarlo aquí.",
+      "startFromRepo": "Empezar desde un repositorio de GitHub…"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1526,6 +1527,16 @@
       "description": "BESSER no pudo leer directamente las clases de datos de {{repo}}. Puede enviar un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER, que puede estar gestionado por un proveedor externo. Tu código sale entonces del servidor de BESSER. No se envía nada sin tu consentimiento.",
       "accept": "Leer con IA",
       "decline": "Ahora no"
+    },
+    "startFromRepo": {
+      "badLink": "Pega un enlace como github.com/owner/repo.",
+      "connect": "Conecta GitHub para abrir uno de tus repositorios.",
+      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
+      "failed": "No se pudo abrir este repositorio.",
+      "linkLabel": "Enlace del repositorio",
+      "linkPlaceholder": "Pega un enlace: github.com/owner/repo",
+      "open": "Abrir",
+      "title": "Empezar desde un repositorio de GitHub"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
       }
-    },
-    "startFromRepo": {
-      "badLink": "Pega un enlace como github.com/owner/repo.",
-      "connect": "Conecta GitHub para abrir uno de tus repositorios.",
-      "description": "Elige un repositorio sobre el que seguir construyendo. Un repositorio de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo que aceptas en el lienzo. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
-      "entry": "Empezar desde un repositorio de GitHub",
-      "entryHint": "De BESSER o no",
-      "failed": "No se pudo abrir este repositorio.",
-      "linkLabel": "Enlace del repositorio",
-      "linkPlaceholder": "Pega un enlace: github.com/owner/repo",
-      "open": "Abrir",
-      "title": "Empezar desde un repositorio de GitHub"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Empezar desde cualquier repositorio",
-          "body": "<p>Usa <strong>Continuar desde GitHub</strong> en la pantalla de inicio, o <strong>Empezar desde un repositorio de GitHub</strong> en el asistente. Un repositorio BESSER se abre con su modelo. Para cualquier otro, BESSER lee sus clases de datos (SQLAlchemy, Django, Pydantic, dataclasses) y propone un diagrama de clases que aceptas o descartas en el lienzo. No se escribe nada en el repositorio hasta que guardas.</p><p>Si BESSER no puede leer directamente las clases de datos, primero te lo pregunta. Solo si aceptas envía un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER para proponer el diagrama. Ese modelo puede estar gestionado por un proveedor externo, así que el extracto sale del servidor de BESSER.</p><p>Después, el Spec-Driven Agent trabaja sobre ese código y sus cambios vuelven al mismo repositorio.</p>"
+          "body": "<p>Usa <strong>Continuar desde GitHub</strong> en la pantalla de inicio, o <strong>Empezar desde un repositorio de GitHub…</strong> en el menú de GitHub. Un repositorio BESSER se abre con su modelo. Para cualquier otro, BESSER lee sus clases de datos (SQLAlchemy, Django, Pydantic, dataclasses) y propone un diagrama de clases que aceptas o descartas en el lienzo. No se escribe nada en el repositorio hasta que guardas.</p><p>Si BESSER no puede leer directamente las clases de datos, primero te lo pregunta. Solo si aceptas envía un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER para proponer el diagrama. Ese modelo puede estar gestionado por un proveedor externo, así que el extracto sale del servidor de BESSER.</p><p>Después, el Spec-Driven Agent trabaja sobre ese código y sus cambios vuelven al mismo repositorio.</p>"
         },
         "publish": {
           "title": "Publicar y compartir",

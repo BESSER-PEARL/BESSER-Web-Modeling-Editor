@@ -28,6 +28,7 @@ interface TopBarUtilitiesProps {
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
   onToggleStar: () => void;
+  onRepoOpened?: (summary: string) => void;
 }
 
 export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
@@ -49,6 +50,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onGitHubLogin,
   onGitHubLogout,
   onToggleStar,
+  onRepoOpened,
 }) => {
   const { t } = useTranslation();
   const qualityStateLabel = qualityCheckState === 'valid'
@@ -157,6 +159,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         githubLoading={githubLoading}
         onLogin={onGitHubLogin}
         onLogout={onGitHubLogout}
+        onRepoOpened={onRepoOpened}
       />
     </>
   );

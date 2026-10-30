@@ -36,7 +36,7 @@ describe('GitHub strings in every language', () => {
 
   it('says BESSER asks before code goes to an AI model, in the pickers and the Help guide', () => {
     expect(get(en, 'project.hub.github.description')).toContain('asks you before sending');
-    expect(get(en, 'assistant.startFromRepo.description')).toContain('asks you before sending');
+    expect(get(en, 'github.startFromRepo.description')).toContain('asks you before sending');
     const guide = get(en, 'dialogs.guide.github.anyRepo.body') as string;
     expect(guide).toContain('it asks you first');
     expect(guide).toContain('third-party provider');

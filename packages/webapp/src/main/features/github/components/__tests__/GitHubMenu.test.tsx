@@ -23,6 +23,7 @@ const sync = {
 };
 vi.mock('../../hooks/useRepoSync', () => ({ useRepoSync: () => sync }));
 vi.mock('../../hooks/useFlushEditorModel', () => ({ useFlushEditorModel: () => () => undefined }));
+vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('../../../../app/hooks/useProject', () => ({
   useProject: () => ({ currentProject: { id: 'p1', name: 'Library', description: '' } }),
 }));
@@ -114,6 +115,15 @@ describe('GitHubMenu', () => {
     expect(screen.getByText('Signed in as ana')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Sign Out' }));
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens "Start from a GitHub repository" from the menu', async () => {
+    renderMenu();
+    openMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Start from a GitHub repository…' }));
+
+    expect(await screen.findByRole('heading', { name: 'Start from a GitHub repository' })).toBeInTheDocument();
   });
 
   it('opens the Help guide at its GitHub section from "How GitHub works in BESSER"', () => {

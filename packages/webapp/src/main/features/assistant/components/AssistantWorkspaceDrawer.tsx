@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check, MoreHorizontal, Github } from 'lucide-react';
+import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check, MoreHorizontal } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -24,7 +24,6 @@ import { resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
-import { StartFromRepoDialog } from './StartFromRepoDialog';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
@@ -181,7 +180,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- BYOK dialog ---- */
 
   const [byokOpen, setByokOpen] = useState(false);
-  const [startFromRepoOpen, setStartFromRepoOpen] = useState(false);
   // "Your model" blueprint side panel (data model / relationships / screens).
   const [overviewOpen, setOverviewOpen] = useState(false);
   // Re-read when the BYOK dialog opens/closes (a save/remove happens inside it),
@@ -916,25 +914,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   ))}
                 </div>
 
-                {/* Start from an existing repository instead of a sentence. */}
-                <div
-                  key={`entrance-repo-${entranceKey}`}
-                  className="animate-fade-up mt-6 flex justify-center"
-                  style={entrance(5)}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setStartFromRepoOpen(true)}
-                    className="group inline-flex items-center gap-2 rounded-lg border border-border/70 bg-card/70 px-4 py-2 text-sm font-medium text-foreground shadow-elevation-1 backdrop-blur-sm transition-[border-color,background-color,transform] duration-200 hover:border-brand/40 hover:bg-brand/5 [@media(hover:hover)]:hover:-translate-y-px"
-                  >
-                    <Github className="size-4 text-muted-foreground transition-colors group-hover:text-brand" />
-                    {t('assistant.startFromRepo.entry', { defaultValue: 'Start from a GitHub repository' })}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {t('assistant.startFromRepo.entryHint', { defaultValue: 'BESSER or not' })}
-                    </span>
-                  </button>
-                </div>
-
                 {/* Capability cards — three branded cards (hidden; set to true to show) */}
                 {false && (
                 <div
@@ -1124,7 +1103,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
-      <StartFromRepoDialog open={startFromRepoOpen} onOpenChange={setStartFromRepoOpen} />
 
       {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
           opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}

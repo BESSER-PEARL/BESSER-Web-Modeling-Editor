@@ -1438,7 +1438,8 @@
       "signedInAs": "Ugemellt als {{name}}",
       "unlinkConfirmDescription": "De Projet bleift an dengem Browser an de Repository op GitHub. Späicheren op GitHub hält op, bis s du nees e Repository verbënns.",
       "howItWorks": "Wéi GitHub a BESSER funktionéiert",
-      "notInTabHint": "GitHub ass an dësem Tab net verbonnen. Verbann et, fir et hei ze benotzen."
+      "notInTabHint": "GitHub ass an dësem Tab net verbonnen. Verbann et, fir et hei ze benotzen.",
+      "startFromRepo": "Mat engem GitHub-Repository ufänken…"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1526,6 +1527,16 @@
       "description": "BESSER konnt d’Dateklasse vu {{repo}} net direkt liesen. Et kann e kuerzen Auszuch vum Code (bis zu ronn 40.000 Zeechen, ouni geheim Fichieren a Schlësselen) un dat KI-Modell schécken, dat de BESSER-Server benotzt an dat vun engem Drëttubidder bedriwwe ka ginn. Däi Code verléisst dann de Server vu BESSER. Ouni deng Zoustëmmung gëtt näischt geschéckt.",
       "accept": "Mat KI liesen",
       "decline": "Net elo"
+    },
+    "startFromRepo": {
+      "badLink": "Füg e Link wéi github.com/owner/repo an.",
+      "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",
+      "description": "Wiel e Repository, op deem s du weiderbaue wëlls. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell, deen s du op der Leinwand iwwerhëls. Wann BESSER d’Dateklassen net direkt liese kann, freet et dech, ier et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell schéckt, dat ee Modell virschléit.",
+      "failed": "Dëse Repository konnt net opgemaach ginn.",
+      "linkLabel": "Repository-Link",
+      "linkPlaceholder": "Link afügen: github.com/owner/repo",
+      "open": "Opmaachen",
+      "title": "Mat engem GitHub-Repository ufänken"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
       }
-    },
-    "startFromRepo": {
-      "badLink": "Füg e Link wéi github.com/owner/repo an.",
-      "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",
-      "description": "Wiel e Repository, op deem s du weiderbaue wëlls. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell, deen s du op der Leinwand iwwerhëls. Wann BESSER d’Dateklassen net direkt liese kann, freet et dech, ier et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell schéckt, dat ee Modell virschléit.",
-      "entry": "Mat engem GitHub-Repository ufänken",
-      "entryHint": "BESSER oder net",
-      "failed": "Dëse Repository konnt net opgemaach ginn.",
-      "linkLabel": "Repository-Link",
-      "linkPlaceholder": "Link afügen: github.com/owner/repo",
-      "open": "Opmaachen",
-      "title": "Mat engem GitHub-Repository ufänken"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Vun all Repository ufänken",
-          "body": "<p>Benotzt <strong>Vu GitHub weidermaachen</strong> um Startecran oder <strong>Mat engem GitHub-Repository ufänken</strong> am Assistent. E BESSER-Repository geet mat sengem Modell op. Bei all anerem liest BESSER seng Dateklassen (SQLAlchemy, Django, Pydantic, Dataclasses) a proposéiert e Klassendiagramm, deen Dir um Canvas unhuelt oder verwerft. Näischt gëtt an de Repository geschriwwen, ier Dir späichert.</p><p>Wann BESSER d’Dateklassen net direkt liese kann, freet et Iech als éischt. Just wann Dir averstanen sidd, schéckt et e kuerzen Auszuch vum Code (bis zu ronn 40.000 Zeechen, ouni geheim Fichieren a Schlësselen) un dat KI-Modell, dat de BESSER-Server benotzt, fir den Diagramm virzeschloen. Dat Modell kann vun engem Drëttubidder bedriwwe ginn, sou datt den Auszuch de Server vu BESSER verléisst.</p><p>De Spec-Driven Agent schafft duerno un deem Code, a seng Ännerunge ginn an dee selwechte Repository zréck.</p>"
+          "body": "<p>Benotzt <strong>Vu GitHub weidermaachen</strong> um Startecran oder <strong>Mat engem GitHub-Repository ufänken…</strong> am GitHub-Menü. E BESSER-Repository geet mat sengem Modell op. Bei all anerem liest BESSER seng Dateklassen (SQLAlchemy, Django, Pydantic, Dataclasses) a proposéiert e Klassendiagramm, deen Dir um Canvas unhuelt oder verwerft. Näischt gëtt an de Repository geschriwwen, ier Dir späichert.</p><p>Wann BESSER d’Dateklassen net direkt liese kann, freet et Iech als éischt. Just wann Dir averstanen sidd, schéckt et e kuerzen Auszuch vum Code (bis zu ronn 40.000 Zeechen, ouni geheim Fichieren a Schlësselen) un dat KI-Modell, dat de BESSER-Server benotzt, fir den Diagramm virzeschloen. Dat Modell kann vun engem Drëttubidder bedriwwe ginn, sou datt den Auszuch de Server vu BESSER verléisst.</p><p>De Spec-Driven Agent schafft duerno un deem Code, a seng Ännerunge ginn an dee selwechte Repository zréck.</p>"
         },
         "publish": {
           "title": "Live goen an deelen",

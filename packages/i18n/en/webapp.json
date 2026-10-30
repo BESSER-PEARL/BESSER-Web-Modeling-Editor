@@ -1519,13 +1519,24 @@
       "pendingConflict": "A save could not be merged with newer changes and is on the branch {{branch}}. Open a pull request to resolve it on GitHub.",
       "pendingPullRequest": "Pull request #{{number}} waits for review. Once it is merged, Get latest brings it in.",
       "howItWorks": "How GitHub works in BESSER",
-      "notInTabHint": "GitHub is not connected in this tab. Connect it to use it here."
+      "notInTabHint": "GitHub is not connected in this tab. Connect it to use it here.",
+      "startFromRepo": "Start from a GitHub repository…"
     },
     "aiReading": {
       "title": "Read this repository with AI?",
       "description": "BESSER could not read the data classes of {{repo}} directly. It can send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses, which may be run by a third-party provider. Your code then leaves BESSER's server. Nothing is sent unless you agree.",
       "accept": "Read with AI",
       "decline": "Not now"
+    },
+    "startFromRepo": {
+      "failed": "Could not open this repository.",
+      "badLink": "Paste a link like github.com/owner/repo.",
+      "title": "Start from a GitHub repository",
+      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+      "connect": "Connect GitHub to open one of your repositories.",
+      "linkPlaceholder": "Paste a link: github.com/owner/repo",
+      "linkLabel": "Repository link",
+      "open": "Open"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
       }
-    },
-    "startFromRepo": {
-      "entry": "Start from a GitHub repository",
-      "entryHint": "BESSER or not",
-      "failed": "Could not open this repository.",
-      "badLink": "Paste a link like github.com/owner/repo.",
-      "title": "Start from a GitHub repository",
-      "description": "Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
-      "connect": "Connect GitHub to open one of your repositories.",
-      "linkPlaceholder": "Paste a link: github.com/owner/repo",
-      "linkLabel": "Repository link",
-      "open": "Open"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Start From Any Repository",
-          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository</strong> in the assistant. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it asks you first. Only if you agree does it send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses to propose the diagram. That model may be run by a third-party provider, so the excerpt leaves BESSER's server.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
+          "body": "<p>Use <strong>Continue from GitHub</strong> on the start screen, or <strong>Start from a GitHub repository…</strong> in the GitHub menu. A BESSER repository opens with its model. For any other, BESSER reads its data classes (SQLAlchemy, Django, Pydantic, dataclasses) and proposes a class diagram you accept or discard on the canvas. Nothing is written to the repository until you save.</p><p>If BESSER cannot read the data classes directly, it asks you first. Only if you agree does it send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses to propose the diagram. That model may be run by a third-party provider, so the excerpt leaves BESSER's server.</p><p>The Spec-Driven Agent then works on that code, and its changes go back to the same repository.</p>"
         },
         "publish": {
           "title": "Go Live and Share",

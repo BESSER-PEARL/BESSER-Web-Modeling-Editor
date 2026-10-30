@@ -59,6 +59,9 @@ const ModelHistoryDialog = React.lazy(() =>
 const LinkRepositoryDialog = React.lazy(() =>
   import('../dialogs/LinkRepositoryDialog').then((m) => ({ default: m.LinkRepositoryDialog })),
 );
+const StartFromRepoDialog = React.lazy(() =>
+  import('../dialogs/StartFromRepoDialog').then((m) => ({ default: m.StartFromRepoDialog })),
+);
 
 interface GitHubMenuProps {
   outlineButtonClass: string;
@@ -67,6 +70,8 @@ interface GitHubMenuProps {
   githubLoading: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  /** Called with a summary of a repository opened through "Start from a GitHub repository". */
+  onRepoOpened?: (summary: string) => void;
 }
 
 /** Status dot colour per sync state. */
@@ -100,7 +105,7 @@ const REPO_STATE_LABEL: Record<RepoSyncState, string> = {
 
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-type OpenDialog = 'save' | 'history' | 'link' | 'create' | null;
+type OpenDialog = 'save' | 'history' | 'link' | 'create' | 'startFromRepo' | null;
 
 export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   outlineButtonClass,
@@ -109,6 +114,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   githubLoading,
   onLogin,
   onLogout,
+  onRepoOpened,
 }) => {
   const { t } = useTranslation();
   const { currentProject } = useProject();
@@ -127,6 +133,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const historyMounted = useHasOpened(dialog === 'history');
   const linkMounted = useHasOpened(dialog === 'link');
   const createMounted = useHasOpened(dialog === 'create');
+  const startFromRepoMounted = useHasOpened(dialog === 'startFromRepo');
 
   // The chat's repo header (and anything else) opens this menu through the event.
   const openFromEventRef = useRef<() => void>(() => undefined);
@@ -456,6 +463,10 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             </>
           )}
           <DropdownMenuSeparator />
+          <DropdownMenuItem className={itemClass} onSelect={() => setDialog('startFromRepo')}>
+            <FolderGit2 className={iconClass} aria-hidden="true" />
+            {t('github.menu.startFromRepo', { defaultValue: 'Start from a GitHub repository…' })}
+          </DropdownMenuItem>
           <DropdownMenuItem className={itemClass} onSelect={() => openHelpGuide('github')}>
             <HelpCircle className={iconClass} aria-hidden="true" />
             {t('github.menu.howItWorks', { defaultValue: 'How GitHub works in BESSER' })}
@@ -492,6 +503,13 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             onRepoDescriptionChange={setNewRepoDescription}
             onRepoPrivateChange={setIsRepoPrivate}
             onCreate={() => void handleCreateRepo()}
+          />
+        )}
+        {startFromRepoMounted && (
+          <StartFromRepoDialog
+            open={dialog === 'startFromRepo'}
+            onOpenChange={(open) => setDialog(open ? 'startFromRepo' : null)}
+            onRepoOpened={onRepoOpened}
           />
         )}
       </Suspense>

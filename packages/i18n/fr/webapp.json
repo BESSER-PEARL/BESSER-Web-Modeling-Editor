@@ -1438,7 +1438,8 @@
       "signedInAs": "Connecté en tant que {{name}}",
       "unlinkConfirmDescription": "Le projet reste dans votre navigateur et le dépôt sur GitHub. L’enregistrement sur GitHub s’arrête jusqu’à ce que vous liiez à nouveau un dépôt.",
       "howItWorks": "Comment GitHub fonctionne dans BESSER",
-      "notInTabHint": "GitHub n’est pas connecté dans cet onglet. Connectez-le pour l’utiliser ici."
+      "notInTabHint": "GitHub n’est pas connecté dans cet onglet. Connectez-le pour l’utiliser ici.",
+      "startFromRepo": "Partir d’un dépôt GitHub…"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1526,6 +1527,16 @@
       "description": "BESSER n’a pas pu lire directement les classes de données de {{repo}}. Il peut envoyer un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER, qui peut être exploité par un fournisseur tiers. Votre code quitte alors le serveur de BESSER. Rien n’est envoyé sans votre accord.",
       "accept": "Lire avec l’IA",
       "decline": "Pas maintenant"
+    },
+    "startFromRepo": {
+      "badLink": "Collez un lien comme github.com/owner/repo.",
+      "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",
+      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+      "failed": "Impossible d’ouvrir ce dépôt.",
+      "linkLabel": "Lien du dépôt",
+      "linkPlaceholder": "Collez un lien : github.com/owner/repo",
+      "open": "Ouvrir",
+      "title": "Partir d’un dépôt GitHub"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "Tout afficher ({{count}})",
         "more": "et {{count}} de plus"
       }
-    },
-    "startFromRepo": {
-      "badLink": "Collez un lien comme github.com/owner/repo.",
-      "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",
-      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
-      "entry": "Partir d’un dépôt GitHub",
-      "entryHint": "BESSER ou non",
-      "failed": "Impossible d’ouvrir ce dépôt.",
-      "linkLabel": "Lien du dépôt",
-      "linkPlaceholder": "Collez un lien : github.com/owner/repo",
-      "open": "Ouvrir",
-      "title": "Partir d’un dépôt GitHub"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Partir de n’importe quel dépôt",
-          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub</strong> dans l’assistant. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il vous le demande d’abord. Ce n’est qu’avec votre accord qu’il envoie un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER pour proposer le diagramme. Ce modèle peut être exploité par un fournisseur tiers : l’extrait quitte alors le serveur de BESSER.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
+          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub…</strong> dans le menu GitHub. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il vous le demande d’abord. Ce n’est qu’avec votre accord qu’il envoie un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER pour proposer le diagramme. Ce modèle peut être exploité par un fournisseur tiers : l’extrait quitte alors le serveur de BESSER.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
         },
         "publish": {
           "title": "Mettre en ligne et partager",

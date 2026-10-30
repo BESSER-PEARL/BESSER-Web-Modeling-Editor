@@ -1438,7 +1438,8 @@
       "signedInAs": "Angemeldet als {{name}}",
       "unlinkConfirmDescription": "Das Projekt bleibt in Ihrem Browser und das Repository auf GitHub. Das Speichern auf GitHub endet, bis Sie wieder ein Repository verknüpfen.",
       "howItWorks": "So funktioniert GitHub in BESSER",
-      "notInTabHint": "GitHub ist in diesem Tab nicht verbunden. Verbinden Sie es, um es hier zu nutzen."
+      "notInTabHint": "GitHub ist in diesem Tab nicht verbunden. Verbinden Sie es, um es hier zu nutzen.",
+      "startFromRepo": "Mit einem GitHub-Repository beginnen…"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1526,6 +1527,16 @@
       "description": "BESSER konnte die Datenklassen von {{repo}} nicht direkt lesen. Es kann einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell senden, das der BESSER-Server verwendet und das von einem Drittanbieter betrieben werden kann. Ihr Code verlässt dann den Server von BESSER. Ohne Ihre Zustimmung wird nichts gesendet.",
       "accept": "Mit KI lesen",
       "decline": "Nicht jetzt"
+    },
+    "startFromRepo": {
+      "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
+      "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",
+      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen. Kann BESSER die Datenklassen nicht direkt lesen, fragt es Sie, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
+      "failed": "Dieses Repository konnte nicht geöffnet werden.",
+      "linkLabel": "Repository-Link",
+      "linkPlaceholder": "Link einfügen: github.com/owner/repo",
+      "open": "Öffnen",
+      "title": "Mit einem GitHub-Repository beginnen"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "Alle {{count}} anzeigen",
         "more": "und {{count}} weitere"
       }
-    },
-    "startFromRepo": {
-      "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
-      "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",
-      "description": "Wählen Sie ein Repository, an dem Sie weiterbauen möchten. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor, das Sie auf der Arbeitsfläche übernehmen. Kann BESSER die Datenklassen nicht direkt lesen, fragt es Sie, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
-      "entry": "Mit einem GitHub-Repository beginnen",
-      "entryHint": "BESSER oder nicht",
-      "failed": "Dieses Repository konnte nicht geöffnet werden.",
-      "linkLabel": "Repository-Link",
-      "linkPlaceholder": "Link einfügen: github.com/owner/repo",
-      "open": "Öffnen",
-      "title": "Mit einem GitHub-Repository beginnen"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Mit jedem Repository starten",
-          "body": "<p>Nutze <strong>Aus GitHub fortsetzen</strong> auf dem Startbildschirm oder <strong>Mit einem GitHub-Repository beginnen</strong> im Assistenten. Ein BESSER-Repository öffnet sich mit seinem Modell. Bei jedem anderen liest BESSER die Datenklassen (SQLAlchemy, Django, Pydantic, Dataclasses) und schlägt ein Klassendiagramm vor, das du auf der Arbeitsfläche annimmst oder verwirfst. Bis du speicherst, wird nichts ins Repository geschrieben.</p><p>Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich zuerst. Nur wenn du zustimmst, sendet es einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell, das der BESSER-Server verwendet, um das Diagramm vorzuschlagen. Dieses Modell kann von einem Drittanbieter betrieben werden, der Auszug verlässt also den Server von BESSER.</p><p>Der Spec-Driven Agent arbeitet dann an diesem Code, und seine Änderungen gehen in dasselbe Repository zurück.</p>"
+          "body": "<p>Nutze <strong>Aus GitHub fortsetzen</strong> auf dem Startbildschirm oder <strong>Mit einem GitHub-Repository beginnen…</strong> im GitHub-Menü. Ein BESSER-Repository öffnet sich mit seinem Modell. Bei jedem anderen liest BESSER die Datenklassen (SQLAlchemy, Django, Pydantic, Dataclasses) und schlägt ein Klassendiagramm vor, das du auf der Arbeitsfläche annimmst oder verwirfst. Bis du speicherst, wird nichts ins Repository geschrieben.</p><p>Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich zuerst. Nur wenn du zustimmst, sendet es einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell, das der BESSER-Server verwendet, um das Diagramm vorzuschlagen. Dieses Modell kann von einem Drittanbieter betrieben werden, der Auszug verlässt also den Server von BESSER.</p><p>Der Spec-Driven Agent arbeitet dann an diesem Code, und seine Änderungen gehen in dasselbe Repository zurück.</p>"
         },
         "publish": {
           "title": "Live schalten und teilen",

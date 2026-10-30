@@ -235,6 +235,8 @@ the state in words, and click it for everything you do with the repository:
 - **History…**: the model's earlier versions, with a restore for each.
 - **Open on GitHub**: the repository's branch in a new tab.
 - **Change repository…** and **Unlink**.
+- **Start from a GitHub repository…**: open any repository, BESSER-made or
+  not, as a project; the assistant then summarises what it found.
 - **How GitHub works in BESSER**: opens the Help guide at its GitHub section,
   which explains linking, what a save writes to the repository, merging, pull
   requests, history and starting from any repository.

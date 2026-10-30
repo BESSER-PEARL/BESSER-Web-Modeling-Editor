@@ -1088,6 +1088,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     [isAuthenticated, githubLogin],
   );
   const [helpSection, setHelpSection] = useState<HelpGuideSectionId | undefined>();
+  // A repository opened from the GitHub menu: its summary goes to the chat, and the chat opens.
+  const showOpenedRepoInAssistant = useCallback((summary: string) => {
+    void import('../../features/assistant/hooks/assistantConversationStore').then((m) => m.postAssistantMessage(summary));
+    setIsAssistantWorkspaceOpen(true);
+  }, []);
   const openHelpDialog = useCallback(() => {
     setHelpSection(undefined);
     setIsHelpDialogOpen(true);
@@ -1155,6 +1160,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
+        onRepoOpened={showOpenedRepoInAssistant}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}

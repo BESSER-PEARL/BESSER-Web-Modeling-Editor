@@ -46,6 +46,8 @@ export interface WorkspaceTopBarProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
+  /** A repository was opened from the GitHub menu: show its summary in the assistant. */
+  onRepoOpened?: (summary: string) => void;
   hasStarred: boolean;
   starLoading: boolean;
   onToggleStar: () => void;

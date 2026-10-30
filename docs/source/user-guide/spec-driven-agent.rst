@@ -145,7 +145,7 @@ Starting from a GitHub repository
 ---------------------------------
 
 The agent can keep building on any GitHub repository, whether BESSER made it or
-not. In the assistant's welcome view choose **Start from a GitHub repository**
+not. In the GitHub menu in the top bar choose **Start from a GitHub repository…**
 (or **Continue from GitHub** in the project hub), sign in if prompted, then paste
 a link such as ``github.com/owner/repo`` or pick the repository and branch.
 
@@ -177,7 +177,7 @@ Reading a repository with AI
 
 Nothing in a repository is read with AI unless you agree. When BESSER cannot
 read the data classes directly, it asks first, from every place that opens a
-repository (the project hub, *Start from a GitHub repository* and the chat):
+repository (the project hub, the GitHub menu and the chat):
 it can send a short excerpt of the code, up to about 40,000 characters with
 secret files and keys removed, to the AI model the BESSER server uses. That
 model may be run by a third-party provider, so the excerpt leaves BESSER's

@@ -83,4 +83,15 @@ describe('AssistantWorkspaceDrawer welcome entrance', () => {
     const keyWarnings = consoleError.mock.calls.filter((args) => String(args[0]).includes('same key'));
     expect(keyWarnings).toHaveLength(0);
   });
+
+  it('offers no repository entry in the welcome view; repositories open from the project hub', () => {
+    const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
+    const { container } = render(
+      <Provider store={store}>
+        <AssistantWorkspaceDrawer open onOpenChange={() => {}} />
+      </Provider>,
+    );
+
+    expect(container.textContent).not.toContain('Start from a GitHub repository');
+  });
 });

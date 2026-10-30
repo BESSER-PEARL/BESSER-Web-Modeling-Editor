@@ -19,7 +19,6 @@ import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../../shared/services/github/continueFromGithub';
 import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
-import { postAssistantMessage } from '../hooks/assistantConversationStore';
 
 const GITHUB_URL_RE = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([\w./-]+))?\/?$/i;
 
@@ -35,9 +34,11 @@ export function parseRepoReference(text: string): { owner: string; repo: string;
 interface StartFromRepoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called with a summary of the opened repository, for the assistant chat. */
+  onRepoOpened?: (summary: string) => void;
 }
 
-export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, onOpenChange }) => {
+export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, onOpenChange, onRepoOpened }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { loadProject } = useProject();
@@ -53,14 +54,14 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
     try {
       const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
       if (!result.ok || !result.projectId) {
-        setError(result.error ?? t('assistant.startFromRepo.failed', { defaultValue: 'Could not open this repository.' }));
+        setError(result.error ?? t('github.startFromRepo.failed', { defaultValue: 'Could not open this repository.' }));
         return;
       }
       await loadProject(result.projectId);
       if (result.runId) {
         dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
       }
-      postAssistantMessage(describeOpenedRepo(result));
+      onRepoOpened?.(describeOpenedRepo(result));
       onOpenChange(false);
     } finally {
       setBusy(false);
@@ -70,7 +71,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
   const openLink = () => {
     const ref = parseRepoReference(link);
     if (!ref) {
-      setError(t('assistant.startFromRepo.badLink', { defaultValue: 'Paste a link like github.com/owner/repo.' }));
+      setError(t('github.startFromRepo.badLink', { defaultValue: 'Paste a link like github.com/owner/repo.' }));
       return;
     }
     void openRepo(ref.owner, ref.repo, ref.branch);
@@ -92,10 +93,10 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Github className="size-5" />
-            {t('assistant.startFromRepo.title', { defaultValue: 'Start from a GitHub repository' })}
+            {t('github.startFromRepo.title', { defaultValue: 'Start from a GitHub repository' })}
           </DialogTitle>
           <DialogDescription>
-            {t('assistant.startFromRepo.description', {
+            {t('github.startFromRepo.description', {
               defaultValue:
                 'Pick a repository to keep building on. A BESSER repository opens with its model; for any other, BESSER reads the code and proposes a model you accept on the canvas. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
             })}
@@ -110,7 +111,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
         ) : !isAuthenticated || !githubSession ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              {t('assistant.startFromRepo.connect', {
+              {t('github.startFromRepo.connect', {
                 defaultValue: 'Connect GitHub to open one of your repositories.',
               })}
             </p>
@@ -134,18 +135,18 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
                   setLink(event.target.value);
                   setError(null);
                 }}
-                placeholder={t('assistant.startFromRepo.linkPlaceholder', { defaultValue: 'Paste a link: github.com/owner/repo' })}
-                aria-label={t('assistant.startFromRepo.linkLabel', { defaultValue: 'Repository link' })}
+                placeholder={t('github.startFromRepo.linkPlaceholder', { defaultValue: 'Paste a link: github.com/owner/repo' })}
+                aria-label={t('github.startFromRepo.linkLabel', { defaultValue: 'Repository link' })}
                 disabled={busy}
               />
               <Button type="submit" disabled={busy || !link.trim()} className="shrink-0 gap-1.5">
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                {t('assistant.startFromRepo.open', { defaultValue: 'Open' })}
+                {t('github.startFromRepo.open', { defaultValue: 'Open' })}
               </Button>
             </form>
             <RepoBrowser
               githubSession={githubSession}
-              actionLabel={t('assistant.startFromRepo.open', { defaultValue: 'Open' })}
+              actionLabel={t('github.startFromRepo.open', { defaultValue: 'Open' })}
               onAction={({ owner, repo, branch }: RepoChoice) => openRepo(owner, repo, branch)}
               busy={busy}
               error={error}

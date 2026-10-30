@@ -1438,7 +1438,8 @@
       "signedInAs": "Sessió iniciada com a {{name}}",
       "unlinkConfirmDescription": "El projecte es queda al teu navegador i el repositori a GitHub. Desar a GitHub s’atura fins que tornis a vincular un repositori.",
       "howItWorks": "Com funciona GitHub a BESSER",
-      "notInTabHint": "GitHub no està connectat en aquesta pestanya. Connecta’l per fer-lo servir aquí."
+      "notInTabHint": "GitHub no està connectat en aquesta pestanya. Connecta’l per fer-lo servir aquí.",
+      "startFromRepo": "Comença des d’un repositori de GitHub…"
     },
     "origin": {
       "agent": "Spec-Driven Agent",
@@ -1526,6 +1527,16 @@
       "description": "BESSER no ha pogut llegir directament les classes de dades de {{repo}}. Pot enviar un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER, que pot estar gestionat per un proveïdor extern. Llavors el teu codi surt del servidor de BESSER. No s’envia res sense el teu consentiment.",
       "accept": "Llegeix amb IA",
       "decline": "Ara no"
+    },
+    "startFromRepo": {
+      "badLink": "Enganxa un enllaç com github.com/owner/repo.",
+      "connect": "Connecta GitHub per obrir un dels teus repositoris.",
+      "description": "Tria un repositori per continuar-hi construint. Un repositori de BESSER s’obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model que acceptes al llenç. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+      "failed": "No s’ha pogut obrir aquest repositori.",
+      "linkLabel": "Enllaç del repositori",
+      "linkPlaceholder": "Enganxa un enllaç: github.com/owner/repo",
+      "open": "Obre",
+      "title": "Comença des d’un repositori de GitHub"
     }
   },
   "assistant": {
@@ -1745,18 +1756,6 @@
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
       }
-    },
-    "startFromRepo": {
-      "badLink": "Enganxa un enllaç com github.com/owner/repo.",
-      "connect": "Connecta GitHub per obrir un dels teus repositoris.",
-      "description": "Tria un repositori per continuar-hi construint. Un repositori de BESSER s’obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model que acceptes al llenç. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
-      "entry": "Comença des d’un repositori de GitHub",
-      "entryHint": "De BESSER o no",
-      "failed": "No s’ha pogut obrir aquest repositori.",
-      "linkLabel": "Enllaç del repositori",
-      "linkPlaceholder": "Enganxa un enllaç: github.com/owner/repo",
-      "open": "Obre",
-      "title": "Comença des d’un repositori de GitHub"
     }
   },
   "deploy": {
@@ -2149,7 +2148,7 @@
         },
         "anyRepo": {
           "title": "Començar des de qualsevol repositori",
-          "body": "<p>Fes servir <strong>Continua des de GitHub</strong> a la pantalla d’inici, o <strong>Comença des d’un repositori de GitHub</strong> a l’assistent. Un repositori BESSER s’obre amb el seu model. Per a qualsevol altre, BESSER llegeix les seves classes de dades (SQLAlchemy, Django, Pydantic, dataclasses) i proposa un diagrama de classes que acceptes o descartes al llenç. No s’escriu res al repositori fins que desis.</p><p>Si BESSER no pot llegir directament les classes de dades, primer t’ho pregunta. Només si hi estàs d’acord envia un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER per proposar el diagrama. Aquest model pot estar gestionat per un proveïdor extern, de manera que l’extracte surt del servidor de BESSER.</p><p>Després, el Spec-Driven Agent treballa sobre aquest codi i els seus canvis tornen al mateix repositori.</p>"
+          "body": "<p>Fes servir <strong>Continua des de GitHub</strong> a la pantalla d’inici, o <strong>Comença des d’un repositori de GitHub…</strong> al menú de GitHub. Un repositori BESSER s’obre amb el seu model. Per a qualsevol altre, BESSER llegeix les seves classes de dades (SQLAlchemy, Django, Pydantic, dataclasses) i proposa un diagrama de classes que acceptes o descartes al llenç. No s’escriu res al repositori fins que desis.</p><p>Si BESSER no pot llegir directament les classes de dades, primer t’ho pregunta. Només si hi estàs d’acord envia un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER per proposar el diagrama. Aquest model pot estar gestionat per un proveïdor extern, de manera que l’extracte surt del servidor de BESSER.</p><p>Després, el Spec-Driven Agent treballa sobre aquest codi i els seus canvis tornen al mateix repositori.</p>"
         },
         "publish": {
           "title": "Publicar i compartir",
