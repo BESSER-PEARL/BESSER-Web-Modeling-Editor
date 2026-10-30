@@ -218,8 +218,10 @@ const GenerationSummary: React.FC<{ operation: TraceOperation; index: TraceIndex
   const files = operation.produces
     .map((id) => index.artifacts.get(id))
     .filter((a): a is CodeArtifact => isCodeArtifact(a) && a.startLine === undefined);
+  const compacted = sources.length === 0 && files.length > 0;
   return (
     <div className="space-y-2">
+      {compacted && <p className="text-xs text-muted-foreground">{t('traceability.timeline.compacted')}</p>}
       <div className="flex flex-wrap items-center gap-1">
         <span className="text-xs text-muted-foreground">{t('traceability.timeline.files')}:</span>
         {files.map((f) => (

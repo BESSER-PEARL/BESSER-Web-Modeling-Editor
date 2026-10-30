@@ -27,6 +27,10 @@ export const CREATION_FOLD_MS = 30 * 1000;
 /** Generated files whose content is kept per path; older generations keep only their hash
  *  (browser storage is about 5 MB per origin). */
 export const KEPT_CONTENTS_PER_PATH = 3;
+/** Generation runs per generator whose trace links are kept. An older run keeps its operation and
+ *  its files' hashes (what was generated, by whom, when), so the trace stops growing with every run;
+ *  its links were superseded by the newer runs' anyway. */
+export const KEPT_GENERATIONS_PER_GENERATOR = 5;
 
 export const EDITOR_TOOL_NAME = 'BESSER Web Modeling Editor';
 export const ASSISTANT_AGENT_NAME = 'BESSER modeling assistant';
@@ -207,7 +211,51 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
   for (const link of fragment.traceLinks) {
     trace.traceLinks.push({ ...link, sourceId: mapped(link.sourceId), targetId: mapped(link.targetId) });
   }
+  const compacted = pruneOldGenerations(trace);
+  if (compacted > 0) console.info(`Kept ${compacted} older generation run(s) as operation and file hashes only.`);
   pruneStoredContents(trace);
+}
+
+/**
+ * Compact the generation runs older than the newest `keep` of each generator: drop their trace links
+ * and their line-range fragments, and the content of their files. Their operation and their files
+ * (with hashes) stay. Returns how many runs were compacted (each once).
+ */
+export function pruneOldGenerations(trace: TraceFile, keep: number = KEPT_GENERATIONS_PER_GENERATOR): number {
+  const runsByGenerator = new Map<string, TraceOperation[]>();
+  for (const operation of trace.operations) {
+    if (operation.type !== 'CodeGeneration') continue;
+    const generator = operation.uses.join(',');
+    runsByGenerator.set(generator, [...(runsByGenerator.get(generator) ?? []), operation]);
+  }
+  const linked = new Set(trace.traceLinks.map((link) => link.operationId));
+  const old = new Set<string>();
+  for (const runs of runsByGenerator.values()) {
+    runs.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    for (const run of runs.slice(keep)) if (linked.has(run.id)) old.add(run.id);
+  }
+  if (old.size === 0) return 0;
+
+  const artifacts = new Map(trace.artifacts.map((a) => [a.id, a]));
+  const dropped = new Set<string>();
+  for (const operation of trace.operations) {
+    if (!old.has(operation.id)) continue;
+    for (const id of operation.produces) {
+      const artifact = artifacts.get(id);
+      if (!isCodeArtifact(artifact)) continue;
+      if (artifact.parentId) dropped.add(id); // a line range: only its links gave it meaning
+      else delete artifact.content;
+    }
+  }
+  trace.traceLinks = trace.traceLinks.filter(
+    (link) => !old.has(link.operationId) && !dropped.has(link.sourceId) && !dropped.has(link.targetId),
+  );
+  trace.artifacts = trace.artifacts.filter((a) => !dropped.has(a.id));
+  for (const operation of trace.operations) {
+    operation.produces = operation.produces.filter((id) => !dropped.has(id));
+    operation.consumes = operation.consumes.filter((id) => !dropped.has(id));
+  }
+  return old.size;
 }
 
 /** Keep the content of the newest `KEPT_CONTENTS_PER_PATH` files per path; older ones keep their hash only.

@@ -9,7 +9,8 @@ import {
   updateDiagramModelThunk,
   workspaceReducer,
 } from '../workspaceSlice';
-import { getProjectTrace } from '../../../shared/traceability/traceStore';
+import { loadProjectTrace, setTraceStorage } from '../../../shared/traceability/traceStore';
+import { memoryTraceStorage } from '../../../shared/traceability/traceDatabase';
 import { indexTrace, isDeleted } from '../../../shared/traceability/traceQueries';
 import type { ModelArtifact } from '../../../shared/types/traceability';
 import { changesOf } from '../../../shared/types/traceability';
@@ -31,22 +32,26 @@ const tracedProject = async (recording = true) => {
   return { store, projectId: project.id, diagramId: project.diagrams.ClassDiagram[0].id };
 };
 
-const diagramArtifact = (projectId: string, diagramId: string) =>
-  getProjectTrace(projectId).artifacts.find((a): a is ModelArtifact => a.type === 'ModelArtifact' && a.elementId === diagramId)!;
+// Reading through loadProjectTrace waits for the updates queued while the trace was loading.
+const diagramArtifact = async (projectId: string, diagramId: string) =>
+  (await loadProjectTrace(projectId)).artifacts.find((a): a is ModelArtifact => a.type === 'ModelArtifact' && a.elementId === diagramId)!;
 
-const diagramChanges = (projectId: string, diagramId: string) => {
-  const artifact = diagramArtifact(projectId, diagramId);
-  return getProjectTrace(projectId).operations.flatMap(changesOf).filter((c) => c.artifactId === artifact.id);
+const diagramChanges = async (projectId: string, diagramId: string) => {
+  const artifact = await diagramArtifact(projectId, diagramId);
+  return (await loadProjectTrace(projectId)).operations.flatMap(changesOf).filter((c) => c.artifactId === artifact.id);
 };
 
 describe('diagram renames and deletions in the trace', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    setTraceStorage(memoryTraceStorage());
+  });
 
   it('records a rename from the diagram tabs', async () => {
     const { store, projectId, diagramId } = await tracedProject();
     await store.dispatch(renameDiagramThunk({ diagramType: 'ClassDiagram', index: 0, newTitle: 'Library model' })).unwrap();
-    expect(diagramArtifact(projectId, diagramId).name).toBe('Library model');
-    expect(diagramChanges(projectId, diagramId)).toEqual([
+    expect((await diagramArtifact(projectId, diagramId)).name).toBe('Library model');
+    expect((await diagramChanges(projectId, diagramId))).toEqual([
       expect.objectContaining({ kind: 'UPDATED', feature: 'name', newValue: 'Library model' }),
     ]);
   });
@@ -54,28 +59,28 @@ describe('diagram renames and deletions in the trace', () => {
   it('records a rename from the title field', async () => {
     const { store, projectId, diagramId } = await tracedProject();
     await store.dispatch(updateDiagramModelThunk({ title: 'Catalogue' })).unwrap();
-    expect(diagramArtifact(projectId, diagramId).name).toBe('Catalogue');
+    expect((await diagramArtifact(projectId, diagramId)).name).toBe('Catalogue');
   });
 
   it('records a deletion, which also marks the diagram elements deleted', async () => {
     const { store, projectId, diagramId } = await tracedProject();
     await store.dispatch(addDiagramThunk({ diagramType: 'ClassDiagram', title: 'Spare' })).unwrap();
     await store.dispatch(removeDiagramThunk({ diagramType: 'ClassDiagram', index: 0 })).unwrap();
-    expect(diagramChanges(projectId, diagramId).map((c) => c.kind)).toEqual(['DELETED']);
-    const index = indexTrace(getProjectTrace(projectId));
-    const bookArtifact = getProjectTrace(projectId).artifacts.find((a) => a.name === 'Book')!;
+    expect((await diagramChanges(projectId, diagramId)).map((c) => c.kind)).toEqual(['DELETED']);
+    const index = indexTrace((await loadProjectTrace(projectId)));
+    const bookArtifact = (await loadProjectTrace(projectId)).artifacts.find((a) => a.name === 'Book')!;
     expect(isDeleted(index, bookArtifact.id)).toBe(true);
   });
 
   it('records nothing while recording is off, or for a diagram the trace does not know', async () => {
     const { store, projectId, diagramId } = await tracedProject(false);
     await store.dispatch(renameDiagramThunk({ diagramType: 'ClassDiagram', index: 0, newTitle: 'Renamed' })).unwrap();
-    expect(diagramChanges(projectId, diagramId)).toEqual([]);
+    expect((await diagramChanges(projectId, diagramId))).toEqual([]);
 
     await store.dispatch(setTraceabilityEnabledThunk(true)).unwrap();
     await store.dispatch(addDiagramThunk({ diagramType: 'ClassDiagram', title: 'Never edited' })).unwrap();
-    const before = getProjectTrace(projectId).operations.length;
+    const before = (await loadProjectTrace(projectId)).operations.length;
     await store.dispatch(renameDiagramThunk({ diagramType: 'ClassDiagram', index: 1, newTitle: 'Still never edited' })).unwrap();
-    expect(getProjectTrace(projectId).operations).toHaveLength(before);
+    expect((await loadProjectTrace(projectId)).operations).toHaveLength(before);
   });
 });

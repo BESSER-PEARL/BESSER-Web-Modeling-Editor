@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { migrateTraceFile } from '../traceMigration';
-import { getProjectTrace, recordGenerationTrace, traceFileProblem } from '../traceStore';
+import { loadProjectTrace, recordGenerationTrace, setTraceStorage, traceFileProblem } from '../traceStore';
+import { memoryTraceStorage } from '../traceDatabase';
 import { TRACE_SCHEMA_VERSION } from '../../types/traceability';
 import type { TraceFile } from '../../types/traceability';
 
@@ -39,17 +40,17 @@ describe('migrateTraceFile', () => {
 });
 
 describe('recordGenerationTrace', () => {
-  it('records the trace of an older backend in the current shape', () => {
-    localStorage.clear();
+  it('records the trace of an older backend in the current shape', async () => {
+    setTraceStorage(memoryTraceStorage());
     expect(recordGenerationTrace('p9', { ...v1Trace(), projectId: 'p9', operations: [v1Operation('g', 'CODE_GENERATION')] })).toBe(true);
-    const [operation] = getProjectTrace('p9').operations;
+    const [operation] = (await loadProjectTrace('p9')).operations;
     expect(operation).toMatchObject({ type: 'CodeGeneration' });
     expect(operation).not.toHaveProperty('operationType');
   });
 
-  it('leaves out a trace it cannot read', () => {
-    localStorage.clear();
+  it('leaves out a trace it cannot read', async () => {
+    setTraceStorage(memoryTraceStorage());
     expect(recordGenerationTrace('p8', { schemaVersion: 99 })).toBe(false);
-    expect(getProjectTrace('p8').operations).toEqual([]);
+    expect((await loadProjectTrace('p8')).operations).toEqual([]);
   });
 });

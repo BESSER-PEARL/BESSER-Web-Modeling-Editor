@@ -29,8 +29,11 @@ export const TraceabilityPage: React.FC = () => {
   const [tab, setTab] = useState<Tab>('timeline');
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
-  if (!currentProject || !trace || !index) {
+  if (!currentProject) {
     return <div className="p-6 text-sm text-muted-foreground">{t('traceability.noProject')}</div>;
+  }
+  if (!trace || !index) {
+    return <div className="p-6 text-sm text-muted-foreground">{t('traceability.loading')}</div>;
   }
   const enabled = isTraceabilityEnabled(currentProject);
   const isEmpty = trace.operations.length === 0;

@@ -5,6 +5,7 @@ import { BesserProject, SupportedDiagramType } from '../../shared/types/project'
 import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../shared/utils/download';
+import { loadProjectTrace } from '../../shared/traceability/traceStore';
 
 export async function exportProjectAsSingleBUMLFile(
   project: BesserProject,
@@ -22,6 +23,7 @@ export async function exportProjectAsSingleBUMLFile(
 
   console.log('[BUML Export] Using project data:', projectToUse.id);
 
+  if (includeTrace) await loadProjectTrace(projectToUse.id);
   const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes, { includeTrace });
 
   try {

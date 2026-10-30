@@ -4108,6 +4108,7 @@
   "traceability": {
     "title": "Traceability",
     "description": "What was modeled, by whom and with which tool, and the code generated from each element.",
+    "loading": "Loading the project's traces…",
     "noProject": "Open a project to see its traces.",
     "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
     "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modeling edits and code generation.",
@@ -4152,6 +4153,7 @@
       },
       "files": "Files",
       "tracedElements": "Traced elements",
+      "compacted": "An older run: only the files it generated and their hashes are kept (the newest 5 runs of each generator keep their trace links).",
       "models": "Diagrams"
     },
     "elements": {
@@ -4292,7 +4294,8 @@
       "storagePruned_other": "Trace storage was full: the content of {{count}} older generated files was dropped (their trace links are kept).",
       "storageFull": "Trace storage is full and the latest change was not recorded. Export the project with its trace, then clear the trace to continue.",
       "importedTraceUnusable": "The project was imported without its trace: {{problem}}",
-      "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}"
+      "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}",
+      "storageUnavailable": "The browser's storage for traces could not be opened: traces are kept for this session only."
     }
   }
 }

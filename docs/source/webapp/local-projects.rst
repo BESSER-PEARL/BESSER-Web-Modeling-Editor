@@ -37,9 +37,14 @@ handles read/write operations:
   the ``besser_project_`` prefix.
 * ``besser_latest_project`` points to the most recently opened project.
 * ``besser_projects`` lists all known project IDs to populate the home modal.
-* ``besser_traces_<projectId>`` holds the project's trace file when the project records
-  traces (``settings.traceabilityEnabled``). It is kept apart from the project, written by
-  ``shared/traceability/traceStore.ts``, and deleted with the project. The *Export Project* dialog can bundle it into a project export
+* The project's trace, when the project records traces (``settings.traceabilityEnabled``),
+  is kept apart from the project in the browser's IndexedDB (database ``besser_traces``,
+  one record per project id), which holds far more than ``localStorage``. It is written by
+  ``shared/traceability/traceStore.ts`` (loaded once per session, kept in memory, saved in
+  the background and when the page is hidden) and deleted with the project. A trace an
+  earlier version kept in ``localStorage`` (``besser_traces_<projectId>``) is moved over
+  when first read. Each generator keeps the trace links of its newest 5 runs; older runs
+  keep their operation and their files' hashes. The *Export Project* dialog can bundle it into a project export
   (``trace`` of the JSON envelope, or a ``TRACEABILITY`` section of the B-UML file);
   importing that file stores it under the new project id (``importProjectTrace``). Its format mirrors the backend traceability metamodel
   (``shared/types/traceability.ts``).

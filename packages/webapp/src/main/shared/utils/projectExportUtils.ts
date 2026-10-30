@@ -11,6 +11,13 @@ import { normalizeProjectName } from './projectName';
 import { EDITOR_VERSION } from '../constants/constant';
 import { getCachedBesserVersion } from '../services/besserVersion';
 import { getProjectTrace } from '../traceability/traceStore';
+
+/** The project's trace for an export; the caller loads it first (`loadProjectTrace`). */
+function loadedTrace(projectId: string): TraceFile {
+  const trace = getProjectTrace(projectId);
+  if (!trace) throw new Error(`The trace of project ${projectId} is not loaded: call loadProjectTrace before exporting it.`);
+  return trace;
+}
 import type { TraceFile } from '../types/traceability';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
@@ -148,7 +155,7 @@ export const buildProjectPayloadForBackend = (
     project,
     selectedDiagramTypes,
   );
-  if (options.includeTrace) payload.trace = getProjectTrace(project.id);
+  if (options.includeTrace) payload.trace = loadedTrace(project.id);
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {
@@ -244,7 +251,7 @@ export function buildProjectExportEnvelope(
     ...versionMetadata(),
   };
 
-  if (options.includeTrace) envelope.trace = getProjectTrace(project.id);
+  if (options.includeTrace) envelope.trace = loadedTrace(project.id);
 
   if (includePersonalization) {
     const agentConfigurations = LocalStorageRepository.getAgentConfigurations();

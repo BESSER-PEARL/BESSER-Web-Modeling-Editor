@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { toast } from 'react-toastify';
 import i18n from '../i18n';
 import type { BesserProject, ProjectDiagram } from '../types/project';
@@ -6,27 +6,54 @@ import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { TraceFile } from '../types/traceability';
 import { diffClassModel } from './classModelDiff';
 import type { ClassModelLike, ElementChange } from './classModelDiff';
+import { indexedDbTraceStorage, memoryTraceStorage } from './traceDatabase';
+import type { TraceStorage } from './traceDatabase';
 import { findModelArtifact, mergeTraceFragment, pruneStoredContents, recordElementChanges } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
 import type { ModelingSource } from './traceRecorder';
 
 /**
- * The project trace, kept in `localStorage` under `besser_traces_<projectId>`,
- * apart from the project itself (`besser_project_<projectId>`), and exported
- * with the project when the user ticks it in the Export dialog (the `trace` of
- * the JSON envelope, the TRACEABILITY section of the B-UML file).
+ * The project trace, kept in the browser's IndexedDB (`traceDatabase.ts`), apart from the project
+ * itself (`besser_project_<projectId>` in `localStorage`), and exported with the project when the
+ * user ticks it in the Export dialog (the `trace` of the JSON envelope, the TRACEABILITY section of
+ * the B-UML file).
+ *
+ * A trace is loaded once per session and then kept in memory: views read it from there, updates
+ * apply to it at once (or, before it has loaded, in order once it has), and it is saved in the
+ * background, a short while after the last update and when the page is hidden.
  *
  * Recording is opt-in per project (`settings.traceabilityEnabled`).
  */
 
-export const TRACE_STORAGE_PREFIX = 'besser_traces_';
+/** Where traces were kept before IndexedDB: a trace still there is moved over when first read. */
+export const LEGACY_TRACE_STORAGE_PREFIX = 'besser_traces_';
 /** Recorded when the project has no owner. Mirrors `TRACE_ANONYMOUS_ACTOR` in the backend. */
 export const ANONYMOUS_ACTOR = 'anonymous';
+/** Updates this close together are saved in one write (typing a name updates the trace on every key). */
+export const SAVE_DELAY_MS = 300;
 
-const traceKey = (projectId: string) => `${TRACE_STORAGE_PREFIX}${projectId}`;
-
+let storage: TraceStorage = defaultStorage();
 const cache = new Map<string, TraceFile>();
+const loading = new Map<string, Promise<TraceFile>>();
+const unsaved = new Map<string, ReturnType<typeof setTimeout>>();
 const listeners = new Set<() => void>();
+
+function defaultStorage(): TraceStorage {
+  if (typeof indexedDB !== 'undefined') return indexedDbTraceStorage();
+  console.warn('This browser has no IndexedDB: project traces are kept for this session only.');
+  return memoryTraceStorage();
+}
+
+/** Use another storage (tests); forgets every loaded trace. */
+export function setTraceStorage(next: TraceStorage): void {
+  storage = next;
+  cache.clear();
+  loading.clear();
+  unsaved.forEach(clearTimeout);
+  unsaved.clear();
+}
+
+const notify = () => listeners.forEach((listener) => listener());
 
 export const isTraceabilityEnabled = (project: BesserProject | null | undefined): boolean =>
   project?.settings?.traceabilityEnabled === true;
@@ -46,63 +73,127 @@ export function traceFileProblem(value: unknown, projectId?: string): string | n
   return null;
 }
 
-function load(projectId: string): TraceFile {
-  const raw = localStorage.getItem(traceKey(projectId));
-  if (!raw) return emptyTraceFile(projectId);
+/** The stored trace, or one moved over from `localStorage`, checked; a new one when there is none. */
+async function readStored(projectId: string): Promise<TraceFile> {
+  let stored: unknown;
   try {
-    const parsed = migrateTraceFile(JSON.parse(raw));
+    stored = await storage.read(projectId);
+  } catch (error) {
+    console.warn(`The trace of project ${projectId} could not be read; starting a new one for this session.`, error);
+    toast.warn(i18n.t('traceability.toasts.storageUnavailable'));
+    return emptyTraceFile(projectId);
+  }
+  const legacyKey = `${LEGACY_TRACE_STORAGE_PREFIX}${projectId}`;
+  const legacy = stored === undefined ? localStorage.getItem(legacyKey) : null;
+  if (stored === undefined && legacy === null) return emptyTraceFile(projectId);
+  try {
+    const parsed = migrateTraceFile(legacy !== null ? JSON.parse(legacy) : stored);
     const problem = traceFileProblem(parsed, projectId);
-    if (!problem) return parsed as TraceFile;
+    if (!problem) {
+      if (legacy !== null) {
+        await storage.write(projectId, parsed as TraceFile);
+        localStorage.removeItem(legacyKey);
+      }
+      return parsed as TraceFile;
+    }
     console.warn(`Stored trace of project ${projectId} is unusable (${problem}); starting a new one.`);
   } catch (error) {
-    console.warn(`Stored trace of project ${projectId} is not JSON; starting a new one.`, error);
+    console.warn(`Stored trace of project ${projectId} could not be read; starting a new one.`, error);
   }
   toast.warn(i18n.t('traceability.toasts.storedTraceUnusable'));
   return emptyTraceFile(projectId);
 }
 
-function persist(projectId: string, trace: TraceFile): void {
-  const write = () => localStorage.setItem(traceKey(projectId), JSON.stringify(trace));
+/** Load a project's trace (once per session) and return it. */
+export function loadProjectTrace(projectId: string): Promise<TraceFile> {
+  const cached = cache.get(projectId);
+  if (cached) return Promise.resolve(cached);
+  let pending = loading.get(projectId);
+  if (!pending) {
+    const from = storage;
+    pending = readStored(projectId).then((trace) => {
+      if (from === storage && !cache.has(projectId)) cache.set(projectId, trace);
+      loading.delete(projectId);
+      notify();
+      return cache.get(projectId) ?? trace;
+    });
+    loading.set(projectId, pending);
+  }
+  return pending;
+}
+
+/** The project's trace when it has been loaded (see {@link loadProjectTrace}), else undefined. */
+export function getProjectTrace(projectId: string): TraceFile | undefined {
+  return cache.get(projectId);
+}
+
+async function save(projectId: string): Promise<void> {
+  unsaved.delete(projectId);
+  const trace = cache.get(projectId);
+  if (!trace) return;
   try {
-    write();
-  } catch {
+    await storage.write(projectId, trace);
+  } catch (error) {
     // Storage full: keep only the newest file content per path and try again.
     const dropped = pruneStoredContents(trace, 1);
     try {
-      write();
+      await storage.write(projectId, trace);
       if (dropped > 0) {
-        console.warn(`Trace storage was full; dropped the stored content of ${dropped} older generated files.`);
+        console.warn(`Trace storage was full; dropped the stored content of ${dropped} older generated files.`, error);
         toast.warn(i18n.t('traceability.toasts.storagePruned', { count: dropped }));
       }
-    } catch (error) {
-      console.warn('Trace storage is full; this change was not saved.', error);
+    } catch (retryError) {
+      console.warn('Trace storage is full; the latest changes were not saved.', retryError);
       toast.error(i18n.t('traceability.toasts.storageFull'));
     }
   }
 }
 
-export function getProjectTrace(projectId: string): TraceFile {
-  let trace = cache.get(projectId);
-  if (!trace) {
-    trace = load(projectId);
-    cache.set(projectId, trace);
+function scheduleSave(projectId: string): void {
+  clearTimeout(unsaved.get(projectId));
+  unsaved.set(projectId, setTimeout(() => void save(projectId), SAVE_DELAY_MS));
+}
+
+/** Save every trace with updates not yet saved; resolves when they are written. */
+export function flushTraceSaves(): Promise<void> {
+  const pending = [...unsaved.entries()];
+  pending.forEach(([, timer]) => clearTimeout(timer));
+  return Promise.all(pending.map(([projectId]) => save(projectId))).then(() => undefined);
+}
+
+if (typeof window !== 'undefined') {
+  // Write what is pending before the tab goes away (closed, reloaded, sent to the background).
+  window.addEventListener('pagehide', () => void flushTraceSaves());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void flushTraceSaves();
+  });
+}
+
+/**
+ * Apply `update` to the project trace (in place), save it and notify subscribers. It runs at once
+ * when the trace is loaded, else as soon as it is, in the order updates were made. An update that
+ * returns `false` changed nothing: nothing is saved.
+ */
+export function updateProjectTrace(projectId: string, update: (trace: TraceFile) => void | false): Promise<void> {
+  const apply = (trace: TraceFile) => {
+    if (update(trace) === false) return;
+    // A new reference, so subscribers re-render.
+    cache.set(projectId, { ...trace });
+    scheduleSave(projectId);
+    notify();
+  };
+  const cached = cache.get(projectId);
+  if (cached) {
+    apply(cached);
+    return Promise.resolve();
   }
-  return trace;
+  return loadProjectTrace(projectId).then(() => apply(cache.get(projectId)!));
 }
 
-/** Apply `update` to the project trace (in place), save it and notify subscribers. */
-export function updateProjectTrace(projectId: string, update: (trace: TraceFile) => void): void {
-  const trace = getProjectTrace(projectId);
-  update(trace);
-  // A new reference, so subscribers re-render.
-  const published = { ...trace };
-  cache.set(projectId, published);
-  persist(projectId, published);
-  listeners.forEach((listener) => listener());
-}
-
-export function replaceProjectTrace(projectId: string, trace: TraceFile): void {
-  updateProjectTrace(projectId, (current) => Object.assign(current, trace));
+export function replaceProjectTrace(projectId: string, trace: TraceFile): Promise<void> {
+  return updateProjectTrace(projectId, (current) => {
+    Object.assign(current, trace);
+  });
 }
 
 /**
@@ -118,14 +209,17 @@ export function importProjectTrace(projectId: string, imported: unknown): boolea
     toast.warn(i18n.t('traceability.toasts.importedTraceUnusable', { problem }));
     return false;
   }
-  replaceProjectTrace(projectId, { ...(value as TraceFile), projectId });
+  void replaceProjectTrace(projectId, { ...(value as TraceFile), projectId });
   return true;
 }
 
 export function deleteProjectTrace(projectId: string): void {
+  clearTimeout(unsaved.get(projectId));
+  unsaved.delete(projectId);
   cache.delete(projectId);
-  localStorage.removeItem(traceKey(projectId));
-  listeners.forEach((listener) => listener());
+  localStorage.removeItem(`${LEGACY_TRACE_STORAGE_PREFIX}${projectId}`);
+  storage.remove(projectId).catch((error) => console.warn(`The trace of project ${projectId} could not be deleted.`, error));
+  notify();
 }
 
 function subscribe(listener: () => void): () => void {
@@ -133,9 +227,13 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** The project trace, re-rendering when it changes. */
+/** The project trace, re-rendering when it changes; null while it loads. */
 export function useProjectTrace(projectId: string | undefined): TraceFile | null {
-  return useSyncExternalStore(subscribe, () => (projectId ? getProjectTrace(projectId) : null));
+  const trace = useSyncExternalStore(subscribe, () => (projectId ? cache.get(projectId) ?? null : null));
+  useEffect(() => {
+    if (projectId) void loadProjectTrace(projectId);
+  }, [projectId]);
+  return trace;
 }
 
 /** Record the edits between two versions of a class diagram, when the project records traces. */
@@ -149,13 +247,14 @@ export function recordClassDiagramUpdate(
   if (!isTraceabilityEnabled(project)) return;
   const changes = diffClassModel(previousModel as ClassModelLike, nextModel as ClassModelLike);
   if (changes.length === 0) return;
-  updateProjectTrace(project.id, (trace) =>
+  const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
+  void updateProjectTrace(project.id, (trace) =>
     recordElementChanges(trace, changes, {
       diagramId: diagram.id,
       diagramTitle: diagram.title,
       actorName: traceActorName(project),
       source,
-      now: new Date().toISOString(),
+      now,
     }),
   );
 }
@@ -172,15 +271,16 @@ function recordDiagramChange(
   change: Pick<ElementChange, 'kind' | 'feature' | 'oldValue' | 'newValue'>,
 ): void {
   if (!isTraceabilityEnabled(project)) return;
-  const diagram = findModelArtifact(getProjectTrace(project.id), diagramId);
-  if (!diagram || diagram.parentId) return;
-  updateProjectTrace(project.id, (trace) =>
+  const now = new Date().toISOString();
+  void updateProjectTrace(project.id, (trace) => {
+    const diagram = findModelArtifact(trace, diagramId);
+    if (!diagram || diagram.parentId) return false;
     recordElementChanges(
       trace,
       [{ ...change, elementId: diagramId, elementType: diagram.elementType, name: title, parentElementId: null }],
-      { diagramId, diagramTitle: title, actorName: traceActorName(project), source: 'user', now: new Date().toISOString() },
-    ),
-  );
+      { diagramId, diagramTitle: title, actorName: traceActorName(project), source: 'user', now },
+    );
+  });
 }
 
 export function recordDiagramRenamed(project: BesserProject, diagramId: string, oldTitle: string, newTitle: string): void {
@@ -203,6 +303,6 @@ export function recordGenerationTrace(projectId: string, received: unknown): boo
     toast.warn(i18n.t('traceability.toasts.generationTraceUnusable', { problem }));
     return false;
   }
-  updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment as TraceFile));
+  void updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment as TraceFile));
   return true;
 }

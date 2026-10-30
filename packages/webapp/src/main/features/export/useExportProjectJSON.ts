@@ -3,6 +3,7 @@ import { buildProjectExportEnvelope } from '../../shared/utils/projectExportUtil
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadJson } from '../../shared/utils/download';
 import { loadBesserVersion } from '../../shared/services/besserVersion';
+import { loadProjectTrace } from '../../shared/traceability/traceStore';
 
 // Export project as a single JSON file
 export async function exportProjectAsJson(
@@ -18,6 +19,7 @@ export async function exportProjectAsJson(
 
   console.log('[Export] Using project data:', projectToExport.id);
 
+  if (includeTrace) await loadProjectTrace(projectToExport.id);
   const exportData = buildProjectExportEnvelope(projectToExport, diagramTypes, { includeTrace });
 
   const filename = `${projectToExport.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
