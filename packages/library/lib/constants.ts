@@ -1,0 +1,1530 @@
+/**
+ * Central, immutable constants for BESSER WME.
+ * Grouped by domain, deep-frozen. Import from "@/constants".
+ */
+import React from "react"
+import {
+  ActivityActionNodeSVG,
+  ActivityFinalNodeSVG,
+  ActivityForkNodeHorizontalSVG,
+  ActivityForkNodeSVG,
+  ActivityInitialNodeSVG,
+  ActivityMergeNodeSVG,
+  ActivityObjectNodeSVG,
+  ActivitySVG,
+  ClassSVG,
+  ClassOCLConstraintSVG,
+  UseCaseNodeSVG,
+  UseCaseSystemNodeSVG,
+  UseCaseActorNodeSVG,
+  ComponentNodeSVG,
+  ComponentInterfaceNodeSVG,
+  ComponentSubsystemNodeSVG,
+  FlowchartTerminalNodeSVG,
+  FlowchartProcessNodeSVG,
+  FlowchartDecisionNodeSVG,
+  FlowchartInputOutputNodeSVG,
+  FlowchartFunctionCallNodeSVG,
+  DeploymentNodeSVG,
+  DeploymentComponentSVG,
+  DeploymentArtifactSVG,
+  DeploymentInterfaceSVG,
+  SyntaxTreeNonterminalNodeSVG,
+  SyntaxTreeTerminalNodeSVG,
+  CommunicationObjectNameSVG,
+  PetriNetPlaceSVG,
+  PetriNetTransitionSVG,
+  BPMNTaskNodeSVG,
+  BPMNEventNodeSVG,
+  BPMNGatewayNodeSVG,
+  BPMNSubprocessNodeSVG,
+  BPMNAnnotationNodeSVG,
+  BPMNDataObjectNodeSVG,
+  BPMNDataStoreNodeSVG,
+  BPMNPoolNodeSVG,
+  BPMNSwimlaneNodeSVG,
+  BPMNGroupNodeSVG,
+  SfcStartNodeSVG,
+  SfcStepNodeSVG,
+  SfcJumpNodeSVG,
+  SfcTransitionBranchNodeSVG,
+  SfcActionTableNodeSVG,
+} from "@/components"
+import { ReachabilityGraphMarkingSVG } from "@/components/svgs/nodes/reachabilityGraphDiagram/ReachabilityGraphMarkingSVG"
+import {
+  StateSVG,
+  StateInitialNodeSVG,
+  StateFinalNodeSVG,
+  StateCodeBlockSVG,
+} from "@/components/svgs/nodes/stateMachineDiagram"
+// AgentDiagram + UserDiagram palette previews.
+// `AgentIntentObjectComponent` was removed from the palette — it is a
+// child-of-AgentIntent slot row, not a top-level draggable. Its SVG
+// remains importable from `@/components/svgs/nodes/agentDiagram` for
+// the inline canvas rendering of folded entity-slot rows.
+import { AgentStateSVG } from "@/components/svgs/nodes/agentDiagram"
+import { getUserModelNamePaletteEntries } from "@/components/svgs/nodes/userDiagram"
+// Dynamic ObjectDiagram palette provider (v3 `composeObjectPreview`
+// parity). Function declaration import — invoked lazily per sidebar
+// render via the dynamic-provider registry at the bottom of this file.
+import { getObjectDiagramPaletteEntries } from "@/components/svgs/nodes/objectDiagram"
+// NNDiagram palette previews. Inlined alongside the other BESSER
+// SVGs per pattern (avoids the TDZ cycle that direct
+// `registerPaletteEntry` side-effects would trigger).
+import {
+  Conv1DLayerSVG,
+  Conv2DLayerSVG,
+  Conv3DLayerSVG,
+  PoolingLayerSVG,
+  RNNLayerSVG,
+  LSTMLayerSVG,
+  GRULayerSVG,
+  LinearLayerSVG,
+  FlattenLayerSVG,
+  EmbeddingLayerSVG,
+  DropoutLayerSVG,
+  LayerNormalizationLayerSVG,
+  BatchNormalizationLayerSVG,
+  TensorOpSVG,
+  ConfigurationSVG,
+  TrainingDatasetSVG,
+  TestDatasetSVG,
+  NNContainerSVG,
+  NNReferenceSVG,
+} from "@/components/svgs/nodes/nnDiagram"
+import { DiagramNodeType } from "@/nodes"
+import {
+  DEFAULT_COMPONENT_STEREOTYPE,
+  DEFAULT_SUBSYSTEM_STEREOTYPE,
+} from "@/nodes/componentDiagram/stereotypeDefaults"
+import { ClassType, UMLDiagramType } from "@/types"
+import { settingsService } from "@/services/settingsService"
+import { v4 as uuidv4 } from "uuid"
+
+/* -------------------------------------------------------------------------- */
+/* Canvas                                                                     */
+/* -------------------------------------------------------------------------- */
+export const CANVAS = Object.freeze({
+  MIN_SCALE_TO_ZOOM_OUT: 0.4,
+  // Develop (Apollon) allowed zooming to 500% — keep parity (0.4 min is a
+  // strict superset of develop's 0.5).
+  MAX_SCALE_TO_ZOOM_IN: 5.0,
+  MOUSE_UP_OFFSET_PX: 5,
+  SNAP_TO_GRID_PX: 5,
+  EXTRA_SPACE_FOR_EXTENSION: 10,
+  PASTE_OFFSET_PX: 20,
+} as const)
+
+/* -------------------------------------------------------------------------- */
+/* Theme                                                                      */
+/* -------------------------------------------------------------------------- */
+export const CSS_VARIABLE_FALLBACKS: Readonly<Record<string, string>> =
+  Object.freeze({
+    "--besser-primary": "#35798c",
+    "--besser-primary-contrast": "#000000",
+    "--besser-secondary": "#6c757d",
+    "--besser-alert-warning-yellow": "#ffc107",
+    "--besser-alert-warning-background": "#fff3cd",
+    "--besser-alert-warning-border": "#ffeeba",
+    "--besser-interactive-selection": "#f39c12",
+    "--besser-background": "#ffffff",
+    "--besser-background-inverse": "#000000",
+    "--besser-background-variant": "#f8f9fa",
+    "--besser-gray": "#e9ecef",
+    "--besser-grid": "rgba(36, 39, 36, 0.1)",
+    "--besser-gray-variant": "#495057",
+    "--besser-alert-danger-color": "#721c24",
+    "--besser-alert-danger-background": "#f8d7da",
+    "--besser-alert-danger-border": "#f5c6cb",
+    "--besser-switch-box-border-color": "#dee2e6",
+    "--besser-list-group-color": "#ffffff",
+    "--besser-btn-outline-secondary-color": "#6c757d",
+    "--besser-modal-bottom-border": "#e9ecef",
+  })
+
+export const STROKE_COLOR = CSS_VARIABLE_FALLBACKS["--besser-primary-contrast"]
+export const FILL_COLOR = CSS_VARIABLE_FALLBACKS["--besser-background"]
+export const INTERACTIVE_SELECTION_COLOR = `var(--besser-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--besser-interactive-selection"]})`
+export const INTERACTIVE_SELECTION_FILL = `color-mix(in srgb, var(--besser-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--besser-interactive-selection"]}) 18%, transparent)`
+
+/* -------------------------------------------------------------------------- */
+/* Layout                                                                     */
+/* -------------------------------------------------------------------------- */
+export const LAYOUT = Object.freeze({
+  DEFAULT_FONT:
+    "400 16px Inter, system-ui, Avenir, Helvetica, Arial, sans-serif",
+  DEFAULT_HEADER_HEIGHT: 40,
+  DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE: 50,
+  DEFAULT_ATTRIBUTE_HEIGHT: 30,
+  DEFAULT_METHOD_HEIGHT: 30,
+  DEFAULT_PADDING: 10,
+  LINE_WIDTH: 2,
+  LINE_WIDTH_INTERFACE: 2,
+  LINE_WIDTH_EDGE: 2,
+  ICON_LINE_WIDTH: 1.5,
+  /**
+   * Typography tokens for wrapped node labels. `NAME_FONT_SIZE` matches the
+   * SVG `<text>` browser default so un-styled labels don't visibly shrink,
+   * and `NAME_LINE_HEIGHT` is `round(16 * 1.2)` — what pretext uses internally
+   * and what `MultilineText` falls back to when no explicit line-height is
+   * passed. Used by every node that wraps its label.
+   */
+  NAME_FONT_SIZE: 16,
+  NAME_LINE_HEIGHT: 19,
+  /** Stereotype tspans like `«component»` render at 0.8em of the name font. */
+  STEREOTYPE_LINE_HEIGHT: 15,
+  STEREOTYPE_NAME_GAP: 4,
+} as const)
+
+const generateUUID = () => uuidv4()
+
+export const INTERFACE_SIZE = 30
+export const INTERFACE_RADIUS = INTERFACE_SIZE / 2
+export const INTERFACE_STROKE_WIDTH = 2
+export const INTERFACE_SOCKET_GAP = 4
+
+export const INTERFACE = Object.freeze({
+  SIZE: INTERFACE_SIZE,
+  RADIUS: INTERFACE_RADIUS,
+  STROKE_WIDTH: INTERFACE_STROKE_WIDTH,
+  SOCKET_GAP: INTERFACE_SOCKET_GAP,
+} as const)
+
+/* -------------------------------------------------------------------------- */
+/* Edges                                                                      */
+/* -------------------------------------------------------------------------- */
+// Base marker sizes (exported for reference in marker configs)
+export const MARKER_BASE_SIZE = 18
+export const BPMN_MARKER_SIZE = 11
+// Aggregation/composition diamonds run longer than the other class markers so
+// they carry at least the inheritance triangle's visual weight, as in draw.io
+// (24-long diamond vs 16-long triangle) and Mermaid (equal areas) -- upstream
+// Apollon #805. Capped at 24 because 24 * RHOMBUS_HEIGHT_FACTOR stays under the
+// triangle's height, so the diamond (drawn tip-on-endpoint at the target/whole
+// end, see `getEdgeMarkerStyles`) never overhangs a node border further than
+// the triangle does.
+export const RHOMBUS_MARKER_SIZE = 24
+// 1/phi, inside the 0.588-0.706 thickness band those tools use.
+export const RHOMBUS_HEIGHT_FACTOR = 0.618
+
+export const EDGES = Object.freeze({
+  /** Negative padding extends target point to node boundary (React Flow handles are offset 3px) */
+  MARKER_PADDING: -3,
+  /** Positive padding pulls source point back to node boundary (React Flow handles are offset 3px from node edge) */
+  SOURCE_CONNECTION_POINT_PADDING: 3,
+  /** Border radius for step-style edge corners */
+  STEP_BORDER_RADIUS: 0,
+  /** Width of the invisible stroke used for edge selection/highlighting */
+  EDGE_HIGHLIGHT_STROKE_WIDTH: 15,
+} as const)
+
+/* -------------------------------------------------------------------------- */
+/* Z-Index                                                                    */
+/* -------------------------------------------------------------------------- */
+export const ZINDEX = Object.freeze({
+  BASE: 0,
+  DRAGGABLE_GHOST: 2,
+  MINIMAP: 5,
+  PANEL: 10,
+  MODAL: 9998,
+  LABEL: 9998,
+  DRAGGABLE_ELEMENT: 9999,
+  TOOLTIP: 10000,
+} as const)
+
+/* -------------------------------------------------------------------------- */
+/* Markers                                                                    */
+/* -------------------------------------------------------------------------- */
+export type MarkerShape =
+  | "triangle"
+  | "arrow"
+  | "rhombus"
+  | "circle"
+  | "semicircle"
+
+export interface MarkerConfig {
+  readonly type: MarkerShape
+  readonly filled: boolean
+  readonly size: number
+  readonly widthFactor: number
+  readonly heightFactor: number
+  readonly arcSpanDegrees?: number // Only for semicircle type: arc span in degrees
+}
+
+// Interface socket markers - radius derived from INTERFACE.RADIUS
+const INTERFACE_SOCKET_SIZE = INTERFACE_RADIUS // Must equal INTERFACE.SIZE / 2
+
+export const MARKER_CONFIGS = Object.freeze({
+  // Class diagram markers - golden ratio inspired proportions
+  "black-rhombus": {
+    type: "rhombus",
+    filled: true,
+    size: RHOMBUS_MARKER_SIZE,
+    widthFactor: 1.0,
+    heightFactor: RHOMBUS_HEIGHT_FACTOR,
+  },
+  "white-rhombus": {
+    type: "rhombus",
+    filled: false,
+    size: RHOMBUS_MARKER_SIZE,
+    widthFactor: 1.0,
+    heightFactor: RHOMBUS_HEIGHT_FACTOR,
+  },
+  "white-triangle": {
+    type: "triangle",
+    filled: false,
+    size: MARKER_BASE_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  "black-triangle": {
+    type: "triangle",
+    filled: true,
+    size: MARKER_BASE_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  "black-arrow": {
+    type: "arrow",
+    filled: false,
+    size: MARKER_BASE_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  // Compact arrowhead used by NN edges — the layer cards sit close
+  // together so the default 18 px arrow visually overpowered the short
+  // segment. 12 px gives a proportional head without losing legibility.
+  "nn-arrow": {
+    type: "arrow",
+    filled: false,
+    size: 12,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  // Component/Deployment diagram - interface socket
+  // Size = interface radius so arc perfectly overlaps the interface circle
+  "required-interface": {
+    type: "semicircle",
+    filled: false,
+    size: INTERFACE_SOCKET_SIZE,
+    widthFactor: 1,
+    heightFactor: 1,
+    arcSpanDegrees: 150,
+  },
+  "required-interface-quarter": {
+    type: "semicircle",
+    filled: false,
+    size: INTERFACE_SOCKET_SIZE,
+    widthFactor: 1,
+    heightFactor: 1,
+    arcSpanDegrees: 90,
+  },
+  "required-interface-threequarter": {
+    type: "semicircle",
+    filled: false,
+    size: INTERFACE_SOCKET_SIZE,
+    widthFactor: 1,
+    heightFactor: 1,
+    arcSpanDegrees: 270,
+  },
+  // BPMN markers - compact style
+  "bpmn-white-triangle": {
+    type: "triangle",
+    filled: false,
+    size: BPMN_MARKER_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  "bpmn-black-triangle": {
+    type: "triangle",
+    filled: true,
+    size: BPMN_MARKER_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+  "bpmn-white-circle": {
+    type: "circle",
+    filled: false,
+    size: BPMN_MARKER_SIZE,
+    widthFactor: 1,
+    heightFactor: 1,
+  },
+  "bpmn-arrow": {
+    type: "arrow",
+    filled: false,
+    size: BPMN_MARKER_SIZE,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
+} as const satisfies Record<string, MarkerConfig>)
+
+export type MarkerId = keyof typeof MARKER_CONFIGS
+
+export const MARKERS = Object.freeze({
+  STROKE_WIDTH: Object.freeze({
+    triangle: 1.3,
+    arrow: 1.5,
+    rhombus: 1.3,
+    circle: 1.3,
+    semicircle: 2, // Must match INTERFACE.STROKE_WIDTH for pixel-perfect alignment
+  } as const satisfies Record<MarkerShape, number>),
+} as const)
+
+/* -------------------------------------------------------------------------- */
+/* Sidebar / Palette                                                          */
+/* -------------------------------------------------------------------------- */
+export const DROPS = Object.freeze({
+  SIDEBAR_PREVIEW_SCALE: 0.8,
+  DEFAULT_ELEMENT_WIDTH: 160,
+} as const)
+
+export type DropElementConfig = {
+  readonly type: DiagramNodeType
+  readonly width: number
+  readonly height: number
+  readonly defaultData?: Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly svg: React.FC<any>
+  readonly marginTop?: number
+  /**
+   * Optional palette section header rendered ABOVE
+   * this entry. Used by `Sidebar.tsx` to group large palettes (e.g.
+   * NNDiagram) into v3 visual sections. When set on the first entry
+   * of a group, the sidebar prepends a divider + label before
+   * rendering the entry. Leave undefined to skip.
+   */
+  readonly sectionLabel?: string
+  /**
+   * Optional i18n key for `sectionLabel` (editor.json dotted key). The
+   * sidebar renders `t(sectionLabelKey, sectionLabel)` when set.
+   */
+  readonly sectionLabelKey?: string
+  /**
+   * Optional i18n key for `defaultData.name`. When set, the default name
+   * is translated into the editor locale in the palette preview and when
+   * the node is dropped (v3 parity: only the BPMN palette did this —
+   * `bpmn-diagram-preview.ts`). The English `defaultData.name` is the
+   * fallback. See `resolvePaletteDefaultData` in `DraggableGhost.tsx`.
+   */
+  readonly nameKey?: string
+  /**
+   * Optional override for the size of the node actually created on
+   * canvas-drop, when it must differ from the sidebar-preview
+   * `width`/`height` (e.g. NNContainer: compact preview, large default
+   * canvas footprint). Falls back to `width`/`height` when unset.
+   */
+  readonly dropWidth?: number
+  readonly dropHeight?: number
+}
+
+/**
+ * Default palette entries shipped with BESSER WME. The mutable
+ * registry below seeds from this map; consumers add BESSER-specific
+ * diagram types via `registerPaletteEntry`.
+ *
+ * Built on first palette access, not at module evaluation: the entries
+ * reference SVG components that import this file back, so reading them
+ * while the import cycle is still initialising throws a TDZ error.
+ */
+const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElementConfig>> => ({
+  [UMLDiagramType.ClassDiagram]: [
+    // Interface and Package are temporarily hidden from
+    // the palette — the round-trip / generator surface for them is not
+    // wired yet on the v4 path. Their node code stays in the tree
+    // (Package.tsx, Interface stereotype) so re-enabling is a one-line
+    // change.
+    // Class palette entry #1: 1 starter attribute, no methods.
+    // Sidebar React keys include the array index so two entries with
+    // the same `type:"class" + name:"Class"` no longer collide.
+    // Height = header (40, no stereotype) + 1 × attribute row (30) = 70,
+    // matching the minHeight that Class.tsx snaps to so the selection
+    // box hugs the visible card with no empty strip below.
+    {
+      type: "class",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 70,
+      defaultData: {
+        name: "Class",
+        methods: [],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
+      },
+      svg: ClassSVG,
+    },
+    // Class palette entry #2: 1 starter attribute + 1 starter method.
+    // Height = header (40, no stereotype) + 1 attr (30) + 1 method (30) = 100.
+    {
+      type: "class",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        name: "Class",
+        methods: [
+          {
+            id: generateUUID(),
+            name: "method",
+            visibility: "public",
+            attributeType: "any",
+            returnType: "any",
+            parameters: [],
+            implementationType: "none",
+          },
+        ],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
+      },
+      svg: ClassSVG,
+    },
+    // {
+    //   type: "class",
+    //   width: DROPS.DEFAULT_ELEMENT_WIDTH,
+    //   height: 110,
+    //   defaultData: {
+    //     name: "Abstract",
+    //     stereotype: ClassType.Abstract,
+    //     methods: [
+    //       {
+    //         id: generateUUID(),
+    //         name: "method",
+    //         visibility: "public",
+    //         attributeType: "any",
+    //         returnType: "any",
+    //         parameters: [],
+    //         implementationType: "none",
+    //       },
+    //     ],
+    //     attributes: [
+    //       {
+    //         id: generateUUID(),
+    //         name: "attribute",
+    //         visibility: "public",
+    //         attributeType: "str",
+    //       },
+    //     ],
+    //   },
+    //   svg: ClassSVG,
+    // },
+    // Enumeration literals start as `Enum_1`,
+    // `Enum_2`, `Enum_3` — valid Python identifiers. Previous
+    // "Case 1" / "Case 2" defaults included whitespace which the
+    // round-trip / generator layer rejects.
+    {
+      type: "class",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 140,
+      defaultData: {
+        name: "Enumeration",
+        stereotype: ClassType.Enumeration,
+        methods: [],
+        attributes: [
+          { id: generateUUID(), name: "Enum_1" },
+          { id: generateUUID(), name: "Enum_2" },
+          { id: generateUUID(), name: "Enum_3" },
+        ],
+      },
+      svg: ClassSVG,
+    },
+    // ClassOCLConstraint palette entry. The node
+    // code + inspector were added earlier but the palette
+    // was missing — so the constraint could not be dragged from the
+    // sidebar. Sticky-note shape preview matches the canvas rendering
+    // at `lib/nodes/classDiagram/ClassOCLConstraint.tsx`.
+    {
+      type: "ClassOCLConstraint",
+      width: 180,
+      height: 90,
+      defaultData: {
+        name: "constraint",
+        expression: "context Class inv: true",
+      },
+      svg: ClassOCLConstraintSVG,
+    },
+  ],
+  // The ObjectDiagram palette is fully dynamic — composed per
+  // sidebar render by `getObjectDiagramPaletteEntries()` (registered as
+  // a dynamic palette provider at the bottom of this file). v3 parity:
+  // the generic "Object" card plus one pre-wired instance card per
+  // class in the sibling ClassDiagram, gated by the
+  // "Show Instanced Objects" setting (`object-preview.ts`).
+  [UMLDiagramType.ObjectDiagram]: [],
+  [UMLDiagramType.ActivityDiagram]: [
+    {
+      type: "activity",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 120,
+      defaultData: { name: "Activity" },
+      svg: ActivitySVG,
+    },
+    {
+      type: "activityInitialNode",
+      width: 50,
+      height: 50,
+      defaultData: { name: "ActivityInitialNode" },
+      svg: ActivityInitialNodeSVG,
+    },
+    {
+      type: "activityFinalNode",
+      width: 50,
+      height: 50,
+      defaultData: { name: "ActivityFinalNode" },
+      svg: ActivityFinalNodeSVG,
+    },
+    {
+      type: "activityActionNode",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 120,
+      defaultData: { name: "Action" },
+      svg: ActivityActionNodeSVG,
+    },
+    {
+      type: "activityObjectNode",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 120,
+      defaultData: { name: "Object" },
+      svg: ActivityObjectNodeSVG,
+    },
+    {
+      type: "activityMergeNode",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 120,
+      defaultData: { name: "Condition" },
+      svg: ActivityMergeNodeSVG,
+    },
+    {
+      type: "activityForkNode",
+      width: 20,
+      height: 100,
+      defaultData: { name: "Fork" },
+      svg: ActivityForkNodeSVG,
+    },
+    {
+      type: "activityForkNodeHorizontal",
+      width: 100,
+      height: 20,
+      defaultData: { name: "Fork" },
+      svg: ActivityForkNodeHorizontalSVG,
+    },
+  ],
+  [UMLDiagramType.UseCaseDiagram]: [
+    {
+      type: "useCase",
+      width: 160,
+      height: 100,
+      defaultData: { name: "Use Case" },
+      svg: UseCaseNodeSVG,
+    },
+    {
+      type: "useCaseActor",
+      width: 100,
+      height: 150,
+      defaultData: { name: "Actor" },
+      svg: UseCaseActorNodeSVG,
+    },
+    {
+      type: "useCaseSystem",
+      width: 160,
+      height: 120,
+      defaultData: { name: "System" },
+      svg: UseCaseSystemNodeSVG,
+    },
+  ],
+  [UMLDiagramType.CommunicationDiagram]: [
+    {
+      type: "communicationObjectName",
+      width: 160,
+      height: 70,
+      defaultData: {
+        name: "Object",
+        methods: [],
+        attributes: [{ id: generateUUID(), name: "attribute = value" }],
+      },
+      svg: CommunicationObjectNameSVG,
+    },
+  ],
+  [UMLDiagramType.ComponentDiagram]: [
+    {
+      type: "component",
+      width: 180,
+      height: 120,
+      defaultData: {
+        name: "Component",
+        isComponentHeaderShown: true,
+        stereotype: DEFAULT_COMPONENT_STEREOTYPE,
+      },
+      svg: ComponentNodeSVG,
+    },
+    {
+      type: "componentSubsystem",
+      width: 180,
+      height: 120,
+      defaultData: {
+        name: "Subsystem",
+        isComponentSubsystemHeaderShown: true,
+        stereotype: DEFAULT_SUBSYSTEM_STEREOTYPE,
+      },
+      svg: ComponentSubsystemNodeSVG,
+    },
+    {
+      type: "componentInterface",
+      width: INTERFACE_SIZE,
+      height: INTERFACE_SIZE,
+      defaultData: { name: "Interface" },
+      svg: ComponentInterfaceNodeSVG,
+      marginTop: 10,
+    }, // Must use INTERFACE.SIZE
+  ],
+  [UMLDiagramType.DeploymentDiagram]: [
+    {
+      type: "deploymentNode",
+      width: 160,
+      height: 100,
+      defaultData: {
+        name: "Deployment Node",
+        isComponentHeaderShown: true,
+        stereotype: "node",
+      },
+      svg: DeploymentNodeSVG,
+    },
+    {
+      type: "deploymentComponent",
+      width: 160,
+      height: 100,
+      defaultData: {
+        name: "Deployment Component",
+        isComponentHeaderShown: true,
+        stereotype: DEFAULT_COMPONENT_STEREOTYPE,
+      },
+      svg: DeploymentComponentSVG,
+    },
+    {
+      type: "deploymentArtifact",
+      width: 160,
+      height: 50,
+      defaultData: { name: "Deployment Artifact" },
+      svg: DeploymentArtifactSVG,
+    },
+    {
+      type: "deploymentInterface",
+      width: INTERFACE_SIZE,
+      height: INTERFACE_SIZE,
+      defaultData: { name: "Deployment Interface" },
+      svg: DeploymentInterfaceSVG,
+      marginTop: 10,
+    }, // Must use INTERFACE.SIZE
+  ],
+  [UMLDiagramType.SyntaxTree]: [
+    {
+      type: "syntaxTreeNonterminal",
+      width: 160,
+      height: 100,
+      defaultData: { name: "Nonterminal" },
+      svg: SyntaxTreeNonterminalNodeSVG,
+    },
+    {
+      type: "syntaxTreeTerminal",
+      width: 160,
+      height: 100,
+      defaultData: { name: "Terminal" },
+      svg: SyntaxTreeTerminalNodeSVG,
+    },
+  ],
+  [UMLDiagramType.PetriNet]: [
+    {
+      type: "petriNetTransition",
+      width: 30,
+      height: 60,
+      defaultData: { name: "Transition" },
+      svg: PetriNetTransitionSVG,
+      marginTop: 15,
+    },
+    {
+      type: "petriNetPlace",
+      width: 60,
+      height: 60,
+      defaultData: { name: "Place" },
+      svg: PetriNetPlaceSVG,
+      marginTop: 5,
+    },
+  ],
+  [UMLDiagramType.ReachabilityGraph]: [
+    {
+      type: "reachabilityGraphMarking",
+      width: 160,
+      height: 120,
+      defaultData: { name: "Marking" },
+      svg: ReachabilityGraphMarkingSVG,
+    },
+  ],
+  [UMLDiagramType.Flowchart]: [
+    {
+      type: "flowchartTerminal",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Terminal" },
+      svg: FlowchartTerminalNodeSVG,
+    },
+    {
+      type: "flowchartProcess",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Process" },
+      svg: FlowchartProcessNodeSVG,
+    },
+    {
+      type: "flowchartDecision",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Decision" },
+      svg: FlowchartDecisionNodeSVG,
+    },
+    {
+      type: "flowchartInputOutput",
+      width: 140,
+      height: 70,
+      defaultData: { name: "Input/Output" },
+      svg: FlowchartInputOutputNodeSVG,
+    },
+    {
+      type: "flowchartFunctionCall",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Function Call" },
+      svg: FlowchartFunctionCallNodeSVG,
+    },
+  ],
+  [UMLDiagramType.BPMN]: [
+    {
+      type: "bpmnTask",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Task" },
+      nameKey: "packages.BPMNDiagram.BPMNTask",
+      svg: BPMNTaskNodeSVG,
+    },
+    {
+      type: "bpmnSubprocess",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Subprocess" },
+      nameKey: "packages.BPMNDiagram.BPMNSubprocess",
+      svg: BPMNSubprocessNodeSVG,
+    },
+    {
+      type: "bpmnTransaction",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Transaction", variant: "transaction" },
+      nameKey: "packages.BPMNDiagram.BPMNTransaction",
+      svg: BPMNSubprocessNodeSVG,
+    },
+    {
+      type: "bpmnCallActivity",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Call Activity", variant: "call" },
+      nameKey: "packages.BPMNDiagram.BPMNCallActivity",
+      svg: BPMNSubprocessNodeSVG,
+    },
+    {
+      type: "bpmnGroup",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Group" },
+      nameKey: "packages.BPMNDiagram.BPMNGroup",
+      svg: BPMNGroupNodeSVG,
+    },
+    {
+      type: "bpmnAnnotation",
+      width: 160,
+      height: 60,
+      defaultData: { name: "Annotation" },
+      nameKey: "packages.BPMNDiagram.BPMNAnnotation",
+      svg: BPMNAnnotationNodeSVG,
+    },
+    {
+      type: "bpmnStartEvent",
+      width: 40,
+      height: 40,
+      defaultData: { name: "", variant: "start" },
+      svg: BPMNEventNodeSVG,
+    },
+    {
+      type: "bpmnIntermediateEvent",
+      width: 40,
+      height: 40,
+      defaultData: { name: "", variant: "intermediate" },
+      svg: BPMNEventNodeSVG,
+    },
+    {
+      type: "bpmnEndEvent",
+      width: 40,
+      height: 40,
+      defaultData: { name: "", variant: "end" },
+      svg: BPMNEventNodeSVG,
+    },
+    {
+      type: "bpmnGateway",
+      width: 40,
+      height: 40,
+      defaultData: { name: "" },
+      svg: BPMNGatewayNodeSVG,
+    },
+    {
+      type: "bpmnDataObject",
+      width: 40,
+      height: 60,
+      defaultData: { name: "" },
+      svg: BPMNDataObjectNodeSVG,
+    },
+    {
+      type: "bpmnDataStore",
+      width: 60,
+      height: 60,
+      defaultData: { name: "" },
+      svg: BPMNDataStoreNodeSVG,
+    },
+    {
+      // Match the canvas's `minWidth=200, minHeight=120`
+      // so the dropped pool no longer balloons immediately after drop.
+      type: "bpmnPool",
+      width: 200,
+      height: 120,
+      // The preview stays small; a dropped pool gets room for a lane of tasks.
+      dropWidth: 480,
+      dropHeight: 200,
+      defaultData: { name: "Pool" },
+      nameKey: "packages.BPMNDiagram.BPMNPool",
+      svg: BPMNPoolNodeSVG,
+    },
+    {
+      // Standalone lane (old editor's bpmn-diagram-preview.ts). Only drops
+      // into a pool (`requiresParent` / `canDropIntoParent`); the pool then
+      // re-stacks its lanes (`stackPoolLanes`).
+      type: "bpmnSwimlane",
+      width: 200,
+      height: 80,
+      defaultData: { name: "Lane" },
+      nameKey: "packages.BPMNDiagram.BPMNSwimlane",
+      svg: BPMNSwimlaneNodeSVG,
+    },
+  ],
+  // BESSER StateMachineDiagram palette. Mirrors the v3 fork's
+  // `v3 source: uml-state-diagram/state-preview.ts`. Body /
+  // fallback-body are not draggable items — they are added inside an
+  // existing State container, matching v3 behaviour.
+  [UMLDiagramType.StateMachineDiagram]: [
+    // Ready-made states, start/end markers and code. A body row names the
+    // code block function it runs (`entry /`), a fallback row the one that
+    // runs on an error; the code blocks are the functions those rows and
+    // transition guards refer to. Row ids are template placeholders —
+    // `DraggableGhost` re-ids them on drop.
+    {
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: LAYOUT.DEFAULT_HEADER_HEIGHT,
+      defaultData: { name: "State" },
+      svg: StateSVG,
+      sectionLabel: "States",
+      sectionLabelKey: "packages.StateDiagram.palette.states",
+    },
+    {
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 70,
+      defaultData: {
+        name: "State",
+        bodies: [{ id: "state-template-body", name: "on_enter" }],
+      },
+      svg: StateSVG,
+    },
+    {
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        name: "State",
+        bodies: [{ id: "state-template-body", name: "on_enter" }],
+        fallbackBodies: [
+          { id: "state-template-fallback-body", name: "on_error" },
+        ],
+      },
+      svg: StateSVG,
+    },
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+      sectionLabel: "Start and end",
+      sectionLabelKey: "packages.StateDiagram.palette.startEnd",
+    },
+    {
+      type: "StateFinalNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateFinalNodeSVG,
+    },
+    // StateActionNode / StateObjectNode / StateMergeNode / StateForkNode /
+    // StateForkNodeHorizontal stay off the palette: the BESSER state
+    // metamodel has no such elements. Their node code remains so existing
+    // models that reference them still render.
+    {
+      // Code names come from the `def` line: the backend reads the
+      // function name from it when the block name is empty.
+      type: "StateCodeBlock" as never,
+      width: 240,
+      height: 100,
+      defaultData: {
+        name: "",
+        code: 'def on_enter(session):\n    print("Entered the state")',
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
+      sectionLabel: "Code",
+      sectionLabelKey: "packages.StateDiagram.palette.code",
+    },
+    {
+      type: "StateCodeBlock" as never,
+      width: 240,
+      height: 100,
+      defaultData: {
+        name: "",
+        code: "def is_ready(session):\n    return True",
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
+    },
+    {
+      type: "StateCodeBlock" as never,
+      width: 240,
+      height: 100,
+      defaultData: {
+        name: "",
+        code: 'def on_error(session):\n    print("Something went wrong")',
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
+    },
+  ],
+  // BESSER AgentDiagram palette. Inlined directly here per
+  // pattern (avoids the TDZ cycle `nodes/index → constants →
+  // @/components → @/utils/nodeUtils → @/nodes`). The non-droppable
+  // body / fallback / intent body / description child nodes are NOT
+  // included — they're inserted automatically inside the parent
+  // container, mirroring v3 behaviour.
+  [UMLDiagramType.AgentDiagram]: [
+    // smart-gen `composeBotPreview` parity (3d720bdd / ada9a2c6): the
+    // palette carries only the conversation flow — one "Flow" section with
+    // the initial node and one AgentState. Agent components (intents, LLMs, RAG databases,
+    // tools, skills, workspaces, GUIs) are off-canvas, edited in the
+    // webapp's agent Components page and stored in `model.components`;
+    // legacy on-canvas component nodes are migrated by
+    // `normalizeAgentComponents` on load.
+    //
+    // The entry state is the initial-node marker wired to a state, as on
+    // the state machine canvas. Reasoning states are the inspector's
+    // "State Type" toggle (as in smart-gen), not a separate palette entry.
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+      sectionLabel: "Flow",
+      sectionLabelKey: "packages.AgentDiagram.palette.flow",
+    },
+    {
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: { name: "AgentState", replyType: "text" },
+      svg: AgentStateSVG,
+    },
+  ],
+  // BESSER UserDiagram palette — fully dynamic: see
+  // `getUserDiagramPaletteEntries` and its `registerDynamicPaletteProvider`
+  // registration below (v3 `composeUserModelPreview` gated the
+  // per-metaclass cards on "Show Instanced Objects", so they must
+  // recompose when that setting is toggled).
+  [UMLDiagramType.UserDiagram]: [],
+  // BESSER NNDiagram palette. One palette item per top-level
+  // draggable: NNContainer, the 13 layer kinds, TrainingDataset,
+  // TestDataset, TensorOp, Configuration, NNReference. Inlined here per
+  // pattern. Default `attributes` is `{}` — the inline editor
+  // populates slots on first edit; the round-trip migrator preserves
+  // any keys the user adds.
+  [UMLDiagramType.NNDiagram]: [
+    // V3 visual section order — Structure → Layers →
+    // TensorOps → Configuration → Datasets. Section labels mirror v3
+    // `editor/src/main/packages/nn-diagram/nn-preview.ts`. NNReference
+    // is reordered next to NNContainer so both Structure entries sit
+    // together. The `sectionLabel` field on a group's first entry
+    // tells `Sidebar.tsx` to prepend a divider + heading.
+    {
+      // Sidebar preview stays compact (this scales by
+      // DROPS.SIDEBAR_PREVIEW_SCALE for the thumbnail); the node actually
+      // created on canvas-drop uses `dropWidth`/`dropHeight` below to
+      // match develop's `NNContainer.defaultWidth/defaultHeight` (800x200).
+      type: "NNContainer" as never,
+      width: 220,
+      height: 140,
+      dropWidth: 800,
+      dropHeight: 200,
+      defaultData: { name: "Neural_Network" },
+      svg: NNContainerSVG,
+      sectionLabel: "NN Structure",
+      sectionLabelKey: "packages.NNDiagram.SectionStructure",
+    },
+    {
+      type: "NNReference" as never,
+      width: 140,
+      height: 40,
+      defaultData: { name: "ref" },
+      svg: NNReferenceSVG,
+    },
+    // Heights bumped from 60 → 140 so the v3 80×80
+    // layer-kind icon (restored in `_NNLayerBase.tsx`) has room above
+    // the stereotype/name header.
+    {
+      type: "Conv1DLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "conv1d_layer", attributes: { name: "conv1d_layer" } },
+      svg: Conv1DLayerSVG,
+      sectionLabel: "NN Layers",
+      sectionLabelKey: "packages.NNDiagram.SectionLayers",
+    },
+    {
+      type: "Conv2DLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "conv2d_layer", attributes: { name: "conv2d_layer" } },
+      svg: Conv2DLayerSVG,
+    },
+    {
+      type: "Conv3DLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "conv3d_layer", attributes: { name: "conv3d_layer" } },
+      svg: Conv3DLayerSVG,
+    },
+    {
+      type: "PoolingLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: {
+        name: "pooling_layer",
+        // Disambiguated dimension slug: see open question #2.
+        // Seed the `pooling_type` mandatory slug so
+        // a freshly dropped node reads the v3 default `max` before the
+        // inspector's auto-fill effect runs.
+        attributes: {
+          name: "pooling_layer",
+          "pooling.dimension": "2D",
+          pooling_type: "max",
+        },
+      },
+      svg: PoolingLayerSVG,
+    },
+    {
+      type: "RNNLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "rnn_layer", attributes: { name: "rnn_layer" } },
+      svg: RNNLayerSVG,
+    },
+    {
+      type: "LSTMLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "lstm_layer", attributes: { name: "lstm_layer" } },
+      svg: LSTMLayerSVG,
+    },
+    {
+      type: "GRULayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "gru_layer", attributes: { name: "gru_layer" } },
+      svg: GRULayerSVG,
+    },
+    {
+      type: "LinearLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "linear_layer", attributes: { name: "linear_layer" } },
+      svg: LinearLayerSVG,
+    },
+    {
+      type: "FlattenLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "flatten_layer", attributes: { name: "flatten_layer" } },
+      svg: FlattenLayerSVG,
+    },
+    {
+      type: "EmbeddingLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "embedding_layer", attributes: { name: "embedding_layer" } },
+      svg: EmbeddingLayerSVG,
+    },
+    {
+      type: "DropoutLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "dropout_layer", attributes: { name: "dropout_layer" } },
+      svg: DropoutLayerSVG,
+    },
+    {
+      type: "LayerNormalizationLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "layernorm_layer", attributes: { name: "layernorm_layer" } },
+      svg: LayerNormalizationLayerSVG,
+    },
+    {
+      type: "BatchNormalizationLayer" as never,
+      width: 90,
+      height: 100,
+      defaultData: {
+        name: "batchnorm_layer",
+        // Disambiguated dimension slug: see open question #2.
+        // V3 default = '2D' (mirrors the conv2d
+        // baseline). The widget's auto-fill effect honours this seed.
+        attributes: {
+          name: "batchnorm_layer",
+          "batch_normalization.dimension": "2D",
+        },
+      },
+      svg: BatchNormalizationLayerSVG,
+    },
+    {
+      type: "TensorOp" as never,
+      width: 90,
+      height: 100,
+      // A reshape needs its target shape: seed it so a dropped TensorOp
+      // converts as is.
+      defaultData: {
+        name: "tensorop",
+        attributes: { name: "tensorop", reshape_dim: "[-1]" },
+      },
+      svg: TensorOpSVG,
+      sectionLabel: "NN TensorOps",
+      sectionLabelKey: "packages.NNDiagram.SectionTensorOps",
+    },
+    {
+      type: "Configuration" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "Configuration", attributes: {} },
+      svg: ConfigurationSVG,
+      sectionLabel: "NN Configuration",
+      sectionLabelKey: "packages.NNDiagram.SectionConfiguration",
+    },
+    {
+      type: "TrainingDataset" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "training_data", attributes: { name: "training_data" } },
+      svg: TrainingDatasetSVG,
+      sectionLabel: "NN Datasets",
+      sectionLabelKey: "packages.NNDiagram.Datasets",
+    },
+    {
+      type: "TestDataset" as never,
+      width: 90,
+      height: 100,
+      defaultData: { name: "test_data", attributes: { name: "test_data" } },
+      svg: TestDatasetSVG,
+    },
+  ],
+  [UMLDiagramType.Sfc]: [
+    {
+      type: "sfcStart",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Start" },
+      svg: SfcStartNodeSVG,
+    },
+    {
+      type: "sfcStep",
+      width: 160,
+      height: 70,
+      defaultData: { name: "Step" },
+      svg: SfcStepNodeSVG,
+    },
+    {
+      type: "sfcJump",
+      width: 96,
+      height: 48,
+      defaultData: { name: "Jump" },
+      svg: SfcJumpNodeSVG,
+    },
+    {
+      type: "sfcTransitionBranch",
+      width: 30,
+      height: 30,
+      defaultData: { name: "Branch", showHint: true },
+      svg: SfcTransitionBranchNodeSVG,
+    },
+    {
+      type: "sfcActionTable",
+      width: 160,
+      height: 30,
+      defaultData: {
+        name: "Action Table",
+        actionRows: [
+          {
+            id: "1",
+            identifier: "A",
+            name: "Actions",
+            fillColor: "",
+            strokeColor: "",
+          },
+        ],
+      },
+      svg: SfcActionTableNodeSVG,
+    },
+  ],
+})
+
+/**
+ * Mutable palette registry. Seeded from `buildDefaultDropElementConfigs`;
+ * consumers register BESSER-specific palette entries (e.g. for
+ * StateMachineDiagram, AgentDiagram, NNDiagram, UserDiagram) via
+ * `registerPaletteEntry(diagramType, entries)`. The same object
+ * reference is preserved across mutations so existing reads
+ * (`Sidebar.tsx`) keep observing updates.
+ */
+let _paletteRegistry: Record<string, ReadonlyArray<DropElementConfig>> | null =
+  null
+const paletteRegistry = (): Record<string, ReadonlyArray<DropElementConfig>> => {
+  if (_paletteRegistry) return _paletteRegistry
+  _paletteRegistry = buildDefaultDropElementConfigs()
+  // Built-in dynamic providers; a consumer registration made earlier wins,
+  // as it did when these ran at module evaluation.
+  _dynamicPaletteProviders[UMLDiagramType.ObjectDiagram] ??= () =>
+    getObjectDiagramPaletteEntries()
+  _dynamicPaletteProviders[UMLDiagramType.UserDiagram] ??= () =>
+    getUserDiagramPaletteEntries()
+  return _paletteRegistry
+}
+
+/**
+ * Append palette entries for a given diagram type. If the diagram type
+ * already has entries, the new ones are appended; pass `replace: true`
+ * to overwrite instead.
+ */
+export const registerPaletteEntry = (
+  diagramType: string,
+  entries: ReadonlyArray<DropElementConfig>,
+  options: { replace?: boolean } = {}
+): void => {
+  const registry = paletteRegistry()
+  if (options.replace) {
+    registry[diagramType] = [...entries]
+    return
+  }
+  const existing = registry[diagramType] ?? []
+  registry[diagramType] = [...existing, ...entries]
+}
+
+/**
+ * Dynamic palette providers — recomputed on every
+ * `dropElementConfigs[diagramType]` access (i.e. per sidebar render)
+ * instead of frozen at module load. Used by palettes whose entries
+ * depend on live application state: the ObjectDiagram palette reads
+ * `settingsService` (Show Instanced Objects / icon view) and
+ * `diagramBridge` (sibling ClassDiagram classes) at composition time —
+ * mirroring v3's `composePreview` model where the sidebar recomposed
+ * previews on render.
+ */
+const _dynamicPaletteProviders: Record<
+  string,
+  () => ReadonlyArray<DropElementConfig>
+> = {}
+
+/**
+ * Register (or replace) the dynamic palette provider for a diagram
+ * type. Provider results are appended after any static entries
+ * registered for the same diagram type.
+ */
+export const registerDynamicPaletteProvider = (
+  diagramType: string,
+  provider: () => ReadonlyArray<DropElementConfig>
+): void => {
+  _dynamicPaletteProviders[diagramType] = provider
+}
+
+/**
+ * The merged palette registry. Read sites:
+ *   `dropElementConfigs[diagramType].map(...)`
+ * Tolerates unknown diagram types by returning an empty array.
+ * Static entries come first, then any dynamic-provider entries.
+ */
+export const dropElementConfigs: Readonly<
+  Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>
+> = new Proxy({} as Record<string, ReadonlyArray<DropElementConfig>>, {
+  get(_target, prop: string) {
+    const registry = paletteRegistry()
+    const staticEntries =
+      prop in registry ? registry[prop] : ([] as ReadonlyArray<DropElementConfig>)
+    const provider = _dynamicPaletteProviders[prop]
+    if (!provider) return staticEntries
+    return [...staticEntries, ...provider()]
+  },
+}) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
+
+/**
+ * BESSER UserDiagram per-metaclass palette cards. v3 generated one
+ * drag-source per meta-model class via `composeUserModelPreview` walking
+ * `getAvailableClasses()`; we read the user meta-model JSON and produce
+ * one entry per Personal_Information / Skill / Education / Disability / …
+ * Each entry's `defaultData` pre-populates the `attributes` rows so the
+ * dropped node lands fully wired to the meta-model. Built lazily on first
+ * sidebar render (the meta-model is static) to stay clear of import
+ * cycles at module-evaluation time.
+ */
+let _userDiagramMetaClassEntries: ReadonlyArray<DropElementConfig> | null =
+  null
+const getUserDiagramMetaClassEntries = (): ReadonlyArray<DropElementConfig> =>
+  (_userDiagramMetaClassEntries ??= getUserModelNamePaletteEntries().map(
+    (entry) => ({
+      type: "UserModelName" as never,
+      // Dropped node defaults to the icon view, so only reserve room for
+      // the header (~40) and the glyph slot (~60).
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        // Align dropped node's `defaultData.name` with the preview SVG's
+        // header label (`${className[0].toLowerCase()}${rest}_1`, e.g.
+        // `personal_Information_1`) so the dropped node visually matches
+        // the palette card the user clicked.
+        name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
+        // Meta-model class binding: without it
+        // `diagramBridge.getAvailableAssociations(classId)` returns []
+        // and the link inspector's association dropdown stays empty.
+        classId: entry.classId,
+        className: entry.className,
+        attributes: entry.attributes.map((a) => ({
+          id: a.id,
+          name: a.name,
+          attributeType: a.attributeType,
+          attributeOperator: "==",
+        })),
+        // Dropped nodes default to icon view (matches the v3 fork's
+        // preferred UserDiagram preview). The inspector exposes a toggle
+        // to opt into the attributes view.
+        view: "icon" as const,
+      },
+      svg: entry.svg,
+    })
+  ))
+
+/**
+ * UserDiagram palette, recomposed per sidebar render. v3 parity
+ * (`user-model-preview.ts`): the per-metaclass instance cards only appear
+ * while "Show Instanced Objects" is on. The standalone UserModelIcon entry
+ * stays dropped — every UserModelName already renders in icon view.
+ */
+export const getUserDiagramPaletteEntries =
+  (): ReadonlyArray<DropElementConfig> =>
+    settingsService.shouldShowInstancedObjects()
+      ? getUserDiagramMetaClassEntries()
+      : // The class-bound `user_1` card stays available either way.
+        getUserDiagramMetaClassEntries().filter(
+          (e) => e.defaultData?.className === "User"
+        )
+
+/**
+ * Lightweight palette preview for the free-form Comment
+ * sticky-note. Mirrors the silhouette rendered by `lib/nodes/common/
+ * Comment.tsx` so the drag-ghost matches the dropped node. Inlined here
+ * (rather than as a new `components/svgs/...` file) to keep the diff
+ * scoped to `constants.ts` per the file allowlist.
+ */
+const CommentPaletteSVG: React.FC<{
+  width: number
+  height: number
+  data?: { name?: string }
+  SIDEBAR_PREVIEW_SCALE?: number
+}> = ({ width, height, data, SIDEBAR_PREVIEW_SCALE }) => {
+  const w = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const h = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const pointerHeight = 10
+  const pointerWidth = 12
+  const cornerRadius = 8
+  const bodyHeight = height - pointerHeight
+  return React.createElement(
+    "svg",
+    {
+      width: w,
+      height: h,
+      viewBox: `0 0 ${width} ${height}`,
+      overflow: "visible",
+    },
+    React.createElement("path", {
+      d: `
+        M ${cornerRadius} 0
+        L ${width - cornerRadius} 0
+        Q ${width} 0 ${width} ${cornerRadius}
+        L ${width} ${bodyHeight - cornerRadius}
+        Q ${width} ${bodyHeight} ${width - cornerRadius} ${bodyHeight}
+        L ${pointerWidth + 5} ${bodyHeight}
+        L ${pointerWidth / 2} ${height}
+        L 5 ${bodyHeight}
+        Q 0 ${bodyHeight} 0 ${bodyHeight - cornerRadius}
+        L 0 ${cornerRadius}
+        Q 0 0 ${cornerRadius} 0 Z
+      `,
+      // Theme-aware, as the canvas Comment node.
+      fill: "var(--besser-sticky-fill, #fff8c4)",
+      stroke: "var(--besser-sticky-stroke, #bda21f)",
+      strokeWidth: 1.2,
+      strokeMiterlimit: "10",
+    }),
+    React.createElement(
+      "text",
+      {
+        x: width / 2,
+        y: bodyHeight / 2,
+        textAnchor: "middle",
+        dominantBaseline: "middle",
+        fill: "var(--besser-sticky-text, #3a2e00)",
+        style: { fontSize: "12px" },
+      },
+      data?.name ?? "Comment"
+    )
+  )
+}
+
+/**
+ * Free-form sticky-note Comment palette entry. Replaces
+ * the previously always-on `ColorDescriptionConfig` block in the
+ * `Sidebar` so designers can drop comment notes into any diagram. The
+ * ColorDescription node renderer + inspector code remain in the tree
+ * (re-enable is a one-line change in `Sidebar.tsx`) — only the palette
+ * surface is hidden, per the brief.
+ */
+export const CommentConfig: DropElementConfig = Object.freeze({
+  type: "comment",
+  width: 160,
+  height: 60,
+  defaultData: { name: "Comment" },
+  nameKey: "packages.Comment.placeholder",
+  svg: CommentPaletteSVG,
+})

@@ -1,39 +1,77 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "flat-no-pools",
+  "title": "flat-no-pools",
   "type": "BPMNDiagram",
-  "size": { "width": 800, "height": 600 },
-  "elements": {
-    "task-a": {
+  "nodes": [
+    {
       "id": "task-a",
-      "name": "A",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": { "x": 100, "y": 100, "width": 160, "height": 60 }
+      "type": "bpmnTask",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "A",
+        "taskType": "default",
+        "marker": "none"
+      }
     },
-    "task-b": {
+    {
       "id": "task-b",
-      "name": "B",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": { "x": 300, "y": 100, "width": 160, "height": 60 }
+      "type": "bpmnTask",
+      "position": {
+        "x": 300,
+        "y": 100
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "B",
+        "taskType": "default",
+        "marker": "none"
+      }
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {
-    "flow-1": {
+  ],
+  "edges": [
+    {
       "id": "flow-1",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 260, "y": 130, "width": 40, "height": 1 },
-      "path": [
-        { "x": 260, "y": 130 },
-        { "x": 300, "y": 130 }
-      ],
-      "source": { "element": "task-a", "direction": "Right" },
-      "target": { "element": "task-b", "direction": "Left" }
+      "source": "task-a",
+      "target": "task-b",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 260
+          },
+          {
+            "x": 560,
+            "y": 260
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

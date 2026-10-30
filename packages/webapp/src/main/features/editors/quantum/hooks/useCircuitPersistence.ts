@@ -43,13 +43,20 @@ export function useCircuitPersistence(
                 setSaveStatus('error');
                 return;
             }
-            
+
+            const activeDiagram = getActiveDiagram(project, 'QuantumCircuitDiagram');
+            if (!activeDiagram) {
+                console.error('[saveCircuit] No active QuantumCircuitDiagram slot found');
+                setSaveStatus('error');
+                return;
+            }
+
             // Serialize to Quirk format for compact storage
             const quirkData = serializeCircuit(circuitData);
-            
+
             // console.log('[saveCircuit] Saving circuit with', circuitData.columns.length, 'columns');
             // console.log('[saveCircuit] gateMetadata keys:', Object.keys(quirkData.gateMetadata || {}));
-            
+
             const quantumData: QuantumCircuitData = {
                 ...quirkData,
                 version: '1.0.0'
@@ -59,7 +66,7 @@ export function useCircuitPersistence(
                 project.id,
                 'QuantumCircuitDiagram',
                 {
-                    ...(getActiveDiagram(project, 'QuantumCircuitDiagram') ?? {}),
+                    ...activeDiagram,
                     model: quantumData,
                     lastUpdate: new Date().toISOString(),
                 }

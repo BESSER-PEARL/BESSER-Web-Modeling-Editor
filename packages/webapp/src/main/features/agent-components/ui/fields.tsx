@@ -57,8 +57,8 @@ export function TextField({ id, label, description, value, onChange, placeholder
   );
 }
 
-export function NumberField({ id, label, description, value, onChange, min }: FieldBaseProps & {
-  value: number; onChange: (v: number) => void; min?: number;
+export function NumberField({ id, label, description, value, onChange, min, max, step }: FieldBaseProps & {
+  value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number;
 }) {
   return (
     <Field id={id} label={label} description={description}>
@@ -67,6 +67,8 @@ export function NumberField({ id, label, description, value, onChange, min }: Fi
         type="number"
         value={value}
         min={min}
+        max={max}
+        step={step}
         onChange={e => onChange(Number(e.target.value))}
         className="h-8 text-sm"
       />

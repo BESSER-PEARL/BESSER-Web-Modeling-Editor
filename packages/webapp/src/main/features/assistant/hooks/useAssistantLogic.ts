@@ -42,11 +42,10 @@ import {
   selectProject,
   selectProjectId,
   loadProjectThunk,
-  addDiagramThunk,
-  switchDiagramIndexThunk,
+  addAndSwitchDiagramThunk,
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 import {
   UMLModelingService,
   RateLimiterService,
@@ -334,7 +333,7 @@ export function useAssistantLogic({
 
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
-  const { editor } = useContext(ApollonEditorContext);
+  const { editor } = useContext(BesserEditorContext);
   // Project/diagram state is only read inside callbacks, so read it from the
   // store on demand instead of subscribing: every model edit would otherwise
   // re-render both assistant surfaces. Only the project id drives rendering.
@@ -442,7 +441,8 @@ export function useAssistantLogic({
       const model = selectActiveDiagram(store.getState())?.model;
       if (model === lastModel) return;
       lastModel = model;
-      if (model && isUMLModel(model)) modelingService.updateCurrentModel(model);
+      // The stored model is v4, the same format the modeling service works on.
+      if (model && isUMLModel(model)) modelingService.updateCurrentModel(model as any);
     };
     syncModel();
     return store.subscribe(syncModel);
@@ -557,6 +557,16 @@ export function useAssistantLogic({
           ...info.model,
           _suppressToasts: true,
         });
+        if (result?.checkFailed) {
+          // The validator could not be reached (or timed out): its `errors`
+          // describe that failure, not the model. Fail open — never ask the
+          // agent to "fix" a network error.
+          if (autoFixRef.current.fixInFlight) {
+            autoFixRef.current.fixInFlight = false;
+            settleAutoFixProgress('Could not re-check the diagram — the validator is unavailable.');
+          }
+          return;
+        }
         const errors: string[] = Array.isArray(result?.errors) ? result.errors : [];
         const wasRepair = autoFixRef.current.fixInFlight;
         if (errors.length === 0) {
@@ -753,17 +763,9 @@ export function useAssistantLogic({
       return;
     }
 
-    // Extract suggestedActions from assistant_message payloads before returning.
+    // assistant_message is rendered by onMessage, which also attaches its
+    // suggestedActions (carried on the ChatMessage) to that very message.
     if (payload.action === 'assistant_message') {
-      if (Array.isArray(payload.suggestedActions) && (payload.suggestedActions as unknown[]).length > 0) {
-        setMessages((prev) => {
-          const lastAssistant = [...prev].reverse().find((m) => m.role === 'assistant');
-          if (lastAssistant) {
-            attachMetaFromPayload(lastAssistant.id, payload as Record<string, unknown>);
-          }
-          return prev;
-        });
-      }
       return;
     }
     if (
@@ -781,19 +783,16 @@ export function useAssistantLogic({
       try {
         await injection.ensureTargetDiagramReady(diagramType);
 
+        // Use the combined add+switch thunk so the
+        // BesserEditor is reinitialized exactly once for a single
+        // user-visible create-tab action (previously add + switch
+        // produced two reinits in a tight render window).
         const title = typeof payload.title === 'string' ? payload.title : undefined;
-        const result = await dispatch(addDiagramThunk({
+        await dispatch(addAndSwitchDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
         })).unwrap();
-
-        if (result?.index !== undefined) {
-          await dispatch(switchDiagramIndexThunk({
-            diagramType: diagramType as SupportedDiagramType,
-            index: result.index,
-          })).unwrap();
-          await waitForSwitchRender();
-        }
+        await waitForSwitchRender();
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
         const errorMsg = error instanceof Error ? error.message : t('assistant.errors.unknownError');
@@ -1127,10 +1126,11 @@ export function useAssistantLogic({
      * surfaces); wireConversationDispatchers attaches them to the shared client
      * exactly once. The generating/progress clear lives in the PER-SURFACE
      * handler below since that is local UI state owned per surface. */
-    const onMessage = (message: ChatMessage) => {
-      const responseTiming = stopTimer('response');
-      const totalTiming = stopTimer('total');
-
+    const appendIncomingMessage = (
+      message: ChatMessage,
+      responseTiming: string | null,
+      totalTiming: string | null,
+    ) => {
       const role = message.isUser ? 'user' : 'assistant';
 
       // Voice transcription echo: the backend transcribes the audio (whisper)
@@ -1190,6 +1190,21 @@ export function useAssistantLogic({
           [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
         }));
       }
+    };
+
+    const onMessage = (message: ChatMessage) => {
+      const responseTiming = stopTimer('response');
+      const totalTiming = stopTimer('total');
+      if (message.isUser) {
+        appendIncomingMessage(message, responseTiming, totalTiming);
+        return;
+      }
+      // An agent reply joins the same queue as injections and actions, so it
+      // is shown in arrival order. Appended directly, a message that follows an
+      // injection overtakes the injection's own message (which posts only after
+      // the model is converted, laid out and rendered), and its suggested
+      // actions land on a message that is no longer the last one — hidden.
+      enqueueAssistantTask(() => appendIncomingMessage(message, responseTiming, totalTiming));
     };
 
     const onInjection = (command: InjectionCommand) => {
@@ -1347,8 +1362,19 @@ export function useAssistantLogic({
 
       // Analytics
       const activeModel = modelSnapshot as any;
-      const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
-      const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
+      // Accept either v4 (nodes/edges) or legacy v3 (elements/relationships)
+      // shape — everything is v4-native now, but stale stored models may
+      // still be v3 until the storage migration touches them.
+      const elementsCount = Array.isArray(activeModel?.nodes)
+        ? activeModel.nodes.length
+        : activeModel?.elements
+        ? Object.keys(activeModel.elements).length
+        : 0;
+      const relationshipsCount = Array.isArray(activeModel?.edges)
+        ? activeModel.edges.length
+        : activeModel?.relationships
+        ? Object.keys(activeModel.relationships).length
+        : 0;
       getPostHog()?.capture('assistant_message', {
         diagram_type: context.activeDiagramType,
         message_length: messageText.length,

@@ -150,6 +150,10 @@ const SIDE_EFFECT_ACTIONS = new Set([
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',
+  // Create / switch diagram tabs: they change the workspace, and a scraped
+  // switch could redirect the next structured edit onto another diagram.
+  'create_diagram_tab',
+  'switch_diagram',
 ]);
 
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {
@@ -232,30 +236,36 @@ const buildDiagramSummary = (diagram: any, diagramType: string, diagramId?: stri
 
   const model = diagram.model;
 
-  // For UML-style models (Class, Object, StateMachine, Agent) that have elements & relationships
-  if (model.elements && model.relationships) {
-    const elements = Object.values(model.elements) as any[];
-    const relationships = Object.values(model.relationships) as any[];
+  // For UML-style models (Class, Object, StateMachine, Agent) that have nodes & edges (v4 shape)
+  if (Array.isArray(model.nodes) && Array.isArray(model.edges)) {
+    const nodes = model.nodes as any[];
+    const edges = model.edges as any[];
 
-    // Group elements by their type field
+    // Group nodes by their type field; v4 stores names under node.data.name.
     const elementsByType: Record<string, string[]> = {};
-    for (const el of elements) {
-      const type = el.type || 'unknown';
+    for (const n of nodes) {
+      const type = n?.type || 'unknown';
       if (!elementsByType[type]) elementsByType[type] = [];
-      if (el.name) elementsByType[type].push(el.name);
+      const name = n?.data?.name;
+      if (typeof name === 'string' && name) elementsByType[type].push(name);
     }
 
     const summary: DiagramSummary = {
       type: diagramType,
       diagramId,
-      elementCount: elements.length,
-      relationshipCount: relationships.length,
+      elementCount: nodes.length,
+      relationshipCount: edges.length,
       elementsByType,
     };
 
-    // For ClassDiagrams include class names so cross-diagram references are easy to resolve
+    // For ClassDiagrams include class names so cross-diagram references are easy to resolve.
+    // v4 collapses Class/AbstractClass/Interface/Enumeration into a single 'class' node type
+    // discriminated by data.stereotype (null = plain Class).
     if (diagramType === 'ClassDiagram') {
-      summary.classNames = elements.filter((e: any) => e.type === 'Class').map((e: any) => e.name);
+      summary.classNames = nodes
+        .filter((n: any) => n?.type === 'class' && !n?.data?.stereotype)
+        .map((n: any) => n?.data?.name)
+        .filter((name: unknown): name is string => typeof name === 'string' && !!name);
     }
 
     return summary;
@@ -644,12 +654,11 @@ export class AssistantClient {
   private rearmUserApiKey(): void {
     try {
       const stored = readAssistantApiKey();
-      if (!stored) {
-        // The agent session outlives the tab (keyed by the persistent user
-        // id): clear a key the user removed or that died with an old tab.
-        this.setUserApiKey({ apiKey: '' });
-        return;
-      }
+      // No key in THIS tab: send nothing. Every tab of the browser shares one
+      // agent session (keyed by the persistent user id), so a clear here would
+      // wipe the key another open tab is using. Removing a key clears it
+      // explicitly through the BYOK dialog.
+      if (!stored) return;
       this.setUserApiKey({
         apiKey: stored.apiKey,
         provider: stored.provider,
@@ -972,8 +981,14 @@ export class AssistantClient {
             isUser: false,
             timestamp: new Date(),
             diagramType: typeof directAction.diagramType === 'string' ? directAction.diagramType : payload.diagramType,
+            // Carried on the message itself so the chips attach to THIS message,
+            // whenever it is appended (agent replies are appended in arrival
+            // order, behind any queued injection).
+            ...(Array.isArray(directAction.suggestedActions) && directAction.suggestedActions.length > 0
+              ? { suggestedActions: directAction.suggestedActions as unknown[] }
+              : {}),
           };
-          this.emitMessage(chatMessage);        
+          this.emitMessage(chatMessage);
         }
         return;
       }

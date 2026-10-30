@@ -19,7 +19,7 @@ You can use this editor:
 
 This repository is a monorepo:
 
-- `packages/editor`: core diagramming engine, published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
+- `packages/library`: core diagramming engine (React Flow + Zustand), published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
   npm package. The webapp resolves it through a path alias to local source, in dev and in production builds alike.
 - `packages/webapp`: React web application (deployed at [editor.besser-pearl.org](https://editor.besser-pearl.org)). Uses Vite, Radix UI + Tailwind, and Vitest + Playwright.
 - `packages/server`: Node/Express server that serves the built webapp plus two small endpoints
@@ -27,7 +27,7 @@ This repository is a monorepo:
 - `packages/i18n`: translation bundles (`en`, `lb`, `de`, `fr`, `es`, `ca`), one `webapp.json` and one `editor.json`
   per locale. Not an npm workspace — the packages import it by relative path.
 
-The three npm workspaces are `packages/server`, `packages/webapp` and `packages/editor`.
+The three npm workspaces are `packages/server`, `packages/webapp` and `packages/library`.
 
 ## Main Features
 
@@ -113,7 +113,7 @@ networks, quantum circuits, or a complete example project.
 
 ## Under the Hood: Diagram Engine as an npm Package
 
-The core diagramming engine lives in `packages/editor` and is published as [@besser/wme](https://www.npmjs.com/package/@besser/wme).
+The core diagramming engine lives in `packages/library` and is published as [@besser/wme](https://www.npmjs.com/package/@besser/wme).
 The web application (`packages/webapp`) and standalone server (`packages/server`) consume this package.
 
 This separation allows the application to focus on delivering additional capabilities such as:

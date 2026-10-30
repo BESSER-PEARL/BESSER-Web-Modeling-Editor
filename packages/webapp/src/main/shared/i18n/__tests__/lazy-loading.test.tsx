@@ -1,5 +1,3 @@
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, vi } from 'vitest';
 import { Locale } from '@besser/wme';
 
@@ -7,21 +5,15 @@ import deWebapp from '../../../../../../i18n/de/webapp.json';
 import frWebapp from '../../../../../../i18n/fr/webapp.json';
 import enEditor from '../../../../../../i18n/en/editor.json';
 import deEditor from '../../../../../../i18n/de/editor.json';
-import { I18nProvider } from '../../../../../../editor/src/main/components/i18n/i18n-provider';
-import { I18nConsumer } from '../../../../../../editor/src/main/components/i18n/i18n-context';
+import { translate } from '../../../../../../library/lib/i18n';
 
 import i18n from '../index';
 import { LANGUAGE_STORAGE_KEY } from '../languages';
 
 const SHELL_KEY = 'menu.file.importProject';
 
-/** An editor-engine label, rendered synchronously the way the SVG export does. */
-const editorLabel = (locale: Locale) =>
-  renderToStaticMarkup(
-    <I18nProvider locale={locale}>
-      <I18nConsumer>{(ctx) => ctx?.translate('views.highlight')}</I18nConsumer>
-    </I18nProvider>,
-  );
+/** An editor label, looked up synchronously the way the editor's components do. */
+const editorLabel = (locale: Locale) => translate('views.highlight', undefined, locale);
 
 // Test order matters: the first test observes the startup state of the shared instance.
 describe('webapp i18n lazy language loading', () => {

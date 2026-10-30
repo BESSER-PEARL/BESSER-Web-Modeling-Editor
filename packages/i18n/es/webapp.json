@@ -80,7 +80,8 @@
       "agentMappings": "Asignaciones de agente",
       "agentComponents": "Componentes",
       "kgSettings": "Configuración de KG"
-    }
+    },
+    "workspace": "Espacio de trabajo"
   },
   "menu": {
     "file": {
@@ -886,7 +887,11 @@
       "springAppNameInvalid": "El nombre de la aplicación debe ser un nombre de clase Java válido.",
       "springPackageNameInvalid": "El nombre del paquete debe ser un paquete Java válido, p. ej. com.example.",
       "openUmlBeforeDeploy": "Abre un diagrama UML antes de desplegar.",
-      "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero."
+      "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero.",
+      "openBpmnEditor": "Abre un diagrama BPMN antes de exportar a BPMN 2.0 XML.",
+      "bpmnNoModel": "El diagrama BPMN activo no tiene ningún modelo que exportar.",
+      "bpmnExportFailed": "Error al exportar BPMN: {{error}}",
+      "qualityCheckUnavailable": "La comprobación de calidad aún no está disponible para este editor."
     },
     "context": {
       "djangoGeneration": "Generación de Django",
@@ -1111,7 +1116,9 @@
         "propertiesPanel": "Panel de propiedades",
         "propertiesPanelDesc": "Usar el panel lateral derecho en lugar del cuadro emergente flotante",
         "classNotation": "Notación del diagrama de clases",
-        "classNotationDesc": "UML (predeterminado) muestra clases UML estándar; ER muestra una representación entidad/relación al estilo Chen"
+        "classNotationDesc": "UML (predeterminado) muestra clases UML estándar; ER muestra una representación entidad/relación al estilo Chen",
+        "iconView": "Vista de iconos",
+        "iconViewDesc": "Mostrar los objetos con el icono de su clase en lugar de la tabla de atributos"
       },
       "diagrams": {
         "title": "Diagramas",
@@ -1162,7 +1169,7 @@
           "ObjectDiagram": "Instancias de un diagrama de clases, usadas para pruebas y validación OCL.",
           "StateMachineDiagram": "Modelado de comportamiento basado en estados.",
           "AgentDiagram": "Especificación de agente conversacional / de IA.",
-          "UserDiagram": "Actores y sus interacciones.",
+          "UserDiagram": "Perfiles de usuario (datos demográficos, accesibilidad, competencias, cultura) para la personalización.",
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
           "BPMN": "Notación de Modelo y Proceso de Negocio.",
@@ -1204,7 +1211,8 @@
         "Quantum Circuit": "Circuito cuántico",
         "Neural Network": "Red neuronal",
         "Full Project": "Proyecto completo",
-        "Multi-agent": "Multiagente"
+        "Multi-agent": "Multiagente",
+        "BPMN Diagram": "Diagrama BPMN"
       },
       "confirm": {
         "title": "Diagrama existente detectado",
@@ -1655,17 +1663,17 @@
     "chat": {
       "newChat": "Nuevo chat",
       "newConversationTitle": "Iniciar una nueva conversación",
+      "newChatConfirm": "¿Iniciar un nuevo chat? Se borrará la conversación actual.",
+      "newChatConfirmWithRun": "¿Iniciar un nuevo chat? Se borrará la conversación actual y se detendrá la generación en curso.",
+      "explainModel": "Explicar este modelo",
+      "explainModelTitle": "Obtén un resumen en lenguaje sencillo de tu modelo: los elementos principales que describe y cómo se relacionan",
       "moreActions": "Más acciones",
       "yourModel": "Tu modelo",
       "hideYourModel": "Ocultar tu modelo",
       "apiKeySet": "Clave API configurada",
       "useOwnApiKey": "Usar tu propia clave API",
       "reportIssue": "Informar de un problema",
-      "addApiKey": "Añadir tu clave API",
-      "newChatConfirm": "¿Iniciar un chat nuevo? Se borrará la conversación actual.",
-      "newChatConfirmWithRun": "¿Iniciar un chat nuevo? Se borrará la conversación actual y se detendrá la generación en curso.",
-      "explainModel": "Explicar este modelo",
-      "explainModelTitle": "Obtén un resumen claro de tu modelo: lo que representa y cómo se relaciona"
+      "addApiKey": "Añadir tu clave API"
     },
     "drawer": {
       "pushToClose": "Empuja hacia abajo para cerrar el asistente",
@@ -1755,6 +1763,31 @@
         "filesChanged_other": "{{count}} archivos modificados",
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
+      }
+    },
+    "modelOverview": {
+      "title": "Tu modelo",
+      "close": "Cerrar la vista general del modelo",
+      "empty": "Aún no hay nada modelado: pide al asistente que cree un sistema y el plano aparecerá aquí.",
+      "dataModel": "Modelo de datos",
+      "relationships": "Relaciones",
+      "screens": "Pantallas",
+      "constraints": "Restricciones",
+      "unnamed": "Sin nombre",
+      "page": "Página",
+      "kinds": {
+        "class": "clase",
+        "enum": "enumeración",
+        "interface": "interfaz",
+        "abstract": "abstracta"
+      },
+      "relationKinds": {
+        "association": "asociación",
+        "inheritance": "herencia",
+        "composition": "composición",
+        "aggregation": "agregación",
+        "realization": "realización",
+        "dependency": "dependencia"
       }
     }
   },
@@ -2280,6 +2313,10 @@
       "offlineMessage": "Estás sin conexión. Es posible que algunas funciones no funcionen.",
       "backOnline": "De nuevo en línea.",
       "dismiss": "Descartar aviso de sin conexión"
+    },
+    "storage": {
+      "saveFailedFull": "El almacenamiento del navegador está lleno, así que no se pudieron guardar sus cambios. Exporte sus proyectos y elimine los que ya no necesite.",
+      "nearlyFull": "El almacenamiento del navegador está al {{percent}} %. Exporte sus proyectos y elimine los que ya no necesite para no perder cambios."
     }
   },
   "shell": {
@@ -2297,13 +2334,13 @@
       "failed": "Error al importar: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Valida tus modelos antes de pasar a la siguiente tarea",
-      "description": "Este modelo de usuario no se ha validado tras tus últimos cambios.",
-      "confirmLabel": "Validar modelos",
-      "cancelLabel": "Ignorar"
+      "title": "¿Validar este modelo de usuario antes de salir?",
+      "description": "Has cambiado este modelo de usuario desde la última validación.",
+      "confirmLabel": "Validar ahora",
+      "cancelLabel": "Salir sin validar"
     },
     "leaveWithIssues": {
-      "title": "Hay problemas con tu diagrama, ¿aun así quieres salir de este modelo?",
+      "title": "Este modelo de usuario tiene errores de validación. ¿Salir de todos modos?",
       "description": "La comprobación de calidad encontró errores. Puedes quedarte para corregirlos o salir de este modelo de todos modos.",
       "confirmLabel": "Salir del modelo",
       "cancelLabel": "Quedarse"
@@ -2353,9 +2390,6 @@
       "renameDiagram": "Renombrar diagrama",
       "closeTabLabel": "Eliminar diagrama {{title}}",
       "closeTab": "Eliminar diagrama",
-      "deleteConfirmTitle": "¿Eliminar este diagrama?",
-      "deleteConfirmDescription": "«{{title}}» y todo su contenido se quitarán del proyecto. Esta acción no se puede deshacer.",
-      "deleteConfirmAction": "Eliminar diagrama",
       "addNewDiagram": "Añadir nuevo diagrama",
       "expandLinkedDiagrams": "Expandir diagramas vinculados",
       "collapseLinkedDiagrams": "Contraer diagramas vinculados",
@@ -2370,6 +2404,13 @@
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
+      "profileFormOpen": "Editar como formulario",
+      "profileFormClose": "Cerrar formulario",
+      "profileFormOpenTitle": "Editar este perfil con un formulario guiado",
+      "profileFormCloseTitle": "Cerrar el formulario del perfil de usuario",
+      "deleteConfirmTitle": "¿Eliminar este diagrama?",
+      "deleteConfirmDescription": "«{{title}}» y todo su contenido se quitarán del proyecto. Esta acción no se puede deshacer.",
+      "deleteConfirmAction": "Eliminar diagrama",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
       "closeForm": "Cerrar formulario",
@@ -3404,25 +3445,16 @@
       },
       "palette": {
         "heading": "Tipos de nodo",
-        "hint": "Arrastra un tipo de nodo al lienzo para crear un nodo nuevo. Para crear una relación entre nodos existentes, haz clic en <action>{{addRelation}}</action> en la barra de herramientas y luego en el nodo origen seguido del nodo destino."
+        "hint": "Arrastra un tipo de nodo al lienzo para crear un nodo nuevo. Para crear una relación entre nodos existentes, haz clic en <action>{{addRelation}}</action> en la barra de herramientas y luego en el nodo origen seguido del nodo destino.",
+        "canvasHint": "Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte."
       },
       "toolbar": {
         "addRelation": "Añadir relación",
-        "addingRelation": "Añadiendo relación…",
         "addRelationTooltip": "Añadir una relación: arrastra del nodo origen al nodo destino",
         "exportHtml": "Exportar HTML",
         "exportHtmlTooltip": "Descargar el grafo actual como un archivo HTML interactivo independiente",
         "connectHint": "Arrastra de un nodo origen a un nodo destino para crear una relación. Las posiciones de los nodos quedan bloqueadas mientras este modo está activo: Esc para salir.",
-        "showingNodes_one": "Mostrando {{visible}} de {{count}} nodo",
-        "showingNodes_other": "Mostrando {{visible}} de {{count}} nodos",
         "raiseLimit": "aumentar el límite en los ajustes de KG",
-        "nodesFragment_one": "{{count}} nodo",
-        "nodesFragment_other": "{{count}} nodos",
-        "relationsFragment_one": "{{count}} relación",
-        "relationsFragment_other": "{{count}} relaciones",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Deshacer",
-        "redo": "Rehacer",
         "undoTooltip": "Deshacer (Ctrl+Z)",
         "redoTooltip": "Rehacer (Ctrl+Y)"
       },
@@ -3430,7 +3462,8 @@
         "autoLayout": "Diseño automático",
         "fitToView": "Ajustar a la vista",
         "zoomIn": "Acercar",
-        "zoomOut": "Alejar"
+        "zoomOut": "Alejar",
+        "resetZoom": "Restablecer el zoom al 100%"
       },
       "nodeList": {
         "heading": "Nodos ({{count}})",
@@ -3473,12 +3506,10 @@
       "inspector": {
         "titleNode": "Nodo",
         "titleRelation": "Relación",
-        "titleInspector": "Inspector",
         "selectedCount_one": "{{count}} seleccionado",
         "selectedCount_other": "{{count}} seleccionados",
         "unsavedChanges": "Cambios sin guardar",
         "close": "Cerrar",
-        "noSelection": "Haz clic en un nodo o relación del lienzo para editarlo aquí. Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte.",
         "fields": {
           "type": "Tipo",
           "label": "Etiqueta",
@@ -3596,7 +3627,14 @@
         "resetToDefaults": "Restablecer los valores predeterminados"
       }
     },
-    "loadingKgEditor": "Cargando el editor de grafo de conocimiento..."
+    "loadingKgEditor": "Cargando el editor de grafo de conocimiento...",
+    "legacyDiagram": {
+      "openedReadOnly": "No se pudo convertir el diagrama «{{title}}» al formato actual. Se ha abierto en modo de solo lectura y tu versión guardada no se modifica.",
+      "saveRefused": "El diagrama «{{title}}» tiene un formato antiguo que no se pudo convertir, por lo que no se puede modificar.",
+      "readOnlyTitle": "Este diagrama es de solo lectura",
+      "readOnlyBody": "«{{title}}» se guardó en un formato antiguo que no se pudo convertir, por lo que no se puede mostrar ni editar aquí. Tu versión guardada no se modifica.",
+      "readOnlyRecover": "Para recuperarlo, vuelve a importar el archivo original. Un proyecto convertido al cargarse también conserva una copia de seguridad previa a la migración en el almacenamiento de este navegador."
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Cuéntanos qué funciona, qué no y qué te gustaría a continuación.",
@@ -3720,12 +3758,14 @@
     "success": {
       "diagram": "Diagrama {{diagramType}} importado correctamente y añadido al proyecto «{{projectName}}». Este diagrama se ha convertido del formato {{fileType}} al nuevo formato de proyecto.",
       "kg": "Diagrama {{diagramType}} importado correctamente desde Knowledge Graph y añadido al proyecto «{{projectName}}».",
-      "image": "Diagrama {{diagramType}} importado correctamente desde una imagen y añadido al proyecto «{{projectName}}»."
+      "image": "Diagrama {{diagramType}} importado correctamente desde una imagen y añadido al proyecto «{{projectName}}».",
+      "diagramImported": "Diagrama {{diagramType}} importado en el proyecto \"{{projectName}}\"."
     },
     "descriptions": {
       "imported": "Diagrama {{diagramType}} importado",
       "importedFromKg": "Diagrama {{diagramType}} importado desde Knowledge Graph",
-      "importedFromImage": "Diagrama {{diagramType}} importado desde una imagen"
+      "importedFromImage": "Diagrama {{diagramType}} importado desde una imagen",
+      "importedFromBpmnXml": "Importado desde BPMN 2.0 XML"
     },
     "errors": {
       "title": "Error en la importación",
@@ -3742,11 +3782,16 @@
       "couldNotImportFromImage": "No se pudo importar el diagrama desde una imagen: {{message}}",
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
-      "couldNotParseError": "No se pudo analizar la respuesta de error"
+      "couldNotParseError": "No se pudo analizar la respuesta de error",
+      "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
+      "invalidJson": "El archivo no es un JSON válido.",
+      "unsupportedProjectFile": "El archivo no es una exportación de proyecto o diagrama de BESSER.",
+      "projectUnreadable": "No se pudo leer el proyecto de este archivo."
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
-      "unnamedElement": "(sin nombre)"
+      "unnamedElement": "(sin nombre)",
+      "diagramReadOnly": "No se pudo convertir el diagrama «{{title}}» al formato actual. Se ha importado en modo de solo lectura; tu archivo no se modifica."
     },
     "kg": {
       "owl": {
@@ -3784,6 +3829,15 @@
         "timedOut": "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo.",
         "configUnavailable": "No se pudieron cargar los límites del grafo de conocimiento desde el servidor. Comprueba que el backend esté accesible e inténtalo de nuevo."
       }
+    },
+    "toasts": {
+      "migratedFromV3": "Diagrama migrado del esquema v3 al v4 durante la importación.",
+      "migratedFromV3Many": "Diagramas migrados del esquema v3 a v4 al importar."
+    },
+    "bpmn": {
+      "defaultTitle": "BPMN importado",
+      "warningsSummary": "BPMN importado con {{count}} advertencia(s) de validación:",
+      "moreWarnings": "…y {{count}} más"
     }
   },
   "knowledgeGraph": {
@@ -4047,7 +4101,10 @@
       "embeddingBaseUrl": "URL base de embedding",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
       "embeddingModel": "Modelo de embedding",
-      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "RAG híbrido (BM25)",
+      "bm25Weight": "Peso BM25",
+      "bm25WeightDescription": "Peso de la puntuación por palabras clave (BM25) en la clasificación híbrida, entre 0 y 1."
     },
     "guis": {
       "title": "GUIs",

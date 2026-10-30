@@ -31,51 +31,52 @@ const RELATIONSHIPS: Record<string, [string, string]> = {
 };
 
 function makeLibraryModel(): BESSERModel {
-  const model: BESSERModel = {
-    version: '3.0.0',
+  // v4 shape: classes are `class` nodes, relationships are edges.
+  const model: any = {
+    version: '4.0.0',
+    id: 'library',
+    title: 'Library',
     type: 'ClassDiagram',
-    size: { width: 1400, height: 900 },
-    elements: {},
-    relationships: {},
-    interactive: { elements: {}, relationships: {} },
+    nodes: [],
+    edges: [],
     assessments: {},
-  } as BESSERModel;
+  };
 
   for (const name of CLASS_NAMES) {
-    model.elements[`class_${name}`] = {
+    model.nodes.push({
       id: `class_${name}`,
-      name,
-      type: 'Class',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 220, height: 90 },
-      attributes: [],
-      methods: [],
-    } as any;
+      type: 'class',
+      position: { x: 0, y: 0 },
+      width: 220,
+      height: 90,
+      data: { name, attributes: [], methods: [] },
+    });
   }
 
   for (const [name, [from, to]] of Object.entries(RELATIONSHIPS)) {
-    model.relationships[`rel_${name}`] = {
+    model.edges.push({
       id: `rel_${name}`,
-      name,
       type: 'ClassBidirectional',
-      owner: null,
-      source: { element: `class_${from}`, direction: 'Right' },
-      target: { element: `class_${to}`, direction: 'Left' },
-    } as any;
+      source: `class_${from}`,
+      target: `class_${to}`,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      data: { name, sourceNavigable: true, targetNavigable: true, points: [] },
+    });
   }
 
-  return model;
+  return model as BESSERModel;
 }
 
 const classNames = (model: BESSERModel) =>
-  Object.values(model.elements)
-    .filter((el: any) => el.type === 'Class')
-    .map((el: any) => el.name)
+  ((model as any).nodes as any[])
+    .filter((n: any) => n.type === 'class')
+    .map((n: any) => n.data.name)
     .sort();
 
 const relNames = (model: BESSERModel) =>
-  Object.values(model.relationships)
-    .map((rel: any) => rel.name)
+  ((model as any).edges as any[])
+    .map((e: any) => e.data?.name)
     .sort();
 
 describe('removeElement with relationship endpoints', () => {
@@ -223,7 +224,7 @@ describe('summarizeModelDiff / classesNamedForRemoval', () => {
     const before = makeLibraryModel();
     const after = JSON.parse(JSON.stringify(before));
     // Simulate the pre-fix outcome: Book deleted by a relationship modification.
-    delete after.elements.class_Book;
+    after.nodes = after.nodes.filter((n: any) => n.id !== 'class_Book');
 
     const batch = [
       { action: 'remove_element', target: { sourceClass: 'Book', targetClass: 'BookCopy' } },

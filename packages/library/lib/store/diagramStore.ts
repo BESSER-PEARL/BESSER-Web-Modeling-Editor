@@ -1,0 +1,1040 @@
+import { create, StoreApi, UseBoundStore } from "zustand"
+import { devtools, subscribeWithSelector } from "zustand/middleware"
+import {
+  applyNodeChanges,
+  getConnectedEdges,
+  type Node,
+  type Edge,
+  type OnNodesChange,
+  type OnEdgesChange,
+  applyEdgeChanges,
+} from "@xyflow/react"
+import * as Y from "yjs"
+import { sortNodesTopologically } from "@/utils"
+import {
+  getNodesMap,
+  getEdgesMap,
+  getAssessments,
+  reconcileYMap,
+} from "@/sync/ydoc"
+import { deepEqual } from "@/utils/storeUtils"
+import { Assessment, InteractiveElements } from "@/typings"
+import {
+  getNestedNodeElementIds,
+  pruneInteractiveElements,
+  toggleInteractiveRecord,
+} from "@/utils/interactiveUtils"
+import { pruneDanglingLinkRels } from "@/utils/associationClassLink"
+import { log } from "../logger"
+
+/**
+ * Runtime guard.
+ *
+ * AgentStateBody / AgentStateFallbackBody must NEVER live as separate
+ * top-level nodes — bodies are folded onto the parent AgentState's
+ * `data.bodies` array (inline-body design). If a
+ * caller (palette drop, paste, plugin, etc.) tries to add such a node
+ * at the top level, drop it and warn. The inspector's "+ Add body"
+ * affordance is the only supported path to create a body row.
+ */
+const isFloatingAgentBody = (node: { type?: string; parentId?: string }) =>
+  (node.type === "AgentStateBody" || node.type === "AgentStateFallbackBody") &&
+  !node.parentId
+
+const dropFloatingAgentBodies = <T extends { type?: string; parentId?: string }>(
+  nodes: T[]
+): T[] => {
+  let dropped = 0
+  const kept = nodes.filter((n) => {
+    if (isFloatingAgentBody(n)) {
+      dropped++
+      return false
+    }
+    return true
+  })
+  if (dropped > 0) {
+    log.warn(
+      `diagramStore: dropped ${dropped} floating AgentStateBody/` +
+        `AgentStateFallbackBody node(s). Bodies must live on the parent ` +
+        `AgentState's data.bodies array (inline-body design).`
+    )
+  }
+  return kept
+}
+
+/**
+ * Undo history depth. Each step pins the content it replaced in the Y.Doc,
+ * so an unbounded stack grows memory with every gesture.
+ */
+export const MAX_UNDO_STEPS = 200
+
+/** Lets Yjs reclaim what the dropped (oldest) undo steps were keeping alive. */
+const releaseUndoStackItems = (
+  ydoc: Y.Doc,
+  undoManager: Y.UndoManager,
+  stackItems: Y.UndoManager["undoStack"]
+) => {
+  ydoc.transact((tr) => {
+    for (const stackItem of stackItems) {
+      Y.iterateDeletedStructs(tr, stackItem.deletions, (struct) => {
+        if (
+          !(struct instanceof Y.Item) ||
+          !undoManager.scope.some((type) => Y.isParentOf(type, struct))
+        ) {
+          return
+        }
+        // Same as Yjs' internal `keepItem(item, false)` used by `clear()`.
+        for (
+          let item: Y.Item | null = struct;
+          item && item.keep;
+          item = (item.parent as Y.AbstractType<unknown>)._item
+        ) {
+          item.keep = false
+        }
+      })
+      Y.tryGc(stackItem.deletions, ydoc.store, ydoc.gcFilter)
+    }
+  })
+}
+
+export type DiagramStoreData = {
+  nodes: Node[]
+  edges: Edge[]
+}
+
+// React Flow's runtime interaction flags (`selected`, `dragging`,
+// `resizing`) are view state, not model state. They are re-overlaid locally
+// on read (`updateNodesFromYjs` / `updateEdgesFromYjs`), so they must never be
+// persisted into the shared Y.Doc: otherwise every selection toggle becomes a
+// Yjs write, an undo entry and a peer broadcast (upstream Apollon #763).
+export function stripRuntimeNodeFlags(node: Node): Node {
+  if (
+    node.selected === undefined &&
+    node.dragging === undefined &&
+    node.resizing === undefined
+  ) {
+    return node
+  }
+  const persisted = { ...node }
+  delete persisted.selected
+  delete persisted.dragging
+  delete persisted.resizing
+  return persisted
+}
+
+// Edges carry no `dragging` in React Flow's type, but the pane-click
+// deselect stamps `dragging: false` on them too.
+export function stripRuntimeEdgeFlags(edge: Edge): Edge {
+  const flagged = edge as Edge & { dragging?: boolean }
+  if (edge.selected === undefined && flagged.dragging === undefined) return edge
+  const persisted = { ...flagged }
+  delete persisted.selected
+  delete persisted.dragging
+  return persisted
+}
+
+const nodeEntriesForPersistence = (nodes: Node[]) =>
+  nodes.map((node) => [node.id, stripRuntimeNodeFlags(node)] as const)
+
+const edgeEntriesForPersistence = (edges: Edge[]) =>
+  edges.map((edge) => [edge.id, stripRuntimeEdgeFlags(edge)] as const)
+
+type InitialDiagramState = {
+  nodes: Node[]
+  edges: Edge[]
+  selectedElementIds: string[]
+  diagramId: string
+  assessments: Record<string, Assessment>
+  interactiveElements: Record<string, boolean>
+  interactiveRelationships: Record<string, boolean>
+  interactiveSelectionInitialized: boolean
+  canUndo: boolean
+  canRedo: boolean
+  undoManager: Y.UndoManager | null
+}
+
+const initialDiagramState: InitialDiagramState = {
+  nodes: [],
+  edges: [],
+  selectedElementIds: [],
+  diagramId: Math.random().toString(36).substring(2, 15),
+  assessments: {},
+  interactiveElements: {},
+  interactiveRelationships: {},
+  interactiveSelectionInitialized: false,
+  canUndo: false,
+  canRedo: false,
+  undoManager: null,
+}
+
+export type DiagramStore = {
+  nodes: Node[]
+  edges: Edge[]
+  selectedElementIds: string[]
+  diagramId: string
+  assessments: Record<string, Assessment>
+  interactiveElements: Record<string, boolean>
+  interactiveRelationships: Record<string, boolean>
+  interactiveSelectionInitialized: boolean
+  canUndo: boolean
+  canRedo: boolean
+  undoManager: Y.UndoManager | null
+  setDiagramId: (diagramId: string) => void
+  setNodes: (payload: Node[] | ((nodes: Node[]) => Node[])) => void
+  setEdges: (payload: Edge[] | ((edges: Edge[]) => Edge[])) => void
+  setNodesAndEdges: (nodes: Node[], edges: Edge[]) => void
+  addEdge: (edge: Edge) => void
+  addNode: (node: Node) => void
+  onNodesChange: OnNodesChange
+  onEdgesChange: OnEdgesChange
+  reset: () => void
+  setSelectedElementsId: (
+    payload: string[] | ((edges: string[]) => string[])
+  ) => void
+  getAssessment: (id: string) => Assessment | undefined
+  setAssessments: (
+    assessments:
+      | Record<string, Assessment>
+      | ((prev: Record<string, Assessment>) => Record<string, Assessment>)
+  ) => void
+  updateNodesFromYjs: () => void
+  updateEdgesFromYjs: () => void
+  updateAssessmentFromYjs: () => void
+  addOrUpdateAssessment: (assessment: Assessment) => void
+  undo: () => void
+  redo: () => void
+  initializeUndoManager: () => void
+  updateUndoRedoState: () => void
+  toggleInteractiveElement: (elementId: string) => void
+  getInteractiveForSerialization: () => InteractiveElements | undefined
+  setInteractive: (interactive: InteractiveElements | undefined) => void
+  isElementInteractive: (elementId: string) => boolean
+}
+
+export const createDiagramStore = (
+  ydoc: Y.Doc
+): UseBoundStore<StoreApi<DiagramStore>> =>
+  create<DiagramStore>()(
+    devtools(
+      subscribeWithSelector((set, get) => ({
+        ...initialDiagramState,
+
+        initializeUndoManager: () => {
+          const nodesMap = getNodesMap(ydoc)
+          const edgesMap = getEdgesMap(ydoc)
+          const assessmentsMap = getAssessments(ydoc)
+
+          // Create undo manager with all the maps you want to track
+          const undoManager = new Y.UndoManager(
+            [nodesMap, edgesMap, assessmentsMap],
+            {
+              // Capture timeout - how long to wait before creating a new undo step
+              captureTimeout: 500,
+              // Track operations that originate from 'store'
+              trackedOrigins: new Set(["store", "remote"]),
+            }
+          )
+
+          // Restore the user's selection across undo/redo (undo should bring
+          // back the context, not just the content). The selection in effect
+          // when an edit is recorded is stashed on the stack item and
+          // re-applied -- to `selectedElementIds` and the per-element
+          // `selected` flags -- when it is popped.
+          const applySelection = (ids: string[]) => {
+            const idSet = new Set(ids)
+            set(
+              (state) => ({
+                selectedElementIds: ids,
+                nodes: state.nodes.map((node) =>
+                  (node.selected ?? false) === idSet.has(node.id)
+                    ? node
+                    : { ...node, selected: idSet.has(node.id) }
+                ),
+                edges: state.edges.map((edge) =>
+                  (edge.selected ?? false) === idSet.has(edge.id)
+                    ? edge
+                    : { ...edge, selected: idSet.has(edge.id) }
+                ),
+              }),
+              undefined,
+              "undo-restore-selection"
+            )
+          }
+
+          const captureSelection = ({
+            stackItem,
+          }: {
+            stackItem: Y.UndoManager["undoStack"][number]
+          }) => {
+            stackItem.meta.set("selectedElementIds", get().selectedElementIds)
+          }
+          undoManager.on("stack-item-added", captureSelection)
+          undoManager.on("stack-item-updated", captureSelection)
+
+          // Listen to undo manager state changes
+          undoManager.on("stack-item-added", () => {
+            const overflow = undoManager.undoStack.length - MAX_UNDO_STEPS
+            if (overflow > 0) {
+              releaseUndoStackItems(
+                ydoc,
+                undoManager,
+                undoManager.undoStack.splice(0, overflow)
+              )
+            }
+            get().updateUndoRedoState()
+          })
+
+          undoManager.on("stack-item-popped", ({ stackItem }) => {
+            const ids = stackItem.meta.get("selectedElementIds")
+            if (Array.isArray(ids)) applySelection(ids)
+            get().updateUndoRedoState()
+          })
+
+          undoManager.on("stack-cleared", () => {
+            get().updateUndoRedoState()
+          })
+
+          set({ undoManager }, undefined, "initializeUndoManager")
+          get().updateUndoRedoState()
+        },
+
+        updateUndoRedoState: () => {
+          const { undoManager } = get()
+          if (!undoManager) return
+
+          set(
+            {
+              canUndo: undoManager.undoStack.length > 0,
+              canRedo: undoManager.redoStack.length > 0,
+            },
+            undefined,
+            "updateUndoRedoState"
+          )
+        },
+
+        undo: () => {
+          const { undoManager } = get()
+          if (!undoManager || !undoManager.canUndo()) return
+
+          undoManager.undo()
+        },
+
+        redo: () => {
+          const { undoManager } = get()
+          if (!undoManager || !undoManager.canRedo()) return
+
+          undoManager.redo()
+        },
+
+        setDiagramId: (diagramId) => {
+          set({ diagramId }, undefined, "setDiagramId")
+        },
+
+        setSelectedElementsId: (payload) => {
+          const selectedElementIds =
+            typeof payload === "function"
+              ? payload(get().selectedElementIds)
+              : payload
+
+          set({ selectedElementIds }, undefined, "setSelectedElementsId")
+        },
+
+        toggleInteractiveElement: (elementId) => {
+          const isNode = get().nodes.some((node) => node.id === elementId)
+          const isNestedNodeElement = getNestedNodeElementIds(get().nodes).has(
+            elementId
+          )
+          const isEdge = get().edges.some((edge) => edge.id === elementId)
+
+          if (!isNode && !isNestedNodeElement && !isEdge) {
+            return
+          }
+
+          set(
+            (state) => ({
+              interactiveElements:
+                isNode || isNestedNodeElement
+                  ? toggleInteractiveRecord(
+                      state.interactiveElements,
+                      elementId
+                    )
+                  : state.interactiveElements,
+              interactiveRelationships: isEdge
+                ? toggleInteractiveRecord(
+                    state.interactiveRelationships,
+                    elementId
+                  )
+                : state.interactiveRelationships,
+              interactiveSelectionInitialized: true,
+            }),
+            undefined,
+            "toggleInteractiveElement"
+          )
+        },
+
+        getInteractiveForSerialization: () => {
+          const interactive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            get().nodes,
+            get().edges
+          )
+          return (
+            interactive ??
+            (get().interactiveSelectionInitialized
+              ? { elements: {}, relationships: {} }
+              : undefined)
+          )
+        },
+
+        setInteractive: (interactive) => {
+          const prunedInteractive = pruneInteractiveElements(
+            interactive,
+            get().nodes,
+            get().edges
+          )
+
+          set(
+            {
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+              interactiveSelectionInitialized: interactive !== undefined,
+            },
+            undefined,
+            "setInteractive"
+          )
+        },
+
+        isElementInteractive: (elementId) => {
+          return !!(
+            get().interactiveElements[elementId] ||
+            get().interactiveRelationships[elementId]
+          )
+        },
+
+        addNode: (node) => {
+          // Guard against floating Agent bodies
+          // entering the store as separate top-level nodes.
+          if (isFloatingAgentBody(node)) {
+            log.warn(
+              `diagramStore.addNode: refused to add floating ` +
+                `${node.type} (id=${node.id}). Bodies must live on the parent ` +
+                `AgentState's data.bodies array.`
+            )
+            return
+          }
+          ydoc.transact(() => {
+            getNodesMap(ydoc).set(node.id, stripRuntimeNodeFlags(node))
+          }, "store")
+          set({ nodes: [...get().nodes, node] }, undefined, "addNode")
+        },
+
+        addEdge: (edge) => {
+          ydoc.transact(() => {
+            getEdgesMap(ydoc).set(edge.id, stripRuntimeEdgeFlags(edge))
+          }, "store")
+          set({ edges: [...get().edges, edge] }, undefined, "addEdge")
+        },
+        setNodes: (payload) => {
+          const rawNodes =
+            typeof payload === "function" ? payload(get().nodes) : payload
+          // Scrub floating Agent body nodes.
+          const nodes = dropFloatingAgentBodies(rawNodes)
+
+          if (deepEqual(get().nodes, nodes)) {
+            return
+          }
+
+          ydoc.transact(() => {
+            reconcileYMap(getNodesMap(ydoc), nodeEntriesForPersistence(nodes))
+          }, "store")
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            nodes,
+            get().edges
+          )
+          set(
+            {
+              nodes,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "setNodes"
+          )
+        },
+
+        setEdges: (payload) => {
+          const rawEdges =
+            typeof payload === "function" ? payload(get().edges) : payload
+          // Cascade: drop ClassLinkRel edges whose association edge or
+          // class node endpoint no longer exists. React Flow only
+          // auto-cascades edges it renders; edge-anchored association-
+          // class links live only in the store (see
+          // `associationClassLink.ts`), so the store prunes them itself.
+          const edges = pruneDanglingLinkRels(
+            rawEdges,
+            new Set(get().nodes.map((n) => n.id))
+          )
+
+          if (deepEqual(get().edges, edges)) {
+            return
+          }
+          // Edge writes made while a node gesture is in flight (e.g. route
+          // points following a dragged BPMN pool) are transient too: keep
+          // them local and let the settle frame in `onNodesChange` commit
+          // them together with the nodes, as one undo step.
+          const gestureInFlight =
+            get().undoManager !== null &&
+            get().nodes.some((node) => node.dragging || node.resizing)
+          if (!gestureInFlight) {
+            ydoc.transact(() => {
+              reconcileYMap(getEdgesMap(ydoc), edgeEntriesForPersistence(edges))
+            }, "store")
+          }
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            get().nodes,
+            edges
+          )
+          set(
+            {
+              edges,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "setEdges"
+          )
+        },
+
+        setNodesAndEdges: (rawNodes, rawEdges) => {
+          // Scrub floating Agent body nodes before
+          // they reach the Yjs map / store.
+          const nodes = dropFloatingAgentBodies(rawNodes)
+          // Same ClassLinkRel cascade as `setEdges` — evaluated against
+          // the incoming node set so full model loads stay atomic.
+          const edges = pruneDanglingLinkRels(
+            rawEdges,
+            new Set(nodes.map((n) => n.id))
+          )
+          ydoc.transact(() => {
+            reconcileYMap(getNodesMap(ydoc), nodeEntriesForPersistence(nodes))
+            reconcileYMap(getEdgesMap(ydoc), edgeEntriesForPersistence(edges))
+          }, "store")
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            nodes,
+            edges
+          )
+          set(
+            {
+              nodes,
+              edges,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "setNodesAndEdges"
+          )
+        },
+
+        onNodesChange: (changes) => {
+          const selectChanges = changes.filter(
+            (change) => change.type === "select"
+          )
+
+          if (selectChanges.length > 0) {
+            selectChanges.forEach((change) => {
+              if (change.selected) {
+                set(
+                  (state) => ({
+                    selectedElementIds: [
+                      ...state.selectedElementIds,
+                      change.id,
+                    ],
+                  }),
+                  undefined,
+                  "onNodesChange-select"
+                )
+              } else {
+                set(
+                  (state) => ({
+                    selectedElementIds: state.selectedElementIds.filter(
+                      (id) => id !== change.id
+                    ),
+                  }),
+                  undefined,
+                  "onNodesChange-deselect"
+                )
+              }
+              set(
+                (state) => ({
+                  nodes: state.nodes.map((node) =>
+                    node.id === change.id
+                      ? { ...node, selected: change.selected }
+                      : node
+                  ),
+                }),
+                undefined,
+                "onNodesChange-select-deselect-sync"
+              )
+            })
+          }
+
+          // Select changes are handled previously
+          const filteredChanges = changes.filter(
+            (change) => change.type !== "select"
+          )
+
+          if (filteredChanges.length === 0) return
+          const currentNodes = get().nodes
+
+          // `applyNodeChanges` writes a dimension change into `node.measured`
+          // in place. Nodes loaded from the webapp's (frozen) Redux state
+          // share a read-only `measured`, so resizing them threw; copy it.
+          const resizedIds = new Set(
+            filteredChanges.flatMap((change) =>
+              change.type === "dimensions" ? [change.id] : []
+            )
+          )
+          const nextNodes = applyNodeChanges(
+            filteredChanges,
+            resizedIds.size === 0
+              ? currentNodes
+              : currentNodes.map((node) =>
+                  resizedIds.has(node.id) && node.measured
+                    ? { ...node, measured: { ...node.measured } }
+                    : node
+                )
+          )
+          if (deepEqual(currentNodes, nextNodes)) {
+            return
+          }
+
+          // Transient gesture frames (upstream Apollon #763). With an
+          // UndoManager present (single-user modelling) every per-frame
+          // write of a drag/resize is pinned by the undo stack, so a long
+          // session grows the document unbounded and the editor freezes.
+          // There, only the settle frame is committed: while a gesture is in
+          // flight (React Flow's live `dragging` / `resizing` flag on any
+          // node) position / dimension / mid-gesture `replace` writes are
+          // skipped, and the settle batch (drag-stop `dragging: false`,
+          // resize-end `resizing: false`) reconciles the full node list so
+          // every deferred geometry change -- the dragged nodes, a
+          // top/left-handle resize's position, children kept in place and
+          // parents auto-grown around a resizing child
+          // (`useHandleOnResize`) -- lands as ONE write set, i.e. one undo
+          // step. Without an UndoManager (collaboration) the per-frame
+          // writes are GC-reclaimed and drive the live remote drag, so they
+          // are kept.
+          const deferTransientFrames = get().undoManager !== null
+          const gestureInFlight =
+            deferTransientFrames &&
+            nextNodes.some((node) => node.dragging || node.resizing)
+          const gestureSettled =
+            deferTransientFrames &&
+            filteredChanges.some(
+              (change) =>
+                (change.type === "position" && change.dragging === false) ||
+                (change.type === "dimensions" && change.resizing === false)
+            )
+
+          ydoc.transact(() => {
+            for (const change of filteredChanges) {
+              if (change.type === "add" || change.type === "replace") {
+                if (change.type === "replace" && gestureInFlight) continue
+                getNodesMap(ydoc).set(
+                  change.item.id,
+                  stripRuntimeNodeFlags(change.item)
+                )
+              } else if (change.type === "remove") {
+                set(
+                  (state) => ({
+                    selectedElementIds: state.selectedElementIds.filter(
+                      (id) => id !== change.id
+                    ),
+                  }),
+                  undefined,
+                  "onNodesChange-remove-selectedElementIds"
+                )
+                const deletedNode = getNodesMap(ydoc).get(change.id)
+                if (deletedNode) {
+                  const connectedEdges = getConnectedEdges(
+                    [deletedNode],
+                    get().edges
+                  )
+                  getNodesMap(ydoc).delete(change.id)
+                  connectedEdges.forEach((edge) =>
+                    getEdgesMap(ydoc).delete(edge.id)
+                  )
+                  // Second-order cascade: deleting the node took its
+                  // association edges with it — drop any edge-anchored
+                  // ClassLinkRel that referenced one of those edges.
+                  const removedEdgeIds = new Set(
+                    connectedEdges.map((edge) => edge.id)
+                  )
+                  get().edges.forEach((edge) => {
+                    if (
+                      edge.type === "ClassLinkRel" &&
+                      (removedEdgeIds.has(edge.source) ||
+                        removedEdgeIds.has(edge.target))
+                    ) {
+                      getEdgesMap(ydoc).delete(edge.id)
+                    }
+                  })
+                }
+              } else {
+                const isTransient =
+                  (change.type === "position" && change.dragging === true) ||
+                  (change.type === "dimensions" && change.resizing === true) ||
+                  // A resize batch also carries flag-less position changes
+                  // (top/left handles, children kept in place) -- part of the
+                  // same gesture, committed by the settle reconcile below.
+                  (change.type === "position" &&
+                    change.dragging === undefined &&
+                    gestureInFlight)
+                if (isTransient && deferTransientFrames) continue
+                const node = nextNodes.find((n) => n.id === change.id)
+                if (node) {
+                  getNodesMap(ydoc).set(change.id, stripRuntimeNodeFlags(node))
+                }
+              }
+            }
+
+            // Commit everything deferred while the gesture was in flight.
+            // `reconcileYMap` writes only keys whose value actually changed,
+            // so this is a no-op for nodes the loop above already wrote.
+            if (gestureSettled && !gestureInFlight) {
+              reconcileYMap(
+                getNodesMap(ydoc),
+                nodeEntriesForPersistence(nextNodes)
+              )
+              // Edge updates deferred by `setEdges` during the gesture.
+              reconcileYMap(
+                getEdgesMap(ydoc),
+                edgeEntriesForPersistence(get().edges)
+              )
+            }
+          }, "store")
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            nextNodes,
+            get().edges
+          )
+
+          set(
+            {
+              nodes: nextNodes,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "onNodesChange"
+          )
+        },
+
+        onEdgesChange: (changes) => {
+          const selectChanges = changes.filter(
+            (change) => change.type === "select"
+          )
+          if (selectChanges.length > 0) {
+            selectChanges.forEach((change) => {
+              if (change.selected) {
+                set(
+                  (state) => ({
+                    selectedElementIds: [
+                      ...state.selectedElementIds,
+                      change.id,
+                    ],
+                  }),
+                  undefined,
+                  "onEdgesChange-select"
+                )
+              } else {
+                set(
+                  (state) => ({
+                    selectedElementIds: state.selectedElementIds.filter(
+                      (id) => id !== change.id
+                    ),
+                  }),
+                  undefined,
+                  "onEdgesChange-deselect"
+                )
+              }
+              set(
+                (state) => ({
+                  edges: state.edges.map((edge) =>
+                    edge.id === change.id
+                      ? { ...edge, selected: change.selected }
+                      : edge
+                  ),
+                }),
+                undefined,
+                "onEdgesChange-select-deselect-sync"
+              )
+            })
+          }
+
+          const changesWithoutSelect = changes.filter(
+            (change) => change.type !== "select"
+          )
+
+          if (changesWithoutSelect.length === 0) return
+
+          const currentEdges = get().edges
+          const appliedEdges = applyEdgeChanges(
+            changesWithoutSelect,
+            currentEdges
+          )
+          // Cascade: removing an association edge must also remove the
+          // edge-anchored ClassLinkRel referencing it (React Flow never
+          // sees those links, so it cannot cascade them itself).
+          const nextEdges = pruneDanglingLinkRels(
+            appliedEdges,
+            new Set(get().nodes.map((n) => n.id))
+          )
+          const cascadeRemovedIds =
+            nextEdges === appliedEdges
+              ? []
+              : appliedEdges
+                  .filter((e) => !nextEdges.includes(e))
+                  .map((e) => e.id)
+          if (deepEqual(currentEdges, nextEdges)) {
+            return
+          }
+
+          ydoc.transact(() => {
+            for (const change of changes) {
+              if (change.type === "add" || change.type === "replace") {
+                getEdgesMap(ydoc).set(
+                  change.item.id,
+                  stripRuntimeEdgeFlags(change.item)
+                )
+              } else if (change.type === "remove") {
+                set(
+                  (state) => ({
+                    selectedElementIds: state.selectedElementIds.filter(
+                      (id) => id !== change.id
+                    ),
+                  }),
+                  undefined,
+                  "onEdgesChange-remove"
+                )
+                getEdgesMap(ydoc).delete(change.id)
+              }
+            }
+            cascadeRemovedIds.forEach((edgeId) =>
+              getEdgesMap(ydoc).delete(edgeId)
+            )
+          }, "store")
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            get().nodes,
+            nextEdges
+          )
+
+          set(
+            {
+              edges: nextEdges,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "onEdgesChange"
+          )
+        },
+
+        reset: () => {
+          const { undoManager } = get()
+          if (undoManager) {
+            undoManager.clear()
+          }
+          set(initialDiagramState, undefined, "reset")
+        },
+
+        updateNodesFromYjs: () => {
+          const currentById = new Map(get().nodes.map((n) => [n.id, n]))
+          const preserveSelectedNodesAfterYdoc = sortNodesTopologically(
+            Array.from(getNodesMap(ydoc).values())
+          ).map((node) => {
+            const currentNode = currentById.get(node.id)
+            if (currentNode) {
+              // Unchanged by this update (an undo usually touches a few
+              // nodes): keep the object so React Flow skips re-rendering it.
+              if (deepEqual(stripRuntimeNodeFlags(currentNode), node)) {
+                return currentNode
+              }
+              // Runtime flags are never persisted (see
+              // `stripRuntimeNodeFlags`): re-overlay the local ones so a
+              // remote update landing mid-gesture does not drop this
+              // client's live `dragging` / `resizing` state.
+              const overlaid: Node = { ...node, selected: currentNode.selected }
+              if (currentNode.dragging) overlaid.dragging = true
+              if (currentNode.resizing) overlaid.resizing = true
+              return overlaid
+            } else {
+              return node
+            }
+          })
+
+          // Find removed nodes that are not in the Yjs document
+          // and remove them from the selectedElementIds
+          // This is necessary to keep the selection in sync with the Yjs document
+          // and to avoid selecting nodes that are no longer present in state
+          const removedNodes = get().nodes.filter(
+            (node) =>
+              !preserveSelectedNodesAfterYdoc.some((n) => n.id === node.id)
+          )
+          if (removedNodes.length > 0) {
+            set(
+              (state) => ({
+                selectedElementIds: state.selectedElementIds.filter(
+                  (id) =>
+                    !removedNodes.some((removedNode) => removedNode.id === id)
+                ),
+              }),
+              undefined,
+              "updateNodesFromYjs-selection-remove"
+            )
+          }
+
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            preserveSelectedNodesAfterYdoc,
+            get().edges
+          )
+
+          set(
+            {
+              nodes: preserveSelectedNodesAfterYdoc,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "updateNodesFromYjs"
+          )
+        },
+
+        updateEdgesFromYjs: () => {
+          const currentById = new Map(get().edges.map((e) => [e.id, e]))
+          const preserveSelectedEdgesAfterYdoc = Array.from(
+            getEdgesMap(ydoc).values()
+          ).map((edge) => {
+            const currentEdge = currentById.get(edge.id)
+            if (currentEdge) {
+              if (deepEqual(stripRuntimeEdgeFlags(currentEdge), edge)) {
+                return currentEdge
+              }
+              return { ...edge, selected: currentEdge.selected }
+            } else {
+              return edge
+            }
+          })
+
+          // Find removed edges that are not in the Yjs document
+          // and remove them from the selectedElementIds
+          // This is necessary to keep the selection in sync with the Yjs document
+          // and to avoid selecting edges that are no longer present in state
+          const removedEdges = get().edges.filter(
+            (edge) =>
+              !preserveSelectedEdgesAfterYdoc.some((e) => e.id === edge.id)
+          )
+          if (removedEdges.length > 0) {
+            set(
+              (state) => ({
+                selectedElementIds: state.selectedElementIds.filter(
+                  (id) =>
+                    !removedEdges.some((removedEdge) => removedEdge.id === id)
+                ),
+              }),
+              undefined,
+              "updateEdgesFromYjs-selection-remove"
+            )
+          }
+
+          const prunedInteractive = pruneInteractiveElements(
+            {
+              elements: get().interactiveElements,
+              relationships: get().interactiveRelationships,
+            },
+            get().nodes,
+            preserveSelectedEdgesAfterYdoc
+          )
+
+          set(
+            {
+              edges: preserveSelectedEdgesAfterYdoc,
+              interactiveElements: prunedInteractive?.elements ?? {},
+              interactiveRelationships: prunedInteractive?.relationships ?? {},
+            },
+            undefined,
+            "updateEdgesFromYjs"
+          )
+        },
+
+        setAssessments: (payload) => {
+          const assessments =
+            typeof payload === "function" ? payload(get().assessments) : payload
+
+          ydoc.transact(() => {
+            reconcileYMap(getAssessments(ydoc), Object.entries(assessments))
+          }, "store")
+
+          set({ assessments }, undefined, "setAssessments")
+        },
+
+        updateAssessmentFromYjs: () => {
+          const yMap = getAssessments(ydoc)
+          const assessments: Record<string, Assessment> = {}
+
+          yMap.forEach((value, key) => {
+            assessments[key] = value
+          })
+
+          set({ assessments }, undefined, "updateAssessmentFromYjs")
+        },
+
+        getAssessment: (id) => {
+          return get().assessments[id]
+        },
+
+        addOrUpdateAssessment: (assessment) => {
+          ydoc.transact(() => {
+            getAssessments(ydoc).set(assessment.modelElementId, assessment)
+          }, "store")
+          set(
+            (state) => ({
+              assessments: {
+                ...state.assessments,
+                [assessment.modelElementId]: assessment,
+              },
+            }),
+            undefined,
+            "addOrUpdateAssessment"
+          )
+        },
+      })),
+      { name: "DiagramStore", enabled: true }
+    )
+  )

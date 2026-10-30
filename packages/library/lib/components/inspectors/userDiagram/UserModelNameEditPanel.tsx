@@ -1,0 +1,613 @@
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  MenuItem,
+  Select,
+  Stack,
+  TextField as MuiTextField,
+  Tooltip,
+  Typography as MuiTypography,
+} from "@mui/material"
+import React, { useMemo, useState } from "react"
+import { useShallow } from "zustand/shallow"
+import { useDiagramStore } from "@/store/context"
+import {
+  UserModelAttributeRow,
+  UserModelNameNodeProps,
+} from "@/types"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
+import { PopoverProps } from "@/components/popovers/types"
+import { normalizeType } from "@/utils/typeNormalization"
+import { generateUUID } from "@/utils"
+import {
+  getUserMetaModelClasses,
+  getUserMetaModelV4,
+  type UserMetaModelClass,
+} from "@/services/userMetaModel"
+import {
+  InspectorSectionHeader,
+  AddRowButton,
+  ChevronDownIcon,
+  PaletteIcon,
+  RowActionButton,
+  TrashIcon,
+} from "../_shared"
+import { useTranslation } from "@/i18n"
+import { resolveUserModelView } from "@/components/svgs/nodes/userDiagram"
+
+/**
+ * Inspector body for `UserModelName`. Full v3 port.
+ *
+ * v3 source: `v3 source: uml-object-name/uml-object-name-update.tsx`
+ * (the v3 fork registers `UMLObjectNameUpdate` for both ObjectName and
+ * UserModelName, with the user-side branch swapping the attribute
+ * sub-component for `UMLUserModelAttributeUpdate`).
+ *
+ * Key v3-parity behaviours:
+ *  - Class picker is driven by the **user-meta-model JSON**, not the
+ *    regular ClassDiagram. The user model has its own meta-model
+ *    (Personal_Information / Skill / Education / Disability ...) — the
+ *    picker presents that list. v3 routed the user-side dropdown
+ *    through the same diagramBridge call, but the v3 fork pre-loaded
+ *    the user-meta-model into the bridge for that diagram type.
+ *    Makes the source explicit by reading the JSON
+ *    directly here.
+ *  - Selecting a meta-class auto-populates the row's `attributes` from
+ *    the meta-model class definition (mirrors v3 `onClassChange` —
+ *    `uml-object-name-update.tsx:80-130`).
+ *  - Each attribute row has its own type-aware editor (delegated to
+ *    the row component below), with the comparator dropdown only
+ *    rendered for integer-typed rows (v3
+ *    `uml-user-model-attribute-update.tsx:106-109` and `:200-218`).
+ *  - Enumeration-typed attribute values become a dropdown of the
+ *    Enumeration's literals, sourced from the user-meta-model JSON
+ *    (matches v3 `getEnumerationValues` — `uml-user-model-attribute-update.tsx:111-134`).
+ *  - No methods rendered. The user model is constraint-style data only.
+ *  - "Icon | Attributes" switch writes `data.view` (icon when unset). The
+ *    attribute rows below stay editable in either view.
+ */
+const PRIMITIVE_TYPES: { value: string; label: string }[] = [
+  { value: "str", label: "str (string)" },
+  { value: "int", label: "int (integer)" },
+  { value: "float", label: "float (double)" },
+  { value: "bool", label: "bool (boolean)" },
+  { value: "date", label: "date" },
+  { value: "datetime", label: "datetime" },
+  { value: "time", label: "time" },
+  { value: "any", label: "any" },
+]
+
+const COMPARATORS = ["<", "<=", "==", ">=", ">"] as const
+
+const INTEGER_TYPES = new Set(["int", "integer", "number"])
+const BOOLEAN_TYPES = new Set(["bool", "boolean"])
+const DATE_TYPES = new Set(["date"])
+const DATETIME_TYPES = new Set(["datetime"])
+const TIME_TYPES = new Set(["time"])
+const STRING_TYPES = new Set(["str", "string"])
+const PRIMITIVE_SET = new Set([
+  ...INTEGER_TYPES,
+  ...BOOLEAN_TYPES,
+  ...DATE_TYPES,
+  ...DATETIME_TYPES,
+  ...TIME_TYPES,
+  ...STRING_TYPES,
+  "float",
+  "double",
+  "any",
+])
+
+interface MetaContext {
+  classes: UserMetaModelClass[]
+  enumerations: Map<string, string[]>
+}
+
+/**
+ * Build a lookup of the user-meta-model's enumeration literals. v3 read
+ * these via `diagramBridge.getClassDiagramData()` after the bridge had
+ * been pre-loaded with the user-meta-model. We surface the same shape
+ * directly from the JSON so the inspector doesn't depend on bridge
+ * priming order.
+ */
+function buildMetaContext(): MetaContext {
+  const classes = getUserMetaModelClasses()
+  const enumerations = new Map<string, string[]>()
+  const v4 = getUserMetaModelV4()
+  for (const n of v4.nodes ?? []) {
+    const nd = (n as {
+      data?: { name?: string; stereotype?: string; attributes?: { name?: string }[] }
+    }).data
+    if (nd?.stereotype === "Enumeration" && typeof nd?.name === "string") {
+      enumerations.set(
+        nd.name,
+        (nd.attributes ?? [])
+          .map((a) => (typeof a.name === "string" ? a.name : ""))
+          .filter((s) => s.length > 0)
+      )
+    }
+  }
+  return { classes, enumerations }
+}
+
+interface AttrRowProps {
+  row: UserModelAttributeRow
+  metaCtx: MetaContext
+  onPatch: (patch: Partial<UserModelAttributeRow>) => void
+  onDelete: () => void
+}
+
+/**
+ * Per-row style controls — v3 parity with the `ColorButton` +
+ * `StylePane showIcon fillColor textColor` block every
+ * `UMLUserModelAttributeUpdate` row carried
+ * (`uml-user-model-attribute-update.tsx:233-238`). Fill / text swatches
+ * patch `row.fillColor` / `row.textColor` (painted by
+ * `RowBlockSection` when the attributes view renders); the Icon field
+ * patches `row.icon`. Right-click on a swatch resets that color.
+ */
+const UserRowStyleControls: React.FC<{
+  row: Pick<UserModelAttributeRow, "fillColor" | "textColor" | "icon">
+  onPatch: (patch: Partial<UserModelAttributeRow>) => void
+}> = ({ row, onPatch }) => {
+  const { t } = useTranslation()
+  const swatch = (
+    label: string,
+    key: "fillColor" | "textColor",
+    fallback: string,
+    pickerDefault: string
+  ) => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
+        {label}
+      </MuiTypography>
+      <Tooltip
+        title={t("popup.object.colorResetHint", "{{label}} (right-click to reset)", {
+          label,
+        })}
+      >
+        <Box
+          component="label"
+          sx={{
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            border: "1px solid var(--besser-gray, #ccc)",
+            backgroundColor: row[key] || fallback,
+            cursor: "pointer",
+            display: "inline-block",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+          onContextMenu={(e: React.MouseEvent) => {
+            e.preventDefault()
+            onPatch({ [key]: undefined })
+          }}
+        >
+          <input
+            type="color"
+            value={
+              typeof row[key] === "string" && row[key]
+                ? (row[key] as string)
+                : pickerDefault
+            }
+            onChange={(e) => onPatch({ [key]: e.target.value })}
+            style={{
+              opacity: 0,
+              width: "100%",
+              height: "100%",
+              cursor: "pointer",
+              border: "none",
+              padding: 0,
+            }}
+          />
+        </Box>
+      </Tooltip>
+    </Stack>
+  )
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5,
+        padding: "2px 0 4px 4px",
+      }}
+    >
+      <Stack direction="row" spacing={2}>
+        {swatch(
+          t("stylePane.fillColor", "Fill Color"),
+          "fillColor",
+          "var(--besser-background, #fff)",
+          "#ffffff"
+        )}
+        {swatch(
+          t("stylePane.textColor", "Text Color"),
+          "textColor",
+          "var(--besser-text, #000)",
+          "#000000"
+        )}
+      </Stack>
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        label={t("stylePane.icon", "Icon")}
+        placeholder={t("stylePane.enterIcon", "Enter icon name...")}
+        value={row.icon ?? ""}
+        onChange={(e) =>
+          onPatch({ icon: e.target.value === "" ? undefined : e.target.value })
+        }
+      />
+    </Box>
+  )
+}
+
+const AttrRow: React.FC<AttrRowProps> = ({
+  row,
+  metaCtx,
+  onPatch,
+  onDelete,
+}) => {
+  const { t } = useTranslation()
+  const [styleOpen, setStyleOpen] = useState(false)
+  // Look up linked meta-class attribute (when this row was seeded from
+  // a meta-class). v3's `getAttributeDefinition` walked the bridge; we
+  // walk our pre-built classes list.
+  const linked = useMemo(() => {
+    if (!row.attributeId) return null
+    for (const c of metaCtx.classes) {
+      const found = c.attributes.find((a) => a.id === row.attributeId)
+      if (found) return found
+    }
+    return null
+  }, [row.attributeId, metaCtx.classes])
+
+  const effectiveType = (linked?.attributeType ?? row.attributeType ?? "")
+    .toString()
+    .toLowerCase()
+
+  const isInteger = INTEGER_TYPES.has(effectiveType)
+  const isBool = BOOLEAN_TYPES.has(effectiveType)
+  const isDate = DATE_TYPES.has(effectiveType)
+  const isDatetime = DATETIME_TYPES.has(effectiveType)
+  const isTime = TIME_TYPES.has(effectiveType)
+  const isString = STRING_TYPES.has(effectiveType)
+
+  // Enumeration literals via the meta-model. Use the linked attribute's
+  // raw type (preserves case sensitivity for enum class names like
+  // `GenderEnum`) when available, else the row's own type.
+  const enumTypeName = linked?.attributeType ?? row.attributeType
+  const enumLiterals = enumTypeName
+    ? metaCtx.enumerations.get(enumTypeName) ?? []
+    : []
+  const isEnumeration = enumLiterals.length > 0
+
+  const currentValue =
+    row.value !== undefined && row.value !== null
+      ? String(row.value)
+      : row.defaultValue !== undefined && row.defaultValue !== null
+        ? String(row.defaultValue)
+        : ""
+
+  const onValueChange = (v: string) =>
+    onPatch({ value: v === "" ? undefined : v })
+
+  // The displayed row "name" comes from the linked meta-class attribute
+  // when one exists; otherwise users edit it directly.
+  const displayName = linked?.name ?? row.name
+
+  return (
+    <div className={`bp-member bp-card${styleOpen ? " is-open" : ""}`}>
+      <div className="bp-member__row" style={{ gap: 4 }}>
+        {linked ? (
+          <MuiTypography
+            variant="body2"
+            sx={{ flex: 1, fontWeight: 500, color: "var(--besser-text)" }}
+          >
+            {displayName}
+          </MuiTypography>
+        ) : (
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder={t("popup.attribute.namePlaceholder", "attribute name")}
+            value={row.name}
+            onChange={(e) =>
+              onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+            }
+          />
+        )}
+        {!linked && (
+          <Select
+            size="small"
+            value={
+              PRIMITIVE_SET.has(
+                String(row.attributeType ?? "str").toLowerCase()
+              )
+                ? row.attributeType ?? "str"
+                : "str"
+            }
+            onChange={(e) =>
+              onPatch({ attributeType: normalizeType(String(e.target.value)) })
+            }
+            // Type column width 110 → 80 (v3 width).
+            sx={{ minWidth: 80 }}
+          >
+            {PRIMITIVE_TYPES.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                {p.label}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+
+        {isInteger && (
+          <Select
+            size="small"
+            value={row.attributeOperator ?? "=="}
+            onChange={(e) =>
+              onPatch({
+                attributeOperator: String(
+                  e.target.value
+                ) as UserModelAttributeRow["attributeOperator"],
+              })
+            }
+          >
+            {COMPARATORS.map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+
+        {/* Per-row style toggle — v3 ColorButton +
+            StylePane (`showIcon fillColor textColor`) workflow. Opens
+            the fill / text swatches plus the per-row Icon field
+            below the row. */}
+        <div className="bp-member__actions">
+          <RowActionButton
+            label={t("stylePane.rowStyle", "Row style (colors + icon)")}
+            ariaLabel={t("popup.user.rowStyle", "Row style")}
+            expanded={styleOpen}
+            onClick={() => setStyleOpen((open) => !open)}
+          >
+            <PaletteIcon size={14} />
+          </RowActionButton>
+          <RowActionButton
+            danger
+            label={t("popup.user.deleteAttribute", "Delete attribute")}
+            onClick={onDelete}
+          >
+            <TrashIcon size={14} />
+          </RowActionButton>
+        </div>
+      </div>
+
+      {styleOpen && <UserRowStyleControls row={row} onPatch={onPatch} />}
+
+      {/* Type-aware value widget — v3 parity. */}
+      {isEnumeration ? (
+        <Select
+          size="small"
+          value={currentValue}
+          onChange={(e) => onValueChange(String(e.target.value))}
+          displayEmpty
+        >
+          <MenuItem value="">
+            {t("popup.object.selectLiteral", "— select literal —")}
+          </MenuItem>
+          {enumLiterals.map((lit) => (
+            <MenuItem key={lit} value={lit}>
+              {lit}
+            </MenuItem>
+          ))}
+        </Select>
+      ) : isBool ? (
+        <Select
+          size="small"
+          value={currentValue}
+          onChange={(e) => onValueChange(String(e.target.value))}
+          displayEmpty
+        >
+          <MenuItem value="">
+            {t("popup.user.selectPlaceholder", "— select —")}
+          </MenuItem>
+          <MenuItem value="true">true</MenuItem>
+          <MenuItem value="false">false</MenuItem>
+        </Select>
+      ) : isDate || isDatetime || isTime ? (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          type={isDate ? "date" : isTime ? "time" : "datetime-local"}
+          value={currentValue}
+          onChange={(e) => onValueChange(e.target.value)}
+        />
+      ) : isString ? (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder={t(
+            "popup.user.stringValuePlaceholder",
+            'value (will be quoted: "…")'
+          )}
+          value={currentValue}
+          onChange={(e) => onValueChange(e.target.value)}
+        />
+      ) : (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder={t("popup.user.valuePlaceholder", "value / default")}
+          value={currentValue}
+          onChange={(e) => onValueChange(e.target.value)}
+        />
+      )}
+    </div>
+  )
+}
+
+export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
+  elementId,
+}) => {
+  const { t } = useTranslation()
+  const { nodes, setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      setNodes: state.setNodes,
+    }))
+  )
+  const node = nodes.find((n) => n.id === elementId)
+
+  // Build the meta-model context once per render. Cheap — just walks
+  // the JSON in memory; the helper internally caches.
+  const metaCtx = useMemo(buildMetaContext, [])
+
+  if (!node) return null
+
+  const data = node.data as UserModelNameNodeProps
+  const view = resolveUserModelView(data)
+
+  const update = (patch: Partial<UserModelNameNodeProps>) => {
+    setNodes((all) =>
+      all.map((n) =>
+        n.id === elementId ? { ...n, data: { ...n.data, ...patch } } : n
+      )
+    )
+  }
+
+  const handleDataFieldUpdate = (key: string, value: string) => {
+    update({ [key]: value } as Partial<UserModelNameNodeProps>)
+  }
+
+  const setAttribute = (
+    idx: number,
+    patch: Partial<UserModelAttributeRow>
+  ) => {
+    const next = [...data.attributes]
+    next[idx] = { ...next[idx], ...patch }
+    update({ attributes: next })
+  }
+
+  const removeAttribute = (idx: number) => {
+    const next = [...data.attributes]
+    next.splice(idx, 1)
+    update({ attributes: next })
+  }
+
+  const addAttribute = () => {
+    update({
+      attributes: [
+        ...data.attributes,
+        {
+          id: generateUUID(),
+          name: "",
+          attributeType: "str",
+          attributeOperator: "==",
+        },
+      ],
+    })
+  }
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={handleDataFieldUpdate}
+        showNameInputChange={false}
+        preElements={[
+          <MuiTextField
+            key="name"
+            size="small"
+            variant="outlined"
+            label={t("popup.name", "Name")}
+            value={data.name}
+            onChange={(e) => update({ name: e.target.value })}
+            sx={{ flex: 1 }}
+          />,
+        ]}
+      />
+
+      {/* No class selector: the class link is bound to the meta-model
+          entry that produced the palette card (set at drop time). */}
+      <InspectorSectionHeader>
+        {t("popup.user.view", "Show on canvas as")}
+      </InspectorSectionHeader>
+      <div
+        className="bp-segmented"
+        role="group"
+        aria-label={t("popup.user.view", "Show on canvas as")}
+      >
+        {(["icon", "attributes"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className="bp-toggle"
+            aria-pressed={view === mode}
+            onClick={() => view !== mode && update({ view: mode })}
+          >
+            {mode === "icon"
+              ? t("stylePane.icon", "Icon")
+              : t("popup.attributes", "Attributes")}
+          </button>
+        ))}
+      </div>
+
+      {/* Description collapsed behind a Metadata
+          Accordion so the panel doesn't burn vertical real estate when
+          the field is empty (matches v3 `StylePane` placement). */}
+      <Accordion
+        className="bp-disclosure"
+        defaultExpanded={!!data.description}
+        disableGutters
+        elevation={0}
+      >
+        <AccordionSummary expandIcon={<ChevronDownIcon size={14} />}>
+          <InspectorSectionHeader>
+            {t("popup.user.metadata", "Metadata")}
+          </InspectorSectionHeader>
+        </AccordionSummary>
+        <AccordionDetails>
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            multiline
+            minRows={2}
+            label={t("stylePane.description", "Description")}
+            value={data.description ?? ""}
+            onChange={(e) => update({ description: e.target.value })}
+          />
+        </AccordionDetails>
+      </Accordion>
+
+      <DividerLine width="100%" />
+      <div className="bp-section-head">
+        <InspectorSectionHeader>
+          {t("popup.attributes", "Attributes")}
+          <span className="bp-section-count">{data.attributes.length}</span>
+        </InspectorSectionHeader>
+        <AddRowButton onClick={addAttribute} />
+      </div>
+      <div className="bp-members" style={{ gap: 6 }}>
+        {data.attributes.map((row, idx) => (
+          <AttrRow
+            key={row.id}
+            row={row}
+            metaCtx={metaCtx}
+            onPatch={(patch) => setAttribute(idx, patch)}
+            onDelete={() => removeAttribute(idx)}
+          />
+        ))}
+      </div>
+    </Box>
+  )
+}

@@ -1,533 +1,556 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "converted-diagram-1791464027633",
+  "title": "Agentic Bug-fixing Process",
   "type": "BPMNDiagram",
-  "size": {
-    "width": 2080,
-    "height": 790
-  },
-  "interactive": {
-    "elements": {},
-    "relationships": {}
-  },
-  "elements": {
-    "pool-repo": {
+  "nodes": [
+    {
       "id": "pool-repo",
-      "name": "Project Repository",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnPool",
+      "position": {
         "x": -1020,
-        "y": -375,
+        "y": -375
+      },
+      "width": 1580,
+      "height": 620,
+      "measured": {
         "width": 1580,
         "height": 620
+      },
+      "data": {
+        "name": "Project Repository"
       }
     },
-    "lane-coder": {
+    {
       "id": "lane-coder",
-      "name": "AgentCoder",
-      "type": "BPMNSwimlane",
-      "owner": "pool-repo",
-      "bounds": {
-        "x": -980,
-        "y": -375,
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 0
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
         "width": 1540,
         "height": 150
       },
-      "isAgentic": true,
-      "role": "solution",
-      "trustScore": 82,
-      "multiplicity": 2
+      "data": {
+        "name": "AgentCoder",
+        "isAgentic": true,
+        "role": "solution",
+        "trustScore": 82,
+        "multiplicity": 2
+      },
+      "parentId": "pool-repo"
     },
-    "task-coder-fix": {
+    {
       "id": "task-coder-fix",
-      "name": "Reproduce and fix bug",
-      "type": "BPMNTask",
-      "owner": "lane-coder",
-      "bounds": {
-        "x": -190,
-        "y": -330,
+      "type": "bpmnTask",
+      "position": {
+        "x": 790,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
         "width": 160,
         "height": 60
       },
-      "taskType": "default",
-      "marker": "none",
-      "isAgentic": true,
-      "reflectionMode": "none",
-      "trustScore": 0
+      "data": {
+        "name": "Reproduce and fix bug",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-coder"
     },
-    "lane-reviewer": {
+    {
       "id": "lane-reviewer",
-      "name": "AgentReviewer",
-      "type": "BPMNSwimlane",
-      "owner": "pool-repo",
-      "bounds": {
-        "x": -980,
-        "y": -225,
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 150
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
         "width": 1540,
         "height": 150
       },
-      "isAgentic": true,
-      "role": "supervision",
-      "trustScore": 93,
-      "multiplicity": 1
+      "data": {
+        "name": "AgentReviewer",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 93,
+        "multiplicity": 1
+      },
+      "parentId": "pool-repo"
     },
-    "task-label": {
+    {
       "id": "task-label",
-      "name": "Label report",
-      "type": "BPMNTask",
-      "owner": "lane-reviewer",
-      "bounds": {
-        "x": -630,
-        "y": -180,
+      "type": "bpmnTask",
+      "position": {
+        "x": 350,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
         "width": 160,
         "height": 60
       },
-      "taskType": "default",
-      "marker": "none",
-      "isAgentic": true,
-      "reflectionMode": "none",
-      "trustScore": 0
+      "data": {
+        "name": "Label report",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "none",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
     },
-    "task-checkvalid": {
+    {
       "id": "task-checkvalid",
-      "name": "Check bug validity",
-      "type": "BPMNTask",
-      "owner": "lane-reviewer",
-      "bounds": {
-        "x": -440,
-        "y": -180,
+      "type": "bpmnTask",
+      "position": {
+        "x": 540,
+        "y": 45
+      },
+      "width": 160,
+      "height": 67,
+      "measured": {
         "width": 160,
         "height": 67
       },
-      "taskType": "default",
-      "marker": "none",
-      "isAgentic": true,
-      "reflectionMode": "self",
-      "trustScore": 0
+      "data": {
+        "name": "Check bug validity",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true,
+        "reflectionMode": "self",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
     },
-    "gw-diverge": {
+    {
       "id": "gw-diverge",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": "lane-reviewer",
-      "bounds": {
-        "x": -250,
-        "y": -175,
+      "type": "bpmnGateway",
+      "position": {
+        "x": 730,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "gatewayType": "parallel",
-      "isAgentic": true,
-      "gatewayRole": "diverging",
-      "trustScore": 0
+      "data": {
+        "name": "",
+        "gatewayType": "parallel",
+        "isAgentic": true,
+        "gatewayRole": "diverging",
+        "trustScore": 0
+      },
+      "parentId": "lane-reviewer"
     },
-    "gw-merge": {
+    {
       "id": "gw-merge",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": "lane-reviewer",
-      "bounds": {
-        "x": 0,
-        "y": -175,
+      "type": "bpmnGateway",
+      "position": {
+        "x": 980,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "gatewayType": "parallel",
-      "isAgentic": true,
-      "gatewayRole": "merging",
-      "trustScore": 0,
-      "governanceDsl": "// Generated from agentic merging gateway \"\"\n// policyType=MajorityPolicy, trustScore=0\nScopes:\n    Tasks:\n        MergeDecision_gw-merge\nParticipants:\n    Individuals :\n        (Agent) AgentReviewer { confidence : 0.93 },\n        (Agent) AgentCoder { confidence : 0.82 }\nMajorityPolicy MergeDecision_gw-mergePolicy {\n    Scope: MergeDecision_gw-merge\n    DecisionType as BooleanDecision\n    Participant list : AgentReviewer, AgentCoder\n    Parameters:\n        ratio : 0.5\n}"
+      "data": {
+        "name": "",
+        "gatewayType": "parallel",
+        "isAgentic": true,
+        "gatewayRole": "merging",
+        "trustScore": 0,
+        "governanceDsl": "// Generated from agentic merging gateway \"\"\n// policyType=MajorityPolicy, trustScore=0\nScopes:\n    Tasks:\n        MergeDecision_gw-merge\nParticipants:\n    Individuals :\n        (Agent) AgentReviewer { confidence : 0.93 },\n        (Agent) AgentCoder { confidence : 0.82 }\nMajorityPolicy MergeDecision_gw-mergePolicy {\n    Scope: MergeDecision_gw-merge\n    DecisionType as BooleanDecision\n    Participant list : AgentReviewer, AgentCoder\n    Parameters:\n        ratio : 0.5\n}"
+      },
+      "parentId": "lane-reviewer"
     },
-    "lane-maintainer": {
+    {
       "id": "lane-maintainer",
-      "name": "Maintainer",
-      "type": "BPMNSwimlane",
-      "owner": "pool-repo",
-      "bounds": {
-        "x": -980,
-        "y": -75,
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 300
+      },
+      "width": 1540,
+      "height": 150,
+      "measured": {
         "width": 1540,
         "height": 150
       },
-      "isAgentic": false,
-      "role": "solution",
-      "trustScore": 0,
-      "multiplicity": 1
+      "data": {
+        "name": "Maintainer"
+      },
+      "parentId": "pool-repo"
     },
-    "task-validate": {
+    {
       "id": "task-validate",
-      "name": "Validate solution",
-      "type": "BPMNTask",
-      "owner": "lane-maintainer",
-      "bounds": {
-        "x": 150,
-        "y": -30,
+      "type": "bpmnTask",
+      "position": {
+        "x": 1130,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
         "width": 160,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none",
-      "isAgentic": false,
-      "reflectionMode": "none",
-      "trustScore": 0
+      "data": {
+        "name": "Validate solution",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "lane-maintainer"
     },
-    "evt-end-resolved": {
+    {
       "id": "evt-end-resolved",
-      "name": "Bug resolved as resolved",
-      "type": "BPMNEndEvent",
-      "owner": "lane-maintainer",
-      "bounds": {
-        "x": 380,
-        "y": -20,
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 1360,
+        "y": 55
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "Bug resolved as resolved",
+        "eventType": "default"
+      },
+      "parentId": "lane-maintainer"
     },
-    "lane-user": {
+    {
       "id": "lane-user",
-      "name": "User",
-      "type": "BPMNSwimlane",
-      "owner": "pool-repo",
-      "bounds": {
-        "x": -980,
-        "y": 75,
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 450
+      },
+      "width": 1540,
+      "height": 170,
+      "measured": {
         "width": 1540,
         "height": 170
       },
-      "isAgentic": false,
-      "role": "solution",
-      "trustScore": 0,
-      "multiplicity": 1
+      "data": {
+        "name": "User"
+      },
+      "parentId": "pool-repo"
     },
-    "evt-start": {
+    {
       "id": "evt-start",
-      "name": "Bug discovered",
-      "type": "BPMNStartEvent",
-      "owner": "lane-user",
-      "bounds": {
-        "x": -900,
-        "y": 130,
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 80,
+        "y": 55
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "Bug discovered",
+        "eventType": "default"
+      },
+      "parentId": "lane-user"
     },
-    "task-submit": {
+    {
       "id": "task-submit",
-      "name": "Submit bug report",
-      "type": "BPMNTask",
-      "owner": "lane-user",
-      "bounds": {
-        "x": -840,
-        "y": 120,
+      "type": "bpmnTask",
+      "position": {
+        "x": 140,
+        "y": 45
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
         "width": 160,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none",
-      "isAgentic": false,
-      "reflectionMode": "none",
-      "trustScore": 0
+      "data": {
+        "name": "Submit bug report",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "lane-user"
     }
-  },
-  "relationships": {
-    "flow-01": {
+  ],
+  "edges": [
+    {
       "id": "flow-01",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -860,
-        "y": 150,
-        "width": 20,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 20,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "evt-start"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "task-submit"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "evt-start",
+      "target": "task-submit",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -860,
+            "y": 150
+          },
+          {
+            "x": -840,
+            "y": 150
+          }
+        ]
+      }
     },
-    "flow-02": {
+    {
       "id": "flow-02",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -680,
-        "y": -150,
-        "width": 50,
-        "height": 300
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 300
-        },
-        {
-          "x": 40,
-          "y": 300
-        },
-        {
-          "x": 40,
-          "y": 150
-        },
-        {
-          "x": 10,
-          "y": 150
-        },
-        {
-          "x": 10,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "task-submit"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "task-label"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "task-submit",
+      "target": "task-label",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -680,
+            "y": 150
+          },
+          {
+            "x": -640,
+            "y": 150
+          },
+          {
+            "x": -640,
+            "y": 0
+          },
+          {
+            "x": -670,
+            "y": 0
+          },
+          {
+            "x": -670,
+            "y": -150
+          },
+          {
+            "x": -630,
+            "y": -150
+          }
+        ]
+      }
     },
-    "flow-03": {
+    {
       "id": "flow-03",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -470,
-        "y": -150,
-        "width": 30,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 30,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "task-label"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "task-checkvalid"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "task-label",
+      "target": "task-checkvalid",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -470,
+            "y": -150
+          },
+          {
+            "x": -440,
+            "y": -150
+          }
+        ]
+      }
     },
-    "flow-09": {
+    {
       "id": "flow-09",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -230,
-        "y": -300,
-        "width": 40,
-        "height": 125
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 125
-        },
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 40,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "gw-diverge"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "task-coder-fix"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "gw-diverge",
+      "target": "task-coder-fix",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "top",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -230,
+            "y": -175
+          },
+          {
+            "x": -230,
+            "y": -300
+          },
+          {
+            "x": -190,
+            "y": -300
+          }
+        ]
+      }
     },
-    "flow-11": {
+    {
       "id": "flow-11",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -30,
-        "y": -300,
-        "width": 50,
-        "height": 125
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 125
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "task-coder-fix"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "gw-merge"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "task-coder-fix",
+      "target": "gw-merge",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -30,
+            "y": -300
+          },
+          {
+            "x": 20,
+            "y": -300
+          },
+          {
+            "x": 20,
+            "y": -175
+          }
+        ]
+      }
     },
-    "flow-12": {
+    {
       "id": "flow-12",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 40,
-        "y": -155,
-        "width": 110,
-        "height": 155
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 155
-        },
-        {
-          "x": 110,
-          "y": 155
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "gw-merge"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "task-validate"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "gw-merge",
+      "target": "task-validate",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 40,
+            "y": -155
+          },
+          {
+            "x": 95,
+            "y": -155
+          },
+          {
+            "x": 95,
+            "y": 0
+          },
+          {
+            "x": 150,
+            "y": 0
+          }
+        ]
+      }
     },
-    "flow-13": {
+    {
       "id": "flow-13",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 310,
-        "y": 0,
-        "width": 70,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 70,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "task-validate"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "evt-end-resolved"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "task-validate",
+      "target": "evt-end-resolved",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 310,
+            "y": 0
+          },
+          {
+            "x": 380,
+            "y": 0
+          }
+        ]
+      }
     },
-    "d436c42f-bdc4-471e-821c-2a6ac8bfd952": {
+    {
       "id": "d436c42f-bdc4-471e-821c-2a6ac8bfd952",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": -280,
-        "y": -155,
-        "width": 30,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 30,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "task-checkvalid"
-      },
-      "target": {
-        "direction": "Downleft",
-        "element": "gw-diverge"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "task-checkvalid",
+      "target": "gw-diverge",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left-bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": -280,
+            "y": -155
+          },
+          {
+            "x": -250,
+            "y": -155
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

@@ -510,7 +510,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
       closeWithProject();
-      toast.success(t('project.hub.toasts.created', { name }));
+      toast.success(t('project.hub.toasts.created', { name }), { autoClose: 2500 });
       if (githubTarget && created) {
         void saveCreatedProjectOnGithub(githubTarget, created);
       }
@@ -1046,7 +1046,16 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', step === 'welcome' && 'sm:max-w-4xl', !canClose && '[&>button]:hidden')}>
+      <DialogContent
+        className={cn('max-h-[92vh] overflow-hidden p-0', step === 'welcome' && 'sm:max-w-4xl', !canClose && '[&>button]:hidden')}
+        // Radix would focus the first tabbable control, the header's Language
+        // button, whose tooltip opens on focus and swallows the first Escape.
+        // Start on the dialog itself; Tab reaches every control as before.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus?.();
+        }}
+      >
         {step === 'welcome' && (
           <FirstRunLanding
             onChoose={handleChooseInterface}
@@ -1255,10 +1264,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 </CardContent>
               </Card>
 
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Layers3 className="size-3" />
-                {t('project.hub.create.tip')}
-              </p>
+              {/* The tip points at the perspective picker, shown only on the modeling path. */}
+              {(pendingPreferredInterface ?? 'model') === 'model' && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Layers3 className="size-3" />
+                  {t('project.hub.create.tip')}
+                </p>
+              )}
             </div>
           )}
 

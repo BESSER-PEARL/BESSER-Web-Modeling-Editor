@@ -80,7 +80,8 @@
       "agentMappings": "Agent-Zuelongen",
       "agentComponents": "Komponenten",
       "kgSettings": "KG-Astellungen"
-    }
+    },
+    "workspace": "Aarbechtsberäich"
   },
   "menu": {
     "file": {
@@ -886,7 +887,11 @@
       "springAppNameInvalid": "Den Applikatiounsnumm muss e valabelen Java-Klassennumm sinn.",
       "springPackageNameInvalid": "De Paketnumm muss e valabelt Java-Paket sinn, z. B. com.example.",
       "openUmlBeforeDeploy": "Maacht en UML-Diagramm op ier Dir deployt.",
-      "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten."
+      "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten.",
+      "openBpmnEditor": "Maacht e BPMN-Diagramm op, ier Dir BPMN 2.0 XML exportéiert.",
+      "bpmnNoModel": "Dat aktivt BPMN-Diagramm huet kee Modell fir ze exportéieren.",
+      "bpmnExportFailed": "BPMN-Export ass feelgeschloen: {{error}}",
+      "qualityCheckUnavailable": "D'Qualitéitskontroll ass fir dësen Editor nach net disponibel."
     },
     "context": {
       "djangoGeneration": "Django-Generéierung",
@@ -1111,7 +1116,9 @@
         "propertiesPanel": "Eegeschafte-Panel",
         "propertiesPanelDesc": "Benotzt de rietse Panel amplaz vum schwiewende Popover",
         "classNotation": "Klassendiagramm-Notatioun",
-        "classNotationDesc": "UML (Standard) weist Standard-UML-Klassen; ER weist eng Chen-Stil Entitéit/Relatioun-Duerstellung"
+        "classNotationDesc": "UML (Standard) weist Standard-UML-Klassen; ER weist eng Chen-Stil Entitéit/Relatioun-Duerstellung",
+        "iconView": "Ikonenusiicht",
+        "iconViewDesc": "Objeten mat hirem Klassen-Ikon amplaz vun der Attributtabell uweisen"
       },
       "diagrams": {
         "title": "Diagrammer",
@@ -1162,7 +1169,7 @@
           "ObjectDiagram": "Instanzen vun engem Klassendiagramm, benotzt fir Tester an OCL-Validéierung.",
           "StateMachineDiagram": "Zoustandsbaséiert Verhalensmodelléierung.",
           "AgentDiagram": "Konversatiouns- / KI-Agent-Spezifikatioun.",
-          "UserDiagram": "Akteuren an hir Interaktiounen.",
+          "UserDiagram": "Benotzerprofiler (Demografie, Barrièrefräiheet, Kompetenzen, Kultur) fir d'Personaliséierung.",
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
@@ -1204,7 +1211,8 @@
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
         "Full Project": "Ganze Projet",
-        "Multi-agent": "Multi-Agenten"
+        "Multi-agent": "Multi-Agenten",
+        "BPMN Diagram": "BPMN-Diagramm"
       },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",
@@ -1655,25 +1663,25 @@
     "chat": {
       "newChat": "Neie Chat",
       "newConversationTitle": "En neit Gespréich ufänken",
+      "newChatConfirm": "En neie Chat ufänken? Är aktuell Konversatioun gëtt geläscht.",
+      "newChatConfirmWithRun": "En neie Chat ufänken? Är aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gëtt gestoppt.",
+      "explainModel": "Dëse Modell erklären",
+      "explainModelTitle": "Kritt eng einfach Iwwersiicht vun Ärem Modell — wat en haaptsächlech beschreift a wéi dat zesummenhänkt",
       "moreActions": "Méi Aktiounen",
       "yourModel": "Däi Modell",
       "hideYourModel": "Däi Modell verstoppen",
       "apiKeySet": "API-Schlëssel gesat",
       "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
       "reportIssue": "Problem mellen",
-      "addApiKey": "Däin API-Schlëssel derbäisetzen",
-      "newChatConfirm": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht.",
-      "newChatConfirmWithRun": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gestoppt.",
-      "explainModel": "Dëse Modell erklären",
-      "explainModelTitle": "Kréi en einfachen Iwwerbléck iwwer däi Modell – wat en haaptsächlech duerstellt a wéi et zesummenhänkt"
+      "addApiKey": "Däin API-Schlëssel derbäisetzen"
     },
     "drawer": {
       "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
       "pullToOpen": "No uewen zéie fir den Assistent opzemaachen",
       "pushUp": "No uewen drécken",
       "pullDown": "Assistent no ënnen zéien",
-      "labelClosed": "Beschreif deng App",
-      "labelOpen": "Spezifikatioune kucken"
+      "labelClosed": "Beschreift Är App",
+      "labelOpen": "Spezifikatiounen uweisen"
     },
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
@@ -1755,6 +1763,31 @@
         "filesChanged_other": "{{count}} Fichieren geännert",
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
+      }
+    },
+    "modelOverview": {
+      "title": "Äre Modell",
+      "close": "Modelliwwersiicht zoumaachen",
+      "empty": "Nach näischt modelléiert — frot den Assistent, e System ze erstellen, an de Bauplang erschéngt hei.",
+      "dataModel": "Datemodell",
+      "relationships": "Bezéiungen",
+      "screens": "Ecranen",
+      "constraints": "Aschränkungen",
+      "unnamed": "Ouni Numm",
+      "page": "Säit",
+      "kinds": {
+        "class": "Klass",
+        "enum": "Enum",
+        "interface": "Interface",
+        "abstract": "abstrakt"
+      },
+      "relationKinds": {
+        "association": "Associatioun",
+        "inheritance": "Ierfschaft",
+        "composition": "Kompositioun",
+        "aggregation": "Aggregatioun",
+        "realization": "Realisatioun",
+        "dependency": "Ofhängegkeet"
       }
     }
   },
@@ -2280,6 +2313,10 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "storage": {
+      "saveFailedFull": "De Browserspäicher ass voll, dofir konnten Är Ännerungen net gespäichert ginn. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht.",
+      "nearlyFull": "De Browserspäicher ass zu {{percent}} % voll. Exportéiert Är Projeten a läscht déi, déi Der net méi braucht, fir keng Ännerungen ze verléieren."
     }
   },
   "shell": {
@@ -2297,13 +2334,13 @@
       "failed": "Import feelgeschloen: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Validéiert Är Modeller ier Dir bei déi nächst Aufgab gitt",
-      "description": "Dëse User-Model gouf no Äre leschten Ännerungen net validéiert.",
-      "confirmLabel": "Modeller validéieren",
-      "cancelLabel": "Ignoréieren"
+      "title": "Dëse Benotzermodell validéieren, ier Dir en verloosst?",
+      "description": "Dir hutt dëse Benotzermodell zënter der leschter Validatioun geännert.",
+      "confirmLabel": "Elo validéieren",
+      "cancelLabel": "Ouni Validatioun verloossen"
     },
     "leaveWithIssues": {
-      "title": "Et gi Problemer mat Ärem Diagramm, wëllt Dir dëse Model trotzdeem verloossen?",
+      "title": "Dëse Benotzermodell huet Validatiounsfeeler. Trotzdeem verloossen?",
       "description": "De Qualitéitscheck huet Feeler fonnt. Dir kënnt bleiwen fir se ze fixen oder dëse Model trotzdeem verloossen.",
       "confirmLabel": "Model verloossen",
       "cancelLabel": "Bleiwen"
@@ -2353,9 +2390,6 @@
       "renameDiagram": "Diagramm ëmbenennen",
       "closeTabLabel": "Diagramm {{title}} läschen",
       "closeTab": "Diagramm läschen",
-      "deleteConfirmTitle": "Dëst Diagramm läschen?",
-      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
-      "deleteConfirmAction": "Diagramm läschen",
       "addNewDiagram": "Nei Diagramm bäifügen",
       "expandLinkedDiagrams": "Verlinkten Diagrammer opklappen",
       "collapseLinkedDiagrams": "Verlinkten Diagrammer zouklappen",
@@ -2370,6 +2404,13 @@
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "profileFormOpen": "Als Formulaire beaarbechten",
+      "profileFormClose": "Formulaire zoumaachen",
+      "profileFormOpenTitle": "Dëse Profil mat engem geféierte Formulaire beaarbechten",
+      "profileFormCloseTitle": "De Formulaire vum Benotzerprofil zoumaachen",
+      "deleteConfirmTitle": "Dëst Diagramm läschen?",
+      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
+      "deleteConfirmAction": "Diagramm läschen",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",
       "closeForm": "Formulaire zoumaachen",
@@ -3404,25 +3445,16 @@
       },
       "palette": {
         "heading": "Knuetpunkt-Zorten",
-        "hint": "Zitt eng Knuetpunkt-Zort op d'Zeechefläch, fir en neie Knuetpunkt ze erstellen. Fir eng Relatioun tëscht bestehende Knuetpunkten ze erstellen, klickt <action>{{addRelation}}</action> an der Zeechefläch-Symbolleescht, a klickt dann op de Quellknuetpunkt an duerno op den Zilknuetpunkt."
+        "hint": "Zitt eng Knuetpunkt-Zort op d'Zeechefläch, fir en neie Knuetpunkt ze erstellen. Fir eng Relatioun tëscht bestehende Knuetpunkten ze erstellen, klickt <action>{{addRelation}}</action> an der Zeechefläch-Symbolleescht, a klickt dann op de Quellknuetpunkt an duerno op den Zilknuetpunkt.",
+        "canvasHint": "Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen."
       },
       "toolbar": {
         "addRelation": "Relatioun derbäisetzen",
-        "addingRelation": "Relatioun gëtt derbäigesat…",
         "addRelationTooltip": "Eng Relatioun derbäisetzen: zitt vum Quellknuetpunkt op den Zilknuetpunkt",
         "exportHtml": "HTML exportéieren",
         "exportHtmlTooltip": "De aktuelle Graf als eegestänneg interaktiv HTML-Datei eroflueden",
         "connectHint": "Zitt vun engem Quellknuetpunkt op en Zilknuetpunkt, fir eng Relatioun ze erstellen. D'Positioune vun de Knuetpunkte si gespaart, soulaang dëse Modus un ass — Esc fir erauszegoen.",
-        "showingNodes_one": "{{visible}} vun {{count}} Knuetpunkt gëtt gewisen",
-        "showingNodes_other": "{{visible}} vun {{count}} Knuetpunkte ginn gewisen",
         "raiseLimit": "d'Limitt an den KG-Astellungen eropsetzen",
-        "nodesFragment_one": "{{count}} Knuetpunkt",
-        "nodesFragment_other": "{{count}} Knuetpunkten",
-        "relationsFragment_one": "{{count}} Relatioun",
-        "relationsFragment_other": "{{count}} Relatiounen",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Réckgängeg maachen",
-        "redo": "Widderhuelen",
         "undoTooltip": "Réckgängeg maachen (Ctrl+Z)",
         "redoTooltip": "Widderhuelen (Ctrl+Y)"
       },
@@ -3430,7 +3462,8 @@
         "autoLayout": "Automatesch Uerdnung",
         "fitToView": "Un d'Usiicht upassen",
         "zoomIn": "Erazoomen",
-        "zoomOut": "Erauszoomen"
+        "zoomOut": "Erauszoomen",
+        "resetZoom": "Zoom op 100% zrécksetzen"
       },
       "nodeList": {
         "heading": "Knuetpunkten ({{count}})",
@@ -3473,12 +3506,10 @@
       "inspector": {
         "titleNode": "Knuetpunkt",
         "titleRelation": "Relatioun",
-        "titleInspector": "Inspekter",
         "selectedCount_one": "{{count}} ausgewielt",
         "selectedCount_other": "{{count}} ausgewielt",
         "unsavedChanges": "Net gespäichert Ännerungen",
         "close": "Zoumaachen",
-        "noSelection": "Klickt op e Knuetpunkt oder eng Relatioun op der Zeechefläch, fir se hei z'änneren. Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen.",
         "fields": {
           "type": "Typ",
           "label": "Etikett",
@@ -3596,7 +3627,14 @@
         "resetToDefaults": "Op Standard zerécksetzen"
       }
     },
-    "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden..."
+    "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden...",
+    "legacyDiagram": {
+      "openedReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et ass just ze liesen opgemaach an Är gespäichert Versioun bleift onverännert.",
+      "saveRefused": "D'Diagramm „{{title}}“ ass an engem alen Format, dat net konvertéiert konnt ginn, dofir kann et net geännert ginn.",
+      "readOnlyTitle": "Dëst Diagramm ass just ze liesen",
+      "readOnlyBody": "„{{title}}“ gouf an engem ale Format gespäichert, dat net konvertéiert konnt ginn, dofir kann et hei weder ugewise nach geännert ginn. Är gespäichert Versioun bleift onverännert.",
+      "readOnlyRecover": "Fir et erëmzekréien, importéiert d'Originaldatei nach eng Kéier. E Projet, deen beim Lueden konvertéiert gouf, behält och eng Sécherheetskopie vu virun der Migratioun am Späicher vun dësem Browser."
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Sot eis, wat funktionéiert, wat net, a wat Dir als Nächst wëllt.",
@@ -3678,12 +3716,12 @@
     },
     "diagramLabels": {
       "ClassDiagram": "Klassendiagramm",
-      "ObjectDiagram": "Objetdiagramm",
+      "ObjectDiagram": "Objektdiagramm",
       "StateMachineDiagram": "Zoustandsdiagramm",
       "AgentDiagram": "Agentendiagramm",
       "UserDiagram": "Benotzerdiagramm",
       "GUINoCodeDiagram": "Ecranen (GUI)",
-      "QuantumCircuitDiagram": "Quanteschaltung",
+      "QuantumCircuitDiagram": "Quanteschaltkrees",
       "NNDiagram": "Diagramm vun engem neuronalen Netz",
       "BPMN": "BPMN-Prozess",
       "ComponentDiagram": "Komponentendiagramm",
@@ -3720,12 +3758,14 @@
     "success": {
       "diagram": "{{diagramType}}-Diagramm erfollegräich importéiert an zum Projet \"{{projectName}}\" derbäigesat. Dësen Diagramm gouf vum {{fileType}}-Format an dat neit Projetformat ëmgewandelt.",
       "kg": "{{diagramType}}-Diagramm erfollegräich vum Knowledge Graph importéiert an zum Projet \"{{projectName}}\" derbäigesat.",
-      "image": "{{diagramType}}-Diagramm erfollegräich vun engem Bild importéiert an zum Projet \"{{projectName}}\" derbäigesat."
+      "image": "{{diagramType}}-Diagramm erfollegräich vun engem Bild importéiert an zum Projet \"{{projectName}}\" derbäigesat.",
+      "diagramImported": "{{diagramType}}-Diagramm an de Projet \"{{projectName}}\" importéiert."
     },
     "descriptions": {
       "imported": "Importéiert {{diagramType}}-Diagramm",
       "importedFromKg": "Importéiert {{diagramType}}-Diagramm vum Knowledge Graph",
-      "importedFromImage": "Importéiert {{diagramType}}-Diagramm vun engem Bild"
+      "importedFromImage": "Importéiert {{diagramType}}-Diagramm vun engem Bild",
+      "importedFromBpmnXml": "Aus BPMN 2.0 XML importéiert"
     },
     "errors": {
       "title": "Import feelgeschloen",
@@ -3742,11 +3782,16 @@
       "couldNotImportFromImage": "Diagramm konnt net vun engem Bild importéiert ginn: {{message}}",
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
+      "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
+      "invalidJson": "D'Datei ass kee gültege JSON.",
+      "unsupportedProjectFile": "D'Datei ass keen Export vun engem BESSER-Projet oder -Diagramm.",
+      "projectUnreadable": "De Projet an dëser Datei konnt net gelies ginn."
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
-      "unnamedElement": "(ouni Numm)"
+      "unnamedElement": "(ouni Numm)",
+      "diagramReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et gouf just ze liesen importéiert; Äre Fichier bleift onverännert."
     },
     "kg": {
       "owl": {
@@ -3784,6 +3829,15 @@
         "timedOut": "D'Ufro huet ze laang gedauert an ass ofgebrach ginn. Probéiert w.e.g. nach eng Kéier.",
         "configUnavailable": "D'Limitte fir de Knowledge Graph konnten net vum Server geluede ginn. Kontrolléiert, ob de Backend erreechbar ass, a probéiert nach eng Kéier."
       }
+    },
+    "toasts": {
+      "migratedFromV3": "Diagramm beim Import vum v3-Schema op v4 migréiert.",
+      "migratedFromV3Many": "Diagrammer beim Import vum v3-Schema op v4 migréiert."
+    },
+    "bpmn": {
+      "defaultTitle": "Importéiert BPMN",
+      "warningsSummary": "BPMN mat {{count}} Validatiouns-Warnung(en) importéiert:",
+      "moreWarnings": "…an nach {{count}}"
     }
   },
   "knowledgeGraph": {
@@ -4047,7 +4101,10 @@
       "embeddingBaseUrl": "Aibindungs-Basis-URL",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
       "embeddingModel": "Aibindungsmodell",
-      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "Hybridd RAG (BM25)",
+      "bm25Weight": "BM25-Gewiicht",
+      "bm25WeightDescription": "Undeel vum Schlësselwuert-Score (BM25) um hybride Ranking, tëscht 0 an 1."
     },
     "guis": {
       "title": "GUIs",

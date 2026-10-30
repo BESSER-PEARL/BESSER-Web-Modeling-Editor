@@ -14,12 +14,8 @@ import {
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
-import {
-  UMLModel,
-  normalizeAgentModel,
-  ACCEPTED_AGENT_LLM_PROVIDERS,
-  isAcceptedAgentLLMProvider,
-} from '@besser/wme';
+import { UMLModel, ACCEPTED_AGENT_LLM_PROVIDERS, isAcceptedAgentLLMProvider } from '@besser/wme';
+import { normalizeUmlModelSnapshot } from './migrate-uml-v3-to-v4';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
 
@@ -36,6 +32,13 @@ export interface AgentRuntimeConfig {
   agentLlmProvider: AgentLLMProvider;
   agentLlmModel: string;
   agentCustomLlmModel: string;
+  /**
+   * Name of a registered AgentLLM definition the runtime should use.
+   * Empty string means "(use default)" — the agent's default LLM
+   * (``default_llm_name``) resolves at codegen time. Mirrored into the
+   * diagram config's ``llm: { name }`` block consumed by the BAF
+   * generator template.
+   */
   agentLlmName: string;
 }
 
@@ -109,6 +112,30 @@ const safeSetItem = (key: string, value: string): void => {
   }
 };
 
+/**
+ * Read-side tolerance for personalization snapshots. Stores written by an
+ * older build (or never visited by the one-shot storage migration) can still
+ * hold develop-era v3 models; every reader gets the canonical v4 shape so a
+ * stale snapshot is never shown or posted to the backend as-is. A snapshot
+ * that fails to lift is returned unchanged (never throws on read).
+ */
+const liftSnapshotOnRead = <T>(model: T): T => {
+  if (!model || typeof model !== 'object') return model;
+  try {
+    return normalizeUmlModelSnapshot(model);
+  } catch (error) {
+    console.warn('[LocalStorageRepository] Failed to lift a stored model snapshot to v4:', error);
+    return model;
+  }
+};
+
+const liftConfigurationSnapshots = (config: StoredAgentConfiguration): StoredAgentConfiguration => ({
+  ...config,
+  baseAgentModel: liftSnapshotOnRead(config.baseAgentModel),
+  originalAgentModel: liftSnapshotOnRead(config.originalAgentModel),
+  personalizedAgentModel: liftSnapshotOnRead(config.personalizedAgentModel),
+});
+
 const getStoredUserProfiles = (): StoredUserProfile[] => {
   const json = localStorage.getItem(localStorageUserProfiles);
   if (!json) {
@@ -116,7 +143,9 @@ const getStoredUserProfiles = (): StoredUserProfile[] => {
   }
 
   try {
-    const parsed: StoredUserProfile[] = JSON.parse(json);
+    const parsed: StoredUserProfile[] = (JSON.parse(json) as StoredUserProfile[]).map((profile) =>
+      profile && typeof profile === 'object' ? { ...profile, model: liftSnapshotOnRead(profile.model) } : profile,
+    );
     return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   } catch (error) {
     console.warn('Failed to parse stored user profiles:', error);
@@ -135,7 +164,9 @@ const getStoredAgentConfigurations = (): StoredAgentConfiguration[] => {
   }
 
   try {
-    const parsed: StoredAgentConfiguration[] = JSON.parse(json);
+    const parsed: StoredAgentConfiguration[] = (JSON.parse(json) as StoredAgentConfiguration[]).map((config) =>
+      config && typeof config === 'object' ? liftConfigurationSnapshots(config) : config,
+    );
     return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   } catch (error) {
     console.warn('Failed to parse stored agent configurations:', error);
@@ -173,7 +204,12 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
   }
 
   try {
-    return JSON.parse(json) as AgentBaseModelMap;
+    const parsed = JSON.parse(json) as AgentBaseModelMap;
+    const lifted: AgentBaseModelMap = {};
+    for (const [diagramId, model] of Object.entries(parsed ?? {})) {
+      lifted[diagramId] = liftSnapshotOnRead(model);
+    }
+    return lifted;
   } catch (error) {
     console.warn('Failed to parse stored agent base models:', error);
     return {};
@@ -182,16 +218,17 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
 
 /**
  * Single chokepoint for writing ``besser_agentBaseModels``. Every entry is
- * normalized to the canonical nested agent-transition shape before it lands in
- * localStorage, so the legacy flat shape can never be persisted — whether the
- * model came from the live editor, an imported project snapshot, or the V4
- * migration. ``normalizeAgentModel`` is idempotent, so already-nested models are
+ * normalized to the canonical v4 shape (nodes/edges arrays, nested agent
+ * transitions) before it lands in localStorage, so a legacy v3 snapshot can
+ * never be persisted — whether the model came from the live editor, an
+ * imported project envelope, or the V4 migration.
+ * ``normalizeUmlModelSnapshot`` is idempotent, so canonical v4 models are
  * untouched.
  */
 const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
   const normalized: AgentBaseModelMap = {};
   for (const [diagramId, model] of Object.entries(entries)) {
-    normalized[diagramId] = model ? normalizeAgentModel(model) : model;
+    normalized[diagramId] = model ? normalizeUmlModelSnapshot(model) : model;
   }
   safeSetItem(localStorageAgentBaseModels, JSON.stringify(normalized));
 };
@@ -269,20 +306,51 @@ const migrateToV3 = (): void => {
 };
 
 /**
- * v3 -> v4: normalize stored ``besser_agentBaseModels`` to the canonical nested
- * agent-transition shape.
+ * Lift every persisted personalization snapshot to the canonical v4 model
+ * shape (run by the global storage migration as step 5; see
+ * ``shared/utils/storage-migration.ts`` for why it is not step 4).
  *
- * Projects imported before this fix wrote their bundled ``agentBaseModels``
- * snapshot to localStorage in the legacy flat shape (top-level
- * ``condition`` / ``conditionValue``), which the backend collapses to
- * ``when_no_intent_matched``. Re-persisting routes every entry through
- * ``persistAgentBaseModels``, which normalizes them. Idempotent — already-nested
- * snapshots round-trip unchanged, and an empty store is a no-op.
+ * Migration-branch users may carry develop-era v3 snapshots in three keys:
+ *  - ``besser_agentBaseModels`` — re-persisted through the normalizing
+ *    ``persistAgentBaseModels`` chokepoint;
+ *  - ``besser_userProfiles`` — each profile's ``model`` lifted in place;
+ *  - ``besser_agentConfigs`` — each configuration's three snapshots
+ *    (``baseAgentModel`` / ``originalAgentModel`` / ``personalizedAgentModel``)
+ *    lifted in place.
+ *
+ * Idempotent — canonical v4 snapshots round-trip unchanged and empty stores
+ * are a no-op.
  */
 const migrateToV4 = (): void => {
-  const stored = getStoredAgentBaseModels();
-  if (Object.keys(stored).length > 0) {
-    persistAgentBaseModels(stored);
+  const storedBaseModels = getStoredAgentBaseModels();
+  if (Object.keys(storedBaseModels).length > 0) {
+    persistAgentBaseModels(storedBaseModels);
+  }
+
+  const profiles = getStoredUserProfiles();
+  if (profiles.length > 0) {
+    persistUserProfiles(
+      profiles.map((profile) => ({
+        ...profile,
+        model: profile.model ? normalizeUmlModelSnapshot(profile.model) : profile.model,
+      })),
+    );
+  }
+
+  const configs = getStoredAgentConfigurations();
+  if (configs.length > 0) {
+    persistAgentConfigurations(
+      configs.map((config) => ({
+        ...config,
+        baseAgentModel: config.baseAgentModel ? normalizeUmlModelSnapshot(config.baseAgentModel) : config.baseAgentModel,
+        originalAgentModel: config.originalAgentModel
+          ? normalizeUmlModelSnapshot(config.originalAgentModel)
+          : config.originalAgentModel,
+        personalizedAgentModel: config.personalizedAgentModel
+          ? normalizeUmlModelSnapshot(config.personalizedAgentModel)
+          : config.personalizedAgentModel,
+      })),
+    );
   }
 };
 
@@ -515,6 +583,11 @@ export const LocalStorageRepository = {
    * the user's already-saved configurations / profiles / mappings are never
    * overwritten by an import. Items with new ids are appended.
    *
+   * Every imported model snapshot is lifted to the canonical v4 shape at
+   * this boundary (develop-era envelopes carry v3 models), so localStorage
+   * only ever holds v4 snapshots. ``agentBaseModels`` get the lift for free
+   * via the normalizing ``persistAgentBaseModels`` chokepoint.
+   *
    * ``activeAgentConfigurationId`` is applied only when the user has no
    * active configuration set yet, so importing a project doesn't yank the
    * active config out from under an in-progress session.
@@ -532,7 +605,9 @@ export const LocalStorageRepository = {
       const merged = [...existing];
       for (const incoming of data.userProfiles) {
         if (!existingIds.has(incoming.id)) {
-          merged.push(JSON.parse(JSON.stringify(incoming)));
+          const clone = JSON.parse(JSON.stringify(incoming)) as StoredUserProfile;
+          clone.model = clone.model ? normalizeUmlModelSnapshot(clone.model) : clone.model;
+          merged.push(clone);
         }
       }
       persistUserProfiles(merged);
@@ -544,7 +619,15 @@ export const LocalStorageRepository = {
       const merged = [...existing];
       for (const incoming of data.agentConfigurations) {
         if (!existingIds.has(incoming.id)) {
-          merged.push(JSON.parse(JSON.stringify(incoming)));
+          const clone = JSON.parse(JSON.stringify(incoming)) as StoredAgentConfiguration;
+          clone.baseAgentModel = clone.baseAgentModel ? normalizeUmlModelSnapshot(clone.baseAgentModel) : clone.baseAgentModel;
+          clone.originalAgentModel = clone.originalAgentModel
+            ? normalizeUmlModelSnapshot(clone.originalAgentModel)
+            : clone.originalAgentModel;
+          clone.personalizedAgentModel = clone.personalizedAgentModel
+            ? normalizeUmlModelSnapshot(clone.personalizedAgentModel)
+            : clone.personalizedAgentModel;
+          merged.push(clone);
         }
       }
       persistAgentConfigurations(merged);
@@ -593,9 +676,13 @@ export const LocalStorageRepository = {
   migrateToV3,
 
   /**
-   * v3 -> v4 migration: normalize stored agent base models to the canonical
-   * nested transition shape. Invoked by the storage-migration runner after V3.
-   * Idempotent — safe to invoke on every boot.
+   * Lift stored personalization snapshots (agent base models, user
+   * profiles, configuration snapshots) to the canonical v4 shape. Invoked by
+   * the storage-migration runner (step 4 and, for installs that already
+   * recorded a production step 4, step 5). Idempotent — safe to invoke on
+   * every boot.
    */
   migrateToV4,
+  /** Alias of ``migrateToV4`` under the name of the storage step that runs it. */
+  migrateSnapshotsToV4Shape: migrateToV4,
 };

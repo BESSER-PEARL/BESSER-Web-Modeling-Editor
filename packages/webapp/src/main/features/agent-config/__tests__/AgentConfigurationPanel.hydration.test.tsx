@@ -18,9 +18,11 @@ vi.mock('../../../shared/hooks/useGitHubAuth', () => ({
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 
 import { AgentConfigurationPanel } from '../AgentConfigurationPanel';
+import { installPointerEventPolyfill } from './pointerEventPolyfill';
 
 beforeAll(() => {
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
+  installPointerEventPolyfill();
 });
 
 const withAgentConfig = (project: BesserProject, config: Record<string, unknown>): BesserProject => ({
@@ -64,5 +66,6 @@ describe('AgentConfigurationPanel hydration', () => {
     rerender(<AgentConfigurationPanel />);
 
     expect(style()).toHaveTextContent('Informal');
-  }, 15_000);
+    // Renders the whole panel through Radix selects: slower than 5 s when the full suite runs in parallel.
+  }, 20_000);
 });

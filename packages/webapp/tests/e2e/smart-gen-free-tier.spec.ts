@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createBlankProject } from './helpers/project';
 
 /**
  * E2E: the keyless "Free" tier of the Spec-Driven Agent.
@@ -25,7 +26,7 @@ const SSE_STREAM =
   `data: ${JSON.stringify({ event: 'start', runId: RUN_ID, provider: 'free', llmModel: 'qwen3-coder:30b', maxCost: 1, maxRuntime: 600 })}\n\n` +
   `data: ${JSON.stringify({ event: 'phase', phase: 'select', message: 'Selecting generator' })}\n\n` +
   `data: ${JSON.stringify({ event: 'phase', phase: 'generate', message: 'Running deterministic generator' })}\n\n` +
-  `data: ${JSON.stringify({ event: 'done', runId: RUN_ID, downloadUrl: `/besser_api/download-smart/${RUN_ID}`, fileName: 'app.zip', isZip: true, recipe: { generator_used: 'backend' } })}\n\n`;
+  `data: ${JSON.stringify({ event: 'done', runId: RUN_ID, downloadUrl: `/besser_api/spec-driven/download/${RUN_ID}`, fileName: 'app.zip', isZip: true, recipe: { generator_used: 'backend' } })}\n\n`;
 
 const FREE_CONFIG = {
   caps: {
@@ -41,13 +42,6 @@ const FREE_CONFIG = {
   free_tier: { available: true, model: 'qwen3-coder:30b' },
 };
 
-async function createBlankProject(page: Page, name: string): Promise<void> {
-  const dialog = page.getByRole('dialog');
-  await dialog.getByText('Create Blank').click();
-  await dialog.getByLabel(/name/i).fill(name);
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}
 
 // The free tier is the default: an unauthorised trigger runs on it directly,
 // with no BYOK popup. Assert the run starts straight through and the dialog
@@ -58,12 +52,12 @@ test('keyless free tier: an unauthorised trigger runs on free directly — no BY
 
   // 1. Advertise the free tier (register BEFORE navigation — the config
   //    fetch is cached module-level for the page lifetime).
-  await page.route('**/besser_api/smart-gen/config', (route) =>
+  await page.route('**/besser_api/spec-driven/config', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FREE_CONFIG) }),
   );
 
   // 2. Mock the SSE run and record the request body.
-  await page.route('**/besser_api/smart-generate', (route) => {
+  await page.route('**/besser_api/spec-driven/generate', (route) => {
     smartGenBody = route.request().postDataJSON() as Record<string, unknown>;
     route.fulfill({ status: 200, contentType: 'text/event-stream', body: SSE_STREAM });
   });
@@ -121,7 +115,7 @@ test('keyless free tier: an unauthorised trigger runs on free directly — no BY
   //    trigger runs on the free model DIRECTLY (no dialog, no click needed).
   //    The run fired with the correct keyless wire contract.
   await expect
-    .poll(() => smartGenBody, { timeout: 15_000, message: 'free run never POSTed /smart-generate' })
+    .poll(() => smartGenBody, { timeout: 15_000, message: 'free run never POSTed /spec-driven/generate' })
     .not.toBeNull();
   expect(smartGenBody!.provider).toBe('free');
   expect(smartGenBody!.api_key).toBeUndefined(); // server injects it — never client-side

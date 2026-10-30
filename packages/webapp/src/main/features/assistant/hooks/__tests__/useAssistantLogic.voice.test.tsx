@@ -19,7 +19,7 @@
  *     status, no real WebSocket). Everything else (RateLimiterService, etc.)
  *     stays real.
  *   - Render the real useAssistantLogic with a real Redux store +
- *     ApollonEditorContext provider (editor undefined is fine).
+ *     BesserEditorContext provider (editor undefined is fine).
  *   - Drive the captured onMessage handler to simulate the transcription echo.
  */
 
@@ -33,7 +33,7 @@ import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { BesserEditorProvider } from '../../../editors/uml/besser-editor-context';
 
 /* ------------------------------------------------------------------ */
 /*  Mock the AssistantClient (keep the rest of the barrel real)         */
@@ -162,9 +162,9 @@ function renderHarness() {
   const store = makeStore();
   const utils = render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Harness apiRef={apiRef} />
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>,
   );
   return { apiRef, store, ...utils };
@@ -278,10 +278,14 @@ describe('useAssistantLogic — voice optimistic placeholder', () => {
     emitTranscriptionEcho('add a Book class');
     emitAssistantMessage('Done — added a Book class.');
 
-    const msgs = apiRef.current!.getMessages();
-    expect(msgs.filter((m) => m.role === 'user')).toHaveLength(1);
-    expect(msgs.filter((m) => m.role === 'assistant')).toHaveLength(1);
-    expect(msgs.find((m) => m.role === 'assistant')!.content).toContain('Done');
+    // Agent replies are appended on the operation queue (in arrival order
+    // behind any injection), so the reply lands asynchronously.
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.filter((m) => m.role === 'user')).toHaveLength(1);
+      expect(msgs.filter((m) => m.role === 'assistant')).toHaveLength(1);
+      expect(msgs.find((m) => m.role === 'assistant')!.content).toContain('Done');
+    });
   });
 
   it('removes the placeholder when the send fails (no lingering bubble)', async () => {
@@ -331,9 +335,11 @@ describe('useAssistantLogic — voice optimistic placeholder', () => {
     // agent_error lands on onMessage.
     emitAssistantMessage('The assistant is taking too long to respond.', 'agent_error');
 
-    const msgs = apiRef.current!.getMessages();
     // The stuck "Transcribing…" bubble is gone; only the error remains.
-    expect(msgs.filter((m) => m.content.includes('Transcribing'))).toHaveLength(0);
-    expect(msgs.filter((m) => m.role === 'assistant')).toHaveLength(1);
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.filter((m) => m.content.includes('Transcribing'))).toHaveLength(0);
+      expect(msgs.filter((m) => m.role === 'assistant')).toHaveLength(1);
+    });
   });
 });

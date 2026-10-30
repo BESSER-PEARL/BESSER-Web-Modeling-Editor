@@ -11,12 +11,20 @@ import {
   ensureProjectMigrated,
   getActiveDiagram,
   isProject,
+  isV3UMLModel,
   MAX_DIAGRAMS_PER_TYPE,
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
 import { localStorageGitHubLinkPrefix, localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
-import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
+import { toast } from 'react-toastify';
+import i18n from '../../i18n';
+import {
+  LOCAL_STORAGE_WARNING_CHARS,
+  checkLocalStorageQuota,
+  getLocalStorageUsageChars,
+  isQuotaExceededError,
+} from '../../utils/localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 
 export class ProjectStorageRepository {
@@ -104,22 +112,32 @@ export class ProjectStorageRepository {
 
     ProjectStorageRepository.isWriting = true;
     try {
-      const projectKey = `${localStorageProjectPrefix}${project.id}`;
-      localStorage.setItem(projectKey, JSON.stringify(project));
+      const write = () => {
+        const projectKey = `${localStorageProjectPrefix}${project.id}`;
+        localStorage.setItem(projectKey, JSON.stringify(project));
 
-      // Update latest project pointer
-      localStorage.setItem(localStorageLatestProject, project.id);
+        // Update latest project pointer
+        localStorage.setItem(localStorageLatestProject, project.id);
 
-      // Update projects list
-      this.updateProjectsList(project.id);
+        // Update projects list
+        this.updateProjectsList(project.id);
+      };
+      try {
+        write();
+      } catch (error) {
+        // Rollback copies must never cost the user their current work.
+        if (!isQuotaExceededError(error) || !this.evictV3Backups()) throw error;
+        write();
+      }
     } catch (error) {
       console.error('Error saving project:', error);
-      // Say what actually went wrong: a full browser store is the one failure
-      // the user can fix themselves, and a bare "Failed to save project" hides it.
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        throw new Error(
-          'Browser storage is full, so the project could not be saved. ' +
-          'Export it and delete unused projects to free space.',
+      if (isQuotaExceededError(error)) {
+        toast.error(
+          i18n.t(
+            'shared.storage.saveFailedFull',
+            'Browser storage is full, so your changes could not be saved. Export your projects and delete the ones you no longer need.',
+          ),
+          { toastId: 'localStorage-save-failed-full' },
         );
       }
       throw new Error('Failed to save project');
@@ -159,6 +177,7 @@ export class ProjectStorageRepository {
         return null;
       }
 
+      this.backupPreMigrationProject(projectId, projectData, project);
       return ensureProjectMigrated(project);
     } catch (error) {
       console.error('Error loading project:', error);
@@ -166,6 +185,49 @@ export class ProjectStorageRepository {
     }
   }
   
+  /**
+   * Key of a project's pre-migration copy: the exact JSON the old (v3) editor
+   * stored, kept so a rollback to that editor can restore it. Restore
+   * procedure: docs/source/webapp/local-projects.rst ("Rolling back").
+   */
+  static v3BackupKey(projectId: string): string {
+    return `${localStorageProjectPrefix}${projectId}_v3backup`;
+  }
+
+  // Written once, the first time a project holding v3 models is loaded, and
+  // never overwritten (a later load may see an old editor's empty v3 save).
+  // Skipped when it would push storage near its quota: a backup must never
+  // take the space the user's own saves need.
+  private static backupPreMigrationProject(projectId: string, raw: string, project: BesserProject): void {
+    const key = this.v3BackupKey(projectId);
+    if (localStorage.getItem(key) !== null) return;
+    const hasV3Model = Object.values(project.diagrams).some((entry) =>
+      (Array.isArray(entry) ? entry : [entry]).some((d) => !!d && isV3UMLModel(d.model)),
+    );
+    if (!hasV3Model) return;
+    if (getLocalStorageUsageChars() + key.length + raw.length > LOCAL_STORAGE_WARNING_CHARS) {
+      console.warn(`[ProjectStorageRepository] Storage is nearly full; skipping the pre-migration backup of ${projectId}.`);
+      return;
+    }
+    try {
+      localStorage.setItem(key, raw);
+    } catch (error) {
+      console.warn(`[ProjectStorageRepository] Could not back up project ${projectId} before migration:`, error);
+    }
+  }
+
+  /** Remove every pre-migration backup; true when there was one to remove. */
+  private static evictV3Backups(): boolean {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(localStorageProjectPrefix) && key.endsWith('_v3backup')) keys.push(key);
+    }
+    keys.forEach((key) => localStorage.removeItem(key));
+    if (keys.length > 0) console.warn(`[ProjectStorageRepository] Storage full: removed ${keys.length} pre-migration backup(s).`);
+    return keys.length > 0;
+  }
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
     const latestProjectId = localStorage.getItem(localStorageLatestProject);
@@ -176,13 +238,24 @@ export class ProjectStorageRepository {
     return this.loadProject(latestProjectId);
   }
   
+  private static readStoredProject(projectId: string): BesserProject | null {
+    try {
+      const project = JSON.parse(localStorage.getItem(`${localStorageProjectPrefix}${projectId}`) ?? 'null');
+      return isProject(project) ? project : null;
+    } catch {
+      return null;
+    }
+  }
+
   // Get all projects (metadata only for performance)
   static getAllProjects(): Array<Pick<BesserProject, 'id' | 'name' | 'description' | 'owner' | 'createdAt'>> {
     const projectIds = this.getProjectsList();
     const projects: Array<Pick<BesserProject, 'id' | 'name' | 'description' | 'owner' | 'createdAt'>> = [];
     
+    // Metadata straight from the stored JSON: `loadProject` migrates and backs
+    // up v3 projects, which only a project the user opens should pay for.
     for (const id of projectIds) {
-      const project = this.loadProject(id);
+      const project = this.readStoredProject(id);
       if (project) {
         projects.push({
           id: project.id,
@@ -248,7 +321,7 @@ export class ProjectStorageRepository {
     project.currentDiagramType = newType;
     this.saveProject(project);
 
-    return getActiveDiagram(project, newType);
+    return getActiveDiagram(project, newType) ?? null;
   }
   
   // Add a new diagram to a type (returns index, or null if at limit)
@@ -416,6 +489,7 @@ export class ProjectStorageRepository {
       // Remove project data
       const projectKey = `${localStorageProjectPrefix}${projectId}`;
       localStorage.removeItem(projectKey);
+      localStorage.removeItem(this.v3BackupKey(projectId));
 
       // Update projects list
       const projectsList = this.getProjectsList();

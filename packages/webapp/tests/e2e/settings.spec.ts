@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createBlankProject, navigateToSettings, openFreshApp, workspaceSidebar } from './helpers/project';
 
 /**
  * Project Settings page tests — verify navigation to settings, rendering of
@@ -7,17 +8,12 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Project Settings', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
     await createBlankProject(page, 'Settings_E2E');
   });
 
   test('can navigate to /project-settings via sidebar', async ({ page }) => {
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // The Settings button is rendered after the diagram type buttons.
@@ -139,7 +135,7 @@ test.describe('Project Settings', () => {
     await navigateToSettings(page);
 
     // Click the Class diagram button in the sidebar to return to the editor.
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await sidebar.getByRole('button', { name: /class/i }).click();
 
     // The settings heading should no longer be visible.
@@ -168,29 +164,3 @@ test.describe('Project Settings', () => {
     await expect(tabs.first()).toBeVisible({ timeout: 10_000 });
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}
-
-async function navigateToSettings(page: import('@playwright/test').Page) {
-  const sidebar = page.getByRole('complementary');
-  await expect(sidebar).toBeVisible({ timeout: 10_000 });
-  await sidebar.getByRole('button', { name: /settings/i }).click();
-  await expect(page.getByRole('heading', { name: /project settings/i })).toBeVisible({ timeout: 10_000 });
-}

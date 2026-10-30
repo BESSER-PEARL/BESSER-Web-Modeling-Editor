@@ -1,10 +1,13 @@
-import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
-import { Svg } from '../../../../editor/src/main/scenes/svg';
-import {
-  AgentStateTransition,
-  LEGACY_TRANSITION_PREDEFINED_TYPE,
-  NEW_TRANSITION_PREDEFINED_TYPE,
-} from '../../../../editor/src/main/packages/agent-state-diagram/agent-state-transition/agent-state-transition';
+/**
+ * Agent diagram load path (v3 → v4).
+ *
+ * Ported from smart-gen's old-editor test (ApollonEditor load path / Svg export):
+ * the React Flow editor loads v4, so the equivalent guarantee is that the v3 → v4
+ * migrator moves legacy canvas components into `model.components` and carries a
+ * v3 `model.components` map over verbatim, never emitting component nodes that the
+ * canvas (or the SVG export) would have to render.
+ */
+import { convertV3ToV4, normalizeAgentComponents, UMLModel } from '@besser/wme';
 
 type AnyRecord = Record<string, any>;
 
@@ -27,63 +30,36 @@ function legacyAgentModel(): AnyRecord {
   };
 }
 
-describe('agent diagram SVG export', () => {
-  beforeAll(() => {
-    // jsdom has no SVG layout; text measuring (Text.size) needs getBBox.
-    if (!(SVGElement.prototype as any).getBBox) {
-      (SVGElement.prototype as any).getBBox = () => ({ x: 0, y: 0, width: 50, height: 16 });
-    }
+// Smart-generator v3 format: canvas elements + an off-canvas `components` map.
+function componentsFormatAgentModel(): AnyRecord {
+  return {
+    ...legacyAgentModel(),
+    elements: {
+      state1: { id: 'state1', name: 'Idle', type: 'AgentState', owner: null, bounds: bounds(), bodies: [], fallbackBodies: [] },
+    },
+    components: {
+      llm1: { id: 'llm1', name: 'gpt', type: 'AgentLLM', owner: null, provider: 'openai', parameters: {} },
+      gui1: { id: 'gui1', name: 'signup', type: 'AgentGUI', owner: null, gui_id: 'signup', is_form: true, persist: true },
+    },
+  };
+}
+
+const toV4 = (model: AnyRecord): UMLModel => normalizeAgentComponents(convertV3ToV4(model as any));
+
+describe('agent diagram v3 → v4 load path', () => {
+  it('moves legacy canvas components out of the nodes', () => {
+    const model = toV4(legacyAgentModel());
+    expect(model.nodes).toEqual([]);
+    expect(Object.keys(model.components ?? {}).sort()).toEqual(['ib1', 'intent1', 'tool1']);
+    expect(model.components?.intent1).not.toHaveProperty('bounds');
+    expect(model.components?.intent1).toMatchObject({ bodies: ['ib1'] });
+    expect(model.components?.ib1).toMatchObject({ owner: 'intent1', name: 'hi' });
   });
 
-  it('does not throw on data-only elements whose render() returns nothing', () => {
-    // AgentIntent / AgentTool render() return [] (they live in the components panel);
-    // the export used to crash destructuring an undefined root.
-    const svg = new Svg({ model: legacyAgentModel() as UMLModel });
-    expect(svg.state.elements).toEqual([]);
-  });
-});
-
-describe('ApollonEditor agent load path', () => {
-  it('moves legacy components out of the canvas and hands them to the host once', async () => {
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const editor = new ApollonEditor(container, {
-      type: UMLDiagramType.AgentDiagram,
-      model: legacyAgentModel() as UMLModel,
-    });
-    try {
-      await editor.nextRender;
-      const model = editor.model;
-      expect(Object.keys(model.elements)).toEqual([]);
-      expect(Object.keys(model.components ?? {}).sort()).toEqual(['ib1', 'intent1', 'tool1']);
-      expect(model.components?.intent1).not.toHaveProperty('bounds');
-    } finally {
-      editor.destroy();
-      container.remove();
-    }
-  });
-});
-
-describe('AgentStateTransition condition defaults', () => {
-  it('starts a newly drawn transition as "auto"', () => {
-    expect(new AgentStateTransition().predefinedType).toBe(NEW_TRANSITION_PREDEFINED_TYPE);
-    expect(NEW_TRANSITION_PREDEFINED_TYPE).toBe('auto');
-  });
-
-  it('keeps loading stored transitions without a condition as intent matches', () => {
-    const transition = new AgentStateTransition();
-    transition.deserialize({
-      id: 't1',
-      name: '',
-      type: 'AgentStateTransition',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 1, height: 1 },
-      source: { element: 'a', direction: 'Right' },
-      target: { element: 'b', direction: 'Left' },
-      path: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
-      isManuallyLayouted: false,
-    } as any);
-    expect(transition.predefinedType).toBe(LEGACY_TRANSITION_PREDEFINED_TYPE);
-    expect(transition.serialize().predefined?.predefinedType).toBe('when_intent_matched');
+  it('carries a v3 components map over verbatim next to the canvas nodes', () => {
+    const input = componentsFormatAgentModel();
+    const model = toV4(input);
+    expect(model.nodes.map((n) => n.id)).toEqual(['state1']);
+    expect(model.components).toEqual(input.components);
   });
 });

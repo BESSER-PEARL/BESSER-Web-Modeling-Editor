@@ -6,7 +6,7 @@ import {
   selectActiveDiagramIndex,
   selectWorkspaceLoading,
 } from '../../app/store/workspaceSlice';
-import { ApollonEditorComponent } from './uml/ApollonEditorComponent';
+import { BesserEditorComponent } from './uml/BesserEditorComponent';
 import { EditorErrorBoundary } from '../../shared/components/error-handling/ErrorBoundary';
 import { EditorSkeleton } from '../../shared/components/loading/EditorSkeleton';
 import { SuspenseFallback } from '../../shared/components/loading/SuspenseFallback';
@@ -62,10 +62,10 @@ export const EditorView: React.FC = () => {
     );
   }
 
-  // All UML diagram types use ApollonEditor
+  // All UML diagram types use BesserEditor
   return (
     <EditorErrorBoundary>
-      <ApollonEditorComponent />
+      <BesserEditorComponent />
     </EditorErrorBoundary>
   );
 };

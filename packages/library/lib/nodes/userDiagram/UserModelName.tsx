@@ -1,0 +1,206 @@
+import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect, useMemo } from "react"
+import { DefaultNodeWrapper } from "../wrappers"
+import {
+  UserModelNameSVG,
+  resolveUserModelHeaderLabel,
+  resolveUserModelView,
+} from "@/components/svgs/nodes/userDiagram"
+import { useDiagramStore } from "@/store/context"
+import { useShallow } from "zustand/shallow"
+import {
+  measureTextWidth,
+  calculateMinWidth,
+  calculateMinHeight,
+} from "@/utils"
+import { LAYOUT } from "@/constants"
+import { PopoverManager } from "@/components/popovers/PopoverManager"
+import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import {
+  ClassNodeElement,
+  UserModelAttributeRow,
+  UserModelNameNodeProps,
+} from "@/types"
+import { parseUserCriterion } from "@/utils/classifierMemberDisplay"
+import { applyNodeSize } from "@/utils/nodeSizing"
+
+/**
+ * `UserModelName`. Full v3-parity rewrite.
+ *
+ * v3 source: `v3 source: user-modeling/uml-user-model-name/uml-user-model-name.ts`
+ *
+ * Visual contract (matches v3 `UMLUserModelName.render` + the way
+ * `composeUserModelPreview` emits one card per meta-model class):
+ *  - Underlined header showing the resolved linked-class name (via
+ *    `resolveUserModelHeaderLabel` — `classId` lookup, then cached
+ *    `className`, then the instance `name` as last resort). This mirrors
+ *    `uml-object-name-component.tsx`'s `isUserModelElement` branch, NOT
+ *    the `name : className` format used for plain ObjectName instances.
+ *  - Icon vs. attribute-table body follows the per-node `data.view`
+ *    (icon unless `"attributes"`, switched in the inspector), not the
+ *    object-diagram "Show Icon View" setting. Icon view reserves a fixed
+ *    glyph footprint (`headerHeight + 60`, mirroring v3's 50x50 icon slot
+ *    below a 40px header); the attribute table uses the row-count height.
+ *  - No methods rendered (user-model is constraint-style data only).
+ *  - Each attribute row is rendered in `name = value` format. The
+ *    formatter prefers `attributeOperator` when present (so `>=`, `<=`
+ *    etc. round-trip from the v3 fixture untouched) and falls back to
+ *    `=` otherwise. Visibility symbols are NOT shown (per spec).
+ *  - A legacy row that embeds the criterion in its name (`"age < 18"`)
+ *    is split first, and the structured `attributeOperator` / `value`
+ *    win, so inspector edits always reach the canvas.
+ */
+const formatUserModelAttributeForDisplay = (
+  row: UserModelAttributeRow
+): ClassNodeElement => {
+  const legacy = row.name ? parseUserCriterion(row.name) : undefined
+  const name = legacy?.name || row.name
+  const hasValue =
+    row.value !== undefined && row.value !== null && row.value !== ""
+  const value = hasValue ? String(row.value) : legacy?.value ?? ""
+  const operator = row.attributeOperator ?? legacy?.operator
+  if (value !== "") {
+    return { ...row, name: `${name} ${operator ?? "="} ${value}` }
+  }
+  // No value yet — still surface the operator so the user can read it
+  // off the canvas (`age >=`).
+  if (operator) {
+    return { ...row, name: `${name} ${operator}` }
+  }
+  return { ...row, name }
+}
+
+export function UserModelName({
+  id,
+  width,
+  height,
+  data,
+}: NodeProps<Node<UserModelNameNodeProps>>) {
+  const { attributes, name, className } = data
+  const view = resolveUserModelView(data)
+  const iconViewActive = view === "icon"
+  const displayAttributes = useMemo(
+    () => attributes.map(formatUserModelAttributeForDisplay),
+    [attributes]
+  )
+  const { setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      setNodes: state.setNodes,
+    }))
+  )
+
+  const isDiagramModifiable = useDiagramModifiable()
+  const [userSvgWrapperEl, userSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
+
+  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
+  const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
+  const padding = LAYOUT.DEFAULT_PADDING
+  const font = LAYOUT.DEFAULT_FONT
+
+  // v3 parity: the header shows the resolved linked-class name (falling
+  // back to the cached className / instance name) — mirrors
+  // `uml-object-name-component.tsx`'s `isUserModelElement` branch. Shared
+  // with `UserModelNameSVG` so the width budget below always matches
+  // what's actually painted.
+  const headerLabel = resolveUserModelHeaderLabel(data)
+
+  // Icon view paints only the header, so attribute rows don't widen it.
+  const maxTextWidth = useMemo(() => {
+    const headerTextWidth = measureTextWidth(headerLabel, font)
+    const attributesTextWidths = iconViewActive
+      ? []
+      : displayAttributes.map((attr: { name: string }) =>
+          measureTextWidth(attr.name, font)
+        )
+    return Math.max(headerTextWidth, ...attributesTextWidths, 0)
+  }, [headerLabel, displayAttributes, font, iconViewActive])
+
+  const minWidth = useMemo(
+    () => calculateMinWidth(maxTextWidth, padding),
+    [maxTextWidth, padding]
+  )
+
+  // Icon view collapses the row stack to a single glyph slot. Reserve
+  // roughly the same footprint v3 reserved (`renderIconView` defaulted
+  // to a 50x50 glyph below a 40px header — see
+  // `uml-user-model-name.ts:196-209`). The attribute table falls back to
+  // the attribute-row-count-driven height.
+  const minHeight = useMemo(() => {
+    if (iconViewActive) {
+      return headerHeight + 60
+    }
+    return calculateMinHeight(
+      headerHeight,
+      attributes.length,
+      0,
+      attributeHeight,
+      methodHeight
+    )
+  }, [iconViewActive, headerHeight, attributes.length, attributeHeight, methodHeight])
+
+  useEffect(() => {
+    // Icon view is fixed-height (maxHeight === minHeight), so the node
+    // height must equal minHeight exactly. Clamp in BOTH directions:
+    // a too-tall persisted height (e.g. sized by attribute count at drop
+    // time) leaves an invisible selection box below the drawn card, and
+    // a too-short one clips it.
+    if (height && height !== minHeight) {
+      setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
+    }
+  }, [minHeight, height, id, setNodes])
+
+  useEffect(() => {
+    if (width && width < minWidth) {
+      setNodes((prev) => applyNodeSize(prev, id, { width: minWidth }))
+    }
+  }, [id, setNodes, minWidth, width])
+
+  const finalWidth = Math.max(width ?? 0, minWidth)
+
+  return (
+    <DefaultNodeWrapper
+      width={width}
+      height={minHeight}
+      elementId={id}
+      className="horizontally-not-resizable"
+    >
+      <NodeToolbar elementId={id} />
+      <NodeResizer
+        nodeId={id}
+        isVisible={isDiagramModifiable}
+        minWidth={minWidth}
+        minHeight={minHeight}
+        maxHeight={minHeight}
+        handleStyle={{ width: 8, height: 8 }}
+      />
+
+      <div ref={userSvgWrapperRef}>
+        <UserModelNameSVG
+          width={finalWidth}
+          height={minHeight}
+          data={{
+            name,
+            className,
+            classId: data.classId,
+            icon: data.icon,
+            fillColor: data.fillColor,
+            strokeColor: data.strokeColor,
+            textColor: data.textColor,
+            attributes: displayAttributes,
+            view,
+          }}
+          id={id}
+          showAssessmentResults={!isDiagramModifiable}
+        />
+      </div>
+      <PopoverManager
+        anchorEl={userSvgWrapperEl}
+        elementId={id}
+        type={"UserModelName" as const}
+      />
+    </DefaultNodeWrapper>
+  )
+}

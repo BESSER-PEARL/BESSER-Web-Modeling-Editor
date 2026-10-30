@@ -29,9 +29,9 @@ import {
   setProjectGitHubLink,
   type ProjectGitHubLink,
 } from '../storage/projectGitHubLink';
-import type { BesserProject } from '../../types/project';
+import { layoutModel } from '@besser/wme';
+import { isUMLModel, type BesserProject } from '../../types/project';
 import { emitDeliveryEvent } from '../telemetry/pilotTelemetry';
-import { requestAutoLayoutOnNextSetup } from '../../utils/autoLayoutSignal';
 import { PROJECT_EXPORT_VERSION } from '../../utils/projectExportUtils';
 import { escapeMarkdownText, markdownCode } from '../../utils/markdownText';
 import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../api/github';
@@ -62,6 +62,13 @@ export interface ContinueFromGithubResult {
 const proposalDiagramId = (response: ImportedRun): string => `class_${response.commit_sha.slice(0, 8)}`;
 
 /** A V2 export envelope for a repo without a BESSER model: its proposed class diagram, or nothing. */
+/** A proposed diagram has no layout of its own: arrange it before the project opens. */
+async function withLaidOutProposal(response: ImportedRun): Promise<ImportedRun> {
+  const proposal = response.proposed_diagram;
+  if (!proposal || !isUMLModel(proposal.model)) return response;
+  return { ...response, proposed_diagram: { ...proposal, model: await layoutModel(proposal.model) } };
+}
+
 function envelopeForCodeRepo(response: ImportedRun): unknown {
   const now = new Date().toISOString();
   const diagram = response.proposed_diagram;
@@ -159,7 +166,9 @@ export async function continueFromGithubRepo(args: {
     const linked = findProjectLinkedTo(args.owner, args.repo);
     if (linked) return await continueInLinkedProject(linked, args);
 
-    const response = await importAskingForAiReading(args.githubSession, args.owner, args.repo, args.branch);
+    const response = await withLaidOutProposal(
+      await importAskingForAiReading(args.githubSession, args.owner, args.repo, args.branch),
+    );
     const isBesserRepo = response.has_model && !!response.project;
 
     // The repo's own model, or (any other repo) a project built from what
@@ -183,8 +192,6 @@ export async function continueFromGithubRepo(args: {
           ? { modelProposal: { ...response.analysis, diagramId: proposalDiagramId(response) } }
           : {}),
       });
-      // A proposed diagram has no layout of its own: let ELK arrange it when the canvas opens.
-      if (response.proposed_diagram) requestAutoLayoutOnNextSetup();
     }
 
     // Prime the modify base: the next Spec-Driven request edits the repo's code.

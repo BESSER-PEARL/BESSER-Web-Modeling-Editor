@@ -1,85 +1,150 @@
-import React from 'react';
+import React, { useCallback, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Maximize2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Download, Link2 } from 'lucide-react';
+import {
+  AutoLayoutIcon,
+  FitViewIcon,
+  RedoIcon,
+  UndoIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from '@besser/wme';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { CytoscapeCanvasHandle } from './CytoscapeCanvas';
+import { KG_MAX_ZOOM, KG_MIN_ZOOM, type ConnectMode } from './types';
 
 interface Props {
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onFit: () => void;
-  onResetLayout: () => void;
+  /** The canvas the bar drives (zoom, fit, layout) and whose zoom it shows. */
+  canvasRef: React.RefObject<CytoscapeCanvasHandle | null>;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  connectMode: ConnectMode;
+  onConnectModeChange: (mode: ConnectMode) => void;
+  onExportHtml: () => void;
 }
 
-/** Floating viewport controls pinned to the bottom-right of the KG canvas,
- *  mirroring the class-diagram editor's zoom pane: a stacked +/- pair, with
- *  fit-to-view and auto-layout sitting directly above them.
- *
- *  Each control takes ONE key for both `title` and `aria-label` so the tooltip
- *  and the accessible name can never drift apart. */
-export const KgCanvasControls: React.FC<Props> = ({ onZoomIn, onZoomOut, onFit, onResetLayout }) => {
-  const { t } = useTranslation();
-  const autoLayout = t('editors.kg.canvasControls.autoLayout');
-  const fitToView = t('editors.kg.canvasControls.fitToView');
-  const zoomIn = t('editors.kg.canvasControls.zoomIn');
-  const zoomOut = t('editors.kg.canvasControls.zoomOut');
-  return (
-    <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2">
-      <Button
-        variant="outline"
-        size="icon"
-        className="size-9 shadow-sm"
-        onClick={onResetLayout}
-        title={autoLayout}
-        aria-label={autoLayout}
-      >
-        {/* Same glyph as the class-diagram editor's auto-layout button
-         *  (`packages/editor/.../canvas/zoom-pane.tsx`) so both canvases read alike. */}
-        <svg
-          className="size-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+const ICON_FILL = 'var(--besser-primary-contrast, #000000)';
+
+// The bar's CSS fills its glyphs; Lucide's are stroked.
+const STROKED = { fill: 'none' } as const;
+
+/** One button of the bar. `label` is the accessible name and, unless
+ *  `tooltip` says more, the tooltip. */
+const ControlButton: React.FC<{
+  label: string;
+  tooltip?: string;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+  children: React.ReactNode;
+}> = ({ label, tooltip, onClick, disabled = false, pressed, children }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      {/* The span keeps the tooltip working on a disabled button. */}
+      <span>
+        <button
+          type="button"
+          className={`control-button${disabled ? ' disabled' : ''}`}
+          aria-label={label}
+          aria-pressed={pressed}
+          onClick={onClick}
+          disabled={disabled}
         >
-          <rect x="9" y="3" width="6" height="5" rx="1" />
-          <rect x="2" y="16" width="6" height="5" rx="1" />
-          <rect x="16" y="16" width="6" height="5" rx="1" />
-          <path d="M12 8v4M5 16v-2h14v2" />
-        </svg>
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        className="size-9 shadow-sm"
-        onClick={onFit}
-        title={fitToView}
-        aria-label={fitToView}
-      >
-        <Maximize2 className="size-4" />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        className="size-9 text-lg leading-none shadow-sm"
-        onClick={onZoomIn}
-        title={zoomIn}
-        aria-label={zoomIn}
-      >
-        +
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        className="size-9 text-lg leading-none shadow-sm"
-        onClick={onZoomOut}
-        title={zoomOut}
-        aria-label={zoomOut}
-      >
-        −
-      </Button>
-    </div>
+          {children}
+        </button>
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="left" className="max-w-64">
+      {tooltip ?? label}
+    </TooltipContent>
+  </Tooltip>
+);
+
+/** The React Flow editors' controls bar (library `CustomControls`, same
+ *  classes and glyphs) for the Cytoscape canvas: zoom | history | layout |
+ *  zoom % | the KG's own relation mode and HTML export. */
+export const KgCanvasControls: React.FC<Props> = ({
+  canvasRef,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  connectMode,
+  onConnectModeChange,
+  onExportHtml,
+}) => {
+  const { t } = useTranslation();
+  const zoom = useSyncExternalStore(
+    useCallback((onChange: () => void) => canvasRef.current?.subscribeZoom(onChange) ?? (() => {}), [canvasRef]),
+    () => canvasRef.current?.getZoom() ?? 1,
+  );
+  const isConnecting = connectMode === 'connect';
+  const resetZoom = t('editors.kg.canvasControls.resetZoom');
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div className="besser-canvas-controls" role="toolbar" aria-orientation="vertical">
+        <ControlButton
+          label={t('editors.kg.canvasControls.zoomIn')}
+          onClick={() => canvasRef.current?.zoomIn()}
+          disabled={zoom >= KG_MAX_ZOOM}
+        >
+          <ZoomInIcon />
+        </ControlButton>
+        <ControlButton
+          label={t('editors.kg.canvasControls.zoomOut')}
+          onClick={() => canvasRef.current?.zoomOut()}
+          disabled={zoom <= KG_MIN_ZOOM}
+        >
+          <ZoomOutIcon />
+        </ControlButton>
+        <ControlButton label={t('editors.kg.canvasControls.fitToView')} onClick={() => canvasRef.current?.fit()}>
+          <FitViewIcon />
+        </ControlButton>
+        <span className="control-divider" aria-hidden="true" />
+        <ControlButton label={t('editors.kg.toolbar.undoTooltip')} onClick={onUndo} disabled={!canUndo}>
+          <UndoIcon fill={ICON_FILL} />
+        </ControlButton>
+        <ControlButton label={t('editors.kg.toolbar.redoTooltip')} onClick={onRedo} disabled={!canRedo}>
+          <RedoIcon fill={ICON_FILL} />
+        </ControlButton>
+        <span className="control-divider" aria-hidden="true" />
+        <ControlButton label={t('editors.kg.canvasControls.autoLayout')} onClick={() => canvasRef.current?.relayout()}>
+          <AutoLayoutIcon fill={ICON_FILL} />
+        </ControlButton>
+        <span className="control-divider" aria-hidden="true" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="control-zoom-readout"
+              aria-label={resetZoom}
+              onClick={() => canvasRef.current?.resetZoom()}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left">{resetZoom}</TooltipContent>
+        </Tooltip>
+        <span className="control-divider" aria-hidden="true" />
+        <ControlButton
+          label={t('editors.kg.toolbar.addRelation')}
+          tooltip={t('editors.kg.toolbar.addRelationTooltip')}
+          onClick={() => onConnectModeChange(isConnecting ? 'off' : 'connect')}
+          pressed={isConnecting}
+        >
+          <Link2 strokeWidth={2.25} style={STROKED} />
+        </ControlButton>
+        <ControlButton
+          label={t('editors.kg.toolbar.exportHtml')}
+          tooltip={t('editors.kg.toolbar.exportHtmlTooltip')}
+          onClick={onExportHtml}
+        >
+          <Download strokeWidth={2.25} style={STROKED} />
+        </ControlButton>
+      </div>
+    </TooltipProvider>
   );
 };

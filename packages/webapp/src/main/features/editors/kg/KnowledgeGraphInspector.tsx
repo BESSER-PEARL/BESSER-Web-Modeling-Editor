@@ -69,6 +69,11 @@ type Draft = NodeDraft | EdgeDraft | null;
 
 const DATALIST_ID = 'kg-inspector-predicates';
 
+/** Width of the open panel, published like the React Flow properties panel
+ *  publishes its own so the assistant button moves out from under it. */
+const PANEL_WIDTH = 320;
+const PANEL_WIDTH_VAR = '--besser-properties-panel-width';
+
 const makeRandomId = uuid;
 
 function newEdgeId(): string {
@@ -316,8 +321,6 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
     setPendingSelection(undefined);
   };
 
-  const isNode = draft?.kind === 'node';
-  const isEdge = draft?.kind === 'edge';
   const applyIsDestructive = draft?.kind === 'node' && draft.deletedEdgeIds.size > 0;
 
   const multi = selection?.kind === 'multi' ? selection : null;
@@ -343,41 +346,69 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
     onClearSelection();
   };
 
-  return (
-    <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border/60 bg-background">
-      <header className="flex items-center justify-between border-b border-border/60 px-3 py-2">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          {isMulti
-            ? t('editors.kg.inspector.selectedCount', { count: multiNodes.length + multiEdges.length })
-            : isNode
-              ? t('editors.kg.inspector.titleNode')
-              : isEdge
-                ? t('editors.kg.inspector.titleRelation')
-                : t('editors.kg.inspector.titleInspector')}
-          {dirty && (
-            <span
-              className="inline-block size-2 rounded-full bg-amber-500"
-              title={t('editors.kg.inspector.unsavedChanges')}
-            />
-          )}
-        </div>
-        {(draft || isMulti) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={requestClose}
-            className="h-7 w-7 p-0"
-            title={t('editors.kg.inspector.close')}
-          >
-            <X className="size-4" />
-          </Button>
-        )}
-      </header>
+  // Header like the React Flow properties panel: the element kind above its name.
+  const header = ((): { kind?: string; title: string } => {
+    if (multi) {
+      return { title: t('editors.kg.inspector.selectedCount', { count: multiNodes.length + multiEdges.length }) };
+    }
+    const entry = draft?.kind === 'node' ? KG_NODE_TYPES.find((n) => n.type === draft.fields.nodeType) : undefined;
+    const kind = entry
+      ? nodeTypeLabel(t, entry)
+      : t(draft?.kind === 'node' ? 'editors.kg.inspector.titleNode' : 'editors.kg.inspector.titleRelation');
+    const name = (draft?.fields.label ?? '').trim();
+    return name ? { kind, title: name } : { title: kind };
+  })();
 
-      <div className="flex-1 overflow-y-auto p-3">
-        {!draft && !isMulti && (
-          <p className="text-sm text-muted-foreground">{t('editors.kg.inspector.noSelection')}</p>
-        )}
+  // Like the React Flow properties panel, the inspector shows only while
+  // something is selected. Hidden rather than unmounted: its dialogs stay up.
+  const open = !!draft || isMulti;
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement.style;
+    root.setProperty(PANEL_WIDTH_VAR, `${PANEL_WIDTH}px`);
+    return () => root.setProperty(PANEL_WIDTH_VAR, '0px');
+  }, [open]);
+
+  return (
+    <aside
+      className={`besser-properties-panel ${open ? 'flex' : 'hidden'} h-full shrink-0 flex-col overflow-hidden`}
+      style={{
+        width: PANEL_WIDTH,
+        borderLeft: '1px solid var(--bp-border)',
+        background: 'var(--bp-surface)',
+        boxShadow: '-8px 0 24px -12px rgba(15, 23, 42, 0.12)',
+        color: 'var(--bp-fg)',
+      }}
+    >
+      <div className="bp-header">
+        <div className="bp-header__text">
+          {header.kind && (
+            <span className="bp-header__kind" title={header.kind}>
+              {header.kind}
+            </span>
+          )}
+          <span className="bp-header__title flex items-center gap-2" title={header.title}>
+            <span className="truncate">{header.title}</span>
+            {dirty && (
+              <span
+                className="inline-block size-2 shrink-0 rounded-full bg-amber-500"
+                title={t('editors.kg.inspector.unsavedChanges')}
+              />
+            )}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="bp-icon-btn"
+          onClick={requestClose}
+          aria-label={t('editors.kg.inspector.close')}
+          title={t('editors.kg.inspector.close')}
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-6 pt-3 text-[0.8125rem]">
         {isMulti && (
           <MultiSelectionSummary
             model={model}
@@ -564,7 +595,7 @@ const MultiSelectionSummary: React.FC<{
       <p className="text-muted-foreground">{t('editors.kg.inspector.multi.hint')}</p>
       {nodeRows.length > 0 && (
         <div className="space-y-1">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Label className="text-xs font-semibold text-muted-foreground">
             {t('editors.kg.inspector.multi.nodesHeading', { count: nodeRows.length })}
           </Label>
           <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background">
@@ -585,7 +616,7 @@ const MultiSelectionSummary: React.FC<{
       )}
       {edgeRows.length > 0 && (
         <div className="space-y-1">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Label className="text-xs font-semibold text-muted-foreground">
             {t('editors.kg.inspector.multi.relationsHeading', { count: edgeRows.length })}
           </Label>
           <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background">
@@ -771,7 +802,7 @@ const AttachedConstraints: React.FC<{
   return (
     <div className="space-y-2 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Label className="text-xs font-semibold text-muted-foreground">
           {t('editors.kg.inspector.attachedConstraints.heading', { count: attached.length })}
         </Label>
         {ownerNode.nodeType === 'property' ? (
@@ -886,7 +917,7 @@ const ConnectionsEditor: React.FC<{
   return (
     <div className="space-y-2 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Label className="text-xs font-semibold text-muted-foreground">
           {t('editors.kg.inspector.connections.heading', { count: rows.length })}
         </Label>
         {!adderOpen && (

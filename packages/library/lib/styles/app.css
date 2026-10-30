@@ -1,0 +1,1665 @@
+/*
+ * SA-FINAL-3 Tier 2 #7: define the four CSS vars that were referenced from
+ * library components but never declared anywhere — `--besser-text`,
+ * `--besser-text-muted`, `--besser-warning-yellow`, `--besser-gray-700`. Also
+ * define the sticky-note family (`--besser-sticky-fill`, `-stroke`, `-text`)
+ * used by ClassOCLConstraint and Comment so dark mode flips them to a muted
+ * amber palette. Webapp's themings.json runtime setProperty still wins when
+ * the host sets a value; these are only fallbacks (and the place where dark
+ * variants live, since webapp's themings doesn't carry them yet).
+ */
+:root {
+  --besser-text: #212529;
+  --besser-text-muted: #6b7280;
+  --besser-warning-yellow: #f59e0b;
+  --besser-gray-700: #374151;
+  --besser-sticky-fill: #fff8c4;
+  --besser-sticky-stroke: #bda21f;
+  --besser-sticky-text: #3a2e00;
+  --besser-accent-lift: 0%;
+}
+
+/* Dark-mode fallbacks — webapp toggles `dark` on documentElement. */
+html.dark,
+:root[data-theme="dark"] {
+  --besser-text: #ffffff;
+  --besser-text-muted: #94a3b8;
+  --besser-warning-yellow: #fbbf24;
+  --besser-gray-700: #cbd5e1;
+  --besser-sticky-fill: #3f3a20;
+  --besser-sticky-stroke: #bda21f;
+  --besser-sticky-text: #fef3c7;
+  /* Saturated node accents (agent cards) mix this much white as text/ink. */
+  --besser-accent-lift: 35%;
+}
+
+/* Shared canvas-chrome tokens: one accent, one floating surface recipe
+   (controls bar, toolbars, minimap), one easing. */
+.besser-editor {
+  --besser-accent: var(--besser-primary, #35798c);
+  --besser-accent-soft: color-mix(in srgb, var(--besser-accent) 14%, transparent);
+  --besser-chrome-fg: var(--besser-primary-contrast, #111827);
+  --besser-chrome-muted: color-mix(in srgb, var(--besser-chrome-fg) 62%, transparent);
+  --besser-chrome-hover: color-mix(in srgb, var(--besser-chrome-fg) 8%, transparent);
+  --besser-chrome-press: color-mix(in srgb, var(--besser-chrome-fg) 14%, transparent);
+  --besser-chrome-border: var(--besser-gray, #e9ecef);
+  --besser-chrome-shadow:
+    0 4px 14px color-mix(in srgb, var(--besser-chrome-fg) 14%, transparent),
+    0 1px 3px color-mix(in srgb, var(--besser-chrome-fg) 10%, transparent);
+  --besser-danger: #dc2626;
+  --besser-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+:root[data-theme="dark"] .besser-editor,
+html.dark .besser-editor {
+  --besser-danger: #f87171;
+}
+
+.react-flow {
+  --panel-background: var(--besser-background, #ffffff);
+  --panel-shadow: 0 0 4px 0 var(--besser-background-variant, #f8f9fa);
+  --text: var(--besser-primary-contrast, #000000);
+  --xy-edge-stroke: var(--besser-primary-contrast, #000000);
+  --xy-edge-stroke-width: 2px;
+  --xy-controls-button-background-color: var(--besser-background, #ffffff);
+  /* colorMode="dark" must not repaint the canvas: the editor owns it. */
+  --xy-background-color: transparent;
+  --xy-edge-label-background-color: var(--besser-background, #ffffff);
+  --xy-edge-label-color: var(--besser-primary-contrast, #000000);
+  /* Resize handles and the marquee box in the accent family. */
+  --xy-resize-background-color: var(--besser-accent);
+  --xy-selection-background-color: color-mix(in srgb, var(--besser-accent) 8%, transparent);
+  --xy-selection-border: 1px solid color-mix(in srgb, var(--besser-accent) 60%, transparent);
+  /* Minimap: viewport window is the clear area, the rest is dimmed. */
+  --xy-minimap-background-color: var(--besser-background, #ffffff);
+  --xy-minimap-mask-background-color-props: color-mix(
+    in srgb,
+    var(--besser-primary-contrast, #000000) 7%,
+    transparent
+  );
+  --xy-minimap-mask-stroke-color: color-mix(in srgb, var(--besser-accent) 70%, transparent);
+  --xy-minimap-mask-stroke-width: 1.5;
+}
+
+.besser-editor {
+  background-color: var(--besser-background, #ffffff);
+  color: var(--besser-primary-contrast, #000000);
+}
+.react-flow__panel {
+  background-color: var(--panel-background);
+  box-shadow: var(--panel-shadow);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.react-flow svg {
+  display: block;
+}
+
+/* The toolbar wrapper is a transparent positioner; the visible surface is
+   .besser-canvas-toolbar inside it. */
+.react-flow__node-toolbar {
+  display: flex;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Floating node / edge toolbar: same surface as the controls bar, 28px icon
+   buttons. The box itself is pointer-transparent (upstream Apollon #791);
+   only the buttons take the pointer.
+--------------------------------------------------------------------------- */
+.besser-canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--besser-chrome-border);
+  border-radius: 10px;
+  background-color: var(--besser-background, #ffffff);
+  box-shadow: var(--besser-chrome-shadow);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.besser-toolbar-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--besser-chrome-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out);
+}
+.besser-toolbar-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+@media (hover: hover) and (pointer: fine) {
+  .besser-toolbar-button:hover {
+    background-color: var(--besser-chrome-hover);
+    color: var(--besser-chrome-fg);
+  }
+  .besser-toolbar-button--danger:hover {
+    background-color: color-mix(in srgb, var(--besser-danger) 12%, transparent);
+    color: var(--besser-danger);
+  }
+}
+.besser-toolbar-button:active {
+  transform: scale(0.97);
+  background-color: var(--besser-chrome-press);
+}
+.besser-toolbar-button--danger:active {
+  background-color: color-mix(in srgb, var(--besser-danger) 18%, transparent);
+  color: var(--besser-danger);
+}
+.besser-toolbar-button:focus-visible {
+  outline: 2px solid var(--besser-accent);
+  outline-offset: 1px;
+}
+@media (pointer: coarse) {
+  .besser-toolbar-button {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Floating controls bar, vertical on the canvas's right edge: zoom in/out,
+   fit-view, undo, redo, auto-layout, a zoom-% readout and the minimap toggle.
+   The built-in React Flow zoom/fit buttons (.react-flow__controls-button) and
+   the custom buttons (.control-button) share one icon-button look so the whole
+   column reads as a single cohesive pill. Vertically centred, it stays clear
+   of the bottom row, where the host puts its assistant button and pill.
+   Theme-aware via --besser-* vars; hover/active tints use color-mix.
+--------------------------------------------------------------------------- */
+/* The same bar outside React Flow (the Knowledge Graph editor's Cytoscape canvas). */
+.besser-canvas-controls {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+}
+
+.react-flow__panel.react-flow__controls.top.right,
+.besser-canvas-controls {
+  top: 50%;
+  margin: 0 15px 0 0;
+  transform: translateY(-50%);
+}
+
+.react-flow__panel.react-flow__controls,
+.besser-canvas-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--besser-gray, #e9ecef);
+  background-color: var(--besser-background, #ffffff);
+  box-shadow:
+    0 4px 14px
+      color-mix(in srgb, var(--besser-primary-contrast, #111827) 14%, transparent),
+    0 1px 3px
+      color-mix(in srgb, var(--besser-primary-contrast, #111827) 10%, transparent);
+}
+
+.react-flow__controls-button,
+.control-button {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--besser-primary-contrast, #111827);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  touch-action: manipulation;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
+}
+
+.react-flow__controls-button > svg,
+.control-button > svg {
+  width: 16px;
+  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  fill: var(--besser-primary-contrast, #111827);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .react-flow__controls-button:hover:not(:disabled),
+  .control-button:hover:not(.disabled):not(:disabled),
+  .control-zoom-readout:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--besser-primary-contrast, #111827) 8%,
+      transparent
+    );
+  }
+  .control-zoom-readout:hover {
+    color: var(--besser-primary-contrast, #111827);
+  }
+}
+
+.react-flow__controls-button:active:not(:disabled),
+.control-button:active:not(.disabled):not(:disabled),
+.control-zoom-readout:active {
+  background-color: color-mix(
+    in srgb,
+    var(--besser-primary-contrast, #111827) 14%,
+    transparent
+  );
+  transform: scale(0.97);
+}
+
+/* Toggle buttons in the bar (minimap): accent tint while on. */
+.control-button[aria-pressed="true"] {
+  background-color: var(--besser-accent-soft);
+  color: var(--besser-accent);
+}
+.control-button[aria-pressed="true"] > svg {
+  fill: var(--besser-accent);
+}
+
+.react-flow__controls-button:disabled,
+.control-button.disabled,
+.control-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  background-color: transparent;
+}
+
+/* Keyboard focus on canvas/toolbar buttons, palette items and colour swatches. */
+.react-flow__controls-button:focus-visible,
+.control-button:focus-visible,
+.control-zoom-readout:focus-visible,
+.besser-palette-item:focus-visible,
+.besser-color-swatch:focus-visible,
+.besser-canvas-button:focus-visible {
+  outline: 2px solid var(--besser-primary, #35798c);
+  outline-offset: 2px;
+}
+
+/* Keyboard focus on canvas nodes and edges (React Flow removes the outline). */
+.besser-editor .react-flow__node.selectable:focus-visible,
+.besser-editor .react-flow__edge.selectable:focus-visible {
+  outline: 2px solid var(--besser-accent, #35798c);
+  outline-offset: 3px;
+}
+.besser-editor .react-flow__edge.selectable:focus-visible .edge-overlay {
+  opacity: 0.3;
+  stroke: var(--besser-accent, #35798c);
+  stroke-width: 8px;
+}
+
+/* Palette items: a grabbable thumbnail with hover / press feedback. */
+.besser-palette-item {
+  border-radius: 6px;
+  outline: none;
+  cursor: grab;
+  transition:
+    background-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .besser-palette-item:hover {
+    box-shadow:
+      0 0 0 3px var(--besser-background, #ffffff),
+      0 0 0 4px color-mix(in srgb, var(--besser-primary, #35798c) 55%, transparent);
+  }
+}
+.besser-palette-item:active {
+  cursor: grabbing;
+  transform: scale(0.97);
+}
+
+/* ---- Palette column ---------------------------------------------------- */
+.besser-sidebar__palette {
+  box-sizing: border-box;
+  border-right: 1px solid var(--besser-gray, #e9ecef);
+}
+/* Wide previews (NN container, pools) shrink to the column instead of
+   overflowing it; the viewBox keeps their proportions. */
+.besser-palette-item {
+  max-width: 100%;
+}
+.besser-palette-item > div {
+  max-width: 100%;
+}
+.besser-palette-item > div > svg {
+  max-width: 100%;
+  height: auto;
+}
+.besser-sidebar__section-title {
+  width: 100%;
+  padding: 0 2px;
+  box-sizing: border-box;
+  /* One notch stronger than the pane's 58% mix: >= 4.5:1 on the column. */
+  color: var(--besser-gray-variant, #64748b);
+}
+.besser-sidebar__resize-handle {
+  position: relative;
+}
+.besser-sidebar__resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: transparent;
+  transition: background-color 150ms ease-out;
+}
+.besser-sidebar__resize-handle:hover::after {
+  background: color-mix(in srgb, var(--besser-primary, #35798c) 55%, transparent);
+}
+
+/* Settings row with a pane-style switch (object "Icon Mode"). */
+.besser-sidebar__switch-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-fg);
+  cursor: pointer;
+  user-select: none;
+}
+.besser-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--bp-border-strong);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.besser-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  transition: transform 150ms var(--besser-ease-out, ease-out);
+}
+.besser-switch:checked {
+  background: var(--besser-primary, #35798c);
+}
+.besser-switch:checked::after {
+  transform: translateX(12px);
+}
+.besser-switch:focus-visible {
+  outline: 2px solid var(--besser-primary, #35798c);
+  outline-offset: 2px;
+}
+
+/* Phone widths: a narrow thumbnail strip so the canvas stays usable. */
+@media (max-width: 480px) {
+  .besser-sidebar__palette {
+    width: 92px !important;
+    padding: 8px 6px !important;
+    gap: 10px !important;
+  }
+  .besser-sidebar__palette .besser-palette-item {
+    zoom: 0.5;
+  }
+  .besser-sidebar__section-title {
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .besser-sidebar__resize-handle {
+    display: none;
+  }
+}
+
+/* Selected swatch: an accent ring with a background gap, visible on any colour. */
+.besser-color-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--besser-background, #ffffff),
+    0 0 0 4px var(--besser-primary, #35798c);
+}
+
+/* Thin divider between logical control groups (zoom | history | layout | %). */
+.control-divider {
+  flex: 0 0 auto;
+  align-self: stretch;
+  height: 1px;
+  margin: 3px 4px;
+  background-color: var(--besser-gray, #e9ecef);
+}
+
+/* Auto-layout options: a short strip under the layout button. */
+.control-button.control-button--caret {
+  height: 16px;
+}
+
+/* Integrated, muted zoom-percentage readout — click resets to 100%. */
+.control-zoom-readout {
+  border: none;
+  background-color: transparent;
+  font-family: inherit;
+  user-select: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--besser-gray-variant, #64748b);
+  touch-action: manipulation;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--besser-ease-out, ease-out);
+}
+
+/* Minimap: opens beside the controls bar (15 px margin + 42 px bar + gap), same floating surface. */
+.react-flow__panel.react-flow__minimap.besser-minimap {
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  margin: 0 67px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--besser-chrome-border, #e9ecef);
+  border-radius: 12px;
+  background-color: var(--besser-background, #ffffff);
+  box-shadow: var(--besser-chrome-shadow);
+}
+.react-flow__panel.react-flow__minimap.besser-minimap > svg {
+  border-radius: 11px;
+  cursor: pointer;
+}
+/* Viewport outline at a constant on-screen width, whatever the map scale. */
+.besser-minimap .react-flow__minimap-mask {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Phone widths: compact bar so it fits beside the narrow palette. */
+@media (max-width: 480px) {
+  .react-flow__panel.react-flow__controls,
+  .besser-canvas-controls {
+    margin-right: 10px;
+    padding: 3px;
+    gap: 0;
+  }
+  .react-flow__controls-button,
+  .control-button {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+  .control-divider {
+    margin: 2px 4px;
+  }
+  .control-zoom-readout {
+    width: 28px;
+    height: 28px;
+  }
+  .react-flow__panel.react-flow__minimap.besser-minimap {
+    margin: 0 50px 0 0;
+  }
+}
+
+.react-flow__handle {
+  opacity: 0;
+  background-color: transparent;
+}
+
+.react-flow__handle.besser-arc-handle::before {
+  content: "";
+  position: absolute;
+  background-color: var(--besser-primary, #35798c);
+  opacity: 0.4;
+  box-sizing: border-box;
+
+  /* Off by default; only grabbable while the node is hovered -- see the
+     hit-area note near the hover rules below. */
+  pointer-events: none;
+  cursor: crosshair;
+}
+
+.react-flow__handle.besser-arc-handle--top::before {
+  width: 28px;
+  height: 14px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -100%);
+  border-radius: 14px 14px 0 0;
+}
+
+.react-flow__handle.besser-arc-handle--right::before {
+  width: 14px;
+  height: 28px;
+  left: 50%;
+  top: 50%;
+  transform: translate(0, -50%);
+  border-radius: 0 14px 14px 0;
+}
+
+.react-flow__handle.besser-arc-handle--bottom::before {
+  width: 28px;
+  height: 14px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 0);
+  border-radius: 0 0 14px 14px;
+}
+
+.react-flow__handle.besser-arc-handle--left::before {
+  width: 14px;
+  height: 28px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  border-radius: 14px 0 0 14px;
+}
+
+.react-flow__resize-control line {
+  z-index: 9;
+}
+
+.react-flow__resize-control.handle {
+  z-index: 20;
+}
+
+.react-flow__resize-control {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+/* Hit-area fix (upstream Apollon #801, same idea as the #791 node-toolbar
+   fix). A node's resize controls and connection arcs PROTRUDE past its box,
+   and a selected node is lifted above its neighbours, so arming these
+   affordances just because the node is selected -- or, for the arcs, always,
+   even while invisible -- makes them swallow clicks meant for an overlapping
+   node beneath them. On a fine pointer they are armed on :hover instead --
+   every gesture that uses them starts by hovering -- so a selected-not-hovered
+   node lets clicks fall through. Touch has no :hover; see the coarse-pointer
+   fallback below. */
+.react-flow__node:hover .react-flow__resize-control {
+  pointer-events: all;
+}
+
+.react-flow__node:hover .react-flow__resize-control,
+.react-flow__node.selected .react-flow__resize-control {
+  opacity: 1;
+}
+
+/* React Flow marks every connectable handle `.connectionindicator` and gives
+   it `pointer-events: all` unconditionally; override that so handles follow
+   the hover-gated model above. (Dropping a connection onto a target handle
+   still works: React Flow resolves the closest handle geometrically.) */
+.react-flow__handle.connectionindicator {
+  pointer-events: none;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node:hover .react-flow__handle.connectionindicator,
+.react-flow__node:hover .react-flow__handle.besser-arc-handle::before {
+  pointer-events: all;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+  background-color: transparent;
+  cursor: crosshair;
+}
+
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+  background-color: transparent;
+}
+
+/* Coarse-pointer fallback for the hit-area fix above. Touch devices never
+   fire :hover, so the hover-gated rules would leave a selected node's
+   affordances ungrabbable -- you could not start a connection or resize with
+   a finger. Arm them on selection instead, matching the pre-fix behaviour. */
+@media (hover: none), (pointer: coarse) {
+  .react-flow__node.selected .react-flow__handle,
+  .react-flow__node.selected .react-flow__handle.connectionindicator,
+  .react-flow__node.selected .react-flow__resize-control,
+  .react-flow__node.selected .react-flow__handle.besser-arc-handle::before {
+    pointer-events: all;
+  }
+
+  .react-flow__node.selected .react-flow__handle {
+    cursor: crosshair;
+  }
+}
+
+.edge-circle {
+  opacity: 0;
+  background-color: var(--besser-primary, #35798c);
+}
+
+.react-flow__edge:hover .edge-circle {
+  opacity: 0.4;
+  padding: 4px;
+  fill: var(--besser-primary, #35798c);
+}
+.react-flow__edge.selected .edge-circle {
+  opacity: 0.4;
+  padding: 4px;
+  fill: var(--besser-primary, #35798c);
+}
+
+.react-flow__edge:hover .edge-overlay {
+  opacity: 0.4;
+  padding: 4px;
+  stroke: var(--besser-primary, #35798c);
+  stroke-width: 15px;
+}
+.react-flow__edge:hover .edge-marker-highlight {
+  opacity: 0.4;
+  padding: 4px;
+  stroke: var(--besser-primary, #35798c);
+  stroke-width: 15px;
+}
+
+.react-flow__edge.selected .edge-overlay {
+  opacity: 0.4;
+  padding: 4px;
+  stroke: var(--besser-primary, #35798c);
+  stroke-width: 15px;
+}
+.react-flow__edge.selected .edge-marker-highlight {
+  opacity: 0.4;
+  padding: 4px;
+  stroke: var(--besser-primary, #35798c);
+  stroke-width: 15px;
+}
+
+/* Hover: a hairline accent outline. Selected: a 1.5px ring plus a soft
+   halo. No opacity fade: a selected node keeps full contrast. */
+.react-flow__node {
+  border-radius: 4px;
+  transition: box-shadow 150ms ease-out;
+}
+.react-flow__node:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--besser-primary, #35798c) 60%, transparent);
+}
+
+.react-flow__node.selected,
+.react-flow__node.selected:hover {
+  box-shadow:
+    0 0 0 1.5px var(--besser-primary, #35798c),
+    0 0 0 5px color-mix(in srgb, var(--besser-primary, #35798c) 16%, transparent);
+}
+
+.besser-interactive-selection {
+  --besser-interactive-selection-color: var(
+    --besser-interactive-selection,
+    #f39c12
+  );
+}
+
+.besser-interactive-selection--selected [stroke]:not([stroke="none"]) {
+  stroke: var(--besser-interactive-selection-color);
+}
+
+.besser-interactive-selection--selected .react-flow__edge-path {
+  stroke-width: 3px;
+}
+
+.besser-interactive-selection--selected .edge-overlay,
+.besser-interactive-selection--selected .edge-marker-highlight {
+  opacity: 0.45;
+  stroke: var(--besser-interactive-selection-color);
+  stroke-width: 15px;
+}
+
+.react-flow__edges {
+  z-index: 9999;
+}
+
+.react-flow__node {
+  z-index: 9998;
+}
+
+/* Connection line shown when dragging from a node handle to create a new edge.
+   Must sit above nodes (9998) and edges (9999) so the ghost line is visible.
+   Stroke inherits the project's edge color/width so it matches existing edges. */
+svg.react-flow__connectionline {
+  z-index: 10000;
+}
+
+.react-flow__connection-path {
+  stroke: var(--xy-edge-stroke);
+  stroke-width: var(--xy-edge-stroke-width);
+  opacity: 0.5;
+}
+
+
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+/* `.control-button` styling is consolidated with `.react-flow__controls-button`
+   in the "Floating controls bar" block above so both share one icon-button
+   look. */
+
+.horizontally-not-resizable .react-flow__resize-control.top.line:hover {
+  cursor: grab;
+}
+.horizontally-not-resizable .react-flow__resize-control.bottom.line:hover {
+  cursor: grab;
+}
+.vertically-not-resizable .react-flow__resize-control.right.line:hover {
+  cursor: grab;
+}
+.vertically-not-resizable .react-flow__resize-control.left.line:hover {
+  cursor: grab;
+}
+
+.besser-editor .MuiSelect-select {
+  color: var(--besser-primary-contrast, #000000) !important;
+}
+.besser-editor .MuiFormLabel-root {
+  color: var(--besser-primary-contrast, #000000) !important;
+}
+.besser-editor .MuiOutlinedInput-notchedOutline {
+  border-color: var(--besser-primary-contrast, #000000) !important;
+}
+.besser-editor .MuiSvgIcon-root {
+  color: var(--besser-primary-contrast, #000000) !important;
+}
+
+/* ── Properties panel ──────────────────────────────────────────────────
+   Local tokens derive from the --besser-* theme variables, so the panel
+   follows whatever palette the host bridges in (the webapp maps them to
+   its brand tokens) and still looks right standalone. Menus and tooltips
+   portal to <body>, so they carry `.besser-inspector-portal` to share
+   the tokens. `:root` gives floating popovers the same tokens; the panel
+   re-declares them so a host can re-theme just the panel subtree. */
+:root,
+.besser-properties-panel,
+.besser-inspector-portal {
+  --bp-fg: var(--besser-primary-contrast, #0f172a);
+  --bp-muted: color-mix(in srgb, var(--bp-fg) 58%, transparent);
+  --bp-surface: var(--besser-background, #ffffff);
+  --bp-border: var(--besser-gray, #e2e8f0);
+  --bp-border-strong: color-mix(in srgb, var(--bp-fg) 22%, transparent);
+  --bp-hover: color-mix(in srgb, var(--bp-fg) 6%, transparent);
+  --bp-subtle: color-mix(in srgb, var(--bp-fg) 3%, var(--bp-surface));
+  --bp-accent: var(--besser-primary, #35798c);
+  --bp-accent-fg: var(--besser-background, #ffffff);
+  --bp-accent-soft: color-mix(in srgb, var(--bp-accent) 12%, transparent);
+  /* Solid: a translucent ring fell below 3:1 on the light surface. */
+  --bp-ring: var(--bp-accent);
+  --bp-danger: #dc2626;
+  --bp-danger-soft: color-mix(in srgb, #dc2626 10%, transparent);
+  --bp-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bp-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Scope-down the global `!important` overrides above for the inspector
+   so the theme-driven colors in `inspector-theme.ts` take effect. */
+.besser-properties-panel .MuiOutlinedInput-notchedOutline {
+  border-color: var(--bp-border) !important;
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+.besser-properties-panel
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline {
+  border-color: var(--bp-border-strong) !important;
+}
+.besser-properties-panel
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: var(--bp-accent) !important;
+  box-shadow: 0 0 0 3px var(--bp-accent-soft);
+}
+.besser-properties-panel .MuiFormLabel-root {
+  color: var(--bp-muted) !important;
+}
+.besser-properties-panel .MuiFormLabel-root.Mui-focused {
+  color: var(--bp-accent) !important;
+}
+.besser-properties-panel .MuiSvgIcon-root {
+  color: var(--bp-muted) !important;
+}
+.besser-properties-panel .Mui-checked .MuiSvgIcon-root,
+.besser-properties-panel .MuiButton-containedPrimary .MuiSvgIcon-root {
+  color: inherit !important;
+}
+.besser-properties-panel .MuiSelect-select {
+  color: var(--bp-fg) !important;
+}
+.besser-properties-panel .MuiInputBase-input::placeholder {
+  color: var(--bp-muted);
+  opacity: 1;
+}
+
+/* Legacy 24px glyphs inside icon buttons: size and tint like the rest. */
+.besser-properties-panel .MuiIconButton-root > svg:not(.MuiSvgIcon-root) {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* One focus ring for every MUI pressable (ripples are disabled). */
+.besser-properties-panel .MuiButtonBase-root.Mui-focusVisible,
+.besser-properties-panel .MuiCheckbox-root:has(input:focus-visible),
+.besser-properties-panel .MuiRadio-root:has(input:focus-visible) {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+
+/* Section rhythm. Inspector bodies stack dividers + stacks directly. */
+.besser-properties-panel__body > * + * {
+  margin-top: 12px;
+}
+.besser-properties-panel__body hr,
+.besser-properties-panel__body .MuiDivider-root {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  border-color: var(--bp-border);
+}
+.besser-properties-panel .besser-divider {
+  background-color: var(--bp-border) !important;
+  height: 1px !important;
+  margin: 4px 0 !important;
+}
+
+/* ── Header ── */
+.bp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 10px 12px 16px;
+  border-bottom: 1px solid var(--bp-border);
+  flex-shrink: 0;
+  user-select: none;
+}
+.bp-header__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+.bp-header__kind {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-header__title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bp-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Icon button ── */
+.bp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+  touch-action: manipulation;
+}
+.bp-icon-btn svg {
+  fill: currentColor;
+}
+.bp-icon-btn:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-icon-btn:active {
+  transform: scale(0.97);
+}
+.bp-icon-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+.bp-icon-btn[aria-pressed="true"],
+.bp-icon-btn[aria-expanded="true"] {
+  background: var(--bp-accent-soft);
+  color: var(--bp-accent);
+}
+.bp-icon-btn--sm {
+  width: 24px;
+  height: 24px;
+}
+.bp-icon-btn--danger:hover {
+  background: var(--bp-danger-soft);
+  color: var(--bp-danger);
+}
+.bp-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}
+
+/* ── Section header ── */
+.bp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+.bp-section-title {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--bp-muted);
+}
+/* Some labels arrive lowercase from the bundles ("optional attributes"). */
+.bp-section-title::first-letter {
+  text-transform: uppercase;
+}
+.bp-section-count {
+  margin-left: 6px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--bp-fg) 40%, transparent);
+}
+.bp-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-add-btn:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-add-btn:active {
+  transform: scale(0.97);
+}
+.bp-add-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+.bp-add-btn svg {
+  fill: currentColor;
+}
+
+/* ── Segmented toggle (stereotypes, two-way switches) ── */
+.bp-segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+}
+.bp-toggle {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-toggle:hover {
+  color: var(--bp-fg);
+}
+.bp-toggle:active {
+  transform: scale(0.97);
+}
+.bp-toggle:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+/* Three-way segments get a notch tighter so labels fit at 320px. */
+.bp-segmented:has(> :nth-child(3)) .bp-toggle {
+  flex: 1 1 auto;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.bp-toggle[aria-pressed="true"] {
+  background: var(--bp-surface);
+  color: var(--bp-accent);
+  box-shadow:
+    0 0 0 1px var(--bp-accent-soft),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Member rows (attributes, methods, literals) ──
+   One bordered field reads like the UML line itself:  + name : type  */
+.bp-members {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bp-member {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bp-member__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.bp-reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 16px;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.bp-reorder button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--bp-muted);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.bp-reorder button:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-reorder button:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 0;
+}
+.bp-reorder button:disabled {
+  visibility: hidden;
+}
+.bp-reorder svg {
+  fill: currentColor;
+}
+.bp-member__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 48px;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.bp-member:hover .bp-reorder,
+.bp-member:focus-within .bp-reorder,
+.bp-member:hover .bp-member__actions,
+.bp-member:focus-within .bp-member__actions,
+.bp-member.is-open .bp-member__actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .bp-reorder,
+  .bp-member__actions {
+    opacity: 1;
+  }
+}
+/* Bigger hit areas for touch. */
+@media (pointer: coarse) {
+  .bp-icon-btn--sm {
+    width: 32px;
+    height: 32px;
+  }
+  .bp-reorder,
+  .bp-reorder button {
+    width: 24px;
+  }
+  .bp-reorder button {
+    height: 18px;
+  }
+}
+
+.bp-field {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--bp-border);
+  border-radius: 6px;
+  background: var(--bp-surface);
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+.bp-field:hover {
+  border-color: var(--bp-border-strong);
+}
+.bp-field:focus-within {
+  border-color: var(--bp-accent);
+  box-shadow: 0 0 0 3px var(--bp-accent-soft);
+}
+.bp-field--add {
+  border-style: dashed;
+  background: transparent;
+}
+.bp-field--add:focus-within {
+  border-style: solid;
+  background: var(--bp-surface);
+}
+.bp-field .MuiInputBase-root {
+  font-size: 13px;
+  color: var(--bp-fg);
+}
+.bp-field .MuiInputBase-input {
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.bp-field__name {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.bp-field__name.MuiInputBase-readOnly .MuiInputBase-input {
+  color: var(--bp-muted);
+}
+.bp-field__vis {
+  flex-shrink: 0;
+  align-self: stretch;
+  border-right: 1px solid var(--bp-border);
+}
+.bp-field__vis .MuiSelect-select.MuiInputBase-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  min-width: 0;
+  height: 28px;
+  min-height: 0;
+  padding: 0 !important;
+  border-radius: 5px 0 0 5px;
+  font-family: var(--bp-mono);
+  font-size: 13px;
+  color: var(--bp-muted) !important;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.bp-field__vis:hover .MuiSelect-select {
+  background: var(--bp-hover);
+  color: var(--bp-fg) !important;
+}
+.bp-field__sep {
+  flex-shrink: 0;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: var(--bp-muted);
+  user-select: none;
+}
+/* Fixed-width type column so the colons line up row to row. */
+.bp-field__typebox {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: clamp(76px, 34%, 128px);
+  min-width: 0;
+  padding-left: 4px;
+}
+.bp-field__type {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__type--chevron {
+  flex: 0 0 auto;
+}
+.bp-field__type .MuiSelect-select.MuiInputBase-input,
+.bp-field__type-input .MuiInputBase-input {
+  height: 28px;
+  min-height: 0;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--bp-fg) 75%, transparent) !important;
+}
+.bp-field__type .MuiSelect-select.MuiInputBase-input {
+  display: block;
+  padding: 0 22px 0 4px !important;
+  line-height: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bp-field__type--chevron .MuiSelect-select.MuiInputBase-input {
+  width: 0;
+  padding: 0 18px 0 0 !important;
+}
+.bp-field__type .MuiSelect-icon {
+  right: 2px;
+  font-size: 18px;
+}
+.bp-field__type-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__type-input .MuiInputBase-input {
+  padding: 0 4px;
+  text-overflow: ellipsis;
+}
+/* Compound field (object slots): MUI widgets render as borderless
+   segments of the surrounding .bp-field. */
+.bp-field--compound .MuiOutlinedInput-notchedOutline {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.bp-field--compound .MuiOutlinedInput-root {
+  height: 28px;
+  background: transparent;
+}
+.bp-field--compound .MuiOutlinedInput-input,
+.bp-field--compound .MuiSelect-select.MuiOutlinedInput-input {
+  padding: 0 6px !important;
+  height: 28px;
+  min-height: 0;
+  line-height: 28px;
+  box-sizing: border-box;
+}
+.bp-field__value {
+  display: flex;
+  align-items: center;
+  flex: 1.3 1 0;
+  min-width: 0;
+  color: var(--bp-muted);
+}
+.bp-field__value > .MuiFormControl-root,
+.bp-field__value > .MuiInputBase-root,
+.bp-field__value > .MuiStack-root {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__hint {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 35%;
+  padding: 0 8px 0 2px;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: var(--bp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+.bp-field.is-disabled,
+.bp-field__type.Mui-disabled,
+.bp-field__vis.Mui-disabled {
+  opacity: 0.6;
+}
+
+/* Card member (row + value widget stacked, e.g. user-model attributes). */
+.bp-card {
+  padding: 8px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-surface);
+}
+.bp-card .bp-member__details {
+  margin-left: 0;
+}
+
+/* Expanded member details (flags, default, colors, parameters, code). */
+.bp-member__details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 6px 18px;
+  padding: 10px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+}
+.bp-flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
+}
+.bp-flags .MuiFormControlLabel-root {
+  margin: 0;
+  gap: 2px;
+}
+.bp-detail-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-muted);
+}
+.bp-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Disclosure (metadata). */
+.bp-disclosure.MuiAccordion-root {
+  background: transparent;
+  box-shadow: none;
+}
+.bp-disclosure.MuiAccordion-root::before {
+  display: none;
+}
+.bp-disclosure .MuiAccordionSummary-root {
+  min-height: 28px;
+  padding: 0 4px 0 0;
+  border-radius: 6px;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.bp-disclosure .MuiAccordionSummary-root:hover .bp-section-title {
+  color: var(--bp-fg);
+}
+.bp-disclosure .MuiAccordionSummary-content {
+  margin: 0;
+  flex-grow: 0;
+}
+.bp-disclosure .MuiAccordionSummary-expandIconWrapper {
+  color: var(--bp-muted);
+  transform: rotate(-90deg);
+  transition: transform 180ms var(--bp-ease);
+}
+.bp-disclosure .MuiAccordionSummary-expandIconWrapper.Mui-expanded {
+  transform: rotate(0deg);
+}
+.bp-disclosure .MuiAccordionDetails-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 0;
+}
+
+/* Style (paint) panel under the name field. */
+.bp-style-panel {
+  margin-top: 8px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+  overflow: hidden;
+}
+.bp-style-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 4px 10px;
+  color: var(--bp-fg);
+  font-size: 13px;
+}
+.bp-style-option + .bp-style-option {
+  border-top: 1px solid var(--bp-border);
+}
+.bp-style-option .besser-color-swatch {
+  width: 22px !important;
+  height: 22px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.14),
+    0 0 0 0 transparent;
+  transition:
+    transform 120ms var(--bp-ease),
+    box-shadow 150ms ease-out;
+}
+.bp-style-option .besser-color-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.14),
+    0 0 0 3px var(--bp-hover);
+}
+.bp-style-option .besser-color-swatch:active {
+  transform: scale(0.94);
+}
+.bp-style-option .besser-color-swatch:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 2px;
+}
+.bp-back-glyph {
+  display: inline-flex;
+  transform: rotate(180deg);
+}
+.bp-style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+}
+.bp-style-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bp-fg);
+}
+.bp-style-picker .besser-color-swatch {
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 120ms var(--bp-ease),
+    box-shadow 150ms ease-out;
+}
+.bp-style-picker .besser-color-swatch:active {
+  transform: scale(0.94);
+}
+.bp-style-picker .besser-color-swatch:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 2px;
+}
+.bp-style-picker .besser-color-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--bp-surface),
+    0 0 0 4px var(--bp-accent);
+}
+.bp-text-btn {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--bp-border);
+  border-radius: 6px;
+  background: var(--bp-surface);
+  color: var(--bp-fg);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-text-btn:hover {
+  background: var(--bp-hover);
+  border-color: var(--bp-border-strong);
+}
+.bp-text-btn:active {
+  transform: scale(0.97);
+}
+.bp-text-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+
+/* Resize handle: a hairline that lights up on hover. */
+.besser-properties-panel__resize-handle {
+  position: relative;
+}
+.besser-properties-panel__resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color 150ms ease-out;
+}
+.besser-properties-panel__resize-handle:hover::after {
+  background: var(--bp-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .besser-properties-panel *,
+  .besser-inspector-portal * {
+    transition-property: color, background-color, border-color, opacity !important;
+  }
+  .bp-icon-btn:active,
+  .bp-add-btn:active,
+  .bp-toggle:active,
+  .bp-text-btn:active {
+    transform: none;
+  }
+}
+
+/* Canvas chrome under reduced motion: colour feedback stays, movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__controls-button:active,
+  .control-button:active,
+  .control-zoom-readout:active,
+  .besser-toolbar-button:active,
+  .besser-palette-item:active {
+    transform: none !important;
+  }
+  .alignment-guide-line {
+    animation: none;
+  }
+}
+
+.scroll-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--besser-grid, rgba(36, 39, 36, 0.1));
+  backdrop-filter: blur(0.5px);
+  z-index: 10;
+  cursor: not-allowed;
+  animation: fadeIn 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.scroll-overlay-hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+}
+
+.scroll-overlay-hint-content {
+  background-color: var(--besser-background, #ffffff);
+  border: 2px solid var(--besser-primary, #35798c);
+  border-radius: 8px;
+  padding: 16px 24px;
+  box-shadow: 0 4px 12px var(--besser-grid, rgba(36, 39, 36, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-overlay-hint-text {
+  margin: 0;
+  color: var(--besser-primary, #35798c);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+

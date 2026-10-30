@@ -37,4 +37,21 @@ describe('storeRepoModelAsProject', () => {
     const form = (stored.diagrams.AgentDiagram[0] as { agentConfigForm?: { nlp: Record<string, string> } }).agentConfigForm;
     expect(form?.nlp).toEqual({ openai_api_key: 'sk-local-key', language: 'fr' });
   });
+
+  it('keeps the project name when it pulls the repo into the project it replaces', () => {
+    ProjectStorageRepository.saveProject(project('sk-local-key', 'en') as never);
+
+    const stored = storeRepoModelAsProject(project('[REDACTED]', 'en'), 'p1');
+
+    expect(stored.name).toBe('Library');
+    expect(ProjectStorageRepository.loadProject('p1')?.name).toBe('Library');
+  });
+
+  it('returns the project as stored, its models lifted to v4', () => {
+    const stored = storeRepoModelAsProject(project('[REDACTED]', 'en'), 'p1');
+
+    const model = stored.diagrams.AgentDiagram[0].model as { version?: string; nodes?: unknown[] };
+    expect(model.version).toMatch(/^4\./);
+    expect(Array.isArray(model.nodes)).toBe(true);
+  });
 });

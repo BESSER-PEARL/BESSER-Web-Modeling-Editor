@@ -1,0 +1,117 @@
+import { Box, MenuItem, Select, Stack } from "@mui/material"
+import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
+import { useShallow } from "zustand/shallow"
+import { useDiagramStore } from "@/store/context"
+import { StateCodeBlockProps } from "@/types"
+import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
+import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
+import { InspectorSectionHeader, balLanguage, useCodeMirrorTheme } from "../_shared"
+
+/**
+ * Inspector body for `StateCodeBlock`: a CodeMirror editor highlighting
+ * Python or BAL per the block's `language`.
+ */
+const LANGUAGES = [
+  { value: "python", label: "Python" },
+  { value: "bal", label: "BESSER Action Language" },
+]
+
+export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
+  elementId,
+}) => {
+  const { nodes, setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      setNodes: state.setNodes,
+    }))
+  )
+  const { t } = useTranslation()
+  const codeTheme = useCodeMirrorTheme()
+  const node = nodes.find((n) => n.id === elementId)
+  if (!node) return null
+
+  const data = node.data as StateCodeBlockProps
+  const isBal = data.language === "bal"
+
+  const update = (patch: Partial<StateCodeBlockProps>) => {
+    setNodes((all) =>
+      all.map((n) =>
+        n.id === elementId ? { ...n, data: { ...n.data, ...patch } } : n
+      )
+    )
+  }
+
+  const handleDataFieldUpdate = (key: string, value: string) => {
+    update({ [key]: value } as Partial<StateCodeBlockProps>)
+  }
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={handleDataFieldUpdate}
+        // Leave empty to use the function name from the code's `def` line.
+        inputPlaceholder={t(
+          "popup.state.codeBlockName",
+          "Function name (empty = from def)"
+        )}
+      />
+      <DividerLine width="100%" />
+
+      <Stack direction="row" alignItems="center" spacing={0.5}>
+        <Typography variant="caption" sx={{ minWidth: 70 }}>
+          {t("popup.state.language", "language")}
+        </Typography>
+        <Select
+          size="small"
+          value={data.language ?? "python"}
+          onChange={(e) => update({ language: String(e.target.value) })}
+          sx={{ flex: 1 }}
+        >
+          {/* The backend runs state code as Python only: BAL is listed just
+              for a block that already uses it. */}
+          {LANGUAGES.filter(
+            (l) => l.value === "python" || l.value === data.language
+          ).map((l) => (
+            <MenuItem key={l.value} value={l.value}>
+              {l.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </Stack>
+
+      <Stack spacing={0.5}>
+        <InspectorSectionHeader>
+          {t("popup.state.code", "code")}
+        </InspectorSectionHeader>
+        <Box
+          sx={{
+            border: "1px solid var(--besser-gray, #ccc)",
+            borderRadius: "4px",
+            "& .cm-editor": { fontSize: "13px", minHeight: 160 },
+          }}
+        >
+          <CodeMirror
+            value={data.code ?? ""}
+            theme={codeTheme}
+            extensions={[isBal ? balLanguage : python()]}
+            onChange={(v) => update({ code: v })}
+            basicSetup={{
+              lineNumbers: true,
+              tabSize: 4,
+              indentOnInput: true,
+            }}
+            placeholder={
+              isBal
+                ? "// Sample BAL code\nthis.count = this.count + 1;"
+                : "# Sample Python code\nprint('Hello World')"
+            }
+          />
+        </Box>
+      </Stack>
+    </Box>
+  )
+}

@@ -47,7 +47,7 @@ export const LanguageRadioItems: React.FC = () => {
 /**
  * Top-bar control to switch the editor UI language. Persists the choice via the
  * i18next language detector (localStorage `besser_language`); the editor engine
- * picks up the change through `ApollonEditorComponent`'s `languageChanged` listener.
+ * picks up the change through `BesserEditorComponent`'s `languageChanged` listener.
  */
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ outlineButtonClass = '' }) => {
   const { t } = useTranslation();

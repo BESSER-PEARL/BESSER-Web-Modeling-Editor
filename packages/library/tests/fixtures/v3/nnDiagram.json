@@ -1,0 +1,339 @@
+{
+  "version": "3.0.0",
+  "type": "NNDiagram",
+  "size": { "width": 1600, "height": 1000 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "container-1": {
+      "id": "container-1",
+      "name": "MyCNN",
+      "type": "NNContainer",
+      "owner": null,
+      "bounds": { "x": 60, "y": 60, "width": 600, "height": 600 },
+      "entryLayer": "layer-conv2d"
+    },
+
+    "layer-conv2d": {
+      "id": "layer-conv2d",
+      "name": "Conv2D_1",
+      "type": "Conv2DLayer",
+      "owner": "container-1",
+      "bounds": { "x": 80, "y": 100, "width": 240, "height": 60 }
+    },
+    "attr-conv2d-name": {
+      "id": "attr-conv2d-name",
+      "name": "NameAttributeConv2D",
+      "type": "NameAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "Conv2D_1"
+    },
+    "attr-conv2d-kernel": {
+      "id": "attr-conv2d-kernel",
+      "name": "KernelDimAttributeConv2D",
+      "type": "KernelDimAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "[3, 3]"
+    },
+    "attr-conv2d-out": {
+      "id": "attr-conv2d-out",
+      "name": "OutChannelsAttributeConv2D",
+      "type": "OutChannelsAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "32"
+    },
+    "attr-conv2d-stride": {
+      "id": "attr-conv2d-stride",
+      "name": "StrideDimAttributeConv2D",
+      "type": "StrideDimAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "[1, 1]"
+    },
+    "attr-conv2d-actv": {
+      "id": "attr-conv2d-actv",
+      "name": "ActvFuncAttributeConv2D",
+      "type": "ActvFuncAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "relu"
+    },
+    "attr-conv2d-permute-in": {
+      "id": "attr-conv2d-permute-in",
+      "name": "PermuteInAttributeConv2D",
+      "type": "PermuteInAttributeConv2D",
+      "owner": "layer-conv2d",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "true"
+    },
+
+    "layer-pooling": {
+      "id": "layer-pooling",
+      "name": "Pool_1",
+      "type": "PoolingLayer",
+      "owner": "container-1",
+      "bounds": { "x": 80, "y": 200, "width": 240, "height": 60 }
+    },
+    "attr-pool-name": {
+      "id": "attr-pool-name",
+      "name": "NameAttributePooling",
+      "type": "NameAttributePooling",
+      "owner": "layer-pooling",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "Pool_1"
+    },
+    "attr-pool-type": {
+      "id": "attr-pool-type",
+      "name": "PoolingTypeAttributePooling",
+      "type": "PoolingTypeAttributePooling",
+      "owner": "layer-pooling",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "max"
+    },
+    "attr-pool-dim": {
+      "id": "attr-pool-dim",
+      "name": "DimensionAttributePooling",
+      "type": "DimensionAttributePooling",
+      "owner": "layer-pooling",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "2D"
+    },
+
+    "layer-linear": {
+      "id": "layer-linear",
+      "name": "FC_1",
+      "type": "LinearLayer",
+      "owner": "container-1",
+      "bounds": { "x": 80, "y": 300, "width": 240, "height": 60 }
+    },
+    "attr-linear-name": {
+      "id": "attr-linear-name",
+      "name": "NameAttributeLinear",
+      "type": "NameAttributeLinear",
+      "owner": "layer-linear",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "FC_1"
+    },
+    "attr-linear-out": {
+      "id": "attr-linear-out",
+      "name": "OutFeaturesAttributeLinear",
+      "type": "OutFeaturesAttributeLinear",
+      "owner": "layer-linear",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "10"
+    },
+
+    "layer-dropout": {
+      "id": "layer-dropout",
+      "name": "Drop_1",
+      "type": "DropoutLayer",
+      "owner": "container-1",
+      "bounds": { "x": 80, "y": 400, "width": 240, "height": 60 }
+    },
+    "attr-dropout-name": {
+      "id": "attr-dropout-name",
+      "name": "NameAttributeDropout",
+      "type": "NameAttributeDropout",
+      "owner": "layer-dropout",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "Drop_1"
+    },
+    "attr-dropout-rate": {
+      "id": "attr-dropout-rate",
+      "name": "RateAttributeDropout",
+      "type": "RateAttributeDropout",
+      "owner": "layer-dropout",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "0.25"
+    },
+
+    "training-1": {
+      "id": "training-1",
+      "name": "TrainData",
+      "type": "TrainingDataset",
+      "owner": null,
+      "bounds": { "x": 800, "y": 80, "width": 240, "height": 60 }
+    },
+    "attr-train-name": {
+      "id": "attr-train-name",
+      "name": "NameAttributeDataset",
+      "type": "NameAttributeDataset",
+      "owner": "training-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "train_data"
+    },
+    "attr-train-path": {
+      "id": "attr-train-path",
+      "name": "PathDataAttributeDataset",
+      "type": "PathDataAttributeDataset",
+      "owner": "training-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "data/train"
+    },
+    "attr-train-task": {
+      "id": "attr-train-task",
+      "name": "TaskTypeAttributeDataset",
+      "type": "TaskTypeAttributeDataset",
+      "owner": "training-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "multi_class"
+    },
+
+    "test-1": {
+      "id": "test-1",
+      "name": "TestData",
+      "type": "TestDataset",
+      "owner": null,
+      "bounds": { "x": 800, "y": 200, "width": 240, "height": 60 }
+    },
+    "attr-test-name": {
+      "id": "attr-test-name",
+      "name": "NameAttributeDataset",
+      "type": "NameAttributeDataset",
+      "owner": "test-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "test_data"
+    },
+    "attr-test-path": {
+      "id": "attr-test-path",
+      "name": "PathDataAttributeDataset",
+      "type": "PathDataAttributeDataset",
+      "owner": "test-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "data/test"
+    },
+
+    "configuration-1": {
+      "id": "configuration-1",
+      "name": "TrainCfg",
+      "type": "Configuration",
+      "owner": null,
+      "bounds": { "x": 800, "y": 320, "width": 240, "height": 60 }
+    },
+    "attr-cfg-batch-size": {
+      "id": "attr-cfg-batch-size",
+      "name": "BatchSizeAttributeConfiguration",
+      "type": "BatchSizeAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "64"
+    },
+    "attr-cfg-epochs": {
+      "id": "attr-cfg-epochs",
+      "name": "EpochsAttributeConfiguration",
+      "type": "EpochsAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "20"
+    },
+    "attr-cfg-lr": {
+      "id": "attr-cfg-lr",
+      "name": "LearningRateAttributeConfiguration",
+      "type": "LearningRateAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "0.001"
+    },
+    "attr-cfg-optim": {
+      "id": "attr-cfg-optim",
+      "name": "OptimizerAttributeConfiguration",
+      "type": "OptimizerAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "adam"
+    },
+    "attr-cfg-loss": {
+      "id": "attr-cfg-loss",
+      "name": "LossFunctionAttributeConfiguration",
+      "type": "LossFunctionAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "cross_entropy"
+    },
+    "attr-cfg-metrics": {
+      "id": "attr-cfg-metrics",
+      "name": "MetricsAttributeConfiguration",
+      "type": "MetricsAttributeConfiguration",
+      "owner": "configuration-1",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "value": "accuracy"
+    },
+
+    "section-title-1": {
+      "id": "section-title-1",
+      "name": "NN Layers",
+      "type": "NNSectionTitle",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 }
+    }
+  },
+  "relationships": {
+    "next-1": {
+      "id": "next-1",
+      "name": "",
+      "type": "NNNext",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": 40 }
+      ],
+      "source": { "element": "layer-conv2d", "direction": "Down" },
+      "target": { "element": "layer-pooling", "direction": "Up" }
+    },
+    "next-2": {
+      "id": "next-2",
+      "name": "",
+      "type": "NNNext",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": 40 }
+      ],
+      "source": { "element": "layer-pooling", "direction": "Down" },
+      "target": { "element": "layer-linear", "direction": "Up" }
+    },
+    "next-3": {
+      "id": "next-3",
+      "name": "",
+      "type": "NNNext",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": 40 }
+      ],
+      "source": { "element": "layer-linear", "direction": "Down" },
+      "target": { "element": "layer-dropout", "direction": "Up" }
+    },
+    "assoc-train": {
+      "id": "assoc-train",
+      "name": "",
+      "type": "NNAssociation",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "element": "training-1", "direction": "Left" },
+      "target": { "element": "container-1", "direction": "Right" }
+    },
+    "assoc-test": {
+      "id": "assoc-test",
+      "name": "",
+      "type": "NNAssociation",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "element": "test-1", "direction": "Left" },
+      "target": { "element": "container-1", "direction": "Right" }
+    }
+  }
+}

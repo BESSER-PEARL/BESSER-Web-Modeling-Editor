@@ -6,6 +6,18 @@ import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportU
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../shared/utils/download';
 
+/**
+ * Download name for the project B-UML export: the project's name with the
+ * backend file's extension. The backend's own name is the generic
+ * "project.py", so prefixing it produced "new_project_project.py".
+ */
+export function projectBumlFilename(projectName: string, contentDisposition: string | null): string {
+  const backendName = contentDisposition?.match(/filename="?([^";]+)"?/)?.[1]?.trim();
+  const extension = backendName?.match(/\.[a-z0-9]+$/i)?.[0] ?? '.py';
+  const base = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'project';
+  return `${base}${extension}`;
+}
+
 export async function exportProjectAsSingleBUMLFile(
   project: BesserProject,
   diagramTypes?: SupportedDiagramType[]
@@ -40,26 +52,7 @@ export async function exportProjectAsSingleBUMLFile(
 
     const blob = await response.blob();
 
-    // Get the filename from the response headers
-    const contentDisposition = response.headers.get('Content-Disposition');
-    const normalizedProjectName = projectToUse.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    let filename = `${normalizedProjectName}_besser.py`; // Default filename
-
-    if (contentDisposition) {
-      // Try multiple patterns to extract filename
-      const patterns = [
-        /filename="([^"]+)"/,
-        /filename=([^;\s]+)/,
-        /filename="?([^";\s]+)"?/
-      ];
-      for (const pattern of patterns) {
-        const match = contentDisposition.match(pattern);
-        if (match) {
-          filename = `${normalizedProjectName}_${match[1]}`;
-          break;
-        }
-      }
-    }
+    const filename = projectBumlFilename(projectToUse.name, response.headers.get('Content-Disposition'));
 
     downloadFile(blob, filename);
 

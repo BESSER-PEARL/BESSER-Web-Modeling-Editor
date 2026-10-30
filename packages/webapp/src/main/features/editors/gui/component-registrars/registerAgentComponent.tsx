@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { getAgentOptions } from '../diagram-helpers';
 import i18n from '@/main/shared/i18n';
+import { unmountReactRootLater } from './unmountReactRootLater';
 
 /**
  * Build agent component props from attributes
@@ -327,10 +328,7 @@ export const registerAgentComponent = (editor: any) => {
         }));
       },
       removed() {
-        if ((this as any).__reactRoot) {
-          (this as any).__reactRoot.unmount();
-          (this as any).__reactRoot = null;
-        }
+        unmountReactRootLater(this as any);
       },
     },
     isComponent: (el: any) => {

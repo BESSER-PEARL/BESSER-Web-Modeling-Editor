@@ -27,7 +27,6 @@ import {
   setProjectGitHubLink,
 } from '../../../services/storage/projectGitHubLink';
 import { readProjectLastRun } from '../../storage/specDrivenRunRecords';
-import { consumeAutoLayoutRequest } from '../../../utils/autoLayoutSignal';
 
 const HEAD = 'b'.repeat(40);
 const RUN = 'f'.repeat(32);
@@ -39,7 +38,6 @@ afterEach(() => {
   storeRepoModelAsProject.mockClear();
   importRepoAsRun.mockReset();
   importProjectFromJson.mockClear();
-  consumeAutoLayoutRequest(); // the layout request is module state
 });
 
 const ANALYSIS = {
@@ -74,7 +72,16 @@ describe('continueFromGithubRepo', () => {
   });
 
   it('opens a repo without a BESSER model with the model BESSER read from its code, as a proposal', async () => {
-    const model = { elements: { a: { name: 'Book' } }, relationships: {}, type: 'ClassDiagram' };
+    // As the backend sends it: v4, every class at the origin.
+    const classNode = (id: string, name: string) => ({
+      id, type: 'class', position: { x: 0, y: 0 }, width: 160, height: 100,
+      data: { name, attributes: [], methods: [] },
+    });
+    const model = {
+      version: '4.0.0', type: 'ClassDiagram',
+      nodes: [classNode('a', 'Book'), classNode('b', 'Author')],
+      edges: [], assessments: {},
+    };
     importRepoAsRun.mockResolvedValue({
       run_id: RUN, project: null, has_model: false,
       owner: 'me', repo: 'shop', branch: 'main', commit_sha: HEAD,
@@ -85,7 +92,10 @@ describe('continueFromGithubRepo', () => {
 
     expect(result).toMatchObject({ ok: true, projectId: 'p-new', runId: RUN, proposedModel: true, analysis: ANALYSIS });
     const envelope = await importedEnvelope();
-    expect(envelope.project.diagrams.ClassDiagram[0].model).toEqual(model);
+    // The proposal has no layout of its own, so it is laid out before it opens.
+    const proposed = envelope.project.diagrams.ClassDiagram[0].model;
+    expect(proposed.nodes.map((n: { data: { name: string } }) => n.data.name)).toEqual(['Book', 'Author']);
+    expect(proposed.nodes[0].position).not.toEqual(proposed.nodes[1].position);
     // Linked at the imported commit, with the proposal waiting for review on the canvas.
     expect(getProjectGitHubLink('p-new')).toMatchObject({ repo: 'shop', baseCommitSha: HEAD, modelProposal: ANALYSIS });
     // The proposal names its diagram, so Discard empties that one and no other.
@@ -94,8 +104,6 @@ describe('continueFromGithubRepo', () => {
     expect(getProjectGitHubLink('p-new')?.syncedModel).toBeUndefined();
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
     expect(describeOpenedRepo(result)).toContain('**Accept model**');
-    // The proposal has no layout of its own; the canvas lays it out when it opens.
-    expect(consumeAutoLayoutRequest()).toBe(true);
   });
 
   it('says when the proposal is an AI reading, and keeps that on the link', async () => {
@@ -155,7 +163,6 @@ describe('continueFromGithubRepo', () => {
     expect(getProjectGitHubLink('p-new')?.modelProposal).toBeUndefined();
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
     expect(describeOpenedRepo(result)).toContain('work on its code');
-    expect(consumeAutoLayoutRequest()).toBe(false);
   });
 });
 

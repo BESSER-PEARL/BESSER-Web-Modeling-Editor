@@ -80,7 +80,8 @@
       "agentMappings": "Assignacions de l'agent",
       "agentComponents": "Components",
       "kgSettings": "Configuració de KG"
-    }
+    },
+    "workspace": "Espai de treball"
   },
   "menu": {
     "file": {
@@ -886,7 +887,11 @@
       "springAppNameInvalid": "El nom de l'aplicació ha de ser un nom de classe Java vàlid.",
       "springPackageNameInvalid": "El nom del paquet ha de ser un paquet Java vàlid, p. ex. com.example.",
       "openUmlBeforeDeploy": "Obre un diagrama UML abans de desplegar.",
-      "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades."
+      "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades.",
+      "openBpmnEditor": "Obre un diagrama BPMN abans d'exportar a BPMN 2.0 XML.",
+      "bpmnNoModel": "El diagrama BPMN actiu no té cap model per exportar.",
+      "bpmnExportFailed": "Error en exportar BPMN: {{error}}",
+      "qualityCheckUnavailable": "La comprovació de qualitat encara no està disponible per a aquest editor."
     },
     "context": {
       "djangoGeneration": "Generació de Django",
@@ -1111,7 +1116,9 @@
         "propertiesPanel": "Tauler de propietats",
         "propertiesPanelDesc": "Utilitzar el tauler lateral dret en lloc de la finestra emergent flotant",
         "classNotation": "Notació del diagrama de classes",
-        "classNotationDesc": "UML (per defecte) mostra classes UML estàndard; ER mostra una representació entitat/relació a l'estil Chen"
+        "classNotationDesc": "UML (per defecte) mostra classes UML estàndard; ER mostra una representació entitat/relació a l'estil Chen",
+        "iconView": "Vista d'icones",
+        "iconViewDesc": "Mostra els objectes amb la icona de la seva classe en lloc de la taula d'atributs"
       },
       "diagrams": {
         "title": "Diagrames",
@@ -1162,7 +1169,7 @@
           "ObjectDiagram": "Instàncies d'un diagrama de classes, usades per a proves i validació OCL.",
           "StateMachineDiagram": "Modelatge de comportament basat en estats.",
           "AgentDiagram": "Especificació d'agent conversacional / d'IA.",
-          "UserDiagram": "Actors i les seves interaccions.",
+          "UserDiagram": "Perfils d'usuari (dades demogràfiques, accessibilitat, competències, cultura) per a la personalització.",
           "GUINoCodeDiagram": "Disseny d'interfície gràfica d'usuari (inspirat en IFML).",
           "QuantumCircuitDiagram": "Especificació de programa quàntic.",
           "BPMN": "Model i notació de procés de negoci.",
@@ -1204,7 +1211,8 @@
         "Quantum Circuit": "Circuit quàntic",
         "Neural Network": "Xarxa neuronal",
         "Full Project": "Projecte complet",
-        "Multi-agent": "Multiagent"
+        "Multi-agent": "Multiagent",
+        "BPMN Diagram": "Diagrama BPMN"
       },
       "confirm": {
         "title": "S'ha detectat un diagrama existent",
@@ -1655,17 +1663,17 @@
     "chat": {
       "newChat": "Xat nou",
       "newConversationTitle": "Inicia una conversa nova",
+      "newChatConfirm": "Vols iniciar un xat nou? S’esborrarà la conversa actual.",
+      "newChatConfirmWithRun": "Vols iniciar un xat nou? S’esborrarà la conversa actual i s’aturarà la generació en curs.",
+      "explainModel": "Explica aquest model",
+      "explainModelTitle": "Obtén un resum en llenguatge planer del teu model: els elements principals que descriu i com es relacionen",
       "moreActions": "Més accions",
       "yourModel": "El teu model",
       "hideYourModel": "Amaga el teu model",
       "apiKeySet": "Clau API definida",
       "useOwnApiKey": "Utilitza la teva clau API",
       "reportIssue": "Informa d’un problema",
-      "addApiKey": "Afegeix la teva clau API",
-      "newChatConfirm": "Vols iniciar un xat nou? S’esborrarà la conversa actual.",
-      "newChatConfirmWithRun": "Vols iniciar un xat nou? S’esborrarà la conversa actual i s’aturarà la generació en curs.",
-      "explainModel": "Explica aquest model",
-      "explainModelTitle": "Obtén un resum clar del teu model: què representa i com s’hi relacionen els elements"
+      "addApiKey": "Afegeix la teva clau API"
     },
     "drawer": {
       "pushToClose": "Empeny cap avall per tancar l'assistent",
@@ -1755,6 +1763,31 @@
         "filesChanged_other": "{{count}} fitxers modificats",
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
+      }
+    },
+    "modelOverview": {
+      "title": "El teu model",
+      "close": "Tanca la visió general del model",
+      "empty": "Encara no hi ha res modelat: demana a l’assistent que creï un sistema i el pla apareixerà aquí.",
+      "dataModel": "Model de dades",
+      "relationships": "Relacions",
+      "screens": "Pantalles",
+      "constraints": "Restriccions",
+      "unnamed": "Sense nom",
+      "page": "Pàgina",
+      "kinds": {
+        "class": "classe",
+        "enum": "enumeració",
+        "interface": "interfície",
+        "abstract": "abstracta"
+      },
+      "relationKinds": {
+        "association": "associació",
+        "inheritance": "herència",
+        "composition": "composició",
+        "aggregation": "agregació",
+        "realization": "realització",
+        "dependency": "dependència"
       }
     }
   },
@@ -2280,6 +2313,10 @@
       "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
+    },
+    "storage": {
+      "saveFailedFull": "L'emmagatzematge del navegador és ple i no s'han pogut desar els canvis. Exporteu els projectes i elimineu els que ja no necessiteu.",
+      "nearlyFull": "L'emmagatzematge del navegador és ple al {{percent}} %. Exporteu els projectes i elimineu els que ja no necessiteu per no perdre canvis."
     }
   },
   "shell": {
@@ -2297,13 +2334,13 @@
       "failed": "Ha fallat la importació: {{message}}"
     },
     "validateBeforeNav": {
-      "title": "Valida els teus models abans de passar a la tasca següent",
-      "description": "Aquest model d'usuari no s'ha validat després dels teus darrers canvis.",
-      "confirmLabel": "Validar models",
-      "cancelLabel": "Ignora"
+      "title": "Vols validar aquest model d'usuari abans de sortir?",
+      "description": "Has canviat aquest model d'usuari des de l'última validació.",
+      "confirmLabel": "Valida ara",
+      "cancelLabel": "Surt sense validar"
     },
     "leaveWithIssues": {
-      "title": "Hi ha problemes amb el teu diagrama, encara vols sortir d'aquest model?",
+      "title": "Aquest model d'usuari té errors de validació. Vols sortir igualment?",
       "description": "La comprovació de qualitat ha trobat errors. Pots quedar-te per corregir-los o sortir d'aquest model igualment.",
       "confirmLabel": "Surt del model",
       "cancelLabel": "Queda't"
@@ -2353,9 +2390,6 @@
       "renameDiagram": "Canvia el nom del diagrama",
       "closeTabLabel": "Elimina el diagrama {{title}}",
       "closeTab": "Elimina el diagrama",
-      "deleteConfirmTitle": "Vols eliminar aquest diagrama?",
-      "deleteConfirmDescription": "«{{title}}» i tot el seu contingut s’eliminaran del projecte. Aquesta acció no es pot desfer.",
-      "deleteConfirmAction": "Elimina el diagrama",
       "addNewDiagram": "Afegeix un diagrama nou",
       "expandLinkedDiagrams": "Desplega els diagrames enllaçats",
       "collapseLinkedDiagrams": "Replega els diagrames enllaçats",
@@ -2370,6 +2404,13 @@
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
       "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
+      "profileFormOpen": "Edita com a formulari",
+      "profileFormClose": "Tanca el formulari",
+      "profileFormOpenTitle": "Edita aquest perfil amb un formulari guiat",
+      "profileFormCloseTitle": "Tanca el formulari del perfil d'usuari",
+      "deleteConfirmTitle": "Vols eliminar aquest diagrama?",
+      "deleteConfirmDescription": "«{{title}}» i tot el seu contingut s’eliminaran del projecte. Aquesta acció no es pot desfer.",
+      "deleteConfirmAction": "Elimina el diagrama",
       "tablistLabel": "Diagrames",
       "editAsForm": "Edita com a formulari",
       "closeForm": "Tanca el formulari",
@@ -3404,25 +3445,16 @@
       },
       "palette": {
         "heading": "Tipus de node",
-        "hint": "Arrossega un tipus de node al llenç per crear un node nou. Per crear una relació entre nodes existents, fes clic a <action>{{addRelation}}</action> a la barra d'eines i després al node d'origen seguit del node de destinació."
+        "hint": "Arrossega un tipus de node al llenç per crear un node nou. Per crear una relació entre nodes existents, fes clic a <action>{{addRelation}}</action> a la barra d'eines i després al node d'origen seguit del node de destinació.",
+        "canvasHint": "Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te."
       },
       "toolbar": {
         "addRelation": "Afegeix una relació",
-        "addingRelation": "S'està afegint una relació…",
         "addRelationTooltip": "Afegeix una relació: arrossega del node d'origen al node de destinació",
         "exportHtml": "Exporta HTML",
         "exportHtmlTooltip": "Baixa el graf actual com a fitxer HTML interactiu autònom",
         "connectHint": "Arrossega d'un node d'origen a un node de destinació per crear una relació. Les posicions dels nodes queden bloquejades mentre aquest mode és actiu: Esc per sortir.",
-        "showingNodes_one": "Es mostra {{visible}} d'{{count}} node",
-        "showingNodes_other": "Es mostren {{visible}} de {{count}} nodes",
         "raiseLimit": "augmenta el límit a la configuració del KG",
-        "nodesFragment_one": "{{count}} node",
-        "nodesFragment_other": "{{count}} nodes",
-        "relationsFragment_one": "{{count}} relació",
-        "relationsFragment_other": "{{count}} relacions",
-        "counts": "{{nodes}} · {{relations}}",
-        "undo": "Desfés",
-        "redo": "Refés",
         "undoTooltip": "Desfés (Ctrl+Z)",
         "redoTooltip": "Refés (Ctrl+Y)"
       },
@@ -3430,7 +3462,8 @@
         "autoLayout": "Disposició automàtica",
         "fitToView": "Ajusta a la vista",
         "zoomIn": "Amplia",
-        "zoomOut": "Redueix"
+        "zoomOut": "Redueix",
+        "resetZoom": "Restableix el zoom al 100%"
       },
       "nodeList": {
         "heading": "Nodes ({{count}})",
@@ -3473,12 +3506,10 @@
       "inspector": {
         "titleNode": "Node",
         "titleRelation": "Relació",
-        "titleInspector": "Inspector",
         "selectedCount_one": "{{count}} seleccionat",
         "selectedCount_other": "{{count}} seleccionats",
         "unsavedChanges": "Canvis sense desar",
         "close": "Tanca",
-        "noSelection": "Fes clic en un node o relació del llenç per editar-lo aquí. Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te.",
         "fields": {
           "type": "Tipus",
           "label": "Etiqueta",
@@ -3596,7 +3627,14 @@
         "resetToDefaults": "Restableix els valors per defecte"
       }
     },
-    "loadingKgEditor": "S'està carregant l'editor de graf de coneixement..."
+    "loadingKgEditor": "S'està carregant l'editor de graf de coneixement...",
+    "legacyDiagram": {
+      "openedReadOnly": "No s'ha pogut convertir el diagrama «{{title}}» al format actual. S'ha obert en mode de només lectura i la versió desada no es modifica.",
+      "saveRefused": "El diagrama «{{title}}» té un format antic que no s'ha pogut convertir, per tant no es pot modificar.",
+      "readOnlyTitle": "Aquest diagrama és de només lectura",
+      "readOnlyBody": "«{{title}}» es va desar en un format antic que no s'ha pogut convertir, de manera que no es pot mostrar ni editar aquí. La versió desada no es modifica.",
+      "readOnlyRecover": "Per recuperar-lo, torna a importar el fitxer original. Un projecte convertit en carregar-se també conserva una còpia de seguretat prèvia a la migració a l'emmagatzematge d'aquest navegador."
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Digue'ns què funciona, què no i què vols a continuació.",
@@ -3720,12 +3758,14 @@
     "success": {
       "diagram": "Diagrama {{diagramType}} importat correctament i afegit al projecte «{{projectName}}». Aquest diagrama s'ha convertit del format {{fileType}} al nou format de projecte.",
       "kg": "Diagrama {{diagramType}} importat correctament des de graf de coneixement i afegit al projecte «{{projectName}}».",
-      "image": "Diagrama {{diagramType}} importat correctament des d'una imatge i afegit al projecte «{{projectName}}»."
+      "image": "Diagrama {{diagramType}} importat correctament des d'una imatge i afegit al projecte «{{projectName}}».",
+      "diagramImported": "Diagrama {{diagramType}} importat al projecte \"{{projectName}}\"."
     },
     "descriptions": {
       "imported": "Diagrama {{diagramType}} importat",
       "importedFromKg": "Diagrama {{diagramType}} importat des de graf de coneixement",
-      "importedFromImage": "Diagrama {{diagramType}} importat des d'una imatge"
+      "importedFromImage": "Diagrama {{diagramType}} importat des d'una imatge",
+      "importedFromBpmnXml": "Importat des de BPMN 2.0 XML"
     },
     "errors": {
       "title": "Ha fallat la importació",
@@ -3742,11 +3782,16 @@
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
+      "unsupportedFileTypeBpmn": "Tipus de fitxer no compatible. Selecciona un fitxer .json, .py o .bpmn.",
+      "invalidJson": "El fitxer no és un JSON vàlid.",
+      "unsupportedProjectFile": "El fitxer no és una exportació de projecte o de diagrama de BESSER.",
+      "projectUnreadable": "No s'ha pogut llegir el projecte d'aquest fitxer."
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",
-      "unnamedElement": "(sense nom)"
+      "unnamedElement": "(sense nom)",
+      "diagramReadOnly": "No s'ha pogut convertir el diagrama «{{title}}» al format actual. S'ha importat en mode de només lectura; el fitxer no es modifica."
     },
     "kg": {
       "owl": {
@@ -3784,6 +3829,15 @@
         "timedOut": "La petició ha trigat massa i s'ha cancel·lat. Torneu-ho a provar.",
         "configUnavailable": "No s'han pogut carregar els límits del graf de coneixement des del servidor. Comproveu que el backend sigui accessible i torneu-ho a provar."
       }
+    },
+    "toasts": {
+      "migratedFromV3": "Diagrama migrat de l'esquema v3 al v4 durant la importació.",
+      "migratedFromV3Many": "Diagrames migrats de l’esquema v3 a v4 en importar."
+    },
+    "bpmn": {
+      "defaultTitle": "BPMN importat",
+      "warningsSummary": "BPMN importat amb {{count}} advertiment(s) de validació:",
+      "moreWarnings": "…i {{count}} més"
     }
   },
   "knowledgeGraph": {
@@ -4047,7 +4101,10 @@
       "embeddingBaseUrl": "URL base d'embedding",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
       "embeddingModel": "Model d'embedding",
-      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "RAG híbrid (BM25)",
+      "bm25Weight": "Pes BM25",
+      "bm25WeightDescription": "Pes de la puntuació per paraules clau (BM25) en la classificació híbrida, entre 0 i 1."
     },
     "guis": {
       "title": "GUIs",

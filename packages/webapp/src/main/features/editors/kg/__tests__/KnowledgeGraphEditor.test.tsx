@@ -91,15 +91,14 @@ vi.mock('../KnowledgeGraphInspector', () => ({
   ),
 }));
 vi.mock('../KnowledgeGraphPalette', () => ({ KnowledgeGraphPalette: () => null }));
-vi.mock('../KnowledgeGraphToolbar', () => ({
-  KnowledgeGraphToolbar: ({ canUndo, canRedo, onUndo, onRedo }: any) => (
+vi.mock('../KgCanvasControls', () => ({
+  KgCanvasControls: ({ canUndo, canRedo, onUndo, onRedo }: any) => (
     <div>
       <button data-testid="undo" disabled={!canUndo} onClick={onUndo} />
       <button data-testid="redo" disabled={!canRedo} onClick={onRedo} />
     </div>
   ),
 }));
-vi.mock('../KgCanvasControls', () => ({ KgCanvasControls: () => null }));
 vi.mock('../KgDeleteConfirmDialog', () => ({ KgDeleteConfirmDialog: () => null }));
 
 import { KnowledgeGraphEditor } from '../KnowledgeGraphEditor';

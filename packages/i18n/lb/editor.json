@@ -3,10 +3,14 @@
     "modeling": "Modelléierung",
     "interactive": "Interaktiv",
     "highlight": "Interaktiv Elementer uweisen",
-    "iconMode": "Objektdiagramm am Ikonmodus uweisen"
+    "iconMode": "Objektdiagramm am Ikonmodus uweisen",
+    "model": "Modell",
+    "selectElements": "Elementer auswielen",
+    "highlightHint": "Klickt op Elementer oder Bezéiungen, fir ze wiesselen, ob se interaktiv sinn."
   },
   "popup": {
     "nn": {
+      "optionalAttributes": "optional Attributer",
       "container": {
         "inputVariable": "Input-Variabel",
         "returnVariables": "Retour-Variabelen",
@@ -42,7 +46,8 @@
         "slice": "Slice",
         "startPlaceholder": "Start",
         "stopPlaceholder": "Enn",
-        "stepPlaceholder": "Schrëtt"
+        "stepPlaceholder": "Schrëtt",
+        "reverted": "Op {{value}} zréckgesat."
       },
       "help": {
         "split_sizes": "Entweder eng ganz Zuel (Unzuel vu gläich groussen Deeler, z. B. 3) oder eng Lëscht (Gréisst pro Deel, z. B. [2,3,5])",
@@ -159,7 +164,9 @@
         "anyGuiInteraction": "Iergendeng GUI-Interaktioun",
         "event": "Evenement",
         "conditions": "Bedingungen",
-        "addCondition": "Bedingung dobäisetzen"
+        "addCondition": "Bedingung dobäisetzen",
+        "missingIntentTag": "feelt",
+        "missingIntent": "Den Intent \"{{name}}\" gëtt et net. Wielt en Intent oder setzt en op der Säit Komponenten derbäi."
       },
       "intent": {
         "name": "Intent-Numm",
@@ -216,7 +223,31 @@
       "definedInBal": "Methode am BESSER-Action-Language-Code definéiert",
       "showEditor": "Editor uweisen",
       "implementation": "Implementéierung",
-      "hideCodeEditor": "Code-Editor verstoppen"
+      "hideCodeEditor": "Code-Editor verstoppen",
+      "implNone": "Keng (UML)",
+      "implCode": "Python-Code",
+      "implStateMachine": "Zoustandsmaschinn",
+      "implQuantumCircuit": "Quanteschaltkrees",
+      "implNeuralNetwork": "Neuronalt Netzwierk",
+      "signaturePlaceholder": "methode(param: typ): retourtyp",
+      "returnType": "Retourtyp",
+      "hideOptions": "Parameteren, Code a Faarwen verstoppen",
+      "showOptions": "Parameteren, Code a Faarwen",
+      "rowOptions": "Optioune vun der Method",
+      "deleteMethod": "Method läschen",
+      "customReturnTypePlaceholder": "personaliséierte Retourtyp (fräien Text)",
+      "paramNamePlaceholder": "Numm",
+      "paramTypePlaceholder": "Typ",
+      "addParameterPlaceholder": "+ Parameter dobäisetzen (Numm: Typ, Enter)",
+      "balBodyPlaceholder": "BAL-Methodekierper…",
+      "pythonBodyPlaceholder": "Python-Methodekierper…",
+      "name": "Numm vun der Method",
+      "customReturnType": "Eegene Retourtyp",
+      "paramName": "Numm vum Parameter",
+      "paramType": "Typ vum Parameter",
+      "deleteParameter": "Parameter läschen",
+      "addParameter": "Parameter derbäisetzen",
+      "implementationType": "Implementatioun"
     },
     "classifier": {
       "createMethodWithCode": "Methode mat Code-Verhalen erstellen",
@@ -224,24 +255,173 @@
       "moveUp": "No uewen réckelen",
       "codeButton": "Code",
       "newLiteralPlaceholder": "Literal",
-      "newAttributePlaceholder": "+ Attribut: str"
+      "newAttributePlaceholder": "+ Attribut: str",
+      "addAttributePlaceholder": "+ Attribut dobäisetzen",
+      "addMethodPlaceholder": "+ Method dobäisetzen",
+      "newMethodPlaceholder": "+ method(param: str): str"
     },
     "attribute": {
       "literalNamePlaceholder": "Literalnumm",
-      "namePlaceholder": "Attributnumm"
+      "namePlaceholder": "Attributnumm",
+      "shorthandPlaceholder": "+ Attribut: Typ",
+      "hideOptions": "Optiounen verstoppen",
+      "showColors": "Faarwen uweisen",
+      "showOptions": "Eegeschaften, Standardwäert a Faarwen uweisen",
+      "rowOptions": "Optioune vum Attribut",
+      "deleteLiteral": "Literal läschen",
+      "deleteAttribute": "Attribut läschen",
+      "customTypePlaceholder": "personaliséierten Typ (fräien Text)",
+      "defaultValue": "Standardwäert",
+      "defaultValueOptionalPlaceholder": "Standardwäert (optional)",
+      "visibility": "Visibilitéit",
+      "literalName": "Numm vum Literal",
+      "name": "Numm vum Attribut",
+      "customType": "Eegenen Typ",
+      "type": "Typ vum Attribut"
     },
     "associationNamePlaceholder": "Numm vun der Associatioun",
     "literals": "Literaler",
     "preset": "Virgab",
     "presetPlaceholder": "Virgab wielen…",
     "stereotype": "Stereotyp",
+    "showStereotype": "Stereotyp uweisen",
     "label": "Beschrëftung",
     "unnamed": "(ouni Numm)",
     "missingElement": "(feelt)",
     "addTarget": "Zil derbäisetzen…",
     "lineage": "Hierkonft",
     "lineageSource": "Quell:",
-    "lineageDerivedFrom": "Ofgeleet vun"
+    "lineageDerivedFrom": "Ofgeleet vun",
+    "class": {
+      "biAssociation": "Bidirektional Associatioun",
+      "uniAssociation": "Unidirektional Associatioun",
+      "inheritance": "Ierfschaft",
+      "endMultiplicity": "Multiplizitéit vun {{name}}",
+      "endRole": "Roll vun {{name}}",
+      "erMultiplicityPlaceholder": "(1,1) oder 1..1",
+      "classesDivider": "── Klassen ──",
+      "enumerationsDivider": "── Opzielungen ──",
+      "customType": "personaliséiert…",
+      "colors": "Faarwen",
+      "metadata": "Metadaten",
+      "uriPlaceholder": "URI (z. B. https://example.com/MyClass)",
+      "iconPlaceholder": "Ikon (SVG-Inhalt oder URL)",
+      "addLiteral": "Literal dobäisetzen",
+      "addAttribute": "Attribut dobäisetzen",
+      "addMethod": "Method dobäisetzen",
+      "addLiteralInputPlaceholder": "+ Literal dobäisetzen (Enter fir en automateschen Numm)",
+      "addAttributeInputPlaceholder": "+ Attribut dobäisetzen (Enter fir en automateschen Numm)",
+      "addMethodInputPlaceholder": "+ Method dobäisetzen (Enter)",
+      "icon": "Symbol",
+      "stereotype": "Stereotyp",
+      "enumerationRelationshipsWarning": "Eng Enumeratioun kann keng Bezéiungen hunn; aner Klassen benotzen se als Attributtyp. Beim Ëmwandelen ginn {{count}} Bezéiung(en) ewechgeholl.",
+      "enumerationConvertConfirm": "Ewechhuelen an ëmwandelen"
+    },
+    "object": {
+      "colorResetHint": "{{label}} (Rietsklick fir zeréckzesetzen)",
+      "selectLiteral": "— Literal auswielen —",
+      "slotNamePlaceholder": "Numm",
+      "typeInherited": "Typ vun der Klass iwwerholl: {{type}}",
+      "deleteAttribute": "Attribut läschen",
+      "extendsHint": "erweidert {{parents}}",
+      "attributeCount": "({{count}} Attr.)",
+      "addAttributePlaceholder": "+ Attribut dobäisetzen (Enter)",
+      "noAssociationsHint": "Keng Associatiounen disponibel — verbannt als éischt d'Quell- / Zilobjeten mat Klassen.",
+      "classLabel": "Klass",
+      "unlinked": "— Net verlinkt —",
+      "slotName": "Numm vum Attribut",
+      "objectName": "Numm vum Objet",
+      "addAttribute": "Attribut derbäisetzen"
+    },
+    "user": {
+      "rowStyle": "Zeilestil",
+      "deleteAttribute": "Attribut läschen",
+      "selectPlaceholder": "— auswielen —",
+      "stringValuePlaceholder": "Wäert (gëtt an Ufroungszeechen gesat: \"…\")",
+      "valuePlaceholder": "Wäert / Standard",
+      "metadata": "Metadaten",
+      "operator": "Operator",
+      "defaultValue": "Standardwäert",
+      "defaultValueQuoted": "Standardwäert (gëtt an Ufroungszeechen gesat: \"…\")",
+      "view": "Op der Aarbechtsfläch weise als"
+    },
+    "communication": {
+      "direction": "Richtung: {{direction}}",
+      "messagePlaceholder": "Noriicht {{index}}",
+      "duplicateMessage": "Duebel Noriicht",
+      "deleteMessage": "Noriicht läschen",
+      "addMessagePlaceholder": "+ Noriicht dobäisetzen",
+      "messageExists": "Dës Noriicht gëtt et schonn"
+    },
+    "bpmn": {
+      "startType": "Starttyp",
+      "intermediateType": "Zwëschentyp",
+      "endType": "Endtyp",
+      "taskType": "Aufgabentyp",
+      "gatewayType": "Gateway-Typ",
+      "marker": "Markéierung",
+      "markerParallelMultiInstance": "Parallel Multi-Instanz",
+      "markerSequentialMultiInstance": "Sequenziell Multi-Instanz",
+      "markerLoop": "Schleif",
+      "poolName": "Numm vum Pool",
+      "moveLaneUp": "Bunn no uewen réckelen",
+      "moveLaneDown": "Bunn no ënne réckelen",
+      "deleteLane": "Bunn läschen",
+      "newLaneName": "Numm vun der neier Bunn",
+      "addLane": "Bunn dobäisetzen",
+      "controlFlow": "Kontrollfloss",
+      "mergingNeedsDiverging": "Brauch eng agentesch verzweigend Gateway virdrun",
+      "orphanedMergingGateway": "Keng agentesch verzweigend Gateway virdrun: Dës Gateway schléisst kee Kollaboratiounsblock of."
+    },
+    "state": {
+      "italic": "kursiv",
+      "underline": "ënnerstrach",
+      "noBodyRows": "nach keng Aktiounszeilen",
+      "noFallbackBodyRows": "nach keng Feelerfall-Aktiounszeilen",
+      "deleteBody": "Aktioun läschen",
+      "deleteFallbackBody": "Feelerfall-Aktioun läschen",
+      "addBodyPlaceholder": "+ Aktioun dobäisetzen (Enter)",
+      "addFallbackBodyPlaceholder": "+ Feelerfall-Aktioun dobäisetzen (Enter)",
+      "fallbackActionPlaceholder": "Feelerfall-Aktioun",
+      "actionName": "Numm vun der Aktioun",
+      "language": "Sprooch",
+      "code": "Code",
+      "noOutgoingTransitions": "Nach keng erausgoend Iwwergäng.",
+      "instanceName": "Numm vun der Instanz",
+      "class": "Klass",
+      "unlinked": "— Net verlinkt —",
+      "eventHandlerPlaceholder": "Numm vun der Event-Handler-Funktioun",
+      "removeParameter": "Parameter {{index}} ewechhuelen",
+      "codeBlockName": "Funktiounsnumm (eidel = aus def)"
+    },
+    "useCase": {
+      "optionalAssociationLabel": "Optional Bezeechnung fir d'Associatioun"
+    },
+    "deployment": {
+      "optionalAssociationLabel": "Optional Bezeechnung fir d'Associatioun"
+    },
+    "petriNet": {
+      "arc": "Petri-Netz-Bou"
+    },
+    "reachability": {
+      "arc": "Erreechbarkeetsbou"
+    },
+    "syntaxTree": {
+      "relations": "Bezéiungen"
+    },
+    "sfc": {
+      "editTransition": "Transitioun änneren",
+      "condition": "Bedéngung",
+      "conditionPlaceholder": "Bedéngung vun der Transitioun aginn",
+      "showCrossbar": "Querbalken uweisen",
+      "negatedCondition": "Negéiert Bedéngung (Iwwerstréch)",
+      "actions": "Aktiounen",
+      "idPlaceholder": "ID",
+      "addActionName": "+ Numm vun der Aktioun dobäisetzen"
+    },
+    "multiplicityInvalidER": "Benotzt (min,max), z. B. (0,1), (1,N) – oder 1, 0..1, 1..*",
+    "multiplicityInvalid": "Benotzt z. B. 1, 0..1, *, 1..* oder 2..5",
+    "associationNameHiddenHint": "Op der Aarbechtsfläch verstoppt. Aktivéiert „Associatiounsnimm weisen“ an den Astellungen."
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -417,6 +597,7 @@
       "BPMNDataAssociationFlow": "Datenassociatioun",
       "BPMNDefaultSequenceFlow": "Standardfluss",
       "BPMNDataObject": "Datenobjet",
+      "BPMNDataStore": "Datespäicher",
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Bunn",
       "BPMNSwimlanes": "Bunnen",
@@ -451,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Zesummeféierend",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Roll",
-      "BPMNAgentRolePlaceholder": "z. B. solution"
+      "BPMNAgentRolePlaceholder": "z. B. solution",
+      "BPMNReflectionMode": "Reflexioun"
     },
     "NNDiagram": {
       "NNContainer": "Neuronaalt Netz",
@@ -476,12 +658,18 @@
       "TrainingDataset": "Trainingsdatesaz",
       "TestDataset": "Testdatesaz",
       "Datasets": "NN-Datesätz",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "SectionStructure": "NN-Struktur",
+      "SectionLayers": "NN-Schichten",
+      "SectionTensorOps": "NN-Tensor-Operatiounen",
+      "SectionConfiguration": "NN-Konfiguratioun"
     },
     "OCLConstraint": {
       "Constraint": "OCL-Aschränkung",
       "DescriptionPlaceholder": "z. B. Vergewëssert Iech, en realisteschen Alter ze wielen",
-      "DescriptionLabel": "Beschreiwung (gëtt de Endbenotzer gewisen, wann d'Validéierung feelt) Optional"
+      "DescriptionLabel": "Beschreiwung (gëtt de Endbenotzer gewisen, wann d'Validéierung feelt) Optional",
+      "expressionPlaceholder": "OCL-Ausdrock…",
+      "descriptionOptionalPlaceholder": "Beschreiwung (optional)"
     },
     "StateDiagram": {
       "StateTransition": "Iwwergang",
@@ -490,7 +678,12 @@
       "State": "Zoustand",
       "StateBody": "Aktioun",
       "StateFallbackBody": "Feelerfall-Aktioun",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "palette": {
+        "states": "Zoustänn",
+        "startEnd": "Ufank an Enn",
+        "code": "Code"
+      }
     },
     "AgentDiagram": {
       "StateTransition": "Iwwergang",
@@ -775,7 +968,27 @@
       "webCrawlNamePrefix": "Crawl:",
       "A2ASendTo": "Schécken un",
       "A2AReceiveFrom": "Empfänke vun",
-      "A2APeer": "Géigestell"
+      "A2APeer": "Géigestell",
+      "stateName": "Numm",
+      "italic": "kursiv",
+      "underline": "ënnerstrach",
+      "flipTransition": "Quell / Zil tauschen",
+      "transitionName": "Numm",
+      "parameters": "Parameteren",
+      "initTransition": "Ufankstransitioun",
+      "deleteInitTransition": "Ufankstransitioun läschen",
+      "intentDescriptionPlaceholder": "Beschreiwung vun deem, wat dësen Intent duerstellt",
+      "noTrainingPhrases": "nach keng Trainingssätz",
+      "trainingPhrasePlaceholder": "z. B. moien",
+      "deleteTrainingPhrase": "Trainingssaz läschen",
+      "card": {
+        "state": "Status",
+        "reasoning": "Reasoning",
+        "fallback": "Fallback",
+        "maxSteps": "≤ {{count}} Schrëtt",
+        "planning": "Planung",
+        "defaultLlm": "Standard"
+      }
     },
     "UserDiagram": {
       "UserModelName": "Benotzer",
@@ -791,7 +1004,21 @@
     "add": "Dobäisetzen",
     "remove": "Ewechhuelen",
     "width": "Breet",
-    "height": "Héicht"
+    "height": "Héicht",
+    "edgeType": "Verbindungstyp",
+    "edgeLabel": "Verbindungsbezeechnung",
+    "flipSourceTarget": "Quell / Zil tauschen",
+    "source": "Quell",
+    "target": "Zil",
+    "type": "Typ",
+    "delete": "Läschen",
+    "cancel": "Ofbriechen",
+    "none": "Keen",
+    "label": "Bezeechnung",
+    "value": "Wäert",
+    "dragToReorder": "Zéien, fir d'Reiefolleg z'änneren",
+    "addLowercase": "dobäisetzen",
+    "back": "Zréck"
   },
   "stylePane": {
     "enterUri": "URI aginn…",
@@ -815,6 +1042,13 @@
     "default": "Standard",
     "enterNumber": "Zuel aginn…",
     "derived": "Ofgeleet",
+    "rowTextColor": "Textfaarf vun der Zeil",
+    "rowFillColor": "Fëllfaarf vun der Zeil",
+    "rowStyle": "Zeilestil (Faarwen + Ikon)",
+    "rowColors": "Zeilefaarwen",
+    "toggleColorSettings": "Faarfastellungen un-/ausblenden",
+    "enterNodeName": "Numm vum Element aginn",
+    "rightClickToReset": "{{label}} (Rietsklick fir zréckzesetzen)",
     "colors": {
       "red": "Rout",
       "orange": "Orange",
@@ -837,21 +1071,58 @@
   },
   "propertiesPanel": {
     "close": "Zoumaachen",
+    "closeEditor": "Editor zoumaachen",
     "resize": "Eegeschaftsberäich upassen"
+  },
+  "toolbar": {
+    "undo": "Réckgängeg maachen (Ctrl+Z)",
+    "redo": "Widderhuelen (Ctrl+Y oder Ctrl+Shift+Z)",
+    "autoLayout": "Diagramm automatesch arrangéieren",
+    "autoLayoutOptions": "Optioune fir automatescht Arrangéieren",
+    "autoLayoutStrategy": {
+      "hierarchical": "Hierarchesch",
+      "compact": "Kompakt",
+      "horizontal": "Vu lénks no riets",
+      "vertical": "Vun uewen no ënnen"
+    },
+    "resetZoom": "Zoom op 100% zrécksetzen",
+    "minimap": "Iwwersiichtskaart",
+    "addAssociationClass": "Associatiounsklass derbäisetzen"
+  },
+  "comment": {
+    "link": "Kommentarverbindung"
   },
   "actions": {
     "edit": "Beaarbechten",
     "delete": "Läschen",
     "addConnectedObject": "Verbonnent Objet derbäisetzen",
     "swapEnds": "Enner tauschen",
-    "style": "Stil"
+    "style": "Stil",
+    "pasteRefusedOtherType": "Elementer, déi aus engem aneren Diagrammtyp kopéiert goufen, kënnen hei net agefüügt ginn."
   },
   "zoomPane": {
     "zoomIn": "Vergréisseren",
     "zoomOut": "Verklengeren",
-    "autoLayout": "Automatesche Layout"
+    "autoLayout": "Automatesche Layout",
+    "fitView": "Usiicht upassen"
   },
   "sidebar": {
-    "resize": "Palette upassen"
+    "resize": "Palette upassen",
+    "palette": "Elementpalette"
+  },
+  "connection": {
+    "refused": {
+      "enumeration": "Enumeratioune kënnen net verbonne ginn; benotzt se amplaz als Attributtypen.",
+      "objectNoAssociation": "D'Klasse vun dësen Objeten hunn am Klassendiagramm keng Associatioun.",
+      "nnEndpoint": "Datesätz a Konfiguratioune ginn nëmme mat engem NN-Container verbonnen.",
+      "nnConfigurationTaken": "Dëse NN-Container huet schonn eng Konfiguratioun.",
+      "bpmnCrossPool": "Sequenzflëss kënne keng Poole kräizen, an dëst Element ka keng Noriichtenflëss schécken.",
+      "bpmnIllegalFlow": "BPMN erlaabt kee Floss tëscht dësen Elementer.",
+      "bpmnMessageSamePool": "Endevenementer kënne kee Floss ufänken a Startevenementer keen empfänken; Noriichtenflëss verbannen nëmmen ënnerschiddlech Poolen.",
+      "stateCodeBlock": "Codeblocke ginn net verbonnen; verweist mam Numm op si aus engem Zoustandskierper oder enger Transitioun.",
+      "stateFinalOutgoing": "En Endzoustand schléisst den Zoustandsautomat of; keng Transitioun verléisst en.",
+      "stateInitialIncoming": "Den Ufankszoustand start nëmmen den Zoustandsautomat; keng Transitioun féiert dran.",
+      "generic": "Dës Elementer kënnen net verbonne ginn."
+    }
   }
 }

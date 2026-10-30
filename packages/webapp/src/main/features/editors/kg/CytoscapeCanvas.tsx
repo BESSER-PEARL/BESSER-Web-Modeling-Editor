@@ -5,9 +5,8 @@ import edgehandles from 'cytoscape-edgehandles';
 import fcose from 'cytoscape-fcose';
 import { buildKgStylesheet, kgStylesheet } from './stylesheet';
 import { buildStandaloneHtml, type StandaloneHtmlStrings } from './standaloneHtmlTemplate';
-import { KG_DRAG_MIME } from './types';
-import type { KgSelection, KnowledgeGraphData, KGNodeData, KGNodeType } from './types';
-import type { ConnectMode } from './KnowledgeGraphToolbar';
+import { KG_DRAG_MIME, KG_MAX_ZOOM, KG_MIN_ZOOM } from './types';
+import type { ConnectMode, KgSelection, KnowledgeGraphData, KGNodeData, KGNodeType } from './types';
 import type { KnowledgeGraphLayout } from '../../../shared/types/project';
 import { isEdgeAllowed, explainEdgeRejection } from './edge-rules';
 import { createCanvasKeyHandlers } from './canvasKeys';
@@ -173,6 +172,11 @@ export interface CytoscapeCanvasHandle {
    *  looking at the same place as they zoom). Clamped by minZoom/maxZoom. */
   zoomIn: () => void;
   zoomOut: () => void;
+  /** Zoom to 100% around the viewport center. */
+  resetZoom: () => void;
+  getZoom: () => number;
+  /** Calls `listener` whenever the zoom level changes; returns the unsubscribe. */
+  subscribeZoom: (listener: () => void) => () => void;
 }
 
 interface CytoscapeCanvasProps {
@@ -262,6 +266,9 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     onRelationRejectedRef.current = onRelationRejected;
     const onRequestDeleteRef = useRef(onRequestDelete);
     onRequestDeleteRef.current = onRequestDelete;
+    // Zoom subscribers (the controls bar's readout), outside React state so a
+    // wheel zoom re-renders only them.
+    const zoomListenersRef = useRef(new Set<() => void>());
     // State for one drag-to-connect gesture, from `ehstart` to `ehstop`.
     // While `active`, edgehandles is adding and removing its own transient
     // elements — we must not treat those churn events as user edits.
@@ -370,6 +377,15 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       },
       zoomIn: () => zoomAtViewportCenter(ZOOM_STEP),
       zoomOut: () => zoomAtViewportCenter(1 / ZOOM_STEP),
+      resetZoom: () => {
+        const cy = cyRef.current;
+        if (cy) zoomAtViewportCenter(1 / cy.zoom());
+      },
+      getZoom: () => cyRef.current?.zoom() ?? 1,
+      subscribeZoom: (listener) => {
+        zoomListenersRef.current.add(listener);
+        return () => zoomListenersRef.current.delete(listener);
+      },
       clearSelection: () => {
         const cy = cyRef.current;
         if (!cy) return;
@@ -433,8 +449,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         style: buildKgStylesheet(darkThemeRef.current),
         layout: { name: 'preset' },
         wheelSensitivity: 0.2,
-        minZoom: 0.1,
-        maxZoom: 4,
+        minZoom: KG_MIN_ZOOM,
+        maxZoom: KG_MAX_ZOOM,
         // Disable panning so plain drag on the empty canvas initiates a
         // rubber-band box selection (Cytoscape's fallback when panning is
         // off). Panning is re-enabled while the user holds Space — see the
@@ -445,6 +461,22 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         boxSelectionEnabled: true,
       });
       cyRef.current = cy;
+
+      // The grid (`.kg-canvas-grid`) pans and scales with the graph, like the
+      // React Flow editors' background.
+      const gridHost = containerRef.current!;
+      const syncViewport = () => {
+        const zoom = cy.zoom();
+        const { x, y } = cy.pan();
+        gridHost.style.setProperty('--kg-grid-zoom', String(zoom));
+        gridHost.style.setProperty('--kg-grid-x', `${x}px`);
+        gridHost.style.setProperty('--kg-grid-y', `${y}px`);
+      };
+      const notifyZoom = () => zoomListenersRef.current.forEach((listener) => listener());
+      syncViewport();
+      notifyZoom();
+      cy.on('viewport', syncViewport);
+      cy.on('zoom', notifyZoom);
 
       // Relation creation is a drag gesture powered by cytoscape-edgehandles,
       // armed only while the toolbar's "Add relation" mode is on. Draw mode
@@ -839,7 +871,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       <div
         ref={containerRef}
         data-testid="kg-canvas"
-        className={`relative h-full w-full bg-background${
+        className={`kg-canvas-grid relative h-full w-full${
           connectMode === 'connect' ? ' cursor-crosshair' : ''
         }`}
         onDragOver={(e) => {

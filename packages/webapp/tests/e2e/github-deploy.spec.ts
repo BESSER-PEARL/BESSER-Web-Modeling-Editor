@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createBlankProject } from './helpers/project';
 
 /**
  * GitHub deploy contract — UI-driven e2e for the V2 ``projectExport`` envelope.
@@ -50,9 +51,10 @@ test.describe('GitHub deploy: projectExport envelope', () => {
     await page.goto('/');
     await createProject(page, 'Deploy_E2E_Project', { saveOnGithub: false });
 
-    // The envelope filters out empty diagrams (see diagramHasContent), so seed
-    // one Class element into the active project's ClassDiagram before opening
-    // the deploy dialog. Otherwise envelope.project.diagrams would be `{}`.
+    // The envelope filters out empty diagrams (see diagramHasContent, which
+    // counts only v4 `nodes` / `edges`), so seed one v4 class node into the
+    // active project's ClassDiagram before opening the deploy dialog.
+    // Otherwise envelope.project.diagrams would be `{}`.
     await page.evaluate(() => {
       const latestId = localStorage.getItem('besser_latest_project');
       if (!latestId) return;
@@ -61,18 +63,19 @@ test.describe('GitHub deploy: projectExport envelope', () => {
       if (!raw) return;
       const project = JSON.parse(raw);
       const classDiag = project?.diagrams?.ClassDiagram?.[0];
-      if (!classDiag) return;
-      classDiag.model = classDiag.model || {};
-      classDiag.model.elements = {
-        'el-1': {
+      if (!classDiag?.model) return;
+      classDiag.model.nodes = [
+        {
           id: 'el-1',
-          name: 'FooClass',
-          type: 'Class',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 200, height: 100 },
+          type: 'class',
+          position: { x: 0, y: 0 },
+          width: 200,
+          height: 100,
+          measured: { width: 200, height: 100 },
+          data: { name: 'FooClass', attributes: [], methods: [] },
         },
-      };
-      classDiag.model.relationships = classDiag.model.relationships || {};
+      ];
+      classDiag.model.edges = Array.isArray(classDiag.model.edges) ? classDiag.model.edges : [];
       localStorage.setItem(key, JSON.stringify(project));
     });
   });
@@ -132,6 +135,14 @@ test.describe('GitHub deploy: projectExport envelope', () => {
     expect(typeof capturedBody.projectExport.project).toBe('object');
     expect(capturedBody.projectExport.project.diagrams).toBeTruthy();
     expect(Object.keys(capturedBody.projectExport.project.diagrams).length).toBeGreaterThan(0);
+    // The seeded v4 class node must survive the content filter.
+    const classDiagrams = capturedBody.projectExport.project.diagrams.ClassDiagram;
+    expect(Array.isArray(classDiagrams)).toBe(true);
+    expect(
+      classDiagrams.some((d: any) =>
+        Array.isArray(d?.model?.nodes) && d.model.nodes.some((n: any) => n?.data?.name === 'FooClass'),
+      ),
+    ).toBe(true);
   });
 });
 

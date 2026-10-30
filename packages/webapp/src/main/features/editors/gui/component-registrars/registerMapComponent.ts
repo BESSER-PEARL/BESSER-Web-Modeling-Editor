@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import leafletCss from 'leaflet/dist/leaflet.css?inline';
 import { MapConfig } from '../configs/mapConfig';
 import registerLayerManagerTrait, { parseLayers } from '../traits/registerLayerManagerTrait';
+import { unmountReactRootLater } from './unmountReactRootLater';
 
 /** Zoom level used when the `map-zoom` attribute is missing or unparseable. */
 const DEFAULT_ZOOM = 12;
@@ -150,10 +151,7 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
         );
       },
       removed() {
-        if ((this as any).__reactRoot) {
-          (this as any).__reactRoot.unmount();
-          (this as any).__reactRoot = null;
-        }
+        unmountReactRootLater(this as any);
       },
     },
 

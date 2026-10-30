@@ -127,7 +127,7 @@ describe('Save it on GitHub', () => {
       type: 'error',
       render: 'Your project was created, but saving it on GitHub failed: An internal error occurred while creating the repository.',
     })));
-    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shop'));
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shop'), expect.anything());
     expect(ProjectStorageRepository.loadProject(project.id)).not.toBeNull();
     expect(getProjectGitHubLink(project.id)).toBeNull();
   });

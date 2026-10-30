@@ -10,17 +10,19 @@ import { createDefaultProject, createEmptyDiagram, ProjectDiagram } from '../../
 
 const STATE = {
   id: 'state-1',
-  name: 'Idle',
   type: 'AgentState',
-  owner: null,
-  bounds: { x: 0, y: 0, width: 200, height: 70 },
-};
+  position: { x: 0, y: 0 },
+  width: 200,
+  height: 70,
+  measured: { width: 200, height: 70 },
+  data: { name: 'Idle', bodies: [], fallbackBodies: [] },
+} as unknown as UMLModel['nodes'][number];
 
 const LLM = { id: 'llm-1', name: 'gpt-4o', type: 'AgentLLM', owner: null, provider: 'openai' };
 
 function agentModel(extra: Partial<UMLModel> = {}): UMLModel {
   const model = createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram).model as UMLModel;
-  return { ...model, elements: { [STATE.id]: STATE } as UMLModel['elements'], ...extra };
+  return { ...model, nodes: [STATE], ...extra };
 }
 
 function agentDiagram(model: UMLModel, extra: Record<string, unknown> = {}): ProjectDiagram {
@@ -34,7 +36,7 @@ describe('prepareAgentModelForBackend', () => {
     const model = agentModel({ components: { [LLM.id]: LLM } as UMLModel['components'] });
     const prepared = prepareAgentModelForBackend(model, null);
     expect(prepared.components).toEqual({ [LLM.id]: LLM });
-    expect(prepared.elements[STATE.id]).toBeDefined();
+    expect(prepared.nodes.find((n) => n.id === STATE.id)).toBeDefined();
   });
 
   it('attaches the stored diagram components to a canvas snapshot without components', () => {
@@ -50,11 +52,20 @@ describe('prepareAgentModelForBackend', () => {
     expect((prepared as { agentComponents?: unknown }).agentComponents).toBeUndefined();
   });
 
-  it('moves component elements out of the canvas elements', () => {
+  it('moves legacy component nodes out of the canvas nodes', () => {
     const model = agentModel();
-    model.elements[LLM.id] = { ...LLM, bounds: { x: 1, y: 1, width: 1, height: 1 } } as UMLModel['elements'][string];
+    const { id, type, ...data } = LLM;
+    model.nodes.push({
+      id,
+      type,
+      position: { x: 1, y: 1 },
+      width: 1,
+      height: 1,
+      measured: { width: 1, height: 1 },
+      data,
+    } as unknown as UMLModel['nodes'][number]);
     const prepared = prepareAgentModelForBackend(model, null);
-    expect(prepared.elements[LLM.id]).toBeUndefined();
+    expect(prepared.nodes.find((n) => n.id === LLM.id)).toBeUndefined();
     expect(prepared.components?.[LLM.id]).toEqual(LLM);
   });
 
@@ -96,6 +107,6 @@ describe('buildProjectPayloadForBackend', () => {
     const payload = buildProjectPayloadForBackend(project) as { diagrams: { AgentDiagram: ProjectDiagram[] } };
     const sent = payload.diagrams.AgentDiagram[0].model as UMLModel;
     expect(sent.components).toEqual({ [LLM.id]: LLM });
-    expect(sent.elements[STATE.id]).toBeDefined();
+    expect(sent.nodes.find((n) => n.id === STATE.id)).toBeDefined();
   });
 });

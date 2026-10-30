@@ -14,19 +14,21 @@ It talks to the BESSER Python/FastAPI backend for generation, validation, GitHub
   `besser/utilities/web_modeling_editor/frontend`
 - Modeling agent (the assistant's WebSocket backend): https://github.com/BESSER-PEARL/modeling-agent
 - Long-form docs: `docs/source/` (`contributing/codebase-guide.rst` for the package tour)
+- Diagram wire format (v4, React Flow `{nodes, edges}`): BESSER `docs/source/migrations/uml-v4-shape.md` — the
+  contract shared by `packages/library`, the webapp and the backend converters
 
 ## Monorepo
 
-npm workspaces (root `package.json`): `packages/server`, `packages/webapp`, `packages/editor`.
+npm workspaces (root `package.json`): `packages/server`, `packages/webapp`, `packages/library`.
 
 | Package | npm name | Purpose |
 |---------|----------|---------|
 | `packages/webapp` | `webapp` | Main React SPA (Vite + React 18 + Tailwind + Radix UI) |
-| `packages/editor` | `@besser/wme` | Core diagramming engine |
+| `packages/library` | `@besser/wme` | Core diagramming engine (React Flow + Zustand), also published to npm |
 | `packages/server` | `server` | Express server: serves the built webapp + two small endpoints |
 | `packages/i18n` | — | Translation bundles. **Not a workspace**; imported by relative path |
 
-> `--workspace=editor` does NOT resolve (the package is named `@besser/wme`). Use `--workspace=@besser/wme`.
+> `--workspace=library` does NOT resolve (the package is named `@besser/wme`). Use `--workspace=@besser/wme`.
 
 ## Essential Commands
 
@@ -35,7 +37,7 @@ Node >= 20. Run from the monorepo root.
 ```bash
 npm install
 npm run dev                 # Vite dev server on http://localhost:8080; needs the backend on :9000
-npm run dev:editor          # editor package's own webpack dev server
+npm run dev:editor          # the library package's own Vite dev server
 
 npm run build               # webapp + server into build/
 npm run build:webapp        # webapp only
@@ -44,10 +46,13 @@ npm run start:server        # Express on :8080, after building
 
 # There is no `test` script at the root
 npm run test --workspace=webapp            # Vitest unit tests (also test:watch, test:coverage)
+npm run test --workspace=@besser/wme       # Vitest unit tests for the library
 npm run test:e2e --workspace=webapp        # Playwright, tests in packages/webapp/tests/e2e/ (also test:e2e:ui)
+npx tsc -p packages/library --noEmit       # library typecheck
+npx tsc -p packages/webapp --noEmit        # webapp typecheck
 
-npm run lint                               # ESLint for webapp + server; NOT the editor package
-npm run lint --workspace=@besser/wme       # editor package
+npm run lint                               # ESLint for webapp + server; NOT the library package
+npm run lint --workspace=@besser/wme       # library package
 npm run prettier:check                     # / prettier:write
 npm run i18n:check                         # translation coverage (warnings only)
 npm run i18n:validate                      # strict translation check
@@ -58,8 +63,8 @@ here nor in the parent BESSER repo, whose `ci.yml` does not build the frontend. 
 
 ## Where Things Live
 
-Stack: Vite 7 (webapp) / Webpack (server, editor), React 18.2, TypeScript 5.6 strict, Redux Toolkit, Radix UI +
-Tailwind (webapp; the editor package uses styled-components and its own internal Redux store), react-i18next.
+Stack: Vite 7 (webapp, library) / Webpack (server), React 18.2, TypeScript 5.6 strict, Redux Toolkit (webapp),
+React Flow (`@xyflow/react`) + Zustand + Yjs (library), Radix UI + Tailwind, react-i18next.
 
 Webapp (`packages/webapp/src/main/`):
 
@@ -69,8 +74,9 @@ Webapp (`packages/webapp/src/main/`):
 | `app/shell/` | `WorkspaceShell`, top bar, sidebar, `workspace-navigation.tsx`, `menus/` (incl. `generator-menu-config.ts`) |
 | `app/store/` | `store.ts`, `workspaceSlice.ts`, `errorManagementSlice.ts`, typed hooks in `hooks.ts` |
 | `app/hooks/` | `useProject`, `useProjectBootstrap`, `useStorageSync` |
-| `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, Knowledge Graph → Cytoscape, rest → Apollon), `uml/`, `gui/`, `quantum/`, `kg/`, `diagram-tabs/` |
-| `features/assistant/` | AI assistant: WebSocket client, `services/converters/`, `services/modifiers/` |
+| `features/editors/` | `EditorView.tsx` (dispatch: GUI → GrapesJS, quantum → custom, Knowledge Graph → Cytoscape, rest → BesserEditor), `uml/`, `gui/`, `quantum/`, `kg/`, `diagram-tabs/` |
+| `features/assistant/` | AI assistant: WebSocket client, `services/converters/`, `services/modifiers/`, `services/shared/v4Builders.ts` |
+| `features/inter-diagram/` | Derivations BPMN → Component → Deployment and agentic lane → Agent diagram (v4-native), the agent-diagram linker and element picker the editor calls back into, derivation warnings |
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
 | `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
@@ -78,15 +84,61 @@ Webapp (`packages/webapp/src/main/`):
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
 | `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
+| `shared/services/storage/migrate-uml-v3-to-v4.ts` | Lifts stored v3 diagram models to v4 on load and on import |
 | `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
-| `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
+| `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION`, `ensureProjectMigrated` |
+| `shared/utils/lineageHash.ts` | Source-model hash on `derivedFrom`; a mismatch shows the "source changed" banner |
 | `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store; its providers and models come from the backend's model catalog (`/spec-driven/config` → `providers`) |
 
-Editor (`packages/editor/src/main/`): `apollon-editor.ts` (public `ApollonEditor` API), `index.ts` (public
-surface), `packages/<diagram-family>/` plus the registries `components.ts`, `uml-elements.ts`,
-`compose-preview.ts`, `popups.ts`, `diagram-type.ts`; `services/` (CRUD, undo, layout, patcher, settings),
-`scenes/`, `components/`. Translation strings for both packages live in
-`packages/i18n/<locale>/{editor,webapp}.json` (`en`, `lb`, `de`, `fr`, `es`, `ca`), not inside the editor.
+Library (`packages/library/lib/`):
+
+```
+packages/library/lib/
+├── besser-editor.tsx           # Public API (BesserEditor class)
+├── index.tsx                   # npm entry point — re-exports public types
+├── App.tsx                     # Top-level React Flow root
+├── nodes/                      # React Flow node components per diagram
+│   ├── classDiagram/           #   Class, AbstractClass, Interface, Enumeration, OCL
+│   ├── objectDiagram/          #   Object instances, links
+│   ├── stateMachineDiagram/    #   States, transitions, initial/final/fork/merge
+│   ├── agentDiagram/           #   Agent states, intents, RAG, transitions
+│   ├── nnDiagram/              #   NN container, layers, references
+│   ├── userDiagram/            #   User-modelling nodes
+│   ├── bpmn/                   #   BPMN tasks, events, gateways, pools, lanes
+│   ├── componentDiagram/       #   Components, subsystems, interfaces
+│   ├── deploymentDiagram/      #   Nodes, components, artifacts, interfaces
+│   ├── flowchart/              #   Flowchart shapes
+│   └── common/                 #   Shared node wrappers / handles
+├── edges/                      # React Flow edge renderers
+│   ├── edgeTypes/              #   ClassDiagramEdge, StateMachineDiagramEdge, …
+│   ├── EdgeProps.ts            #   Shared edge data types
+│   └── Connection.ts           #   Routing helpers
+├── components/
+│   ├── inspectors/             # Property panels per diagram type
+│   ├── popovers/               # PopoverManager + per-edge popovers
+│   ├── svgs/                   # Palette preview SVGs
+│   ├── toolbars/               # Node / canvas toolbars
+│   └── ui/                     # Shared inputs, dividers, dropdowns
+├── store/                      # Zustand stores
+│   ├── diagramStore.ts         #   Nodes / edges / selection / undo (Yjs-backed)
+│   ├── metadataStore.ts        #   Diagram name, type, mode, view
+│   ├── popoverStore.ts         #   Active popover / inspector state
+│   └── context.tsx             #   React context providers + hooks
+├── services/                   # Domain logic (NO UI)
+│   ├── diagramBridge.ts        #   Cross-diagram data sharing
+│   ├── settingsService.ts      #   Application display settings
+│   ├── errors.ts               #   BesserError broadcast channel
+│   └── userMetaModel/          #   User-Diagram reference metamodel
+├── sync/                       # Yjs collaboration adapter (YjsSyncClass)
+├── types/                      # DiagramType + per-node data shapes (types/nodes/NodeProps.ts)
+├── utils/                      # Pure utilities: versionConverter.ts (v3 → v4 migrator), autoLayout.ts (ELK),
+│                               #   helpers.ts, classifierMemberDisplay.ts, multiplicity.ts, typeNormalization.ts
+├── hooks/                      # React hooks (useConnect, useEdges, …)
+└── constants.ts                # Layout constants, palette sizes, grid snap
+```
+
+Translation strings for both packages live in `packages/i18n/<locale>/{editor,webapp}.json` (`en`, `lb`, `de`,
+`fr`, `es`, `ca`), not inside the library. English is the source of truth and the runtime fallback.
 
 ## Assistant and Agentic Integration
 
@@ -100,13 +152,20 @@ First-class part of the app, with two independent backends.
 - URL is `UML_BOT_WS_URL` (default `ws://localhost:8765`). The socket carries a per-tab `session_id` and a
   `localStorage`-persisted `user_id` query param — BAF keys backend sessions on it; without it every reconnect
   wipes conversation memory.
+- The project snapshot sent as context carries **v4** diagram models; the modeling agent normalizes them to its
+  internal shape at its protocol boundary. Agent replies are format-agnostic specs that the converters turn into
+  v4 nodes/edges (`services/shared/v4Builders.ts`).
 - Incoming payloads are filtered by `KNOWN_ACTIONS`. `SIDE_EFFECT_ACTIONS` are honoured **only** as the whole
   structured reply, never scraped out of prose (prompt-injection guard; see
   `services/__tests__/AssistantClient.injection.test.ts`).
-- Converters (agent JSON → editor model) and modifiers (incremental edits) cover 8 types: Class, Object,
-  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN. **`NNDiagram` is deliberately absent**, and
-  `KnowledgeGraphDiagram` is not supported (its model is not Apollon's; injection refuses to write one). A new type
-  needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
+- Converters (agent JSON → editor model) and modifiers (incremental edits) cover 10 types: Class, Object,
+  StateMachine, Agent, QuantumCircuit, GUINoCode, User, BPMN, Component, Deployment. **`NNDiagram` is deliberately
+  absent**, and `KnowledgeGraphDiagram` is not supported (its model is not a UML model; injection refuses to write
+  one). A new type needs a converter **and** a modifier — a converter without a modifier silently falls back to the
+  ClassDiagram one.
+- Assistant edges carry no route points (`points: []`); the editor routes them. Agentic BPMN keys are written only
+  on elements the agent marks agentic, and a gateway `governanceDsl` that is a policy keyword (`consensus`,
+  `majority`, …) is expanded with the library's `generateGovernanceDsl`.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
 
 **Spec-Driven Agent — HTTP + SSE to the BESSER backend.**
@@ -150,9 +209,11 @@ Features in `src/main/features/` must NOT import from other features; cross-feat
 
 ### Path aliases (webapp)
 Defined in `tsconfig.json`, `vite.config.ts` **and** `vitest.config.ts` — change all three:
-`@/` → `src/`; `@besser/wme` → `../editor/src/main/index.ts` (local source in dev **and** production — the webapp
-has no npm dependency on the package); `shared` → `../shared/src/index.ts` (legacy; `packages/shared` does not
-exist); `webapp/*` → `./*`.
+`@/` → `src/` for webapp files but `lib/` for library files (a conditional resolver in `vite.config.ts` picks the
+base from the importer, since the library uses `@/*` internally); `@besser/wme` → `../library/lib/index.tsx`
+(local source in dev **and** production — the webapp has no npm dependency on the package); `shared` →
+`../shared/src/index.ts` (legacy; `packages/shared` does not exist); `webapp/*` → `./*`. The server's
+`webpack.config.js` needs the same `@besser/wme` and `@` aliases.
 
 ### API communication
 Most calls go through `shared/api/api-client.ts` (`request`, `get`, `post`, `upload`, `downloadBlob`; per-request
@@ -166,38 +227,48 @@ tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYO
 session id, and assistant UI state. `localStorage` holds projects (`besser_projects`, `besser_latest_project`,
 `besser_project_<id>`), preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery
 pointer (no key, prompt or content). Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
-(the v3 storage migration deletes the old `besser_systemConfig`). Project storage format:
-`docs/source/webapp/local-projects.rst`.
+(the v3 storage migration deletes the old `besser_systemConfig`). Stored v3 diagram models are lifted to v4 on
+read. Project storage format: `docs/source/webapp/local-projects.rst`.
 
 ### Display settings (settingsService)
-`packages/editor/src/main/services/settings/settings-service.ts` stores display preferences under
-`besser-standalone-settings` (incl. `classNotation: 'UML' | 'ER'`, rendering only). Components read it
-**synchronously at render time** and don't subscribe. For a toggle to repaint live, extend the existing
-`settingsService.onSettingsChange` listener in `packages/editor/src/main/scenes/application.tsx` and mirror the
-field into component state — that `setState` is what re-renders the subtree.
+`packages/library/lib/services/settingsService.ts` stores display preferences under `besser-standalone-settings`
+(incl. `classNotation: 'UML' | 'ER'`, rendering only). Components read it **synchronously at render time** (e.g.
+`settingsService.shouldShowAssociationNames()`) and don't subscribe. For a toggle to repaint live, mirror the
+field into Zustand state via `settingsService.onSettingsChange` — that `setState` is what re-renders the subtree.
+Don't bump `editorRevision` for view-only toggles.
 
-### Custom SVG rendering
-The editor draws custom SVG (not React-Flow). Theme-aware wrappers (`ThemedRect`, `ThemedPath`,
-`ThemedPolyline`) are in `packages/editor/src/main/components/theme/themedComponents.ts`. Raw `<polygon>`,
-`<rect>`, `<ellipse>` **bypass the theme**, so give optional colors a fallback:
-`stroke={element.strokeColor || 'currentColor'}`, `fill={element.fillColor || 'white'}`. The `Text` control
-(`components/controls/text/text.tsx`) forwards unknown props to `<text>` (e.g. `textDecoration="underline"`).
+### Node and edge rendering
+Every node has a React Flow component under `packages/library/lib/nodes/<diagramType>/` and every edge a renderer
+under `packages/library/lib/edges/edgeTypes/`. Node components draw plain SVG inside a `<DefaultNodeWrapper>`
+(which owns the selection / drag handles). Theme-aware colours flow through CSS variables (`--besser-background`,
+`--besser-primary-contrast`, `--besser-gray`, …); raw SVG primitives bypass the theme, so give optional colours a
+fallback: `stroke={data.strokeColor || 'var(--besser-primary-contrast, #000)'}`, `fill={data.fillColor || 'white'}`.
 
 ## Adding a Diagram Element
-Register it in all four registries in `packages/editor/src/main/packages/`: `components.ts` (render component),
-`uml-elements.ts` (model class), `compose-preview.ts` (palette preview), `popups.ts` (property popup). The
-implementation (model class extending `UMLElement` / `UMLRelationship`, React component, update function) goes in
-the diagram package, e.g. `packages/uml-class-diagram/your-element/`.
+Create the node component under `packages/library/lib/nodes/<diagramType>/<YourNode>.tsx` and register it in that
+folder's `index.ts`. Then:
+1. Add the data shape to `packages/library/lib/types/nodes/NodeProps.ts` (`YourNodeProps` extending `DefaultNodeProps`)
+2. Add an inspector panel in `packages/library/lib/components/inspectors/<diagramType>/<YourNode>EditPanel.tsx` and
+   register it in the inspector `index.ts`
+3. Add a palette preview in `packages/library/lib/components/svgs/nodes/<diagramType>/<YourDiagram>SVGs.tsx`
+4. Route the popover in `packages/library/lib/components/popovers/PopoverManager.tsx`
+5. Document the `node.data` fields in BESSER's `docs/source/migrations/uml-v4-shape.md` and teach the backend
+   converters (`json_to_buml` / `buml_to_json`) to read and emit them
+
+For a new edge, mirror the steps under `packages/library/lib/edges/edgeTypes/` and
+`components/inspectors/<diagramType>/<YourEdge>EditPanel.tsx`.
 
 ## Adding a Diagram Type
-1. Add it to `diagram-type.ts` (`UMLDiagramType`), create its package, register its elements in the four registries
+1. Add it to `packages/library/lib/types/DiagramType.ts` (`UMLDiagramType`); create `nodes/<yourDiagram>/`, edges,
+   inspectors and palette previews as above
 2. Add it to `SupportedDiagramType`, `ALL_DIAGRAM_TYPES` and `BesserProject.diagrams` in `shared/types/project.ts`,
    and bump `PROJECT_SCHEMA_VERSION` with a migration
 3. Sidebar/nav in `app/shell/workspace-navigation.tsx`; an editor branch in `features/editors/EditorView.tsx` if it
    needs a non-UML canvas
 4. Generate-menu entries in `app/shell/menus/generator-menu-config.ts`
 5. Assistant support: a converter **and** a modifier under `features/assistant/services/`
-6. Backend support if it needs generation/validation
+6. A `case` in `packages/library/lib/utils/versionConverter.ts` if legacy v3 fixtures need to be lifted to v4
+7. Backend support if it needs generation/validation
 
 Walkthrough: `docs/source/contributing/new-diagram-guide/`.
 
@@ -205,10 +276,18 @@ Walkthrough: `docs/source/contributing/new-diagram-guide/`.
 - **Project types (12)**, max 5 of each per project: `ClassDiagram`, `ObjectDiagram`, `StateMachineDiagram`,
   `AgentDiagram`, `UserDiagram`, `GUINoCodeDiagram`, `QuantumCircuitDiagram`, `NNDiagram`, `BPMN`,
   `ComponentDiagram`, `DeploymentDiagram`, `KnowledgeGraphDiagram` (`BPMN` maps to the wire value `'BPMNDiagram'`).
-- The editor engine also carries Activity, UseCase, Communication, PetriNet, ReachabilityGraph, SyntaxTree
-  and Flowchart types; these are **not** reachable from the webapp UI.
-- `KnowledgeGraphDiagram` is not an Apollon diagram: its model is `KnowledgeGraphData` (`shared/types/project.ts`)
-  and it has no UML form, so SVG/PNG/UML-JSON exports do not apply to it (see below).
+- The agentic perspective (BPMN, Agent, Component, Deployment all visible) turns on the editor's agentic BPMN
+  controls (`agenticEnabled`); `shared/perspectives.ts`.
+- Project schema: `PROJECT_SCHEMA_VERSION` is 7. 5 lifted stored v3 models to v4 (`migrateProjectToV5`, which also
+  restamps lineage hashes); 6 made Component and Deployment project types; 7 made Knowledge Graph a project type
+  (the KG build stamped that step 6, so it runs on every project below 7). Imports are migrated before they are
+  stored.
+- The library also carries Activity, UseCase, Communication, PetriNet, ReachabilityGraph, SyntaxTree and Flowchart
+  types; these are **not** reachable from the webapp UI.
+- `GUINoCodeDiagram` (GrapesJS), `QuantumCircuitDiagram` (custom canvas) and `KnowledgeGraphDiagram` (Cytoscape)
+  keep their own formats; they are not v4 UML models and the v3→v4 migrators skip them by diagram type
+  (`hasCustomEditor`). A KG model's `nodes`/`edges` look like v4 ones, so `isUMLModel` and `isKnowledgeGraphData`
+  tell them apart by `type`. KG has no UML form, so SVG/PNG/UML-JSON exports do not apply to it (see below).
 
 ## Environment Variables
 All configuration is **build time** — no runtime config endpoint. `vite.config.ts` passes exactly seven names to
@@ -223,13 +302,13 @@ Full reference: `docs/source/reference/environment.rst`.
 - `packages/server` reads only `DEPLOYMENT_URL` and `SENTRY_DSN` at runtime; its port is hardcoded to 8080.
 
 ## Testing and Style
-- Unit tests: Vitest + jsdom (`packages/webapp/vitest.config.ts`, setup `src/test/setup.ts`, pattern
-  `src/**/*.{test,spec}.{ts,tsx}`), in `__tests__/` folders next to the code. If invoking Playwright
-  directly (not via the workspace script), do it from `packages/webapp`, where its config lives.
-- `packages/editor` has **no `test` script**; its Jest `src/tests/unit/` tree is not runnable as configured.
-  Editor changes are covered only through webapp tests.
-- ESLint per package (`packages/*/.eslintrc.js`) is permissive: `any` and `ts-ignore` are warnings. Warnings are
-  acceptable, errors must be fixed. `_` prefix for intentionally unused variables.
+- Unit tests: Vitest + jsdom in both `packages/webapp` (`vitest.config.ts`, setup `src/test/setup.ts`, pattern
+  `src/**/*.{test,spec}.{ts,tsx}`, in `__tests__/` folders next to the code) and `packages/library`
+  (`vitest.config.ts`). Webapp tests that import the library need the `canvas.getContext` mock in the webapp
+  setup (the library measures SVG text at module-eval time). If invoking Playwright directly (not via the
+  workspace script), do it from `packages/webapp`, where its config lives.
+- ESLint per package is permissive: `any` and `ts-ignore` are warnings. Warnings are acceptable, errors must be
+  fixed. `_` prefix for intentionally unused variables.
 - Tailwind for webapp styling (no inline styles or CSS modules); Radix UI for accessible primitives.
 - User-facing strings go through `react-i18next`; `packages/i18n/en/webapp.json` is the source of truth.
 - GUI editor: GrapesJS loaded dynamically, component registrars in `features/editors/gui/component-registrars/`,

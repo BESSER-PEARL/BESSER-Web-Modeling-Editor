@@ -13,9 +13,10 @@ const DEPLOYMENT_DIAGRAM_REQUIRED = /DeploymentDiagram is required for the Docke
 /** True when some element of the diagram carries an Agent diagram link. */
 function hasLinkedAgent(diagram: ProjectDiagram | null | undefined): boolean {
   if (!diagram || !isUMLModel(diagram.model)) return false;
-  return Object.values(diagram.model.elements).some(
-    (el) => 'agentModelRef' in el && typeof el.agentModelRef === 'string' && el.agentModelRef.length > 0,
-  );
+  return diagram.model.nodes.some((node) => {
+    const ref = (node.data as { agentModelRef?: unknown }).agentModelRef;
+    return typeof ref === 'string' && ref.length > 0;
+  });
 }
 
 /**

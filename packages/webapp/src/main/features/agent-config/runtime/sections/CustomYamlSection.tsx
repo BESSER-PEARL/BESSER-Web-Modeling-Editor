@@ -1,12 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SectionHeader } from '../runtimeFields';
-import { useYamlCodeMirror } from '../useYamlCodeMirror';
+import { YamlCodeEditor } from '../YamlCodeEditor';
 import type { ConfigSectionProps } from './types';
 
 export function CustomYamlSection({ runtime: { customYaml, customYamlError, updateCustomYaml } }: ConfigSectionProps) {
   const { t } = useTranslation();
-  const editorRef = useYamlCodeMirror(customYaml, updateCustomYaml);
   return (
     <>
       <SectionHeader
@@ -19,10 +18,7 @@ export function CustomYamlSection({ runtime: { customYaml, customYamlError, upda
             <span className="font-semibold">{t('agentConfig.yamlEditor.syntaxError')}</span> {customYamlError}
           </div>
         )}
-        <div
-          ref={editorRef}
-          className="overflow-hidden rounded-md border border-input [&_.CodeMirror]:min-h-[200px] [&_.CodeMirror]:font-mono [&_.CodeMirror]:text-sm"
-        />
+        <YamlCodeEditor value={customYaml} onChange={updateCustomYaml} />
       </div>
     </>
   );

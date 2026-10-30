@@ -272,4 +272,78 @@ describe('ProjectStorageRepository', () => {
       expect(listener).not.toHaveBeenCalled();
     });
   });
+
+  // ── Pre-migration (v3) backup ──────────────────────────────────────────
+  // Rolling back to the old editor: it renders a v4 project empty and its
+  // autosave overwrites it with an empty v3 model. The original v3 project
+  // must survive under its own key, written once and never overwritten.
+
+  describe('pre-migration v3 backup', () => {
+    const v3ClassModel = {
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      size: { width: 400, height: 300 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        c1: { id: 'c1', name: 'Book', type: 'Class', owner: null, bounds: { x: 0, y: 0, width: 160, height: 100 } },
+      },
+      relationships: {},
+      assessments: {},
+    };
+    const storeV3Project = (): { id: string; raw: string } => {
+      const project = createDefaultProject('Legacy', '', '') as any;
+      project.schemaVersion = 4;
+      project.diagrams.ClassDiagram[0].model = v3ClassModel;
+      const raw = JSON.stringify(project);
+      localStorage.setItem(`${localStorageProjectPrefix}${project.id}`, raw);
+      localStorage.setItem(localStorageProjectsList, JSON.stringify([project.id]));
+      return { id: project.id, raw };
+    };
+
+    it('stores the untouched v3 project under its backup key on first load', () => {
+      const { id, raw } = storeV3Project();
+      const loaded = ProjectStorageRepository.loadProject(id);
+      expect(Array.isArray((loaded!.diagrams.ClassDiagram[0].model as any).nodes)).toBe(true);
+      expect(localStorage.getItem(ProjectStorageRepository.v3BackupKey(id))).toBe(raw);
+    });
+
+    it('never overwrites an existing backup (old editor wrote an empty v3 model)', () => {
+      const { id, raw } = storeV3Project();
+      ProjectStorageRepository.loadProject(id);
+      const emptied = JSON.parse(raw);
+      emptied.diagrams.ClassDiagram[0].model = { ...v3ClassModel, elements: {} };
+      localStorage.setItem(`${localStorageProjectPrefix}${id}`, JSON.stringify(emptied));
+      ProjectStorageRepository.loadProject(id);
+      expect(localStorage.getItem(ProjectStorageRepository.v3BackupKey(id))).toBe(raw);
+    });
+
+    it('writes no backup for a project that is already v4', () => {
+      const project = createDefaultProject('Fresh', '', '');
+      ProjectStorageRepository.saveProject(project);
+      ProjectStorageRepository.loadProject(project.id);
+      expect(localStorage.getItem(ProjectStorageRepository.v3BackupKey(project.id))).toBeNull();
+    });
+
+    it('does not list the backup as a project and removes it with the project', () => {
+      const { id } = storeV3Project();
+      ProjectStorageRepository.loadProject(id);
+      expect(ProjectStorageRepository.getAllProjects().map((p) => p.id)).toEqual([id]);
+      ProjectStorageRepository.deleteProject(id);
+      expect(localStorage.getItem(ProjectStorageRepository.v3BackupKey(id))).toBeNull();
+    });
+
+    it('still loads the project when the backup write fails (quota)', () => {
+      const { id } = storeV3Project();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('full', 'QuotaExceededError');
+      });
+      try {
+        expect(ProjectStorageRepository.loadProject(id)).not.toBeNull();
+      } finally {
+        setItem.mockRestore();
+        warn.mockRestore();
+      }
+    });
+  });
 });

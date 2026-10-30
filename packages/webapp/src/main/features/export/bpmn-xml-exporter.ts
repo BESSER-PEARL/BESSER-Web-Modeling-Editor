@@ -1,62 +1,49 @@
-import {
-  AGENTIC_NS_PREFIX,
-  AGENTIC_NS_URI,
-  UMLModel,
-  UMLElement,
-  UMLRelationship,
-  canSourceCarryDefault,
-} from '@besser/wme';
+import { AGENTIC_NS_PREFIX, AGENTIC_NS_URI } from '@besser/wme';
+import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
 
-// BPMN 2.0 XML exporter.
+// BPMN 2.0 XML exporter (v4 {nodes, edges} shape).
+//
+// Ported from develop's `features/export/bpmn-xml-exporter.ts`, re-targeted from
+// the v3 `{elements, relationships}` UMLModel to the migration's v4 shape:
+//   - nodes carry `type` as lowerCamelCase RF strings (`bpmnTask`, `bpmnPool`, …),
+//     containment via top-level `parentId`, and positions RELATIVE to their parent
+//     (React Flow convention);
+//   - edges carry one of four `type` strings (`BPMNSequenceFlow` / `BPMNMessageFlow`
+//     / `BPMNAssociationFlow` / `BPMNDataAssociationFlow`) instead of a single
+//     `BPMNFlow` + `flowType`, plus `data.isDefault` for default sequence flows.
+//   - agentic attributes (`isAgentic`, `role`, `trustScore`, …) live on `node.data`
+//     / `edge.data` and are written as an `<agentic:agentic>` extension block.
 //
 // Produces a BPMN 2.0 Collaboration + Process XML with BPMN DI (layout round-trip).
-// Elements not mapped to standard BPMN 2.0 are skipped and reported in `skipped`.
-// No external XML library — BPMN is shallow enough to emit as strings.
+// Node bounds in the DI section are ABSOLUTE — reconstructed by summing each node's
+// relative position up its `parentId` chain. No external XML library — BPMN is
+// shallow enough to emit as strings.
 
-type BpmnElementType =
-  | 'BPMNPool'
-  | 'BPMNSwimlane'
-  | 'BPMNTask'
-  | 'BPMNSubprocess'
-  | 'BPMNTransaction'
-  | 'BPMNCallActivity'
-  | 'BPMNStartEvent'
-  | 'BPMNIntermediateEvent'
-  | 'BPMNEndEvent'
-  | 'BPMNGateway'
-  | 'BPMNAnnotation'
-  | 'BPMNGroup'
-  | 'BPMNDataObject'
-  | 'BPMNDataStore';
+const POOL_TYPE = 'bpmnPool';
+const SWIMLANE_TYPE = 'bpmnSwimlane';
 
 const FLOW_NODE_TYPES: ReadonlySet<string> = new Set([
-  'BPMNTask',
-  'BPMNSubprocess',
-  'BPMNTransaction',
-  'BPMNCallActivity',
-  'BPMNStartEvent',
-  'BPMNIntermediateEvent',
-  'BPMNEndEvent',
-  'BPMNGateway',
+  'bpmnTask',
+  'bpmnSubprocess',
+  'bpmnTransaction',
+  'bpmnCallActivity',
+  'bpmnStartEvent',
+  'bpmnIntermediateEvent',
+  'bpmnEndEvent',
+  'bpmnGateway',
 ]);
 
-const DATA_TYPES: ReadonlySet<string> = new Set(['BPMNDataObject', 'BPMNDataStore']);
-const ARTIFACT_TYPES: ReadonlySet<string> = new Set(['BPMNAnnotation', 'BPMNGroup']);
+const DATA_TYPES: ReadonlySet<string> = new Set(['bpmnDataObject', 'bpmnDataStore']);
+const ARTIFACT_TYPES: ReadonlySet<string> = new Set(['bpmnAnnotation', 'bpmnGroup']);
 
-// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13) — `canSourceCarryDefault`
-// is the shared predicate from @besser/wme (consolidated in 04C / C2).
+type FlowKind = 'sequence' | 'message' | 'association' | 'data association';
 
-interface AnyBPMNElement extends UMLElement {
-  taskType?: string;
-  marker?: string;
-  gatewayType?: string;
-  eventType?: string;
-}
-
-interface AnyBPMNFlow extends UMLRelationship {
-  flowType?: string;
-  isDefault?: boolean;
-}
+const BPMN_FLOW_EDGE_TYPES: ReadonlySet<string> = new Set([
+  'BPMNSequenceFlow',
+  'BPMNMessageFlow',
+  'BPMNAssociationFlow',
+  'BPMNDataAssociationFlow',
+]);
 
 export interface ExportOptions {
   targetNamespace?: string;
@@ -67,148 +54,198 @@ export interface ExportResult {
   skipped: Array<{ id: string; type: string; reason: string }>;
 }
 
-export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): ExportResult {
+// ─── v4 accessors ────────────────────────────────────────────────────────────
+
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : '';
+}
+
+function nodeName(node: BesserNode): string {
+  return str(node.data?.name) || str(node.data?.label);
+}
+
+function edgeName(edge: BesserEdge): string {
+  return str(edge.data?.name) || str(edge.data?.label);
+}
+
+function flowKindOf(edgeType: string): FlowKind {
+  switch (edgeType) {
+    case 'BPMNMessageFlow':
+      return 'message';
+    case 'BPMNAssociationFlow':
+      return 'association';
+    case 'BPMNDataAssociationFlow':
+      return 'data association';
+    default:
+      return 'sequence';
+  }
+}
+
+// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13): an Activity, or an
+// Exclusive / Inclusive / Complex gateway. Mirrors develop's shared
+// `canSourceCarryDefault`, expressed against v4 node types.
+function canSourceCarryDefault(node: BesserNode | undefined): boolean {
+  if (!node) return false;
+  const t = node.type as string;
+  if (t === 'bpmnTask' || t === 'bpmnSubprocess' || t === 'bpmnTransaction' || t === 'bpmnCallActivity') {
+    return true;
+  }
+  if (t !== 'bpmnGateway') return false;
+  const gw = str(node.data?.gatewayType) || 'exclusive';
+  return gw === 'exclusive' || gw === 'inclusive' || gw === 'complex';
+}
+
+// ─── Public entry points ─────────────────────────────────────────────────────
+
+/**
+ * Serialize a v4 BPMN UMLModel to a BPMN 2.0 XML string. This is the signature
+ * `useGeneratorExecution.ts`'s `'bpmn'` case and the round-trip test call
+ * directly. Elements not mapped to standard BPMN 2.0 are silently dropped; use
+ * {@link bpmnModelToXmlDetailed} if you need the skipped report.
+ */
+export function bpmnModelToXml(model: UMLModel, opts: ExportOptions = {}): string {
+  return bpmnModelToXmlDetailed(model, opts).xml;
+}
+
+export function bpmnModelToXmlDetailed(model: UMLModel, opts: ExportOptions = {}): ExportResult {
   const targetNs = opts.targetNamespace ?? 'http://besser-pearl.org/bpmn';
   const skipped: ExportResult['skipped'] = [];
 
-  const elements = Object.values(model.elements) as AnyBPMNElement[];
-  const relationships = Object.values(model.relationships) as AnyBPMNFlow[];
+  const nodes = (model.nodes ?? []) as BesserNode[];
+  const edges = (model.edges ?? []) as BesserEdge[];
 
-  // Build a map of source-node-id → default-flow-id. Spec-strict: only
-  // Exclusive/Inclusive/Complex gateways and Activities may carry a default
-  // flow (BPMN 2.0.2 § 8.3.13). The "one default per source" invariant is
-  // enforced upstream (validator/popup); on conflict we keep the first and
-  // skip the rest.
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  // Absolute position: sum the relative position up the parentId chain.
+  function absPos(node: BesserNode): { x: number; y: number } {
+    let x = node.position?.x ?? 0;
+    let y = node.position?.y ?? 0;
+    let pid = node.parentId;
+    const seen = new Set<string>();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      const p = nodeById.get(pid);
+      if (!p) break;
+      x += p.position?.x ?? 0;
+      y += p.position?.y ?? 0;
+      pid = p.parentId;
+    }
+    return { x, y };
+  }
+  function absBounds(node: BesserNode): { x: number; y: number; width: number; height: number } {
+    const p = absPos(node);
+    return { x: p.x, y: p.y, width: node.width ?? 0, height: node.height ?? 0 };
+  }
+  function absCenter(nodeId: string): { x: number; y: number } {
+    const n = nodeById.get(nodeId);
+    if (!n) return { x: 0, y: 0 };
+    const b = absBounds(n);
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }
+
+  // Default-flow map: source-node-id → default-flow-id (first wins).
   const defaultFlowBySource = new Map<string, string>();
-  for (const rel of relationships) {
+  for (const edge of edges) {
     if (
-      rel.type === 'BPMNFlow' &&
-      rel.isDefault &&
-      rel.flowType === 'sequence' &&
-      rel.source?.element &&
-      !defaultFlowBySource.has(rel.source.element) &&
-      canSourceCarryDefault(model.elements[rel.source.element] as AnyBPMNElement | undefined)
+      flowKindOf(edge.type as string) === 'sequence' &&
+      edge.data?.isDefault === true &&
+      edge.source &&
+      !defaultFlowBySource.has(edge.source) &&
+      canSourceCarryDefault(nodeById.get(edge.source))
     ) {
-      defaultFlowBySource.set(rel.source.element, rel.id);
+      defaultFlowBySource.set(edge.source, edge.id);
     }
   }
 
-  const pools = elements.filter((e) => e.type === 'BPMNPool');
-  const swimlanes = elements.filter((e) => e.type === 'BPMNSwimlane');
-  const flowNodes = elements.filter((e) => FLOW_NODE_TYPES.has(e.type));
-  const dataNodes = elements.filter((e) => DATA_TYPES.has(e.type));
-  const artifacts = elements.filter((e) => ARTIFACT_TYPES.has(e.type));
+  const pools = nodes.filter((n) => n.type === POOL_TYPE);
+  const swimlanes = nodes.filter((n) => n.type === SWIMLANE_TYPE);
+  const flowNodes = nodes.filter((n) => FLOW_NODE_TYPES.has(n.type as string));
+  const dataNodes = nodes.filter((n) => DATA_TYPES.has(n.type as string));
+  const artifacts = nodes.filter((n) => ARTIFACT_TYPES.has(n.type as string));
 
-  // Identify unmapped element types (e.g., future SEAA'25 extensions).
-  for (const el of elements) {
-    if (
-      el.type !== 'BPMNPool' &&
-      el.type !== 'BPMNSwimlane' &&
-      !FLOW_NODE_TYPES.has(el.type) &&
-      !DATA_TYPES.has(el.type) &&
-      !ARTIFACT_TYPES.has(el.type)
-    ) {
-      skipped.push({ id: el.id, type: el.type, reason: 'not mapped to BPMN 2.0' });
+  for (const n of nodes) {
+    const t = n.type as string;
+    if (t !== POOL_TYPE && t !== SWIMLANE_TYPE && !FLOW_NODE_TYPES.has(t) && !DATA_TYPES.has(t) && !ARTIFACT_TYPES.has(t)) {
+      skipped.push({ id: n.id, type: t, reason: 'not mapped to BPMN 2.0' });
     }
   }
 
-  // Resolve which process each flow node belongs to. A flow node's lane owner
-  // gives us the pool (lane.owner), which becomes a process. Flow nodes outside
-  // any pool go into an implicit default process.
-  const swimlaneById = new Map(swimlanes.map((l) => [l.id, l]));
   const poolById = new Map(pools.map((p) => [p.id, p]));
 
-  function resolvePoolId(el: AnyBPMNElement): string | null {
-    let ownerId = el.owner;
-    while (ownerId) {
-      const owner = model.elements[ownerId] as AnyBPMNElement | undefined;
+  // Resolve which pool (process) a node belongs to by walking parentId.
+  function resolvePoolId(node: BesserNode): string | null {
+    let pid = node.parentId;
+    const seen = new Set<string>();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      const owner = nodeById.get(pid);
       if (!owner) return null;
-      if (owner.type === 'BPMNPool') return owner.id;
-      ownerId = owner.owner;
+      if (owner.type === POOL_TYPE) return owner.id;
+      pid = owner.parentId;
     }
     return null;
   }
 
   const processIdFor = (poolId: string | null) => (poolId ? `Process_${poolId}` : 'Process_default');
 
-  // Group flow nodes by process.
-  const flowNodesByProcess = new Map<string, AnyBPMNElement[]>();
-  for (const node of flowNodes) {
-    const poolId = resolvePoolId(node);
-    const pid = processIdFor(poolId);
-    const bucket = flowNodesByProcess.get(pid) ?? [];
-    bucket.push(node);
-    flowNodesByProcess.set(pid, bucket);
-  }
+  const flowNodesByProcess = groupByProcess(flowNodes, resolvePoolId, processIdFor);
+  const dataByProcess = groupByProcess(dataNodes, resolvePoolId, processIdFor);
+  const artifactsByProcess = groupByProcess(artifacts, resolvePoolId, processIdFor);
 
-  // Group data + artifacts by process too.
-  const dataByProcess = new Map<string, AnyBPMNElement[]>();
-  for (const node of dataNodes) {
-    const poolId = resolvePoolId(node);
-    const pid = processIdFor(poolId);
-    const bucket = dataByProcess.get(pid) ?? [];
-    bucket.push(node);
-    dataByProcess.set(pid, bucket);
-  }
-
-  const artifactsByProcess = new Map<string, AnyBPMNElement[]>();
-  for (const node of artifacts) {
-    const poolId = resolvePoolId(node);
-    const pid = processIdFor(poolId);
-    const bucket = artifactsByProcess.get(pid) ?? [];
-    bucket.push(node);
-    artifactsByProcess.set(pid, bucket);
-  }
-
-  // Group lanes by pool.
-  const lanesByPool = new Map<string, AnyBPMNElement[]>();
+  // Group lanes by pool (a lane's direct/eventual pool owner).
+  const lanesByPool = new Map<string, BesserNode[]>();
   for (const lane of swimlanes) {
-    const poolId = lane.owner && poolById.has(lane.owner) ? lane.owner : null;
+    const poolId = resolvePoolId(lane) ?? (lane.parentId && poolById.has(lane.parentId) ? lane.parentId : null);
     if (!poolId) continue;
     const bucket = lanesByPool.get(poolId) ?? [];
     bucket.push(lane);
     lanesByPool.set(poolId, bucket);
   }
 
-  // Group relationships: sequence/association/data-association inside a process,
-  // message flow inside the collaboration.
-  const sequenceFlowsByProcess = new Map<string, AnyBPMNFlow[]>();
-  const associationsByProcess = new Map<string, AnyBPMNFlow[]>();
-  const dataAssociationsByTarget = new Map<string, AnyBPMNFlow[]>();
-  const messageFlows: AnyBPMNFlow[] = [];
+  // The direct lane owner (if any) of a flow node — for <flowNodeRef>.
+  function laneOwnerId(node: BesserNode): string | null {
+    let pid = node.parentId;
+    const seen = new Set<string>();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      const owner = nodeById.get(pid);
+      if (!owner) return null;
+      if (owner.type === SWIMLANE_TYPE) return owner.id;
+      if (owner.type === POOL_TYPE) return null;
+      pid = owner.parentId;
+    }
+    return null;
+  }
 
-  for (const rel of relationships) {
-    if (rel.type !== 'BPMNFlow') {
-      skipped.push({ id: rel.id, type: rel.type, reason: 'relationship not a BPMNFlow' });
+  // Group relationships.
+  const sequenceFlowsByProcess = new Map<string, BesserEdge[]>();
+  const associationsByProcess = new Map<string, BesserEdge[]>();
+  const dataAssociationsByTarget = new Map<string, BesserEdge[]>();
+  const messageFlows: BesserEdge[] = [];
+
+  for (const edge of edges) {
+    if (!BPMN_FLOW_EDGE_TYPES.has(edge.type as string)) {
+      skipped.push({ id: edge.id, type: edge.type as string, reason: 'relationship not a BPMN flow' });
       continue;
     }
-    const flowType = rel.flowType ?? 'sequence';
-    const srcEl = model.elements[rel.source.element] as AnyBPMNElement | undefined;
-    const tgtEl = model.elements[rel.target.element] as AnyBPMNElement | undefined;
+    const srcEl = nodeById.get(edge.source);
+    const tgtEl = nodeById.get(edge.target);
     if (!srcEl || !tgtEl) {
-      skipped.push({ id: rel.id, type: rel.type, reason: 'dangling source or target' });
+      skipped.push({ id: edge.id, type: edge.type as string, reason: 'dangling source or target' });
       continue;
     }
-
-    if (flowType === 'message') {
-      messageFlows.push(rel);
-    } else if (flowType === 'association') {
+    const kind = flowKindOf(edge.type as string);
+    if (kind === 'message') {
+      messageFlows.push(edge);
+    } else if (kind === 'association') {
       const pid = processIdFor(resolvePoolId(srcEl) ?? resolvePoolId(tgtEl));
-      const bucket = associationsByProcess.get(pid) ?? [];
-      bucket.push(rel);
-      associationsByProcess.set(pid, bucket);
-    } else if (flowType === 'data association') {
-      // Nest inside the flow-node side. Convention: the non-data endpoint owns it.
-      const flowNodeEnd = DATA_TYPES.has(srcEl.type) ? tgtEl : srcEl;
-      const bucket = dataAssociationsByTarget.get(flowNodeEnd.id) ?? [];
-      bucket.push(rel);
-      dataAssociationsByTarget.set(flowNodeEnd.id, bucket);
+      pushMap(associationsByProcess, pid, edge);
+    } else if (kind === 'data association') {
+      const flowNodeEnd = DATA_TYPES.has(srcEl.type as string) ? tgtEl : srcEl;
+      pushMap(dataAssociationsByTarget, flowNodeEnd.id, edge);
     } else {
-      // sequence
       const pid = processIdFor(resolvePoolId(srcEl) ?? resolvePoolId(tgtEl));
-      const bucket = sequenceFlowsByProcess.get(pid) ?? [];
-      bucket.push(rel);
-      sequenceFlowsByProcess.set(pid, bucket);
+      pushMap(sequenceFlowsByProcess, pid, edge);
     }
   }
 
@@ -227,50 +264,47 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
       `id="Definitions_1" targetNamespace="${escapeAttr(targetNs)}">`,
   );
 
-  // Data store top-level definitions (one per BPMNDataStore).
-  const dataStores = dataNodes.filter((d) => d.type === 'BPMNDataStore');
+  // Data store top-level definitions.
+  const dataStores = dataNodes.filter((d) => d.type === 'bpmnDataStore');
   for (const ds of dataStores) {
-    lines.push(`  <bpmn:dataStore id="DataStore_${xid(ds.id)}" name="${escapeAttr(ds.name)}" />`);
+    lines.push(`  <bpmn:dataStore id="DataStore_${xid(ds.id)}" name="${escapeAttr(nodeName(ds))}" />`);
   }
 
-  // Group categories top-level (one per BPMNGroup).
-  const groups = artifacts.filter((a) => a.type === 'BPMNGroup');
+  // Group categories top-level.
+  const groups = artifacts.filter((a) => a.type === 'bpmnGroup');
   for (const g of groups) {
     lines.push(`  <bpmn:category id="Category_${xid(g.id)}">`);
-    lines.push(`    <bpmn:categoryValue id="Category_${xid(g.id)}_val" value="${escapeAttr(g.name)}" />`);
+    lines.push(`    <bpmn:categoryValue id="Category_${xid(g.id)}_val" value="${escapeAttr(nodeName(g))}" />`);
     lines.push(`  </bpmn:category>`);
   }
 
-  // Collaboration (always emit if any pool exists).
+  // Collaboration (emit when any pool exists).
   const hasCollaboration = pools.length > 0;
   const collaborationId = 'Collaboration_1';
   if (hasCollaboration) {
     lines.push(`  <bpmn:collaboration id="${collaborationId}">`);
     for (const pool of pools) {
       lines.push(
-        `    <bpmn:participant id="${xid(pool.id)}" name="${escapeAttr(pool.name)}" processRef="${processIdFor(pool.id)}" />`,
+        `    <bpmn:participant id="${xid(pool.id)}" name="${escapeAttr(nodeName(pool))}" processRef="${processIdFor(pool.id)}" />`,
       );
     }
     for (const mf of messageFlows) {
-      const isAgentic = (mf as unknown as AnyAgentic).isAgentic === true;
-      if (!isAgentic) {
-        lines.push(
-          `    <bpmn:messageFlow id="${xid(mf.id)}" name="${escapeAttr(mf.name || '')}" ` +
-            `sourceRef="${xid(mf.source.element)}" targetRef="${xid(mf.target.element)}" />`,
-        );
+      const open =
+        `    <bpmn:messageFlow id="${xid(mf.id)}" name="${escapeAttr(edgeName(mf))}" ` +
+        `sourceRef="${xid(mf.source)}" targetRef="${xid(mf.target)}"`;
+      const agentic = agenticOf(mf.data);
+      if (!agentic.isAgentic) {
+        lines.push(`${open} />`);
       } else {
-        lines.push(
-          `    <bpmn:messageFlow id="${xid(mf.id)}" name="${escapeAttr(mf.name || '')}" ` +
-            `sourceRef="${xid(mf.source.element)}" targetRef="${xid(mf.target.element)}">`,
-        );
-        emitAgenticExtension(lines, mf as unknown as AnyAgentic, '      ');
+        lines.push(`${open}>`);
+        emitAgenticExtension(lines, agentic, '      ');
         lines.push(`    </bpmn:messageFlow>`);
       }
     }
     lines.push(`  </bpmn:collaboration>`);
   }
 
-  // One process per pool. Plus an implicit default process if any flow nodes are pool-less.
+  // One process per pool. Plus an implicit default process for pool-less content.
   const processIds: string[] = pools.map((p) => processIdFor(p.id));
   if (
     flowNodesByProcess.has('Process_default') ||
@@ -287,14 +321,13 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
 
     lines.push(`  <bpmn:process id="${pid}" isExecutable="false">`);
 
-    // Lane set.
     if (lanes.length > 0) {
       lines.push(`    <bpmn:laneSet id="LaneSet_${xid(poolId!)}">`);
       for (const lane of lanes) {
-        lines.push(`      <bpmn:lane id="${xid(lane.id)}" name="${escapeAttr(lane.name)}">`);
-        emitAgenticExtension(lines, lane as AnyAgentic, '        ');
+        lines.push(`      <bpmn:lane id="${xid(lane.id)}" name="${escapeAttr(nodeName(lane))}">`);
+        emitAgenticExtension(lines, agenticOf(lane.data), '        ');
         for (const node of flowNodes) {
-          if (node.owner === lane.id) {
+          if (laneOwnerId(node) === lane.id) {
             lines.push(`        <bpmn:flowNodeRef>${xid(node.id)}</bpmn:flowNodeRef>`);
           }
         }
@@ -303,54 +336,49 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
       lines.push(`    </bpmn:laneSet>`);
     }
 
-    // Flow nodes.
     const processFlowNodes = flowNodesByProcess.get(pid) ?? [];
     for (const node of processFlowNodes) {
-      emitFlowNode(lines, node, dataAssociationsByTarget.get(node.id) ?? [], model, defaultFlowBySource);
+      emitFlowNode(lines, node, dataAssociationsByTarget.get(node.id) ?? [], nodeById, defaultFlowBySource);
     }
 
-    // Data nodes.
     const processData = dataByProcess.get(pid) ?? [];
     for (const d of processData) {
-      if (d.type === 'BPMNDataObject') {
+      if (d.type === 'bpmnDataObject') {
         lines.push(
-          `    <bpmn:dataObjectReference id="${xid(d.id)}" name="${escapeAttr(d.name)}" dataObjectRef="DataObject_${xid(d.id)}" />`,
+          `    <bpmn:dataObjectReference id="${xid(d.id)}" name="${escapeAttr(nodeName(d))}" dataObjectRef="DataObject_${xid(d.id)}" />`,
         );
         lines.push(`    <bpmn:dataObject id="DataObject_${xid(d.id)}" />`);
-      } else if (d.type === 'BPMNDataStore') {
+      } else if (d.type === 'bpmnDataStore') {
         lines.push(
-          `    <bpmn:dataStoreReference id="${xid(d.id)}" name="${escapeAttr(d.name)}" dataStoreRef="DataStore_${xid(d.id)}" />`,
+          `    <bpmn:dataStoreReference id="${xid(d.id)}" name="${escapeAttr(nodeName(d))}" dataStoreRef="DataStore_${xid(d.id)}" />`,
         );
       }
     }
 
-    // Artifacts.
     const processArtifacts = artifactsByProcess.get(pid) ?? [];
     for (const a of processArtifacts) {
-      if (a.type === 'BPMNAnnotation') {
+      if (a.type === 'bpmnAnnotation') {
         lines.push(`    <bpmn:textAnnotation id="${xid(a.id)}">`);
-        lines.push(`      <bpmn:text>${escapeText(a.name)}</bpmn:text>`);
+        lines.push(`      <bpmn:text>${escapeText(nodeName(a))}</bpmn:text>`);
         lines.push(`    </bpmn:textAnnotation>`);
-      } else if (a.type === 'BPMNGroup') {
+      } else if (a.type === 'bpmnGroup') {
         lines.push(`    <bpmn:group id="${xid(a.id)}" categoryValueRef="Category_${xid(a.id)}_val" />`);
       }
     }
 
-    // Sequence flows.
     const seqs = sequenceFlowsByProcess.get(pid) ?? [];
-    for (const rel of seqs) {
+    for (const edge of seqs) {
       lines.push(
-        `    <bpmn:sequenceFlow id="${xid(rel.id)}" name="${escapeAttr(rel.name || '')}" ` +
-          `sourceRef="${xid(rel.source.element)}" targetRef="${xid(rel.target.element)}" />`,
+        `    <bpmn:sequenceFlow id="${xid(edge.id)}" name="${escapeAttr(edgeName(edge))}" ` +
+          `sourceRef="${xid(edge.source)}" targetRef="${xid(edge.target)}" />`,
       );
     }
 
-    // Associations.
     const assocs = associationsByProcess.get(pid) ?? [];
-    for (const rel of assocs) {
+    for (const edge of assocs) {
       lines.push(
-        `    <bpmn:association id="${xid(rel.id)}" ` +
-          `sourceRef="${xid(rel.source.element)}" targetRef="${xid(rel.target.element)}" ` +
+        `    <bpmn:association id="${xid(edge.id)}" ` +
+          `sourceRef="${xid(edge.source)}" targetRef="${xid(edge.target)}" ` +
           `associationDirection="None" />`,
       );
     }
@@ -364,51 +392,60 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
   const planeRef = hasCollaboration ? collaborationId : (processIds[0] ?? 'Process_default');
   lines.push(`    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="${xid(planeRef)}">`);
 
-  // Shapes for pools, lanes, flow nodes, data, annotations, groups.
   for (const pool of pools) {
-    lines.push(shapeXml(pool.id, pool.bounds, { isHorizontal: true }));
+    lines.push(shapeXml(pool.id, absBounds(pool), { isHorizontal: true }));
   }
   for (const lane of swimlanes) {
-    lines.push(shapeXml(lane.id, lane.bounds, { isHorizontal: true }));
+    lines.push(shapeXml(lane.id, absBounds(lane), { isHorizontal: true }));
   }
   for (const node of flowNodes) {
-    lines.push(shapeXml(node.id, node.bounds));
+    lines.push(shapeXml(node.id, absBounds(node)));
   }
   for (const d of dataNodes) {
-    lines.push(shapeXml(d.id, d.bounds));
+    lines.push(shapeXml(d.id, absBounds(d)));
   }
   for (const a of artifacts) {
-    lines.push(shapeXml(a.id, a.bounds));
+    lines.push(shapeXml(a.id, absBounds(a)));
   }
 
-  // Edges for every relationship that made it into the model (sequence, message,
-  // association, data association). We skip data associations here because they
-  // nest inside flow nodes — the DI edge is still useful for round-trip, so emit
-  // it.
-  for (const rel of relationships) {
-    if (rel.type !== 'BPMNFlow') continue;
-    const srcEl = model.elements[rel.source.element];
-    const tgtEl = model.elements[rel.target.element];
-    if (!srcEl || !tgtEl) continue;
-    lines.push(edgeXml(rel));
+  for (const edge of edges) {
+    if (!BPMN_FLOW_EDGE_TYPES.has(edge.type as string)) continue;
+    if (!nodeById.get(edge.source) || !nodeById.get(edge.target)) continue;
+    lines.push(edgeXml(edge, absCenter));
   }
 
   lines.push(`    </bpmndi:BPMNPlane>`);
   lines.push(`  </bpmndi:BPMNDiagram>`);
-
   lines.push(`</bpmn:definitions>`);
 
   return { xml: lines.join('\n'), skipped };
 }
 
+// ─── Grouping helpers ────────────────────────────────────────────────────────
+
+function pushMap<K, V>(map: Map<K, V[]>, key: K, value: V): void {
+  const bucket = map.get(key) ?? [];
+  bucket.push(value);
+  map.set(key, bucket);
+}
+
+function groupByProcess(
+  nodes: BesserNode[],
+  resolvePoolId: (n: BesserNode) => string | null,
+  processIdFor: (poolId: string | null) => string,
+): Map<string, BesserNode[]> {
+  const out = new Map<string, BesserNode[]>();
+  for (const node of nodes) {
+    pushMap(out, processIdFor(resolvePoolId(node)), node);
+  }
+  return out;
+}
+
 // ─── Emit helpers ────────────────────────────────────────────────────────────
 
-// Every agentic-able construct exposes these optional fields. Sourced
-// from BPMNSwimlane / BPMNTask / BPMNGateway / BPMNFlow on the editor side.
-// `agentDiagramRef` links an agentic construct to a BESSER Agent
-// diagram. New links are carried by the agentic task; older diagrams originally
-// put it on the lane; the lane carrier is retained but no longer UI-set).
-// The shared interface lets emitAgenticExtension stay one fn for all types.
+// Agentic fields carried on the `data` of bpmnSwimlane / bpmnTask / bpmnGateway
+// nodes and BPMNMessageFlow edges. `agentDiagramRef` links the construct to a
+// BESSER Agent diagram: new links sit on the task, older diagrams put it on the lane.
 interface AnyAgentic {
   isAgentic?: boolean;
   role?: string;
@@ -420,6 +457,24 @@ interface AnyAgentic {
   // Reviewer lane UUID for cross-reflection.
   reflectionReviewerLaneId?: string;
   governanceDsl?: string;
+}
+
+// Pick the agentic fields off a node / edge `data` bag, dropping values of the wrong type.
+function agenticOf(data: Record<string, unknown> | undefined): AnyAgentic {
+  const d = data ?? {};
+  const optStr = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  const optNum = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  return {
+    isAgentic: d.isAgentic === true,
+    role: optStr(d.role),
+    reflectionMode: optStr(d.reflectionMode),
+    gatewayRole: optStr(d.gatewayRole),
+    trustScore: optNum(d.trustScore),
+    multiplicity: optNum(d.multiplicity),
+    agentDiagramRef: optStr(d.agentDiagramRef),
+    reflectionReviewerLaneId: optStr(d.reflectionReviewerLaneId),
+    governanceDsl: optStr(d.governanceDsl),
+  };
 }
 
 // Emit the agentic extensionElements
@@ -445,7 +500,8 @@ function emitAgenticExtension(lines: string[], el: AnyAgentic, indent: string): 
     attrs.push(`agentDiagramRef="${escapeAttr(el.agentDiagramRef)}"`);
   }
   if (el.reflectionReviewerLaneId !== undefined && el.reflectionReviewerLaneId !== '') {
-    attrs.push(`reflectionReviewerLaneId="${escapeAttr(el.reflectionReviewerLaneId)}"`);
+    // A lane reference, so it goes through xid() like the lane's own id.
+    attrs.push(`reflectionReviewerLaneId="${xid(el.reflectionReviewerLaneId)}"`);
   }
   lines.push(`${indent}<bpmn:extensionElements>`);
   lines.push(`${indent}  <agentic:agentic ${attrs.join(' ')}/>`);
@@ -463,106 +519,110 @@ function emitAgenticExtension(lines: string[], el: AnyAgentic, indent: string): 
 
 function emitFlowNode(
   lines: string[],
-  node: AnyBPMNElement,
-  dataAssociations: AnyBPMNFlow[],
-  model: UMLModel,
+  node: BesserNode,
+  dataAssociations: BesserEdge[],
+  nodeById: Map<string, BesserNode>,
   defaultFlowBySource: Map<string, string>,
 ): void {
   const id = xid(node.id);
-  const name = escapeAttr(node.name || '');
+  const name = escapeAttr(nodeName(node));
   const defFlow = defaultFlowBySource.get(node.id);
   const defAttr = defFlow ? ` default="${xid(defFlow)}"` : '';
 
-  if (node.type === 'BPMNTask') {
-    const tag = taskElementName(node.taskType ?? 'default');
-    const loop = taskLoopCharacteristics(node.marker ?? 'none');
-    const isAgentic = (node as AnyAgentic).isAgentic === true;
-    const hasChildren = loop !== null || dataAssociations.length > 0 || isAgentic;
+  if (node.type === 'bpmnTask') {
+    const tag = taskElementName(str(node.data?.taskType) || 'default');
+    const loop = taskLoopCharacteristics(str(node.data?.marker) || 'none');
+    const agentic = agenticOf(node.data);
+    const hasChildren = loop !== null || dataAssociations.length > 0 || agentic.isAgentic;
     if (!hasChildren) {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     } else {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
-      emitAgenticExtension(lines, node as AnyAgentic, '      ');
+      emitAgenticExtension(lines, agentic, '      ');
       if (loop) lines.push(`      ${loop}`);
-      emitDataAssociations(lines, dataAssociations, model);
+      emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:${tag}>`);
     }
     return;
   }
 
-  if (node.type === 'BPMNSubprocess' || node.type === 'BPMNTransaction' || node.type === 'BPMNCallActivity') {
+  if (node.type === 'bpmnSubprocess' || node.type === 'bpmnTransaction' || node.type === 'bpmnCallActivity') {
     const tag =
-      node.type === 'BPMNSubprocess' ? 'subProcess' : node.type === 'BPMNTransaction' ? 'transaction' : 'callActivity';
+      node.type === 'bpmnSubprocess' ? 'subProcess' : node.type === 'bpmnTransaction' ? 'transaction' : 'callActivity';
+    const called =
+      node.type === 'bpmnCallActivity' && str(node.data?.calledElement)
+        ? ` calledElement="${escapeAttr(str(node.data?.calledElement))}"`
+        : '';
     if (dataAssociations.length === 0) {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${called}${defAttr} />`);
     } else {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
-      emitDataAssociations(lines, dataAssociations, model);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${called}${defAttr}>`);
+      emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:${tag}>`);
     }
     return;
   }
 
-  if (node.type === 'BPMNStartEvent') {
-    const def = startEventDefinition(node.eventType ?? 'default');
+  if (node.type === 'bpmnStartEvent') {
+    const def = startEventDefinition(str(node.data?.eventType) || 'default');
     if (!def && dataAssociations.length === 0) {
       lines.push(`    <bpmn:startEvent id="${id}" name="${name}" />`);
     } else {
       lines.push(`    <bpmn:startEvent id="${id}" name="${name}">`);
       if (def) lines.push(`      ${def}`);
-      emitDataAssociations(lines, dataAssociations, model);
+      emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:startEvent>`);
     }
     return;
   }
 
-  if (node.type === 'BPMNIntermediateEvent') {
-    const [tag, def] = intermediateEventDefinition(node.eventType ?? 'default');
+  if (node.type === 'bpmnIntermediateEvent') {
+    const [tag, def] = intermediateEventDefinition(str(node.data?.eventType) || 'default');
     if (!def && dataAssociations.length === 0) {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}" />`);
     } else {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}">`);
       if (def) lines.push(`      ${def}`);
-      emitDataAssociations(lines, dataAssociations, model);
+      emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:${tag}>`);
     }
     return;
   }
 
-  if (node.type === 'BPMNEndEvent') {
-    const def = endEventDefinition(node.eventType ?? 'default');
+  if (node.type === 'bpmnEndEvent') {
+    const def = endEventDefinition(str(node.data?.eventType) || 'default');
     if (!def && dataAssociations.length === 0) {
       lines.push(`    <bpmn:endEvent id="${id}" name="${name}" />`);
     } else {
       lines.push(`    <bpmn:endEvent id="${id}" name="${name}">`);
       if (def) lines.push(`      ${def}`);
-      emitDataAssociations(lines, dataAssociations, model);
+      emitDataAssociations(lines, dataAssociations, nodeById);
       lines.push(`    </bpmn:endEvent>`);
     }
     return;
   }
 
-  if (node.type === 'BPMNGateway') {
-    const tag = gatewayElementName(node.gatewayType ?? 'exclusive');
-    const isAgentic = (node as AnyAgentic).isAgentic === true;
-    if (!isAgentic) {
+  if (node.type === 'bpmnGateway') {
+    const tag = gatewayElementName(str(node.data?.gatewayType) || 'exclusive');
+    const agentic = agenticOf(node.data);
+    if (!agentic.isAgentic) {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     } else {
       lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
-      emitAgenticExtension(lines, node as AnyAgentic, '      ');
+      emitAgenticExtension(lines, agentic, '      ');
       lines.push(`    </bpmn:${tag}>`);
     }
     return;
   }
 }
 
-function emitDataAssociations(lines: string[], assocs: AnyBPMNFlow[], model: UMLModel): void {
-  for (const rel of assocs) {
-    const srcType = model.elements[rel.source.element]?.type;
+function emitDataAssociations(lines: string[], assocs: BesserEdge[], nodeById: Map<string, BesserNode>): void {
+  for (const edge of assocs) {
+    const srcType = nodeById.get(edge.source)?.type as string | undefined;
     const isInput = srcType ? DATA_TYPES.has(srcType) : false;
     const tag = isInput ? 'dataInputAssociation' : 'dataOutputAssociation';
-    const ref = isInput ? rel.source.element : rel.target.element;
-    lines.push(`      <bpmn:${tag} id="${xid(rel.id)}">`);
+    const ref = isInput ? edge.source : edge.target;
+    lines.push(`      <bpmn:${tag} id="${xid(edge.id)}">`);
     if (isInput) {
       lines.push(`        <bpmn:sourceRef>${xid(ref)}</bpmn:sourceRef>`);
     } else {
@@ -585,6 +645,7 @@ function taskElementName(taskType: string): string {
     case 'manual':
       return 'manualTask';
     case 'business-rule':
+    case 'businessRule':
       return 'businessRuleTask';
     case 'script':
       return 'scriptTask';
@@ -645,7 +706,6 @@ function startEventDefinition(eventType: string): string | null {
 }
 
 function intermediateEventDefinition(eventType: string): [string, string | null] {
-  // Returns [tag, definition]. tag is intermediateCatchEvent or intermediateThrowEvent.
   switch (eventType) {
     case 'message-catch':
       return ['intermediateCatchEvent', '<bpmn:messageEventDefinition />'];
@@ -708,29 +768,20 @@ function shapeXml(
   );
 }
 
-function edgeXml(rel: AnyBPMNFlow): string {
-  // Waypoints are in element-local coordinates (relative to rel.bounds).
-  // Convert to absolute by adding rel.bounds.x/y.
+function edgeXml(edge: BesserEdge, absCenter: (nodeId: string) => { x: number; y: number }): string {
+  const rawPts = Array.isArray(edge.data?.points) ? (edge.data.points as Array<{ x?: number; y?: number }>) : [];
   const pts =
-    Array.isArray(rel.path) && rel.path.length >= 2
-      ? rel.path.map((p) => ({ x: (p.x ?? 0) + rel.bounds.x, y: (p.y ?? 0) + rel.bounds.y }))
-      : [
-          { x: rel.bounds.x, y: rel.bounds.y },
-          { x: rel.bounds.x + rel.bounds.width, y: rel.bounds.y + rel.bounds.height },
-        ];
+    rawPts.length >= 2
+      ? rawPts.map((p) => ({ x: p.x ?? 0, y: p.y ?? 0 }))
+      : [absCenter(edge.source), absCenter(edge.target)];
   const waypoints = pts.map((p) => `      <di:waypoint x="${numAttr(p.x)}" y="${numAttr(p.y)}" />`).join('\n');
-  return (
-    `    <bpmndi:BPMNEdge id="${xid(rel.id)}_di" bpmnElement="${xid(rel.id)}">\n` +
-    waypoints +
-    `\n    </bpmndi:BPMNEdge>`
-  );
+  return `    <bpmndi:BPMNEdge id="${xid(edge.id)}_di" bpmnElement="${xid(edge.id)}">\n` + waypoints + `\n    </bpmndi:BPMNEdge>`;
 }
 
 // ─── String helpers ──────────────────────────────────────────────────────────
 
-// IDs in BPMN XML must be valid NCName. Apollon UUIDs start with a digit sometimes,
-// so prefix with an underscore to guarantee the leading character is a letter
-// (underscore is valid for NCName start).
+// IDs in BPMN XML must be a valid NCName. Prefix with `_` when the leading
+// character isn't a letter or underscore (UUIDs often start with a digit).
 function xid(id: string): string {
   const safe = String(id).replace(/[^A-Za-z0-9_.-]/g, '_');
   return /^[A-Za-z_]/.test(safe) ? safe : `_${safe}`;

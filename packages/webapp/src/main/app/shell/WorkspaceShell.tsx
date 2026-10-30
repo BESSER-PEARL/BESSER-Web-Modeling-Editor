@@ -64,6 +64,7 @@ import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
+import { OnboardingChecklist } from '../../features/onboarding/OnboardingChecklist';
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
@@ -75,6 +76,14 @@ import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import {
+  loadUserModelValidationRecords,
+  saveUserModelValidationRecords,
+  semanticModelFingerprint,
+  shouldPromptBeforeLeaving,
+  userModelValidationStatus,
+  type UserModelValidationRecords,
+} from './userModelValidation';
 import type { AgentVariantOption } from './topbar-types';
 import { useHasOpened } from '../hooks/useHasOpened';
 import { useStableCallback } from '../hooks/useStableCallback';
@@ -157,35 +166,22 @@ interface WorkspaceShellProps {
   onboarding?: OnboardingHook;
 }
 
-interface UserModelValidationRecord {
-  validatedAt: string;
-  outcome: 'valid' | 'errors';
-  modelFingerprint: string | null;
-}
-
-const createModelFingerprint = (model: unknown): string | null => {
-  if (model === undefined || model === null) {
-    return null;
-  }
-
-  try {
-    return JSON.stringify(model);
-  } catch {
-    return null;
-  }
-};
-
 const isModelEmpty = (model: unknown): boolean => {
   if (!model || typeof model !== 'object') {
     return true;
   }
-  const { elements, relationships } = model as {
+  // v4 models carry `nodes` / `edges` arrays; legacy v3 models `elements` / `relationships` records.
+  const { nodes, edges, elements, relationships } = model as {
+    nodes?: unknown[];
+    edges?: unknown[];
     elements?: Record<string, unknown>;
     relationships?: Record<string, unknown>;
   };
+  const hasNodes = Array.isArray(nodes) && nodes.length > 0;
+  const hasEdges = Array.isArray(edges) && edges.length > 0;
   const hasElements = !!elements && Object.keys(elements).length > 0;
   const hasRelationships = !!relationships && Object.keys(relationships).length > 0;
-  return !hasElements && !hasRelationships;
+  return !hasNodes && !hasEdges && !hasElements && !hasRelationships;
 };
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
@@ -243,7 +239,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return false;
     }
   });
-  const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
+  const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<UserModelValidationRecords>(
+    loadUserModelValidationRecords,
+  );
 
   // Derived values
   const activeUmlType = useMemo(
@@ -511,43 +509,37 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     if (!targetDiagram?.id) {
       return 'not_validated';
     }
-
-    const record = userModelValidationByDiagramId[targetDiagram.id];
-    if (!record) {
-      return 'not_validated';
-    }
-
-    const currentFingerprint = createModelFingerprint(targetDiagram.model);
-    if (record.modelFingerprint !== currentFingerprint) {
-      return 'stale';
-    }
-
-    // If we have a stable model fingerprint match, consider the validation current.
-    if (record.modelFingerprint !== null || currentFingerprint !== null) {
-      return record.outcome;
-    }
-
-    const diagramUpdatedAt = Date.parse(targetDiagram.lastUpdate || '');
-    const validatedAt = Date.parse(record.validatedAt);
-    if (!Number.isNaN(diagramUpdatedAt) && !Number.isNaN(validatedAt) && diagramUpdatedAt > validatedAt) {
-      return 'stale';
-    }
-
-    return record.outcome;
+    return userModelValidationStatus(userModelValidationByDiagramId[targetDiagram.id], targetDiagram.model);
   }, [userModelValidationByDiagramId]);
+
+  useEffect(() => {
+    saveUserModelValidationRecords(userModelValidationByDiagramId);
+  }, [userModelValidationByDiagramId]);
+
+  // Baseline a User Model the first time it is opened, so leaving it without
+  // edits never asks for validation.
+  const activeUserDiagramId = currentProject?.currentDiagramType === 'UserDiagram' ? diagram?.id : undefined;
+  useEffect(() => {
+    if (!activeUserDiagramId || userModelValidationByDiagramId[activeUserDiagramId]) return;
+    setUserModelValidationByDiagramId((previous) => previous[activeUserDiagramId] ? previous : {
+      ...previous,
+      [activeUserDiagramId]: { validatedAt: null, outcome: 'unvalidated', fingerprint: semanticModelFingerprint(diagram?.model) },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- baseline once per diagram, not on every autosave
+  }, [activeUserDiagramId]);
 
   // Handlers below that the memoized top bar / sidebar receive read the active diagram,
   // which changes on every autosave, so they use stable identities (useStableCallback).
   const handleTrackedQualityCheck = useStableCallback(async (): Promise<QualityCheckResult> => {
     const result = await onQualityCheck();
     if (result.executed && currentProject?.currentDiagramType === 'UserDiagram' && diagram?.id) {
-      const modelFingerprint = createModelFingerprint(diagram.model);
+      const fingerprint = semanticModelFingerprint(diagram.model);
       setUserModelValidationByDiagramId((previous) => ({
         ...previous,
         [diagram.id]: {
           validatedAt: new Date().toISOString(),
           outcome: result.passed ? 'valid' : 'errors',
-          modelFingerprint,
+          fingerprint,
         },
       }));
     }
@@ -555,7 +547,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   });
 
   const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
-    if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
+    // Only the User Model editor itself asks (never Settings or other pages,
+    // where there is no editor to validate).
+    if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram || location.pathname !== '/') {
       return true;
     }
 
@@ -563,8 +557,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return true;
     }
 
-    const status = getUserModelValidationStatus(diagram);
-    if (status === 'valid') {
+    const record = userModelValidationByDiagramId[diagram.id];
+    if (!shouldPromptBeforeLeaving(record, diagram.model)) {
       return true;
     }
 
@@ -576,15 +570,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     });
 
     if (!shouldValidate) {
+      const dismissedFingerprint = semanticModelFingerprint(diagram.model);
+      setUserModelValidationByDiagramId((previous) => previous[diagram.id]
+        ? { ...previous, [diagram.id]: { ...previous[diagram.id], dismissedFingerprint } }
+        : previous);
       return true;
     }
 
     const result = await handleTrackedQualityCheck();
-    if (!result.executed) {
-      return false;
-    }
-
-    if (result.passed) {
+    // Validation could not run (it already said why): never trap the user here.
+    if (!result.executed || result.passed) {
       return true;
     }
 
@@ -597,7 +592,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     });
 
     return confirmLeaveWithIssues;
-  }, [currentProject?.currentDiagramType, diagram, getUserModelValidationStatus, handleTrackedQualityCheck, t]);
+  }, [currentProject?.currentDiagramType, diagram, handleTrackedQualityCheck, location.pathname, t, userModelValidationByDiagramId]);
 
   const handleSwitchDiagramType = useStableCallback(async (type: SupportedDiagramType) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
@@ -1017,7 +1012,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const handleImportBpmnDiagram = useStableCallback(async () => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      toast.error(t('shell.errors.noProject'));
       return;
     }
 
@@ -1025,11 +1020,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const result = await importBpmnDiagramToProject();
       toast.success(result.message);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('shell.errors.unknown');
       if (message.toLowerCase().includes('cancel')) {
         return;
       }
-      toast.error(`Import failed: ${message}`);
+      toast.error(t('shell.import.failed', { message }));
     }
   });
 
@@ -1131,7 +1126,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         headerBackgroundClass={headerBackgroundClass}
         outlineButtonClass={outlineButtonClass}
         primaryGenerateClass={primaryGenerateClass}
-        showQualityCheck={showQualityCheck}
+        showQualityCheck={
+          showQualityCheck && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram'
+        }
         generatorMode={generatorMode}
         isGenerating={isGenerating || isDockerComposing}
         isAuthenticated={isAuthenticated}

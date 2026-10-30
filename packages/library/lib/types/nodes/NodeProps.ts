@@ -1,0 +1,1015 @@
+import type { AgentLLMProviderType } from "../../services/agentLlm"
+import type {
+  BPMNAgentRole,
+  BPMNGatewayRole,
+  BPMNReflectionMode,
+} from "../bpmnAgentic"
+
+export type DefaultNodeProps = {
+  name: string
+  fillColor?: string
+  strokeColor?: string
+  textColor?: string
+}
+
+/**
+ * UML visibility values for classifier members. Stored canonically; the
+ * row renderer derives the symbol via `VISIBILITY_SYMBOLS`.
+ */
+export type ClassifierVisibility = "public" | "private" | "protected" | "package"
+
+/**
+ * BESSER method implementation type — drives the inspector to render either a
+ * code editor (`code` / `bal`) or a cross-diagram dropdown (`state_machine`,
+ * `quantum_circuit`, `neural_network`). `none` is the pure-UML default.
+ */
+export type ClassifierMethodImplementationType =
+  | "none"
+  | "code"
+  | "bal"
+  | "state_machine"
+  | "quantum_circuit"
+  | "neural_network"
+
+/**
+ * Method parameter row (used by ClassMethod members).
+ *
+ * `name` and `parameterType` are the canonical fields. Legacy diagrams
+ * stored the entire signature in the row name; the inspector parses that
+ * fallback via `parseLegacyNameFormat` when these structured fields are
+ * missing.
+ */
+export type ClassifierMethodParameter = {
+  id: string
+  name: string
+  parameterType?: string
+  defaultValue?: unknown
+}
+
+/**
+ * Row data for class / object attributes and methods.
+ *
+ * `name` stays the source-of-truth for rendering on stock-diagram code
+ * paths that read `item.name` directly (e.g. `RowBlockSection`). The
+ * structured fields below are BESSER additions: when present, the
+ * class-row renderer formats the row via `formatDisplayName(member,
+ * mode)` so ER↔UML notation toggling is purely render-time.
+ *
+ * All BESSER fields are optional so upstream stock diagrams continue to
+ * work unchanged with the minimal `{id, name}` shape.
+ */
+export type ClassNodeElement = {
+  id: string
+  /** Raw type string (`'str'`, `'int'`, `'MyClass'`, …) before normalization. */
+  attributeType?: string
+  /** Visibility, canonical form. The row renderer maps to `+/-/#/~`. */
+  visibility?: ClassifierVisibility
+  /** Method body / attribute default expression (Python or BAL). */
+  code?: string
+  /** Selects the method implementation strategy. Defaults to `'none'`. */
+  implementationType?: ClassifierMethodImplementationType
+  /** Cross-diagram link when `implementationType === 'state_machine'`. */
+  stateMachineId?: string
+  /** Cross-diagram link when `implementationType === 'quantum_circuit'`. */
+  quantumCircuitId?: string
+  /** Cross-diagram link when `implementationType === 'neural_network'` (NNDiagram id). */
+  neuralNetworkId?: string
+  /** UML "?" marker — attribute may be null. */
+  isOptional?: boolean
+  /** UML "/" marker — derived attribute. */
+  isDerived?: boolean
+  /** BESSER `{id}` marker — primary identifier. */
+  isId?: boolean
+  /** BESSER `{external id}` marker — externally-managed identifier. */
+  isExternalId?: boolean
+  /** Default value for attributes; ignored on methods. */
+  defaultValue?: unknown
+  /** Method parameters. Ignored on attribute rows. */
+  parameters?: ClassifierMethodParameter[]
+  /** Method return type. Ignored on attribute rows; mirrors `attributeType`. */
+  returnType?: string
+} & DefaultNodeProps
+
+export type ClassNodeProps = {
+  methods: ClassNodeElement[]
+  attributes: ClassNodeElement[]
+  /** Freeform stereotype. Was `ClassType` enum. */
+  stereotype?: string
+  /** Independent italic flag. */
+  italic?: boolean
+  /** Independent underline flag. */
+  underline?: boolean
+  /** Free-text description (v3 `StylePane.showDescription`). */
+  description?: string
+  /** Optional URI (v3 `StylePane.showUri`). */
+  uri?: string
+  /** Optional inline icon SVG body (v3 `StylePane.showIcon`). */
+  icon?: string
+  /**
+   * BESSER OCL constraints attached to this classifier. `expression` is the
+   * raw OCL text; `name` is the constraint identifier shown in the panel.
+   * Empty / undefined ⇒ no constraints rail rendered.
+   */
+  oclConstraints?: ClassOCLConstraint[]
+} & DefaultNodeProps
+
+/**
+ * BESSER ClassDiagram OCL constraint, attached as a row on the parent
+ * class. Spec recommendation (`docs/source/migrations/uml-v4-shape.md`
+ * "Mapping rules (ClassDiagram)" §): collapse free-standing
+ * v3 `ClassOCLConstraint` elements onto their owner class. picks
+ * the collapse-onto-owner option per the open-question note in the spec.
+ */
+export type ClassOCLConstraint = {
+  id: string
+  name: string
+  expression: string
+  /** Optional human-readable description used by the assistant. */
+  description?: string
+  /** Optional kind discriminator (`'invariant'`, `'pre'`, `'post'`). */
+  kind?: string
+  /**
+   * Legacy body-only rows (v3 `constraintName`): the constraint name the
+   * backend uses when re-synthesising the `context …` header.
+   */
+  constraintName?: string
+  /** Legacy body-only pre/post rows (v3 `targetMethodId`): target method row id. */
+  targetMethodId?: string
+}
+
+/**
+ * Node data for a free-standing OCL constraint rendered as
+ * a sticky-note style box (yellow, dog-eared corner) — distinct from a
+ * regular Class node. Used when v3 emits a `ClassOCLConstraint` element
+ * with no owner class. Owned constraints continue to collapse onto the
+ * parent's `data.oclConstraints`.
+ */
+export type ClassOCLConstraintNodeProps = {
+  /** OCL expression body. */
+  expression: string
+  /** Optional human-readable description. */
+  description?: string
+  /** Constraint kind: 'inv' | 'pre' | 'post' (auto-derived if omitted). */
+  kind?: string
+  /** Legacy body-only constraint name (v3 `constraintName`). */
+  constraintName?: string
+  /** Legacy body-only pre/post target method row id (v3 `targetMethodId`). */
+  targetMethodId?: string
+} & DefaultNodeProps
+
+/**
+ * Free-form sticky-note Comment node, ported from v3
+ * (`v3 source: common/comments/`). The body text
+ * is stored on `data.name` for parity with the v3 element, which used
+ * the `UMLElement.name` field as the comment body (the v3 inspector
+ * was a textarea bound to `name`). Kept as a separate prop type so the
+ * inspector can swap to a multiline editor without affecting unrelated
+ * `DefaultNodeProps` consumers.
+ */
+export type CommentNodeProps = DefaultNodeProps
+
+/**
+ * Object-diagram per-instance attribute row. v3 parity: object attribute
+ * rows carry only the attribute identity (name + type) and a runtime
+ * value — never the class-method-only fields (`code`,
+ * `implementationType`, `stateMachineId`, `quantumCircuitId`,
+ * `parameters`, `returnType`). The previous shape extended
+ * `ClassNodeElement` wholesale and surfaced those by accident.
+ */
+export type ObjectNodeAttribute = Pick<
+  ClassNodeElement,
+  | "id"
+  | "name"
+  | "attributeType"
+  | "visibility"
+  | "isOptional"
+  | "isDerived"
+  | "isId"
+  | "isExternalId"
+  | "defaultValue"
+  | "fillColor"
+  | "strokeColor"
+  | "textColor"
+> & {
+  /** Link to a class attribute id in a sibling ClassDiagram, when known. */
+  attributeId?: string
+  /** Runtime value of the attribute on this instance. */
+  value?: unknown
+}
+
+export type ObjectNodeProps = {
+  attributes: ObjectNodeAttribute[]
+  /** Link to a class node id in a sibling ClassDiagram, when known. */
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+  /** Inline icon SVG body for icon-view rendering. */
+  icon?: string
+  /**
+   * Optional stereotype band shown above the underlined name (
+   * Gap 1). v3 ObjectName extended UMLClassifier with a free-form
+   * `string | null` stereotype; we mirror that here so migrated
+   * fixtures keep their `«…»` label.
+   */
+  stereotype?: string | null
+} & DefaultNodeProps
+
+export type CommunicationObjectNodeProps = {
+  methods: ClassNodeElement[]
+  attributes: ClassNodeElement[]
+} & DefaultNodeProps
+
+export type ComponentNodeProps = {
+  isComponentHeaderShown: boolean
+  /** Free-form stereotype; agent components use an AgentCategory token. */
+  stereotype?: string
+  /** Cross-diagram ids of the classes this component realizes. */
+  realizes?: string[]
+  /** Ids of the BPMN diagrams whose process this agent component joins. */
+  processModelRefs?: string[]
+  /** Id of the agent diagram that defines this component. */
+  agentModelRef?: string
+} & DefaultNodeProps
+
+export type ComponentSubsystemNodeProps = {
+  isComponentSubsystemHeaderShown: boolean
+  stereotype?: string
+} & DefaultNodeProps
+
+export type DeploymentNodeProps = {
+  isComponentHeaderShown: boolean
+  stereotype: string
+} & DefaultNodeProps
+
+export type DeploymentComponentProps = {
+  isComponentHeaderShown: boolean
+  stereotype?: string
+} & DefaultNodeProps
+
+export type DeploymentArtifactProps = {
+  /** Cross-diagram ids of the components this artifact manifests. */
+  manifests?: string[]
+  /** Id of the agent diagram this artifact deploys. */
+  agentModelRef?: string
+} & DefaultNodeProps
+
+export type PetriNetPlaceProps = {
+  tokens: number
+  capacity: number | "Infinity"
+} & DefaultNodeProps
+
+export type BPMNTaskType =
+  | "default"
+  | "user"
+  | "service"
+  | "send"
+  | "receive"
+  | "manual"
+  | "business-rule"
+  | "script"
+
+export type BPMNMarkerType =
+  | "none"
+  | "parallel multi instance"
+  | "sequential multi instance"
+  | "loop"
+
+export type BPMNTaskProps = DefaultNodeProps & {
+  taskType: BPMNTaskType
+  marker: BPMNMarkerType
+  isAgentic?: boolean
+  reflectionMode?: BPMNReflectionMode
+  /** Reviewer lane id for cross-reflection. */
+  reflectionReviewerLaneId?: string
+  /** 0-100 percentage. */
+  trustScore?: number
+  agentDiagramRef?: string | null
+}
+
+export type BPMNStartEventType =
+  | "default"
+  | "message"
+  | "timer"
+  | "conditional"
+  | "signal"
+  | "escalation"
+  | "error"
+  | "compensation"
+  | "link"
+
+export type BPMNIntermediateEventType =
+  | "default"
+  | "message-catch"
+  | "message-throw"
+  | "timer-catch"
+  | "timer-throw"
+  | "escalation-throw"
+  | "conditional-catch"
+  | "link-catch"
+  | "link-throw"
+  | "compensation-throw"
+  | "signal-catch"
+  | "signal-throw"
+
+export type BPMNEndEventType =
+  | "default"
+  | "message"
+  | "escalation"
+  | "error"
+  | "compensation"
+  | "signal"
+  | "terminate"
+
+// Shared by start / intermediate / end event nodes, so eventType is the union
+// of all three (upstream Apollon). Typing it as the start-event union alone
+// forced casts at every intermediate / end call site.
+export type BPMNEventProps = DefaultNodeProps & {
+  eventType: BPMNStartEventType | BPMNIntermediateEventType | BPMNEndEventType
+}
+
+export type BPMNGatewayType =
+  | "complex"
+  | "event-based"
+  | "exclusive"
+  | "inclusive"
+  | "parallel"
+
+export type BPMNGatewayProps = DefaultNodeProps & {
+  gatewayType: BPMNGatewayType
+  isAgentic?: boolean
+  gatewayRole?: BPMNGatewayRole
+  /** 0-100 percentage. */
+  trustScore?: number
+  /** Merge policy of a merging agentic gateway. */
+  governanceDsl?: string
+}
+
+export type BPMNSubprocessProps = DefaultNodeProps & { isExpanded: boolean }
+export type BPMNTransactionProps = DefaultNodeProps & { isExpanded: boolean }
+export type BPMNCallActivityProps = DefaultNodeProps & { calledElement: string }
+export type BPMNAnnotationProps = DefaultNodeProps
+export type BPMNDataObjectProps = DefaultNodeProps
+export type BPMNDataStoreProps = DefaultNodeProps
+export type BPMNPoolProps = DefaultNodeProps
+export type BPMNGroupProps = DefaultNodeProps
+// A pool subdivision; an agentic lane also carries an agent profile.
+export type BPMNSwimlaneProps = DefaultNodeProps & {
+  isAgentic?: boolean
+  role?: BPMNAgentRole
+  /** 0-100 percentage. */
+  trustScore?: number
+  /** Swarm size: identical copies of this agent (integer >= 1). */
+  multiplicity?: number
+  agentDiagramRef?: string | null
+}
+
+export type ReachabilityGraphMarkingProps = DefaultNodeProps & {
+  isInitialMarking: boolean
+}
+
+export type SfcActionRow = DefaultNodeProps & {
+  id: string
+  identifier: string
+}
+
+export type SfcActionTableProps = DefaultNodeProps & {
+  actionRows: SfcActionRow[]
+}
+export type SfcTransitionBranchNodeProps = DefaultNodeProps & {
+  showHint: boolean
+}
+
+/* -------------------------------------------------------------------------- */
+/* StateMachineDiagram (BESSER)                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Body row attached to a `State` parent. Wire spec
+ * (`docs/source/migrations/uml-v4-shape.md`, StateMachineDiagram §):
+ * v4 represents `StateBody`/`StateFallbackBody` as React-Flow children with
+ * `parentId` pointing at the containing `State`. The brief instructs the
+ * port to ship them as separate node types so the parent State can use
+ * React Flow's `parentId` semantics — that's why this carries `data`
+ * inline rather than collapsing onto `StateNodeProps.bodies`.
+ */
+export type StateBodyNodeProps = DefaultNodeProps
+
+/**
+ * Inline body row stored on `StateNodeProps.bodies` /
+ * `StateNodeProps.fallbackBodies`. v3 parity: `UMLStateBody` /
+ * `UMLStateFallbackBody` carried only a `name` field (they extend
+ * `UMLStateMember` which has nothing beyond the inherited UMLElement
+ * fields). The row id is preserved across round-trip with v3.
+ */
+export type StateBodyRow = {
+  id: string
+  name?: string
+  /**
+   * Optional per-row fill / text colors — develop parity:
+   * `uml-state-body-update.tsx` gave every body / fallback-body row a
+   * ColorButton + StylePane (fillColor, textColor). Mirrors
+   * `AgentStateBodyRow`.
+   */
+  fillColor?: string
+  textColor?: string
+}
+
+/**
+ * `State` parent node. v3 parity: body and fallback-body rows render
+ * inline on the parent (same pattern as `AgentState` and Class
+ * attribute rows). Replaces the prior child-node approach where
+ * `StateBody` / `StateFallbackBody` were separate React-Flow nodes
+ * connected via `parentId`. A normalizer folds any legacy floating body
+ * nodes back into these arrays on load.
+ */
+export type StateNodeProps = DefaultNodeProps & {
+  stereotype?: string | null
+  italic?: boolean
+  underline?: boolean
+  /** Main-section body rows (entry / do / exit / on). */
+  bodies?: StateBodyRow[]
+  /** Fallback body rows. */
+  fallbackBodies?: StateBodyRow[]
+}
+
+/** StateActionNode — labelled rounded rectangle. v3 parity: only the
+ *  `name` is editable; v3 had no code body on the action node. */
+export type StateActionNodeProps = DefaultNodeProps
+
+/**
+ * StateObjectNode — references a class in a sibling ClassDiagram.
+ *
+ * Spec open question 4: the `classId` link is YES, mirroring
+ * `ObjectName.classId`. The inspector renders a class-picker driven by
+ * `diagramBridge.getAvailableClasses()`; the v3 fork stored the link on
+ * the element directly so the v3 → v4 migrator passes the field through
+ * verbatim.
+ */
+export type StateObjectNodeProps = DefaultNodeProps & {
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+}
+
+/**
+ * StateCodeBlock — Python code panel. `language` defaults to `'python'`.
+ * The body is rendered inside a `foreignObject` so multi-line code keeps
+ * its formatting.
+ */
+export type StateCodeBlockProps = DefaultNodeProps & {
+  code: string
+  language?: string
+}
+
+/**
+ * StateInitialNode / StateFinalNode / StateMergeNode / StateForkNode /
+ * StateForkNodeHorizontal — markers with at most a `name` label. Use
+ * the shared `DefaultNodeProps` shape; no extra fields.
+ */
+export type StateMarkerNodeProps = DefaultNodeProps
+
+/* -------------------------------------------------------------------------- */
+/* AgentDiagram (BESSER)                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Inline-body row attached to `AgentState.data.bodies`.
+ *
+ * v3's `AgentState` rendered its body sections inline (entry / do /
+ * exit / on-transition / fallback) like a Class node renders attribute
+ * / method rows. originally split each body into a separate
+ * `AgentStateBody` / `AgentStateFallbackBody` node connected via
+ * `parentId`; undoes that split and folds the bodies onto
+ * the parent's `data.bodies` array.
+ *
+ * Each row carries the v3 `AgentStateMember` reply-type-driven extras
+ * (`ragDatabaseName`, `dbCustomName`, …) verbatim so round-trip with v3
+ * fixtures stays lossless. The migrator preserves the original v3
+ * element ids on the body rows so v4 → v3 emits them back as top-level
+ * child elements with their original ids.
+ */
+export type AgentStateBodyRow = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Display label / row content (also stores v3 `name`). */
+  name?: string
+  /** Optional code body when `replyType === 'code'`. */
+  code?: string
+  /**
+   * Develop `AgentStateMember.replyType`. One of
+   * `'text' | 'llm' | 'llm_chat' | 'rag' | 'db_reply' | 'code' |
+   * 'web_crawl_llm' | 'ws_markdown' | 'ws_html' | 'ws_speech' |
+   * 'ws_options' | 'ws_location' | 'ws_file' | 'ws_image' |
+   * 'ws_dataframe' | 'ws_plotly'`. Kept `string`-typed to match
+   * develop's untyped `replyType`. Defaults to `'text'`.
+   */
+  replyType?: string
+  /**
+   * Registered `AgentLLM` name used by `llm` replies and `db_reply`
+   * rows in LLM-query mode. Empty string / undefined means "(use
+   * default)" — the agent's default LLM resolves at codegen time.
+   * Mirrors v3 `AgentStateMember.llm_name`.
+   */
+  llm_name?: string
+  ragDatabaseName?: string
+  dbSelectionType?: string
+  dbCustomName?: string
+  dbQueryMode?: string
+  dbOperation?: string
+  dbSqlQuery?: string
+  /* --- Remaining `AgentStateMember` reply-type extras (develop
+     `agent-state-member.ts` L11-34). Each only meaningful for the reply
+     type noted; carried verbatim so v3 round-trips stay lossless. --- */
+  /** `rag`: prompt override passed to `RAGReply(prompt=…)` (distinct from `ragDatabaseName`). */
+  prompt?: string
+  /** `llm` / `llm_chat`: system message. */
+  system_message?: string
+  /** `web_crawl_llm`: seed URL to crawl. */
+  initial_url?: string
+  /** `web_crawl_llm`: max crawl depth (develop default 2). */
+  max_depth?: number
+  /** `web_crawl_llm`: max pages to fetch (develop default 20). */
+  max_pages?: number
+  /** `web_crawl_llm`: crawl output format (`markdown` | `text` | `html`). */
+  crawl_format?: string
+  /** `web_crawl_llm`: restrict crawl to URLs under this prefix. */
+  base_url_prefix?: string
+  /** `web_crawl_llm`: run the crawl vs reuse cached result (develop default true). */
+  run_crawl?: boolean
+  /** `web_crawl_llm`: message shown when `run_crawl` is off and no cache exists. */
+  no_crawl_error_message?: string
+  /** `web_crawl_llm`: optional system-message prefix. */
+  system_message_prefix?: string
+  /** `ws_markdown` / `ws_html` / `ws_speech`: reply message text. */
+  ws_message?: string
+  /** `ws_speech`: optional audio playback speed (`null` = default). */
+  ws_audio_speed?: number | null
+  /** `ws_options`: newline-separated option list. */
+  ws_options?: string
+  /** `ws_location`: latitude. */
+  ws_latitude?: number
+  /** `ws_location`: longitude. */
+  ws_longitude?: number
+  /* --- smart-gen session data flow + GUI replies (d765a3f8, f0d17038).
+     Same field names as the v3 `AgentStateMember`. --- */
+  /**
+   * Metamodel action class name (`TextReplyAction`, `LLMReplyAction`, …).
+   * The writer emits it next to `replyType`; readers prefer it.
+   */
+  actionType?: string
+  /** `llm` / `rag` / `db_reply`: `'last_user_message'` (default) | `'custom'`. */
+  inputPromptMode?: string
+  /** Custom input prompt when `inputPromptMode === 'custom'`. */
+  customInputPrompt?: string
+  customInputPromptUseSessionVars?: boolean
+  /** `llm` / `llm_chat`: interpolate `{vars}` in the system message. */
+  systemPromptUseSessionVars?: boolean
+  /** `rag`: interpolate `{vars}` in the prompt. */
+  promptUseSessionVars?: boolean
+  /** LLM-generated answers: session key to store the result under. */
+  storeInSession?: string
+  /** `text` / `ws_markdown` / `ws_html` / `ws_speech`: interpolate `{vars}`. */
+  useSessionVars?: boolean
+  /** `web_crawl_llm`: interpolate `{vars}` in the system-message prefix. */
+  systemMessagePrefixUseSessionVars?: boolean
+  /** LLM-generated answers: send the result as the agent reply (default true). */
+  sendReply?: boolean
+  /** `gui_reply`: `gui_id` of the AgentGUI component to render. */
+  guiId?: string
+  /** Optional fillColor / textColor passthrough for round-trip parity. */
+  fillColor?: string
+  textColor?: string
+}
+
+/**
+ * `AgentState` parent node — extends `StateNodeProps` with a `replyType`
+ * discriminator and an inline `bodies` array. v3 source:
+ * `agent-state-diagram/agent-state/agent-state.ts` (`replyType` defaults
+ * to `'text'` on `AgentStateMember`).
+ *
+ * Bodies render inline on the parent (table-style rows,
+ * like a Class node's attributes). Each `bodies[i]` carries the v3
+ * element id so the migrator emits them back as top-level v3 child
+ * elements with their original ids.
+ */
+export type AgentStateNodeProps = Omit<StateNodeProps, "bodies" | "fallbackBodies"> & {
+  /**
+   * Reply discriminator: `'text' | 'image' | 'json' | 'llm' | 'rag' | 'code'
+   * | 'db_reply'` per the v3 `AgentStateMember` defaults. Defaults to `'text'`.
+   */
+  replyType?: string
+  /**
+   * Legacy entry-state flag (older v4 saves, backend B-UML import). The
+   * entry state is a `StateInitialNode` marker + `AgentStateTransitionInit`
+   * edge; `normalizeV4Model` turns this flag into them on load.
+   */
+  initial?: boolean
+  /**
+   * Main-section inline body rows. Folded from v3's child `AgentStateBody`
+   * elements. Fallback rows live in `fallbackBodies`
+   * below — kept as a separate array (replacing the prior `kind: 'fallback'`
+   * discriminator) so the body row shape stays clean.
+   */
+  bodies?: AgentStateBodyRow[]
+  /**
+   * Fallback-section inline body rows. Folded from v3's child
+   * `AgentStateFallbackBody` elements.
+   */
+  fallbackBodies?: AgentStateBodyRow[]
+  /**
+   * Develop `agent-state.ts` `stateType` discriminator. `'standard'`
+   * (default) renders the body / fallback rows; `'reasoning'` folds the
+   * former standalone `AgentReasoningState` node into this type — an
+   * autonomous reasoning-loop state rendered with a purple accent and a
+   * `🧠 «reasoning»` header, driven by the reasoning-config fields below.
+   * Toggling back to `'standard'` restores `bodies` / `fallbackBodies`
+   * untouched (they are preserved regardless of `stateType`).
+   */
+  stateType?: "standard" | "reasoning"
+  /** Whether the Fallback Body section is active (develop default true). */
+  fallbackBodyEnabled?: boolean
+  /** Reasoning: registered `AgentLLM` name; empty = agent default. */
+  llm_name?: string
+  /** Reasoning: loop step budget (develop default 8). */
+  max_steps?: number
+  /** Reasoning: enable task-planning (develop default true). */
+  enable_task_planning?: boolean
+  /** Reasoning: stream intermediate steps (develop default true). */
+  stream_steps?: boolean
+  /** Reasoning: optional system-prompt prefix for this state. */
+  system_prompt?: string
+  /** Reasoning: message returned if the reasoning loop fails. */
+  fallback_message?: string
+  /** Free text; `a2a:out;...` lines tag outgoing agent-to-agent messages. */
+  description?: string
+}
+
+/**
+ * Training-phrase row attached to
+ * `AgentIntent.data.training_phrases`. Mirrors the v3 `AgentIntentBody`
+ * element shape — one user utterance per row. Folded inline like
+ * `ClassNodeElement` rows so the editor renders them as SVG rows on the
+ * parent intent.
+ */
+export type AgentIntentTrainingPhrase = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Display label / utterance text. */
+  name: string
+}
+
+/**
+ * Entity-slot row attached to
+ * `AgentIntent.data.entity_slots`. Mirrors v3 `AgentIntentObjectComponent`:
+ * a (name, entity, slot, value) tuple.
+ */
+export type AgentIntentEntitySlot = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Row label / slot identifier (display name). */
+  name: string
+  /** Entity name attached to this slot. */
+  entity?: string
+  /** Slot name (entity binding). */
+  slot?: string
+  /** Optional value — fixed value the agent expects. */
+  value?: string
+}
+
+/**
+ * `AgentIntent` parent node. folds the v3
+ * `AgentIntentBody` / `AgentIntentDescription` / `AgentIntentObjectComponent`
+ * children into inline data arrays on this node: `training_phrases[]`,
+ * `entity_slots[]`, and the existing `intent_description` string. The
+ * editor renders these as SVG rows inside the intent rectangle, matching
+ * how `Class` renders `data.attributes[]` and `AgentState` renders
+ * `data.bodies[]`. Children are no longer separate React-Flow nodes.
+ */
+export type AgentIntentNodeProps = DefaultNodeProps & {
+  /** Free-text description rendered as the first row under the header. */
+  intent_description?: string
+  /** Inline training-utterance rows (was `AgentIntentBody` child nodes). */
+  training_phrases?: AgentIntentTrainingPhrase[]
+  /** Inline entity-slot rows (was `AgentIntentObjectComponent` child nodes). */
+  entity_slots?: AgentIntentEntitySlot[]
+  stereotype?: string | null
+  italic?: boolean
+  underline?: boolean
+}
+
+/**
+ * Legacy `AgentIntentBody` shape — one training utterance row. Kept as
+ * a typed alias so older fixtures and the v3 → v4 inverse converter can
+ * still reference it; folds this row onto the
+ * parent intent's `data.training_phrases` on import so React Flow no
+ * longer sees a separate node for it.
+ */
+export type AgentIntentBodyNodeProps = DefaultNodeProps
+
+/**
+ * Legacy `AgentIntentDescription` shape — single description block under
+ * the intent header. folds the value onto the
+ * parent intent's `data.intent_description` on import.
+ */
+export type AgentIntentDescriptionNodeProps = DefaultNodeProps
+
+/**
+ * Legacy `AgentIntentObjectComponent` shape — entity / slot mapping
+ * row. folds the row onto the parent intent's
+ * `data.entity_slots` on import.
+ */
+export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
+  /** Entity name attached to this slot. */
+  entity?: string
+  /** Slot name (entity binding). */
+  slot?: string
+  /** Optional value — fixed value the agent expects. */
+  value?: string
+}
+
+/**
+ * `AgentRagElement` — standalone RAG database element (cylinder visual).
+ *
+ * The DB-mode fields (`ragDatabaseName`,
+ * `dbCustomName`, `dbSelectionType`, `dbQueryMode`, `dbOperation`,
+ * `dbSqlQuery`) were removed from this prop type. Those settings belong
+ * to the AgentState `db_reply` reply mode (see `AgentStateEditPanel`),
+ * not to the standalone cylinder. The standalone palette element now
+ * carries only its display name — keeping the type lean and the
+ * inspector focused on what the canvas actually surfaces.
+ *
+ * Round-trip: when older v3/v4 fixtures ship the legacy DB fields on
+ * an `AgentRagElement`, the versionConverter still preserves them on
+ * the v3 wire form via passthrough (the migrator never relied on
+ * reading them from this typed shape).
+ *
+ * `llm_name` references a registered `AgentLLM` definition by name;
+ * empty / undefined means "(use default)". Develop source:
+ * `agent-state-diagram/agent-rag-element/agent-rag-element-update.tsx`.
+ */
+export type AgentRagElementNodeProps = DefaultNodeProps & {
+  /** Registered LLM name; empty = use the agent default. */
+  llm_name?: string
+  /**
+   * LLM prompt prefix passed to the RAG reply. Develop
+   * `agent-rag-element.ts` default `''`.
+   */
+  llm_prompt?: string
+  /**
+   * Number of retrieved chunks (`k`). Develop default `4`, clamped
+   * to `>= 1` in the inspector.
+   */
+  k?: number
+  /**
+   * Chat-history window handed to the RAG reply. Develop default `0`,
+   * clamped to `>= 0` in the inspector.
+   */
+  num_previous_messages?: number
+  /**
+   * Embedding backend (smart-gen 70b3852d). `'openai'` (default) or
+   * `'ollama'`; with Ollama, `embedding_base_url` defaults to
+   * `http://localhost:11434`.
+   */
+  embedding_provider?: "openai" | "ollama"
+  embedding_base_url?: string
+  embedding_model?: string
+  /** Hybrid RAG (vector + BM25, smart-gen 42bbd00c). Default `false`. */
+  use_hybrid_rag?: boolean
+  /** BM25 weight in (0, 1) for hybrid RAG. Default `0.6`. */
+  bm25_weight?: number
+}
+
+/**
+ * `AgentLLM` — registered LLM definition. A **data-only** node: it is
+ * never rendered on the canvas (the node component returns `null`,
+ * matching develop's `AgentLLMNoopComponent`) and is managed
+ * exclusively from the webapp's Agent Customization panel (LLMs card).
+ * Develop source: `agent-state-diagram/agent-llm/agent-llm.ts`.
+ *
+ * The `name` (inherited from `DefaultNodeProps`) is the registry key
+ * that `llm_name` references on RAG elements, LLM replies, and
+ * reasoning states resolve against; the diagram config's
+ * `default_llm_name` points at one of these names.
+ */
+export type AgentLLMNodeProps = DefaultNodeProps & {
+  /** v3 `AgentLLMProviderType`. Defaults to `'openai'`. */
+  provider?: AgentLLMProviderType
+  /** Free-form constructor parameters (e.g. `{ "model": "gpt-4o" }`). */
+  parameters?: Record<string, unknown>
+  /** Chat-history window handed to the wrapper. v3 default 1. */
+  num_previous_messages?: number
+  /** System-level context appended to every prompt. */
+  global_context?: string
+}
+
+/**
+ * @deprecated Legacy wire-shape only. Develop folded the standalone
+ * `AgentReasoningState` node into `AgentState` with
+ * `stateType: 'reasoning'` (see `AgentStateNodeProps`). No live node type
+ * references this after the fold; it is retained purely so the one-time
+ * `versionConverter.ts` legacy-import path can read pre-fold diagrams
+ * (`type: "AgentReasoningState"`) and convert them into `AgentState`
+ * reasoning nodes. Do not register a node/inspector/palette entry
+ * against it.
+ *
+ * `llm_name` references a registered `AgentLLM` definition by name; an
+ * empty string means "(use default)" — the agent's default LLM resolves
+ * at codegen time.
+ */
+export type AgentReasoningStateNodeProps = DefaultNodeProps & {
+  /** Mirrors v3 `initial` — set when the init edge targets this state. */
+  initial?: boolean
+  /** Registered LLM name; empty = use the agent default. */
+  llm_name?: string
+  /** Reasoning loop budget. v3 default 8. */
+  max_steps?: number
+  /** v3 default true. */
+  enable_task_planning?: boolean
+  /** v3 default true. */
+  stream_steps?: boolean
+  /** Optional system-prompt prefix for this state. */
+  system_prompt?: string
+  /** Message returned if the reasoning loop fails. */
+  fallback_message?: string
+}
+
+/**
+ * `AgentTool` — Python callable exposed to the reasoning LLM (blue
+ * hexagon, `🔧 «tool»`). Develop source:
+ * `agent-state-diagram/agent-tool/agent-tool.ts`.
+ */
+export type AgentToolNodeProps = DefaultNodeProps & {
+  /** Short description shown to the LLM. */
+  description?: string
+  /** Python source — must contain a top-level `def` matching `name`. */
+  code?: string
+}
+
+/**
+ * `AgentSkill` — markdown playbook the reasoning LLM can load (green
+ * folded-corner card, `💡 «skill»`). Develop source:
+ * `agent-state-diagram/agent-skill/agent-skill.ts`.
+ */
+export type AgentSkillNodeProps = DefaultNodeProps & {
+  /** Markdown instructions. */
+  content?: string
+  /** Optional short description. */
+  description?: string
+}
+
+/**
+ * `AgentWorkspace` — filesystem root the reasoning LLM may browse
+ * (amber folder silhouette, `📁 «workspace»`). Develop source:
+ * `agent-state-diagram/agent-workspace/agent-workspace.ts`.
+ */
+export type AgentWorkspaceNodeProps = DefaultNodeProps & {
+  /** Filesystem path of the workspace root. */
+  path?: string
+  /** Optional description. */
+  description?: string
+  /** v3 default true. */
+  writable?: boolean
+  /** v3 default 200000. */
+  max_read_bytes?: number
+}
+
+/* -------------------------------------------------------------------------- */
+/* UserDiagram (BESSER)                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `UserModelAttribute` — per-instance attribute row on a `UserModelName`.
+ * Mirrors `ObjectNodeAttribute` plus the v3-only fields:
+ *
+ * - `attributeOperator` — comparator (`<` / `<=` / `==` / `>=` / `>`).
+ *   Defaults to `'=='`.
+ * - `attributeId` — link to a class attribute id in a sibling
+ *   ClassDiagram, when known.
+ * - `icon` — per-row icon reference (v3 `StylePane showIcon` on
+ *   `UMLUserModelAttributeUpdate` exposed an icon field per attribute
+ *   row; stored on the element and round-tripped verbatim).
+ */
+export type UserModelAttributeRow = ClassNodeElement & {
+  attributeId?: string
+  attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+  defaultValue?: unknown
+  /** Runtime / constraint comparison value bound to this attribute. */
+  value?: unknown
+  /** Optional per-row icon name / SVG reference (v3 parity). */
+  icon?: string
+}
+
+/**
+ * `UserModelName` — top-level user node, similar to ObjectName but with
+ * the user-modelling discriminators. Spec open question #1 resolution
+ * (`docs/source/migrations/uml-v4-shape.md`): YES, `classId` is preserved
+ * for parity with `ObjectName.classId`.
+ */
+export type UserModelNameNodeProps = DefaultNodeProps & {
+  attributes: UserModelAttributeRow[]
+  description?: string
+  /** Cross-diagram link to a class node id in a sibling ClassDiagram. */
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+  /** Inline icon SVG body for icon-view rendering. */
+  icon?: string
+  /**
+   * Per-node render mode. `"icon"` (default) renders
+   * the person/class icon — matching the v3 fork's preferred preview
+   * of a UserDiagram node. `"attributes"` shows the underlined header
+   * + attribute table (v3 "normal view"). When unset the consumer
+   * treats it as `"icon"` and the migrator normalises absent values
+   * accordingly.
+   */
+  view?: "icon" | "attributes"
+}
+
+/**
+ * `UserModelAttribute` — separate React-Flow node when the v3 fixture
+ * stored attribute rows as siblings (rare; the migrator collapses them
+ * onto the owner). The inspector renders against the parent's
+ * `attributes` array; this node type exists for legacy round-trip.
+ */
+export type UserModelAttributeNodeProps = DefaultNodeProps & {
+  attributeType?: string
+  defaultValue?: unknown
+  attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+}
+
+/**
+ * `UserModelIcon` — small icon node attached to a `UserModelName`. v3
+ * stored these as separate child elements; v4 keeps them as standalone
+ * marker nodes for round-trip.
+ */
+export type UserModelIconNodeProps = DefaultNodeProps & {
+  icon?: string
+}
+
+/* -------------------------------------------------------------------------- */
+/* NNDiagram (BESSER)                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Generic data shape for a v4 NN layer node. collapses the v3
+ * "every attribute is its own UMLElement" layout into a flat
+ * `attributes: Record<string, unknown>` per
+ * `docs/source/migrations/uml-v4-shape.md` (NNDiagram §). Keys follow
+ * the snake_case attribute slug stripped of the layer suffix
+ * (e.g. `KernelDimAttributeConv2D` → `kernel_dim`). For slugs that
+ * collide across layer kinds (`DimensionAttributePooling` vs
+ * `DimensionAttributeBatchNormalization`) the migrator emits
+ * `<layer_kind>.<slug>` to disambiguate (`pooling.dimension`,
+ * `batch_normalization.dimension`).
+ *
+ * Numeric attributes stay as **strings** in v4 to match the inline
+ * widget which edits them as text. Boolean attributes are normalised
+ * to JS `boolean`.
+ */
+export type NNLayerNodeProps = DefaultNodeProps & {
+  attributes: Record<string, unknown>
+}
+
+/**
+ * Container for a sequential layer stack. Children attach via React
+ * Flow `parentId = container.id`. v3 stored an entry-point reference
+ * (which layer is the "input" side) on the container; the migrator
+ * preserves that as `entryLayerId` if present.
+ */
+export type NNContainerNodeProps = DefaultNodeProps & {
+  /** Optional entry-layer pointer (v3 named `entryLayer` / `inputLayer`). */
+  entryLayerId?: string
+  description?: string
+  /** Variable the network's forward pass takes (`NN.input_var`). */
+  input_var?: string
+  /** Variables the network returns (`NN.return_vars`, one entry each). */
+  return_vars?: string[]
+}
+
+/**
+ * Cross-container reference. v3 carried this as a free-floating element
+ * holding the referenced container id.
+ */
+export type NNReferenceNodeProps = DefaultNodeProps & {
+  /** id of the referenced container / layer. */
+  referenceTarget?: string
+}
+
+/**
+ * Tensor operation (reshape, concatenate, multiply, transpose, …).
+ * Same `attributes` shape as a layer node.
+ */
+export type NNTensorOpNodeProps = NNLayerNodeProps
+
+/**
+ * Model-level training configuration (loss, optimizer, batch size, …).
+ * Same flat `attributes` shape as a layer node.
+ */
+export type NNConfigurationNodeProps = NNLayerNodeProps
+
+/**
+ * Training/test dataset. Same flat `attributes` shape as a layer node;
+ * the inspector renders dataset-specific fields (`path_data`,
+ * `task_type`, `input_format`, `shape`, `normalize`).
+ */
+export type NNDatasetNodeProps = NNLayerNodeProps

@@ -65,14 +65,15 @@ const makeDiagram = (id: string, title: string): ProjectDiagram => ({
   title,
   lastUpdate: new Date().toISOString(),
   model: {
-    version: '3.0.0' as const,
+    version: '4.0.0' as const,
+    id,
+    title,
     type: UMLDiagramType.ClassDiagram,
-    size: { width: 1400, height: 740 },
-    elements: {},
-    relationships: {},
+    nodes: [],
+    edges: [],
     interactive: { elements: {}, relationships: {} },
     assessments: {},
-  },
+  } as any,
 });
 
 let mockState: any;
@@ -352,14 +353,15 @@ describe('DiagramTabs', () => {
       title: 'Class Diagram 2',
       lastUpdate: new Date().toISOString(),
       model: {
-        version: '3.0.0' as const,
+        version: '4.0.0' as const,
+        id: 'cd2',
+        title: 'Class Diagram 2',
         type: UMLDiagramType.ClassDiagram,
-        size: { width: 1400, height: 740 },
-        elements: {},
-        relationships: {},
+        nodes: [],
+        edges: [],
         interactive: { elements: {}, relationships: {} },
         assessments: {},
-      },
+      } as any,
     });
 
     setMockState({
@@ -491,6 +493,26 @@ describe('DiagramTabs', () => {
       fireEvent.keyDown(screen.getByLabelText('Rename diagram'), { key: 'ArrowRight' });
       expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
     });
+  });
+
+  // Live report: with no stored reference the tab bar fell back to
+  // classDiagrams[0], while getReferencedDiagram (validation, generation)
+  // used the active class diagram, so the two disagreed.
+  it('falls back to the active class diagram, like getReferencedDiagram, when no reference is stored', async () => {
+    const { diagramBridge } = await import('@besser/wme');
+    const { getReferencedDiagram } = await import('../../../../shared/types/project');
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram = [makeDiagram('cd1', 'Classes A'), makeDiagram('cd2', 'Classes B')];
+    project.currentDiagramIndices.ClassDiagram = 1;
+    const od = makeDiagram('od1', 'Object Diagram');
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(getReferencedDiagram(project, od, 'ClassDiagram')?.id).toBe('cd2');
+    await waitFor(() =>
+      expect(diagramBridge.setClassDiagramData).toHaveBeenLastCalledWith(project.diagrams.ClassDiagram[1].model),
+    );
   });
 
   it('announces a broken class-diagram reference to assistive technology', () => {

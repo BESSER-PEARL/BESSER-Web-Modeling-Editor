@@ -19,7 +19,7 @@ import type { ChatMessage, InjectionCommand, SendStatus } from '../../services/a
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { BesserEditorProvider } from '../../../editors/uml/besser-editor-context';
 
 const _client = vi.hoisted(() => ({
   messageHandlers: [] as Array<(m: ChatMessage) => void>,
@@ -130,10 +130,10 @@ function renderTwoSurfaces() {
   });
   const tree = (showWidget: boolean) => (
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Surface apiRef={drawer} />
         {showWidget && <Surface apiRef={widget} />}
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>
   );
   const { rerender } = render(tree(true));

@@ -1,11 +1,11 @@
 import { useCallback, useContext } from 'react';
 import { useProject } from '../../../app/hooks/useProject';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 
 /** Writes the open diagram into the stored project, so a GitHub action reads the latest model. */
 export function useFlushEditorModel() {
   const { currentProject, updateCurrentDiagram } = useProject();
-  const editor = useContext(ApollonEditorContext)?.editor;
+  const editor = useContext(BesserEditorContext)?.editor;
   return useCallback(() => {
     if (!editor || !currentProject) return;
     try {

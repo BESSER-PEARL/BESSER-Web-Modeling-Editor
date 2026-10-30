@@ -4,7 +4,7 @@ import { Locale } from '@besser/wme';
  * Single source of truth for the languages the editor ships with.
  *
  * To add a language:
- *   1. Add the editor `Locale` enum value (packages/editor/.../editor-types.ts).
+ *   1. Add the editor `Locale` enum value (packages/library/lib/typings.ts).
  *   2. Add an entry here (code must match the enum value and the locale folder name).
  *   3. Copy `packages/i18n/en/webapp.json` to `packages/i18n/<code>/webapp.json` and translate.
  *   4. Copy `packages/i18n/en/editor.json` to `packages/i18n/<code>/editor.json` and translate.

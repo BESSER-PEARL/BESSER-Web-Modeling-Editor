@@ -56,6 +56,13 @@
   --quantum-editor-tooltip-shadow: 0 12px 28px rgba(2, 6, 23, 0.18);
 }
 
+/* Neutral/info toast progress bars use the brand colour instead of react-toastify's rainbow/purple defaults. */
+html:root {
+  --toastify-color-progress-light: hsl(var(--brand));
+  --toastify-color-progress-dark: hsl(var(--brand));
+  --toastify-color-progress-info: hsl(var(--brand));
+}
+
 /* react-toastify's default (light) toasts follow the dark palette; html[] outranks its :root defaults. */
 html[data-theme='dark'] {
   --toastify-color-light: hsl(222 26% 11%);
@@ -109,6 +116,20 @@ html[data-theme='dark'] {
   --quantum-editor-primary: #38bdf8;
   --quantum-editor-primary-soft: rgba(56, 189, 248, 0.2);
   --quantum-editor-tooltip-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
+}
+
+/* Editor properties panel: re-point the library's --besser-* tokens at the
+   app palette so the panel (and its menus) use the brand teal, the app
+   surfaces and borders in both themes. Scoped to the panel subtree — the
+   canvas keeps its own theming from themings.json. */
+.besser-properties-panel,
+.besser-inspector-portal {
+  --besser-primary: hsl(var(--brand));
+  --besser-primary-contrast: hsl(var(--foreground));
+  --besser-background: hsl(var(--card));
+  --besser-background-variant: hsl(var(--muted));
+  --besser-gray: hsl(var(--border));
+  --besser-gray-variant: hsl(var(--muted-foreground));
 }
 
 * {
@@ -221,6 +242,33 @@ select {
   }
 }
 
+/* ---- Knowledge Graph canvas grid ----
+   The React Flow editors' background (10 px dots, 50 px lines, see the
+   library's CustomBackground), scaled and offset by the Cytoscape viewport
+   through --kg-grid-zoom / --kg-grid-x / --kg-grid-y. */
+.kg-canvas-grid {
+  --kg-grid-minor: calc(10px * var(--kg-grid-zoom, 1));
+  --kg-grid-major: calc(50px * var(--kg-grid-zoom, 1));
+  background-color: var(--besser-background, hsl(var(--background)));
+  background-image:
+    radial-gradient(
+      circle at center,
+      var(--besser-grid-minor, rgba(0, 0, 0, 0.2)) 0.5px,
+      transparent 1px
+    ),
+    linear-gradient(to right, var(--besser-grid, rgba(0, 0, 0, 0.08)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--besser-grid, rgba(0, 0, 0, 0.08)) 1px, transparent 1px);
+  background-size:
+    var(--kg-grid-minor) var(--kg-grid-minor),
+    var(--kg-grid-major) var(--kg-grid-major),
+    var(--kg-grid-major) var(--kg-grid-major);
+  /* Dots are drawn mid-tile, so their layer is shifted half a tile onto the line crossings. */
+  background-position:
+    calc(var(--kg-grid-x, 0px) - var(--kg-grid-minor) / 2) calc(var(--kg-grid-y, 0px) - var(--kg-grid-minor) / 2),
+    var(--kg-grid-x, 0px) var(--kg-grid-y, 0px),
+    var(--kg-grid-x, 0px) var(--kg-grid-y, 0px);
+}
+
 /* ---- Quantum circuit grid utilities ---- */
 @keyframes quantum-drop-pulse {
   0%, 100% { opacity: 0.4; }
@@ -302,11 +350,11 @@ select {
   width: min(420px, 90vw);
 }
 
-/* Clear the top bar so its Quality Check / theme / GitHub / language controls stay reachable. */
-.Toastify .Toastify__toast-container--top-left,
-.Toastify .Toastify__toast-container--top-center,
-.Toastify .Toastify__toast-container--top-right {
-  top: 4.25rem;
+/* Top toasts start below the workspace top bar so they never cover its actions. */
+:root .Toastify__toast-container--top-right,
+:root .Toastify__toast-container--top-center,
+:root .Toastify__toast-container--top-left {
+  top: calc(var(--app-shell-topbar-height) + 8px);
 }
 
 .Toastify__toast {

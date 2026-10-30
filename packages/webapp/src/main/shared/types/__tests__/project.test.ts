@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UMLDiagramType, type UMLModel } from '@besser/wme';
 import {
   ALL_DIAGRAM_TYPES,
+  DIAGRAM_KIND_BY_TYPE,
   PROJECT_SCHEMA_VERSION,
   type BesserProject,
+  type KnowledgeGraphData,
   type ProjectDiagram,
   type SupportedDiagramType,
   createDefaultPerspectives,
@@ -12,22 +14,37 @@ import {
   defaultPerspectivesAllEnabled,
   ensureProjectMigrated,
   findHiddenReferencedPerspectives,
+  isGrapesJSProjectData,
+  isKnowledgeGraphData,
   isPerspectiveVisible,
   isProject,
+  isQuantumCircuitData,
+  isUMLModel,
+  migrateProjectToV5,
+  toUMLDiagramType,
 } from '../project';
 import { PERSPECTIVES, isPresetActive, perspectivesFromDiagramList } from '../../perspectives';
 
 const populatedClassModel = (): UMLModel => ({
-  version: '3.0.0',
+  version: '4.0.0',
+  id: 'test-class-model',
+  title: 'Test',
   type: UMLDiagramType.ClassDiagram,
-  size: { width: 1400, height: 740 },
-  elements: {
-    'class-1': { id: 'class-1', name: 'Foo', type: 'Class', owner: null, bounds: { x: 0, y: 0, width: 0, height: 0 } } as any,
-  },
-  relationships: {},
+  nodes: [
+    {
+      id: 'class-1',
+      type: 'class',
+      position: { x: 0, y: 0 },
+      width: 200,
+      height: 50,
+      measured: { width: 200, height: 50 },
+      data: { name: 'Foo' },
+    } as any,
+  ],
+  edges: [],
   interactive: { elements: {}, relationships: {} },
   assessments: {},
-});
+}) as UMLModel;
 
 describe('createDefaultPerspectives', () => {
   it('returns true for every supported diagram type', () => {
@@ -87,7 +104,7 @@ describe('createDefaultProject', () => {
   });
 });
 
-describe('ensureProjectMigrated v4 → v5', () => {
+describe('ensureProjectMigrated → v6 (Component and Deployment perspectives)', () => {
   const v4Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
     const project = createDefaultProject('Legacy', '', 'me');
     project.schemaVersion = 4;
@@ -120,9 +137,29 @@ describe('ensureProjectMigrated v4 → v5', () => {
     expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
     expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
   });
+
+  it('keeps Component and Deployment visible in a schema-5 project that already chose them', () => {
+    const project = v4Project({ ComponentDiagram: true, DeploymentDiagram: true });
+    project.schemaVersion = 5;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+
+  it('hides Component and Deployment in a schema-5 project saved before they existed', () => {
+    const project = v4Project({});
+    project.schemaVersion = 5;
+    const perspectives: Partial<BesserProject['settings']['perspectives']> = project.settings.perspectives;
+    delete perspectives.ComponentDiagram;
+    delete perspectives.DeploymentDiagram;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(false);
+  });
 });
 
-describe('ensureProjectMigrated v5 → v6', () => {
+describe('ensureProjectMigrated → v7 (Knowledge Graph perspective)', () => {
   const v5Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
     const project = createDefaultProject('Legacy', '', 'me');
     project.schemaVersion = 5;
@@ -136,7 +173,7 @@ describe('ensureProjectMigrated v5 → v6', () => {
 
   it('adds the Knowledge Graph diagram and hides it where perspectives were already chosen', () => {
     const migrated = ensureProjectMigrated(v5Project({ AgentDiagram: false }));
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.diagrams.KnowledgeGraphDiagram).toHaveLength(1);
     expect(migrated.currentDiagramIndices.KnowledgeGraphDiagram).toBe(0);
     expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
@@ -187,6 +224,112 @@ describe('ensureProjectMigrated v5 → v6', () => {
   });
 });
 
+const kgModel = (): KnowledgeGraphData => ({
+  type: 'KnowledgeGraphDiagram',
+  version: '1.0.0',
+  nodes: [
+    { id: 'n1', nodeType: 'class', label: 'Person', iri: 'http://ex.org/onto#Person' },
+    { id: 'n2', nodeType: 'class', label: 'Agent', iri: 'http://ex.org/onto#Agent' },
+  ],
+  edges: [{ id: 'e1', source: 'n1', target: 'n2', label: 'subClassOf' }],
+  settings: { softLimit: 50 },
+});
+
+describe('Knowledge Graph models next to v4 UML models', () => {
+  // Both carry `nodes`/`edges` arrays, so the guards tell them apart by `type`.
+  it('isUMLModel rejects a Knowledge Graph model', () => {
+    expect(isUMLModel(kgModel())).toBe(false);
+    expect(isUMLModel(populatedClassModel())).toBe(true);
+  });
+
+  it('isKnowledgeGraphData rejects a v4 UML model', () => {
+    expect(isKnowledgeGraphData(populatedClassModel())).toBe(false);
+    expect(isKnowledgeGraphData(kgModel())).toBe(true);
+    const { type: _type, ...untyped } = kgModel();
+    expect(isKnowledgeGraphData(untyped)).toBe(true);
+  });
+});
+
+describe('empty model shapes', () => {
+  // Each kind's model must pass exactly one guard, its own: content checks and
+  // migrations route a model by these guards (a KG model passing isUMLModel was
+  // lifted and counted as a UML diagram).
+  const guards = {
+    uml: isUMLModel,
+    gui: isGrapesJSProjectData,
+    quantum: isQuantumCircuitData,
+    kg: isKnowledgeGraphData,
+  } as const;
+
+  it.each(ALL_DIAGRAM_TYPES)('an empty %s matches only its own guard', (type) => {
+    const kind = DIAGRAM_KIND_BY_TYPE[type];
+    const { model } = createEmptyDiagram('Empty', toUMLDiagramType(type), kind);
+    const matching = Object.entries(guards)
+      .filter(([, guard]) => guard(model))
+      .map(([name]) => name);
+    expect(matching).toEqual([kind ?? 'uml']);
+  });
+});
+
+describe('ensureProjectMigrated v6 → v7 (schema 6 from the KG build or the React Flow build)', () => {
+  /** What the KG build saved: schema 6, v3 Apollon models, a KG with content. */
+  const kgBuildV6Project = (): BesserProject => {
+    const project = createDefaultProject('KG build', '', 'me');
+    project.schemaVersion = 6;
+    project.diagrams.ClassDiagram[0].model = {
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      size: { width: 0, height: 0 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        c1: { id: 'c1', name: 'Person', type: 'Class', owner: null, bounds: { x: 0, y: 0, width: 200, height: 100 }, attributes: [], methods: [] },
+      },
+      relationships: {},
+      assessments: {},
+    } as any;
+    project.diagrams.KnowledgeGraphDiagram[0].model = kgModel();
+    project.settings.perspectives.ComponentDiagram = false;
+    return project;
+  };
+
+  it('loads a v6 project saved by the Knowledge Graph build', () => {
+    const migrated = ensureProjectMigrated(kgBuildV6Project());
+
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(PROJECT_SCHEMA_VERSION).toBe(7);
+    // The graph keeps its own format and is never lifted to v4.
+    const kg = migrated.diagrams.KnowledgeGraphDiagram[0].model;
+    expect(kg).toEqual(kgModel());
+    expect(isKnowledgeGraphData(kg)).toBe(true);
+    expect(isUMLModel(kg)).toBe(false);
+    // Its v3 class diagram is lifted.
+    const classModel = migrated.diagrams.ClassDiagram[0].model;
+    expect(isUMLModel(classModel)).toBe(true);
+    expect((classModel as UMLModel).nodes.map((n) => n.id)).toEqual(['c1']);
+    // The saved perspective choices stay as they were.
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+
+  it('adds and hides the Knowledge Graph type in a v6 project saved by the React Flow build', () => {
+    const project = createDefaultProject('React Flow build', '', 'me');
+    project.schemaVersion = 6;
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.KnowledgeGraphDiagram;
+    const { KnowledgeGraphDiagram: _kg, ...saved } = project.settings.perspectives;
+    project.settings.perspectives = saved as BesserProject['settings']['perspectives'];
+
+    const migrated = ensureProjectMigrated(project);
+
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(isKnowledgeGraphData(migrated.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+});
+
 describe('ensureProjectMigrated v3 → v4', () => {
   it('adds perspectives with all-true defaults to a v3 project that lacks them', () => {
     const v3Project = {
@@ -228,13 +371,54 @@ describe('ensureProjectMigrated v3 → v4', () => {
     expect(migrated.settings.perspectives.QuantumCircuitDiagram).toBe(true);
   });
 
-  it('is idempotent on an already-migrated v4 project', () => {
+  it('is idempotent on an already-migrated v5 project', () => {
     const project = createDefaultProject('Fresh', '', 'me');
     project.settings.perspectives.AgentDiagram = false;
     const migrated = ensureProjectMigrated(project);
     expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+});
+
+describe('BPMN diagram support', () => {
+  it('registers BPMN as a supported diagram type', () => {
+    expect(ALL_DIAGRAM_TYPES).toContain('BPMN');
+  });
+
+  it('seeds a fresh project with a BPMN diagram whose wire type is BPMNDiagram', () => {
+    const project = createDefaultProject('Demo', 'desc', 'me');
+    expect(project.diagrams.BPMN).toBeDefined();
+    expect(project.diagrams.BPMN.length).toBe(1);
+    // Bucket key is 'BPMN' but the on-the-wire model.type is 'BPMNDiagram'.
+    expect(UMLDiagramType.BPMN).toBe('BPMNDiagram');
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe(UMLDiagramType.BPMN);
+    expect(project.currentDiagramIndices.BPMN).toBe(0);
+  });
+
+  it('retrofits a missing BPMN bucket + index on an older project', () => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    // Simulate a project created before the BPMN bucket existed.
+    delete (project.diagrams as any).BPMN;
+    delete (project.currentDiagramIndices as any).BPMN;
+
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.diagrams.BPMN).toBeDefined();
+    expect(migrated.diagrams.BPMN.length).toBeGreaterThan(0);
+    expect(migrated.currentDiagramIndices.BPMN).toBe(0);
+  });
+
+  it("rewrites a stale model.type === 'BPMN' to the canonical 'BPMNDiagram'", () => {
+    const project = createDefaultProject('BackCompat', '', 'me');
+    // Diagrams created by an earlier migration build baked in the pre-rename
+    // wire value 'BPMN'; the back-compat loop must normalize it.
+    const bpmnModel = project.diagrams.BPMN[0].model as { type: string };
+    bpmnModel.type = 'BPMN';
+
+    ensureProjectMigrated(project);
+
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe(UMLDiagramType.BPMN);
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe('BPMNDiagram');
   });
 });
 
@@ -258,7 +442,7 @@ describe('findHiddenReferencedPerspectives', () => {
     const objectDiagram = createEmptyDiagram('Obj', UMLDiagramType.ObjectDiagram);
     objectDiagram.model = {
       ...(objectDiagram.model as UMLModel),
-      elements: { 'obj-1': { id: 'obj-1' } as any },
+      nodes: [{ id: 'obj-1' } as any],
     } as any;
     project = withDiagrams(project, 'ObjectDiagram', [objectDiagram]);
 
@@ -302,14 +486,14 @@ describe('findHiddenReferencedPerspectives', () => {
     const obj = createEmptyDiagram('Obj', UMLDiagramType.ObjectDiagram);
     obj.model = {
       ...(obj.model as UMLModel),
-      elements: { 'obj-1': { id: 'obj-1' } as any },
+      nodes: [{ id: 'obj-1' } as any],
     } as any;
     project = withDiagrams(project, 'ObjectDiagram', [obj]);
 
     const agent = createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram);
     agent.model = {
       ...(agent.model as UMLModel),
-      elements: { 'a-1': { id: 'a-1' } as any },
+      nodes: [{ id: 'a-1' } as any],
     } as any;
     project = withDiagrams(project, 'AgentDiagram', [agent]);
 
@@ -347,5 +531,323 @@ describe('preset helpers', () => {
     expect(map.QuantumCircuitDiagram).toBe(true);
     expect(map.ClassDiagram).toBe(false);
     expect(map.AgentDiagram).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* SA-FIX-User: UserDiagram seed + retrofit                                   */
+/* -------------------------------------------------------------------------- */
+
+describe('new UserDiagram', () => {
+  // Live report: new User diagrams came with 4 pre-placed instances
+  // (Personal_Information, Skill, Education, Disability) that were exported as
+  // empty objects once anything was edited, and failed their own Quality
+  // check; develop started empty (palette only).
+  it('starts empty, like every other UML diagram', () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const model = project.diagrams.UserDiagram[0].model as UMLModel;
+    expect(model.nodes).toEqual([]);
+    expect(model.edges).toEqual([]);
+  });
+
+  it('starts empty when added as a new tab', () => {
+    const model = createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram).model as UMLModel;
+    expect(model.nodes).toEqual([]);
+  });
+});
+
+describe('UserDiagram on load', () => {
+  it('keeps an emptied UserDiagram empty on load (develop parity: never re-seeded)', () => {
+    const project = createDefaultProject('Empty', '', 'me');
+    // The user cleared the seeded template; loading must not refill it.
+    const userDiagram = project.diagrams.UserDiagram[0];
+    (userDiagram.model as UMLModel).nodes = [] as any;
+
+    const migrated = ensureProjectMigrated(project);
+    const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
+    expect(nodes).toHaveLength(0);
+  });
+
+  it('leaves a populated UserDiagram untouched', () => {
+    const project = createDefaultProject('Populated', '', 'me');
+    const userDiagram = project.diagrams.UserDiagram[0];
+    const model = userDiagram.model as UMLModel;
+    // Seed a synthetic single-node user model.
+    (model.nodes as any[]) = [
+      {
+        id: 'usr-1',
+        type: 'UserModelName',
+        position: { x: 0, y: 0 },
+        width: 200,
+        height: 60,
+        data: { name: 'Custom', attributes: [] },
+      } as any,
+    ];
+
+    const migrated = ensureProjectMigrated(project);
+    const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].data.name).toBe('Custom');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* SA-FINAL-3 Task 3: migrateProjectToV5 atomic schemaVersion                  */
+/* -------------------------------------------------------------------------- */
+
+describe('migrateProjectToV5 atomicity', () => {
+  // Synthetic v3 UMLModel — the migrator dispatches on the type field,
+  // and the wme migrators we DON'T mock will read elements/relationships.
+  const v3Model = (type: string) => ({
+    type,
+    version: '3.0.0',
+    elements: {},
+    relationships: {},
+  });
+
+  const v4Project = (): BesserProject => {
+    // Start from a default project then knock schemaVersion back to 4
+    // and replace one diagram's model with a v3 shape so the migrator
+    // has something to process.
+    const project = createDefaultProject('LegacyV4', '', 'me');
+    project.schemaVersion = 4;
+    return project;
+  };
+
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('bumps schemaVersion to 5 when every diagram migrates cleanly', () => {
+    const project = v4Project();
+    // Replace the v4 ClassDiagram model with a synthetic v3 shape so the
+    // migrator actually runs. The real wme migrator emits a v4 model.
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(5);
+    // The model body should have been replaced (no more elements key).
+    const migratedModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(migratedModel.elements).toBeUndefined();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op on already-migrated projects (idempotent)', () => {
+    const project = createDefaultProject('AlreadyV5', '', 'me');
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    const before = project.diagrams.ClassDiagram[0].model;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    // Model reference unchanged.
+    expect(result.diagrams.ClassDiagram[0].model).toBe(before);
+  });
+
+  it('repairs v3 models inside a project already stamped schemaVersion >= 5', () => {
+    const project = createDefaultProject('StampedButStale', '', 'me');
+    project.schemaVersion = 5;
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+    // A v3 model detected by shape only (no version, no relationships table).
+    project.diagrams.StateMachineDiagram[0].model = {
+      type: 'StateMachineDiagram',
+      elements: {},
+    } as any;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(5);
+    const classModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(classModel.elements).toBeUndefined();
+    expect(Array.isArray(classModel.nodes)).toBe(true);
+    expect(classModel.version).toMatch(/^4\./);
+    const smModel = result.diagrams.StateMachineDiagram[0].model as any;
+    expect(Array.isArray(smModel.nodes)).toBe(true);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('ensureProjectMigrated repairs a v5+ project holding a v3 BPMN model', () => {
+    const project = createDefaultProject('StampedBpmn', '', 'me');
+    project.schemaVersion = PROJECT_SCHEMA_VERSION;
+    project.diagrams.BPMN[0].model = {
+      version: '3.0.0',
+      type: 'BPMNDiagram',
+      size: { width: 0, height: 0 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        t1: { id: 't1', name: 'Do', type: 'BPMNTask', owner: null, bounds: { x: 0, y: 0, width: 100, height: 60 }, taskType: 'default', marker: 'none' },
+      },
+      relationships: {},
+      assessments: {},
+    } as any;
+
+    const migrated = ensureProjectMigrated(project);
+    // A later stamp is never downgraded.
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    const bpmn = migrated.diagrams.BPMN[0].model as any;
+    expect(bpmn.elements).toBeUndefined();
+    expect(bpmn.type).toBe('BPMNDiagram');
+    expect(bpmn.nodes.map((n: any) => n.id)).toEqual(['t1']);
+  });
+
+  it('leaves schemaVersion at 4 when ANY diagram migration throws', () => {
+    const project = v4Project();
+    // Two v3 diagrams; one is well-formed, one throws while its element
+    // table is read (a mismatched type no longer fails: it is restamped).
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+    project.diagrams.ObjectDiagram[0].model = {
+      ...v3Model('ObjectDiagram'),
+      elements: {
+        get o1() {
+          throw new Error('unreadable element');
+        },
+      },
+    } as any;
+
+    const result = migrateProjectToV5(project);
+    // Partial migration must NOT bump the version — the next launch
+    // retries the broken diagram. This is the SA-FINAL-3 Task 3 fix.
+    expect(result.schemaVersion).toBe(4);
+    // The good diagram still got migrated in-place (best effort).
+    const classModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(classModel.elements).toBeUndefined();
+    // The bad diagram kept its v3 shape so the next load can retry.
+    const objectModel = result.diagrams.ObjectDiagram[0].model as any;
+    expect(objectModel.elements).toBeDefined();
+    // Warning surfaced with the failing diagram's title.
+    expect(warnSpy).toHaveBeenCalled();
+    const warnMessage = warnSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('\n');
+    expect(warnMessage).toContain('Object Diagram');
+  });
+
+  it('skips GUI, Quantum and Knowledge Graph diagrams (their models are not UMLModels)', () => {
+    const project = v4Project();
+    // Leave GUI/quantum/KG models as their natural shape; they should not
+    // trigger any migration attempts.
+    project.diagrams.KnowledgeGraphDiagram[0].model = kgModel();
+    const guiBefore = project.diagrams.GUINoCodeDiagram[0].model;
+    const quantumBefore = project.diagrams.QuantumCircuitDiagram[0].model;
+    const kgBefore = project.diagrams.KnowledgeGraphDiagram[0].model;
+
+    const result = migrateProjectToV5(project);
+    expect(result.diagrams.GUINoCodeDiagram[0].model).toBe(guiBefore);
+    expect(result.diagrams.QuantumCircuitDiagram[0].model).toBe(quantumBefore);
+    expect(result.diagrams.KnowledgeGraphDiagram[0].model).toBe(kgBefore);
+    expect(result.schemaVersion).toBe(5);
+  });
+});
+
+describe('retrofitAgentVariantSnapshots (via ensureProjectMigrated)', () => {
+  const v3AgentVariantModel = () => ({
+    version: '3.0.0',
+    type: 'AgentDiagram',
+    size: { width: 100, height: 100 },
+    elements: {},
+    interactive: { elements: {}, relationships: {} },
+    relationships: {
+      r1: {
+        id: 'r1',
+        name: '',
+        type: 'AgentStateTransition',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 1, height: 1 },
+        source: { element: 'r1-src', direction: 'Right' },
+        target: { element: 'r1-tgt', direction: 'Left' },
+        path: [{ x: 0, y: 0 }],
+        isManuallyLayouted: false,
+        condition: 'when_intent_matched',
+        conditionValue: 'Greeting_intent',
+      },
+    },
+    assessments: {},
+  });
+
+  const variantSnapshot = (model: unknown) => ({
+    id: 'variant-1',
+    profileId: 'profile-1',
+    profileName: 'Teenager',
+    configurationId: 'config-1',
+    configurationName: 'CoolConfig',
+    createdAt: new Date().toISOString(),
+    model,
+  });
+
+  it('lifts v3 personalizedVariants models even at schemaVersion 5', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+
+    const project = createDefaultProject('Variants', 'desc', 'owner');
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    project.diagrams.AgentDiagram[0].config = {
+      personalizedVariants: [variantSnapshot(v3AgentVariantModel())],
+      activePersonalizedVariantId: null,
+    };
+
+    // Before the retrofit, the v4 isUMLModel guard drops the v3 snapshot.
+    expect(readAgentVariants(project.diagrams.AgentDiagram[0])).toHaveLength(0);
+
+    ensureProjectMigrated(project);
+
+    const variants = readAgentVariants(project.diagrams.AgentDiagram[0]);
+    expect(variants).toHaveLength(1);
+    expect((variants[0].model as any).version).toBe('4.0.0');
+    const edge = (variants[0].model as any).edges.find((e: any) => e.id === 'r1');
+    expect(edge.data.transitionType).toBe('predefined');
+    expect(edge.data.predefined.intentName).toBe('Greeting_intent');
+  });
+
+  it('leaves canonical v4 variant snapshots untouched (idempotent)', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+
+    const v4Model = {
+      version: '4.0.0',
+      id: 'm1',
+      title: 'Agent',
+      type: UMLDiagramType.AgentDiagram,
+      nodes: [],
+      edges: [],
+      assessments: {},
+    };
+    const project = createDefaultProject('Variants', 'desc', 'owner');
+    project.diagrams.AgentDiagram[0].config = {
+      personalizedVariants: [variantSnapshot(structuredClone(v4Model))],
+      activePersonalizedVariantId: null,
+    };
+
+    ensureProjectMigrated(project);
+
+    const variants = readAgentVariants(project.diagrams.AgentDiagram[0]);
+    expect(variants).toHaveLength(1);
+    expect(variants[0].model).toEqual(v4Model);
+  });
+
+  it('exposes both gym-template variants once the project is migrated', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+    const gymTemplate = (await import('../../../templates/pattern/project/personalized_gym_agent.json')) as any;
+
+    // The shipped template bundles the personalization state alongside the project.
+    expect(gymTemplate.agentConfigurations).toHaveLength(2);
+    expect(gymTemplate.userProfiles).toHaveLength(2);
+    expect(gymTemplate.agentProfileMappings).toHaveLength(2);
+    expect(gymTemplate.activeAgentConfigurationId).toBeNull();
+    expect(Object.keys(gymTemplate.agentBaseModels)).toEqual(['7ac41ba3-7e2b-44bd-9e47-46c377a9d757']);
+
+    const project = structuredClone(gymTemplate.project) as BesserProject;
+    ensureProjectMigrated(project);
+
+    const agentDiagram = project.diagrams.AgentDiagram[0];
+    expect(agentDiagram.id).toBe('7ac41ba3-7e2b-44bd-9e47-46c377a9d757');
+
+    const variants = readAgentVariants(agentDiagram);
+    expect(variants).toHaveLength(2);
+    for (const variant of variants) {
+      expect((variant.model as any).version).toBe('4.0.0');
+    }
   });
 });

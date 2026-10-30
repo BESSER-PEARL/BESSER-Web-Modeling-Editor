@@ -27,165 +27,144 @@
           "id": "beb4543d-4e7d-48db-a0aa-f3bb3305a139",
           "title": "AgentCoder",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1791464027638",
+            "title": "",
             "type": "AgentDiagram",
-            "size": {
-              "width": 1919.7332763671875,
-              "height": 252
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "gen-nbmzh4a36": {
+            "nodes": [
+              {
                 "id": "gen-nbmzh4a36",
-                "name": "Reproduce_and_fix_bug",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 100,
-                  "y": 36,
+                  "y": 36
+                },
+                "width": 250,
+                "height": 70,
+                "measured": {
                   "width": 250,
                   "height": 70
                 },
-                "description": "a2a:out;peer=AgentReviewer;ref=aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8;flow=flow-11;order=1;kind=revises",
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "74737b6e-e709-4a85-9787-f0d65206455f"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "74737b6e-e709-4a85-9787-f0d65206455f"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Reproduce_and_fix_bug",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "description": "a2a:out;peer=AgentReviewer;ref=aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8;flow=flow-11;order=1;kind=revises",
+                  "bodies": [
+                    {
+                      "id": "74737b6e-e709-4a85-9787-f0d65206455f",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "last_user_message",
+                      "customInputPrompt": "",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": true,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
+                }
               },
-              "74737b6e-e709-4a85-9787-f0d65206455f": {
-                "id": "74737b6e-e709-4a85-9787-f0d65206455f",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-nbmzh4a36",
-                "bounds": {
-                  "x": 100.5,
-                  "y": 76.5,
-                  "width": 249,
-                  "height": 30
-                },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": true,
-                "inputPromptMode": "last_user_message",
-                "customInputPrompt": "",
-                "customInputPromptUseSessionVars": false
-              },
-              "gen-tiz82qoyc": {
+              {
                 "id": "gen-tiz82qoyc",
-                "name": "AgentCoder_greet",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 100,
-                  "y": -74,
+                  "y": -74
+                },
+                "width": 200,
+                "height": 40,
+                "measured": {
                   "width": 200,
                   "height": 40
                 },
-                "stateType": "standard",
-                "fallbackBodyEnabled": false,
-                "actions": [],
-                "fallbackActions": [],
-                "bodies": [],
-                "fallbackBodies": []
+                "data": {
+                  "name": "AgentCoder_greet",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": false
+                }
               },
-              "gen-jav01mzmk": {
-                "id": "gen-jav01mzmk",
-                "name": "",
+              {
+                "id": "gen-tiz82qoyc__initial",
                 "type": "StateInitialNode",
-                "owner": null,
-                "bounds": {
-                  "x": -10,
-                  "y": -76,
+                "position": {
+                  "x": -20,
+                  "y": -76.5
+                },
+                "width": 45,
+                "height": 45,
+                "measured": {
                   "width": 45,
                   "height": 45
+                },
+                "data": {
+                  "name": ""
                 }
               }
-            },
-            "relationships": {
-              "gen-7ec7w2r9o": {
-                "id": "gen-7ec7w2r9o",
-                "name": "",
-                "type": "AgentStateTransitionInit",
-                "owner": null,
-                "bounds": {
-                  "x": 35,
-                  "y": -54,
-                  "width": 65,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 65,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-jav01mzmk"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-tiz82qoyc"
-                },
-                "isManuallyLayouted": false
-              },
-              "gen-kpndk9tw3": {
+            ],
+            "edges": [
+              {
                 "id": "gen-kpndk9tw3",
-                "name": "a2a:in;peer=AgentReviewer;ref=aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8;flow=flow-09;kind=supervises",
+                "source": "gen-tiz82qoyc",
+                "target": "gen-nbmzh4a36",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": 200,
-                  "y": -39,
-                  "width": 739.8666381835938,
-                  "height": 75
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 5
+                "sourceHandle": "bottom",
+                "targetHandle": "top",
+                "data": {
+                  "label": "a2a:in;peer=AgentReviewer;ref=aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8;flow=flow-09;kind=supervises",
+                  "name": "a2a:in;peer=AgentReviewer;ref=aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8;flow=flow-09;kind=supervises",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "when_intent_matched",
+                    "intentName": "recv_AgentReviewer_Reproduce_and_fix_bug"
                   },
-                  {
-                    "x": 0,
-                    "y": 75
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "gen-tiz82qoyc"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gen-nbmzh4a36"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "when_intent_matched",
-                  "intentName": "recv_AgentReviewer_Reproduce_and_fix_bug"
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "when_intent_matched",
+                      "intentName": "recv_AgentReviewer_Reproduce_and_fix_bug"
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": 200,
+                      "y": -34
+                    },
+                    {
+                      "x": 200,
+                      "y": 36
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "gen-tiz82qoyc__initial-edge",
+                "type": "AgentStateTransitionInit",
+                "source": "gen-tiz82qoyc__initial",
+                "target": "gen-tiz82qoyc",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "params": {},
+                  "points": []
                 }
               }
-            },
+            ],
             "assessments": {},
             "components": {
               "gen-wqbqmdmx2": {
@@ -222,7 +201,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-agent",
             "derivedAt": "2026-10-05T08:24:17.117Z",
-            "sourceModelHash": "afe19ed2"
+            "sourceModelHash": "bfbc11a7"
           },
           "config": {
             "default_llm_name": "gpt-6-luna",
@@ -240,440 +219,397 @@
           "id": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8",
           "title": "AgentReviewer",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1791464027639",
+            "title": "",
             "type": "AgentDiagram",
-            "size": {
-              "width": 1444,
-              "height": 366
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "gen-uns32ij56": {
+            "nodes": [
+              {
                 "id": "gen-uns32ij56",
-                "name": "Label_report",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -80,
-                  "y": -19,
+                  "y": -19
+                },
+                "width": 160,
+                "height": 70,
+                "measured": {
                   "width": 160,
                   "height": 70
                 },
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "a2dd6d14-a8a0-4867-8cd5-c6612af411ae"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "a2dd6d14-a8a0-4867-8cd5-c6612af411ae"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Label_report",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "bodies": [
+                    {
+                      "id": "a2dd6d14-a8a0-4867-8cd5-c6612af411ae",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "last_user_message",
+                      "customInputPrompt": "",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": false,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
+                }
               },
-              "a2dd6d14-a8a0-4867-8cd5-c6612af411ae": {
-                "id": "a2dd6d14-a8a0-4867-8cd5-c6612af411ae",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-uns32ij56",
-                "bounds": {
-                  "x": -79.5,
-                  "y": 21.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": false,
-                "inputPromptMode": "last_user_message",
-                "customInputPrompt": "",
-                "customInputPromptUseSessionVars": false
-              },
-              "gen-dxl4f2dhd": {
+              {
                 "id": "gen-dxl4f2dhd",
-                "name": "Check_bug_validity",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -80,
-                  "y": 91,
+                  "y": 91
+                },
+                "width": 210,
+                "height": 70,
+                "measured": {
                   "width": 210,
                   "height": 70
                 },
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "4a9cd546-ca58-4334-892c-5e6e388b182f"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "4a9cd546-ca58-4334-892c-5e6e388b182f"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Check_bug_validity",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "bodies": [
+                    {
+                      "id": "4a9cd546-ca58-4334-892c-5e6e388b182f",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "last_user_message",
+                      "customInputPrompt": "",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": false,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
+                }
               },
-              "4a9cd546-ca58-4334-892c-5e6e388b182f": {
-                "id": "4a9cd546-ca58-4334-892c-5e6e388b182f",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-dxl4f2dhd",
-                "bounds": {
-                  "x": -79.5,
-                  "y": 131.5,
-                  "width": 209,
-                  "height": 30
-                },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": false,
-                "inputPromptMode": "last_user_message",
-                "customInputPrompt": "",
-                "customInputPromptUseSessionVars": false
-              },
-              "gen-vwr6kpejc": {
+              {
                 "id": "gen-vwr6kpejc",
-                "name": "AgentReviewer_greet",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -80,
-                  "y": -129,
+                  "y": -129
+                },
+                "width": 220,
+                "height": 70,
+                "measured": {
                   "width": 220,
                   "height": 70
                 },
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "4ab456cf-07de-4dae-b49a-2132d50468a8"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "4ab456cf-07de-4dae-b49a-2132d50468a8"
-                ],
-                "fallbackBodies": []
-              },
-              "4ab456cf-07de-4dae-b49a-2132d50468a8": {
-                "id": "4ab456cf-07de-4dae-b49a-2132d50468a8",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-vwr6kpejc",
-                "bounds": {
-                  "x": -79.5,
-                  "y": -88.5,
-                  "width": 219,
-                  "height": 30
-                },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": true,
-                "inputPromptMode": "custom",
-                "customInputPrompt": "Greet the user briefly and invite them to describe the bug.",
-                "customInputPromptUseSessionVars": false
-              },
-              "gen-ogh4iksae": {
-                "id": "gen-ogh4iksae",
-                "name": "",
-                "type": "StateInitialNode",
-                "owner": null,
-                "bounds": {
-                  "x": -190,
-                  "y": -131,
-                  "width": 45,
-                  "height": 45
+                "data": {
+                  "name": "AgentReviewer_greet",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "bodies": [
+                    {
+                      "id": "4ab456cf-07de-4dae-b49a-2132d50468a8",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "custom",
+                      "customInputPrompt": "Greet the user briefly and invite them to describe the bug.",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": true,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
                 }
               },
-              "gen-on2zoodm3": {
+              {
                 "id": "gen-on2zoodm3",
-                "name": "Check_bug_validity_reflect",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 286,
-                  "y": 93,
+                  "y": 93
+                },
+                "width": 270,
+                "height": 70,
+                "measured": {
                   "width": 270,
                   "height": 70
                 },
-                "description": "a2a:out;peer=AgentCoder;ref=beb4543d-4e7d-48db-a0aa-f3bb3305a139;flow=flow-09;order=1;kind=supervises",
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "83859600-6a90-42cc-8ebf-e9298141d498"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "83859600-6a90-42cc-8ebf-e9298141d498"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Check_bug_validity_reflect",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "description": "a2a:out;peer=AgentCoder;ref=beb4543d-4e7d-48db-a0aa-f3bb3305a139;flow=flow-09;order=1;kind=supervises",
+                  "bodies": [
+                    {
+                      "id": "83859600-6a90-42cc-8ebf-e9298141d498",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "last_user_message",
+                      "customInputPrompt": "",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": false,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
+                }
               },
-              "83859600-6a90-42cc-8ebf-e9298141d498": {
-                "id": "83859600-6a90-42cc-8ebf-e9298141d498",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-on2zoodm3",
-                "bounds": {
-                  "x": 286.5,
-                  "y": 133.5,
-                  "width": 269,
-                  "height": 30
-                },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": false,
-                "inputPromptMode": "last_user_message",
-                "customInputPrompt": "",
-                "customInputPromptUseSessionVars": false
-              },
-              "gen-yoqewdrik": {
+              {
                 "id": "gen-yoqewdrik",
-                "name": "Address_merge_decision",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 452,
-                  "y": -143,
+                  "y": -143
+                },
+                "width": 250,
+                "height": 70,
+                "measured": {
                   "width": 250,
                   "height": 70
                 },
-                "stateType": "standard",
-                "fallbackBodyEnabled": true,
-                "actions": [
-                  "118d26fa-3543-4fbe-9e0c-8b75ed5baeea"
-                ],
-                "fallbackActions": [],
-                "bodies": [
-                  "118d26fa-3543-4fbe-9e0c-8b75ed5baeea"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Address_merge_decision",
+                  "replyType": "text",
+                  "stateType": "standard",
+                  "fallbackBodyEnabled": true,
+                  "bodies": [
+                    {
+                      "id": "118d26fa-3543-4fbe-9e0c-8b75ed5baeea",
+                      "name": "LLM Reply",
+                      "replyType": "llm",
+                      "actionType": "LLMReplyAction",
+                      "inputPromptMode": "last_user_message",
+                      "customInputPrompt": "",
+                      "customInputPromptUseSessionVars": false,
+                      "systemPromptUseSessionVars": false,
+                      "storeInSession": "",
+                      "sendReply": false,
+                      "llm_name": "",
+                      "system_message": ""
+                    }
+                  ]
+                }
               },
-              "118d26fa-3543-4fbe-9e0c-8b75ed5baeea": {
-                "id": "118d26fa-3543-4fbe-9e0c-8b75ed5baeea",
-                "name": "LLM Reply",
-                "type": "AgentStateBody",
-                "owner": "gen-yoqewdrik",
-                "bounds": {
-                  "x": 452.5,
-                  "y": -102.5,
-                  "width": 249,
-                  "height": 30
+              {
+                "id": "gen-vwr6kpejc__initial",
+                "type": "StateInitialNode",
+                "position": {
+                  "x": -200,
+                  "y": -116.5
                 },
-                "actionType": "LLMReplyAction",
-                "replyType": "llm",
-                "llm_name": "",
-                "system_message": "",
-                "systemPromptUseSessionVars": false,
-                "storeInSession": "",
-                "sendReply": false,
-                "inputPromptMode": "last_user_message",
-                "customInputPrompt": "",
-                "customInputPromptUseSessionVars": false
+                "width": 45,
+                "height": 45,
+                "measured": {
+                  "width": 45,
+                  "height": 45
+                },
+                "data": {
+                  "name": ""
+                }
               }
-            },
-            "relationships": {
-              "gen-40qyr1mio": {
+            ],
+            "edges": [
+              {
                 "id": "gen-40qyr1mio",
-                "name": "",
+                "source": "gen-uns32ij56",
+                "target": "gen-dxl4f2dhd",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": 0,
-                  "y": 51,
-                  "width": 1,
-                  "height": 40
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "bottom",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 0,
-                    "y": 40
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "gen-uns32ij56"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gen-dxl4f2dhd"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 51
+                    },
+                    {
+                      "x": 0,
+                      "y": 91
+                    }
+                  ]
                 }
               },
-              "gen-vhunh4xeo": {
-                "id": "gen-vhunh4xeo",
-                "name": "",
-                "type": "AgentStateTransitionInit",
-                "owner": null,
-                "bounds": {
-                  "x": -145,
-                  "y": -107.5,
-                  "width": 65,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 65,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-ogh4iksae"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-vwr6kpejc"
-                },
-                "isManuallyLayouted": false
-              },
-              "gen-c02m8sci0": {
+              {
                 "id": "gen-c02m8sci0",
-                "name": "",
+                "source": "gen-dxl4f2dhd",
+                "target": "gen-on2zoodm3",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": 130,
-                  "y": 127,
-                  "width": 156,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 156,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-dxl4f2dhd"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-on2zoodm3"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": 130,
+                      "y": 127
+                    },
+                    {
+                      "x": 286,
+                      "y": 127
+                    }
+                  ]
                 }
               },
-              "gen-gsdbfnxgr": {
+              {
                 "id": "gen-gsdbfnxgr",
-                "name": "",
+                "source": "gen-vwr6kpejc",
+                "target": "gen-uns32ij56",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": 0,
-                  "y": -59,
-                  "width": 1,
-                  "height": 40
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "bottom",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "custom",
+                  "custom": {
+                    "event": "ReceiveTextEvent",
+                    "condition": []
                   },
-                  {
-                    "x": 0,
-                    "y": 40
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "gen-vwr6kpejc"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gen-uns32ij56"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "custom",
-                "predefined": {
-                  "predefinedType": ""
-                },
-                "custom": {
-                  "event": "ReceiveTextEvent",
-                  "condition": []
+                  "legacyShape": 2,
+                  "legacy": {
+                    "transitionType": "custom",
+                    "predefined": {
+                      "predefinedType": ""
+                    },
+                    "custom": {
+                      "event": "ReceiveTextEvent",
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": -59
+                    },
+                    {
+                      "x": 0,
+                      "y": -19
+                    }
+                  ]
                 }
               },
-              "gen-vqs3dpj5c": {
+              {
                 "id": "gen-vqs3dpj5c",
-                "name": "a2a:in;peer=AgentCoder;ref=beb4543d-4e7d-48db-a0aa-f3bb3305a139;flow=gw-merge;kind=revises",
+                "source": "gen-vwr6kpejc",
+                "target": "gen-yoqewdrik",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -62.116668701171875,
-                  "y": -101,
-                  "width": 716.2333374023438,
-                  "height": 17.950000762939453
-                },
-                "path": [
-                  {
-                    "x": 202.11666870117188,
-                    "y": 0
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "a2a:in;peer=AgentCoder;ref=beb4543d-4e7d-48db-a0aa-f3bb3305a139;flow=gw-merge;kind=revises",
+                  "name": "a2a:in;peer=AgentCoder;ref=beb4543d-4e7d-48db-a0aa-f3bb3305a139;flow=gw-merge;kind=revises",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "when_intent_matched",
+                    "intentName": "recv_AgentCoder_Address_merge_decision"
                   },
-                  {
-                    "x": 514.1166687011719,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-vwr6kpejc"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-yoqewdrik"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "when_intent_matched",
-                  "intentName": "recv_AgentCoder_Address_merge_decision"
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "when_intent_matched",
+                      "intentName": "recv_AgentCoder_Address_merge_decision"
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": 140,
+                      "y": -101
+                    },
+                    {
+                      "x": 452,
+                      "y": -101
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "gen-vwr6kpejc__initial-edge",
+                "type": "AgentStateTransitionInit",
+                "source": "gen-vwr6kpejc__initial",
+                "target": "gen-vwr6kpejc",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "params": {},
+                  "points": []
                 }
               }
-            },
+            ],
             "assessments": {},
             "components": {
               "gen-9ju6w28uv": {
@@ -718,7 +654,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-agent",
             "derivedAt": "2026-10-05T08:24:21.994Z",
-            "sourceModelHash": "661fc040"
+            "sourceModelHash": "bfbc11a7"
           },
           "config": {
             "default_llm_name": "gpt-6-luna",
@@ -821,426 +757,448 @@
           "id": "67769881-c8e0-42eb-9a73-99627c9a7146",
           "title": "Agentic Bug-fixing Process — Components",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1791464027639",
+            "title": "",
             "type": "ComponentDiagram",
-            "size": {
-              "width": 1420,
-              "height": 440
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "gen-j59wsodtz": {
+            "nodes": [
+              {
                 "id": "gen-j59wsodtz",
-                "name": "Project Repository",
-                "type": "Subsystem",
-                "owner": null,
-                "bounds": {
+                "type": "componentSubsystem",
+                "position": {
                   "x": -430,
-                  "y": -200,
+                  "y": -200
+                },
+                "width": 640,
+                "height": 400,
+                "measured": {
                   "width": 640,
                   "height": 400
                 },
-                "stereotype": "subsystem",
-                "displayStereotype": true
+                "data": {
+                  "name": "Project Repository",
+                  "isComponentSubsystemHeaderShown": true,
+                  "stereotype": "subsystem"
+                }
               },
-              "gen-95xlz20a9": {
+              {
                 "id": "gen-95xlz20a9",
-                "name": "AgentCoder",
-                "type": "Component",
-                "owner": "gen-j59wsodtz",
-                "bounds": {
-                  "x": -406,
-                  "y": -150,
+                "type": "component",
+                "position": {
+                  "x": 24,
+                  "y": 50
+                },
+                "width": 160,
+                "height": 80,
+                "measured": {
                   "width": 160,
                   "height": 80
                 },
-                "stereotype": "solution",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": [
-                  "aa49c785-b4bb-4c3f-8daa-8cd53785a832"
-                ],
-                "agentModelRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
+                "data": {
+                  "name": "AgentCoder",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "solution",
+                  "realizes": [],
+                  "processModelRefs": [
+                    "aa49c785-b4bb-4c3f-8daa-8cd53785a832"
+                  ],
+                  "agentModelRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
+                },
+                "parentId": "gen-j59wsodtz"
               },
-              "gen-x2jpd60ft": {
+              {
                 "id": "gen-x2jpd60ft",
-                "name": "AgentReviewer",
-                "type": "Component",
-                "owner": "gen-j59wsodtz",
-                "bounds": {
-                  "x": -222,
-                  "y": -150,
+                "type": "component",
+                "position": {
+                  "x": 208,
+                  "y": 50
+                },
+                "width": 160,
+                "height": 80,
+                "measured": {
                   "width": 160,
                   "height": 80
                 },
-                "stereotype": "supervision",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": [
-                  "aa49c785-b4bb-4c3f-8daa-8cd53785a832"
-                ],
-                "agentModelRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                "data": {
+                  "name": "AgentReviewer",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "supervision",
+                  "realizes": [],
+                  "processModelRefs": [
+                    "aa49c785-b4bb-4c3f-8daa-8cd53785a832"
+                  ],
+                  "agentModelRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                },
+                "parentId": "gen-j59wsodtz"
               },
-              "gen-5kpfxtvlu": {
+              {
                 "id": "gen-5kpfxtvlu",
-                "name": "Skills",
-                "type": "Subsystem",
-                "owner": null,
-                "bounds": {
+                "type": "componentSubsystem",
+                "position": {
                   "x": 290,
-                  "y": -200,
+                  "y": -200
+                },
+                "width": 180,
+                "height": 226,
+                "measured": {
                   "width": 180,
                   "height": 226
                 },
-                "stereotype": "subsystem",
-                "displayStereotype": true
+                "data": {
+                  "name": "Skills",
+                  "isComponentSubsystemHeaderShown": true,
+                  "stereotype": "subsystem"
+                }
               },
-              "gen-25omvdd9u": {
+              {
                 "id": "gen-25omvdd9u",
-                "name": "test_skill_2",
-                "type": "Component",
-                "owner": "gen-5kpfxtvlu",
-                "bounds": {
-                  "x": 310,
-                  "y": -150,
+                "type": "component",
+                "position": {
+                  "x": 20,
+                  "y": 50
+                },
+                "width": 140,
+                "height": 70,
+                "measured": {
                   "width": 140,
                   "height": 70
                 },
-                "stereotype": "skill",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": []
+                "data": {
+                  "name": "test_skill_2",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "skill",
+                  "realizes": [],
+                  "processModelRefs": []
+                },
+                "parentId": "gen-5kpfxtvlu"
               },
-              "gen-pzdsy7xcn": {
+              {
                 "id": "gen-pzdsy7xcn",
-                "name": "test_skill_1",
-                "type": "Component",
-                "owner": "gen-5kpfxtvlu",
-                "bounds": {
-                  "x": 310,
-                  "y": -64,
+                "type": "component",
+                "position": {
+                  "x": 20,
+                  "y": 136
+                },
+                "width": 140,
+                "height": 70,
+                "measured": {
                   "width": 140,
                   "height": 70
                 },
-                "stereotype": "skill",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": []
+                "data": {
+                  "name": "test_skill_1",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "skill",
+                  "realizes": [],
+                  "processModelRefs": []
+                },
+                "parentId": "gen-5kpfxtvlu"
               },
-              "gen-i526aiigo": {
+              {
                 "id": "gen-i526aiigo",
-                "name": "Tools",
-                "type": "Subsystem",
-                "owner": null,
-                "bounds": {
+                "type": "componentSubsystem",
+                "position": {
                   "x": 510,
-                  "y": -200,
+                  "y": -200
+                },
+                "width": 180,
+                "height": 140,
+                "measured": {
                   "width": 180,
                   "height": 140
                 },
-                "stereotype": "subsystem",
-                "displayStereotype": true
+                "data": {
+                  "name": "Tools",
+                  "isComponentSubsystemHeaderShown": true,
+                  "stereotype": "subsystem"
+                }
               },
-              "gen-evdabm88f": {
+              {
                 "id": "gen-evdabm88f",
-                "name": "test_tool_1",
-                "type": "Component",
-                "owner": "gen-i526aiigo",
-                "bounds": {
-                  "x": 530,
-                  "y": -150,
+                "type": "component",
+                "position": {
+                  "x": 20,
+                  "y": 50
+                },
+                "width": 140,
+                "height": 70,
+                "measured": {
                   "width": 140,
                   "height": 70
                 },
-                "stereotype": "tool",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": []
+                "data": {
+                  "name": "test_tool_1",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "tool",
+                  "realizes": [],
+                  "processModelRefs": []
+                },
+                "parentId": "gen-i526aiigo"
               },
-              "gen-cvzh10r3d": {
+              {
                 "id": "gen-cvzh10r3d",
-                "name": "Models",
-                "type": "Subsystem",
-                "owner": null,
-                "bounds": {
+                "type": "componentSubsystem",
+                "position": {
                   "x": -690,
-                  "y": -200,
+                  "y": -200
+                },
+                "width": 180,
+                "height": 140,
+                "measured": {
                   "width": 180,
                   "height": 140
                 },
-                "stereotype": "subsystem",
-                "displayStereotype": true
+                "data": {
+                  "name": "Models",
+                  "isComponentSubsystemHeaderShown": true,
+                  "stereotype": "subsystem"
+                }
               },
-              "gen-om8145jyr": {
+              {
                 "id": "gen-om8145jyr",
-                "name": "gpt-6-luna",
-                "type": "Component",
-                "owner": "gen-cvzh10r3d",
-                "bounds": {
-                  "x": -670,
-                  "y": -150,
+                "type": "component",
+                "position": {
+                  "x": 20,
+                  "y": 50
+                },
+                "width": 140,
+                "height": 70,
+                "measured": {
                   "width": 140,
                   "height": 70
                 },
-                "stereotype": "llm",
-                "displayStereotype": true,
-                "realizes": [],
-                "processModelRefs": []
+                "data": {
+                  "name": "gpt-6-luna",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "llm",
+                  "realizes": [],
+                  "processModelRefs": []
+                },
+                "parentId": "gen-cvzh10r3d"
               }
-            },
-            "relationships": {
-              "gen-af8plbwk6": {
+            ],
+            "edges": [
+              {
                 "id": "gen-af8plbwk6",
-                "name": "",
+                "source": "gen-95xlz20a9",
+                "target": "gen-om8145jyr",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -530,
-                  "y": -115,
-                  "width": 124,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 124,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Left",
-                  "element": "gen-95xlz20a9"
-                },
-                "target": {
-                  "direction": "Right",
-                  "element": "gen-om8145jyr"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "uses"
+                "sourceHandle": "left",
+                "targetHandle": "right",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "uses",
+                  "points": [
+                    {
+                      "x": -406,
+                      "y": -115
+                    },
+                    {
+                      "x": -530,
+                      "y": -115
+                    }
+                  ]
+                }
               },
-              "gen-3ly122u9v": {
+              {
                 "id": "gen-3ly122u9v",
-                "name": "",
+                "source": "gen-95xlz20a9",
+                "target": "gen-25omvdd9u",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -246,
-                  "y": -115,
-                  "width": 556,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 556,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-95xlz20a9"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-25omvdd9u"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "has"
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "has",
+                  "points": [
+                    {
+                      "x": -246,
+                      "y": -115
+                    },
+                    {
+                      "x": 310,
+                      "y": -115
+                    }
+                  ]
+                }
               },
-              "gen-azi79wo1a": {
+              {
                 "id": "gen-azi79wo1a",
-                "name": "",
+                "source": "gen-x2jpd60ft",
+                "target": "gen-om8145jyr",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -530,
-                  "y": -115,
-                  "width": 308,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 308,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Left",
-                  "element": "gen-x2jpd60ft"
-                },
-                "target": {
-                  "direction": "Right",
-                  "element": "gen-om8145jyr"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "uses"
+                "sourceHandle": "left",
+                "targetHandle": "right",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "uses",
+                  "points": [
+                    {
+                      "x": -222,
+                      "y": -115
+                    },
+                    {
+                      "x": -530,
+                      "y": -115
+                    }
+                  ]
+                }
               },
-              "gen-ilhwchycn": {
+              {
                 "id": "gen-ilhwchycn",
-                "name": "",
+                "source": "gen-x2jpd60ft",
+                "target": "gen-evdabm88f",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -62,
-                  "y": -115,
-                  "width": 592,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 592,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-x2jpd60ft"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-evdabm88f"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "uses"
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "uses",
+                  "points": [
+                    {
+                      "x": -62,
+                      "y": -115
+                    },
+                    {
+                      "x": 530,
+                      "y": -115
+                    }
+                  ]
+                }
               },
-              "gen-hbvh1lvyp": {
+              {
                 "id": "gen-hbvh1lvyp",
-                "name": "",
+                "source": "gen-x2jpd60ft",
+                "target": "gen-pzdsy7xcn",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -62,
-                  "y": -110,
-                  "width": 372,
-                  "height": 81
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 186,
-                    "y": 0
-                  },
-                  {
-                    "x": 186,
-                    "y": 81
-                  },
-                  {
-                    "x": 372,
-                    "y": 81
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-x2jpd60ft"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-pzdsy7xcn"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "has"
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "has",
+                  "points": [
+                    {
+                      "x": -62,
+                      "y": -110
+                    },
+                    {
+                      "x": 124,
+                      "y": -110
+                    },
+                    {
+                      "x": 124,
+                      "y": -29
+                    },
+                    {
+                      "x": 310,
+                      "y": -29
+                    }
+                  ]
+                }
               },
-              "gen-chvh1q8kq": {
+              {
                 "id": "gen-chvh1q8kq",
-                "name": "",
+                "source": "gen-x2jpd60ft",
+                "target": "gen-95xlz20a9",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -446,
-                  "y": -190,
-                  "width": 424,
-                  "height": 80
-                },
-                "path": [
-                  {
-                    "x": 384,
-                    "y": 80
-                  },
-                  {
-                    "x": 424,
-                    "y": 80
-                  },
-                  {
-                    "x": 424,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 80
-                  },
-                  {
-                    "x": 40,
-                    "y": 80
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-x2jpd60ft"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-95xlz20a9"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "supervises"
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "supervises",
+                  "points": [
+                    {
+                      "x": -62,
+                      "y": -110
+                    },
+                    {
+                      "x": -22,
+                      "y": -110
+                    },
+                    {
+                      "x": -22,
+                      "y": -190
+                    },
+                    {
+                      "x": -446,
+                      "y": -190
+                    },
+                    {
+                      "x": -446,
+                      "y": -110
+                    },
+                    {
+                      "x": -406,
+                      "y": -110
+                    }
+                  ]
+                }
               },
-              "gen-f49six5mu": {
+              {
                 "id": "gen-f49six5mu",
-                "name": "",
+                "source": "gen-95xlz20a9",
+                "target": "gen-x2jpd60ft",
                 "type": "ComponentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -246,
-                  "y": -110,
-                  "width": 24,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 24,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-95xlz20a9"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-x2jpd60ft"
-                },
-                "isManuallyLayouted": false,
-                "stereotype": "revises"
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "stereotype": "revises",
+                  "points": [
+                    {
+                      "x": -246,
+                      "y": -110
+                    },
+                    {
+                      "x": -222,
+                      "y": -110
+                    }
+                  ]
+                }
               }
-            },
+            ],
             "assessments": {}
           },
           "lastUpdate": "2026-10-08T07:39:18.305Z",
@@ -1249,7 +1207,7 @@
             "sourceDiagramType": "BPMN",
             "derivationKind": "bpmn-to-component",
             "derivedAt": "2026-10-08T07:39:16.363Z",
-            "sourceModelHash": "9bfead88"
+            "sourceModelHash": "bfbc11a7"
           }
         }
       ],
@@ -1258,245 +1216,272 @@
           "id": "a3b918e9-0654-47b5-9427-1750491f3bb5",
           "title": "Agentic Bug-fixing Process — Components — Deployment",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1791464027639",
+            "title": "",
             "type": "DeploymentDiagram",
-            "size": {
-              "width": 568,
-              "height": 456
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "gen-a8uhvi8xy": {
+            "nodes": [
+              {
                 "id": "gen-a8uhvi8xy",
-                "name": "Project Repository",
-                "type": "DeploymentNode",
-                "owner": null,
-                "bounds": {
+                "type": "deploymentNode",
+                "position": {
                   "x": -264,
-                  "y": -208,
+                  "y": -208
+                },
+                "width": 528,
+                "height": 308,
+                "measured": {
                   "width": 528,
                   "height": 308
                 },
-                "stereotype": "node",
-                "displayStereotype": true
+                "data": {
+                  "name": "Project Repository",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "node"
+                }
               },
-              "gen-hqhbncx2p": {
+              {
                 "id": "gen-hqhbncx2p",
-                "name": "Docker Host",
-                "type": "DeploymentNode",
-                "owner": "gen-a8uhvi8xy",
-                "bounds": {
-                  "x": -240,
-                  "y": -148,
+                "type": "deploymentNode",
+                "position": {
+                  "x": 24,
+                  "y": 60
+                },
+                "width": 480,
+                "height": 224,
+                "measured": {
                   "width": 480,
                   "height": 224
                 },
-                "stereotype": "docker host",
-                "displayStereotype": true
+                "data": {
+                  "name": "Docker Host",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "docker host"
+                },
+                "parentId": "gen-a8uhvi8xy"
               },
-              "gen-mf8gn0k48": {
+              {
                 "id": "gen-mf8gn0k48",
-                "name": "AgentCoder",
-                "type": "DeploymentNode",
-                "owner": "gen-hqhbncx2p",
-                "bounds": {
-                  "x": -216,
-                  "y": -88,
+                "type": "deploymentNode",
+                "position": {
+                  "x": 24,
+                  "y": 60
+                },
+                "width": 200,
+                "height": 140,
+                "measured": {
                   "width": 200,
                   "height": 140
                 },
-                "stereotype": "executionEnvironment",
-                "displayStereotype": true
+                "data": {
+                  "name": "AgentCoder",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "executionEnvironment"
+                },
+                "parentId": "gen-hqhbncx2p"
               },
-              "gen-2sxdwy3ch": {
+              {
                 "id": "gen-2sxdwy3ch",
-                "name": "AgentCoder [2]",
-                "type": "DeploymentArtifact",
-                "owner": "gen-mf8gn0k48",
-                "bounds": {
-                  "x": -196,
-                  "y": -28,
+                "type": "deploymentArtifact",
+                "position": {
+                  "x": 20,
+                  "y": 60
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "manifests": [
-                  "gen-95xlz20a9"
-                ],
-                "agentModelRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
+                "data": {
+                  "name": "AgentCoder [2]",
+                  "manifests": [
+                    "gen-95xlz20a9"
+                  ],
+                  "agentModelRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
+                },
+                "parentId": "gen-mf8gn0k48"
               },
-              "gen-0t593sirh": {
+              {
                 "id": "gen-0t593sirh",
-                "name": "AgentReviewer",
-                "type": "DeploymentNode",
-                "owner": "gen-hqhbncx2p",
-                "bounds": {
-                  "x": 16,
-                  "y": -88,
+                "type": "deploymentNode",
+                "position": {
+                  "x": 256,
+                  "y": 60
+                },
+                "width": 200,
+                "height": 140,
+                "measured": {
                   "width": 200,
                   "height": 140
                 },
-                "stereotype": "executionEnvironment",
-                "displayStereotype": true
+                "data": {
+                  "name": "AgentReviewer",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "executionEnvironment"
+                },
+                "parentId": "gen-hqhbncx2p"
               },
-              "gen-d8eh6qtg7": {
+              {
                 "id": "gen-d8eh6qtg7",
-                "name": "AgentReviewer",
-                "type": "DeploymentArtifact",
-                "owner": "gen-0t593sirh",
-                "bounds": {
-                  "x": 36,
-                  "y": -28,
+                "type": "deploymentArtifact",
+                "position": {
+                  "x": 20,
+                  "y": 60
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "manifests": [
-                  "gen-x2jpd60ft"
-                ],
-                "agentModelRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                "data": {
+                  "name": "AgentReviewer",
+                  "manifests": [
+                    "gen-x2jpd60ft"
+                  ],
+                  "agentModelRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                },
+                "parentId": "gen-0t593sirh"
               },
-              "gen-183mu5p7l": {
+              {
                 "id": "gen-183mu5p7l",
-                "name": "AgentCoder",
-                "type": "DeploymentComponent",
-                "owner": null,
-                "bounds": {
+                "type": "deploymentComponent",
+                "position": {
                   "x": -196,
-                  "y": 148,
+                  "y": 148
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "stereotype": "solution",
-                "displayStereotype": true
+                "data": {
+                  "name": "AgentCoder",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "solution"
+                }
               },
-              "gen-uhps9wsmc": {
+              {
                 "id": "gen-uhps9wsmc",
-                "name": "AgentReviewer",
-                "type": "DeploymentComponent",
-                "owner": null,
-                "bounds": {
+                "type": "deploymentComponent",
+                "position": {
                   "x": 36,
-                  "y": 148,
+                  "y": 148
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "stereotype": "supervision",
-                "displayStereotype": true
+                "data": {
+                  "name": "AgentReviewer",
+                  "isComponentHeaderShown": true,
+                  "stereotype": "supervision"
+                }
               }
-            },
-            "relationships": {
-              "gen-5qexm4z29": {
+            ],
+            "edges": [
+              {
                 "id": "gen-5qexm4z29",
-                "name": "",
+                "source": "gen-2sxdwy3ch",
+                "target": "gen-183mu5p7l",
                 "type": "DeploymentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": -116,
-                  "y": 32,
-                  "width": 1,
-                  "height": 116
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 116
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "gen-2sxdwy3ch"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gen-183mu5p7l"
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "bottom",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": -116,
+                      "y": 32
+                    },
+                    {
+                      "x": -116,
+                      "y": 148
+                    }
+                  ]
+                }
               },
-              "gen-fixoic6fj": {
+              {
                 "id": "gen-fixoic6fj",
-                "name": "",
+                "source": "gen-d8eh6qtg7",
+                "target": "gen-uhps9wsmc",
                 "type": "DeploymentDependency",
-                "owner": null,
-                "bounds": {
-                  "x": 116,
-                  "y": 32,
-                  "width": 1,
-                  "height": 116
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 116
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "gen-d8eh6qtg7"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gen-uhps9wsmc"
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "bottom",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": 116,
+                      "y": 32
+                    },
+                    {
+                      "x": 116,
+                      "y": 148
+                    }
+                  ]
+                }
               },
-              "gen-5adzocehs": {
+              {
                 "id": "gen-5adzocehs",
-                "name": "",
+                "source": "gen-0t593sirh",
+                "target": "gen-mf8gn0k48",
                 "type": "DeploymentAssociation",
-                "owner": null,
-                "bounds": {
-                  "x": -256,
-                  "y": -128,
-                  "width": 512,
-                  "height": 110
-                },
-                "path": [
-                  {
-                    "x": 472,
-                    "y": 110
-                  },
-                  {
-                    "x": 512,
-                    "y": 110
-                  },
-                  {
-                    "x": 512,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 110
-                  },
-                  {
-                    "x": 40,
-                    "y": 110
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gen-0t593sirh"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "gen-mf8gn0k48"
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": 216,
+                      "y": -18
+                    },
+                    {
+                      "x": 256,
+                      "y": -18
+                    },
+                    {
+                      "x": 256,
+                      "y": -128
+                    },
+                    {
+                      "x": -256,
+                      "y": -128
+                    },
+                    {
+                      "x": -256,
+                      "y": -18
+                    },
+                    {
+                      "x": -216,
+                      "y": -18
+                    }
+                  ]
+                }
               }
-            },
+            ],
             "assessments": {}
           },
           "lastUpdate": "2026-10-08T07:39:20.693Z",
@@ -1505,7 +1490,7 @@
             "sourceDiagramType": "ComponentDiagram",
             "derivationKind": "component-to-deployment",
             "derivedAt": "2026-10-08T07:39:18.982Z",
-            "sourceModelHash": "8a3a2bbb"
+            "sourceModelHash": "3f0ff2d4"
           }
         }
       ],
@@ -1514,538 +1499,561 @@
           "id": "aa49c785-b4bb-4c3f-8daa-8cd53785a832",
           "title": "Agentic Bug-fixing Process",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1791464027639",
+            "title": "",
             "type": "BPMNDiagram",
-            "size": {
-              "width": 1620,
-              "height": 660
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "pool-repo": {
+            "nodes": [
+              {
                 "id": "pool-repo",
-                "name": "Project Repository",
-                "type": "BPMNPool",
-                "owner": null,
-                "bounds": {
+                "type": "bpmnPool",
+                "position": {
                   "x": -790,
-                  "y": -310,
+                  "y": -310
+                },
+                "width": 1580,
+                "height": 620,
+                "measured": {
                   "width": 1580,
                   "height": 620
+                },
+                "data": {
+                  "name": "Project Repository"
                 }
               },
-              "lane-coder": {
+              {
                 "id": "lane-coder",
-                "name": "AgentCoder",
-                "type": "BPMNSwimlane",
-                "owner": "pool-repo",
-                "bounds": {
-                  "x": -750,
-                  "y": -310,
-                  "width": 1540,
-                  "height": 150
-                },
-                "isAgentic": true,
-                "role": "solution",
-                "trustScore": 82,
-                "multiplicity": 2,
-                "agentDiagramRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
-              },
-              "task-coder-fix": {
-                "id": "task-coder-fix",
-                "name": "Reproduce and fix bug",
-                "type": "BPMNTask",
-                "owner": "lane-coder",
-                "bounds": {
+                "type": "bpmnSwimlane",
+                "position": {
                   "x": 40,
-                  "y": -265,
-                  "width": 160,
-                  "height": 60
+                  "y": 0
                 },
-                "taskType": "default",
-                "marker": "none",
-                "isAgentic": true,
-                "reflectionMode": "none",
-                "trustScore": 0
-              },
-              "lane-reviewer": {
-                "id": "lane-reviewer",
-                "name": "AgentReviewer",
-                "type": "BPMNSwimlane",
-                "owner": "pool-repo",
-                "bounds": {
-                  "x": -750,
-                  "y": -160,
+                "width": 1540,
+                "height": 150,
+                "measured": {
                   "width": 1540,
                   "height": 150
                 },
-                "isAgentic": true,
-                "role": "supervision",
-                "trustScore": 93,
-                "multiplicity": 1,
-                "agentDiagramRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                "data": {
+                  "name": "AgentCoder",
+                  "isAgentic": true,
+                  "role": "solution",
+                  "trustScore": 82,
+                  "multiplicity": 2,
+                  "agentDiagramRef": "beb4543d-4e7d-48db-a0aa-f3bb3305a139"
+                },
+                "parentId": "pool-repo"
               },
-              "task-label": {
-                "id": "task-label",
-                "name": "Label report",
-                "type": "BPMNTask",
-                "owner": "lane-reviewer",
-                "bounds": {
-                  "x": -400,
-                  "y": -115,
+              {
+                "id": "task-coder-fix",
+                "type": "bpmnTask",
+                "position": {
+                  "x": 790,
+                  "y": 45
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "taskType": "default",
-                "marker": "none",
-                "isAgentic": true,
-                "reflectionMode": "none",
-                "trustScore": 0
+                "data": {
+                  "name": "Reproduce and fix bug",
+                  "taskType": "default",
+                  "marker": "none",
+                  "isAgentic": true,
+                  "reflectionMode": "none",
+                  "trustScore": 0
+                },
+                "parentId": "lane-coder"
               },
-              "task-checkvalid": {
+              {
+                "id": "lane-reviewer",
+                "type": "bpmnSwimlane",
+                "position": {
+                  "x": 40,
+                  "y": 150
+                },
+                "width": 1540,
+                "height": 150,
+                "measured": {
+                  "width": 1540,
+                  "height": 150
+                },
+                "data": {
+                  "name": "AgentReviewer",
+                  "isAgentic": true,
+                  "role": "supervision",
+                  "trustScore": 93,
+                  "multiplicity": 1,
+                  "agentDiagramRef": "aaa4c0f6-23f7-43ed-b2f5-5a00bc3d1ea8"
+                },
+                "parentId": "pool-repo"
+              },
+              {
+                "id": "task-label",
+                "type": "bpmnTask",
+                "position": {
+                  "x": 350,
+                  "y": 45
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
+                  "width": 160,
+                  "height": 60
+                },
+                "data": {
+                  "name": "Label report",
+                  "taskType": "default",
+                  "marker": "none",
+                  "isAgentic": true,
+                  "reflectionMode": "none",
+                  "trustScore": 0
+                },
+                "parentId": "lane-reviewer"
+              },
+              {
                 "id": "task-checkvalid",
-                "name": "Check bug validity",
-                "type": "BPMNTask",
-                "owner": "lane-reviewer",
-                "bounds": {
-                  "x": -210,
-                  "y": -115,
+                "type": "bpmnTask",
+                "position": {
+                  "x": 540,
+                  "y": 45
+                },
+                "width": 160,
+                "height": 67,
+                "measured": {
                   "width": 160,
                   "height": 67
                 },
-                "taskType": "default",
-                "marker": "none",
-                "isAgentic": true,
-                "reflectionMode": "self",
-                "trustScore": 0
+                "data": {
+                  "name": "Check bug validity",
+                  "taskType": "default",
+                  "marker": "none",
+                  "isAgentic": true,
+                  "reflectionMode": "self",
+                  "trustScore": 0
+                },
+                "parentId": "lane-reviewer"
               },
-              "gw-diverge": {
+              {
                 "id": "gw-diverge",
-                "name": "",
-                "type": "BPMNGateway",
-                "owner": "lane-reviewer",
-                "bounds": {
-                  "x": -20,
-                  "y": -110,
+                "type": "bpmnGateway",
+                "position": {
+                  "x": 730,
+                  "y": 50
+                },
+                "width": 40,
+                "height": 40,
+                "measured": {
                   "width": 40,
                   "height": 40
                 },
-                "gatewayType": "parallel",
-                "isAgentic": true,
-                "gatewayRole": "diverging",
-                "trustScore": 0
+                "data": {
+                  "name": "",
+                  "gatewayType": "parallel",
+                  "isAgentic": true,
+                  "gatewayRole": "diverging",
+                  "trustScore": 0
+                },
+                "parentId": "lane-reviewer"
               },
-              "gw-merge": {
+              {
                 "id": "gw-merge",
-                "name": "",
-                "type": "BPMNGateway",
-                "owner": "lane-reviewer",
-                "bounds": {
-                  "x": 230,
-                  "y": -110,
+                "type": "bpmnGateway",
+                "position": {
+                  "x": 980,
+                  "y": 50
+                },
+                "width": 40,
+                "height": 40,
+                "measured": {
                   "width": 40,
                   "height": 40
                 },
-                "gatewayType": "parallel",
-                "isAgentic": true,
-                "gatewayRole": "merging",
-                "trustScore": 0,
-                "governanceDsl": "// Generated from agentic merging gateway \"\"\n// policyType=MajorityPolicy, trustScore=0\nScopes:\n    Tasks:\n        MergeDecision_gw-merge\nParticipants:\n    Individuals :\n        (Agent) AgentReviewer { confidence : 0.93 },\n        (Agent) AgentCoder { confidence : 0.82 }\nMajorityPolicy MergeDecision_gw-mergePolicy {\n    Scope: MergeDecision_gw-merge\n    DecisionType as BooleanDecision\n    Participant list : AgentReviewer, AgentCoder\n    Parameters:\n        ratio : 0.5\n}"
+                "data": {
+                  "name": "",
+                  "gatewayType": "parallel",
+                  "isAgentic": true,
+                  "gatewayRole": "merging",
+                  "trustScore": 0,
+                  "governanceDsl": "// Generated from agentic merging gateway \"\"\n// policyType=MajorityPolicy, trustScore=0\nScopes:\n    Tasks:\n        MergeDecision_gw-merge\nParticipants:\n    Individuals :\n        (Agent) AgentReviewer { confidence : 0.93 },\n        (Agent) AgentCoder { confidence : 0.82 }\nMajorityPolicy MergeDecision_gw-mergePolicy {\n    Scope: MergeDecision_gw-merge\n    DecisionType as BooleanDecision\n    Participant list : AgentReviewer, AgentCoder\n    Parameters:\n        ratio : 0.5\n}"
+                },
+                "parentId": "lane-reviewer"
               },
-              "lane-maintainer": {
+              {
                 "id": "lane-maintainer",
-                "name": "Maintainer",
-                "type": "BPMNSwimlane",
-                "owner": "pool-repo",
-                "bounds": {
-                  "x": -750,
-                  "y": -10,
+                "type": "bpmnSwimlane",
+                "position": {
+                  "x": 40,
+                  "y": 300
+                },
+                "width": 1540,
+                "height": 150,
+                "measured": {
                   "width": 1540,
                   "height": 150
                 },
-                "isAgentic": false,
-                "role": "solution",
-                "trustScore": 0,
-                "multiplicity": 1
+                "data": {
+                  "name": "Maintainer"
+                },
+                "parentId": "pool-repo"
               },
-              "task-validate": {
+              {
                 "id": "task-validate",
-                "name": "Validate solution",
-                "type": "BPMNTask",
-                "owner": "lane-maintainer",
-                "bounds": {
-                  "x": 380,
-                  "y": 35,
+                "type": "bpmnTask",
+                "position": {
+                  "x": 1130,
+                  "y": 45
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "taskType": "user",
-                "marker": "none",
-                "isAgentic": false,
-                "reflectionMode": "none",
-                "trustScore": 0
+                "data": {
+                  "name": "Validate solution",
+                  "taskType": "user",
+                  "marker": "none"
+                },
+                "parentId": "lane-maintainer"
               },
-              "evt-end-resolved": {
+              {
                 "id": "evt-end-resolved",
-                "name": "Bug resolved as resolved",
-                "type": "BPMNEndEvent",
-                "owner": "lane-maintainer",
-                "bounds": {
-                  "x": 610,
-                  "y": 45,
+                "type": "bpmnEndEvent",
+                "position": {
+                  "x": 1360,
+                  "y": 55
+                },
+                "width": 40,
+                "height": 40,
+                "measured": {
                   "width": 40,
                   "height": 40
                 },
-                "eventType": "default"
+                "data": {
+                  "name": "Bug resolved as resolved",
+                  "eventType": "default"
+                },
+                "parentId": "lane-maintainer"
               },
-              "lane-user": {
+              {
                 "id": "lane-user",
-                "name": "User",
-                "type": "BPMNSwimlane",
-                "owner": "pool-repo",
-                "bounds": {
-                  "x": -750,
-                  "y": 140,
+                "type": "bpmnSwimlane",
+                "position": {
+                  "x": 40,
+                  "y": 450
+                },
+                "width": 1540,
+                "height": 170,
+                "measured": {
                   "width": 1540,
                   "height": 170
                 },
-                "isAgentic": false,
-                "role": "solution",
-                "trustScore": 0,
-                "multiplicity": 1
+                "data": {
+                  "name": "User"
+                },
+                "parentId": "pool-repo"
               },
-              "evt-start": {
+              {
                 "id": "evt-start",
-                "name": "Bug discovered",
-                "type": "BPMNStartEvent",
-                "owner": "lane-user",
-                "bounds": {
-                  "x": -670,
-                  "y": 195,
+                "type": "bpmnStartEvent",
+                "position": {
+                  "x": 80,
+                  "y": 55
+                },
+                "width": 40,
+                "height": 40,
+                "measured": {
                   "width": 40,
                   "height": 40
                 },
-                "eventType": "default"
+                "data": {
+                  "name": "Bug discovered",
+                  "eventType": "default"
+                },
+                "parentId": "lane-user"
               },
-              "task-submit": {
+              {
                 "id": "task-submit",
-                "name": "Submit bug report",
-                "type": "BPMNTask",
-                "owner": "lane-user",
-                "bounds": {
-                  "x": -610,
-                  "y": 185,
+                "type": "bpmnTask",
+                "position": {
+                  "x": 140,
+                  "y": 45
+                },
+                "width": 160,
+                "height": 60,
+                "measured": {
                   "width": 160,
                   "height": 60
                 },
-                "taskType": "user",
-                "marker": "none",
-                "isAgentic": false,
-                "reflectionMode": "none",
-                "trustScore": 0
+                "data": {
+                  "name": "Submit bug report",
+                  "taskType": "user",
+                  "marker": "none"
+                },
+                "parentId": "lane-user"
               }
-            },
-            "relationships": {
-              "flow-01": {
+            ],
+            "edges": [
+              {
                 "id": "flow-01",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": -630,
-                  "y": 215,
-                  "width": 20,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 20,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "evt-start"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "task-submit"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "evt-start",
+                "target": "task-submit",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": -630,
+                      "y": 215
+                    },
+                    {
+                      "x": -610,
+                      "y": 215
+                    }
+                  ]
+                }
               },
-              "flow-02": {
+              {
                 "id": "flow-02",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": -450,
-                  "y": -85,
-                  "width": 50,
-                  "height": 300
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 300
-                  },
-                  {
-                    "x": 40,
-                    "y": 300
-                  },
-                  {
-                    "x": 40,
-                    "y": 150
-                  },
-                  {
-                    "x": 10,
-                    "y": 150
-                  },
-                  {
-                    "x": 10,
-                    "y": 0
-                  },
-                  {
-                    "x": 50,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "task-submit"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "task-label"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "task-submit",
+                "target": "task-label",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": -450,
+                      "y": 215
+                    },
+                    {
+                      "x": -410,
+                      "y": 215
+                    },
+                    {
+                      "x": -410,
+                      "y": 65
+                    },
+                    {
+                      "x": -440,
+                      "y": 65
+                    },
+                    {
+                      "x": -440,
+                      "y": -85
+                    },
+                    {
+                      "x": -400,
+                      "y": -85
+                    }
+                  ]
+                }
               },
-              "flow-03": {
+              {
                 "id": "flow-03",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": -240,
-                  "y": -85,
-                  "width": 30,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 30,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "task-label"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "task-checkvalid"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "task-label",
+                "target": "task-checkvalid",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": -240,
+                      "y": -85
+                    },
+                    {
+                      "x": -210,
+                      "y": -85
+                    }
+                  ]
+                }
               },
-              "flow-09": {
+              {
                 "id": "flow-09",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": 0,
-                  "y": -235,
-                  "width": 40,
-                  "height": 125
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 125
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 40,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Up",
-                  "element": "gw-diverge"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "task-coder-fix"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "gw-diverge",
+                "target": "task-coder-fix",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "top",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": -110
+                    },
+                    {
+                      "x": 0,
+                      "y": -235
+                    },
+                    {
+                      "x": 40,
+                      "y": -235
+                    }
+                  ]
+                }
               },
-              "flow-11": {
+              {
                 "id": "flow-11",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": 200,
-                  "y": -235,
-                  "width": 50,
-                  "height": 125
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 50,
-                    "y": 0
-                  },
-                  {
-                    "x": 50,
-                    "y": 125
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "task-coder-fix"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "gw-merge"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "task-coder-fix",
+                "target": "gw-merge",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": 200,
+                      "y": -235
+                    },
+                    {
+                      "x": 250,
+                      "y": -235
+                    },
+                    {
+                      "x": 250,
+                      "y": -110
+                    }
+                  ]
+                }
               },
-              "flow-12": {
+              {
                 "id": "flow-12",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": 270,
-                  "y": -90,
-                  "width": 110,
-                  "height": 155
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 55,
-                    "y": 0
-                  },
-                  {
-                    "x": 55,
-                    "y": 155
-                  },
-                  {
-                    "x": 110,
-                    "y": 155
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "gw-merge"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "task-validate"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "gw-merge",
+                "target": "task-validate",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": 270,
+                      "y": -90
+                    },
+                    {
+                      "x": 325,
+                      "y": -90
+                    },
+                    {
+                      "x": 325,
+                      "y": 65
+                    },
+                    {
+                      "x": 380,
+                      "y": 65
+                    }
+                  ]
+                }
               },
-              "flow-13": {
+              {
                 "id": "flow-13",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": 540,
-                  "y": 65,
-                  "width": 70,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 70,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "task-validate"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "evt-end-resolved"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "task-validate",
+                "target": "evt-end-resolved",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": 540,
+                      "y": 65
+                    },
+                    {
+                      "x": 610,
+                      "y": 65
+                    }
+                  ]
+                }
               },
-              "d436c42f-bdc4-471e-821c-2a6ac8bfd952": {
+              {
                 "id": "d436c42f-bdc4-471e-821c-2a6ac8bfd952",
-                "name": "",
-                "type": "BPMNFlow",
-                "owner": null,
-                "bounds": {
-                  "x": -50,
-                  "y": -90,
-                  "width": 30,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
-                  },
-                  {
-                    "x": 30,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "task-checkvalid"
-                },
-                "target": {
-                  "direction": "Downleft",
-                  "element": "gw-diverge"
-                },
-                "isManuallyLayouted": false,
-                "flowType": "sequence",
-                "isDefault": false
+                "source": "task-checkvalid",
+                "target": "gw-diverge",
+                "type": "BPMNSequenceFlow",
+                "sourceHandle": "right",
+                "targetHandle": "left-bottom",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "flowType": "sequence",
+                  "points": [
+                    {
+                      "x": -50,
+                      "y": -90
+                    },
+                    {
+                      "x": -20,
+                      "y": -90
+                    }
+                  ]
+                }
               }
-            },
+            ],
             "assessments": {}
           },
           "lastUpdate": "2026-10-08T08:10:04.577Z"

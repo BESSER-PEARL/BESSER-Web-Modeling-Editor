@@ -1,424 +1,406 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "converted-diagram-1778241725881",
+  "title": "",
   "type": "AgentDiagram",
-  "size": {
-    "width": 1192,
-    "height": 434
-  },
-  "interactive": {
-    "elements": {},
-    "relationships": {}
-  },
-  "elements": {
-    "de7fd93b-1a51-406d-a4f1-a37966b96db1": {
+  "nodes": [
+    {
       "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
-      "name": "initial",
       "type": "AgentState",
-      "owner": null,
-      "bounds": {
+      "position": {
         "x": -484,
-        "y": -34,
+        "y": -34
+      },
+      "width": 160,
+      "height": 40,
+      "measured": {
         "width": 160,
         "height": 40
       },
-      "stateType": "standard",
-      "fallbackBodyEnabled": false,
-      "actions": [],
-      "fallbackActions": [],
-      "bodies": [],
-      "fallbackBodies": []
+      "data": {
+        "name": "initial",
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false
+      }
     },
-    "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5": {
+    {
       "id": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
-      "name": "greeting",
       "type": "AgentState",
-      "owner": null,
-      "bounds": {
+      "position": {
         "x": -153,
-        "y": -63,
+        "y": -63
+      },
+      "width": 210,
+      "height": 100,
+      "measured": {
         "width": 210,
         "height": 100
       },
-      "stateType": "standard",
-      "fallbackBodyEnabled": false,
-      "actions": ["3c1a1d99-1758-4d49-af3c-0385d028baf8", "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38"],
-      "fallbackActions": [],
-      "bodies": ["3c1a1d99-1758-4d49-af3c-0385d028baf8", "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38"],
-      "fallbackBodies": []
+      "data": {
+        "name": "greeting",
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "3c1a1d99-1758-4d49-af3c-0385d028baf8",
+            "name": "Hi",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38",
+            "name": "How are you?",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
+      }
     },
-    "3c1a1d99-1758-4d49-af3c-0385d028baf8": {
-      "id": "3c1a1d99-1758-4d49-af3c-0385d028baf8",
-      "name": "Hi",
-      "type": "AgentStateBody",
-      "owner": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
-      "bounds": {
-        "x": -152.5,
-        "y": -22.5,
-        "width": 209,
-        "height": 30
-      },
-      "actionType": "TextReplyAction",
-      "replyType": "text",
-      "useSessionVars": false,
-      "llm_name": ""
-    },
-    "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38": {
-      "id": "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38",
-      "name": "How are you?",
-      "type": "AgentStateBody",
-      "owner": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
-      "bounds": {
-        "x": -152.5,
-        "y": 7.5,
-        "width": 209,
-        "height": 30
-      },
-      "actionType": "TextReplyAction",
-      "replyType": "text",
-      "useSessionVars": false,
-      "llm_name": ""
-    },
-    "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d": {
+    {
       "id": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
-      "name": "good",
       "type": "AgentState",
-      "owner": null,
-      "bounds": {
+      "position": {
         "x": 236,
-        "y": -157,
+        "y": -157
+      },
+      "width": 240,
+      "height": 70,
+      "measured": {
         "width": 240,
         "height": 70
       },
-      "stateType": "standard",
-      "fallbackBodyEnabled": false,
-      "actions": ["9933e657-4654-43e9-affa-fbbc6d21b804"],
-      "fallbackActions": [],
-      "bodies": ["9933e657-4654-43e9-affa-fbbc6d21b804"],
-      "fallbackBodies": []
+      "data": {
+        "name": "good",
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "9933e657-4654-43e9-affa-fbbc6d21b804",
+            "name": "I am glad to hear that!",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
+      }
     },
-    "9933e657-4654-43e9-affa-fbbc6d21b804": {
-      "id": "9933e657-4654-43e9-affa-fbbc6d21b804",
-      "name": "I am glad to hear that!",
-      "type": "AgentStateBody",
-      "owner": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
-      "bounds": {
-        "x": 236.5,
-        "y": -116.5,
-        "width": 239,
-        "height": 30
-      },
-      "actionType": "TextReplyAction",
-      "replyType": "text",
-      "useSessionVars": false,
-      "llm_name": ""
-    },
-    "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d": {
+    {
       "id": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
-      "name": "bad",
       "type": "AgentState",
-      "owner": null,
-      "bounds": {
+      "position": {
         "x": 224,
-        "y": 86,
+        "y": 86
+      },
+      "width": 260,
+      "height": 70,
+      "measured": {
         "width": 260,
         "height": 70
       },
-      "stateType": "standard",
-      "fallbackBodyEnabled": false,
-      "actions": ["a09a21da-58e2-4c43-9dcb-77097080fd10"],
-      "fallbackActions": [],
-      "bodies": ["a09a21da-58e2-4c43-9dcb-77097080fd10"],
-      "fallbackBodies": []
+      "data": {
+        "name": "bad",
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "a09a21da-58e2-4c43-9dcb-77097080fd10",
+            "name": "I am sorry to hear that...",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
+      }
     },
-    "a09a21da-58e2-4c43-9dcb-77097080fd10": {
-      "id": "a09a21da-58e2-4c43-9dcb-77097080fd10",
-      "name": "I am sorry to hear that...",
-      "type": "AgentStateBody",
-      "owner": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
-      "bounds": {
-        "x": 224.5,
-        "y": 126.5,
-        "width": 259,
-        "height": 30
-      },
-      "actionType": "TextReplyAction",
-      "replyType": "text",
-      "useSessionVars": false,
-      "llm_name": ""
-    },
-    "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f": {
-      "id": "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f",
-      "name": "",
+    {
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial",
       "type": "StateInitialNode",
-      "owner": null,
-      "bounds": {
-        "x": -576,
-        "y": -34,
-        "width": 30,
-        "height": 30
+      "position": {
+        "x": -604,
+        "y": -36.5
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
+        "width": 45,
+        "height": 45
+      },
+      "data": {
+        "name": ""
       }
     }
-  },
-  "relationships": {
-    "edda0968-00a1-47cd-9718-5cb9928d36e8": {
+  ],
+  "edges": [
+    {
       "id": "edda0968-00a1-47cd-9718-5cb9928d36e8",
-      "name": "",
+      "source": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
+      "target": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": -324,
-        "y": -14,
-        "width": 171,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
+      "sourceHandle": "right-bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "when_intent_matched",
+          "intentName": "greeting_intent"
         },
-        {
-          "x": 171,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Downright",
-        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "when_intent_matched",
-        "intentName": "greeting_intent"
-      },
-      "custom": {
-        "condition": []
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "greeting_intent"
+          },
+          "custom": {
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": -324,
+            "y": -14
+          },
+          {
+            "x": -153,
+            "y": -14
+          }
+        ]
       }
     },
-    "bbcf8812-9989-43cb-8097-1a94350dc0e4": {
+    {
       "id": "bbcf8812-9989-43cb-8097-1a94350dc0e4",
-      "name": "",
+      "source": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
+      "target": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
       "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": 57,
-        "y": -122,
-        "width": 179,
-        "height": 109
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 109
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "when_intent_matched",
+          "intentName": "good_intent"
         },
-        {
-          "x": 89.5,
-          "y": 109
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "good_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        {
-          "x": 89.5,
-          "y": 0
-        },
-        {
-          "x": 179,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "when_intent_matched",
-        "intentName": "good_intent"
-      },
-      "custom": {
-        "condition": []
+        "points": [
+          {
+            "x": 57,
+            "y": -13
+          },
+          {
+            "x": 146.5,
+            "y": -13
+          },
+          {
+            "x": 146.5,
+            "y": -122
+          },
+          {
+            "x": 236,
+            "y": -122
+          }
+        ]
       }
     },
-    "22315f95-af47-4943-9589-f6097264b679": {
+    {
       "id": "22315f95-af47-4943-9589-f6097264b679",
-      "name": "",
+      "source": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
+      "target": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
       "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": 57,
-        "y": 12,
-        "width": 167,
-        "height": 109
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
+      "sourceHandle": "right-bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "when_intent_matched",
+          "intentName": "bad_intent"
         },
-        {
-          "x": 83.5,
-          "y": 0
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "bad_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        {
-          "x": 83.5,
-          "y": 109
-        },
-        {
-          "x": 167,
-          "y": 109
-        }
-      ],
-      "source": {
-        "direction": "Downright",
-        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "when_intent_matched",
-        "intentName": "bad_intent"
-      },
-      "custom": {
-        "condition": []
+        "points": [
+          {
+            "x": 57,
+            "y": 12
+          },
+          {
+            "x": 140.5,
+            "y": 12
+          },
+          {
+            "x": 140.5,
+            "y": 121
+          },
+          {
+            "x": 224,
+            "y": 121
+          }
+        ]
       }
     },
-    "b473e836-0378-4565-8f19-76917a923e76": {
+    {
       "id": "b473e836-0378-4565-8f19-76917a923e76",
-      "name": "",
+      "source": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
       "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": -404,
-        "y": 6,
-        "width": 758,
-        "height": 190
-      },
-      "path": [
-        {
-          "x": 758,
-          "y": 150
+      "sourceHandle": "bottom",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "auto",
+          "conditionValue": ""
         },
-        {
-          "x": 758,
-          "y": 190
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        {
-          "x": 0,
-          "y": 190
-        },
-        {
-          "x": 0,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d"
-      },
-      "target": {
-        "direction": "Down",
-        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "auto",
-        "conditionValue": ""
-      },
-      "custom": {
-        "condition": []
+        "points": [
+          {
+            "x": 354,
+            "y": 156
+          },
+          {
+            "x": 354,
+            "y": 196
+          },
+          {
+            "x": -404,
+            "y": 196
+          },
+          {
+            "x": -404,
+            "y": 6
+          }
+        ]
       }
     },
-    "5b5b157d-6010-4798-b549-2c00f14a8c97": {
+    {
       "id": "5b5b157d-6010-4798-b549-2c00f14a8c97",
-      "name": "",
+      "source": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
       "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": -404,
-        "y": -197,
-        "width": 760,
-        "height": 163
-      },
-      "path": [
-        {
-          "x": 760,
-          "y": 40
+      "sourceHandle": "top",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "auto",
+          "conditionValue": ""
         },
-        {
-          "x": 760,
-          "y": 0
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 163
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "auto",
-        "conditionValue": ""
-      },
-      "custom": {
-        "condition": []
+        "points": [
+          {
+            "x": 356,
+            "y": -157
+          },
+          {
+            "x": 356,
+            "y": -197
+          },
+          {
+            "x": -404,
+            "y": -197
+          },
+          {
+            "x": -404,
+            "y": -34
+          }
+        ]
       }
     },
-    "29323cff-96c3-46d0-93b3-7b5ef6b69340": {
-      "id": "29323cff-96c3-46d0-93b3-7b5ef6b69340",
-      "name": "",
+    {
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial-edge",
       "type": "AgentStateTransitionInit",
-      "owner": null,
-      "bounds": {
-        "x": -546,
-        "y": -14,
-        "width": 62,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 62,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Downright",
-        "element": "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
-      },
-      "isManuallyLayouted": false
+      "source": "de7fd93b-1a51-406d-a4f1-a37966b96db1__initial",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "params": {},
+        "points": []
+      }
     }
-  },
+  ],
   "assessments": {},
   "components": {
     "b3282310-36ba-4e3b-a223-1f55a5047b96": {

@@ -36,13 +36,20 @@ const PROPOSAL = {
 };
 const LINK = { owner: 'me', repo: 'shop', branch: 'main', baseCommitSha: 'b'.repeat(40), modelProposal: PROPOSAL };
 
+/** A v4 class diagram holding nodes with these ids. */
+const classModel = (...ids: string[]) => ({
+  version: '4.0.0', type: 'ClassDiagram', nodes: ids.map((id) => ({ id })), edges: [], assessments: {},
+});
+const nodeIds = (index: number) =>
+  saved.project.diagrams.ClassDiagram[index].model.nodes.map((node: { id: string }) => node.id);
+
 function withProposal(proposal: Record<string, unknown> = PROPOSAL) {
   repo.link = { ...LINK, modelProposal: proposal };
   saved.project = {
     id: PROJECT_ID,
     currentDiagramIndices: { ClassDiagram: 0 },
     diagrams: {
-      ClassDiagram: [{ id: 'class_bbbbbbbb', model: { type: 'ClassDiagram', elements: { a: {} }, relationships: { r: {} } } }],
+      ClassDiagram: [{ id: 'class_bbbbbbbb', model: classModel('a') }],
     },
   };
   render(<ModelProposalBanner />);
@@ -80,7 +87,7 @@ describe('ModelProposalBanner', () => {
     const link = getProjectGitHubLink(PROJECT_ID);
     expect(link).toMatchObject({ repo: 'shop', baseCommitSha: LINK.baseCommitSha });
     expect(link?.modelProposal).toBeUndefined();
-    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toHaveLength(1);
+    expect(nodeIds(0)).toEqual(['a']);
   });
 
   it('Discard asks first, and keeps everything when the user says no', async () => {
@@ -91,7 +98,7 @@ describe('ModelProposalBanner', () => {
     await waitFor(() => expect(globalConfirm).toHaveBeenCalled());
     await Promise.resolve();
     expect(loadProject).not.toHaveBeenCalled();
-    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements).length).toBeGreaterThan(0);
+    expect(nodeIds(0)).toEqual(['a']);
     confirm.answer = true;
   });
 
@@ -99,7 +106,7 @@ describe('ModelProposalBanner', () => {
     withProposal();
     fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
     await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
-    expect(saved.project.diagrams.ClassDiagram[0].model).toMatchObject({ elements: {}, relationships: {} });
+    expect(saved.project.diagrams.ClassDiagram[0].model).toMatchObject({ nodes: [], edges: [] });
     expect(getProjectGitHubLink(PROJECT_ID)).toMatchObject({ repo: 'shop' });
     expect(getProjectGitHubLink(PROJECT_ID)?.modelProposal).toBeUndefined();
   });
@@ -112,16 +119,16 @@ describe('ModelProposalBanner', () => {
       currentDiagramIndices: { ClassDiagram: 1 },
       diagrams: {
         ClassDiagram: [
-          { id: 'class_bbbbbbbb', title: 'Proposed', model: { type: 'ClassDiagram', elements: { proposed: {} }, relationships: {} } },
-          { id: 'mine', title: 'My work', model: { type: 'ClassDiagram', elements: { mine: {} }, relationships: {} } },
+          { id: 'class_bbbbbbbb', title: 'Proposed', model: classModel('proposed') },
+          { id: 'mine', title: 'My work', model: classModel('mine') },
         ],
       },
     };
     render(<ModelProposalBanner />);
     fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
     await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
-    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toEqual([]);
-    expect(Object.keys(saved.project.diagrams.ClassDiagram[1].model.elements)).toEqual(['mine']);
+    expect(nodeIds(0)).toEqual([]);
+    expect(nodeIds(1)).toEqual(['mine']);
   });
 
   it('Discard of a proposal that does not name its diagram leaves every diagram as it is', async () => {
@@ -129,7 +136,7 @@ describe('ModelProposalBanner', () => {
     withProposal(older);
     fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
     await waitFor(() => expect(loadProject).toHaveBeenCalledWith(PROJECT_ID));
-    expect(Object.keys(saved.project.diagrams.ClassDiagram[0].model.elements)).toEqual(['a']);
+    expect(nodeIds(0)).toEqual(['a']);
     expect(getProjectGitHubLink(PROJECT_ID)?.modelProposal).toBeUndefined();
   });
 });

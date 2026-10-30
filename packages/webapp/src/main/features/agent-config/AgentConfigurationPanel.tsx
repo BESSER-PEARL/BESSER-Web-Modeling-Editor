@@ -6,9 +6,10 @@ import {
   UMLModel,
   diagramBridge,
   AGENT_LLM_PROVIDERS,
+  AgentComponentType,
   canonicalizeAgentLLMProvider,
 } from '@besser/wme';
-import type { AgentLLMProviderType } from '@besser/wme';
+import type { AgentLLMProviderType, BesserNode } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,16 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
+import {
+  applyAgentLLMComponentPatch,
+  createAgentLLMComponent,
+  formatAgentLLMParameters,
+  isAgentLLMComponent,
+  isAgentLLMNode,
+  remapComponentLlmReferences,
+  remapLlmReferences,
+  resolveDefaultLlm as resolveDefaultLlmForModel,
+} from './agentLlmUtils';
 import { AgentRuntimePanel } from './AgentRuntimePanel';
 import { OptionSelect } from './runtime/runtimeFields';
 
@@ -83,12 +94,19 @@ const SHOW_WIP_AGENT_CONFIG_FIELDS = false;
 const baseTextModality = ['text'];
 const speechEnabledModality = ['text', 'speech'];
 
+// The "default" interface colour is stored as a theme-token reference.
+// Configs written before the React Flow migration (and the backend's
+// recommendation allowlist) still carry the old Apollon token, so map it to
+// the current one whenever a config is read.
+const DEFAULT_INTERFACE_COLOR = 'var(--besser-primary-contrast)';
+const LEGACY_DEFAULT_INTERFACE_COLOR = 'var(--apollon-primary-contrast)';
+
 const defaultInterfaceStyle: InterfaceStyleSetting = {
   size: 16,
   font: 'sans',
   lineSpacing: 1.5,
   alignment: 'left',
-  color: 'var(--apollon-primary-contrast)',
+  color: DEFAULT_INTERFACE_COLOR,
   contrast: 'medium',
 };
 
@@ -112,9 +130,9 @@ type InterfaceColorOption = {
 
 const interfaceColorOptions: InterfaceColorOption[] = [
   {
-    value: 'var(--apollon-primary-contrast)',
+    value: DEFAULT_INTERFACE_COLOR,
     key: 'default',
-    swatch: 'var(--apollon-primary-contrast)',
+    swatch: 'var(--besser-primary-contrast)',
   },
   {
     value: '#000000',
@@ -177,10 +195,13 @@ const normalizeAgentLanguage = (value?: string): string => {
 const normalizeModalityList = (value?: string[]): string[] =>
   Array.isArray(value) && value.includes('speech') ? [...speechEnabledModality] : [...baseTextModality];
 
-const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => ({
-  ...defaultInterfaceStyle,
-  ...(value || {}),
-});
+const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => {
+  const style = { ...defaultInterfaceStyle, ...(value || {}) };
+  if (typeof style.color === 'string' && style.color.replace(/\s+/g, '') === LEGACY_DEFAULT_INTERFACE_COLOR) {
+    style.color = DEFAULT_INTERFACE_COLOR;
+  }
+  return style;
+};
 
 const normalizeVoiceStyle = (value?: VoiceStyleSetting): VoiceStyleSetting => ({
   ...defaultVoiceStyle,
@@ -362,15 +383,20 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-/** Provider on a diagram AgentLLM element. Canonical keys only — see canonicalizeAgentLLMProvider. */
+/** Provider on a diagram AgentLLM node. Canonical keys only — see canonicalizeAgentLLMProvider. */
 export type AgentLLMElementProvider = AgentLLMProviderType;
 
+/**
+ * Flat UI view of an `AgentLLM` definition — the shape the LLMs card edits.
+ * Definitions live as off-canvas `AgentLLM` components in the v4
+ * `model.components` map (shared with the agent Components page; develop
+ * stored them in the v3 `model.elements` table). Legacy data-only
+ * `AgentLLM` canvas nodes are still listed and edited in place.
+ */
 export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
-  owner: string | null;
-  bounds: { x: number; y: number; width: number; height: number };
   provider: AgentLLMElementProvider;
   parameters: Record<string, unknown>;
   num_previous_messages: number;
@@ -404,48 +430,36 @@ const AGENT_LLM_PROVIDER_DISPLAY_ORDER: readonly AgentLLMProviderType[] = [
   'replicate', 'ollama',
 ];
 
-export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> =
-  AGENT_LLM_PROVIDER_DISPLAY_ORDER.map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
+// Any canonical provider missing from the display order is appended so the
+// dropdown can never silently drop a provider the library accepts.
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
+  ...AGENT_LLM_PROVIDER_DISPLAY_ORDER,
+  ...AGENT_LLM_PROVIDERS.filter((value) => !AGENT_LLM_PROVIDER_DISPLAY_ORDER.includes(value)),
+].map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
 
-const generateAgentLLMId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
-const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as { type?: unknown };
-  return candidate.type === 'AgentLLM';
-};
-
+/**
+ * Normalize an `AgentLLM` definition into the flat UI view, applying the
+ * deserialize defaults (provider 'openai', parameters {}, 1 previous
+ * message, empty global context). Accepts a v4 node (`{ id, type, data }`)
+ * or a flat record carrying the properties inline (a legacy v3 element or
+ * the node's `data` block itself).
+ */
 export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  const data = raw?.data && typeof raw.data === 'object' ? raw.data : (raw ?? {});
   // Accepts legacy spellings and maps them onto the canonical key, so a config
   // saved before 'huggingface_api' existed is migrated rather than reset.
-  const provider = canonicalizeAgentLLMProvider(raw?.provider);
+  const provider = canonicalizeAgentLLMProvider(typeof data.provider === 'string' ? data.provider : '');
   const parameters =
-    raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
-      ? (raw.parameters as Record<string, unknown>)
+    data.parameters && typeof data.parameters === 'object' && !Array.isArray(data.parameters)
+      ? (data.parameters as Record<string, unknown>)
       : {};
-  const numPrev = typeof raw?.num_previous_messages === 'number' ? raw.num_previous_messages : 1;
+  const numPrev = typeof data.num_previous_messages === 'number' ? data.num_previous_messages : 1;
   const globalContext =
-    raw?.global_context == null ? '' : typeof raw.global_context === 'string' ? raw.global_context : String(raw.global_context);
-  const bounds =
-    raw?.bounds && typeof raw.bounds === 'object'
-      ? {
-          x: typeof raw.bounds.x === 'number' ? raw.bounds.x : 0,
-          y: typeof raw.bounds.y === 'number' ? raw.bounds.y : 0,
-          width: typeof raw.bounds.width === 'number' ? raw.bounds.width : 200,
-          height: typeof raw.bounds.height === 'number' ? raw.bounds.height : 90,
-        }
-      : { x: 0, y: 0, width: 200, height: 90 };
+    data.global_context == null ? '' : typeof data.global_context === 'string' ? data.global_context : String(data.global_context);
   return {
     id: typeof raw?.id === 'string' && raw.id ? raw.id : fallbackId,
     type: 'AgentLLM',
-    name: typeof raw?.name === 'string' ? raw.name : '',
-    owner: raw?.owner ?? null,
-    bounds,
+    name: typeof data.name === 'string' ? data.name : '',
     provider,
     parameters,
     num_previous_messages: numPrev,
@@ -453,42 +467,134 @@ export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLM
   };
 };
 
-const formatAgentLLMParameters = (parameters: Record<string, unknown>): string => {
-  try {
-    return JSON.stringify(parameters ?? {}, null, 2);
-  } catch {
-    return '{}';
-  }
+/**
+ * All registered LLM definitions of the model: the off-canvas `AgentLLM`
+ * components (v4 `model.components`, edited on the agent Components page),
+ * then any legacy data-only `AgentLLM` canvas nodes not yet migrated.
+ */
+const listAgentLLMElements = (
+  model: Pick<UMLModel, 'nodes' | 'components'> | null | undefined,
+): AgentLLMElement[] => {
+  if (!model) return [];
+  const fromComponents = Object.values(model.components ?? {})
+    .filter((component) => component?.type === AgentComponentType.AgentLLM)
+    .map((component) => normalizeAgentLLMElement(component, component.id));
+  const seen = new Set(fromComponents.map((llm) => llm.id));
+  const fromNodes = Array.isArray(model.nodes)
+    ? model.nodes
+        .filter((node) => isAgentLLMNode(node) && !seen.has(node.id))
+        .map((node) => normalizeAgentLLMElement(node, node.id))
+    : [];
+  return [...fromComponents, ...fromNodes];
 };
 
-// Element types that carry an `llm_name` reference to a registered AgentLLM.
-const LLM_REFERENCING_TYPES = new Set<string>([
-  'AgentRagElement',
-  'AgentReasoningState',
-  'AgentStateBody',
-  'AgentStateFallbackBody',
-]);
-
-// Rewrite every llm_name === fromName to toName across all elements (and any
-// nested children), so renaming or removing an AgentLLM propagates fully and
-// never leaves a dangling reference behind.
-const remapLlmReferences = (
-  elements: Record<string, unknown> | undefined,
-  fromName: string,
-  toName: string,
-): void => {
-  const visit = (entry: any): void => {
-    if (!entry || typeof entry !== 'object') return;
-    if (LLM_REFERENCING_TYPES.has(entry.type) && entry.llm_name === fromName) {
-      entry.llm_name = toName;
-    }
-    if (Array.isArray(entry.children)) {
-      for (const child of entry.children) visit(child);
-    }
+/** Merge an LLMs-card patch into the node's `data` (id/type pinned). */
+const applyAgentLLMElementPatch = (node: BesserNode, patch: Partial<AgentLLMElement>): BesserNode => {
+  const dataPatch: Record<string, unknown> = { ...patch };
+  delete dataPatch.id;
+  delete dataPatch.type;
+  return {
+    ...node,
+    type: 'AgentLLM' as BesserNode['type'],
+    data: { ...(node.data ?? {}), ...dataPatch },
   };
-  for (const entry of Object.values(elements || {})) {
-    visit(entry);
+};
+
+/**
+ * Locate an LLM definition by id: an `AgentLLM` component first (the v4
+ * home), then a legacy data-only canvas node.
+ */
+export const findAgentLLMEntry = (
+  model: Pick<UMLModel, 'nodes' | 'components'> | null | undefined,
+  id: string,
+): { where: 'component' | 'node'; element: AgentLLMElement } | null => {
+  if (!model) return null;
+  const component = model.components?.[id];
+  if (isAgentLLMComponent(component)) {
+    return { where: 'component', element: normalizeAgentLLMElement(component, id) };
   }
+  const node = (model.nodes ?? []).find((n) => n.id === id);
+  if (node && isAgentLLMNode(node)) {
+    return { where: 'node', element: normalizeAgentLLMElement(node, id) };
+  }
+  return null;
+};
+
+/** Rewrite `llm_name` references on canvas nodes and off-canvas components. */
+const remapAllLlmReferences = (model: UMLModel, fromName: string, toName: string): void => {
+  remapLlmReferences(model.nodes, fromName, toName);
+  remapComponentLlmReferences(model.components, fromName, toName);
+};
+
+/**
+ * LLMs-card "Add": a new off-canvas `AgentLLM` component in
+ * `model.components` — exactly what the agent Components page writes, never
+ * a canvas node. Pure: returns a new model.
+ */
+export const addAgentLLMToModel = (model: UMLModel): { nextModel: UMLModel; id: string } => {
+  const nextModel = cloneModel(model);
+  const component = createAgentLLMComponent();
+  nextModel.components = { ...(nextModel.components ?? {}), [component.id]: component };
+  return { nextModel, id: component.id };
+};
+
+/**
+ * LLMs-card edit: patch the LLM wherever it lives (component, else legacy
+ * canvas node) and, on a rename, rewrite every `llm_name` reference.
+ * Returns null when `id` is not a registered LLM. Pure.
+ */
+export const updateAgentLLMInModel = (
+  model: UMLModel,
+  id: string,
+  patch: Partial<AgentLLMElement>,
+): { nextModel: UMLModel; previousName: string; newName: string; isRename: boolean } | null => {
+  const entry = findAgentLLMEntry(model, id);
+  if (!entry) return null;
+  const previousName = entry.element.name;
+  const nextModel = cloneModel(model);
+  if (entry.where === 'component' && nextModel.components?.[id]) {
+    nextModel.components = {
+      ...nextModel.components,
+      [id]: applyAgentLLMComponentPatch(nextModel.components[id], patch),
+    };
+  } else {
+    nextModel.nodes = (nextModel.nodes ?? []).map((n) =>
+      n.id === id ? applyAgentLLMElementPatch(n, patch) : n,
+    );
+  }
+  const isRename = typeof patch.name === 'string' && patch.name !== previousName;
+  const newName = isRename ? (patch.name as string) : previousName;
+  if (isRename && previousName) {
+    remapAllLlmReferences(nextModel, previousName, newName);
+  }
+  return { nextModel, previousName, newName, isRename };
+};
+
+/**
+ * LLMs-card remove: drop the LLM (component, else legacy canvas node) and
+ * reset references to it to "(use default)". Returns null when `id` is not
+ * a registered LLM. Pure.
+ */
+export const removeAgentLLMFromModel = (
+  model: UMLModel,
+  id: string,
+): { nextModel: UMLModel; removedName: string } | null => {
+  const entry = findAgentLLMEntry(model, id);
+  if (!entry) return null;
+  const removedName = entry.element.name;
+  const nextModel = cloneModel(model);
+  if (entry.where === 'component') {
+    const nextComponents = { ...(nextModel.components ?? {}) };
+    delete nextComponents[id];
+    nextModel.components = nextComponents;
+  } else {
+    nextModel.nodes = (nextModel.nodes ?? []).filter((n) => n.id !== id);
+  }
+  if (removedName) {
+    // Empty llm_name means "use default".
+    remapAllLlmReferences(nextModel, removedName, '');
+  }
+  return { nextModel, removedName };
 };
 
 const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
@@ -1038,17 +1144,8 @@ export const AgentConfigurationPanel: React.FC = () => {
   // is exactly one LLM it must be that one." Pass the model that already
   // reflects the latest CRUD operation.
   const resolveDefaultLlm = useCallback(
-    (model: any, currentDefault: string | undefined): string | undefined => {
-      const llms = Object.values((model && model.elements) || {})
-        .filter((entry) => isAgentLLMElement(entry))
-        .map((entry) => normalizeAgentLLMElement(entry as any, ''));
-      if (llms.length === 0) return undefined;
-      if (llms.length === 1) return llms[0].name || undefined;
-      if (currentDefault && llms.some((l) => l.name === currentDefault)) {
-        return currentDefault;
-      }
-      return llms[0].name || undefined;
-    },
+    (model: UMLModel, currentDefault: string | undefined): string | undefined =>
+      resolveDefaultLlmForModel(model, currentDefault),
     [],
   );
 
@@ -1103,13 +1200,12 @@ export const AgentConfigurationPanel: React.FC = () => {
     return null;
   }, [currentUserDiagram?.model]);
 
-  const agentLLMElements = useMemo<AgentLLMElement[]>(() => {
-    if (!currentAgentModel) return [];
-    const elements = currentAgentModel.elements || {};
-    return Object.entries(elements)
-      .filter(([, element]) => isAgentLLMElement(element))
-      .map(([id, element]) => normalizeAgentLLMElement(element, id));
-  }, [currentAgentModel]);
+  // Registered AgentLLM definitions — `AgentLLM` components (v4
+  // `model.components`), plus legacy canvas nodes.
+  const agentLLMElements = useMemo<AgentLLMElement[]>(
+    () => listAgentLLMElements(currentAgentModel),
+    [currentAgentModel],
+  );
 
   const persistAgentModel = useCallback(
     async (nextModel: UMLModel) => {
@@ -1129,25 +1225,8 @@ export const AgentConfigurationPanel: React.FC = () => {
       toast.error(t('agentConfig.toasts.noActiveDiagram'));
       return;
     }
-    const nextModel = cloneModel(currentAgentModel);
-    const id = generateAgentLLMId();
-    const existingEntries = Object.values(nextModel.elements || {}).filter((entry) => isAgentLLMElement(entry));
-    const existingCount = existingEntries.length;
-    const offsetY = 40 + existingCount * 110;
-    const newName = 'gpt-4o-mini';
-    const newLLM: AgentLLMElement = {
-      id,
-      type: 'AgentLLM',
-      name: newName,
-      owner: null,
-      bounds: { x: 40, y: offsetY, width: 200, height: 90 },
-      provider: 'openai',
-      parameters: {},
-      num_previous_messages: 1,
-      global_context: '',
-    };
-    nextModel.elements = { ...(nextModel.elements || {}), [id]: newLLM as any };
-    setExpandedLlmId(id);
+    const { nextModel, id: newId } = addAgentLLMToModel(currentAgentModel);
+    setExpandedLlmId(newId);
     // Write `default_llm_name` to the diagram config BEFORE persisting the
     // model. updateDiagramModelThunk's body snapshots state.project at call
     // time and its fulfilled action replaces the diagram with that snapshot,
@@ -1163,17 +1242,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleUpdateAgentLLM = useCallback(
     (id: string, patch: Partial<AgentLLMElement>) => {
       if (!currentAgentModel) return;
-      const existing = currentAgentModel.elements?.[id];
-      if (!existing || !isAgentLLMElement(existing)) return;
-      const previousName = (existing as AgentLLMElement).name;
-      const nextModel = cloneModel(currentAgentModel);
-      const merged = { ...(nextModel.elements[id] as any), ...patch, id, type: 'AgentLLM' };
-      nextModel.elements = { ...nextModel.elements, [id]: merged };
-      const isRename = typeof patch.name === 'string' && patch.name !== previousName;
-      const newName = isRename ? (patch.name as string) : previousName;
-      if (isRename && previousName) {
-        remapLlmReferences(nextModel.elements, previousName, newName);
-      }
+      const result = updateAgentLLMInModel(currentAgentModel, id, patch);
+      if (!result) return;
+      const { nextModel, previousName, newName, isRename } = result;
       const renamedDefault =
         isRename && defaultLlmName === previousName ? newName || undefined : defaultLlmName;
       const resolved = resolveDefaultLlm(nextModel, renamedDefault);
@@ -1199,16 +1270,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleRemoveAgentLLM = useCallback(
     (id: string) => {
       if (!currentAgentModel) return;
-      const removedEntry = currentAgentModel.elements?.[id] as AgentLLMElement | undefined;
-      const removedName = removedEntry && isAgentLLMElement(removedEntry) ? removedEntry.name : '';
-      const nextModel = cloneModel(currentAgentModel);
-      const nextElements = { ...(nextModel.elements || {}) };
-      delete nextElements[id];
-      nextModel.elements = nextElements;
-      if (removedName) {
-        // Empty llm_name means "use default".
-        remapLlmReferences(nextModel.elements, removedName, '');
-      }
+      const result = removeAgentLLMFromModel(currentAgentModel, id);
+      if (!result) return;
+      const { nextModel, removedName } = result;
       setExpandedLlmId((prev) => (prev === id ? null : prev));
       const resolved = resolveDefaultLlm(nextModel, defaultLlmName);
       if (resolved !== defaultLlmName) {
@@ -1233,9 +1297,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleSetDefaultLlm = useCallback(
     (id: string) => {
       if (!currentAgentModel) return;
-      const target = currentAgentModel.elements?.[id];
-      if (!target || !isAgentLLMElement(target)) return;
-      const name = (target as AgentLLMElement).name;
+      const entry = findAgentLLMEntry(currentAgentModel, id);
+      if (!entry) return;
+      const name = entry.element.name;
       if (!name) {
         toast.error(t('agentConfig.toasts.nameBeforeDefault'));
         return;
@@ -1344,7 +1408,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigName(nextName);
       setConfigurationName(nextName || t('agentConfig.save.defaultName'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refreshSavedConfigurations();
@@ -1889,7 +1953,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     setActiveConfigName('');
     setSelectedConfigId('');
     LocalStorageRepository.clearActiveAgentConfigurationId();
-  }, [applyConfiguration]);
+  }, [applyConfiguration, t]);
 
   const handleResetToDefaults = async () => {
     const confirmed = await globalConfirm({

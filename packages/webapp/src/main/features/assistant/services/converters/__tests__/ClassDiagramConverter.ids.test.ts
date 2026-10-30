@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { ClassDiagramConverter } from '../ClassDiagramConverter';
 
+const classNode = (model: any, id: string) => model.nodes.find((n: any) => n.id === id);
+const allIds = (model: any) => [
+  ...model.nodes.map((n: any) => n.id),
+  ...model.nodes.flatMap((n: any) => [...(n.data.attributes ?? []), ...(n.data.methods ?? [])].map((r: any) => r.id)),
+  ...model.edges.map((e: any) => e.id),
+];
+
 describe('ClassDiagramConverter spec ids', () => {
   it('uses the ids a complete-system spec carries', () => {
     const model = new ClassDiagramConverter().convertCompleteSystem({
@@ -17,10 +24,10 @@ describe('ClassDiagramConverter spec ids', () => {
       relationships: [{ id: 'rel-writes', type: 'Association', source: 'Author', target: 'Book', name: 'writes' }],
     });
 
-    expect(Object.keys(model.elements).sort()).toEqual(['att-title', 'cls-author', 'cls-book', 'met-read']);
-    expect(model.elements['cls-book'].attributes).toEqual(['att-title']);
-    expect(model.elements['att-title'].owner).toBe('cls-book');
-    expect(model.relationships['rel-writes'].source.element).toBe('cls-author');
+    expect(model.nodes.map((n: any) => n.id).sort()).toEqual(['cls-author', 'cls-book']);
+    expect(classNode(model, 'cls-book').data.attributes.map((r: any) => r.id)).toEqual(['att-title']);
+    expect(classNode(model, 'cls-book').data.methods.map((r: any) => r.id)).toEqual(['met-read']);
+    expect(model.edges.find((e: any) => e.id === 'rel-writes')?.source).toBe('cls-author');
   });
 
   it('never hands out an id twice and replaces blank ones', () => {
@@ -32,10 +39,10 @@ describe('ClassDiagramConverter spec ids', () => {
       relationships: [{ id: 'dup', type: 'Association', source: 'Author', target: 'Book' }],
     });
 
-    const ids = [...Object.keys(model.elements), ...Object.keys(model.relationships)];
+    const ids = allIds(model);
     expect(ids).toHaveLength(5);
     expect(new Set(ids).size).toBe(5);
-    expect(model.elements.dup.name).toBe('Book');
+    expect(classNode(model, 'dup').data.name).toBe('Book');
     expect(ids).not.toContain('  ');
   });
 });
