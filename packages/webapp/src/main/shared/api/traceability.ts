@@ -10,7 +10,7 @@ import type { TraceFile } from '../types/traceability';
 
 /** Generators whose output carries trace links. Mirrors `TRACED_GENERATORS` in
  *  the backend's `constants.py`. */
-export const TRACED_GENERATORS: ReadonlySet<string> = new Set(['sqlalchemy']);
+export const TRACED_GENERATORS: ReadonlySet<string> = new Set(['sqlalchemy', 'backend']);
 
 /** Same deadline as a plain `/generate-output` call. */
 const GENERATION_TIMEOUT_MS = 300_000;

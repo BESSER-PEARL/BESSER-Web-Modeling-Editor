@@ -4173,7 +4173,7 @@
       "showOlder_other": "Show {{count}} fragments from older generations",
       "history": "History",
       "noHistory": "No edits recorded (the element existed before recording started).",
-      "contentNotKept": "The content of this generated file was not kept (it was over the size limit or superseded by newer generations).",
+      "contentNotKept": "Only this file's hash is kept, not its content: a file generated as a whole, a file over the size limit, or one superseded by newer generations.",
       "evidence": "Evidence: template rule {{rule}} · confidence {{confidence}}",
       "suspectHelp": "The element changed after this code was generated: regenerate to bring the code up to date."
     },
