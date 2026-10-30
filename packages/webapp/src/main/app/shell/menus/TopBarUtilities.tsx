@@ -1,17 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, ChevronDown, GitBranch, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
+import { CheckCircle, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
+import { GitHubMenu } from '../../../features/github/components/GitHubMenu';
 import type { AgentVariantOption } from '../topbar-types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -36,8 +29,8 @@ interface TopBarUtilitiesProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
-  onOpenGitHubSidebar: () => void;
   onToggleStar: () => void;
+  onRepoOpened?: (summary: string) => void;
 }
 
 export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
@@ -58,8 +51,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
-  onOpenGitHubSidebar,
   onToggleStar,
+  onRepoOpened,
 }) => {
   const { t } = useTranslation();
   const qualityStateLabel = qualityCheckState === 'valid'
@@ -76,7 +69,6 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
     ? `${t('topbar.quality.title')}: ${qualityStateLabel}`
     : t('topbar.quality.title');
   const themeLabel = isDarkTheme ? t('topbar.switchToLight') : t('topbar.switchToDark');
-  const accountLabel = t('topbar.githubAccount', { name: username || 'GitHub' });
 
   const qualityStateDotClass = qualityCheckState === 'valid'
     ? 'bg-emerald-500'
@@ -168,61 +160,15 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         </HeaderTooltip>
       )}
 
-      {isAuthenticated ? (
-        <>
-          <DropdownMenu>
-            <HeaderTooltip label={accountLabel} hideFrom="2xl">
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`hidden gap-1.5 sm:inline-flex ${outlineButtonClass}`}
-                  aria-label={accountLabel}
-                >
-                  <Github className="size-4" aria-hidden="true" />
-                  <span className="hidden max-w-[120px] truncate 2xl:inline">{username || 'GitHub'}</span>
-                  <ChevronDown className="hidden size-3 opacity-50 2xl:block" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-            </HeaderTooltip>
-            <DropdownMenuContent align="end" className="min-w-[170px]">
-              <DropdownMenuLabel className="truncate">{username || 'GitHub'}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => onGitHubLogout()}>
-                <LogOut className="mr-2 size-4" />
-                {t('topbar.signOut')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <HeaderTooltip label={t('topbar.githubVersionControl')} hideFrom="2xl">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`gap-1.5 ${outlineButtonClass}`}
-              onClick={onOpenGitHubSidebar}
-              aria-label={t('topbar.toggleGithubPanel')}
-            >
-              <GitBranch className="size-4" aria-hidden="true" />
-              <span className="hidden 2xl:inline">{t('topbar.sync')}</span>
-            </Button>
-          </HeaderTooltip>
-        </>
-      ) : (
-        <HeaderTooltip label={t('topbar.connectGithub')} hideFrom="2xl">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`gap-2 ${outlineButtonClass}`}
-            onClick={onGitHubLogin}
-            disabled={githubLoading}
-            aria-label={t('topbar.connectGithub')}
-          >
-            <Github className="size-4" aria-hidden="true" />
-            <span className="hidden 2xl:inline">{githubLoading ? t('common.connecting') : 'GitHub'}</span>
-          </Button>
-        </HeaderTooltip>
-      )}
+      <GitHubMenu
+        outlineButtonClass={outlineButtonClass}
+        isAuthenticated={isAuthenticated}
+        username={username}
+        githubLoading={githubLoading}
+        onLogin={onGitHubLogin}
+        onLogout={onGitHubLogout}
+        onRepoOpened={onRepoOpened}
+      />
     </>
   );
 };

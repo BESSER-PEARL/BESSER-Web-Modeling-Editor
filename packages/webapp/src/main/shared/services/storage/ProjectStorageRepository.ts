@@ -16,7 +16,7 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
+import { localStorageGitHubLinkPrefix, localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
 import { toast } from 'react-toastify';
 import i18n from '../../i18n';
 import {
@@ -555,6 +555,7 @@ export class ProjectStorageRepository {
     // GitHub" link, kept separate so it never collides with Render targets.
     localStorage.removeItem(`besser_deploy_linked_${projectId}`);
     localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);
+    localStorage.removeItem(`${localStorageGitHubLinkPrefix}${projectId}`);
   }
   
   // Helper: Update projects list

@@ -276,6 +276,18 @@ export const conversationStore = {
   },
 };
 
+/** Append an assistant message to the shared conversation; both surfaces show it. */
+export function postAssistantMessage(content: string, isError = false): void {
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  conversationStore.setMessages((prev) => [
+    ...prev,
+    { id, role: 'assistant', content, createdAt: new Date(), ...(isError ? { isError: true } : {}) },
+  ]);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Per-turn state shared by both surfaces                            */
 /* ------------------------------------------------------------------ */

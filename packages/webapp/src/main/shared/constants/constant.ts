@@ -75,6 +75,8 @@ export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 
 // per-project deploy linkage (suffix: `<projectId>_<target>`)
 export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
+// the GitHub repo a project is linked to (suffix: `<projectId>`); see projectGitHubLink.ts
+export const localStorageGitHubLinkPrefix = localStoragePrefix + 'github_link_';
 
 // external service URLs
 export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
@@ -102,15 +104,10 @@ export const sessionStorageLlmApiKey = localStoragePrefix + 'llm_api_key';
 export const sessionStorageLlmProvider = localStoragePrefix + 'llm_provider';
 export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
 // OpenAI-compatible base URL for the 'local' provider (user-supplied, e.g.
-// http://localhost:11434/v1 for Ollama) and the 'pia' provider (the fixed PIA
-// gateway, see PIA_GATEWAY_BASE_URL). Empty/missing = use the backend's own
-// default (its OPENAI_BASE_URL env, or the SDK default).
+// http://localhost:11434/v1 for Ollama). Empty/missing = use the backend's own
+// default (its OPENAI_BASE_URL env, or the SDK default). A gateway provider
+// ('pia') has none: the server resolves it from its model catalog.
 export const sessionStorageLlmBaseUrl = localStoragePrefix + 'llm_base_url';
-
-// PIA is LIST's OpenAI-compatible gateway, sent as the base URL for the 'pia'
-// provider regardless of the backend's OPENAI_BASE_URL env. Reachable only from
-// the LIST VPN, so it works when the WME backend runs locally on the VPN.
-export const PIA_GATEWAY_BASE_URL = 'https://gateway.pia.private.list.lu/v1';
 
 // Spec-Driven Agent — BYOK keys alias the unified keys above (kept as named
 // exports so existing imports keep working).

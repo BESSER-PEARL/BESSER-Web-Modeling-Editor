@@ -6,9 +6,10 @@
  * and renders them into the existing assistant chat message list.
  */
 
-// 'pia' and 'local' are frontend-only labels for OpenAI-compatible endpoints;
-// on the wire they are sent as provider='openai' + a base_url (the SSE client
-// maps them). They only work when the WME backend runs locally.
+// 'local' is a frontend-only label for the user's OpenAI-compatible server; on
+// the wire it is sent as provider='openai' + a base_url (the SSE client maps
+// it), so it only works when the WME backend runs locally. 'pia' is sent as-is:
+// a gateway the server resolves from its model catalog.
 // 'free' is the keyless server-hosted open-weight tier: sent to the backend as
 // provider='free' with NO api_key and NO base_url — the server injects the
 // hosted endpoint + token. Offered only when /spec-driven/config advertises it.
@@ -224,6 +225,13 @@ export interface DoneEvent {
    * Additive — absent on older/interrupted runs, in which case the card
    * falls back to the blocker-count summary. */
   verification?: SpecDrivenVerificationReport;
+  /** "modify" when the run updated an existing app (e.g. a GitHub repo). */
+  mode?: 'create' | 'modify';
+  /** Paths the agent wrote, edited or deleted (capped; `changedFileCount` is the total). */
+  changedFiles?: string[];
+  changedFileCount?: number;
+  /** How the model differs from the one the base app was built from (modify runs). */
+  modelChanges?: string[];
 }
 
 export interface SpecDrivenErrorEvent {

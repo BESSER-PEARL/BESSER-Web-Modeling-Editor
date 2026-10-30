@@ -208,7 +208,10 @@ Where Code Lives: Quick Lookup
    * - Code generation dialogs
      - ``webapp/src/main/features/generation/``
    * - GitHub deploy / OAuth
-     - ``webapp/src/main/features/github/``
+     - ``webapp/src/main/features/github/``; the tab's sign-in is one store,
+       ``shared/services/github/githubAuth.ts``, read through
+       ``shared/hooks/useGitHubAuth`` (a 401 on any request carrying
+       ``X-GitHub-Session`` marks it expired everywhere)
    * - The AI assistant (chat, WebSocket client, diagram converters)
      - ``webapp/src/main/features/assistant/``
    * - The Spec-Driven Agent (full-app generation runs)

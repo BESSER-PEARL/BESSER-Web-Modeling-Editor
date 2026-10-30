@@ -66,9 +66,10 @@ import { openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from
 import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
 import {
   continueFromGithubRepo,
-  getGithubSessionToken,
-} from '../../spec-driven/services/continueFromGithub';
+  describeOpenedRepo,
+} from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
+import { getGitHubSession } from '../../../shared/services/github/githubAuth';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
@@ -889,7 +890,7 @@ export function useAssistantLogic({
         ]);
         return;
       }
-      const ghSession = getGithubSessionToken();
+      const ghSession = getGitHubSession();
       if (!ghSession) {
         setMessages((prev) => [
           ...prev,
@@ -909,27 +910,18 @@ export function useAssistantLogic({
           branch: ghBranch,
           githubSession: ghSession,
         });
-        if (result.ok && result.projectId && result.runId) {
+        if (result.ok && result.projectId) {
           await dispatch(loadProjectThunk(result.projectId)).unwrap();
-          dispatch(
-            setLastRunForProject({
-              projectId: result.projectId,
-              runId: result.runId,
-              at: Date.now(),
-            }),
-          );
-          setMessages((prev) => [
-            ...prev,
-            toKitMessage(
-              'assistant',
-              `Loaded **${result.owner}/${result.repo}**` +
-                (result.branch ? ` (branch \`${result.branch}\`)` : '') +
-                ' — the model is on your canvas and the generated app is armed ' +
-                'as the modify base. Ask for any change (e.g. *"add a search ' +
-                'bar"*) and I will modify this app; a later push can update ' +
-                'the same repo.',
-            ),
-          ]);
+          if (result.runId) {
+            dispatch(
+              setLastRunForProject({
+                projectId: result.projectId,
+                runId: result.runId,
+                at: Date.now(),
+              }),
+            );
+          }
+          setMessages((prev) => [...prev, toKitMessage('assistant', describeOpenedRepo(result))]);
         } else {
           setMessages((prev) => [
             ...prev,

@@ -37,6 +37,12 @@ handles read/write operations:
   the ``besser_project_`` prefix.
 * ``besser_latest_project`` points to the most recently opened project.
 * ``besser_projects`` lists all known project IDs to populate the home modal.
+* ``besser_github_link_<projectId>`` is the project's one GitHub repository
+  (``shared/services/storage/projectGitHubLink.ts``): owner, repo and branch,
+  the commit last synced (``baseCommitSha``) with a fingerprint of the model at
+  that commit, a model BESSER proposed from the repo's code until it is
+  accepted, and ``pendingChange``, a save or push waiting on its own branch for
+  a pull request. Every GitHub path reads and writes this one record.
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
 

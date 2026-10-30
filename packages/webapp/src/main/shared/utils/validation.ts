@@ -129,6 +129,19 @@ export const validateJavaClassName = (value: string): string | undefined => {
   return undefined;
 };
 
+// GitHub's limit on a repository name.
+const MAX_REPO_NAME_LENGTH = 100;
+
+/** A GitHub repository name made from a project name: lowercase `[a-z0-9-_]`, no separator at either end. */
+export const sanitizeRepoName = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .slice(0, MAX_REPO_NAME_LENGTH);
+
 /**
  * Validates a GitHub repository name:
  *  - must not be empty

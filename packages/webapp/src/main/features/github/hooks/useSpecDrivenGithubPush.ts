@@ -4,9 +4,15 @@
  * Drives the "Push to GitHub" action on a finished Spec-Driven Agent run
  * card. Owns:
  *   - the connect-first flow (sign in to GitHub before the dialog opens),
- *   - the per-project ``'github'`` linked-repo (load / set / clear) so a
- *     re-push updates the same repo instead of asking every time,
- *   - the actual push request to ``POST /spec-driven/push-to-github``.
+ *   - the project's linked repo (``projectGitHubLink``, shared with the
+ *     GitHub sidebar) so a re-push updates the same repo instead of asking,
+ *   - the actual push request to ``POST /spec-driven/push-to-github``, sent
+ *     with the commit the project last synced so newer commits are merged,
+ *   - what follows a push: the link's new base commit, the merged model and
+ *     modify base after a merge, and the branch a conflict or a pull request
+ *     waits on (the link's ``pendingChange``, shown in the GitHub menu).
+ *   - the run's model replaces the canvas only while the canvas still holds
+ *     the model the run started from; otherwise the user chooses.
  *
  * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenKeyDialogHost``):
  * whether it's open comes from ``specDriven.pushDialogRunId`` in the store,
@@ -21,42 +27,53 @@
  * ``dialog`` bag to spread into that component.
  *
  * Reuses ``useGitHubAuth`` for the OAuth session (same instance pattern as
- * ``useDeployment``) and the shared ``buildProjectExportEnvelope`` /
- * ``LocalStorageRepository`` deploy-link helpers so the spec-driven push stays in
- * sync with the Render deploy flow.
+ * ``useDeployment``) and the shared ``buildProjectExportEnvelope``.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import i18n from '../../../shared/i18n';
 
 import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import {
-  LocalStorageRepository,
-  type DeployLinkedRepo,
-} from '../../../shared/services/storage/local-storage-repository';
+  getProjectGitHubLink,
+  markProjectGitHubSynced,
+  modelFingerprint,
+  setPendingGitHubChange,
+  setProjectGitHubLink,
+  type ProjectGitHubLink,
+} from '../../../shared/services/storage/projectGitHubLink';
+import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
+import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { sessionStorageSpecDrivenPushIntent } from '../../../shared/constants/constant';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { useProject } from '../../../app/hooks/useProject';
 import {
   closePushDialog,
   openPushDialog,
+  setLastRunForProject,
 } from '../../spec-driven/state/specDrivenSlice';
-import { useGitHubAuth } from './useGitHubAuth';
+import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
+import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 
-/** Deploy-link target token for the spec-driven push (never collides with Render). */
-const GITHUB_TARGET = 'github';
 const DEFAULT_BRANCH = 'main';
 
 export interface SpecDrivenPushConfig {
   /** True to push into an already-existing repo, false to create a new one. */
   useExisting: boolean;
+  /** Owner of an existing repo (an organization, or another user); the signed-in user when omitted. */
+  owner?: string;
   repoName: string;
   description?: string;
   isPrivate: boolean;
   branch?: string;
   commitMessage?: string;
+  /** Commit straight to the branch, or open a pull request into it. */
+  pushMode?: 'commit' | 'pull_request';
 }
 
 export interface SpecDrivenPushResult {
@@ -66,22 +83,96 @@ export interface SpecDrivenPushResult {
   repo_name: string;
   is_first_push: boolean;
   files_uploaded: number;
+  branch: string;
+  commit_sha: string;
+  status: PushStatus;
+  conflict_branch: string | null;
+  pull_request_url: string | null;
+  /** The branch the pull request merges (status `pull_request`). */
+  pull_request_branch?: string | null;
+  base_run_id: string | null;
+  /** E.g. the app's previous deploy settings were kept; shown on the result view. */
+  warnings?: string[];
+  /** The model the push wrote when the run changed it (e.g. added classes); null when it is the editor's own. */
+  project_export?: unknown;
 }
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
-export type SpecDrivenPushErrorCode = 'expired' | 'auth' | 'conflict' | 'other';
+export type SpecDrivenPushErrorCode =
+  | 'expired'
+  | 'repo_missing'
+  | 'auth'
+  | 'forbidden'
+  | 'conflict'
+  | 'branch_moved'
+  | 'other';
 export type SpecDrivenPushOutcome =
   | { ok: true; result: SpecDrivenPushResult }
   | { ok: false; code: SpecDrivenPushErrorCode; message: string };
 
-interface PushResponse {
-  success: boolean;
-  repo_url: string;
-  owner: string;
-  repo_name: string;
-  is_first_push: boolean;
-  files_uploaded: number;
+type PushResponse = SpecDrivenPushResult;
+
+/**
+ * What a failed push means, from the status and the backend's ``detail``:
+ * ``POST /spec-driven/push-to-github`` answers 404 ``run_expired`` or
+ * ``repo_missing``, and 409 for both a taken repo name and a branch that
+ * moved during the push (GitHub's 422s).
+ */
+const t = (key: string, defaultValue: string, values: Record<string, unknown> = {}): string =>
+  i18n.t(`github.push.errors.${key}`, { defaultValue, ...values });
+
+export function describePushError(error: unknown): { code: SpecDrivenPushErrorCode; message: string } {
+  if (!(error instanceof ApiError)) {
+    return { code: 'other', message: error instanceof Error ? error.message : t('failed', 'Save to GitHub failed.') };
+  }
+  const detail = error.message;
+  switch (error.status) {
+    case 401:
+      return { code: 'auth', message: t('auth', 'Your GitHub session expired. Reconnect and try again.') };
+    case 403:
+      return {
+        code: 'forbidden',
+        message: t('forbidden', 'GitHub refused the push: your account cannot write to this repository. ({{detail}})', { detail }),
+      };
+    case 404:
+      return detail === 'repo_missing'
+        ? {
+            code: 'repo_missing',
+            message: t('repoMissing', 'This repository no longer exists, or your GitHub account cannot see it. Pick another repository or create a new one.'),
+          }
+        : { code: 'expired', message: t('expired', 'This generation expired — re-generate to push.') };
+    case 409:
+      return /already exists/i.test(detail)
+        ? { code: 'conflict', message: t('nameTaken', 'A repository with that name already exists — push to it as an existing repo.') }
+        : { code: 'branch_moved', message: t('branchMoved', 'The branch changed on GitHub during the push. Try again. ({{detail}})', { detail }) };
+    default:
+      return { code: 'other', message: detail || t('failed', 'Save to GitHub failed.') };
+  }
 }
+
+/**
+ * Whether the run's model may replace the project's: yes while the project
+ * still holds the model run `runId` started from, else only if the user says so.
+ */
+export async function mayReplaceWithRunModel(runId: string, project: BesserProject): Promise<boolean> {
+  const seed = readRunSeedModel(runId);
+  if (seed && seed === modelFingerprint(project)) return true;
+  return globalConfirm({
+    title: i18n.t('github.push.modelChoice.title', { defaultValue: "Keep your model or take the run's?" }),
+    description: i18n.t('github.push.modelChoice.description', {
+      defaultValue:
+        "This run changed the model, and the model on the canvas changed after the run started. Take the run's model and lose the edits you made since, or keep your model and save it to GitHub later.",
+    }),
+    confirmLabel: i18n.t('github.push.modelChoice.takeRun', { defaultValue: "Take the run's model" }),
+    cancelLabel: i18n.t('github.push.modelChoice.keepMine', { defaultValue: 'Keep my model' }),
+  });
+}
+
+/** The link at `sha` with the project's model counted as not saved there. */
+const linkedWithUnsavedModel = (link: ProjectGitHubLink, sha: string): ProjectGitHubLink => {
+  const { syncedModel: _synced, baselinePending: _pending, ...rest } = link;
+  return { ...rest, baseCommitSha: sha, lastSyncedAt: new Date().toISOString() };
+};
 
 export interface UseSpecDrivenGithubPushOptions {
   currentProject: BesserProject | null | undefined;
@@ -91,13 +182,15 @@ export interface SpecDrivenPushDialogState {
   open: boolean;
   runId: string | null;
   projectName: string;
-  linkedRepo: DeployLinkedRepo | null;
+  linkedRepo: ProjectGitHubLink | null;
   githubSession: string | null;
   isPushing: boolean;
   result: SpecDrivenPushResult | null;
   onOpenChange: (open: boolean) => void;
   onChangeRepo: () => void;
   push: (config: SpecDrivenPushConfig) => Promise<SpecDrivenPushOutcome>;
+  /** Open a pull request for a push GitHub could not merge; returns its URL. */
+  openConflictPullRequest: () => Promise<string | null>;
 }
 
 export interface UseSpecDrivenGithubPushReturn {
@@ -107,7 +200,8 @@ export interface UseSpecDrivenGithubPushReturn {
 export function useSpecDrivenGithubPush(
   { currentProject }: UseSpecDrivenGithubPushOptions,
 ): UseSpecDrivenGithubPushReturn {
-  const { isAuthenticated, githubSession, login } = useGitHubAuth();
+  const { isAuthenticated, isChecking, githubSession, login } = useGitHubAuth();
+  const { loadProject } = useProject();
   const dispatch = useAppDispatch();
 
   // The open/target-run state is OWNED BY REDUX so the card's button (in the
@@ -120,7 +214,7 @@ export function useSpecDrivenGithubPush(
   const projectRef = useRef(currentProject);
   projectRef.current = currentProject;
 
-  const [linkedRepo, setLinkedRepo] = useState<DeployLinkedRepo | null>(null);
+  const [linkedRepo, setLinkedRepo] = useState<ProjectGitHubLink | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [result, setResult] = useState<SpecDrivenPushResult | null>(null);
 
@@ -138,10 +232,12 @@ export function useSpecDrivenGithubPush(
     if (pushDialogRunId === null) return;
     const project = projectRef.current;
     if (!project) {
-      toast.error('Open a project before pushing to GitHub.');
+      toast.error(i18n.t('github.push.toasts.noProject', { defaultValue: 'Open a project before pushing to GitHub.' }));
       dispatch(closePushDialog());
       return;
     }
+    // A stored session is still being verified: wait for the answer (this effect re-runs).
+    if (isChecking) return;
     if (!isAuthenticated) {
       // Connect-first: stash the intent so we can reopen the dialog for this
       // run once the OAuth redirect returns and the session is established.
@@ -154,15 +250,15 @@ export function useSpecDrivenGithubPush(
         /* sessionStorage may be unavailable — the login still proceeds. */
       }
       dispatch(closePushDialog());
-      toast.info('Connect GitHub to push your generated app.');
+      toast.info(i18n.t('github.push.toasts.connectFirst', { defaultValue: 'Connect GitHub to push your generated app.' }));
       login();
       return;
     }
     // Signed in: (re)load the linked repo for this run and clear any prior
     // result so the form starts fresh for this open.
-    setLinkedRepo(LocalStorageRepository.getDeployLinkedRepo(project.id, GITHUB_TARGET));
+    setLinkedRepo(getProjectGitHubLink(project.id));
     setResult(null);
-  }, [pushDialogRunId, isAuthenticated, dispatch, login]);
+  }, [pushDialogRunId, isAuthenticated, isChecking, dispatch, login]);
 
   // After an OAuth redirect, reopen the push dialog for the pending run once
   // we're authenticated AND the project it targeted is loaded. Consume-and-clear
@@ -194,11 +290,9 @@ export function useSpecDrivenGithubPush(
     dispatch(openPushDialog(intent.runId));
   }, [isAuthenticated, currentProject?.id, dispatch]);
 
+  // Only the dialog forgets the repo: the project's link changes when a push
+  // to another repo succeeds, so Cancel keeps the link and its base commit.
   const onChangeRepo = useCallback(() => {
-    const project = projectRef.current;
-    if (project) {
-      LocalStorageRepository.clearDeployLinkedRepo(project.id, GITHUB_TARGET);
-    }
     setLinkedRepo(null);
     setResult(null);
   }, []);
@@ -218,14 +312,19 @@ export function useSpecDrivenGithubPush(
       const project = projectRef.current;
       const id = runId;
       if (!project || !id) {
-        toast.error('Nothing to push.');
-        return { ok: false, code: 'other', message: 'Nothing to push.' };
+        const message = i18n.t('github.push.toasts.nothingToPush', { defaultValue: 'Nothing to push.' });
+        toast.error(message);
+        return { ok: false, code: 'other', message };
       }
       if (!githubSession) {
-        toast.error('GitHub session not found. Please reconnect.');
-        return { ok: false, code: 'auth', message: 'GitHub session not found.' };
+        const message = t('auth', 'Your GitHub session expired. Reconnect and try again.');
+        toast.error(message);
+        return { ok: false, code: 'auth', message };
       }
 
+      const pushesToLink =
+        !!linkedRepo && config.useExisting && linkedRepo.repo.toLowerCase() === config.repoName.toLowerCase()
+        && (!config.owner || linkedRepo.owner.toLowerCase() === config.owner.toLowerCase());
       setIsPushing(true);
       setResult(null);
       try {
@@ -241,11 +340,15 @@ export function useSpecDrivenGithubPush(
             projectExport,
             deploy_config: {
               repo_name: config.repoName,
+              ...(config.useExisting && config.owner ? { owner: config.owner } : {}),
               ...(config.description ? { description: config.description } : {}),
               is_private: config.isPrivate,
               use_existing: config.useExisting,
               ...(config.branch ? { branch: config.branch } : {}),
               ...(config.commitMessage ? { commit_message: config.commitMessage } : {}),
+              // Only the linked repo has a known base; any other repo is new to this project.
+              ...(pushesToLink && linkedRepo?.baseCommitSha ? { base_commit_sha: linkedRepo.baseCommitSha } : {}),
+              push_mode: config.pushMode ?? 'commit',
             },
           },
           {
@@ -256,63 +359,127 @@ export function useSpecDrivenGithubPush(
           },
         );
 
-        const res: SpecDrivenPushResult = {
-          success: response.success,
-          repo_url: response.repo_url,
-          owner: response.owner,
-          repo_name: response.repo_name,
-          is_first_push: response.is_first_push,
-          files_uploaded: response.files_uploaded,
-        };
+        const res: SpecDrivenPushResult = response;
 
         if (!res.success) {
-          toast.error('Push to GitHub failed.');
-          return { ok: false, code: 'other', message: 'Push to GitHub failed.' };
+          const message = t('failed', 'Save to GitHub failed.');
+          toast.error(message);
+          return { ok: false, code: 'other', message };
         }
 
-        const branch = config.branch || linkedRepo?.branch || DEFAULT_BRANCH;
-        LocalStorageRepository.setDeployLinkedRepo(project.id, GITHUB_TARGET, {
+        const link: ProjectGitHubLink = {
+          ...(pushesToLink && linkedRepo ? linkedRepo : {}),
           owner: res.owner,
           repo: res.repo_name,
-          branch,
-        });
-        setLinkedRepo({ owner: res.owner, repo: res.repo_name, branch });
+          branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
+        };
+        // The run changed the model; it replaces the canvas only if the canvas
+        // still holds the model the run started from, or the user agrees.
+        const takeRunModel = !!res.project_export && (await mayReplaceWithRunModel(id, project));
+        if (res.status === 'pushed' && res.project_export) {
+          if (takeRunModel) {
+            // Load what the repo now holds, so the editor shows it and a later save cannot revert it.
+            const updated = storeRepoModelAsProject(res.project_export, project.id);
+            markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+            await loadProject(project.id);
+          } else {
+            // The user's model stays, unsaved against the run's commit until they save it.
+            setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
+          }
+        } else if (res.status === 'pushed') {
+          markProjectGitHubSynced(link, project, res.commit_sha);
+        } else if (res.status === 'merged' && githubSession && res.project_export && !takeRunModel) {
+          setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
+        } else if (res.status === 'merged' && githubSession) {
+          // The branch now holds this run and the commits made since: load
+          // that model, and start the next run from that code.
+          const merged = await loadModel(githubSession, res.owner, res.repo_name, link.branch);
+          const updated = storeRepoModelAsProject(merged.project, project.id);
+          markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+          if (res.base_run_id) {
+            const at = Date.now();
+            writeProjectLastRun(project.id, res.base_run_id, at);
+            dispatch(setLastRunForProject({ projectId: project.id, runId: res.base_run_id, at }));
+          }
+          await loadProject(project.id);
+        } else {
+          // A pull request or a conflict leaves the branch as it was, so the
+          // link keeps its base; the change waits on its own branch.
+          setProjectGitHubLink(project.id, link);
+          const branch = res.status === 'conflict' ? res.conflict_branch : res.pull_request_branch;
+          if (branch) {
+            setPendingGitHubChange(project.id, {
+              kind: res.status === 'conflict' ? 'conflict' : 'pull_request',
+              branch,
+              ...(config.commitMessage ? { title: config.commitMessage } : {}),
+              ...(res.pull_request_url ? { pullRequestUrl: res.pull_request_url } : {}),
+              createdAt: new Date().toISOString(),
+            });
+          }
+          if (takeRunModel) {
+            // The run's code has the model it changed: show that model, unsaved
+            // against the branch until its pull request is merged.
+            storeRepoModelAsProject(res.project_export, project.id);
+            await loadProject(project.id);
+          }
+        }
+        setLinkedRepo(getProjectGitHubLink(project.id));
         setResult(res);
         // Opt-in research telemetry: a completed push is a delivery action.
         // Fire-and-forget; no-op unless the tab was opened with `?pilot=<label>`.
         emitDeliveryEvent('push_github', id);
-        toast.success(
-          res.is_first_push
-            ? `Pushed to ${res.owner}/${res.repo_name}`
-            : `Updated ${res.owner}/${res.repo_name}`,
-        );
+        if (res.status === 'conflict') {
+          toast.warn(i18n.t('github.push.toasts.conflict', { defaultValue: 'GitHub could not merge this push automatically.' }));
+        } else {
+          const repo = `${res.owner}/${res.repo_name}`;
+          toast.success(
+            res.is_first_push
+              ? i18n.t('github.push.toasts.created', { defaultValue: 'Pushed to {{repo}}', repo })
+              : res.status === 'pull_request'
+                ? i18n.t('github.push.toasts.pullRequest', { defaultValue: 'Opened a pull request on {{repo}}', repo })
+                : i18n.t('github.push.toasts.updated', { defaultValue: 'Updated {{repo}}', repo }),
+          );
+        }
+        if (takeRunModel) {
+          toast.info(i18n.t('github.push.toasts.modelUpdated', { defaultValue: 'The model now includes the classes the agent added.' }));
+        }
         return { ok: true, result: res };
       } catch (error) {
-        if (error instanceof ApiError) {
-          if (error.status === 401) {
-            toast.error('GitHub session expired — please reconnect.');
-            return { ok: false, code: 'auth', message: 'Your GitHub session expired. Reconnect and try again.' };
-          }
-          if (error.status === 404) {
-            toast.error('This generation expired — re-generate to push.');
-            return { ok: false, code: 'expired', message: 'This generation expired — re-generate to push.' };
-          }
-          if (error.status === 409) {
-            toast.error('A repository with that name already exists.');
-            return { ok: false, code: 'conflict', message: 'A repository with that name already exists — push to it as an existing repo.' };
-          }
-          toast.error(error.message || 'Push to GitHub failed.');
-          return { ok: false, code: 'other', message: error.message || 'Push to GitHub failed.' };
-        }
-        const message = error instanceof Error ? error.message : 'Push to GitHub failed.';
+        const { code, message } = describePushError(error);
         toast.error(message);
-        return { ok: false, code: 'other', message };
+        return { ok: false, code, message };
       } finally {
         setIsPushing(false);
       }
     },
-    [runId, githubSession, linkedRepo],
+    [runId, githubSession, linkedRepo, dispatch, loadProject],
   );
+
+  const openConflictPullRequest = useCallback(async (): Promise<string | null> => {
+    if (!result?.conflict_branch || !githubSession) return null;
+    try {
+      const pr = await createPullRequest(githubSession, {
+        owner: result.owner,
+        repo: result.repo_name,
+        head: result.conflict_branch,
+        base: result.branch,
+        title: getProjectGitHubLink(projectRef.current?.id ?? '')?.pendingChange?.title
+          || 'Update from the BESSER Spec-Driven Agent',
+      });
+      const project = projectRef.current;
+      const pending = project ? getProjectGitHubLink(project.id)?.pendingChange : undefined;
+      if (project && pending?.branch === result.conflict_branch) {
+        setPendingGitHubChange(project.id, { ...pending, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number });
+      }
+      setResult({ ...result, status: 'pull_request', pull_request_url: pr.html_url });
+      return pr.html_url;
+    } catch (error) {
+      toast.error(error instanceof Error
+        ? error.message
+        : i18n.t('github.push.toasts.pullRequestFailed', { defaultValue: 'Could not open the pull request.' }));
+      return null;
+    }
+  }, [result, githubSession]);
 
   // The dialog only renders once a run is targeted AND we're authenticated —
   // the connect-first effect handles (and closes) the unauthenticated case.
@@ -330,6 +497,7 @@ export function useSpecDrivenGithubPush(
       onOpenChange,
       onChangeRepo,
       push,
+      openConflictPullRequest,
     },
   };
 }

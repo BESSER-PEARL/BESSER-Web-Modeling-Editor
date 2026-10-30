@@ -46,7 +46,7 @@ start:
     and codelists, and turns it into a class diagram: an ``Observation`` class,
     an enumeration per small codelist and a class per large or hierarchical one.
 * **Import Project** — load an exported ``.json`` or a B-UML ``.py`` file.
-* **Continue from GitHub** — reopen a repository BESSER generated earlier and
+* **Continue from GitHub** — reopen a GitHub repository, BESSER-made or not, and
   keep building on it (see `Continuing from a GitHub repository`_).
 
 Recently opened projects are listed underneath.
@@ -74,6 +74,15 @@ Creating a New Project
         Settings.
 
 4.  Click **Create Project**.
+
+**Save it on GitHub**, under the project details, is ticked by default once
+GitHub is connected (the first-run screen and this form both offer **Connect
+GitHub**; you come back to where you were after signing in). The project is
+created first, then a **private** repository named after it (``Shop`` becomes
+``shop``, or ``shop-2`` when that name is taken) receives its model, and the
+project is linked to it and shown as in sync. If the repository cannot be
+created, the project is kept and stays unlinked; you can link or create a
+repository later from the GitHub menu in the top bar.
 
 Importing Projects
 ------------------
@@ -188,8 +197,7 @@ and collaboration on your models.
 Connecting to GitHub
 ~~~~~~~~~~~~~~~~~~~~
 
-1. Click the **GitHub** account button in the top bar (or **Sync** to open the
-   GitHub panel on the right).
+1. Click **Connect GitHub** in the top bar.
 2. You are redirected to GitHub to authorise the BESSER OAuth app, and sent back
    to the editor signed in. A toast confirms *Signed in as …*.
 
@@ -197,60 +205,178 @@ The editor never sees your GitHub access token: the BESSER backend performs the
 OAuth exchange, keeps the token server-side, and hands the browser only an
 opaque session id. That session id is held in this browser tab
 (``sessionStorage``) and expires after **24 hours**; your username is kept in
-``localStorage`` for convenience. Sign out from the account dropdown in the top
-bar.
+``localStorage`` for convenience.
 
-Saving a Project to GitHub
+The whole editor shares one sign-in: signing out in the GitHub menu signs out
+the chat, the push dialog and the repository browser at once. When you reload,
+the editor checks the stored session with the backend before offering
+**Connect GitHub** again, so a GitHub action clicked during that check waits for
+it instead of sending you to GitHub. If the backend no longer accepts the
+session, or it is over 24 hours old, every GitHub control switches to
+**Reconnect GitHub**, and a linked project keeps its repository and your unsaved
+changes. A new tab starts without a session even when you are signed in
+elsewhere: it shows a plain **Connect GitHub** ("not connected in this tab"),
+not an expired session.
+
+The GitHub menu
+~~~~~~~~~~~~~~~
+
+Once you are signed in, the same top-bar control is your project's GitHub menu.
+It reads **Link to GitHub** while the project has no repository; once linked it
+shows the repository's name and a dot for its state (green when in sync, amber
+when there are unsaved model changes or new commits on GitHub). Hover it to read
+the state in words, and click it for everything you do with the repository:
+
+- **Save to GitHub…**: commit the model, with an optional message.
+- **Get latest**: appears when GitHub has commits you do not have.
+- **Open a pull request to merge it** / **View the pull request**: appear while
+  a save or push waits on its own branch (see `Changes waiting for a pull
+  request`_).
+- **History…**: the model's earlier versions, with a restore for each.
+- **Open on GitHub**: the repository's branch in a new tab.
+- **Change repository…** and **Unlink**.
+- **Start from a GitHub repository…**: open any repository, BESSER-made or
+  not, as a project; the assistant then summarises what it found.
+- **How GitHub works in BESSER**: opens the Help guide at its GitHub section,
+  which explains linking, what a save writes to the repository, merging, pull
+  requests, history and starting from any repository.
+- **Sign Out**, under *Signed in as …* at the bottom of the menu.
+
+The chat's *Working on …* line above the conversation opens the same menu.
+
+One repository per project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can save your project to a new or existing GitHub repository:
+A project is linked to **one** repository. The GitHub menu, the Spec-Driven
+Agent's *Save to GitHub* and *Continue from GitHub* all use that same link, and
+the link is also written into the repository, so any browser that opens the repo
+finds its project again. Every repository BESSER writes has the same layout:
 
-- **New repository**: Click **Create Repository**, enter a name and description, then push. The editor
-  creates the repo and commits your project JSON file.
-- **Existing repository**: Click **Link Repository**, browse your repos, select one, choose a branch
-  and file path, then push. The project JSON is saved to that location.
+- ``buml/diagrams.json``: the model, the only file the editor reads back.
+- ``buml/*.py``: the same model as B-UML Python source, for reading without the
+  editor.
+- ``.besser/project.json``: which BESSER project the repository belongs to.
+- the app code, when the Spec-Driven Agent built one.
 
-Each push creates a commit with your project data. The editor also exports raw B-UML Python files
-(``domain_model.py``, ``agent_model.py``) into a ``buml/`` directory alongside the JSON, so your
-project can be maintained even without the web editor.
+BESSER also tags the repository with the ``besser`` topic, which is how the
+repository browser lists your BESSER projects first. Older repositories that
+hold a ``besser-project.json`` still open; the first save moves the model to
+``buml/diagrams.json`` and removes the old file in the same commit.
 
-Opening a Previously Synced Project
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Linking a repository
+~~~~~~~~~~~~~~~~~~~~
 
-To reopen a project that was saved to GitHub:
+Click **Link to GitHub** in the top bar. For a project without a repository you
+can:
 
-1. Open the GitHub panel in the sidebar.
-2. Click **Link Repository** and select the repo and branch where your project is stored.
-3. Browse the repository contents and select the ``.json`` project file.
-4. Click **Pull** to load the project from GitHub into the editor.
+- **Create a repository for this project**: name it and choose private or
+  public. The first commit holds the model and a README.
+- **Link an existing repository…**: the browser lists your BESSER projects first
+  (search reaches every repository). It holds every repository you can open:
+  your own, those you collaborate on and your organizations'. A repository you
+  can only read is marked **Read only** and cannot be linked, since BESSER
+  could not save to it. Selecting one shows its model, its diagrams and
+  classes, and its last commit with who made it. If it already holds a model
+  you choose between **Load the repository model** (it replaces the model you
+  have open) and **Keep my model and link** (your next save replaces the
+  repository's model). **Cancel**, Escape or closing the dialog links nothing.
 
-The sync connection is remembered per project. Subsequent pushes go to the same repo/branch/file
-without needing to relink.
+A project linked by the earlier GitHub sidebar, which saved the model as
+``<folder>/<project-name>.json``, keeps that file name; the first save to
+``buml/diagrams.json`` removes the old file in the same commit.
 
-Commit History
-~~~~~~~~~~~~~~
+**Change repository…** in the menu of a linked project opens the same browser.
 
-The GitHub panel shows the last ten commits touching your project file, with
-author, date and short SHA. Click any earlier commit to restore that version of
-the project.
+Staying in sync
+~~~~~~~~~~~~~~~
 
-Auto-commit
-~~~~~~~~~~~
+The top bar shows the linked repository and a dot for its state: in sync,
+model changes not saved yet, new commits on GitHub, or both. The editor checks
+the repository when you open the menu, when you return to the tab and once a
+minute. The GitHub menu and the chat's repository line share that one check,
+so they always show the same state.
 
-Under **Settings** in the GitHub panel you can switch on auto-commit and pick an
-interval (5, 10, 15, 30 or 60 minutes). It is off by default, needs a linked
-repository, and skips ticks where nothing changed.
+- **Save to GitHub…** commits the model. The commit message is optional. If
+  someone pushed since your last sync, BESSER merges their commits with yours
+  instead of overwriting them, and the editor then shows the merged model. The
+  model is merged element by element, not line by line: two people who each
+  add a class, or change different classes, both keep their work. Only a value
+  both of you changed differently (the same class renamed twice, a class one of
+  you deleted and the other edited) is a conflict; moving the same box is not.
+  On a conflict your save goes to a ``besser/sync-…`` branch and nothing is
+  overwritten (see `Changes waiting for a pull request`_).
+- **Get latest** loads the repository's model, and its code as the starting
+  point of the next Spec-Driven Agent run. It asks first when you have unsaved
+  model changes.
+
+To bring the repository's app code in line with your model, ask the Spec-Driven
+Agent in the chat; you review the run, then push it.
+
+Changes waiting for a pull request
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A save or push that did not land on the branch, because GitHub could not merge
+it or because you chose to open a pull request, is remembered with the project,
+also after you close the dialog or reload. The GitHub menu then shows it:
+
+- before a pull request exists: **Open a pull request to merge it**. The pull
+  request takes the message you saved with, and its description lists the
+  model changes (``class Loan added``) and the files. GitHub shows any conflict
+  to resolve before merging.
+- once it is open: **View the pull request**.
+- **Stop tracking it** forgets it here; the branch stays on GitHub.
+
+When the pull request is merged or closed, or its branch deleted, the menu
+drops it on its own; after a merge, **Get latest** brings the merged model in.
+
+Going live
+~~~~~~~~~~
+
+For a project linked to a repository, **Deploy > Go live from GitHub** puts the
+app that is in the repository online
+on Render. What goes live is exactly the repository's code, so the app the
+Spec-Driven Agent built, with every change it made, is the app people use.
+
+1. BESSER adds Render's deploy file to the repository, written for the app's
+   real folders, and commits nothing else. A project that was in sync before
+   stays in sync: that commit does not count as a new commit on GitHub.
+2. You open Render, sign in with GitHub and click **Apply**, once. A private
+   repository needs Render to be given access to it first.
+3. From then on every code save to GitHub updates the live app, and saving only
+   the model does not.
+
+Go live supports apps with a FastAPI backend and an optional React (Vite)
+frontend. For anything else it says why and offers the classic deploy, which
+rebuilds the app from the diagrams into a separate repository. Render's free
+plan puts an idle app to sleep, and its database resets on each redeploy.
+
+Model history
+~~~~~~~~~~~~~
+
+**History…** in the GitHub menu lists recent commits that changed the model.
+Each one says who made
+it (the Spec-Driven Agent, the editor, or a person on GitHub), when, and what
+it changed in the class diagram, for example ``class Loan added``. Restore any
+earlier version into the editor; it then counts as an unsaved change.
 
 Sharing as a gist
 ~~~~~~~~~~~~~~~~~
 
-**Share ▸ Create secret gist** publishes the project JSON as a GitHub gist —
-secret by default — and opens it in a new tab.
+**File > Share as Secret Gist…** publishes the project JSON as a GitHub gist,
+secret by default, and opens it in a new tab. It asks you to connect GitHub
+first when you are signed out.
 
 Continuing from a GitHub repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A repository that BESSER itself generated can be reopened from the project hub's
-**Continue from GitHub** card. This imports the stored model as a new project and
-links the repo, so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep
-editing the application it built earlier.
+Any repository can be reopened from the project hub's **Continue from GitHub**
+card, which uses the same repository browser. A repository BESSER generated
+opens with its stored model; for any other, BESSER reads the model from its code
+and proposes it on the canvas for you to accept (see
+:doc:`spec-driven-agent`). When BESSER cannot read the data classes directly it
+asks before anything is read with AI (see :ref:`github-ai-reading`).
+**Discard** on the proposal empties only the diagram BESSER proposed, never
+another class diagram of the project. Either way the repo is linked at the imported commit,
+so the :doc:`Spec-Driven Agent <spec-driven-agent>` can keep editing that
+application. If a project in this browser is already linked to
+that repository, the hub pulls into that project instead of making a copy.

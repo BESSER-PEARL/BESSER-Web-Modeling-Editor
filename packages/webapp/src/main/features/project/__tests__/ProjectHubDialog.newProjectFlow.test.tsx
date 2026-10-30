@@ -20,7 +20,7 @@ vi.mock('../../../app/hooks/useProject', () => ({
     deleteProject: vi.fn(),
   }),
 }));
-vi.mock('../../github/hooks/useGitHubAuth', () => ({
+vi.mock('../../../shared/hooks/useGitHubAuth', () => ({
   useGitHubAuth: () => ({ isAuthenticated: false, githubSession: null, login: vi.fn() }),
 }));
 vi.mock('../../github/hooks/useGitHubStorage', () => ({

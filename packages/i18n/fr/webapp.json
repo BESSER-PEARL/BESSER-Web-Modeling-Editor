@@ -37,7 +37,22 @@
       "needsRecheck": "À revérifier",
       "notValidated": "Non validé"
     },
-    "more": "Plus"
+    "more": "Plus",
+    "linkToGithub": "Lier à GitHub",
+    "repoState": {
+      "behind": "{{repo}} : {{count}} nouveaux commits sur GitHub",
+      "behind_one": "{{repo}} : 1 nouveau commit sur GitHub",
+      "checking": "{{repo}} : vérification de GitHub",
+      "diverged": "{{repo}} : modifié ici et sur GitHub",
+      "in-sync": "{{repo}} : synchronisé avec GitHub",
+      "local-changes": "{{repo}} : modifications du modèle non enregistrées sur GitHub",
+      "missing": "{{repo}} : branche ou dépôt introuvable sur GitHub",
+      "reconnect": "{{repo}} : session GitHub expirée",
+      "signed-out": "GitHub",
+      "unknown": "{{repo}} : impossible de joindre GitHub",
+      "unlinked": "Lier ce projet à un dépôt GitHub",
+      "not-in-tab": "{{repo}} : GitHub n’est pas connecté dans cet onglet"
+    }
   },
   "nav": {
     "editors": "Éditeurs",
@@ -87,7 +102,8 @@
       "importProjectFile": "Fichier de projet (.json / .py)…",
       "fromSpreadsheet": "Depuis des données…",
       "fromGithub": "Depuis GitHub…",
-      "importKgOwl": "Importer un KG"
+      "importKgOwl": "Importer un KG",
+      "shareAsGist": "Partager en Gist secret…"
     },
     "generate": {
       "title": "Générer",
@@ -128,7 +144,8 @@
       "title": "Déployer",
       "connectGitHub": "Connecter GitHub pour déployer",
       "publishToRender": "Publier sur Render…",
-      "connectGitHubFirstHint": "Connectez d’abord GitHub"
+      "connectGitHubFirstHint": "Connectez d’abord GitHub",
+      "goLive": "Mettre en ligne depuis GitHub"
     },
     "community": {
       "title": "Communauté",
@@ -919,7 +936,18 @@
         "detailsTitle": "Détails du projet",
         "detailsDescription": "Donnez un nom et une description à votre espace de travail.",
         "submit": "Créer le projet",
-        "tip": "Astuce : choisissez une perspective de modélisation pour concentrer l'espace de travail sur les diagrammes dont vous avez besoin."
+        "tip": "Astuce : choisissez une perspective de modélisation pour concentrer l'espace de travail sur les diagrammes dont vous avez besoin.",
+        "github": {
+          "connect": "Connecter GitHub",
+          "connectHint": "Connectez GitHub pour garder ce projet dans un dépôt privé à vous.",
+          "label": "L’enregistrer sur GitHub",
+          "toasts": {
+            "failed": "Votre projet a été créé, mais son enregistrement sur GitHub a échoué : {{error}}",
+            "saved": "Enregistré sur GitHub sous {{repo}}.",
+            "saving": "Enregistrement de {{name}} sur GitHub…"
+          },
+          "privateRepo": "Un dépôt privé nommé <repo>{{repo}}</repo> conserve votre modèle et votre code."
+        }
       },
       "import": {
         "title": "Importer un projet",
@@ -981,7 +1009,7 @@
         "noProjects": "Aucun projet pour l'instant.",
         "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail.",
         "cardGithub": {
-          "description": "Rouvrez un dépôt créé par BESSER et continuez à construire.",
+          "description": "Ouvrez n'importe quel dépôt, créé par BESSER ou non, et continuez à construire.",
           "title": "Continuer depuis GitHub"
         },
         "cardNew": {
@@ -1029,13 +1057,14 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez un dépôt créé par BESSER : son modèle est chargé et la prochaine exécution du Spec-Driven Agent modifie son code.",
+        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
           "noSession": "Session GitHub introuvable. Veuillez vous reconnecter.",
           "selectRepo": "Sélectionnez un dépôt à partir duquel continuer.",
-          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez."
+          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez.",
+          "repoNotFound": "{{repo}} est introuvable, ou votre compte GitHub n’y a pas accès."
         },
         "loadingBranches": "Chargement des branches…",
         "loadingRepos": "Chargement des dépôts…",
@@ -1210,105 +1239,48 @@
         "bumlCopyFailed": "Échec de la copie de l'aperçu B-UML.",
         "noBumlToDownload": "Aucun aperçu B-UML à télécharger."
       }
+    },
+    "landing": {
+      "github": {
+        "pitch": "Gardez vos projets dans vos propres dépôts GitHub",
+        "connectedAs": "Connecté en tant que {{username}}",
+        "connected": "Connecté à GitHub",
+        "connect": "Connecter GitHub"
+      }
     }
   },
   "github": {
-    "sync": "Synchronisation GitHub",
-    "closeSidebar": "Fermer le panneau GitHub",
-    "fullPath": "Chemin complet :",
-    "folderPathLabel": "Chemin du dossier (facultatif)",
-    "folderPathPlaceholder": "ex. : projects/my-models",
-    "fileNameLabel": "Nom du fichier",
     "defaultRepoDescription": "Projet BESSER : {{name}}",
     "defaultGistDescription": "Projet BESSER : {{name}}",
     "connect": {
-      "title": "Se connecter à GitHub",
-      "subtitle": "Connectez-vous pour synchroniser vos projets avec GitHub.",
-      "button": "Se connecter à GitHub"
+      "button": "Se connecter à GitHub",
+      "checking": "Vérification de votre connexion GitHub…"
     },
     "noProject": {
       "title": "Aucun projet sélectionné",
       "subtitle": "Ouvrez ou créez un projet pour utiliser la synchronisation GitHub."
     },
-    "notLinked": {
-      "title": "Lier un dépôt",
-      "subtitle": "Liez ce projet à un dépôt GitHub pour le contrôle de version.",
-      "linkExisting": "Lier un existant",
-      "createNew": "Créer un nouveau"
-    },
     "linked": {
       "repository": "Dépôt",
       "checking": "Vérification…",
-      "unsavedChanges": "Vous avez des modifications non enregistrées",
-      "upToDate": "À jour",
-      "push": "Push",
-      "pull": "Pull",
-      "history": "Historique",
-      "refreshHistory": "Actualiser l'historique des commits",
-      "latest": "Dernier",
-      "clickToRestore": "Cliquez pour restaurer",
-      "noCommits": "Aucun commit pour le moment",
-      "share": "Partager",
-      "createSecretGist": "Créer un Gist secret",
       "pullConfirmTitle": "Remplacer vos modifications locales ?",
       "pullConfirmDescription": "Le pull charge la version sur GitHub et supprime les modifications que vous n’avez pas encore poussées.",
       "pullConfirmAction": "Puller et supprimer les modifications",
+      "refreshHistory": "Actualiser l'historique des commits",
+      "latest": "Dernier",
+      "noCommits": "Aucun commit pour le moment",
       "openOnGitHub": "Ouvrir sur GitHub",
-      "unlink": "Dissocier le dépôt",
       "unlinkConfirmTitle": "Dissocier ce dépôt ?",
-      "unlinkConfirmDescription": "Le projet reste dans votre navigateur et sur GitHub. Push, Pull et le commit automatique s’arrêtent jusqu’à ce que vous liiez à nouveau un dépôt.",
-      "unlinkConfirmAction": "Dissocier"
-    },
-    "settings": {
-      "title": "Paramètres",
-      "autoCommit": "Commit automatique",
-      "enabledWithInterval": "Activé ({{minutes}} min)",
-      "disabled": "Désactivé",
-      "intervalLabel": "Intervalle (minutes)",
-      "interval5": "5 minutes",
-      "interval10": "10 minutes",
-      "interval15": "15 minutes",
-      "interval30": "30 minutes",
-      "interval60": "1 heure",
-      "autoSaving": "Enregistrement automatique…"
+      "unlinkConfirmAction": "Dissocier",
+      "keepLocalChanges": "Garder mes modifications"
     },
     "linkModal": {
-      "goBack": "Revenir à la sélection du dépôt",
-      "titleSelect": "Lier à un dépôt",
-      "titleConfigure": "Configurer la liaison",
-      "descriptionSelect": "Sélectionnez un dépôt avec lequel synchroniser votre projet.",
-      "descriptionConfigure": "Définissez la branche et le chemin du fichier pour cette synchronisation de projet.",
-      "private": "Privé",
-      "updated": "Mis à jour : {{date}}",
-      "noRepositories": "Aucun dépôt trouvé",
-      "branch": "Branche",
-      "browseFiles": "Parcourir les fichiers du dépôt",
-      "browseHint": "Choisissez un fichier de projet existant sans saisir le chemin.",
-      "checkFileExists": "Vérifier si le fichier existe",
-      "fileExistsPrompt": "Le fichier existe déjà dans le dépôt. Choisissez comment procéder :",
-      "loadAndLinkRecommended": "Charger et lier (recommandé)",
-      "linkWithoutLoading": "Lier sans charger (peut écraser)",
-      "filePathAvailable": "Le chemin du fichier est disponible. Cliquez sur « Lier le dépôt » pour continuer.",
-      "loadAndLink": "Charger et lier",
-      "linkRepository": "Lier le dépôt",
-      "selectProjectFile": "Sélectionner le fichier de projet"
-    },
-    "fileBrowser": {
-      "selectFile": "Sélectionner un fichier",
-      "loadFailed": "Échec du chargement du contenu du répertoire",
-      "root": "root",
-      "upOneLevel": "Remonter d'un niveau",
-      "emptyDirectory": "Répertoire vide",
-      "dirHint": "Naviguez jusqu'au dossier cible, puis cliquez sur « Sélectionner le dossier actuel ».",
-      "selectCurrentFolder": "Sélectionner le dossier actuel"
+      "branch": "Branche"
     },
     "commit": {
       "title": "Pousser vers GitHub",
-      "description": "Écrivez un message de commit pour vos modifications.",
       "messageLabel": "Message de commit",
-      "messagePlaceholder": "Décrivez vos modifications…",
-      "pushing": "Envoi en cours…",
-      "push": "Push"
+      "pushing": "Envoi en cours…"
     },
     "gist": {
       "title": "Créer un Gist",
@@ -1338,60 +1310,20 @@
       "restoring": "Restauration…",
       "restoreButton": "Restaurer cette version"
     },
-    "context": {
-      "loadingDirectory": "Chargement du contenu du répertoire",
-      "githubPush": "Push GitHub",
-      "githubPull": "Pull GitHub",
-      "fetchingRepositories": "Récupération des dépôts",
-      "fetchingCommits": "Récupération des commits",
-      "checkingChanges": "Vérification des modifications",
-      "selectingRepository": "Sélection du dépôt",
-      "checkingFile": "Vérification de l'existence du fichier",
-      "linkingRepository": "Liaison du dépôt",
-      "creatingRepository": "Création du dépôt",
-      "committing": "Commit vers GitHub",
-      "restoringCommit": "Restauration du commit",
-      "creatingGist": "Création du Gist",
-      "unlinkingRepository": "Dissociation du dépôt"
-    },
     "toasts": {
-      "loadProjectFailed": "Échec du chargement du projet",
       "couldNotLoadProjectData": "Impossible de charger les données du projet",
       "projectPulled": "Projet récupéré depuis GitHub",
       "projectLoadedFromRepo": "Projet chargé depuis le dépôt GitHub",
-      "loadFromRepoFailedLinking": "Impossible de charger depuis le dépôt ; liaison sans chargement.",
-      "linkedReconnectToPush": "Dépôt lié. Reconnectez GitHub pour pousser le fichier de projet initial.",
-      "linkedInitialPushReadFailed": "Dépôt lié, mais le push initial a échoué car le projet local n'a pas pu être lu.",
-      "initialSyncCommitMessage": "Synchronisation initiale depuis BESSER Web Modeling Editor",
-      "linkedInitialPushFailed": "Dépôt lié, mais le push initial a échoué. Vous pouvez pousser manuellement depuis GitHub Sync.",
-      "couldNotLoadRepoContents": "Impossible de charger le contenu du dépôt",
       "repoUnlinked": "Dépôt délié",
-      "alreadyLatest": "Il s'agit déjà de la dernière version",
       "projectRestored": "Projet restauré depuis le commit sélectionné",
       "authFailed": "Échec de l'authentification GitHub : {{error}}",
       "signedInAs": "Connecté en tant que {{username}}",
-      "autoSaveCommitMessage": "Enregistrement automatique : {{timestamp}}",
-      "autoSaved": "Enregistré automatiquement sur GitHub",
       "noProjectToDeploy": "Aucun projet à déployer.",
       "notSignedIn": "Non connecté à GitHub.",
       "repoUpdated": "Dépôt mis à jour : {{name}}",
       "repoCreated": "Dépôt créé : {{name}}",
       "deploymentFailed": "Échec du déploiement",
       "repoCreationFailed": "Échec de la création du dépôt",
-      "requestTimedOut": "Délai de la requête dépassé. Veuillez réessayer.",
-      "fetchReposFailed": "Échec de la récupération des dépôts GitHub",
-      "repoLinkedPushToSync": "Dépôt lié ! Poussez pour synchroniser votre projet.",
-      "fetchCommitsFailed": "Échec de la récupération de l'historique des commits",
-      "saveProjectFailed": "Échec de l'enregistrement du projet sur GitHub",
-      "projectSaved": "Projet enregistré sur GitHub !",
-      "saveProjectFailedShort": "Échec de l'enregistrement du projet",
-      "loadProjectFromGitHubFailed": "Échec du chargement du projet depuis GitHub",
-      "loadFromCommitFailed": "Échec du chargement du projet depuis le commit",
-      "restoredFromCommitFallback": "commit",
-      "restoredVersionFrom": "Version restaurée depuis {{source}}",
-      "createRepoFailed": "Échec de la création du dépôt",
-      "repoCreatedQuoted": "Dépôt « {{name}} » créé !",
-      "createGistFailed": "Échec de la création du Gist",
       "gistCreated": "Gist créé avec succès !",
       "invalidGitHubUrl": "URL GitHub non valide. Veuillez fournir une URL de dépôt GitHub valide.",
       "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub…",
@@ -1413,8 +1345,6 @@
       "descriptionCreate": "Envoyez le code généré et le modèle du projet vers un dépôt GitHub.",
       "descriptionUpdate": "Mettez à jour le dépôt lié avec votre dernier code généré et votre modèle.",
       "done": "Terminé",
-      "filesUploaded_one": "{{count}} fichier envoyé.",
-      "filesUploaded_other": "{{count}} fichiers envoyés.",
       "linkedTo": "Lié à",
       "loadingBranches": "Chargement des branches…",
       "loadingRepositories": "Chargement des dépôts…",
@@ -1428,7 +1358,193 @@
       "successCreated": "Dépôt créé et fichiers envoyés.",
       "successTitle": "Envoyé sur GitHub",
       "successUpdated": "Dépôt mis à jour avec votre dernière génération.",
-      "useExisting": "Utiliser un dépôt existant"
+      "useExisting": "Utiliser un dépôt existant",
+      "conflict": "Quelqu’un a modifié les mêmes fichiers sur GitHub depuis votre dernière synchronisation ; GitHub n’a donc pas pu fusionner ce push tout seul. Votre push est sur la branche {{branch}} ; rien n’a été écrasé.",
+      "conflictTitle": "Fusion nécessaire",
+      "errors": {
+        "auth": "Votre session GitHub a expiré. Reconnectez-vous et réessayez.",
+        "branchMoved": "La branche a changé sur GitHub pendant le push. Réessayez. ({{detail}})",
+        "expired": "Cette génération a expiré — relancez-la pour pousser.",
+        "failed": "L’enregistrement sur GitHub a échoué.",
+        "forbidden": "GitHub a refusé le push : votre compte ne peut pas écrire dans ce dépôt. ({{detail}})",
+        "nameTaken": "Un dépôt portant ce nom existe déjà — poussez-y comme dans un dépôt existant.",
+        "repoMissing": "Ce dépôt n’existe plus, ou votre compte GitHub ne peut pas le voir. Choisissez un autre dépôt ou créez-en un nouveau."
+      },
+      "howTitle": "Comment pousser",
+      "modeCommit": "Commiter sur {{branch}}",
+      "modeCommitHint": "Les commits faits sur GitHub depuis votre dernière synchronisation sont fusionnés, jamais écrasés.",
+      "modePullRequest": "Ouvrir une pull request",
+      "modePullRequestHint": "Votre équipe relit la modification sur GitHub avant qu’elle soit intégrée. Idéal pour les dépôts partagés.",
+      "openPullRequest": "Ouvrir une pull request pour la fusionner",
+      "successMerged": "Fusionné avec les commits faits sur GitHub depuis votre dernière synchronisation. Rien n’a été écrasé, et l’éditeur affiche maintenant le modèle fusionné.",
+      "successPullRequest": "Vos modifications sont dans une pull request, prête à être relue.",
+      "toasts": {
+        "conflict": "GitHub n’a pas pu fusionner ce push automatiquement.",
+        "connectFirst": "Connectez GitHub pour pousser votre application générée.",
+        "created": "Poussé vers {{repo}}",
+        "modelUpdated": "Le modèle inclut maintenant les classes ajoutées par l’agent.",
+        "noProject": "Ouvrez un projet avant de pousser vers GitHub.",
+        "nothingToPush": "Rien à pousser.",
+        "pullRequest": "Pull request ouverte sur {{repo}}",
+        "pullRequestFailed": "Impossible d’ouvrir la pull request.",
+        "updated": "{{repo}} mis à jour"
+      },
+      "viewPullRequest": "Voir la pull request",
+      "filesChanged_one": "{{count}} fichier modifié.",
+      "filesChanged_other": "{{count}} fichiers modifiés.",
+      "modelChoice": {
+        "title": "Garder votre modèle ou prendre celui de l’exécution ?",
+        "description": "Cette exécution a modifié le modèle, et le modèle du canevas a changé après son démarrage. Prenez le modèle de l’exécution et perdez les modifications faites depuis, ou gardez votre modèle et enregistrez-le sur GitHub plus tard.",
+        "takeRun": "Prendre le modèle de l’exécution",
+        "keepMine": "Garder mon modèle"
+      }
+    },
+    "chatHeader": {
+      "diverged": "Modifié ici et sur GitHub",
+      "openMenu": "Travail sur {{repo}} : {{state}}. Ouvrir le menu GitHub.",
+      "signedOut": "Connectez GitHub pour voir son état",
+      "workingOn": "Travail sur",
+      "notInTab": "Non connecté dans cet onglet"
+    },
+    "goLive": {
+      "addresses": "Votre application sera à",
+      "alreadyReady": "{{repo}} était déjà prêt pour Render.",
+      "classicHint": "Le déploiement classique fonctionne toujours : il reconstruit l’application à partir de vos diagrammes dans un dépôt séparé, sans les modifications de l’agent.",
+      "description": "Mettez en ligne l’application de {{repo}}. Ce qui est mis en ligne est exactement le code du dépôt.",
+      "freeTier": "L’offre gratuite de Render met l’application en veille quand personne ne l’utilise (la première visite prend alors environ une minute), et sa base de données est réinitialisée à chaque redéploiement.",
+      "next": "Ouvrez Render, connectez-vous avec GitHub et cliquez sur Apply. Si le dépôt est privé, Render demande d’abord l’accès.",
+      "openRender": "Ouvrir Render",
+      "prepare": "Préparer {{repo}}",
+      "ready": "{{repo}} est prêt pour Render.",
+      "step1": "BESSER ajoute à {{repo}} le fichier de déploiement de Render, adapté aux dossiers de l’application.",
+      "step2": "Vous ouvrez Render, vous vous connectez et cliquez une fois sur Apply.",
+      "step3": "Ensuite, chaque enregistrement de code sur GitHub met à jour l’application en ligne. Enregistrer seulement le modèle ne le fait pas.",
+      "title": "Mettre en ligne",
+      "useClassic": "Utiliser le déploiement classique"
+    },
+    "menu": {
+      "changeRepository": "Changer de dépôt…",
+      "commitMessageOptional": "Qu’est-ce qui a changé ? (facultatif)",
+      "createRepository": "Créer un dépôt pour ce projet",
+      "defaultCommitMessage": "Mettre à jour le modèle depuis l’éditeur BESSER",
+      "dismissPending": "Ne plus suivre",
+      "divergedHint": "Enregistrer fusionne les deux versions. « Récupérer la dernière version » prend plutôt la version de GitHub.",
+      "getLatest": "Récupérer la dernière version",
+      "history": "Historique…",
+      "linkExisting": "Lier un dépôt existant…",
+      "linkTitle": "Lier un dépôt",
+      "localChangesHint": "Enregistrez sur GitHub pour les conserver dans le dépôt.",
+      "missingHint": "La branche {{branch}} ou le dépôt a été supprimé ou renommé, ou votre compte n’y a plus accès. Liez un autre dépôt pour continuer à enregistrer.",
+      "pendingConflict": "Un enregistrement n’a pas pu être fusionné avec des modifications plus récentes et se trouve sur la branche {{branch}}. Ouvrez une pull request pour le résoudre sur GitHub.",
+      "pendingPullRequest": "La pull request n°{{number}} attend une revue. Une fois fusionnée, « Récupérer la dernière version » l’intègre.",
+      "reconnect": "Reconnecter GitHub",
+      "reconnectHint": "Reconnectez GitHub pour enregistrer et vérifier les nouveaux commits. Votre projet est conservé.",
+      "restore": "Restaurer",
+      "save": "Enregistrer",
+      "saveDescription": "Enregistre votre modèle dans {{repo}} sur {{branch}}. Les modifications plus récentes sur GitHub sont fusionnées, jamais écrasées.",
+      "saveToGitHub": "Enregistrer sur GitHub…",
+      "signedInAs": "Connecté en tant que {{name}}",
+      "unlinkConfirmDescription": "Le projet reste dans votre navigateur et le dépôt sur GitHub. L’enregistrement sur GitHub s’arrête jusqu’à ce que vous liiez à nouveau un dépôt.",
+      "howItWorks": "Comment GitHub fonctionne dans BESSER",
+      "notInTabHint": "GitHub n’est pas connecté dans cet onglet. Connectez-le pour l’utiliser ici.",
+      "startFromRepo": "Partir d’un dépôt GitHub…"
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Éditeur",
+      "person": "Personne"
+    },
+    "panel": {
+      "conflict": "Votre enregistrement et une modification plus récente sur GitHub touchent la même partie du modèle ; GitHub n’a donc pas pu les fusionner. Votre enregistrement est sur la branche {{branch}} ; rien n’a été écrasé.",
+      "conflictToast": "GitHub n’a pas pu fusionner votre enregistrement automatiquement.",
+      "created": "{{repo}} créé avec votre modèle.",
+      "historyFailed": "Impossible de charger l’historique.",
+      "historyTitle": "Historique du modèle",
+      "linkAction": "Lier à ce projet",
+      "linked": "Lié à {{repo}}. Enregistrez pour y placer votre modèle.",
+      "loadRepoModel": "Charger le modèle du dépôt",
+      "moreChanges": "et {{count}} de plus",
+      "notLinkedHint": "Un dépôt lié réunit votre modèle, son historique et le code de votre application au même endroit, pour vous et votre équipe.",
+      "nothingToSave": "Votre modèle correspond au dépôt.",
+      "openPr": "Ouvrir une pull request pour la fusionner",
+      "prOpened": "Pull request ouverte",
+      "prTitle": "Modifications du modèle depuis l’éditeur BESSER",
+      "repoHasModelTitle": "Ce dépôt contient déjà un modèle",
+      "saveAction": "Enregistrer sur GitHub",
+      "saved": "Modèle enregistré sur GitHub.",
+      "savedMerged": "Enregistré et fusionné avec les modifications plus récentes sur GitHub.",
+      "repoHasModelChoice": "{{repo}} contient « {{name}} ». Chargez-le dans ce projet, en remplaçant le modèle ouvert, ou gardez votre modèle et liez : votre prochain enregistrement remplacera alors le modèle du dépôt.",
+      "keepModelAndLink": "Garder mon modèle et lier"
+    },
+    "proposal": {
+      "accept": "Accepter le modèle",
+      "aiSource": "Une lecture par IA de {{files}}, pas une lecture exacte. Vérifiez chaque classe, puis acceptez.",
+      "aiTitle": "Proposé par IA à partir de {{repo}} : {{count}} classes",
+      "discard": "Rejeter",
+      "discardConfirmDescription": "Les classes que BESSER a lues dans le code sont retirées du canevas. Le dépôt et son code restent inchangés.",
+      "discardConfirmTitle": "Rejeter le modèle proposé ?",
+      "label": "Modèle proposé",
+      "source": "Lu à partir de {{source}} dans {{files}}. Modifiez ce que vous voulez, puis acceptez.",
+      "title": "Proposé à partir de {{repo}} : {{count}} classes"
+    },
+    "repoBrowser": {
+      "besserRepos": "Projets BESSER",
+      "classes": "{{count}} classes",
+      "classes_one": "1 classe",
+      "loadFailed": "Impossible de charger vos dépôts. Vérifiez votre connexion GitHub et réessayez.",
+      "loading": "Chargement de vos dépôts…",
+      "noBesserMatch": "Aucun projet BESSER ne correspond à votre recherche.",
+      "noBesserRepos": "Aucun pour l’instant. Les dépôts vers lesquels vous poussez depuis BESSER apparaissent ici.",
+      "noModel": "Pas encore de modèle BESSER dans ce dépôt.",
+      "otherRepos": "Autres dépôts",
+      "private": "Privé",
+      "readOnly": "Lecture seule",
+      "readOnlyHint": "Votre compte GitHub peut lire ce dépôt mais pas y écrire ; BESSER ne peut donc pas y enregistrer.",
+      "reading": "Lecture du dépôt…",
+      "readsCode": "Pas encore de modèle BESSER. BESSER lit son code et en propose un que vous acceptez.",
+      "refresh": "Actualiser les dépôts",
+      "search": "Rechercher dans vos dépôts",
+      "showOthers": "Afficher {{count}} autres dépôts",
+      "showOthers_one": "Afficher 1 autre dépôt",
+      "summaryFailed": "Impossible de lire ce dépôt.",
+      "truncated": "Affichage de vos {{count}} dépôts mis à jour le plus récemment. Collez un lien pour en ouvrir un autre.",
+      "diagramKinds": {
+        "ClassDiagram": "Classes",
+        "ObjectDiagram": "Objets",
+        "StateMachineDiagram": "Machine à états",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "Utilisateur",
+        "GUINoCodeDiagram": "IHM",
+        "QuantumCircuitDiagram": "Quantique",
+        "NNDiagram": "Réseau neuronal",
+        "BPMN": "BPMN"
+      }
+    },
+    "status": {
+      "behind": "{{count}} nouveaux commits sur GitHub",
+      "behind_one": "1 nouveau commit sur GitHub",
+      "inSync": "Synchronisé avec GitHub",
+      "localChanges": "Modifications du modèle non enregistrées sur GitHub",
+      "missing": "Branche ou dépôt introuvable sur GitHub",
+      "reconnect": "Session GitHub expirée : reconnectez-vous",
+      "unknown": "Impossible de joindre le dépôt",
+      "unlinked": "Lié à aucun dépôt"
+    },
+    "aiReading": {
+      "title": "Lire ce dépôt avec l’IA ?",
+      "description": "BESSER n’a pas pu lire directement les classes de données de {{repo}}. Il peut envoyer un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER, qui peut être exploité par un fournisseur tiers. Votre code quitte alors le serveur de BESSER. Rien n’est envoyé sans votre accord.",
+      "accept": "Lire avec l’IA",
+      "decline": "Pas maintenant"
+    },
+    "startFromRepo": {
+      "badLink": "Collez un lien comme github.com/owner/repo.",
+      "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",
+      "description": "Choisissez un dépôt sur lequel continuer. Un dépôt BESSER s’ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle que vous acceptez sur le canevas. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+      "failed": "Impossible d’ouvrir ce dépôt.",
+      "linkLabel": "Lien du dépôt",
+      "linkPlaceholder": "Collez un lien : github.com/owner/repo",
+      "open": "Ouvrir",
+      "title": "Partir d’un dépôt GitHub"
     }
   },
   "assistant": {
@@ -1636,7 +1752,18 @@
       "dropFiles": "Déposez vos fichiers ici pour les joindre.",
       "transcribingAudio": "Transcription de l'audio…",
       "recordingPrompt": "Enregistrement… cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
-      "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
+      "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})",
+      "runChanges": {
+        "title": "Ce qui a changé",
+        "model": "Modèle",
+        "unchanged": "inchangé",
+        "code": "Code",
+        "noFiles": "aucun fichier modifié",
+        "filesChanged_one": "{{count}} fichier modifié",
+        "filesChanged_other": "{{count}} fichiers modifiés",
+        "showAll": "Tout afficher ({{count}})",
+        "more": "et {{count}} de plus"
+      }
     },
     "modelOverview": {
       "title": "Votre modèle",
@@ -1711,7 +1838,6 @@
       "descUpdatedAgent": "Les modifications de votre agent ont été poussées sur GitHub. Déclenchez un redéploiement sur Render pour les prendre en compte.",
       "descCreated": "Poursuivez avec le déploiement en un clic sur Render ou inspectez le dépôt généré.",
       "descCreatedAgent": "Poursuivez avec le déploiement en un clic sur Render pour votre agent autonome ou inspectez le dépôt généré.",
-      "filesUploaded": "{{count}} fichiers téléversés.",
       "notSeeingChanges": "Vous ne voyez pas encore vos modifications ?",
       "manualSyncIntro": "Ouvrez votre Blueprint sur Render et cliquez sur",
       "manualSyncLabel": "Manual Sync",
@@ -1721,7 +1847,9 @@
       "openLiveApp": "Ouvrir l'application en ligne",
       "openRenderDeployment": "Ouvrir le déploiement Render",
       "openBlueprint": "Ouvrir le Blueprint Render",
-      "viewRepo": "Voir le dépôt GitHub"
+      "viewRepo": "Voir le dépôt GitHub",
+      "filesChanged_one": "{{count}} fichier modifié.",
+      "filesChanged_other": "{{count}} fichiers modifiés."
     },
     "toasts": {
       "availableFor": "Le déploiement est disponible pour les diagrammes d'application web et d'agent.",
@@ -2025,6 +2153,39 @@
         "elementTypes": {
           "title": "Définir les types d’éléments",
           "body": "<p>Double-cliquez sur une tâche, un événement ou une passerelle pour définir son type, par exemple une tâche utilisateur ou de service, un événement de début minuté, ou une passerelle exclusive ou parallèle.</p>"
+        }
+      },
+      "projectHeading": "Votre projet",
+      "github": {
+        "label": "GitHub",
+        "summary": "Gardez chaque projet dans votre propre dépôt GitHub : enregistrez et fusionnez votre modèle, relisez les changements et laissez le Spec-Driven Agent bâtir sur n’importe quel dépôt.",
+        "connect": {
+          "title": "Connecter et lier",
+          "body": "<p>Connectez GitHub depuis l’écran d’accueil ou le bouton GitHub de la barre supérieure. Chaque projet est lié à un dépôt : créez-en un privé pour lui, ou liez-en un que vous, un collaborateur ou votre organisation possédez déjà.</p><p>Cocher <strong>L’enregistrer sur GitHub</strong> en créant un projet crée et lie un dépôt privé en une seule étape.</p>"
+        },
+        "repoContents": {
+          "title": "Ce que contient le dépôt",
+          "body": "<p>Un enregistrement écrit tout votre projet dans <code>buml/diagrams.json</code>, le Python B-UML de vos diagrammes à côté dans <code>buml/</code>, et <code>.besser/project.json</code>, qui marque le dépôt comme projet BESSER. Après une exécution du Spec-Driven Agent, le code de l’application se trouve dans le même dépôt.</p><p>Les clés, jetons et mots de passe de la configuration de votre agent sont retirés avant toute écriture. Votre navigateur les garde, et ils reviennent quand vous chargez le modèle dans le même projet.</p>"
+        },
+        "saveLatest": {
+          "title": "Enregistrer et récupérer la dernière version",
+          "body": "<p>Le point sur le bouton GitHub indique où vous en êtes : synchronisé, modifications non enregistrées, nouveaux commits sur GitHub, ou modifié des deux côtés.</p><ul><li><strong>Enregistrer sur GitHub</strong> commite votre modèle. Si la branche a bougé depuis la dernière synchronisation, les deux versions sont fusionnées, le modèle en tant que données : deux personnes qui ajoutent chacune une classe gardent les deux.</li><li><strong>Récupérer la dernière version</strong> charge la version de GitHub dans l’éditeur.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflits et pull requests",
+          "body": "<p>Quand le même élément a été modifié différemment des deux côtés, rien n’est écrasé : votre enregistrement est gardé sur sa propre branche, et le menu GitHub propose d’ouvrir une pull request. Vous pouvez aussi envoyer n’importe quel enregistrement en pull request, pour que votre équipe le relise d’abord.</p><p>Une fois la pull request fusionnée, utilisez <strong>Récupérer la dernière version</strong> pour amener le résultat dans l’éditeur.</p>"
+        },
+        "history": {
+          "title": "Historique",
+          "body": "<p><strong>Historique…</strong> liste les commits qui ont changé le modèle, avec ce que chacun a changé (classes ajoutées, renommées ou supprimées), et charge n’importe quelle version antérieure dans l’éditeur.</p>"
+        },
+        "anyRepo": {
+          "title": "Partir de n’importe quel dépôt",
+          "body": "<p>Utilisez <strong>Continuer depuis GitHub</strong> sur l’écran d’accueil, ou <strong>Partir d’un dépôt GitHub…</strong> dans le menu GitHub. Un dépôt BESSER s’ouvre avec son modèle. Pour tout autre, BESSER lit ses classes de données (SQLAlchemy, Django, Pydantic, dataclasses) et propose un diagramme de classes que vous acceptez ou rejetez sur le canevas. Rien n’est écrit dans le dépôt avant que vous enregistriez.</p><p>Si BESSER ne peut pas lire directement les classes de données, il vous le demande d’abord. Ce n’est qu’avec votre accord qu’il envoie un court extrait du code (jusqu’à environ 40 000 caractères, sans fichiers ni clés secrets) au modèle d’IA qu’utilise le serveur BESSER pour proposer le diagramme. Ce modèle peut être exploité par un fournisseur tiers : l’extrait quitte alors le serveur de BESSER.</p><p>Le Spec-Driven Agent travaille ensuite sur ce code, et ses changements retournent dans le même dépôt.</p>"
+        },
+        "publish": {
+          "title": "Mettre en ligne et partager",
+          "body": "<p><strong>Déployer → Mettre en ligne depuis GitHub</strong> met en ligne l’application du dépôt lié, exactement telle que le dépôt la contient, lorsque le serveur le propose.</p><p><strong>Fichier → Partager en Gist secret…</strong> partage une copie du projet par un lien, sans les identifiants de l’agent.</p>"
         }
       }
     }

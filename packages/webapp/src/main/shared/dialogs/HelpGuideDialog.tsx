@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { besserWMERepositoryLink } from '../constants/application-constants';
-
-type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'user' | 'gui' | 'quantum' | 'nn' | 'bpmn';
+import type { HelpGuideSectionId as GuideSectionId } from './helpGuide';
 
 interface GuideDetail {
   /** i18n key resolved with t() at render time (also used as a stable React key). */
@@ -33,6 +32,8 @@ interface GuideSection {
 interface HelpGuideDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Section shown when the dialog opens (the first diagram type when unset). */
+  initialSection?: GuideSectionId;
 }
 
 const sharedLinkClass = 'font-medium text-brand underline-offset-4 hover:underline';
@@ -333,9 +334,29 @@ const sections: GuideSection[] = [
   },
 ];
 
-export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenChange }) => {
+/** Guide sections about working with a project rather than drawing one diagram type. */
+const projectSections: GuideSection[] = [
+  {
+    id: 'github',
+    labelKey: 'dialogs.guide.github.label',
+    summaryKey: 'dialogs.guide.github.summary',
+    details: [
+      { titleKey: 'dialogs.guide.github.connect.title', body: <Body i18nKey="dialogs.guide.github.connect.body" /> },
+      { titleKey: 'dialogs.guide.github.repoContents.title', body: <Body i18nKey="dialogs.guide.github.repoContents.body" /> },
+      { titleKey: 'dialogs.guide.github.saveLatest.title', body: <Body i18nKey="dialogs.guide.github.saveLatest.body" /> },
+      { titleKey: 'dialogs.guide.github.pullRequests.title', body: <Body i18nKey="dialogs.guide.github.pullRequests.body" /> },
+      { titleKey: 'dialogs.guide.github.history.title', body: <Body i18nKey="dialogs.guide.github.history.body" /> },
+      { titleKey: 'dialogs.guide.github.anyRepo.title', body: <Body i18nKey="dialogs.guide.github.anyRepo.body" /> },
+      { titleKey: 'dialogs.guide.github.publish.title', body: <Body i18nKey="dialogs.guide.github.publish.body" /> },
+    ],
+  },
+];
+
+const allSections = [...sections, ...projectSections];
+
+export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenChange, initialSection = 'class' }) => {
   const { t } = useTranslation();
-  const [activeSection, setActiveSection] = useState<GuideSectionId>('class');
+  const [activeSection, setActiveSection] = useState<GuideSectionId>(initialSection);
 
   const openExternalUrl = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -343,13 +364,30 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
 
   useEffect(() => {
     if (open) {
-      setActiveSection('class');
+      setActiveSection(initialSection);
     }
-  }, [open]);
+  }, [open, initialSection]);
 
   const selectedSection = useMemo(
-    () => sections.find((section) => section.id === activeSection) ?? sections[0],
+    () => allSections.find((section) => section.id === activeSection) ?? sections[0],
     [activeSection],
+  );
+
+  const sectionButton = (section: GuideSection) => (
+    <button
+      key={section.id}
+      type="button"
+      aria-pressed={section.id === activeSection}
+      onClick={() => setActiveSection(section.id)}
+      className={cn(
+        'flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-left text-sm transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:w-full md:whitespace-normal md:rounded-md md:py-2',
+        section.id === activeSection
+          ? 'border-brand/30 bg-brand/10 font-semibold text-foreground'
+          : 'border-border/70 bg-background text-muted-foreground hover:border-brand/30 hover:text-foreground',
+      )}
+    >
+      {t(section.labelKey)}
+    </button>
   );
 
   return (
@@ -369,22 +407,11 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
             <p className="mb-2 hidden px-1 text-xs font-medium text-muted-foreground md:block">
               {t('dialogs.guide.diagramTypesHeading')}
             </p>
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                aria-pressed={section.id === activeSection}
-                onClick={() => setActiveSection(section.id)}
-                className={cn(
-                  'flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-left text-sm transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:w-full md:whitespace-normal md:rounded-md md:py-2',
-                  section.id === activeSection
-                    ? 'border-brand/30 bg-brand/10 font-semibold text-foreground'
-                    : 'border-border/70 bg-background text-muted-foreground hover:border-brand/30 hover:text-foreground',
-                )}
-              >
-                {t(section.labelKey)}
-              </button>
-            ))}
+            {sections.map(sectionButton)}
+            <p className="mb-2 hidden px-1 pt-3 text-xs font-medium text-muted-foreground md:block">
+              {t('dialogs.guide.projectHeading')}
+            </p>
+            {projectSections.map(sectionButton)}
           </aside>
 
           <div className="min-h-0 overflow-y-auto p-4 sm:p-6">

@@ -88,7 +88,7 @@ Webapp (`packages/webapp/src/main/`):
 | `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
 | `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION`, `ensureProjectMigrated` |
 | `shared/utils/lineageHash.ts` | Source-model hash on `derivedFrom`; a mismatch shows the "source changed" banner |
-| `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store |
+| `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store; its providers and models come from the backend's model catalog (`/spec-driven/config` → `providers`) |
 
 Library (`packages/library/lib/`):
 
@@ -325,7 +325,7 @@ Full reference: `docs/source/reference/environment.rst`.
     packages — after upgrading cytoscape/fcose, update `CDN_SCRIPTS`
   - backend calls go through `shared/api/knowledgeGraph.ts`; the AI tabs use the shared LLM key
     (`llmKeyStorage`) and send it with its provider (Anthropic, OpenAI, Mistral or Nebius; PIA and local keys
-    need a custom endpoint the server will not open, so they are refused); the convert/refine dialogs are
+    are refused); the convert/refine dialogs are
     driven by `features/knowledge-graph/useKgFlows.ts`, RDF export is a section of the Export dialog
   - the modeling assistant does not support KG: no converter/modifier, the bubble is hidden on it and an
     injection targeting it is refused

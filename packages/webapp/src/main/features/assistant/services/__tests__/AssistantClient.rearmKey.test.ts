@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   sessionStorageAssistantApiKey,
   sessionStorageAssistantProvider,
+  sessionStorageLlmBaseUrl,
 } from '../../../../shared/constants/constant';
 import { AssistantClient } from '../AssistantClient';
 
@@ -38,5 +39,17 @@ describe('AssistantClient — BYOK re-arm on connect', () => {
     const { sent, rearm } = connectedClient();
     rearm();
     expect(JSON.parse(sent[0]).message).toMatchObject({ user_api_key: 'sk-test', user_api_provider: 'openai' });
+  });
+
+  it('sends a gateway key as itself, without a base URL: the agent resolves it', () => {
+    window.sessionStorage.setItem(sessionStorageAssistantApiKey, 'sk-gateway');
+    window.sessionStorage.setItem(sessionStorageAssistantProvider, 'pia');
+    window.sessionStorage.setItem(sessionStorageLlmBaseUrl, 'https://stale-stored-url.test/v1');
+    const { sent, rearm } = connectedClient();
+    rearm();
+    expect(JSON.parse(sent[0]).message).toEqual({
+      user_api_key: 'sk-gateway',
+      user_api_provider: 'pia',
+    });
   });
 });

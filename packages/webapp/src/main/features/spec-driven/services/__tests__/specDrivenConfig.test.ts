@@ -17,6 +17,7 @@ import {
   freeModelLabel,
   preferredFreeModelId,
   getSpecDrivenConfig,
+  peekSpecDrivenConfig,
   resolveFreeRunModel,
   _resetSpecDrivenConfigCacheForTests,
   type SpecDrivenFreeTier,
@@ -178,6 +179,50 @@ describe('getSpecDrivenConfig', () => {
     const config = await getSpecDrivenConfig();
     expect(config.free_tier.available).toBe(true);
     expect(config.free_tier.models).toEqual([]);
+  });
+
+  it("normalises the catalog's providers and drops malformed entries", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...BACKEND_CONFIG,
+          providers: [
+            {
+              id: 'pia', label: 'Gateway', hint: 'Key hint', key_prefix: 'sk-',
+              models: [{ id: ' m1 ', label: 'Model 1', default: true }, { id: '' }, { id: 'm2' }],
+            },
+            { id: 'nameless', models: [] },
+            'not-an-object',
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const config = await getSpecDrivenConfig();
+    expect(config.providers).toEqual([
+      {
+        id: 'pia', label: 'Gateway', hint: 'Key hint', key_prefix: 'sk-',
+        models: [
+          { id: 'm1', label: 'Model 1', default: true },
+          { id: 'm2', label: 'm2', default: false },
+        ],
+      },
+    ]);
+    expect(peekSpecDrivenConfig()).toBe(config);
+  });
+
+  it('normalises a missing provider list (old backend) to []', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(BACKEND_CONFIG), { status: 200 }),
+    );
+    expect((await getSpecDrivenConfig()).providers).toEqual([]);
+  });
+
+  it('has nothing to peek before a successful load', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('down'));
+    await getSpecDrivenConfig();
+    expect(peekSpecDrivenConfig()).toBeNull();
   });
 
   it('retries after a failure (failure does not poison the cache)', async () => {

@@ -23,6 +23,7 @@ import {
   StoredUserProfile,
 } from '../storage/local-storage-types';
 import { BACKEND_URL } from '../../constants/constant';
+import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
 import { UMLDiagramType, UMLModel, convertV3HandleToV4 } from '@besser/wme';
 
 // The library's HandleId values (nodes/wrappers/DefaultNodeWrapper.tsx).
@@ -55,9 +56,13 @@ function normalizeEdgeHandles(project: BesserProject): void {
   }
 }
 
-/** "Name", or "Name (2)", "Name (3)"... when a stored project already uses it. */
-function uniqueProjectName(name: string): string {
-  const taken = new Set(ProjectStorageRepository.getAllProjects().map((p) => (p.name ?? '').trim().toLowerCase()));
+/** "Name", or "Name (2)", "Name (3)"... when another stored project already uses it. */
+function uniqueProjectName(name: string, id: string): string {
+  const taken = new Set(
+    ProjectStorageRepository.getAllProjects()
+      .filter((p) => p.id !== id)
+      .map((p) => (p.name ?? '').trim().toLowerCase()),
+  );
   if (!taken.has(name.trim().toLowerCase())) return name;
   const base = name.replace(/\s\(\d+\)$/, '');
   let n = 2;
@@ -379,7 +384,7 @@ function storeImportedProject(imported: BesserProject, personalization?: Importe
   const unconverted = ALL_DIAGRAM_TYPES.flatMap((type) =>
     (project.diagrams[type] ?? []).filter((d) => d && isV3UMLModel(d.model)),
   );
-  project.name = uniqueProjectName(project.name);
+  project.name = uniqueProjectName(project.name, project.id);
   normalizeEdgeHandles(project);
 
   // Check if the imported GUI model is empty
@@ -471,6 +476,43 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
 }
 
 const UNSUPPORTED_STRUCTURE = 'Invalid project file format - unsupported structure';
+
+/**
+ * Store a repository's model file (`buml/diagrams.json`, a V2 export envelope,
+ * or an older repo's bare project file) as the project `projectId`, replacing
+ * it. Used to pull a linked repo or restore one of its versions in place.
+ * Agent credentials the repo holds as `[REDACTED]` keep their local values.
+ */
+export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
+  let base: BesserProject;
+  let personalization: ImportedPersonalization | undefined;
+  if (isOldWebappFormat(data)) {
+    base = migrateOldWebappProject(data);
+  } else if (validateV2ExportData(data)) {
+    base = data.project;
+    personalization = extractPersonalization(data);
+  } else if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    base = data as BesserProject;
+  } else {
+    throw new Error('This file is not a BESSER model.');
+  }
+  const filled = fillMissingDiagrams({ ...base, id: projectId });
+  const local = ProjectStorageRepository.loadProject(projectId);
+  const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
+  return storeImportedProject(project, personalization);
+}
+
+/** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
+function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {
+  const diagrams = Object.fromEntries(
+    Object.entries(incoming.diagrams ?? {}).map(([type, list]) => {
+      const localList = ((local.diagrams as Record<string, unknown>)?.[type] ?? []) as { id?: string }[];
+      const ids = (Array.isArray(list) ? list : []) as { id?: string }[];
+      return [type, ids.map((diagram) => localList.find((candidate) => candidate.id === diagram.id))];
+    }),
+  );
+  return { ...local, diagrams } as BesserProject;
+}
 
 // Import from JSON file
 export async function importProjectFromJson(file: File): Promise<BesserProject> {

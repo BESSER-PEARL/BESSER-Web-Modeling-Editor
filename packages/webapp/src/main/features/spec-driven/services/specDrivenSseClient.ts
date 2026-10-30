@@ -94,7 +94,7 @@ export interface StartSpecDrivenRunParams {
   provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
-  /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
+  /** The user's OpenAI-compatible base URL for the 'local' provider. */
   baseUrl?: string;
   /**
    * Demo-link secret (`?demo=<token>`), sent only with provider 'sponsored'.
@@ -521,10 +521,10 @@ export function startSpecDrivenRun(
   const controller = new AbortController();
   const acceptedCursor: { runId?: string } = {};
 
-  // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the backend
-  // as provider='openai' + base_url so the server builds an OpenAI client
-  // pointed at the gateway / local server.
-  const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
+  // 'local' is the user's OpenAI-compatible server: sent as provider='openai'
+  // + base_url. 'pia' travels as itself; the server resolves its endpoint
+  // from its model catalog.
+  const usesBaseUrl = params.provider === 'local';
   const wireProvider = usesBaseUrl ? 'openai' : params.provider;
 
   // Both server-paid tiers ('free' keyless, 'sponsored' demo) MUST NOT carry
