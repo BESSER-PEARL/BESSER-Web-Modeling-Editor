@@ -67,13 +67,21 @@ Supported providers
   assistant keeps using its own default model.
 * **Local** — any OpenAI-compatible endpoint you run yourself, for example
   ``http://localhost:11434/v1`` for Ollama.
-* **PIA** — the LIST PIA gateway, reachable only from the LIST VPN.
+* **PIA** — an organisation's AI gateway. Offered only by servers whose model
+  catalog defines it; the server holds its address, so you paste only your
+  key.
 * **Free** — the keyless server-hosted tier described above (Spec-Driven Agent
   only).
 
-The *Local* and *PIA* options require the BESSER backend to be running locally,
-because the backend — not the browser — makes the model call. The dialog lists
-them when the editor is opened on ``localhost``; the backend must also set
+The providers and the models offered for each come from the server (its model
+catalog, read through ``GET /besser_api/spec-driven/config``), so a server can
+add, remove or rename a model without a new editor release. If that call fails,
+the dialog still offers Anthropic, OpenAI, Mistral, Nebius and Local, each with
+*Recommended default* and *Custom model ID*.
+
+The *Local* option requires the BESSER backend to be running locally, because
+the backend — not the browser — makes the model call. The dialog lists it when
+the editor is opened on ``localhost``; the backend must also set
 ``BESSER_LLM_ALLOW_CUSTOM_BASE_URL=true`` (and the modeling agent
 ``BESSER_AGENT_ALLOW_CUSTOM_BASE_URL=true``) to accept a custom endpoint.
 
@@ -106,7 +114,7 @@ Alongside the key, these session-scoped values are stored in the same tab:
    * - Provider and optional model override
      - Applies to both features.
    * - Base URL
-     - Only for the *Local* and *PIA* providers.
+     - Only for the *Local* provider.
    * - Free-tier opt-in and free-model choice
      - Kept separate from the key, so the free tier can never leave a
        placeholder key that would break the assistant.

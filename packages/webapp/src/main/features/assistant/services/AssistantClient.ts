@@ -613,13 +613,14 @@ export class AssistantClient {
       // Only attach provider/model when actually setting a key — a clear
       // sends the bare `{ user_api_key: '' }`.
       if (params.apiKey) {
-        // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the
-        // agent as provider='openai' + a base URL (user_api_base).
-        const wireProvider =
-          params.provider === 'pia' || params.provider === 'local' ? 'openai' : params.provider;
+        // 'local' is the user's OpenAI-compatible server: sent to the agent as
+        // provider='openai' + a base URL (user_api_base). 'pia' travels as
+        // itself; the agent resolves its endpoint from its model catalog.
+        const isLocal = params.provider === 'local';
+        const wireProvider = isLocal ? 'openai' : params.provider;
         if (wireProvider) message.user_api_provider = wireProvider;
         if (params.model) message.user_api_model = params.model;
-        if (params.baseUrl) message.user_api_base = params.baseUrl;
+        if (isLocal && params.baseUrl) message.user_api_base = params.baseUrl;
       }
       this.ws.send(
         JSON.stringify({
