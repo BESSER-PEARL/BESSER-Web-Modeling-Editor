@@ -35,7 +35,9 @@
       "validated": "Validat",
       "issues": "Problemes",
       "needsRecheck": "Cal revisar-ho",
-      "notValidated": "No validat"
+      "notValidated": "No validat",
+      "syntacticCheck": "Comprovació sintàctica",
+      "semanticCheck": "Comprovació semàntica"
     },
     "more": "Més",
     "linkToGithub": "Vincula amb GitHub",
@@ -117,7 +119,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Dades",
-        "kgConvert": "Converteix a B-UML"
+        "kgConvert": "Converteix a B-UML",
+        "formalMethods": "Mètodes formals"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -132,7 +135,8 @@
         "userProfileJson": "JSON de perfil d'usuari",
         "qiskitCode": "Codi Qiskit",
         "forecaster": "Previsió de sèries temporals",
-        "kgToClassDiagram": "Diagrama de classes"
+        "kgToClassDiagram": "Diagrama de classes",
+        "alloySpecification": "Especificació Alloy"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -2369,6 +2373,14 @@
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
+      "generateFromConstraints": "Generació semàntica",
+      "generateFromConstraintsTooltip": "Substitueix aquest diagrama d'objectes per una instància del diagrama de classes referenciat que compleixi les seves restriccions OCL.",
+      "searchingInstance": "Cercant una instància que compleixi les restriccions…",
+      "replaceConfirmTitle": "Substituir el diagrama d'objectes?",
+      "replaceConfirmDescription": "La instància generada substitueix els objectes i els enllaços d'aquest diagrama.",
+      "replaceConfirmAction": "Substitueix",
+      "payloadMissing": "S'ha trobat una instància, però el servidor no n'ha enviat el diagrama d'objectes.",
+      "generationDiscarded": "Generació semàntica aturada: heu sortit del diagrama d'objectes.",
       "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
       "tablistLabel": "Diagrames",
       "editAsForm": "Edita com a formulari",
@@ -3921,6 +3933,15 @@
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
       "unknownError": "Error desconegut"
+    },
+    "semantic": {
+      "searching": "Cercant una instància del diagrama de classes…",
+      "connectionLost": "S'ha perdut la connexió amb el servidor durant la comprovació semàntica.",
+      "noResult": "La comprovació semàntica ha acabat sense cap resultat.",
+      "alreadyRunning": "Ja hi ha una comprovació semàntica en curs.",
+      "failed": "Ha fallat la comprovació semàntica: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Avisos:"
     }
   },
   "quantum": {

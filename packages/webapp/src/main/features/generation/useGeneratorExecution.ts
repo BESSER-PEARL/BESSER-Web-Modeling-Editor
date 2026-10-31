@@ -60,6 +60,12 @@ import {
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import {
+  checkSemanticConsistency,
+  isSemanticSearchRunning,
+  semanticSearchErrorMessage,
+  showSemanticSearchResult,
+} from '../../shared/services/validation/semanticCheck';
+import {
   ConfigDialog,
   getConfigDialogForGenerator,
 } from './generator-dialog-config';
@@ -563,6 +569,8 @@ export interface UseGeneratorExecutionReturn {
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
   handleQualityCheck: () => Promise<QualityCheckResult>;
+  /** Passed to WorkspaceShell → onSemanticCheck */
+  handleSemanticCheck: () => Promise<void>;
   /** Props bag to spread onto <GeneratorConfigDialogs /> */
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
@@ -873,7 +881,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         // bouncing the user with "Switch to a UML diagram".
         const CLASS_MODEL_GENERATORS = [
           'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
-          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase', 'alloy',
         ];
         if ((isQuantumContext || isGuiContext || !editor)
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {
@@ -1061,6 +1069,34 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
+
+  const handleSemanticCheck = useCallback(async (): Promise<void> => {
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
+    if (!currentProject) {
+      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
+      return;
+    }
+    const model = editor?.model ?? activeDiagram?.model;
+    if (currentProject.currentDiagramType !== 'ClassDiagram' || !isUMLModel(model)) {
+      toast.error(t('generation.toasts.noDiagramToValidate'));
+      return;
+    }
+
+    const toastId = toast.loading(t('validation.semantic.searching'));
+    try {
+      const result = await checkSemanticConsistency(activeDiagramTitle, model, (event) => {
+        toast.update(toastId, { render: event.message });
+      });
+      toast.dismiss(toastId);
+      showSemanticSearchResult(result);
+    } catch (error) {
+      toast.dismiss(toastId);
+      toast.error(semanticSearchErrorMessage(error));
+    }
+  }, [currentProject, editor, activeDiagram, activeDiagramTitle, t]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
@@ -1471,6 +1507,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleGenerateRequest,
     handleAssistantGenerate,
     handleQualityCheck,
+    handleSemanticCheck,
     configState,
     isLocalEnvironment,
   };

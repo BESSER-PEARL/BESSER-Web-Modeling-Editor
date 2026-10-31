@@ -35,7 +35,9 @@
       "validated": "Validéiert",
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
-      "notValidated": "Net validéiert"
+      "notValidated": "Net validéiert",
+      "syntacticCheck": "Syntaktesch Prüfung",
+      "semanticCheck": "Semantesch Prüfung"
     },
     "more": "Méi",
     "linkToGithub": "Mat GitHub verbannen",
@@ -117,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "An B-UML ëmwandelen"
+        "kgConvert": "An B-UML ëmwandelen",
+        "formalMethods": "Formal Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -132,7 +135,8 @@
         "userProfileJson": "Benotzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zäitreien-Prognos",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikatioun"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
@@ -2369,6 +2373,14 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
+      "generateFromConstraints": "Semantesch Generatioun",
+      "generateFromConstraintsTooltip": "Ersetzt dësen Objetdiagramm duerch eng Instanz vum referenzéierte Klassendiagramm, déi seng OCL-Constrainten erfëllt.",
+      "searchingInstance": "Sich no enger Instanz, déi d'Constrainten erfëllt…",
+      "replaceConfirmTitle": "Objetdiagramm ersetzen?",
+      "replaceConfirmDescription": "Déi generéiert Instanz ersetzt d'Objeten an d'Linke vun dësem Diagramm.",
+      "replaceConfirmAction": "Ersetzen",
+      "payloadMissing": "Eng Instanz gouf fonnt, mee de Server huet hiren Objetdiagramm net geschéckt.",
+      "generationDiscarded": "Semantesch Generatioun gestoppt: Dir hutt den Objetdiagramm verlooss.",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",
@@ -3921,6 +3933,15 @@
       "diagramValid": "Den Diagramm ass gülteg",
       "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
       "unknownError": "Onbekannte Feeler"
+    },
+    "semantic": {
+      "searching": "Sich no enger Instanz vum Klassendiagramm…",
+      "connectionLost": "D'Verbindung mam Server ass wärend der semantescher Prüfung verluer gaangen.",
+      "noResult": "D'semantesch Prüfung ass ouni Resultat eriwwer gaangen.",
+      "alreadyRunning": "Eng semantesch Prüfung leeft schonn.",
+      "failed": "Semantesch Prüfung feelgeschloen: {{error}}",
+      "errorsLabel": "Feeler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

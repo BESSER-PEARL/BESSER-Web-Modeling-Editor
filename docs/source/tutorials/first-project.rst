@@ -80,8 +80,9 @@ you how many authors one book has.
 Check the model
 ---------------
 
-Click **Quality Check** in the top bar. Resolve any errors before continuing.
-For example, give two classes different names if the check reports a duplicate.
+Open **Quality Check** in the top bar and choose **Syntactic check**. Resolve
+any errors before continuing. For example, give two classes different names if
+the check reports a duplicate.
 
 Download code
 -------------

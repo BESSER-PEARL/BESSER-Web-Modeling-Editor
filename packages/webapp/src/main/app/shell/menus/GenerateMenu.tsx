@@ -25,6 +25,7 @@ import {
   type LucideIcon,
   Network,
   Server,
+  Sigma,
   TrendingUp,
   Workflow,
 } from 'lucide-react';
@@ -65,6 +66,7 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   Testing: FlaskConical,
   Schema: FileJson,
   Data: Braces,
+  'Formal Methods': Sigma,
   PyTorch: Brain,
   TensorFlow: Brain,
 };
@@ -91,6 +93,7 @@ const GENERATOR_ICONS: Partial<Record<GeneratorType, LucideIcon>> = {
   pytorch: Layers,
   tensorflow: Layers,
   forecaster: TrendingUp,
+  alloy: Sigma,
 };
 
 const renderGeneratorMenuEntry = (

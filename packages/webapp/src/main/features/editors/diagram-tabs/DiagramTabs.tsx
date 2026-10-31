@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { diagramBridge } from '@besser/wme';
-import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList } from 'lucide-react';
+import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList, Sparkles } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import {
+  generateObjectDiagram,
+  isSemanticSearchRunning,
+  semanticSearchErrorMessage,
+  showSemanticSearchResult,
+} from '../../../shared/services/validation/semanticCheck';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
@@ -189,6 +195,87 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     }
     getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
+
+  // The semantic generation in progress, aborted when the user leaves its diagram: its result
+  // would otherwise replace whichever diagram is active when the search ends.
+  const generationRef = useRef<AbortController | null>(null);
+  useEffect(() => () => generationRef.current?.abort(), [activeDiagram?.id]);
+
+  // Replaces the object diagram with an instance of the referenced class diagram that satisfies
+  // its OCL constraints, searched for by the backend's semantic check.
+  const handleGenerateFromConstraints = useCallback(async () => {
+    if (currentDiagramType !== 'ObjectDiagram') return;
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
+    if (!apollonEditor || !apollonEditor.model) {
+      toast.error(t('editors.diagramTabs.editorNotReady'));
+      return;
+    }
+    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
+    const refModel = refDiagram?.model;
+    if (!refDiagram || !isUMLModel(refModel)) {
+      toast.error(t('editors.diagramTabs.pickClassRefFirst'));
+      return;
+    }
+    const currentModel = apollonEditor.model;
+    const hasContent = Object.keys(currentModel.elements ?? {}).length > 0
+      || Object.keys(currentModel.relationships ?? {}).length > 0;
+    if (hasContent) {
+      const confirmed = await globalConfirm({
+        title: t('editors.diagramTabs.replaceConfirmTitle'),
+        description: t('editors.diagramTabs.replaceConfirmDescription'),
+        confirmLabel: t('editors.diagramTabs.replaceConfirmAction'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
+    const generation = new AbortController();
+    generationRef.current = generation;
+    const toastId = toast.loading(t('editors.diagramTabs.searchingInstance'));
+    try {
+      const result = await generateObjectDiagram(refDiagram.title, refModel, (event) => {
+        toast.update(toastId, { render: event.message });
+      }, generation.signal);
+      toast.dismiss(toastId);
+      if (generation.signal.aborted) {
+        toast.info(t('editors.diagramTabs.generationDiscarded'));
+        return;
+      }
+      if (!result.isValid) {
+        showSemanticSearchResult(result);
+        return;
+      }
+      const nextModel = result.object_model;
+      if (!isUMLModel(nextModel)) {
+        toast.error(t('editors.diagramTabs.payloadMissing'));
+        return;
+      }
+
+      await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
+      await apollonEditor.nextRender;
+      apollonEditor.model = { ...nextModel } as any;
+      await apollonEditor.nextRender;
+
+      showSemanticSearchResult(result);
+      getPostHog()?.capture('object_diagram_generated_from_constraints', {
+        elements: Object.keys(nextModel.elements ?? {}).length,
+        relationships: Object.keys(nextModel.relationships ?? {}).length,
+      });
+    } catch (error) {
+      toast.dismiss(toastId);
+      // Leaving the diagram aborts the stream, which then ends as an error
+      if (generation.signal.aborted) {
+        toast.info(t('editors.diagramTabs.generationDiscarded'));
+        return;
+      }
+      toast.error(semanticSearchErrorMessage(error));
+    } finally {
+      if (generationRef.current === generation) generationRef.current = null;
+    }
+  }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);
@@ -540,15 +627,26 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                       </span>
                     )}
                     {currentDiagramType === 'ObjectDiagram' && !classRefBroken && !classRefEmpty && (
-                      <button
-                        type="button"
-                        className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
-                        onClick={() => void handleGenerateObjectsFromClasses()}
-                        title={t('editors.diagramTabs.generateObjectsTooltip')}
-                      >
-                        <Wand2 className="size-3" />
-                        {t('editors.diagramTabs.generate')}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                          onClick={() => void handleGenerateObjectsFromClasses()}
+                          title={t('editors.diagramTabs.generateObjectsTooltip')}
+                        >
+                          <Wand2 className="size-3" />
+                          {t('editors.diagramTabs.generate')}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                          onClick={() => void handleGenerateFromConstraints()}
+                          title={t('editors.diagramTabs.generateFromConstraintsTooltip')}
+                        >
+                          <Sparkles className="size-3" />
+                          {t('editors.diagramTabs.generateFromConstraints')}
+                        </button>
+                      </>
                     )}
                   </>
                 ) : (

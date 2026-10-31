@@ -1,0 +1,152 @@
+/**
+ * Semantic check of class diagrams: the editor's client of the backend's
+ * `/semantic-consistency-check` and `/generate-object-diagram` streams.
+ *
+ * The backend searches, with the Alloy Analyzer, for an instance of a class
+ * diagram and its OCL constraints within increasingly larger bounds, and
+ * streams its progress as SSE events; the last one has `done: true`. The
+ * search is bounded by the backend itself, so the client sets no deadline
+ * for it: it only checks that the stream is alive (see
+ * `SEMANTIC_CHECK_STALL_TIMEOUT_MS`).
+ */
+
+import { toast } from 'react-toastify';
+import { formatErrorDetail } from '../../api/api-client';
+import { GENERATE_OBJECT_DIAGRAM_ENDPOINT, SEMANTIC_CHECK_ENDPOINT } from '../../constants/constant';
+import i18n from '../../i18n';
+import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
+import { SseHttpError, SseResponseTimeoutError, SseStallError, streamSse } from '../sse/sseClient';
+
+/** An event of the semantic check stream. */
+export interface SemanticSearchEvent {
+  /** Whether this is the last event of the stream. */
+  done: boolean;
+  /** Whether an instance was found (last event only). */
+  isValid?: boolean;
+  /** What the backend is doing or found, e.g. "No instance within 5 objects per class, …". */
+  message: string;
+  errors?: string[];
+  warnings?: string[];
+  /** The instance found, as an object diagram (`/generate-object-diagram` only). */
+  object_model?: unknown;
+}
+
+/**
+ * Liveness bound for the stream. While the Alloy Analyzer runs, the backend
+ * sends a heartbeat comment every 15 s (`HEARTBEAT_SECONDS` in
+ * `semantic_consistency.py`), so 60 s of total silence means the transport
+ * died, not that the search is slow.
+ */
+export const SEMANTIC_CHECK_STALL_TIMEOUT_MS = 60_000;
+
+/** Handshake deadline: the backend answers with the stream's headers before any work. */
+export const SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS = 45_000;
+
+/** Thrown when the stream ends without its last (`done`) event. */
+export class SemanticSearchIncompleteError extends Error {
+  constructor() {
+    super('The semantic check ended without a result');
+    this.name = 'SemanticSearchIncompleteError';
+  }
+}
+
+/** Each semantic search starts an Alloy Analyzer on the server, so the editor runs one at a time. */
+let searchRunning = false;
+
+/** Whether a semantic search, from any entry point, is running. */
+export function isSemanticSearchRunning(): boolean {
+  return searchRunning;
+}
+
+/**
+ * Streams the semantic search of `endpoint` for `body`; passes each progress
+ * event to `onProgress` and resolves with the last (`done`) event. Aborting
+ * `signal` closes the stream, which stops the search on the server.
+ */
+export async function streamSemanticSearch(
+  endpoint: string,
+  body: { title: string; model: unknown },
+  onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
+): Promise<SemanticSearchEvent> {
+  searchRunning = true;
+  try {
+    const events = streamSse<SemanticSearchEvent>(endpoint, body, {
+      stallTimeoutMs: SEMANTIC_CHECK_STALL_TIMEOUT_MS,
+      responseTimeoutMs: SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
+      signal,
+    });
+    for await (const event of events) {
+      if (event.done) return event;
+      onProgress(event);
+    }
+    throw new SemanticSearchIncompleteError();
+  } finally {
+    searchRunning = false;
+  }
+}
+
+/** Searches for an instance of the class diagram `model`. */
+export function checkSemanticConsistency(
+  title: string,
+  model: unknown,
+  onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
+): Promise<SemanticSearchEvent> {
+  return streamSemanticSearch(SEMANTIC_CHECK_ENDPOINT, { title, model }, onProgress, signal);
+}
+
+/** Searches for an instance of the class diagram `model`; a found one comes as an object diagram. */
+export function generateObjectDiagram(
+  title: string,
+  model: unknown,
+  onProgress: (event: SemanticSearchEvent) => void,
+  signal?: AbortSignal,
+): Promise<SemanticSearchEvent> {
+  return streamSemanticSearch(GENERATE_OBJECT_DIAGRAM_ENDPOINT, { title, model }, onProgress, signal);
+}
+
+/** Long, multi-line toasts for lists of errors and warnings. */
+const LIST_TOAST_CLASS = 'max-h-[600px] overflow-auto whitespace-pre-line break-words';
+
+/** Shows the result of a semantic search, its `message` with its errors and warnings. */
+export function showSemanticSearchResult(event: SemanticSearchEvent): void {
+  if (event.isValid) {
+    toast.success(event.message);
+  } else {
+    toast.error(event.message);
+  }
+  if (event.errors?.length) {
+    toast.error(`${i18n.t('validation.semantic.errorsLabel')}\n\n${event.errors.join('\n\n')}`, {
+      autoClose: false,
+      className: LIST_TOAST_CLASS,
+    });
+  }
+  if (event.warnings?.length) {
+    toast.warning(`${i18n.t('validation.semantic.warningsLabel')}\n\n${event.warnings.join('\n\n')}`, {
+      autoClose: false,
+      className: LIST_TOAST_CLASS,
+    });
+  }
+}
+
+/** The `detail` of a FastAPI error body, or `undefined` when `body` is not one (e.g. a proxy's error page). */
+function errorBodyDetail(body: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return parsed && typeof parsed === 'object' ? (parsed as { detail?: unknown }).detail : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The user-facing text of an error thrown by a semantic search. */
+export function semanticSearchErrorMessage(error: unknown): string {
+  if (error instanceof SseStallError) return i18n.t('validation.semantic.connectionLost');
+  if (error instanceof SemanticSearchIncompleteError) return i18n.t('validation.semantic.noResult');
+  if (error instanceof SseResponseTimeoutError || isNetworkError(error)) return describeNetworkError(error);
+  const failed = i18n.t('validation.semantic.failed', { error: error instanceof Error ? error.message : String(error) });
+  // The backend explains a refused search, e.g. the 503 sent when it already runs its maximum of checks
+  if (error instanceof SseHttpError) return formatErrorDetail(errorBodyDetail(error.body), failed);
+  return failed;
+}

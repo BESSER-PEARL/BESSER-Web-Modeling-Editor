@@ -35,7 +35,9 @@
       "validated": "Validated",
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
-      "notValidated": "Not validated"
+      "notValidated": "Not validated",
+      "syntacticCheck": "Syntactic check",
+      "semanticCheck": "Semantic check"
     },
     "more": "More",
     "repoState": {
@@ -117,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Data",
-        "kgConvert": "Convert to B-UML"
+        "kgConvert": "Convert to B-UML",
+        "formalMethods": "Formal Methods"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -132,7 +135,8 @@
         "userProfileJson": "User Profile JSON",
         "qiskitCode": "Qiskit Code",
         "forecaster": "Time-Series Forecaster",
-        "kgToClassDiagram": "Class Diagram"
+        "kgToClassDiagram": "Class Diagram",
+        "alloySpecification": "Alloy Specification"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -2369,6 +2373,14 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
+      "generateFromConstraints": "Semantic generation",
+      "generateFromConstraintsTooltip": "Replace this object diagram with an instance of the referenced class diagram that satisfies its OCL constraints.",
+      "searchingInstance": "Searching for an instance that satisfies the constraints…",
+      "replaceConfirmTitle": "Replace the object diagram?",
+      "replaceConfirmDescription": "The generated instance replaces the objects and links of this diagram.",
+      "replaceConfirmAction": "Replace",
+      "payloadMissing": "An instance was found, but the server did not send its object diagram.",
+      "generationDiscarded": "Semantic generation stopped: you left the object diagram.",
       "noClassDiagramsAvailable": "No Class Diagrams available",
       "tablistLabel": "Diagrams",
       "editAsForm": "Edit as form",
@@ -3921,6 +3933,15 @@
       "diagramValid": "Diagram is valid",
       "validationErrorGeneric": "Validation error: {{error}}",
       "unknownError": "Unknown error"
+    },
+    "semantic": {
+      "searching": "Searching for an instance of the class diagram…",
+      "connectionLost": "The connection to the server was lost during the semantic check.",
+      "noResult": "The semantic check ended without a result.",
+      "alreadyRunning": "A semantic check is already running.",
+      "failed": "Semantic check failed: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Warnings:"
     }
   },
   "quantum": {

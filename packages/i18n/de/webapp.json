@@ -35,7 +35,9 @@
       "validated": "Validiert",
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
-      "notValidated": "Nicht validiert"
+      "notValidated": "Nicht validiert",
+      "syntacticCheck": "Syntaktische Prüfung",
+      "semanticCheck": "Semantische Prüfung"
     },
     "more": "Mehr",
     "linkToGithub": "Mit GitHub verknüpfen",
@@ -117,7 +119,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "In B-UML umwandeln"
+        "kgConvert": "In B-UML umwandeln",
+        "formalMethods": "Formale Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -132,7 +135,8 @@
         "userProfileJson": "Benutzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zeitreihen-Prognose",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikation"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -2369,6 +2373,14 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
+      "generateFromConstraints": "Semantische Generierung",
+      "generateFromConstraintsTooltip": "Ersetzt dieses Objektdiagramm durch eine Instanz des referenzierten Klassendiagramms, die dessen OCL-Constraints erfüllt.",
+      "searchingInstance": "Suche nach einer Instanz, die die Constraints erfüllt…",
+      "replaceConfirmTitle": "Objektdiagramm ersetzen?",
+      "replaceConfirmDescription": "Die generierte Instanz ersetzt die Objekte und Links dieses Diagramms.",
+      "replaceConfirmAction": "Ersetzen",
+      "payloadMissing": "Eine Instanz wurde gefunden, aber der Server hat ihr Objektdiagramm nicht gesendet.",
+      "generationDiscarded": "Semantische Generierung abgebrochen: Sie haben das Objektdiagramm verlassen.",
       "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
       "tablistLabel": "Diagramme",
       "editAsForm": "Als Formular bearbeiten",
@@ -3921,6 +3933,15 @@
       "diagramValid": "Diagramm ist gültig",
       "validationErrorGeneric": "Validierungsfehler: {{error}}",
       "unknownError": "Unbekannter Fehler"
+    },
+    "semantic": {
+      "searching": "Suche nach einer Instanz des Klassendiagramms…",
+      "connectionLost": "Die Verbindung zum Server ist während der semantischen Prüfung abgebrochen.",
+      "noResult": "Die semantische Prüfung wurde ohne Ergebnis beendet.",
+      "alreadyRunning": "Eine semantische Prüfung läuft bereits.",
+      "failed": "Semantische Prüfung fehlgeschlagen: {{error}}",
+      "errorsLabel": "Fehler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

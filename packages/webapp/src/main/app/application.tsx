@@ -158,6 +158,7 @@ function AppContentInner() {
     handleGenerateRequest,
     handleAssistantGenerate,
     handleQualityCheck,
+    handleSemanticCheck,
     configState,
     isLocalEnvironment,
   } = useGeneratorExecution(editor);
@@ -196,6 +197,7 @@ function AppContentInner() {
         onExportProject={handleExport}
         onGenerate={onGenerate}
         onQualityCheck={onQualityCheck}
+        onSemanticCheck={handleSemanticCheck}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating || kgFlows.isConverting}

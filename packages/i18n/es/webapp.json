@@ -35,7 +35,9 @@
       "validated": "Validado",
       "issues": "Problemas",
       "needsRecheck": "Requiere revisión",
-      "notValidated": "No validado"
+      "notValidated": "No validado",
+      "syntacticCheck": "Comprobación sintáctica",
+      "semanticCheck": "Comprobación semántica"
     },
     "more": "Más",
     "linkToGithub": "Vincular con GitHub",
@@ -117,7 +119,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Datos",
-        "kgConvert": "Convertir a B-UML"
+        "kgConvert": "Convertir a B-UML",
+        "formalMethods": "Métodos formales"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -132,7 +135,8 @@
         "userProfileJson": "JSON de perfil de usuario",
         "qiskitCode": "Código Qiskit",
         "forecaster": "Previsión de series temporales",
-        "kgToClassDiagram": "Diagrama de clases"
+        "kgToClassDiagram": "Diagrama de clases",
+        "alloySpecification": "Especificación Alloy"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
@@ -2369,6 +2373,14 @@
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
+      "generateFromConstraints": "Generación semántica",
+      "generateFromConstraintsTooltip": "Reemplaza este diagrama de objetos por una instancia del diagrama de clases referenciado que cumpla sus restricciones OCL.",
+      "searchingInstance": "Buscando una instancia que cumpla las restricciones…",
+      "replaceConfirmTitle": "¿Reemplazar el diagrama de objetos?",
+      "replaceConfirmDescription": "La instancia generada reemplaza los objetos y enlaces de este diagrama.",
+      "replaceConfirmAction": "Reemplazar",
+      "payloadMissing": "Se encontró una instancia, pero el servidor no envió su diagrama de objetos.",
+      "generationDiscarded": "Generación semántica detenida: ha salido del diagrama de objetos.",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
@@ -3921,6 +3933,15 @@
       "diagramValid": "El diagrama es válido",
       "validationErrorGeneric": "Error de validación: {{error}}",
       "unknownError": "Error desconocido"
+    },
+    "semantic": {
+      "searching": "Buscando una instancia del diagrama de clases…",
+      "connectionLost": "Se perdió la conexión con el servidor durante la comprobación semántica.",
+      "noResult": "La comprobación semántica terminó sin resultado.",
+      "alreadyRunning": "Ya hay una comprobación semántica en curso.",
+      "failed": "Falló la comprobación semántica: {{error}}",
+      "errorsLabel": "Errores:",
+      "warningsLabel": "Advertencias:"
     }
   },
   "quantum": {
