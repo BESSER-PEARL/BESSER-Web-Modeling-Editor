@@ -46,7 +46,7 @@ import {
   switchDiagramIndexThunk,
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import { ApollonEditorContext } from '../../editors';
 import {
   UMLModelingService,
   RateLimiterService,
@@ -56,15 +56,14 @@ import {
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
-import type { GeneratorType } from '../../../app/shell/workspace-types';
-import type { GenerationResult } from '../../generation/types';
+import type { GeneratorType } from '../../../shared/types/workspace-types';
+import type { GenerationResult } from '../../generation';
 
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
-import { useSpecDrivenTrigger } from '../../spec-driven/hooks/useSpecDrivenTrigger';
-import { openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
-import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
+import { useSpecDrivenTrigger, openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven';
+import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,

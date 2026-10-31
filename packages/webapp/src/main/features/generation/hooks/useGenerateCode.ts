@@ -12,7 +12,7 @@ import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../.
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
-} from '../../deploy/utils/restoreBaseAgentModels';
+} from '../../deploy';
 import type { GenerationOptions, GenerationResult } from '../types';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 

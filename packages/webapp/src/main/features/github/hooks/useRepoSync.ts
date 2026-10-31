@@ -32,7 +32,7 @@ import {
   subscribeRepoSync,
   type SyncCheckError,
 } from '../../../shared/services/github/repoSyncStatus';
-import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
+import { setLastRunForProject } from '../../spec-driven';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import {
   createPullRequest,

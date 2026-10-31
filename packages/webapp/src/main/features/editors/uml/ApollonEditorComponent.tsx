@@ -23,8 +23,7 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
 import { isAgenticModeEnabled } from '../../../shared/perspectives';
-import { useAgentDiagramLinker } from '../../inter-diagram/useAgentDiagramLinker';
-import { useElementPickerProvider } from '../../inter-diagram/useElementPickerProvider';
+import { useAgentDiagramLinker, useElementPickerProvider } from '../../inter-diagram';
 
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);

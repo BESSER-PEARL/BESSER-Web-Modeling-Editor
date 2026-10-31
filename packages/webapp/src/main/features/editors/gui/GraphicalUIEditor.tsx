@@ -2,7 +2,7 @@
 import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
-import './grapesjs-styles.css';
+import '../../../shared/styles/grapesjs-styles.css';
 import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { GuiEmptyState, pluralize } from './GuiEmptyState';
 import { useAppDispatch } from '../../../app/store/hooks';

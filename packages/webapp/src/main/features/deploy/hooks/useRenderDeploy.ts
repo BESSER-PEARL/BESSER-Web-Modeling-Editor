@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useGitHubRepo, CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
+import { useGitHubRepo, CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from '../../github';
 import type { BesserProject } from '../../../shared/types/project';
 
 // Re-exported under the old name so existing imports keep working.

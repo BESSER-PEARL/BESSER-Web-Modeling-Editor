@@ -118,9 +118,13 @@ deployment.
 
 - ``app/`` contains the shell (layout, menus, store). This is the entry point.
 - ``features/`` follows the feature-folder pattern — each feature owns its
-  components, hooks, and logic. Features should not import from other features.
+  components, hooks, and logic. Each feature's ``index.ts`` is its public API:
+  other features import it only through that index, never its internals.
 - ``shared/`` contains code used by multiple features. If you need something
-  in two features, move it here.
+  in two features, move it here. ``shared/`` never imports from ``app/`` or
+  ``features/``.
+- ESLint (``no-restricted-imports`` in ``packages/webapp/.eslintrc.js``)
+  enforces both rules as errors.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.

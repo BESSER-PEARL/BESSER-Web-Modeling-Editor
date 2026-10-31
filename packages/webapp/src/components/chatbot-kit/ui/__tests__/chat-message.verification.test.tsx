@@ -17,7 +17,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ChatMessage, type SpecDrivenMessageState } from '../chat-message';
+import { ChatMessage } from '../chat-message';
+import type { SpecDrivenMessageState } from '@/main/features/spec-driven/types';
 
 // The card imports the shared download helper; mock it so jsdom never deals
 // with URL.createObjectURL / anchor clicks.
