@@ -13,8 +13,9 @@ All tests live in the **`packages/webapp`** workspace. There are two layers:
 > **See also** `packages/webapp/tests/e2e/README.md` — the narrative test catalogue
 > for the E2E and natural-language generation surfaces.
 
-There are **no** unit or E2E tests in `packages/editor` or `packages/server` today —
-the whole suite is in `packages/webapp`.
+The suite that runs is in `packages/webapp`. `packages/editor/src/tests/unit` holds a legacy Jest
+suite with no runner configured, so it does not run; `packages/server` has no tests. Editor behaviour
+is covered from the webapp tests.
 
 ---
 
