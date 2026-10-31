@@ -42,7 +42,8 @@ import {
   type SpringBootVersion,
   type SpringJavaVersion,
 } from './hooks/useGenerateCode';
-import type { GenerationResult, QualityCheckResult } from './types';
+import type { GenerationResult } from './types';
+import type { QualityCheckResult } from '../../shared/types/quality-check';
 import { useDeployLocally } from './hooks/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
@@ -65,7 +66,7 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
-import type { GeneratorType } from '../../app/shell/workspace-types';
+import type { GeneratorType } from '../../shared/types/workspace-types';
 import i18n from '../../shared/i18n';
 import {
   buildAllWebAppVersions,

@@ -12,7 +12,7 @@ import {
 import { getActiveDiagram } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
-import { ErrorPanel } from '../shared/components/error-handling/error-panel';
+import { ErrorPanel } from './shell/error-handling/error-panel';
 import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
 import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';

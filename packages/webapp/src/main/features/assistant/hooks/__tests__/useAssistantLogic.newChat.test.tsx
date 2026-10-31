@@ -19,8 +19,8 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import {
   specDrivenReducer,
   claimRunSlot,
-} from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+} from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 const _client = vi.hoisted(() => ({ resetSessionCalls: 0 }));
 

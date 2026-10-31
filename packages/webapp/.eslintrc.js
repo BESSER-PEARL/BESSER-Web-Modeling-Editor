@@ -1,6 +1,42 @@
 const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin')
 const typescriptParser = require('@typescript-eslint/parser')
 const reactHooksPlugin = require('eslint-plugin-react-hooks')
+const fs = require('fs')
+const path = require('path')
+
+// Import boundaries. A feature is used by other features only through its
+// index.ts; shared/ depends on neither app/ nor features/.
+const features = fs
+  .readdirSync(path.join(__dirname, 'src/main/features'), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+const MAIN_ALIAS = '^(@/main|webapp/src/main)'
+const PARENT_DIRS = '^(\\.\\./)+'
+
+const featureBoundary = (feature) => ({
+  files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            regex: `${PARENT_DIRS}(features/)?(?!${feature}/)(${features.join('|')})/`,
+            message: 'Import another feature through its index.ts, not its internals.',
+          },
+          {
+            regex: `${MAIN_ALIAS}/features/(?!${feature}/)[^/]+/`,
+            message: 'Import another feature through its index.ts, not its internals.',
+          },
+          {
+            regex: `(${PARENT_DIRS}(features/)?|${MAIN_ALIAS}/features/)${feature}$`,
+            message: "Import the file directly: going through the feature's own index.ts creates a cycle.",
+          },
+        ],
+      },
+    ],
+  },
+})
 
 module.exports = [
   {
@@ -40,5 +76,22 @@ module.exports = [
       'react-hooks/exhaustive-deps': 'warn',
     },
     files: ['**/*.ts', '**/*.tsx'],
+  },
+  ...features.map(featureBoundary),
+  {
+    files: ['src/main/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: `(${PARENT_DIRS}|${MAIN_ALIAS}/)(app|features)(/|$)`,
+              message: 'shared/ must not depend on app/ or features/.',
+            },
+          ],
+        },
+      ],
+    },
   },
 ]

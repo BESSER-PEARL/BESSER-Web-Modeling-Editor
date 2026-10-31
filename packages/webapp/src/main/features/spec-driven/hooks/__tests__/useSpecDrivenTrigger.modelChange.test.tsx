@@ -12,7 +12,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '@/main/app/store/store';
-import { conversationStore } from '@/main/features/assistant/hooks/assistantConversationStore';
+import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import type { SpecDrivenRunResult } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { writeProjectLastRun } from '@/main/features/spec-driven/storage';

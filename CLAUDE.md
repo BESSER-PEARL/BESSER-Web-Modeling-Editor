@@ -138,8 +138,13 @@ assistant's dialog, and its opt-in flag is kept separate from the key so no plac
 ## Key Patterns
 
 ### Feature isolation
-Features in `src/main/features/` must NOT import from other features; cross-feature code goes in `shared/`
-(which must not import from `features/`). That is why `llmKeyStorage` and `specDrivenConfig` live in `shared/`.
+Each feature in `src/main/features/` has an `index.ts` that is its public API: other features import it only
+through that index, never its internals, and a feature never imports its own index. `shared/` must not import
+from `app/` or `features/`; code several features need goes in `shared/`. That is why `llmKeyStorage` and
+`specDrivenConfig` live in `shared/`. ESLint (`no-restricted-imports` in `packages/webapp/.eslintrc.js`)
+enforces both as errors. Keep an index to what other features use, and keep lazily loaded modules out of it:
+once eager code imports an index, everything it re-exports lands in the main chunk. The two deep imports that
+stay for that reason carry an `eslint-disable` comment saying so.
 
 ### Redux
 - Async thunks mutate state and persist to `ProjectStorageRepository`; use `withoutNotify()` when writing to

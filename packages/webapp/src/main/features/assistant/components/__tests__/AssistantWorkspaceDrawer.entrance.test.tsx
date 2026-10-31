@@ -11,7 +11,7 @@ import { Provider } from 'react-redux';
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { specDrivenReducer } from '../../../spec-driven/state/specDrivenSlice';
+import { specDrivenReducer } from '../../../spec-driven';
 
 vi.mock('../../hooks/useAssistantLogic', () => ({
   useAssistantLogic: () => ({

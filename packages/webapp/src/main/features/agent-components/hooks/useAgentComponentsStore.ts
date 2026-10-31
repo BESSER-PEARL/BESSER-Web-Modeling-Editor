@@ -6,12 +6,12 @@ import { selectActiveDiagram, selectProject } from '../../../app/store/workspace
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { getAgentComponents, normalizeStoredAgentModel } from '../../../shared/utils/projectExportUtils';
-import type { SqlDatabaseEntry } from '../../agent-config/AgentConfigYamlEditor';
+import type { SqlDatabaseEntry } from '../../agent-config';
 import {
   DEFAULT_AGENT_CONFIG_FORM,
   agentConfigFormToYaml,
   buildConfigYaml,
-} from '../../agent-config/AgentConfigYamlEditor';
+} from '../../agent-config';
 import {
   AgentComponents,
   CreatableComponentType,

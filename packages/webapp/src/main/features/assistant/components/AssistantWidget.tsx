@@ -22,11 +22,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
-import type { GeneratorType } from '../../../app/shell/workspace-types';
-import type { GenerationResult } from '../../generation/types';
+import type { GeneratorType } from '../../../shared/types/workspace-types';
+import type { GenerationResult } from '../../generation';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
 import { isAssistantApplicableTo } from '../services/assistantSupport';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
