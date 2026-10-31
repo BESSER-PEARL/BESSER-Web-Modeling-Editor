@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 import { useAppSelector } from '@/main/app/store/hooks';
-import { selectStdoutLines } from '@/main/features/agent-simulation';
+import { selectStdoutLines } from './agentSimulationSlice';
 
 const MAX_DISPLAY_LINES = 2000;
 

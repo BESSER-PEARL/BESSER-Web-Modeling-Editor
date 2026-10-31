@@ -66,7 +66,7 @@ import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
-import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
+import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
 import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
@@ -74,7 +74,7 @@ import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
-import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type { QualityCheckResult, QualityCheckState } from '../../shared/types/quality-check';
 import type { AgentVariantOption } from './topbar-types';
 import { useHasOpened } from '../hooks/useHasOpened';
 import { useStableCallback } from '../hooks/useStableCallback';
@@ -108,7 +108,7 @@ import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../share
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 
-export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
+export type { GeneratorType, GeneratorMenuMode } from '../../shared/types/workspace-types';
 
 // addDiagramThunk's message when a project already holds the maximum number
 // of diagrams of a type.

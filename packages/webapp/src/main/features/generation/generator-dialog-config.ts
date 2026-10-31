@@ -1,4 +1,4 @@
-import type { GeneratorType } from '../../app/shell/workspace-types';
+import type { GeneratorType } from '../../shared/types/workspace-types';
 
 export type ConfigDialog = 'none' | 'django' | 'spring' | 'sql' | 'supabase' | 'sqlalchemy' | 'jsonschema' | 'agent' | 'qiskit' | 'forecaster' | 'web_app_checklist';
 

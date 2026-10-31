@@ -1,4 +1,4 @@
-import type { GeneratorMenuMode } from '../../app/shell/workspace-types';
+import type { GeneratorMenuMode } from '../types/workspace-types';
 
 interface WorkspaceContext {
   isQuantumContext: boolean;

@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { Editor } from 'grapesjs';
-import '../editors/gui/grapesjs-styles.css';
+import '../../shared/styles/grapesjs-styles.css';
+// eslint-disable-next-line no-restricted-imports -- not in editors/index.ts: a re-export there moves the GrapesJS registrars into the main chunk
 import { registerAllComponents } from '../editors/gui/registerAllComponents';
 import {
   GrapesJSProjectData,

@@ -56,7 +56,7 @@ import {
   closePushDialog,
   openPushDialog,
   setLastRunForProject,
-} from '../../spec-driven/state/specDrivenSlice';
+} from '../../spec-driven';
 import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 

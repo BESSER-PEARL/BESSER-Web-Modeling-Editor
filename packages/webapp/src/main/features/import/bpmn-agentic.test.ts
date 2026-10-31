@@ -8,7 +8,7 @@ import {
   generateGovernanceDsl,
 } from '@besser/wme';
 import type { UMLModel } from '@besser/wme';
-import { apollonBpmnToXml } from '../export/bpmn-xml-exporter';
+import { apollonBpmnToXml } from '../export';
 import { bpmnXmlToApollon } from './bpmn-xml-importer';
 
 describe('clampTrustScore', () => {
