@@ -46,10 +46,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "user-guide/diagram types/*",
-    "user-guide/diagram_types.rst",
-    "user-guide/project.rst",
-    "user-guide/interface.rst",
 ]
 
 # -- Options for HTML output -------------------------------------------------
