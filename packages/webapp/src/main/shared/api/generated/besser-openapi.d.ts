@@ -1504,7 +1504,7 @@ export interface paths {
          * @description Download the output produced by a completed run.
          *
          *     Re-downloadable until the TTL sweep expires the entry
-         *     (``LLM_DOWNLOAD_TTL_SECONDS``, default 30 min) — a transient network
+         *     (``BESSER_LLM_DOWNLOAD_TTL_SECONDS``, default 30 min) — a transient network
          *     failure during the blob fetch must not permanently lose an artifact
          *     the user paid minutes and dollars to produce. Cleanup is owned
          *     entirely by ``SmartRunRegistry.periodic_sweep``; this endpoint no
@@ -1540,7 +1540,7 @@ export interface paths {
          *     Flow:
          *       1. Gate on the ``X-GitHub-Session`` header (same helper the other
          *          GitHub endpoints use — the real token never reaches the client).
-         *       2. Resolve the stored run from ``SMART_RUN_REGISTRY`` (404 when it
+         *       2. Resolve the stored run from the run registry (404 when it
          *          has been swept past its TTL — the user must re-generate).
          *       3. Copy the stored file tree into a fresh temp dir, skipping build/
          *          dependency dirs, ``.besser_*`` internals, and any ``.env`` that
@@ -1582,7 +1582,7 @@ export interface paths {
          *       2. Resolve the target branch (repo default when none is requested).
          *       3. Pin the branch head, then download + extract the repo at that
          *          commit into the shared run workspace.
-         *       4. Register that code tree as a run in ``SMART_RUN_REGISTRY`` under a
+         *       4. Register that code tree as a run in the run registry under a
          *          fresh ``run_id``. A later ``/spec-driven/generate`` with
          *          ``mode="modify"`` and ``base_run_id=run_id`` seeds its workspace from
          *          exactly this tree, in whichever container runs it.
@@ -2756,7 +2756,7 @@ export interface components {
          *     Pushes the *stored* artifact of a finished spec-driven generation run
          *     (identified by ``run_id``) plus the re-importable model source, rather
          *     than re-generating deterministically (which would discard the LLM
-         *     customizations). The run's code is read from ``SMART_RUN_REGISTRY``;
+         *     customizations). The run's code is read from the run registry;
          *     only the model source travels in the request.
          *
          *     Attributes
