@@ -66,6 +66,33 @@ describe('importProjectFromJson: empty diagrams are re-created with the right mo
     expect(isKnowledgeGraphData(stored.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
   });
 
+  it('imports a bare project, as "Share as gist" and the old GitHub sidebar write it', async () => {
+    // Shaped like a real gist/sidebar file: the stored project itself, no export
+    // envelope, written before the Knowledge Graph slot existed.
+    const project = createDefaultProject('OCL_Gen', '', 'Fitash');
+    const classDiagram = project.diagrams.ClassDiagram[0];
+    classDiagram.model = {
+      ...(classDiagram.model as object),
+      elements: { g1: { id: 'g1', name: 'Generator', type: 'Class', owner: null, attributes: [], methods: [] } },
+    } as typeof classDiagram.model;
+    const { KnowledgeGraphDiagram: _kg, ...diagramsWithoutKg } = project.diagrams;
+    const bare = { ...project, schemaVersion: 5, diagrams: diagramsWithoutKg };
+
+    const imported = await importProjectFromJson(asFile(bare));
+
+    expect(imported.name).toBe('OCL_Gen');
+    expect(imported.id).not.toBe(project.id);
+    expect(Object.keys((imported.diagrams.ClassDiagram[0].model as { elements: object }).elements)).toEqual(['g1']);
+    expect(isKnowledgeGraphData(imported.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
+    expect(ProjectStorageRepository.loadProject(imported.id)?.name).toBe('OCL_Gen');
+  });
+
+  it('says "Invalid JSON" only for a file that is not JSON', async () => {
+    await expect(importProjectFromJson(new File(['{ not json'], 'x.json'))).rejects.toThrow(/Invalid JSON format/);
+    await expect(importProjectFromJson(asFile({ hello: 'world' }))).rejects.toThrow(/not a BESSER project/);
+    await expect(importProjectFromJson(asFile({ hello: 'world' }))).rejects.not.toThrow(/Invalid JSON/);
+  });
+
   it('fills every other type of a single-diagram file too', async () => {
     const single = { title: 'Solo', model: { type: 'ClassDiagram', elements: {}, relationships: {} } };
 
