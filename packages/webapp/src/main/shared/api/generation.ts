@@ -1,29 +1,30 @@
 /**
  * Code generation and local deployment (BESSER `routers/generation_router.py`,
- * `routers/deployment_router.py`). Each call returns the raw `Response`: the
- * caller reads the generated file (blob + `Content-Disposition`) or the error
- * `detail` itself. No timeout beyond the caller's `signal`.
+ * `routers/deployment_router.py`). A failure rejects with an `ApiError`; a
+ * timeout with a `TimeoutError` `DOMException`.
  */
-import { BACKEND_URL } from '../constants/constant';
+import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
 
-const postJson = (path: string, body: unknown, signal?: AbortSignal): Promise<Response> =>
-  fetch(`${BACKEND_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/plain, */*',
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
+export type DiagramInput = components['schemas']['DiagramInput'];
 
-/** `POST /generate-output`: one diagram (backend `DiagramInput`) in, the generated output out. */
-export const generateFromDiagram = (body: unknown, signal?: AbortSignal): Promise<Response> =>
-  postJson('/generate-output', body, signal);
+/** `docker compose up` builds the app's images first: a hung request is the only thing this stops. */
+const DEPLOY_TIMEOUT_MS = 30 * 60_000;
 
-/** `POST /generate-output-from-project`: a project (backend `ProjectInput`) in, the generated output out. */
-export const generateFromProject = (project: unknown, signal?: AbortSignal): Promise<Response> =>
-  postJson('/generate-output-from-project', project, signal);
+const ACCEPT_ANY = { Accept: 'application/json, text/plain, */*' };
+
+/** `POST /generate-output`: one diagram in, the generated file and its headers (`Content-Disposition`) out. */
+export const generateFromDiagram = (body: DiagramInput, timeout: number) =>
+  apiClient.downloadBlob('/generate-output', body, { headers: ACCEPT_ANY, timeout });
+
+/**
+ * `POST /generate-output-from-project`: a project (backend `ProjectInput`) in,
+ * the generated file and its headers out. Typed `unknown`: the editor builds
+ * the payload as a plain record (`buildProjectPayloadForBackend`).
+ */
+export const generateFromProject = (project: unknown, timeout: number) =>
+  apiClient.downloadBlob('/generate-output-from-project', project, { headers: ACCEPT_ANY, timeout });
 
 /** `POST /deploy-app`: generate the app and run it on the backend host. */
-export const deployApp = (body: unknown): Promise<Response> => postJson('/deploy-app', body);
+export const deployApp = (body: DiagramInput) =>
+  apiClient.post<null>('/deploy-app', body, { headers: ACCEPT_ANY, timeout: DEPLOY_TIMEOUT_MS });

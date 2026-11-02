@@ -3672,7 +3672,6 @@
       "failed": "Export fehlgeschlagen: {{error}}",
       "validationFailed": "Validierung fehlgeschlagen",
       "noDiagramToExport": "Kein Diagramm zum Exportieren",
-      "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden",
       "bumlExportSuccess": "B-UML-Export erfolgreich abgeschlossen",
       "noProjectData": "Keine Projektdaten zum Exportieren verfügbar",
       "projectExportedAs": "Projekt exportiert als {{filename}}",
@@ -3743,8 +3742,7 @@
       "couldNotImportFromKg": "Diagramm konnte nicht aus Knowledge Graph importiert werden: {{message}}",
       "couldNotImportFromImage": "Diagramm konnte nicht aus Bild importiert werden: {{message}}",
       "readFileFailed": "Datei konnte nicht gelesen werden",
-      "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
-      "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden"
+      "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben"
     },
     "warnings": {
       "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",

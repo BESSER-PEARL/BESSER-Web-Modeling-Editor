@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
 import { submitFeedback, type FeedbackSubmission } from '../api/feedback';
+import { ApiError } from '../api/api-client';
 import { validateEmail, validateRequired, validateMinLength } from '../utils/validation';
 import { useFieldValidation } from '../hooks/useFieldValidation';
 
@@ -87,7 +88,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     try {
       setIsSubmitting(true);
 
-      const response = await submitFeedback({
+      await submitFeedback({
         satisfaction,
         category,
         feedback: feedback.trim(),
@@ -96,23 +97,16 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
         user_agent: navigator.userAgent,
       });
 
-      if (!response.ok) {
-        let detail = t('feedback.toasts.submitFailedDefault');
-        try {
-          const payload = await response.json();
-          if (typeof payload?.detail === 'string') {
-            detail = payload.detail;
-          }
-        } catch {
-          // Use fallback detail.
-        }
-        throw new Error(detail);
-      }
-
       toast.success(t('feedback.toasts.thankYou'));
       handleOpenChange(false);
     } catch (error) {
-      reportError(t('feedback.toasts.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toasts.unknownError') }), { error });
+      const message =
+        error instanceof ApiError
+          ? (error.detail ?? t('feedback.toasts.submitFailedDefault'))
+          : error instanceof Error
+            ? error.message
+            : t('feedback.toasts.unknownError');
+      reportError(t('feedback.toasts.submitFailed', { error: message }), { error });
       setIsSubmitting(false);
     }
   };

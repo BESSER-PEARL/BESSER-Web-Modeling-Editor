@@ -13,7 +13,7 @@
  * advertisement too, and shared code must not import from features.
  */
 
-import { getSpecDrivenConfigResponse } from '../api/specDriven';
+import { fetchSpecDrivenConfig } from '../api/specDriven';
 
 export interface SpecDrivenConfigCaps {
   /** Server-enforced ceiling for the per-run cost budget (USD). */
@@ -320,11 +320,7 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
   if (!_configPromise) {
     _configPromise = (async (): Promise<SpecDrivenConfig> => {
       try {
-        const response = await getSpecDrivenConfigResponse();
-        if (!response.ok) {
-          throw new Error(`config endpoint returned ${response.status}`);
-        }
-        _loadedConfig = _normalize(await response.json());
+        _loadedConfig = _normalize(await fetchSpecDrivenConfig());
         return _loadedConfig;
       } catch (err) {
         console.warn('[specDrivenConfig] falling back to defaults:', err);

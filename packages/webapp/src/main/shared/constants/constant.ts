@@ -232,10 +232,6 @@ export const sessionStorageGitHubSessionExpired = 'github_session_expired';
 
 // Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
-export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;
-export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/spec-driven/config`;
-export const specDrivenDownloadUrl = (runId: string): string =>
-  `${BACKEND_URL}/spec-driven/download/${runId}`;
 export const cancelSpecDrivenUrl = (runId: string): string =>
   `${BACKEND_URL}/spec-driven/cancel/${runId}`;
 export const specDrivenRunStatusUrl = (runId: string): string =>

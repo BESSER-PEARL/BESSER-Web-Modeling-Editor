@@ -3672,7 +3672,6 @@
       "failed": "Export feelgeschloen: {{error}}",
       "validationFailed": "Validéierung feelgeschloen",
       "noDiagramToExport": "Keen Diagramm fir z'exportéieren",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "bumlExportSuccess": "B-UML-Export erfollegräich ofgeschloss",
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
@@ -3743,8 +3742,7 @@
       "couldNotImportFromKg": "Diagramm konnt net vum Knowledge Graph importéiert ginn: {{message}}",
       "couldNotImportFromImage": "Diagramm konnt net vun engem Bild importéiert ginn: {{message}}",
       "readFileFailed": "Datei konnt net gelies ginn",
-      "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+      "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn"
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",

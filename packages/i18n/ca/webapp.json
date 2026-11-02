@@ -3672,7 +3672,6 @@
       "failed": "L'exportació ha fallat: {{error}}",
       "validationFailed": "La validació ha fallat",
       "noDiagramToExport": "No hi ha cap diagrama per exportar",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
       "bumlExportSuccess": "Exportació de B-UML completada correctament",
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
@@ -3743,8 +3742,7 @@
       "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de graf de coneixement: {{message}}",
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
-      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid"
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",

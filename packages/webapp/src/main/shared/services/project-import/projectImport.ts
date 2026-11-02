@@ -18,6 +18,7 @@ import {
   StoredUserProfile,
 } from '../storage/local-storage-types';
 import { getProjectJsonModel } from '../../api/conversion';
+import { ApiError } from '../../api/api-client';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
 import { reportImportRepairs } from './reportImportRepairs';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
@@ -359,14 +360,13 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
-  const response = await getProjectJsonModel(file);
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Import failed with status ${response.status}`);
+  let jsonData;
+  try {
+    jsonData = await getProjectJsonModel(file);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    throw new Error(error.detail || `Import failed with status ${error.status}`);
   }
-
-  const jsonData = await response.json();
   reportImportRepairs(jsonData.warnings);
 
   if (isOldWebappFormat(jsonData)) {

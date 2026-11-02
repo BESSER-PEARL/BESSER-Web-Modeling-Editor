@@ -3672,7 +3672,6 @@
       "failed": "Échec de l'exportation : {{error}}",
       "validationFailed": "Échec de la validation",
       "noDiagramToExport": "Aucun diagramme à exporter",
-      "couldNotParseError": "Impossible d'analyser la réponse d'erreur",
       "bumlExportSuccess": "Export B-UML terminé avec succès",
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
@@ -3743,8 +3742,7 @@
       "couldNotImportFromKg": "Impossible d'importer le diagramme depuis Knowledge Graph : {{message}}",
       "couldNotImportFromImage": "Impossible d'importer le diagramme depuis une image : {{message}}",
       "readFileFailed": "Échec de la lecture du fichier",
-      "invalidFromBackend": "Diagramme non valide renvoyé par le backend",
-      "couldNotParseError": "Impossible d'analyser la réponse d'erreur"
+      "invalidFromBackend": "Diagramme non valide renvoyé par le backend"
     },
     "warnings": {
       "danglingAgentRef": "L'élément « {{name}} » référence un comportement d'agent absent de ce projet. Utilisez « Définir le comportement de l'agent » sur cet élément pour en créer un nouveau.",

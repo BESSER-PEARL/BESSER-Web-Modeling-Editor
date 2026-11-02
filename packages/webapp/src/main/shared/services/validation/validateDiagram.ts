@@ -1,7 +1,8 @@
 import { toast } from 'react-toastify';
 import { reportError } from '../errors/reportError';
 import type { CSSProperties } from 'react';
-import { postValidateDiagram } from '../../api/validation';
+import { postValidateDiagram, type ValidationResponse } from '../../api/validation';
+import { ApiError } from '../../api/api-client';
 import { ApollonEditor } from '@besser/wme';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
@@ -25,7 +26,14 @@ const stripStatusEmoji = (text: string): string =>
  */
 const VALIDATION_TOAST_ID = 'diagram-validation-loading';
 
-export async function validateDiagram(editor: ApollonEditor | null | undefined, diagramTitle: string, modelData?: any) {
+/** The backend's result, or `isValid: false` with the reason when it could not be had. */
+export type ValidateDiagramResult = Pick<ValidationResponse, 'isValid' | 'errors'> & Partial<ValidationResponse>;
+
+export async function validateDiagram(
+  editor: ApollonEditor | null | undefined,
+  diagramTitle: string,
+  modelData?: any,
+): Promise<ValidateDiagramResult> {
   // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
   const suppressToasts = modelData && modelData._suppressToasts;
 
@@ -82,33 +90,21 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     // Agent models leave the editor through the single shared helper (components + transitions).
     const modelToSend = model?.type === 'AgentDiagram' ? prepareAgentModelForBackend(model) : model;
 
-    // Call unified validation endpoint with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
-    let response: Response;
+    // Call unified validation endpoint (the API module sets the timeout)
+    let result: ValidationResponse;
     try {
-      response = await postValidateDiagram({ title: diagramTitle, model: modelToSend }, controller.signal);
+      result = await postValidateDiagram({ title: diagramTitle, model: modelToSend });
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+      if (fetchError instanceof DOMException && (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError')) {
         toast.dismiss(VALIDATION_TOAST_ID);
         reportError(i18n.t('validation.toasts.timedOut'), { error: fetchError });
         return { isValid: false, errors: ['Validation timed out'] };
       }
-      throw fetchError;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ 
-        errors: ['Could not parse error response'] 
-      }));
-      
+      if (!(fetchError instanceof ApiError)) throw fetchError;
+      // A failed request carries a `detail`; only a validation result has `errors`.
       if (!suppressToasts) {
         toast.dismiss(VALIDATION_TOAST_ID);
-        const errorMessage = errorData.errors?.join('\n') || i18n.t('validation.toasts.validationFailed');
-        reportError(errorMessage, {
+        reportError(i18n.t('validation.toasts.validationFailed'), {
           position: "top-right",
           autoClose: false,
           style: {
@@ -116,10 +112,8 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
           }
         });
       }
-      return { isValid: false, errors: errorData.errors || ['Validation failed'] };
+      return { isValid: false, errors: ['Validation failed'] };
     }
-    
-    const result = await response.json();
     
     // Small delay to ensure smooth transition
     if (!suppressToasts) {

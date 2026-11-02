@@ -1,4 +1,5 @@
 import { exportProjectAsBuml } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
 import i18n from '../../shared/i18n';
@@ -25,18 +26,10 @@ export async function exportProjectAsSingleBUMLFile(
   const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes);
 
   try {
-    const response = await exportProjectAsBuml(projectToExport);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error:', errorText);
-      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-    }
-
-    const blob = await response.blob();
+    const { blob, headers } = await exportProjectAsBuml(projectToExport);
 
     // Get the filename from the response headers
-    const contentDisposition = response.headers.get('Content-Disposition');
+    const contentDisposition = headers.get('Content-Disposition');
     const normalizedProjectName = projectToUse.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     let filename = `${normalizedProjectName}_besser.py`; // Default filename
 
@@ -61,6 +54,12 @@ export async function exportProjectAsSingleBUMLFile(
     toast.success(i18n.t('export.toasts.projectExportedAs', { filename }));
   } catch (error) {
     console.error('Error exporting project as BUML file:', error);
-    reportError(i18n.t('export.toasts.projectExportFailed', { error: error instanceof Error ? error.message : i18n.t('export.toasts.unknownError') }), { error });
+    const message =
+      error instanceof ApiError
+        ? `HTTP error! status: ${error.status} - ${error.message}`
+        : error instanceof Error
+          ? error.message
+          : i18n.t('export.toasts.unknownError');
+    reportError(i18n.t('export.toasts.projectExportFailed', { error: message }), { error });
   }
 }

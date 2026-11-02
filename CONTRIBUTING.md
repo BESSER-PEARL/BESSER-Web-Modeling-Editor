@@ -285,9 +285,12 @@ If you add a new alias, update **both** files.
 
 All backend calls live in `shared/api/` (ESLint rejects `fetch` elsewhere):
 
-- `api-client.ts`: singleton `apiClient` with a 30 s timeout; methods `get()`,
-  `post()`, `upload()` (FormData), `downloadBlob()` (binary); custom
-  `ApiError` class with HTTP status.
+- `api-client.ts`: singleton `apiClient` with a 30 s default timeout (pass
+  `timeout` for slower endpoints); methods `get()`, `post()`, `upload()`
+  (FormData), `downloadBlob()` / `getBlob()` (binary); custom `ApiError` class
+  with the HTTP status and the server's `detail`. Use it for every new call:
+  raw `fetch` is kept only for streams, keepalive/beacon calls and non-BESSER
+  hosts.
 - One module per backend area (`generation.ts`, `conversion.ts`,
   `github.ts`, ...) that components and hooks call.
 - Contract types: `generated/besser-openapi.d.ts`, generated from the

@@ -64,8 +64,10 @@ Integration points
   meaningful edits flow through Redux slices (see :doc:`../editor/api`).
 * **Server communication** – every HTTP request is made in ``shared/api/``
   (ESLint rejects ``fetch`` elsewhere); most go to ``BACKEND_URL`` (the BESSER
-  Python backend), typed with the types generated from the backend's OpenAPI
-  schema (``npm run api:generate --workspace=webapp``). Only the
+  Python backend) through the shared ``apiClient``, with contract types
+  generated from the backend's OpenAPI schema
+  (``npm run api:generate --workspace=webapp``) where the editor's own data
+  fits them; project payloads stay untyped. Only the
   assistant rate limiter and SVG conversion use the Express app's ``/api``
   routes. The assistant's WebSocket URL comes from ``UML_BOT_WS_URL``, falling
   back to a ``WS_PROTOCOL`` derived from ``DEPLOYMENT_URL``.

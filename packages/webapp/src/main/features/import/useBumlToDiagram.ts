@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { getJsonModel } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram } from '../../shared/types/project';
 import { reportImportRepairs } from '../../shared/services/project-import/reportImportRepairs';
@@ -12,24 +13,18 @@ import { reportImportRepairs } from '../../shared/services/project-import/report
 export const useBumlToDiagram = () => {
   const convertBumlToDiagram = useCallback(async (file: File): Promise<ProjectDiagram> => {
     try {
-      const response = await getJsonModel(file);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch((e) => ({ detail: 'Could not parse error response' }));
-        console.error('Response not OK:', response.status, errorData);
-
-        if (response.status === 400 && errorData.detail) {
-          throw new Error(errorData.detail);
-        }
-
-        if (response.status === 500 && errorData.detail) {
-          throw new Error(errorData.detail);
-        }
-
-        throw new Error(`HTTP error! status: ${response.status}`);
+      let data;
+      try {
+        data = await getJsonModel(file);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        console.error('Response not OK:', error.status, error.message);
+        throw new Error(
+          error.detail && (error.status === 400 || error.status === 500)
+            ? error.detail
+            : `HTTP error! status: ${error.status}`,
+        );
       }
-
-      const data = await response.json();
       reportImportRepairs(data.warnings);
 
       // Handle both single diagram and project responses

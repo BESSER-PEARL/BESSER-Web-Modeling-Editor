@@ -51,6 +51,7 @@ import { importProject } from '../../shared/services/project-import/projectImpor
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
 import { csvToDomainModel } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { readPreferredInterface, writePreferredInterface } from '../../shared/services/storage/preferencesStorage';
 import { cancelAssistantOpenOnLoad, requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
 import {
@@ -637,20 +638,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     await createProjectFromGeneratedDiagram(
       async () => {
-        const response = await csvToDomainModel(spreadsheetFiles);
-        if (!response.ok) {
-          let message = t('project.hub.toasts.spreadsheetGenerateFailed');
-          try {
-            const errorData = await response.json();
-            if (typeof errorData?.detail === 'string') {
-              message = errorData.detail;
-            }
-          } catch {
-            // Keep fallback message.
-          }
-          throw new Error(message);
+        try {
+          return await csvToDomainModel(spreadsheetFiles);
+        } catch (error) {
+          if (!(error instanceof ApiError)) throw error;
+          throw new Error(error.detail ?? t('project.hub.toasts.spreadsheetGenerateFailed'));
         }
-        return response.json();
       },
       { importFailed: 'project.hub.toasts.spreadsheetImportFailed' },
     );

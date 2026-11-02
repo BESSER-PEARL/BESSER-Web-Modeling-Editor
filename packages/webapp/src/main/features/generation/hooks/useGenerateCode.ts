@@ -4,8 +4,10 @@ import { useFileDownload } from '../../../shared/services/file-download/useFileD
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
-import { generateFromDiagram, generateFromProject } from '../../../shared/api/generation';
+import { generateFromDiagram, generateFromProject, type DiagramInput } from '../../../shared/api/generation';
+import { ApiError } from '../../../shared/api/api-client';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { promptForGitHubStarOnce } from '../../../shared/services/githubStarPrompt';
@@ -155,6 +157,32 @@ export type GeneratorConfig = {
   [key: string]: any;
 };
 
+/** Statuses whose server `detail` explains a generation failure to the user. */
+const DETAIL_STATUSES = new Set([400, 422, 500]);
+
+/** Toast a failed generation request and turn it into the hook's result. */
+function reportGenerationFailure(error: unknown, t: TFunction, opts?: GenerationOptions): GenerationResult {
+  if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+    reportError(t('generation.toasts.requestTimedOut'), { error });
+    return { ok: false, error: 'Request timed out' };
+  }
+  if (error instanceof ApiError) {
+    console.error('Response not OK:', error.status, error.message);
+    if (error.detail && DETAIL_STATUSES.has(error.status)) {
+      reportError(opts?.describeError?.(error.status, error.detail) ?? error.detail);
+      return { ok: false, error: error.detail };
+    }
+  }
+  let errorMessage = t('generation.toasts.unknownError');
+  if (error instanceof ApiError) {
+    errorMessage = `HTTP error! status: ${error.status}`;
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+  }
+  reportError(`${errorMessage}`, { error });
+  return { ok: false, error: errorMessage };
+}
+
 export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
   const { t } = useTranslation();
@@ -202,7 +230,6 @@ export const useGenerateCode = () => {
         }
       };
 
-      const controller = new AbortController();
       // Generating multiple web-app versions produces N complete apps, so scale
       // the timeout with the version count (bounded at 10 min).
       const webAppVersionCount = Array.isArray((config as any)?.webAppVersions)
@@ -210,32 +237,11 @@ export const useGenerateCode = () => {
         : 0;
       const requestTimeoutMs =
         webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
-      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
-        const response = await generateFromProject(projectWithSettings, controller.signal);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
-          console.error('Response not OK:', response.status, errorData);
-
-          // 422 carries a readable detail only when it is a string (FastAPI's
-          // own request validation sends a list).
-          const hasDetail =
-            ((response.status === 400 || response.status === 500) && errorData.detail) ||
-            (response.status === 422 && typeof errorData.detail === 'string');
-          if (hasDetail) {
-            const detail = `${errorData.detail}`;
-            reportError(opts?.describeError?.(response.status, detail) ?? detail);
-            return { ok: false, error: detail };
-          }
-
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const blob = await response.blob();
+        const { blob, headers } = await generateFromProject(projectWithSettings, requestTimeoutMs);
 
         // Get the filename from the response headers
-        const contentDisposition = response.headers.get('Content-Disposition');
+        const contentDisposition = headers.get('Content-Disposition');
         let filename = 'generated_code.txt'; // Default filename
 
         if (contentDisposition) {
@@ -264,18 +270,7 @@ export const useGenerateCode = () => {
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          reportError(t('generation.toasts.requestTimedOut'), { error });
-          return { ok: false, error: 'Request timed out' };
-        }
-        let errorMessage = t('generation.toasts.unknownError');
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-        reportError(`${errorMessage}`, { error });
-        return { ok: false, error: errorMessage };
-      } finally {
-        clearTimeout(timeoutId);
+        return reportGenerationFailure(error, t, opts);
       }
     },
     [downloadFile, t],
@@ -342,7 +337,7 @@ export const useGenerateCode = () => {
       // agent personalization to ship the un-personalized base instead of
       // whatever variant happens to be active in the editor — see
       // handleAgentGenerate in useGeneratorExecution.
-      const body: any = {
+      const body: DiagramInput = {
         title: diagramTitle,
         model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : modelForGeneration,
         generator: generatorType,
@@ -363,33 +358,11 @@ export const useGenerateCode = () => {
         }
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
       try {
-        const response = await generateFromDiagram(body, controller.signal);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
-          console.error('Response not OK:', response.status, errorData); // Debug log
-
-          // 422 carries a readable detail only when it is a string (FastAPI's
-          // own request validation sends a list).
-          const hasDetail =
-            ((response.status === 400 || response.status === 500) && errorData.detail) ||
-            (response.status === 422 && typeof errorData.detail === 'string');
-          if (hasDetail) {
-            const detail = `${errorData.detail}`;
-            reportError(opts?.describeError?.(response.status, detail) ?? detail);
-            return { ok: false, error: detail };
-          }
-
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const blob = await response.blob();
+        const { blob, headers } = await generateFromDiagram(body, 300000);
 
         // Get the filename from the response headers
-        const contentDisposition = response.headers.get('Content-Disposition');
+        const contentDisposition = headers.get('Content-Disposition');
         let filename = 'generated_code.txt'; // Default filename
 
         if (contentDisposition) {
@@ -416,20 +389,7 @@ export const useGenerateCode = () => {
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          reportError(t('generation.toasts.requestTimedOut'), { error });
-          return { ok: false, error: 'Request timed out' };
-        }
-
-        let errorMessage = t('generation.toasts.unknownError');
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-
-        reportError(`${errorMessage}`, { error });
-        return { ok: false, error: errorMessage };
-      } finally {
-        clearTimeout(timeoutId);
+        return reportGenerationFailure(error, t, opts);
       }
     },
     [downloadFile, generateCodeFromProject, t],

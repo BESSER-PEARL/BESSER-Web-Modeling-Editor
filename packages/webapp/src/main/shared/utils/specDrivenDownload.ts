@@ -39,29 +39,19 @@ export async function fetchAndSaveSpecDrivenArtifact(
   // Research telemetry: the user took the generated output with them.
   // Fire-and-forget, no-op unless telemetry is active.
   emitDeliveryEvent('download', runId);
-  let response: Response;
-  try {
-    response = await downloadSpecDrivenOutput(runId);
-  } catch (err) {
-    console.error('[specDrivenDownload] download fetch failed', err);
-    return { ok: false };
-  }
-  if (!response.ok) {
-    console.error('[specDrivenDownload] download status', response.status);
-    return { ok: false };
-  }
   let blob: Blob;
+  let headers: Headers;
   try {
-    blob = await response.blob();
+    ({ blob, headers } = await downloadSpecDrivenOutput(runId));
   } catch (err) {
-    console.error('[specDrivenDownload] download blob decode failed', err);
+    console.error('[specDrivenDownload] download failed', err);
     return { ok: false };
   }
   // For explicit zip results, trust the backend's flag over the
   // response header — some proxies drop or rewrite Content-Type.
   const mime = isZip
     ? 'application/zip'
-    : response.headers.get('Content-Type') || blob.type || 'application/octet-stream';
+    : headers.get('Content-Type') || blob.type || 'application/octet-stream';
   try {
     downloadFile(blob, fileName, mime);
   } catch (err) {
@@ -78,8 +68,7 @@ export async function fetchAndSaveSpecDrivenArtifact(
  */
 export async function fetchSpecDrivenArtifactBlob(runId: string): Promise<Blob | null> {
   try {
-    const response = await downloadSpecDrivenOutput(runId);
-    return response.ok ? await response.blob() : null;
+    return (await downloadSpecDrivenOutput(runId)).blob;
   } catch (err) {
     console.error('[specDrivenDownload] view fetch failed', err);
     return null;

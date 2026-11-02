@@ -5,6 +5,7 @@
  */
 
 import { previewSpecDrivenRun } from '../../../shared/api/specDriven';
+import { ApiError } from '../../../shared/api/api-client';
 import type { GlobalConfirmOptions } from '../../../shared/services/confirm/globalConfirm';
 
 /**
@@ -50,20 +51,12 @@ export async function fetchModelChange(
   baseRunId: string,
   signal?: AbortSignal,
 ): Promise<ModelChange | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MODEL_CHANGE_TIMEOUT_MS);
-  const stop = () => controller.abort();
-  signal?.addEventListener('abort', stop);
   try {
     const response = await previewSpecDrivenRun(
       { project, instructions, mode: 'modify', base_run_id: baseRunId },
-      controller.signal,
+      { signal, timeout: MODEL_CHANGE_TIMEOUT_MS },
     );
-    if (!response.ok) {
-      console.warn(`[modelChange] preview returned ${response.status}; modifying without the check`);
-      return null;
-    }
-    const change = (await response.json())?.model_change;
+    const change = response?.model_change as Record<string, any> | null | undefined;
     if (!change || !VERDICTS.has(change.verdict) || typeof change.gone !== 'number') {
       return null;
     }
@@ -76,13 +69,12 @@ export async function fetchModelChange(
       renamed: renames(change.renamed),
     };
   } catch (err) {
-    if (!signal?.aborted) {
+    if (err instanceof ApiError) {
+      console.warn(`[modelChange] preview returned ${err.status}; modifying without the check`);
+    } else if (!signal?.aborted) {
       console.warn('[modelChange] preview failed; modifying without the check', err);
     }
     return null;
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener('abort', stop);
   }
 }
 

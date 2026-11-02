@@ -3,6 +3,7 @@ import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getJsonModelFromImage } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
@@ -31,16 +32,15 @@ export const useImportDiagramPictureFromImage = () => {
           ? { title: activeClassDiagram.title, model: (activeClassDiagram as any).model }
           : undefined;
 
-      const response = await getJsonModelFromImage(file, apiKey, existingModel);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
+      let data;
+      try {
+        data = await getJsonModelFromImage(file, apiKey, existingModel);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
         reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
       if (!data || !data.model || !data.model.type) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }

@@ -1,13 +1,12 @@
 /** User feedback (BESSER `routers/deployment_router.py`, `POST /feedback`). */
-import { BACKEND_URL } from '../constants/constant';
+import { apiClient } from './api-client';
 import type { components } from './generated/besser-openapi';
 
 export type FeedbackSubmission = components['schemas']['FeedbackSubmission'];
 
-/** Send the feedback form; the raw `Response`, whose error body carries a `detail`. */
-export const submitFeedback = (submission: FeedbackSubmission): Promise<Response> =>
-  fetch(`${BACKEND_URL}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(submission),
-  });
+/** The server may mail the feedback (its SMTP timeout is 30 s). */
+const FEEDBACK_TIMEOUT_MS = 60_000;
+
+/** Send the feedback form. A failure rejects with an `ApiError`. */
+export const submitFeedback = (submission: FeedbackSubmission) =>
+  apiClient.post<unknown>('/feedback', submission, { timeout: FEEDBACK_TIMEOUT_MS });

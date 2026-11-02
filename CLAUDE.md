@@ -168,17 +168,23 @@ exist); `webapp/*` → `./*`.
 
 ### API communication
 Every HTTP call lives in `shared/api/`; ESLint (`no-restricted-syntax`) rejects `fetch`, `XMLHttpRequest` and
-`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests. Most calls go through `api-client.ts` (`request`, `get`,
-`post`, `upload`, `downloadBlob`; per-request `timeout` override); the modules that return a raw `Response`
-(generation, conversion, validation, feedback, telemetry, spec-driven, GitHub sign-in) keep their callers' own
-timeouts and error handling. Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL`
+`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests. Calls go through `api-client.ts` (`request`, `get`, `post`,
+`upload`, `downloadBlob`, `getBlob`) with an explicit `timeout` wherever the 30 s default does not fit; a failure
+rejects with an `ApiError` (`status`, a readable `message`, and `detail` when the server sent one) or, on time-out,
+a `TimeoutError` `DOMException`, so callers never parse the error body. Raw `fetch` stays only where the client cannot
+carry the call: the SSE streams and their events-page fallback (`sseClient`, `specDriven`), fire-and-forget
+`keepalive`/`sendBeacon` calls (telemetry, run cancel), GitHub sign-in and star calls (they must not get the
+client's timeout or 401 session event), raw.githubusercontent.com files, and the editor's own Node rate limiter (`rateLimit`). Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL`
 in production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
 
 Contract types come from the backend's OpenAPI schema: `packages/webapp/openapi/besser-openapi.json` and the
 generated `shared/api/generated/besser-openapi.d.ts` (`import type { components } from '.../generated/besser-openapi'`).
 Regenerate both with `npm run api:generate --workspace=webapp` (needs Python with BESSER's dependencies; BESSER
-is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of). A hand-written type stays only
-where it is narrower than the schema (e.g. a literal union the schema types as `string`).
+is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of; the script stops when neither
+has a `besser/` package). CI regenerates the `.d.ts` from the committed JSON and fails on a difference. A
+hand-written type stays only where it is narrower than the schema (e.g. a literal union the schema types as
+`string`). Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
+a plain record (`buildProjectPayloadForBackend`); diagram payloads are typed `DiagramInput`.
 
 ### Error reporting
 A failure the user should see goes through `reportError(message, { error, ...toastOptions })` in
@@ -316,7 +322,6 @@ Documented so they are not rediscovered as bugs:
   `/opt/besser/build/server` and `bundle.js` and does not invoke it.
 - `create_diagram_tab` is in `KNOWN_ACTIONS` but missing from the `AssistantActionName` union in
   `features/assistant/services/assistant-types.ts`.
-- `SMART_GEN_PREVIEW_ENDPOINT` (`/spec-driven/preview`) has no callers — there is no plan-review step.
 - `selectProjectFile()` advertises `.zip`, but `importProject()` has no zip branch.
 - `DIAGRAM_GENERATOR_MAP` in `workspace-navigation.tsx` is out of sync with `generator-menu-config.ts`, which is
   the source of truth for what users see.

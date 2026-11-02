@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import { exportBuml } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 
 export const useExportBUML = () => {
@@ -26,27 +27,14 @@ export const useExportBUML = () => {
       }
 
       try {
-        const response = await exportBuml({
+        const { blob, headers } = await exportBuml({
           title: diagramTitle,
           model: prepareAgentModelForBackend(editor.model),
           generator: 'buml',
           ...(referenceDiagramData ? { referenceDiagramData } : {}),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('export.toasts.couldNotParseError') }));
-
-          if ((response.status === 400 || response.status === 500) && errorData.detail) {
-            reportError(errorData.detail);
-            return;
-          }
-
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-
-        const contentDisposition = response.headers.get('Content-Disposition');
+        const contentDisposition = headers.get('Content-Disposition');
         let filename = 'exported_buml.py';
 
         if (contentDisposition) {
@@ -69,7 +57,16 @@ export const useExportBUML = () => {
         downloadFile({ file: blob, filename });
         toast.success(t('export.toasts.bumlExportSuccess'));
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t('export.toasts.unknownError');
+        if (error instanceof ApiError && error.detail && (error.status === 400 || error.status === 500)) {
+          reportError(error.detail);
+          return;
+        }
+        const errorMessage =
+          error instanceof ApiError
+            ? `HTTP error! status: ${error.status}`
+            : error instanceof Error
+              ? error.message
+              : t('export.toasts.unknownError');
         reportError(errorMessage, { error });
       }
     },

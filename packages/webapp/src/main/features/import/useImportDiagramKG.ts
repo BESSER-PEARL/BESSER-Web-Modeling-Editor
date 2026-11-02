@@ -3,6 +3,7 @@ import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getJsonModelFromKg } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { bumpEditorRevision } from '../../app/store/workspaceSlice';
@@ -22,16 +23,15 @@ export const useImportDiagramFromKG = () => {
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
     try {
-      const response = await getJsonModelFromKg(file, apiKey);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
+      let data;
+      try {
+        data = await getJsonModelFromKg(file, apiKey);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
         reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
       // Should be a diagram JSON
       if (!data || !data.model || !data.model.type) {
         throw new Error(t('import.errors.invalidFromBackend'));

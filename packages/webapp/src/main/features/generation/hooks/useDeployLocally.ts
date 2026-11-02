@@ -5,6 +5,7 @@ import { reportError } from '../../../shared/services/errors/reportError'; // Im
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { deployApp } from '../../../shared/api/generation';
+import { ApiError } from '../../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import React from 'react';
 
@@ -50,47 +51,12 @@ export const useDeployLocally = () => {
       });
 
       try {
-        const response = await deployApp({
+        await deployApp({
           title: diagramTitle,
           model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
           generator: generatorType,
           config: config,
         });
-
-        // Update the toast based on the response
-        if (!response.ok) {
-          const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
-          console.error('Response not OK:', response.status, errorData);
-          
-          // Update the toast to an error state
-          if (response.status === 400 && errorData.detail) {
-            toast.update(toastId, { 
-              render: `${errorData.detail}`, 
-              type: "error", 
-              isLoading: false,
-              autoClose: 5000
-            });
-            return;
-          }
-          
-          if (response.status === 500 && errorData.detail) {
-            toast.update(toastId, { 
-              render: `${errorData.detail}`, 
-              type: "error", 
-              isLoading: false,
-              autoClose: 5000
-            });
-            return;
-          }
-
-          toast.update(toastId, {
-            render: t('generation.toasts.httpError', { status: response.status }),
-            type: "error",
-            isLoading: false,
-            autoClose: 5000
-          });
-          return;
-        }
 
         toast.update(toastId, {
           render: React.createElement('div', null,
@@ -116,6 +82,21 @@ export const useDeployLocally = () => {
           autoClose: 5000,
         });
       } catch (error) {
+        if (error instanceof ApiError) {
+          console.error('Response not OK:', error.status, error.message);
+          // Update the toast to an error state
+          toast.update(toastId, {
+            render:
+              error.detail && (error.status === 400 || error.status === 500)
+                ? error.detail
+                : t('generation.toasts.httpError', { status: error.status }),
+            type: "error",
+            isLoading: false,
+            autoClose: 5000
+          });
+          return;
+        }
+
         let errorMessage = t('generation.toasts.unknownDeploymentError');
         if (error instanceof Error) {
           errorMessage = error.message;

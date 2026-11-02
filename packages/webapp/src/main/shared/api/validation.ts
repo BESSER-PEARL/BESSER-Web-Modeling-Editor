@@ -1,16 +1,13 @@
 /** Diagram validation (BESSER `routers/validation_router.py`). */
-import { BACKEND_URL } from '../constants/constant';
+import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
+import type { DiagramInput } from './generation';
 
-/**
- * `POST /validate-diagram`: the raw `Response` (a `ValidationResponse`, or
- * `{errors}` on failure). The caller owns the timeout through `signal`.
- */
-export const postValidateDiagram = (body: { title: string; model: unknown }, signal?: AbortSignal): Promise<Response> =>
-  fetch(`${BACKEND_URL}/validate-diagram`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
+export type ValidationResponse = components['schemas']['ValidationResponse'];
+
+/** Validation converts the model to B-UML and runs its OCL constraints. */
+const VALIDATION_TIMEOUT_MS = 120_000;
+
+/** `POST /validate-diagram`. A failure rejects with an `ApiError`, a timeout with a `TimeoutError`. */
+export const postValidateDiagram = (body: Pick<DiagramInput, 'title' | 'model'>) =>
+  apiClient.post<ValidationResponse>('/validate-diagram', body, { timeout: VALIDATION_TIMEOUT_MS });

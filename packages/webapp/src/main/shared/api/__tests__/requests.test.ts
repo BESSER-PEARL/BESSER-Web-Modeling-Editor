@@ -1,6 +1,8 @@
 /**
  * The exact requests the shared/api modules send: URL, method, headers, body,
- * signal and keepalive, as the call sites sent them before they moved here.
+ * signal, timeout and keepalive. Calls through `apiClient` send its combined
+ * (caller + timeout) signal; the raw-fetch exceptions send exactly what the
+ * call sites sent before they moved here.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BACKEND_URL } from '../../constants/constant';
@@ -20,7 +22,7 @@ import { postTelemetryEvent } from '../telemetry';
 import {
   cancelSpecDrivenRun,
   downloadSpecDrivenOutput,
-  getSpecDrivenConfigResponse,
+  fetchSpecDrivenConfig,
   getSpecDrivenRunEventsPage,
   previewSpecDrivenRun,
 } from '../specDriven';
@@ -31,58 +33,60 @@ const fetchMock = vi.fn();
 
 beforeEach(() => {
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue(new Response('{}'));
+  fetchMock.mockImplementation(async () => new Response('{}'));
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 const lastCall = (): [string, RequestInit | undefined] => fetchMock.mock.calls[fetchMock.mock.calls.length - 1] as [string, RequestInit | undefined];
 const formEntries = (init: RequestInit | undefined) => [...(init?.body as FormData).entries()];
 
 const JSON_ANY = { 'Content-Type': 'application/json', Accept: 'application/json, text/plain, */*' };
+const JSON_ONLY = { 'Content-Type': 'application/json' };
+const SIGNAL = expect.any(AbortSignal);
+const DIAGRAM = { title: 'T', model: { type: 'ClassDiagram' } };
 
 describe('generation', () => {
-  it('posts one diagram to /generate-output with the caller signal', async () => {
-    const signal = new AbortController().signal;
-    await generateFromDiagram({ title: 'T', generator: 'django' }, signal);
+  it('posts one diagram to /generate-output', async () => {
+    await generateFromDiagram({ ...DIAGRAM, generator: 'django' }, 300_000);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/generate-output`);
     expect(init).toEqual({
       method: 'POST',
       headers: JSON_ANY,
-      body: JSON.stringify({ title: 'T', generator: 'django' }),
-      signal,
+      body: JSON.stringify({ ...DIAGRAM, generator: 'django' }),
+      signal: SIGNAL,
     });
   });
 
   it('posts a project to /generate-output-from-project', async () => {
-    const signal = new AbortController().signal;
-    await generateFromProject({ id: 'p' }, signal);
+    await generateFromProject({ id: 'p' }, 300_000);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/generate-output-from-project`);
-    expect(init).toMatchObject({ method: 'POST', headers: JSON_ANY, body: '{"id":"p"}', signal });
+    expect(init).toEqual({ method: 'POST', headers: JSON_ANY, body: '{"id":"p"}', signal: SIGNAL });
   });
 
-  it('posts to /deploy-app without a signal', async () => {
-    await deployApp({ title: 'T' });
+  it('posts to /deploy-app', async () => {
+    await deployApp(DIAGRAM);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/deploy-app`);
-    expect(init).toMatchObject({ method: 'POST', headers: JSON_ANY, body: '{"title":"T"}' });
-    expect(init?.signal).toBeUndefined();
+    expect(init).toEqual({ method: 'POST', headers: JSON_ANY, body: JSON.stringify(DIAGRAM), signal: SIGNAL });
   });
 });
 
 describe('conversion', () => {
   it('exports one diagram as B-UML, accepting a zip too', async () => {
-    await exportBuml({ title: 'T' });
+    await exportBuml(DIAGRAM);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/export-buml`);
     expect(init).toEqual({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/plain, application/zip, */*' },
-      body: '{"title":"T"}',
+      body: JSON.stringify(DIAGRAM),
+      signal: SIGNAL,
     });
   });
 
@@ -90,7 +94,7 @@ describe('conversion', () => {
     await exportProjectAsBuml({ id: 'p' });
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/export-project-as-buml`);
-    expect(init).toEqual({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"id":"p"}' });
+    expect(init).toEqual({ method: 'POST', headers: JSON_ONLY, body: '{"id":"p"}', signal: SIGNAL });
   });
 
   it('uploads a B-UML file as buml_file to /get-json-model and /get-project-json-model', async () => {
@@ -138,17 +142,11 @@ describe('conversion', () => {
 });
 
 describe('validation, feedback and telemetry', () => {
-  it('posts the diagram to /validate-diagram with the caller signal', async () => {
-    const signal = new AbortController().signal;
-    await postValidateDiagram({ title: 'T', model: { type: 'ClassDiagram' } }, signal);
+  it('posts the diagram to /validate-diagram', async () => {
+    await postValidateDiagram(DIAGRAM);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/validate-diagram`);
-    expect(init).toEqual({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{"title":"T","model":{"type":"ClassDiagram"}}',
-      signal,
-    });
+    expect(init).toEqual({ method: 'POST', headers: JSON_ONLY, body: JSON.stringify(DIAGRAM), signal: SIGNAL });
   });
 
   it('posts the feedback form to /feedback', async () => {
@@ -163,20 +161,16 @@ describe('validation, feedback and telemetry', () => {
     await submitFeedback(submission);
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/feedback`);
-    expect(init).toEqual({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(submission),
-    });
+    expect(init).toEqual({ method: 'POST', headers: JSON_ONLY, body: JSON.stringify(submission), signal: SIGNAL });
   });
 
-  it('posts a telemetry event with keepalive', async () => {
+  it('posts a telemetry event with keepalive (raw: fire-and-forget across unload)', async () => {
     await postTelemetryEvent({ session: 's1', participant: 'P1', kind: 'prompt', payload: { n: 1 } });
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/telemetry/event`);
     expect(init).toEqual({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: JSON_ONLY,
       body: '{"session":"s1","participant":"P1","kind":"prompt","payload":{"n":1}}',
       keepalive: true,
     });
@@ -184,28 +178,33 @@ describe('validation, feedback and telemetry', () => {
 });
 
 describe('spec-driven', () => {
-  it('reads the config and downloads output with plain GETs', async () => {
-    await getSpecDrivenConfigResponse();
-    expect(fetchMock).toHaveBeenLastCalledWith(`${BACKEND_URL}/spec-driven/config`);
+  it('reads the config and downloads output with GETs', async () => {
+    await fetchSpecDrivenConfig();
+    expect(lastCall()).toEqual([`${BACKEND_URL}/spec-driven/config`, { method: 'GET', headers: JSON_ONLY, signal: SIGNAL }]);
 
     await downloadSpecDrivenOutput('abc');
-    expect(fetchMock).toHaveBeenLastCalledWith(`${BACKEND_URL}/spec-driven/download/abc`);
+    expect(lastCall()).toEqual([`${BACKEND_URL}/spec-driven/download/abc`, { method: 'GET', signal: SIGNAL }]);
   });
 
-  it('posts a modify preview', async () => {
-    const signal = new AbortController().signal;
-    await previewSpecDrivenRun({ project: { id: 'p' }, instructions: 'add', mode: 'modify', base_run_id: 'r' }, signal);
+  it('posts a modify preview that the caller signal cancels', async () => {
+    const caller = new AbortController();
+    await previewSpecDrivenRun(
+      { project: { id: 'p' }, instructions: 'add', mode: 'modify', base_run_id: 'r' },
+      { signal: caller.signal, timeout: 8_000 },
+    );
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/spec-driven/preview`);
     expect(init).toEqual({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: JSON_ONLY,
       body: '{"project":{"id":"p"},"instructions":"add","mode":"modify","base_run_id":"r"}',
-      signal,
+      signal: SIGNAL,
     });
+    caller.abort();
+    expect(init?.signal?.aborted).toBe(true);
   });
 
-  it('polls an events page as JSON', async () => {
+  it('polls an events page as JSON with the caller signal (raw: the stream transport reads its failures)', async () => {
     const signal = new AbortController().signal;
     await getSpecDrivenRunEventsPage('run1', 7, signal);
     const [url, init] = lastCall();
@@ -246,6 +245,47 @@ describe('spec-driven', () => {
     await expect(cancelSpecDrivenRun('run1')).resolves.toBe(false);
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await expect(cancelSpecDrivenRun('run1')).resolves.toBe(false);
+  });
+});
+
+/** A fetch that never answers and rejects with its signal's abort reason. */
+const hangingFetch = (_url: string, init: RequestInit) =>
+  new Promise((_resolve, reject) => {
+    init.signal!.addEventListener('abort', () => reject(init.signal!.reason));
+  });
+
+describe('timeouts', () => {
+  const file = new File(['x'], 'f');
+  const feedback = { satisfaction: 'happy' as const, category: 'bug', feedback: 'x', timestamp: 't', user_agent: 'u' };
+  const preview = { project: {}, instructions: 'x', mode: 'modify' as const, base_run_id: 'r' };
+
+  it.each<[string, number, () => Promise<unknown>]>([
+    ['generate-output (caller-chosen)', 300_000, () => generateFromDiagram(DIAGRAM, 300_000)],
+    ['generate-output-from-project (caller-chosen)', 600_000, () => generateFromProject({}, 600_000)],
+    ['deploy-app', 1_800_000, () => deployApp(DIAGRAM)],
+    ['export-buml', 120_000, () => exportBuml(DIAGRAM)],
+    ['export-project-as-buml', 120_000, () => exportProjectAsBuml({})],
+    ['get-json-model', 120_000, () => getJsonModel(file)],
+    ['get-project-json-model', 120_000, () => getProjectJsonModel(file)],
+    ['csv-to-domain-model', 120_000, () => csvToDomainModel([file])],
+    ['get-json-model-from-image', 300_000, () => getJsonModelFromImage(file, 'k')],
+    ['get-json-model-from-kg', 300_000, () => getJsonModelFromKg(file, 'k')],
+    ['validate-diagram', 120_000, () => postValidateDiagram(DIAGRAM)],
+    ['feedback', 60_000, () => submitFeedback(feedback)],
+    ['spec-driven/config', 30_000, () => fetchSpecDrivenConfig()],
+    ['spec-driven/preview (caller-chosen)', 8_000, () => previewSpecDrivenRun(preview, { timeout: 8_000 })],
+    ['spec-driven/download', 300_000, () => downloadSpecDrivenOutput('r')],
+  ])('%s gives up after %i ms', async (_label, timeout, call) => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(hangingFetch);
+    let settled: unknown = 'pending';
+    void call().catch((error) => {
+      settled = error;
+    });
+    await vi.advanceTimersByTimeAsync(timeout - 1);
+    expect(settled).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(settled).toMatchObject({ name: 'TimeoutError' });
   });
 });
 

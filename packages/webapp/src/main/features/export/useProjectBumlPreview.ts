@@ -14,21 +14,7 @@ export const useProjectBumlPreview = () => {
     const freshProject = ProjectStorageRepository.loadProject(project.id);
     const projectPayload = buildProjectPayloadForBackend(freshProject || project);
 
-    const response = await exportProjectAsBuml(projectPayload);
-
-    if (!response.ok) {
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      try {
-        const errorText = await response.text();
-        if (errorText) {
-          errorMessage = errorText;
-        }
-      } catch (error) {
-        console.error('Failed to parse BUML preview error response:', error);
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.text();
+    const { blob } = await exportProjectAsBuml(projectPayload);
+    return blob.text();
   }, []);
 };
