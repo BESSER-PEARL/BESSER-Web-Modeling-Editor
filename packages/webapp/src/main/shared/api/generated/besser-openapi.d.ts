@@ -422,9 +422,10 @@ export interface paths {
          * @description Recent commits that changed the model file, each with its class-diagram changes.
          *
          *     The model file is ``buml/diagrams.json``, or the file an older editor saved
-         *     while the repo has no ``buml/diagrams.json`` yet. Each commit is compared
-         *     with its first parent, not with the commit listed after it: after a merge,
-         *     the next commit by date is on the other branch.
+         *     while the repo has no ``buml/diagrams.json`` yet. When a save moved the
+         *     model into ``buml/diagrams.json``, the history goes on with the older file.
+         *     Each commit is compared with its first parent, not with the commit listed
+         *     after it: after a merge, the next commit by date is on the other branch.
          */
         get: operations["get_model_history_besser_api_github_model_history_get"];
         put?: never;

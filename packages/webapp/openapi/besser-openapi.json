@@ -1417,7 +1417,7 @@
           "GitHub Deployment"
         ],
         "summary": "Get Model History",
-        "description": "Recent commits that changed the model file, each with its class-diagram changes.\n\nThe model file is ``buml/diagrams.json``, or the file an older editor saved\nwhile the repo has no ``buml/diagrams.json`` yet. Each commit is compared\nwith its first parent, not with the commit listed after it: after a merge,\nthe next commit by date is on the other branch.",
+        "description": "Recent commits that changed the model file, each with its class-diagram changes.\n\nThe model file is ``buml/diagrams.json``, or the file an older editor saved\nwhile the repo has no ``buml/diagrams.json`` yet. When a save moved the\nmodel into ``buml/diagrams.json``, the history goes on with the older file.\nEach commit is compared with its first parent, not with the commit listed\nafter it: after a merge, the next commit by date is on the other branch.",
         "operationId": "get_model_history_besser_api_github_model_history_get",
         "parameters": [
           {
