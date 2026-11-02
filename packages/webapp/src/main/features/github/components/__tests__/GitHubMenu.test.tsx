@@ -273,7 +273,8 @@ describe('GitHubMenu', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Link an existing repository…' }));
     fireEvent.click(await screen.findByRole('button', { name: 'pick ana/shop' }));
     fireEvent.click(screen.getByRole('button', { name: /Keep my model and link/ }));
-    await waitFor(() => expect(sync.linkTo).toHaveBeenCalledWith('ana', 'shop', 'main', 'c'.repeat(40)));
+    // The summary names no model file here, so none is remembered.
+    await waitFor(() => expect(sync.linkTo).toHaveBeenCalledWith('ana', 'shop', 'main', 'c'.repeat(40), null));
     expect(sync.pullInto).not.toHaveBeenCalled();
   });
 
