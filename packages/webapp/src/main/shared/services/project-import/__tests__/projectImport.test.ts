@@ -74,7 +74,7 @@ describe('importProjectFromJson: empty diagrams are re-created with the right mo
     classDiagram.model = {
       ...(classDiagram.model as object),
       elements: { g1: { id: 'g1', name: 'Generator', type: 'Class', owner: null, attributes: [], methods: [] } },
-    } as typeof classDiagram.model;
+    } as unknown as typeof classDiagram.model;
     const { KnowledgeGraphDiagram: _kg, ...diagramsWithoutKg } = project.diagrams;
     const bare = { ...project, schemaVersion: 5, diagrams: diagramsWithoutKg };
 
