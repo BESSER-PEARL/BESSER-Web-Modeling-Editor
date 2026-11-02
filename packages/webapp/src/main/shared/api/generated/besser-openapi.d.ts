@@ -2708,6 +2708,10 @@ export interface components {
              * @default 1.0.0
              */
             version: string;
+            /** Warnings */
+            warnings?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /** ProjectInput */
         ProjectInput: {

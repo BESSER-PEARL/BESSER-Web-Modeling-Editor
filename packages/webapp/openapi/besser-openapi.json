@@ -5937,6 +5937,21 @@
             "type": "string",
             "title": "Version",
             "default": "1.0.0"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warnings"
           }
         },
         "type": "object",
