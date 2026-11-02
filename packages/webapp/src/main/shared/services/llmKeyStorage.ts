@@ -25,7 +25,8 @@ import {
 } from '../constants/constant';
 
 /**
- * Every LLM provider id the app knows. Every provider list derives from this one.
+ * Every LLM provider id the app knows. The app's own provider lists derive from
+ * this one; what another service accepts is an explicit allowlist (below).
  * - 'local': the user's OpenAI-compatible server, sent on the wire as
  *   provider='openai' + a base_url; works only when the WME backend runs locally.
  * - 'pia': a gateway whose endpoint the server resolves from its model catalog;
@@ -63,6 +64,24 @@ export const isLlmProviderId = (value: unknown): value is LlmProviderId =>
 
 export const isKeyProvider = (value: unknown): value is KeyProvider =>
   typeof value === 'string' && (KEY_PROVIDERS as readonly string[]).includes(value);
+
+/**
+ * Providers whose key the modeling assistant may receive: the agent's
+ * SUPPORTED_PROVIDERS (modeling-agent `src/llm/byok.py`), plus 'pia' (a gateway
+ * of its model catalog) and 'local' (sent as 'openai' + a base URL). An explicit
+ * allowlist: a new key provider reaches the agent only once listed here.
+ */
+export const ASSISTANT_KEY_PROVIDERS: readonly KeyProvider[] = [
+  'anthropic',
+  'openai',
+  'mistral',
+  'nebius',
+  'pia',
+  'local',
+];
+
+export const isAssistantKeyProvider = (value: unknown): value is KeyProvider =>
+  typeof value === 'string' && (ASSISTANT_KEY_PROVIDERS as readonly string[]).includes(value);
 
 export interface LlmKey {
   provider: KeyProvider;
@@ -105,7 +124,7 @@ export function readLlmKey(): LlmKey | null {
  * `baseUrl` is the OpenAI-compatible endpoint for the 'local'/'pia' providers.
  */
 export function writeLlmKey(
-  provider: LlmProvider,
+  provider: KeyProvider,
   apiKey: string,
   model?: string,
   baseUrl?: string,

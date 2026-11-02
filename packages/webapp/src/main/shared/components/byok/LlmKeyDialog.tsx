@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   clearLlmKey,
-  isKeyProvider,
+  isAssistantKeyProvider,
   KEY_PROVIDERS,
   readFreeTierModel,
   readFreeTierSelected,
@@ -714,14 +714,10 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     // Arm the live agent socket immediately when a client is provided. If the
     // socket is momentarily down this is a no-op — the key is in sessionStorage
-    // so the next (re)connect re-arms it automatically.
-    //
-    // Skipped for providers that carry no key (KEY_PROVIDERS mirrors the
-    // agent's allowlist, modeling-agent `src/byok.py` SUPPORTED_PROVIDERS, plus
-    // the pia/local labels it accepts as 'openai'). Sending the key anyway would
-    // hand a secret to a service that will only drop it; the re-arm path
-    // (readLlmKey) rejects such a provider too.
-    if (client && isKeyProvider(provider)) {
+    // so the next (re)connect re-arms it automatically. Only a provider on the
+    // assistant's allowlist reaches the agent (a Spec-Driven-only key never
+    // does); the re-arm path applies the same list.
+    if (client && isAssistantKeyProvider(provider)) {
       client.setUserApiKey({
         apiKey: trimmedKey,
         provider,

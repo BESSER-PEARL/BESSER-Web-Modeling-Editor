@@ -122,8 +122,11 @@ First-class part of the app, with two independent backends.
 
 **BYOK, shared by both.** One dialog, one store (paths above). The key lives **only** in `sessionStorage`, and
 `llmKeyStorage` is the only code that reads, writes or clears it (`readLlmKey` / `writeLlmKey` / `clearLlmKey`,
-which also removes the model and base URL). It also holds `LLM_PROVIDERS`, the one provider list: every other list
-(`KEY_PROVIDERS`, the dialog's options, `KG_LLM_PROVIDERS`, `SpecDrivenProvider`) is derived from it by filtering.
+which also removes the model and base URL). It also holds `LLM_PROVIDERS`, the one provider list: the app's own lists
+(`KEY_PROVIDERS`, the dialog's options, `SpecDrivenProvider`) are derived from it by filtering. The lists of what
+another service accepts a key for are explicit allowlists, never derived, so a new provider is not sent to a service
+by default: `ASSISTANT_KEY_PROVIDERS` (the modeling agent's) and `KG_LLM_PROVIDERS` (the backend's `KGLLMProvider`),
+each pinned to its counterpart by `llmProviderAllowlists.test.ts`.
 `provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
 assistant's dialog, and its opt-in flag is kept separate from the key so no placeholder can break the assistant.
 `'sponsored'` is the server-paid demo tier, set only by a `?demo=` link; neither is ever a stored key's provider.

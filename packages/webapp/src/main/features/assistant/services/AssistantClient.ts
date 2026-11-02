@@ -16,7 +16,7 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
-import { readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
   clearAssistantSessionId,
@@ -640,9 +640,10 @@ export class AssistantClient {
   private rearmUserApiKey(): void {
     try {
       const stored = readLlmKey();
-      if (!stored) {
+      if (!stored || !isAssistantKeyProvider(stored.provider)) {
         // The agent session outlives the tab (keyed by the persistent user
-        // id): clear a key the user removed or that died with an old tab.
+        // id): clear a key the user removed, that died with an old tab, or
+        // whose provider the assistant does not take.
         this.setUserApiKey({ apiKey: '' });
         return;
       }
