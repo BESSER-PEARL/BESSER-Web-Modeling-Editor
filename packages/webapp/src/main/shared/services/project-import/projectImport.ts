@@ -56,6 +56,19 @@ function validateV2ExportData(data: any): data is V2ExportData {
 }
 
 // Check if this is an old webapp export (single diagrams instead of arrays, may have UserDiagram)
+/** A project with no export envelope: how "Share as gist" and the old GitHub sidebar save it. */
+function isBareProject(data: any): boolean {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    !data.project &&
+    typeof data.id === 'string' &&
+    typeof data.name === 'string' &&
+    typeof data.diagrams === 'object' &&
+    data.diagrams !== null
+  );
+}
+
 function isOldWebappFormat(data: any): boolean {
   if (!data?.project?.diagrams) return false;
   const diagrams = data.project.diagrams;
@@ -429,7 +442,8 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
     reader.onload = (e) => {
       try {
-        const jsonData = JSON.parse(e.target?.result as string);
+        const parsed = JSON.parse(e.target?.result as string);
+        const jsonData = isBareProject(parsed) ? { project: parsed } : parsed;
 
         // Check for old webapp format (single diagrams, not arrays) before V2 check
         if (isOldWebappFormat(jsonData)) {
@@ -561,11 +575,12 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
           resolve(importedProject);
         } else {
-          throw new Error('Invalid project file format - unsupported structure');
+          throw new Error('this file is not a BESSER project');
         }
       } catch (error) {
         console.error('JSON import failed:', error);
-        reject(new Error('Failed to import project: Invalid JSON format'));
+        const reason = error instanceof SyntaxError ? 'Invalid JSON format' : (error as Error)?.message || 'unknown error';
+        reject(new Error(`Failed to import project: ${reason}`));
       }
     };
 
