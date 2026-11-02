@@ -40,7 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GENERATOR_MENU_CONFIG, GeneratorMenuEntry } from './generator-menu-config';
-import type { GeneratorMenuMode, GeneratorType } from '../workspace-types';
+import type { GeneratorMenuMode, GeneratorType } from '../../../shared/types/workspace-types';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { HeaderTooltip } from './HeaderTooltip';
 import { SUBMENU_OFFSETS } from './FileMenu';

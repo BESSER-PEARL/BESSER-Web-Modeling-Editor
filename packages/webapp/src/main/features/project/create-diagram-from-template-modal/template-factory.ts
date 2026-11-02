@@ -28,8 +28,10 @@ import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
 import multiAgentBugFixingProject from '../../../templates/pattern/multi-agent/bug_fixing.json';
+/* eslint-disable no-restricted-imports -- not in editors/index.ts: a re-export there moves the example circuits into the main chunk */
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
+/* eslint-enable no-restricted-imports */
 
 // Helper function to convert example circuit to QuantumCircuitData format
 const getQuantumCircuitData = (circuitName: string) => {

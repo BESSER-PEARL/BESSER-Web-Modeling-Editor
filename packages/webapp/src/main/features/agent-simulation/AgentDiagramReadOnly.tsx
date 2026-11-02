@@ -12,7 +12,7 @@ import {
 import { Bot, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppSelector } from '@/main/app/store/hooks';
 import { selectActiveDiagram } from '@/main/app/store/workspaceSlice';
-import { selectStdoutLines } from '@/main/features/agent-simulation';
+import { selectStdoutLines } from './agentSimulationSlice';
 import { isUMLModel } from '@/main/shared/types/project';
 
 const ACTIVE_STATE_FILL = '#03d7fc';

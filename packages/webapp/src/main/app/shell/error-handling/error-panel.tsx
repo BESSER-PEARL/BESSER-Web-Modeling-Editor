@@ -1,9 +1,9 @@
 import React from 'react';
 
 import { ErrorMessage } from './error-message';
-import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { dismissError, selectErrors } from '../../../app/store/errorManagementSlice';
-import { Z_INDEX } from '../../constants/z-index';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { dismissError, selectErrors } from '../../store/errorManagementSlice';
+import { Z_INDEX } from '../../../shared/constants/z-index';
 
 export const ErrorPanel: React.FC = () => {
   const errors = useAppSelector(selectErrors);

@@ -8,7 +8,8 @@ import JSZip from 'jszip';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ChatMessage, type SpecDrivenMessageState } from '../chat-message';
+import { ChatMessage } from '../chat-message';
+import type { SpecDrivenMessageState } from '@/main/features/spec-driven/types';
 import { readGeneratedFiles } from '../generated-files-dialog';
 
 vi.mock('@/main/shared/utils/specDrivenDownload', () => ({

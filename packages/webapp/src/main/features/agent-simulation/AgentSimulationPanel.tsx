@@ -11,7 +11,7 @@ import {
   selectStdoutLines,
   stopAgentSimulationThunk,
   restartAgentSimulationThunk,
-} from '@/main/features/agent-simulation';
+} from './agentSimulationSlice';
 import { BafChatWrapper } from './BafChatWrapper';
 import { TerminalPane } from './TerminalPane';
 import { AgentFileExplorer } from './AgentFileExplorer';

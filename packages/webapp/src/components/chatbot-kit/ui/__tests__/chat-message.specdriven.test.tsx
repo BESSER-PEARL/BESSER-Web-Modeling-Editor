@@ -15,10 +15,8 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  ChatMessage,
-  type SpecDrivenMessageState,
-} from '../chat-message';
+import { ChatMessage } from '../chat-message';
+import type { SpecDrivenMessageState } from '@/main/features/spec-driven/types';
 import { cancelSpecDrivenUrl } from '@/main/shared/constants/constant';
 
 // The card's "Download again" goes through the shared helper — mock it

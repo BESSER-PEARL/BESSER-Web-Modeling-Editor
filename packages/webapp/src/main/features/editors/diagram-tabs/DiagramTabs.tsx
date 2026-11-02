@@ -10,7 +10,7 @@ import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import type { QualityCheckState } from '../../generation/types';
+import type { QualityCheckState } from '../../../shared/types/quality-check';
 import {
   addDiagramThunk,
   removeDiagramThunk,

@@ -4,7 +4,7 @@ import { CheckCircle, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { inputBaseClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
+import type { QualityCheckResult, QualityCheckState } from '../../../shared/types/quality-check';
 import { GitHubMenu } from '../../../features/github/components/GitHubMenu';
 import type { AgentVariantOption } from '../topbar-types';
 import { HeaderTooltip } from './HeaderTooltip';

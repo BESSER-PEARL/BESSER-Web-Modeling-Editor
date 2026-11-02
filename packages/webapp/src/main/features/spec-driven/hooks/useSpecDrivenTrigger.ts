@@ -57,10 +57,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 
-import type {
-  Message as ChatKitMessage,
-  SpecDrivenMessageState,
-} from '@/components/chatbot-kit/ui/chat-message';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
@@ -118,6 +115,7 @@ import { getDemoToken } from '@/main/shared/services/demoMode';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
+  SpecDrivenMessageState,
   SpecDrivenProvider,
   TriggerSpecDrivenPayload,
 } from '../types';

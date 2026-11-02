@@ -39,7 +39,7 @@ import {
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
-import { sanitizeMessageForPersist } from '../../../assistant/hooks/assistantConversationStore';
+import { sanitizeMessageForPersist } from '../../../assistant';
 import { SseHttpError } from '../../../../shared/services/sse/sseClient';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {

@@ -55,12 +55,12 @@ import {
   sessionStorageContinueFromGithubIntent,
   sessionStorageOpenAssistantOnLoad,
 } from '../../shared/constants/constant';
-import { useImportDiagramToProject } from '../import/useImportDiagram';
+import { useImportDiagramToProject } from '../import';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../shared/services/github/continueFromGithub';
-import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
+import { setLastRunForProject } from '../spec-driven';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
 export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';

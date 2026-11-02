@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { SupportedDiagramType } from '../../shared/types/project';
-import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
-import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/workspace-types';
+import type { QualityCheckResult, QualityCheckState } from '../../shared/types/quality-check';
 
 export interface AgentVariantOption {
   id: string;

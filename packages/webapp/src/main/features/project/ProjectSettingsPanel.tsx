@@ -29,7 +29,7 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { readLlmKey } from '../../shared/services/llmKeyStorage';
-import { setApiKeyPresent } from '../spec-driven/state/specDrivenSlice';
+import { setApiKeyPresent } from '../spec-driven';
 
 // Same nav.diagram.* labels the workspace sidebar uses (app/shell/workspace-navigation.tsx).
 const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {

@@ -18,7 +18,7 @@ import { sessionStorageContinueFromGithubIntent } from '../../../shared/constant
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../../shared/services/github/continueFromGithub';
-import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
+import { setLastRunForProject } from '../../spec-driven';
 
 const GITHUB_URL_RE = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([\w./-]+))?\/?$/i;
 

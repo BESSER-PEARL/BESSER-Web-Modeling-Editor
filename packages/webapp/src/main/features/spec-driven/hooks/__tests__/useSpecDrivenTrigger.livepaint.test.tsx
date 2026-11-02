@@ -22,7 +22,7 @@ import { act, render, screen, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '@/main/app/store/store';
-import { conversationStore } from '@/main/features/assistant/hooks/assistantConversationStore';
+import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';

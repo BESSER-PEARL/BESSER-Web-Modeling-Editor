@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ApollonError } from '../../../app/store/errorManagementSlice';
+import { ApollonError } from '../../store/errorManagementSlice';
 
 type Props = {
   error: ApollonError;

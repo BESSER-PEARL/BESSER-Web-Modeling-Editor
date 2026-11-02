@@ -12,9 +12,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** A Blob's text. jsdom's Blob has no `text()`, so read it as the browser would. */
+/**
+ * A Blob's text. A blob from `fetch` is Node's own Blob, which jsdom's FileReader
+ * rejects on some Node versions; jsdom's Blob has no `text()`. Use whichever applies.
+ */
 const textOf = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
+  typeof blob.text === 'function' ? blob.text() : new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);

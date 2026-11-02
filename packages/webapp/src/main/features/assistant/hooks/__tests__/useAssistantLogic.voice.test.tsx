@@ -32,8 +32,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { specDrivenReducer } from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 /* ------------------------------------------------------------------ */
 /*  Mock the AssistantClient (keep the rest of the barrel real)         */

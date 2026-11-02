@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NON_UML_EDITOR_ITEMS, UML_ITEMS } from '../../app/shell/workspace-navigation';
-import { PERSPECTIVES, perspectivesFromDiagramList } from '../perspectives';
-import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
+import { NON_UML_EDITOR_ITEMS, UML_ITEMS } from '../workspace-navigation';
+import { PERSPECTIVES, perspectivesFromDiagramList } from '../../../shared/perspectives';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
   SIDEBAR_DIAGRAM_ORDER,
   createDefaultProject,
   isPerspectiveVisible,
   resolveInitialDiagramType,
   toSupportedDiagramType,
-} from '../types/project';
+} from '../../../shared/types/project';
 
 // localStorageQuota (imported by the repository) pulls in react-toastify.
 vi.mock('react-toastify', () => ({ toast: { warning: vi.fn() } }));

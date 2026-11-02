@@ -4,7 +4,8 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ChatMessage, type SpecDrivenMessageState } from '../chat-message';
+import { ChatMessage } from '../chat-message';
+import type { SpecDrivenMessageState } from '@/main/features/spec-driven/types';
 
 const RUN_ID = 'a'.repeat(32);
 
