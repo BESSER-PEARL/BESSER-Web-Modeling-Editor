@@ -1466,6 +1466,7 @@
       "saved": "Modell auf GitHub gespeichert.",
       "savedMerged": "Gespeichert und mit den neueren Änderungen auf GitHub zusammengeführt.",
       "repoHasModelChoice": "{{repo}} enthält „{{name}}“. Laden Sie es in dieses Projekt und ersetzen Sie das geöffnete Modell, oder behalten Sie Ihr Modell und verknüpfen Sie: Ihr nächstes Speichern ersetzt dann das Modell des Repositorys.",
+      "pickModelFile": "Dieses Repository enthält {{number}} Modelle. Wähle das zu verwendende aus:",
       "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
     "proposal": {

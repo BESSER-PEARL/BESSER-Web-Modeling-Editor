@@ -18,6 +18,7 @@ import {
   markProjectGitHubSynced,
   modelFingerprint,
   setPendingGitHubChange,
+  legacyModelPath,
   setProjectGitHubLink,
   type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
@@ -246,7 +247,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   const restore = useCallback(
     async (commitSha: string) => {
       if (!link || !projectId || !githubSession) return;
-      const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha);
+      const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha, link.legacyFilePath);
       storeRepoModelAsProject(version.project, projectId);
       await loadProject(projectId);
     },
@@ -256,12 +257,18 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   /**
    * Link the project to a repo without changing its model. `headSha` is the
    * branch head now, so the next save commits on top of it; the project counts
-   * as unsaved until then.
+   * as unsaved until then. `modelPath` is the repo's model file; an older
+   * editor's save is remembered so that save replaces it.
    */
   const linkTo = useCallback(
-    (owner: string, repo: string, branch: string, headSha?: string) => {
+    (owner: string, repo: string, branch: string, headSha?: string, modelPath?: string | null) => {
       if (!projectId) return;
-      setProjectGitHubLink(projectId, { owner, repo, branch, ...(headSha ? { baseCommitSha: headSha } : {}) });
+      const legacyFilePath = legacyModelPath(modelPath);
+      setProjectGitHubLink(projectId, {
+        owner, repo, branch,
+        ...(headSha ? { baseCommitSha: headSha } : {}),
+        ...(legacyFilePath ? { legacyFilePath } : {}),
+      });
     },
     [projectId],
   );

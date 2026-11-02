@@ -1466,6 +1466,7 @@
       "saved": "Modell op GitHub gespäichert.",
       "savedMerged": "Gespäichert a mat de méi neien Ännerungen op GitHub zesummegefouert.",
       "repoHasModelChoice": "{{repo}} enthält „{{name}}“. Luet et an dëse Projet a ersetz dat opgemaacht Modell, oder behal däi Modell a verlinkt: däi nächst Späicheren ersetzt dann d’Modell vum Repository.",
+      "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
     },
     "proposal": {
