@@ -65,6 +65,11 @@ export const localStoragePreferredInterface = localStoragePrefix + 'preferred_in
  */
 export const localStorageGitHubStarPrompted = localStoragePrefix + 'github_star_prompted';
 /**
+ * BESSER version of the newest "What's new" entry the user has opened the
+ * panel on; entries from later versions show as new.
+ */
+export const localStorageWhatsNewSeen = localStoragePrefix + 'whats_new_seen';
+/**
  * @deprecated since v7.3.0 — kept for the cleanup migration only. Agent
  * runtime config (platform, intent-recognition technology, LLM
  * provider/model) now lives on the agent diagram itself
