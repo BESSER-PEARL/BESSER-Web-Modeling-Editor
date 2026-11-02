@@ -53,13 +53,8 @@ export type AgentSimulationSessionFile = components['schemas']['SimulationSessio
 
 export type AgentSimulationSessionFilesResponse = components['schemas']['SimulationSessionFilesResponse'];
 
-export interface AgentSimulationLimits {
-  memoryMb?: number;
-  cpuCores?: number;
-  diskMb?: number;
-  sessionLifetimeSeconds?: number;
-  editorQuotaEnabled?: boolean;
-}
+/** A limit the server does not set arrives as `null`. */
+export type AgentSimulationLimits = components['schemas']['SimulationLimitsResponse'];
 
 // ---------------------------------------------------------------------------
 // Auth
