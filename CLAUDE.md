@@ -119,10 +119,13 @@ First-class part of the app, with two independent backends.
 - The backend contract is BESSER's `backend/models/spec_driven.py` (request) and
   `services/spec_driven/sse_events.py` (stream).
 
-**BYOK, shared by both.** One dialog, one store (paths above). The key lives **only** in `sessionStorage`.
-`features/assistant/services/byokStorage.ts` and `features/spec-driven/storage.ts` are thin readers over the same
-keys. `provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
+**BYOK, shared by both.** One dialog, one store (paths above). The key lives **only** in `sessionStorage`, and
+`llmKeyStorage` is the only code that reads, writes or clears it (`readLlmKey` / `writeLlmKey` / `clearLlmKey`,
+which also removes the model and base URL). It also holds `LLM_PROVIDERS`, the one provider list: every other list
+(`KEY_PROVIDERS`, the dialog's options, `KG_LLM_PROVIDERS`, `SpecDrivenProvider`) is derived from it by filtering.
+`provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
 assistant's dialog, and its opt-in flag is kept separate from the key so no placeholder can break the assistant.
+`'sponsored'` is the server-paid demo tier, set only by a `?demo=` link; neither is ever a stored key's provider.
 
 ### Security rules (AI features)
 - Never let an agent-controlled payload set a privilege flag. `useAssistantLogic` rebuilds the
@@ -277,5 +280,3 @@ Documented so they are not rediscovered as bugs:
 - `selectProjectFile()` advertises `.zip`, but `importProject()` has no zip branch.
 - `DIAGRAM_GENERATOR_MAP` in `workspace-navigation.tsx` is out of sync with `generator-menu-config.ts`, which is
   the source of truth for what users see.
-- The doc comment in `features/assistant/services/byokStorage.ts` still claims the assistant keeps a separate key;
-  the keys were unified and the constants are aliases.

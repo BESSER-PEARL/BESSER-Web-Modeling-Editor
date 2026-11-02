@@ -10,10 +10,7 @@
  *
  * Lives in `shared/` (not the spec-driven feature) because the unified
  * key dialog (`shared/components/byok/LlmKeyDialog`) needs the free-tier
- * advertisement too, and shared code must not import from features. The
- * spec-driven feature re-exports this module from its old path
- * (`features/spec-driven/services/specDrivenConfig`) so feature imports
- * and test mocks keep working unchanged.
+ * advertisement too, and shared code must not import from features.
  */
 
 import { SMART_GEN_CONFIG_ENDPOINT } from '../constants/constant';

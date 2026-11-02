@@ -45,12 +45,13 @@ import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   cancelSpecDrivenUrl,
   localStorageSpecDrivenActiveRunV1,
-  sessionStorageSpecDrivenApiKey,
+  sessionStorageLlmApiKey,
+  sessionStorageLlmBaseUrl,
   sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
   sessionStorageSpecDrivenMaxCostUsd,
   sessionStorageSpecDrivenMaxRuntimeSeconds,
-  sessionStorageSpecDrivenProvider,
+  sessionStorageLlmProvider,
 } from '../../../../shared/constants/constant';
 
 // Mock the toast so we can assert on it without rendering a real container.
@@ -88,8 +89,8 @@ const _mockController: {
 // resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
 // hitting `fetch` — the "nothing written to disk" assertions below count
 // every fetch call, and the config lookup is unrelated to the download.
-vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('../../services/specDrivenConfig')>();
+vi.mock('../../../../shared/services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../../shared/services/specDrivenConfig')>();
   return {
     ...mod,
     getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
@@ -230,13 +231,13 @@ const PAYLOAD: TriggerSpecDrivenPayload = {
 };
 
 function setSessionKey(key = 'sk-ant-test-NEVER-LEAK-0123') {
-  window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, key);
-  window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+  window.sessionStorage.setItem(sessionStorageLlmApiKey, key);
+  window.sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
 }
 
 function clearSessionKeyManual() {
-  window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
-  window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
+  window.sessionStorage.removeItem(sessionStorageLlmApiKey);
+  window.sessionStorage.removeItem(sessionStorageLlmProvider);
   // Also clear the optional model key so prior tests don't leak
   // ``llmModel=o1`` into tests that expect the agent hint to win.
   window.sessionStorage.removeItem('besser_llm_model');
@@ -265,7 +266,7 @@ beforeEach(async () => {
   // clearAllMocks wipes call data but NOT implementations, so re-establish
   // the config mock's default (free tier OFF) — a test that overrides it to
   // free-available must not leak that into later tests.
-  const cfg = await import('../../services/specDrivenConfig');
+  const cfg = await import('../../../../shared/services/specDrivenConfig');
   vi.mocked(cfg.getSpecDrivenConfig).mockImplementation(() =>
     Promise.resolve(cfg.FALLBACK_SMART_GEN_CONFIG),
   );
@@ -546,7 +547,7 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
     // "use your own API key" affordance now lives in the pre-run confirmation
     // copy (agent-side), so the run no longer appends a mid-run free-tier note.
     _mockController.events = HAPPY_EVENTS;
-    const configModule = await import('../../services/specDrivenConfig');
+    const configModule = await import('../../../../shared/services/specDrivenConfig');
     vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
       ...configModule.FALLBACK_SMART_GEN_CONFIG,
       free_tier: {
@@ -596,7 +597,7 @@ describe('useSpecDrivenTrigger — explicit free-model choice', () => {
   };
 
   async function mockConfig() {
-    const configModule = await import('../../services/specDrivenConfig');
+    const configModule = await import('../../../../shared/services/specDrivenConfig');
     vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
       ...configModule.FALLBACK_SMART_GEN_CONFIG,
       ...FREE_CONFIG_WITH_FALLBACK,
@@ -674,7 +675,30 @@ describe('useSpecDrivenTrigger — invalid key error handling', () => {
       expect(store.getState().specDriven.apiKeyInStore).toBe(false);
     });
     // Key was cleared from sessionStorage
-    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageLlmApiKey)).toBeNull();
+  });
+
+  it('clears the base URL with the key, so no orphan of a rejected local key survives', async () => {
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'ollama');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'local');
+    window.sessionStorage.setItem(sessionStorageLlmBaseUrl, 'http://localhost:11434/v1');
+    _mockController.events = [
+      { event: 'start', runId: 'a'.repeat(32), provider: 'openai', llmModel: 'qwen2.5-coder:7b', maxCost: 1.0, maxRuntime: 600 },
+      { event: 'error', code: 'INVALID_KEY', message: 'Rejected' },
+    ];
+    globalThis.fetch = vi.fn();
+
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(store.getState().specDriven.apiKeyInStore).toBe(false);
+    });
+    expect(window.sessionStorage.getItem(sessionStorageLlmApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageLlmBaseUrl)).toBeNull();
   });
 });
 
@@ -805,8 +829,8 @@ describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
     // key. The run MUST fire with provider=openai — anything else
     // causes the "OpenAI key hits the Anthropic API, gets 401,
     // orchestrator falls through to Phase 1 FastAPI" bug.
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'openai');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -850,8 +874,8 @@ describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
     // return 404 ``model_not_found``. The hook MUST drop the llmModel
     // hint when the provider is overridden so the backend can fall
     // back to ``_DEFAULT_MODELS["openai"] = "gpt-4o"``.
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'openai');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -889,8 +913,8 @@ describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
     // Scenario: user saved ``provider=openai, llmModel=o1`` in the
     // dialog. Agent hints ``provider=anthropic, llmModel=claude-sonnet-4-6``.
     // User's choice wins on BOTH fields.
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'openai');
     window.sessionStorage.setItem(
       'besser_llm_model',
       'o1',
@@ -933,8 +957,8 @@ describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
     // hint is valid — keep it so the user gets the agent's preferred
     // model instead of the backend default (which may be a smaller
     // cheaper model).
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-ant-test-TEST');
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-ant-test-TEST');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(

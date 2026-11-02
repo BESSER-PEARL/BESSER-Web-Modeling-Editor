@@ -89,17 +89,20 @@ import {
 import {
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
-  clearSessionKey,
   readActiveSpecDrivenRun,
-  readFreeTierModel,
-  readFreeTierSelected,
   readProjectLastRun,
-  readSessionBudget,
-  readSessionKey,
-  writeFreeTierSelected,
   writeActiveSpecDrivenRun,
   writeProjectLastRun,
 } from '../storage';
+import {
+  clearLlmKey,
+  isLlmProviderId,
+  readFreeTierModel,
+  readFreeTierSelected,
+  readLlmBudget,
+  readLlmKey,
+  writeFreeTierSelected,
+} from '../../../shared/services/llmKeyStorage';
 import {
   followSpecDrivenRun,
   startSpecDrivenRun,
@@ -108,7 +111,7 @@ import {
 import {
   getSpecDrivenConfig,
   resolveFreeRunModel,
-} from '../services/specDrivenConfig';
+} from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
 import type { RunModeDecision } from '../runModeDecision';
 import { getDemoToken } from '@/main/shared/services/demoMode';
@@ -157,20 +160,6 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   text: '',
   status: 'running',
 });
-
-const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvider>([
-  'anthropic',
-  'openai',
-  'mistral',
-  'nebius',
-  'pia',
-  'local',
-  'free',
-  'sponsored',
-]);
-
-const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
-  typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
 
 /**
  * Terminal outcome of a spec-driven run, reported exactly once per run
@@ -558,7 +547,7 @@ export function useSpecDrivenTrigger(
 
       switch (event.event) {
         case 'start': {
-          if (!isValidProvider(event.provider)) {
+          if (!isLlmProviderId(event.provider)) {
             console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
@@ -784,7 +773,7 @@ export function useSpecDrivenTrigger(
             return;
           }
           if (event.code === 'INVALID_KEY') {
-            clearSessionKey();
+            clearLlmKey();
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
@@ -1002,7 +991,7 @@ export function useSpecDrivenTrigger(
       // spend is ours. Checked first so it wins over a stale stored key.
       const demoToken = getDemoToken();
       const freeSelected = readFreeTierSelected();
-      const key = readSessionKey();
+      const key = readLlmKey();
       if (!demoToken && !freeSelected && !key) {
         dispatch(openByokDialog(payload));
         return;
@@ -1035,7 +1024,7 @@ export function useSpecDrivenTrigger(
         : freeSelected
           ? 'free'
           : (key?.provider ?? payload.provider);
-      if (!isValidProvider(rawProvider)) {
+      if (!isLlmProviderId(rawProvider)) {
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
@@ -1160,7 +1149,7 @@ export function useSpecDrivenTrigger(
       // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, so swapping
       // the model is an env edit, not a frontend release.
       let llmModel: string | undefined =
-        demoToken || freeSelected ? undefined : key?.llmModel;
+        demoToken || freeSelected ? undefined : key?.model;
       if (!demoToken && !freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
@@ -1171,7 +1160,7 @@ export function useSpecDrivenTrigger(
       // User-chosen run budget from the BYOK dialog (sessionStorage).
       // When absent the fields stay undefined and the backend applies
       // its own defaults — the SSE client only serialises set values.
-      const budget = readSessionBudget();
+      const budget = readLlmBudget();
 
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The
@@ -1393,7 +1382,7 @@ export function useSpecDrivenTrigger(
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
       // here because there is no separate plan-review step.
-      if (readSessionKey() || readFreeTierSelected()) {
+      if (readLlmKey() || readFreeTierSelected()) {
         await startRun({ ...payload, planApproved: true });
         return;
       }

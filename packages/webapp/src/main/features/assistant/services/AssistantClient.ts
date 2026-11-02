@@ -16,7 +16,7 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
-import { readAssistantApiKey } from './byokStorage';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import {
   assistantSessionStorageKey,
   getOrCreateAssistantSessionId,
@@ -643,7 +643,7 @@ export class AssistantClient {
    */
   private rearmUserApiKey(): void {
     try {
-      const stored = readAssistantApiKey();
+      const stored = readLlmKey();
       if (!stored) {
         // The agent session outlives the tab (keyed by the persistent user
         // id): clear a key the user removed or that died with an old tab.

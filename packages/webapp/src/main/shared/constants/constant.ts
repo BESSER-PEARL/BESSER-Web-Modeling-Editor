@@ -91,7 +91,8 @@ export const localStorageProjectPrefix = localStoragePrefix + 'project_';
 export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
-// Unified LLM BYOK session-storage keys — ONE key for the whole app.
+// Unified LLM BYOK session-storage keys — ONE key for the whole app, read and
+// written only through shared/services/llmKeyStorage.
 // The user's Anthropic / OpenAI / Mistral / Nebius key is stored ONLY in sessionStorage
 // (tab-lifetime, cleared on tab close), never in localStorage or Redux. A
 // single shared key means the user enters it in ONE place (the shared BYOK
@@ -107,11 +108,6 @@ export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
 // ('pia') has none: the server resolves it from its model catalog.
 export const sessionStorageLlmBaseUrl = localStoragePrefix + 'llm_base_url';
 
-// Spec-Driven Agent — BYOK keys alias the unified keys above (kept as named
-// exports so existing imports keep working).
-export const sessionStorageSpecDrivenApiKey = sessionStorageLlmApiKey;
-export const sessionStorageSpecDrivenProvider = sessionStorageLlmProvider;
-export const sessionStorageSpecDrivenLlmModel = sessionStorageLlmModel;
 // User-chosen run budget (NOT secret — still session-scoped so it sits
 // next to the key/model it applies to). Values are plain numbers
 // serialised as strings: USD for cost, whole seconds for runtime.
@@ -129,12 +125,6 @@ export const sessionStorageSpecDrivenFreeTier = localStoragePrefix + 'smart_gen_
 // default. Kept apart from the unified LLM model key above for the same reason
 // as the free flag — that store is shared with the assistant's BYOK settings.
 export const sessionStorageSpecDrivenFreeModel = localStoragePrefix + 'smart_gen_free_model';
-
-// AI Assistant — BYOK keys also alias the unified keys above, so entering the
-// key via the assistant fills the same store the Spec-Driven Agent reads.
-export const sessionStorageAssistantApiKey = sessionStorageLlmApiKey;
-export const sessionStorageAssistantProvider = sessionStorageLlmProvider;
-export const sessionStorageAssistantModel = sessionStorageLlmModel;
 
 // Opt-in research telemetry label, set on app load from a `?pilot=<label>`
 // URL and scoped to the tab. Every telemetry event this tab produces carries

@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { apiClient } from './api-client';
 import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiagramModel } from '../types/project';
+import { KEY_PROVIDERS, type KeyProvider } from '../services/llmKeyStorage';
 
 /**
  * API layer for the Knowledge Graph feature.
@@ -214,8 +215,10 @@ export const applyKgRefinement = ({
 /** Providers the KG LLM endpoints accept a user key for (the backend's `KGLLMProvider`).
  *  A key for any other (PIA, a local endpoint) needs a custom base URL, which the
  *  server refuses to open on a user's behalf. */
-export const KG_LLM_PROVIDERS = ['anthropic', 'openai', 'mistral', 'nebius'] as const;
-export type KgLlmProvider = (typeof KG_LLM_PROVIDERS)[number];
+export type KgLlmProvider = Exclude<KeyProvider, 'pia' | 'local'>;
+export const KG_LLM_PROVIDERS: readonly KgLlmProvider[] = KEY_PROVIDERS.filter(
+  (p): p is KgLlmProvider => p !== 'pia' && p !== 'local',
+);
 
 export const isKgLlmProvider = (provider: string): provider is KgLlmProvider =>
   (KG_LLM_PROVIDERS as readonly string[]).includes(provider);
