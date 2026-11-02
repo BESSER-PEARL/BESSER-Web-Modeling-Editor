@@ -14,6 +14,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
 import { globalAlert, globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
@@ -942,7 +943,7 @@ function setupCommands(editor: Editor) {
         console.log('[Save] Manual save completed');
       } catch (error) {
         console.error('[Save] Manual save error:', error);
-        void globalAlert({ title: i18n.t('editors.gui.errorSavingProject') });
+        reportError(i18n.t('editors.gui.errorSavingProject'), { error });
       }
     }
   });

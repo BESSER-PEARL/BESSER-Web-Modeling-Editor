@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import { useTranslation } from "react-i18next"
+import { reportError } from "@/main/shared/services/errors/reportError"
 
 type UseCopyToClipboardProps = {
   text: string
@@ -30,7 +31,7 @@ export function useCopyToClipboard({
         }, 2000)
       })
       .catch(() => {
-        toast.error(t("assistant.chatKit.copyFailed"))
+        reportError(t("assistant.chatKit.copyFailed"))
       })
   }, [text, copyMessage, t])
 
