@@ -34,19 +34,22 @@ export const getSpecDrivenRunEventsPage = (runId: string, afterSequence: number,
 export const downloadSpecDrivenOutput = (runId: string): Promise<Response> => fetch(specDrivenDownloadUrl(runId));
 
 /**
- * `POST /spec-driven/cancel/{id}`, fire-and-forget; never throws. `beacon`
- * uses `navigator.sendBeacon` for the page-unload path (a normal fetch is
- * killed when the document is torn down); otherwise a keepalive fetch.
+ * `POST /spec-driven/cancel/{id}`, fire-and-forget; never throws or rejects.
+ * Resolves to whether the cancel was handed off (a 2xx, or the beacon queued).
+ * `beacon` uses `navigator.sendBeacon` for the page-unload path (a normal fetch
+ * is killed when the document is torn down); otherwise a keepalive fetch.
  */
-export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?: boolean } = {}): void {
+export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?: boolean } = {}): Promise<boolean> {
   const url = cancelSpecDrivenUrl(runId);
   try {
     if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      navigator.sendBeacon(url);
-      return;
+      return Promise.resolve(navigator.sendBeacon(url));
     }
-    void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+    return fetch(url, { method: 'POST', keepalive: true }).then(
+      (response) => response.ok,
+      () => false,
+    );
   } catch {
-    /* best-effort */
+    return Promise.resolve(false);
   }
 }

@@ -238,6 +238,15 @@ describe('spec-driven', () => {
     });
     expect(() => cancelSpecDrivenRun('run1')).not.toThrow();
   });
+
+  it('resolves to whether the server accepted the cancel, never rejecting', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
+    await expect(cancelSpecDrivenRun('run1')).resolves.toBe(true);
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    await expect(cancelSpecDrivenRun('run1')).resolves.toBe(false);
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(cancelSpecDrivenRun('run1')).resolves.toBe(false);
+  });
 });
 
 describe('rate limiter (editor server)', () => {
