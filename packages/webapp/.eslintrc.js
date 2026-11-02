@@ -13,8 +13,22 @@ const features = fs
 const MAIN_ALIAS = '^(@/main|webapp/src/main)'
 const PARENT_DIRS = '^(\\.\\./)+'
 
+// The only modules allowed to touch Web Storage; their keys live in constant.ts.
+const STORAGE_MODULES = [
+  'src/main/shared/services/storage/**',
+  'src/main/shared/services/llmKeyStorage.ts',
+  'src/main/features/spec-driven/storage.ts',
+]
 const STORAGE_MESSAGE =
-  'Use a module in shared/services/storage/ (or llmKeyStorage) instead of Web Storage directly.'
+  'Use a module in shared/services/storage/ (or llmKeyStorage.ts, features/spec-driven/storage.ts) instead of Web Storage directly.'
+// Catches window.localStorage, casts, aliases (`w.sessionStorage`), document.defaultView and destructuring.
+const STORAGE_PROPERTY = '/^(localStorage|sessionStorage)$/'
+const STORAGE_SYNTAX = [
+  `MemberExpression[property.name=${STORAGE_PROPERTY}]`,
+  `MemberExpression[computed=true][property.value=${STORAGE_PROPERTY}]`,
+  `ObjectPattern > Property[key.name=${STORAGE_PROPERTY}]`,
+].map((selector) => ({ selector, message: STORAGE_MESSAGE }))
+const STORAGE_GLOBALS = ['localStorage', 'sessionStorage'].map((name) => ({ name, message: STORAGE_MESSAGE }))
 
 const HTTP_MESSAGE = 'Call the backend through a module in shared/api/, not fetch/XMLHttpRequest/sendBeacon directly.'
 const HTTP_SYNTAX = [
@@ -25,13 +39,14 @@ const HTTP_SYNTAX = [
 ].map((selector) => ({ selector, message: HTTP_MESSAGE }))
 
 const REPORT_ERROR_MESSAGE = 'Report a failure with reportError() from shared/services/errors/reportError.'
+const REPORT_ERROR_GLOBAL = { name: 'reportError', message: `Import it: ${REPORT_ERROR_MESSAGE}` }
 const ALERT_MESSAGE = 'Use globalAlert() from shared/services/confirm/globalConfirm instead of alert().'
 const ERROR_SYNTAX = [
   { selector: "CallExpression[callee.object.name='toast'][callee.property.name='error']", message: REPORT_ERROR_MESSAGE },
   { selector: "CallExpression[callee.name='alert']", message: ALERT_MESSAGE },
   { selector: "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='alert']", message: ALERT_MESSAGE },
 ]
-const TESTS = ['**/__tests__/**', '**/*.test.{ts,tsx}']
+const TESTS = ['**/__tests__/**', '**/*.test.{ts,tsx}', 'src/test/**']
 
 const featureBoundary = (feature) => ({
   files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
@@ -98,48 +113,41 @@ module.exports = [
     files: ['**/*.ts', '**/*.tsx'],
   },
   ...features.map(featureBoundary),
-  // Web Storage only through the typed storage modules; their keys live in constant.ts.
-  // Also: the global window.reportError is not ours, so a missing import must not compile silently.
+  // no-restricted-globals: Web Storage only through the storage modules; and the global
+  // window.reportError is not ours, so a missing import must not compile silently.
+  // A later block replaces the rule's whole list, so the storage modules get the reportError ban back.
   {
-    files: ['src/main/**/*.{ts,tsx}'],
-    ignores: [
-      'src/main/shared/services/storage/**',
-      'src/main/shared/services/llmKeyStorage.ts',
-      'src/main/features/spec-driven/storage.ts',
-      '**/__tests__/**',
-      '**/*.test.{ts,tsx}',
-    ],
-    rules: {
-      'no-restricted-globals': [
-        'error',
-        ...['localStorage', 'sessionStorage'].map((name) => ({ name, message: STORAGE_MESSAGE })),
-        { name: 'reportError', message: `Import it: ${REPORT_ERROR_MESSAGE}` },
-      ],
-      'no-restricted-properties': [
-        'error',
-        ...['window', 'globalThis', 'self'].flatMap((object) =>
-          ['localStorage', 'sessionStorage'].map((property) => ({ object, property, message: STORAGE_MESSAGE })),
-        ),
-      ],
-    },
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: TESTS,
+    rules: { 'no-restricted-globals': ['error', ...STORAGE_GLOBALS, REPORT_ERROR_GLOBAL] },
+  },
+  {
+    files: STORAGE_MODULES,
+    ignores: TESTS,
+    rules: { 'no-restricted-globals': ['error', REPORT_ERROR_GLOBAL] },
   },
   // no-restricted-syntax: HTTP only through shared/api (`typeof fetch` checks stay allowed);
-  // error toasts only through reportError; no alert(). A later block replaces the
-  // rule's whole list, so the two exempt folders get the other list back.
+  // error toasts only through reportError; no alert(); no Web Storage property access.
+  // A later block replaces the rule's whole list, so each exempt folder gets the other lists back.
   {
-    files: ['src/main/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX, ...STORAGE_SYNTAX] },
   },
   {
     files: ['src/main/shared/api/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...ERROR_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...ERROR_SYNTAX, ...STORAGE_SYNTAX] },
   },
   {
     files: ['src/main/shared/services/errors/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...STORAGE_SYNTAX] },
+  },
+  {
+    files: STORAGE_MODULES,
+    ignores: TESTS,
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX] },
   },
   {
     files: ['src/main/shared/**/*.{ts,tsx}'],
