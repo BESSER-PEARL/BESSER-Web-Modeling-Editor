@@ -128,14 +128,18 @@ deployment.
 - ESLint (``no-restricted-imports`` in ``packages/webapp/.eslintrc.js``)
   enforces both rules as errors.
 - Browser storage is read and written only through the typed modules in
-  ``shared/services/storage/`` (and ``llmKeyStorage``); every key is a constant
-  in ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
-  anywhere else outside tests.
+  ``shared/services/storage/``, ``shared/services/llmKeyStorage.ts`` and
+  ``features/spec-driven/storage.ts``; every key is a constant in
+  ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
+  (including ``window.localStorage``, casts and aliases) anywhere else in
+  ``src/`` outside tests.
 - A failure the user should see is reported with ``reportError()`` from
   ``shared/services/errors/reportError.ts``: the error toast, plus the caught
-  error to Sentry when ``SENTRY_DSN`` is set. A notice uses ``globalAlert()``
-  (the confirm dialog with one button). ESLint rejects ``toast.error(`` and
-  ``alert(`` anywhere else outside tests.
+  error to Sentry when ``SENTRY_DSN`` is set and the user accepted analytics.
+  Offline, aborted and 4xx failures are not sent, and every Sentry event is
+  reduced to the error type, HTTP status and stack (no messages). A notice uses
+  ``globalAlert()`` (the confirm dialog with one button). ESLint rejects
+  ``toast.error(`` and ``alert(`` anywhere else in ``src/`` outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.

@@ -168,7 +168,7 @@ exist); `webapp/*` → `./*`.
 
 ### API communication
 Every HTTP call lives in `shared/api/`; ESLint (`no-restricted-syntax`) rejects `fetch`, `XMLHttpRequest` and
-`sendBeacon` anywhere else in `src/main` except tests. Most calls go through `api-client.ts` (`request`, `get`,
+`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests. Most calls go through `api-client.ts` (`request`, `get`,
 `post`, `upload`, `downloadBlob`; per-request `timeout` override); the modules that return a raw `Response`
 (generation, conversion, validation, feedback, telemetry, spec-driven, GitHub sign-in) keep their callers' own
 timeouts and error handling. Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL`
@@ -183,12 +183,17 @@ where it is narrower than the schema (e.g. a literal union the schema types as `
 ### Error reporting
 A failure the user should see goes through `reportError(message, { error, ...toastOptions })` in
 `shared/services/errors/reportError.ts`: the react-toastify error toast (same options and `toastId` dedupe), plus
-the caught `error` to Sentry once Sentry has loaded (`SENTRY_DSN` set). Pass the message already translated; pass
+the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
+cookie banner (`applyAnalyticsConsent` in `lazy-analytics.ts` starts and stops it, like PostHog's opt-in); offline,
+aborted and 4xx failures (`isNetworkError`, `ApiError`/`SseHttpError` status < 500) are toast-only, and the
+`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path and breadcrumb
+categories: no message, backend `detail`, query string or extra data, as the privacy policy promises. Captures are
+tagged `handled: reportError`. Pass the message already translated; pass
 `error` only for a caught exception, not for an expected case such as "open a project first". `notifyError(context)`
 in the same module is the `.catch()` handler for fire-and-forget promises. Developer diagnostics stay `console.*`
 at the call site; `reportError` never logs. Notices that used `alert()` use `globalAlert()` from
 `shared/services/confirm/globalConfirm.ts` (the confirm dialog with one OK button; it does not block, so await it if
-code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(` and `alert(` outside those modules and tests,
+code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(` and `alert(` anywhere in `src/` outside those modules and tests,
 and `no-restricted-globals` rejects the un-imported global `reportError` (the browser's own, which only fires an
 `error` event). A loading toast turned into an error with `toast.update(id, { type: 'error' })` stays as it is.
 Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
@@ -198,9 +203,10 @@ stays in Redux.
 Web Storage is read and written only by the typed modules in `shared/services/storage/`
 (`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,
 `githubStorage`, `assistantStorage`, `preferencesStorage`, `tabStorage`, the migration runner), plus
-`llmKeyStorage` and `features/spec-driven/storage.ts`. Components, hooks and services call those; ESLint
-(`no-restricted-globals` / `no-restricted-properties` in `packages/webapp/.eslintrc.js`) rejects
-`localStorage` / `sessionStorage` anywhere else outside tests. Every key is a constant in
+`llmKeyStorage` and `features/spec-driven/storage.ts` (`STORAGE_MODULES` in `packages/webapp/.eslintrc.js`).
+Components, hooks and services call those; ESLint (`no-restricted-globals`, plus a `no-restricted-syntax` member
+selector that also catches `window.localStorage`, casts, aliases and `document.defaultView`) rejects
+`localStorage` / `sessionStorage` anywhere else in `src/` outside tests. Every key is a constant in
 `shared/constants/constant.ts`; most are prefixed `besser_`, a few legacy ones (`github_session`,
 `umlAgentRateLimiterState`, ...) keep their old spelling so users keep their data. **Secrets and
 tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYOK key
