@@ -19,6 +19,7 @@ import {
 } from '../storage/local-storage-types';
 import { getProjectJsonModel } from '../../api/conversion';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
+import { reportImportRepairs } from './reportImportRepairs';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 // Interface for V2 JSON export format
@@ -353,6 +354,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   }
 
   const jsonData = await response.json();
+  reportImportRepairs(jsonData.warnings);
 
   if (isOldWebappFormat(jsonData)) {
     const project = migrateOldWebappProject(jsonData);
