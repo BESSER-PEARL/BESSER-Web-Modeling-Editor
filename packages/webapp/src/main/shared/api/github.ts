@@ -39,6 +39,10 @@ export interface RepoSummary {
   class_count: number;
   class_names: string[];
   last_commit: RepoCommit | null;
+  /** Where the model was read: `buml/diagrams.json`, or a file an older editor saved. */
+  model_path?: string | null;
+  /** Every file in the repo holding a BESSER model; more than one lets the user pick. */
+  model_paths?: string[];
 }
 
 /** Where a save or push kept on its own branch stands (backend `PendingChangeStatus`). */
@@ -84,6 +88,8 @@ export interface ImportedRun {
    * model: import again with `allowAiReading` once the user agreed.
    */
   ai_reading_offered?: boolean;
+  /** Where `project` was read: `buml/diagrams.json`, or a file an older editor saved. */
+  model_path?: string | null;
 }
 
 /** The GitHub topic BESSER sets on every repo it pushes to. */
@@ -119,9 +125,11 @@ export const getSyncStatus = (
     session(githubSession),
   );
 
-export const getModelHistory = async (githubSession: string, owner: string, repo: string, branch: string) =>
+export const getModelHistory = async (
+  githubSession: string, owner: string, repo: string, branch: string, modelPath?: string,
+) =>
   (await apiClient.get<{ commits: ModelHistoryEntry[] }>(
-    `/github/model-history?${query({ owner, repo, branch })}`,
+    `/github/model-history?${query({ owner, repo, branch, model_path: modelPath })}`,
     { ...session(githubSession), timeout: 60_000 },
   )).commits ?? [];
 
@@ -165,9 +173,11 @@ export const loadModel = (githubSession: string, owner: string, repo: string, br
     { ...session(githubSession), timeout: 60_000 },
   );
 
-export const loadModelAtCommit = (githubSession: string, owner: string, repo: string, commitSha: string) =>
+export const loadModelAtCommit = (
+  githubSession: string, owner: string, repo: string, commitSha: string, modelPath?: string,
+) =>
   apiClient.get<{ project: unknown; commit_sha: string }>(
-    `/github/project/load-commit?${query({ owner, repo, commit_sha: commitSha })}`,
+    `/github/project/load-commit?${query({ owner, repo, commit_sha: commitSha, model_path: modelPath })}`,
     { ...session(githubSession), timeout: 60_000 },
   );
 
@@ -197,18 +207,22 @@ export const createGist = (githubSession: string, project: BesserProject, descri
 /**
  * Register the repo's code as a run the next Spec-Driven modify run can start from.
  * `allowAiReading`: the user agreed that an excerpt of the code goes to the server's AI model.
+ * `modelPath`: the model file to read when the repo holds several (the first found otherwise).
  */
 export const importRepoAsRun = (
   githubSession: string,
   owner: string,
   repo: string,
   branch?: string,
-  { allowAiReading = false }: { allowAiReading?: boolean } = {},
+  { allowAiReading = false, modelPath }: { allowAiReading?: boolean; modelPath?: string } = {},
 ) =>
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
     // A demo tab (`?demo=<token>`) has repos read by the demo model rather than the keyless one.
-    { owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined, allow_ai_reading: allowAiReading },
+    {
+      owner, repo, branch: branch || undefined, demo_token: getDemoToken() ?? undefined,
+      allow_ai_reading: allowAiReading, model_path: modelPath,
+    },
     // The AI fallback reader can take up to 90 s on top of the download.
     { ...session(githubSession), timeout: 150_000 },
   );

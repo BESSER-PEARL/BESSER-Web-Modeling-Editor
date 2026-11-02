@@ -1467,6 +1467,7 @@
       "saved": "Model desat a GitHub.",
       "savedMerged": "Desat i combinat amb els canvis més recents de GitHub.",
       "repoHasModelChoice": "{{repo}} conté «{{name}}». Carrega’l en aquest projecte, substituint el model obert, o conserva el teu model i vincula: el teu proper desament substituirà llavors el model del repositori.",
+      "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
       "keepModelAndLink": "Conserva el meu model i vincula"
     },
     "proposal": {

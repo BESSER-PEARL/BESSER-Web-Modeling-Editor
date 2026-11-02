@@ -25,6 +25,7 @@ import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import {
   getProjectGitHubLink,
   hasUnsyncedModelChanges,
+  legacyModelPath,
   markProjectGitHubSynced,
   setProjectGitHubLink,
   type ProjectGitHubLink,
@@ -171,8 +172,11 @@ export async function continueFromGithubRepo(args: {
     const link = { owner: response.owner, repo: response.repo, branch: response.branch };
     if (isBesserRepo) {
       // Linked at the imported commit, so a later push updates the SAME repo
-      // and merges any commits made after this one.
-      markProjectGitHubSynced(link, imported, response.commit_sha, { loadedFromRepo: true });
+      // and merges any commits made after this one. An older editor's model
+      // file is remembered so that push replaces it.
+      const legacyFilePath = legacyModelPath(response.model_path);
+      markProjectGitHubSynced({ ...link, ...(legacyFilePath ? { legacyFilePath } : {}) }, imported,
+        response.commit_sha, { loadedFromRepo: true });
     } else {
       // The repo holds no model yet: the project counts as unsaved until the
       // user saves its model, and a proposed one waits on the canvas for review.

@@ -34,7 +34,7 @@ export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, on
     setHistory(null);
     setFailed(false);
     try {
-      setHistory(await getModelHistory(githubSession, link.owner, link.repo, link.branch));
+      setHistory(await getModelHistory(githubSession, link.owner, link.repo, link.branch, link.legacyFilePath));
     } catch {
       setFailed(true);
       setHistory([]);

@@ -5,9 +5,11 @@ import { reportError } from '../../../shared/services/errors/reportError';
 import { CloudDownload, Link2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useProject } from '../../../app/hooks/useProject';
 import type { RepoSync } from '../hooks/useRepoSync';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
+import { legacyModelPath } from '../../../shared/services/storage/projectGitHubLink';
 
 interface LinkRepositoryDialogProps {
   open: boolean;
@@ -26,10 +28,17 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
   const [isLinking, setIsLinking] = useState(false);
   // A repository with a model, waiting for the user to choose which model to keep.
   const [choice, setChoice] = useState<RepoChoice | null>(null);
+  // The repository's model file; the user picks it when the repository holds several.
+  const [modelPath, setModelPath] = useState<string | null>(null);
+  const modelPaths = choice?.summary.model_paths ?? [];
 
   useEffect(() => {
     if (!open) setChoice(null);
   }, [open]);
+
+  useEffect(() => {
+    setModelPath(choice?.summary.model_path ?? null);
+  }, [choice]);
 
   const run = async (action: () => Promise<void> | void) => {
     setIsLinking(true);
@@ -43,17 +52,18 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
   };
 
   // Keep the local model; the next save commits it on top of the repo's head.
-  const keepModelAndLink = ({ owner, repo, branch, summary }: RepoChoice) =>
+  const keepModelAndLink = ({ owner, repo, branch, summary }: RepoChoice, path = summary.model_path) =>
     run(() => {
-      sync.linkTo(owner, repo, branch, summary.head_sha || undefined);
+      sync.linkTo(owner, repo, branch, summary.head_sha || undefined, path);
       onOpenChange(false);
       toast.success(t('github.panel.linked', { defaultValue: 'Linked to {{repo}}. Save to put your model in it.', repo: `${owner}/${repo}` }));
     });
 
-  const loadRepoModel = ({ owner, repo, branch }: RepoChoice) =>
+  const loadRepoModel = ({ owner, repo, branch }: RepoChoice, path: string | null) =>
     run(async () => {
       if (!currentProject) return;
-      await sync.pullInto({ owner, repo, branch }, currentProject.id);
+      const legacyFilePath = legacyModelPath(path);
+      await sync.pullInto({ owner, repo, branch, ...(legacyFilePath ? { legacyFilePath } : {}) }, currentProject.id);
       onOpenChange(false);
       toast.success(t('github.toasts.projectLoadedFromRepo'));
     });
@@ -86,16 +96,38 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
                 })}
           </DialogDescription>
         </DialogHeader>
+        {choice && modelPaths.length > 1 && (
+          <div className="flex flex-col gap-2">
+            <p id="link-model-file-label" className="text-sm font-medium">
+              {t('github.panel.pickModelFile', {
+                defaultValue: 'This repository holds {{number}} models. Pick the one to use:',
+                number: modelPaths.length,
+              })}
+            </p>
+            <RadioGroup
+              aria-labelledby="link-model-file-label"
+              value={modelPath ?? undefined}
+              onValueChange={setModelPath}
+              className="flex w-full flex-col divide-y divide-border/60"
+            >
+              {modelPaths.map((path) => (
+                <RadioGroupItem key={path} value={path} className="w-full py-2 text-left font-mono text-xs">
+                  {path}
+                </RadioGroupItem>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
         {choice ? (
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" onClick={() => setChoice(null)} disabled={isLinking}>
               {t('common.cancel')}
             </Button>
-            <Button variant="outline" className="gap-1.5" onClick={() => void keepModelAndLink(choice)} disabled={isLinking}>
+            <Button variant="outline" className="gap-1.5" onClick={() => void keepModelAndLink(choice, modelPath)} disabled={isLinking}>
               <Link2 className="size-4" aria-hidden="true" />
               {t('github.panel.keepModelAndLink', { defaultValue: 'Keep my model and link' })}
             </Button>
-            <Button className="gap-1.5" onClick={() => void loadRepoModel(choice)} disabled={isLinking}>
+            <Button className="gap-1.5" onClick={() => void loadRepoModel(choice, modelPath)} disabled={isLinking}>
               {isLinking ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CloudDownload className="size-4" aria-hidden="true" />}
               {t('github.panel.loadRepoModel', { defaultValue: 'Load the repository model' })}
             </Button>
