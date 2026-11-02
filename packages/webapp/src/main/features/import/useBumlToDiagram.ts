@@ -3,6 +3,7 @@ import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram } from '../../shared/types/project';
+import { reportImportRepairs } from '../../shared/services/project-import/reportImportRepairs';
 
 /**
  * Custom hook for converting BUML files to diagram objects
@@ -35,6 +36,7 @@ export const useBumlToDiagram = () => {
       }
 
       const data = await response.json();
+      reportImportRepairs(data.warnings);
 
       // Handle both single diagram and project responses
       let diagramData;
