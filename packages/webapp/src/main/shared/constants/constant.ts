@@ -206,15 +206,16 @@ export const localStorageLegacyGitHubAutoCommit = localStoragePrefix + 'github_a
 // Pre-projects agent config; migrated once into per-project storage.
 export const localStorageLegacyAgentConfig = 'agentConfig';
 // Unprefixed keys of the pre-v7 webapp, removed by the v2 storage migration and by "Reset and reload".
+// Literals on purpose: the keys of a past version must not follow a rename of a live constant.
 export const legacyUnprefixedLocalStorageKeys: readonly string[] = [
   'latestDiagram',
-  localStorageLegacyAgentConfig,
+  'agentConfig',
   'agentPersonalization',
   'github_session',
-  localStorageGitHubUsername,
+  'github_username',
   'last_published_token',
   'last_published_type',
-  localStorageAssistantRateLimiterState,
+  'umlAgentRateLimiterState',
 ];
 
 export const sessionStorageAssistantConversation = localStoragePrefix + 'assistant_conversation_v1';

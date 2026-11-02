@@ -582,7 +582,7 @@ export const LocalStorageRepository = {
 
   /**
    * One-shot v2 -> v3 migration hook. Call once at startup from the global
-   * storage-migration runner (see ``shared/utils/storage-migration.ts``).
+   * storage-migration runner (see ``shared/services/storage/storage-migration.ts``).
    * Idempotent — safe to invoke on every boot.
    */
   migrateToV3,

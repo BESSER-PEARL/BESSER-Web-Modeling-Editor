@@ -55,7 +55,10 @@ export function forgetGitHubSignIn(): void {
 
 /* ---- "Continue from GitHub" (Project Hub) intent ---- */
 
-/** The stored intent: '1' for the repo picker, or a JSON resume point. */
+/** The stored intent that opens the repo picker; any other value is a JSON resume point. */
+export const CONTINUE_FROM_GITHUB_REPO_PICKER = '1';
+
+/** The stored intent: `CONTINUE_FROM_GITHUB_REPO_PICKER`, or a JSON resume point. */
 export function readContinueFromGithubIntent(): string | null {
   try {
     return sessionStorage.getItem(sessionStorageContinueFromGithubIntent);
@@ -64,7 +67,7 @@ export function readContinueFromGithubIntent(): string | null {
   }
 }
 
-export function writeContinueFromGithubIntent(value = '1'): void {
+export function writeContinueFromGithubIntent(value = CONTINUE_FROM_GITHUB_REPO_PICKER): void {
   try {
     sessionStorage.setItem(sessionStorageContinueFromGithubIntent, value);
   } catch {
