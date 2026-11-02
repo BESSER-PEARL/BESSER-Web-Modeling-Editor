@@ -375,7 +375,7 @@ export interface paths {
         };
         /**
          * Get Repo Summary
-         * @description The model a repo holds (name, diagrams, classes) and its last commit.
+         * @description The model a repo holds (name, diagrams, classes), every model file in it, and its last commit.
          */
         get: operations["get_repo_summary_besser_api_github_repo_summary_get"];
         put?: never;
@@ -419,10 +419,12 @@ export interface paths {
         };
         /**
          * Get Model History
-         * @description Recent commits that changed ``buml/diagrams.json``, each with its class-diagram changes.
+         * @description Recent commits that changed the model file, each with its class-diagram changes.
          *
-         *     Each commit is compared with its first parent, not with the commit listed
-         *     after it: after a merge, the next commit by date is on the other branch.
+         *     The model file is ``buml/diagrams.json``, or the file an older editor saved
+         *     while the repo has no ``buml/diagrams.json`` yet. Each commit is compared
+         *     with its first parent, not with the commit listed after it: after a merge,
+         *     the next commit by date is on the other branch.
          */
         get: operations["get_model_history_besser_api_github_model_history_get"];
         put?: never;
@@ -2311,6 +2313,8 @@ export interface components {
              * @default false
              */
             allow_ai_reading: boolean;
+            /** Model Path */
+            model_path?: string | null;
         };
         /**
          * ImportGitHubRunResponse
@@ -2325,6 +2329,8 @@ export interface components {
             } | null;
             /** Has Model */
             has_model: boolean;
+            /** Model Path */
+            model_path?: string | null;
             /** Owner */
             owner: string;
             /** Repo */
@@ -2859,6 +2865,13 @@ export interface components {
              */
             class_names: string[];
             last_commit?: components["schemas"]["GitHubCommitResponse"] | null;
+            /** Model Path */
+            model_path?: string | null;
+            /**
+             * Model Paths
+             * @default []
+             */
+            model_paths: string[];
         };
         /**
          * SaveProjectRequest
@@ -3791,6 +3804,8 @@ export interface operations {
                 repo: string;
                 /** @description Branch name */
                 branch?: string;
+                /** @description The model file to read; the first found when omitted */
+                model_path?: string | null;
             };
             header?: {
                 "X-GitHub-Session"?: string | null;
@@ -3829,6 +3844,8 @@ export interface operations {
                 repo: string;
                 /** @description Commit SHA to load from */
                 commit_sha: string;
+                /** @description The model file to read; the first found when omitted */
+                model_path?: string | null;
             };
             header?: {
                 "X-GitHub-Session"?: string | null;
@@ -3900,6 +3917,8 @@ export interface operations {
                 repo: string;
                 /** @description Branch; the repo default when omitted */
                 branch?: string | null;
+                /** @description The model file to summarize; the first found when omitted */
+                model_path?: string | null;
             };
             header?: {
                 "X-GitHub-Session"?: string | null;
@@ -3972,6 +3991,8 @@ export interface operations {
                 owner: string;
                 repo: string;
                 branch?: string;
+                /** @description The model file to follow; the first found when omitted */
+                model_path?: string | null;
             };
             header?: {
                 "X-GitHub-Session"?: string | null;

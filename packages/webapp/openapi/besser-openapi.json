@@ -976,6 +976,24 @@
             "description": "Branch name"
           },
           {
+            "name": "model_path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The model file to read; the first found when omitted",
+              "title": "Model Path"
+            },
+            "description": "The model file to read; the first found when omitted"
+          },
+          {
             "name": "X-GitHub-Session",
             "in": "header",
             "required": false,
@@ -1057,6 +1075,24 @@
               "title": "Commit Sha"
             },
             "description": "Commit SHA to load from"
+          },
+          {
+            "name": "model_path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The model file to read; the first found when omitted",
+              "title": "Model Path"
+            },
+            "description": "The model file to read; the first found when omitted"
           },
           {
             "name": "X-GitHub-Session",
@@ -1165,7 +1201,7 @@
           "GitHub Deployment"
         ],
         "summary": "Get Repo Summary",
-        "description": "The model a repo holds (name, diagrams, classes) and its last commit.",
+        "description": "The model a repo holds (name, diagrams, classes), every model file in it, and its last commit.",
         "operationId": "get_repo_summary_besser_api_github_repo_summary_get",
         "parameters": [
           {
@@ -1203,6 +1239,24 @@
               "title": "Branch"
             },
             "description": "Branch; the repo default when omitted"
+          },
+          {
+            "name": "model_path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The model file to summarize; the first found when omitted",
+              "title": "Model Path"
+            },
+            "description": "The model file to summarize; the first found when omitted"
           },
           {
             "name": "X-GitHub-Session",
@@ -1363,7 +1417,7 @@
           "GitHub Deployment"
         ],
         "summary": "Get Model History",
-        "description": "Recent commits that changed ``buml/diagrams.json``, each with its class-diagram changes.\n\nEach commit is compared with its first parent, not with the commit listed\nafter it: after a merge, the next commit by date is on the other branch.",
+        "description": "Recent commits that changed the model file, each with its class-diagram changes.\n\nThe model file is ``buml/diagrams.json``, or the file an older editor saved\nwhile the repo has no ``buml/diagrams.json`` yet. Each commit is compared\nwith its first parent, not with the commit listed after it: after a merge,\nthe next commit by date is on the other branch.",
         "operationId": "get_model_history_besser_api_github_model_history_get",
         "parameters": [
           {
@@ -1393,6 +1447,24 @@
               "default": "main",
               "title": "Branch"
             }
+          },
+          {
+            "name": "model_path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The model file to follow; the first found when omitted",
+              "title": "Model Path"
+            },
+            "description": "The model file to follow; the first found when omitted"
           },
           {
             "name": "X-GitHub-Session",
@@ -4987,6 +5059,18 @@
             "type": "boolean",
             "title": "Allow Ai Reading",
             "default": false
+          },
+          "model_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Path"
           }
         },
         "type": "object",
@@ -5018,6 +5102,17 @@
           "has_model": {
             "type": "boolean",
             "title": "Has Model"
+          },
+          "model_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Path"
           },
           "owner": {
             "type": "string",
@@ -6269,6 +6364,25 @@
                 "type": "null"
               }
             ]
+          },
+          "model_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Path"
+          },
+          "model_paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Model Paths",
+            "default": []
           }
         },
         "type": "object",
