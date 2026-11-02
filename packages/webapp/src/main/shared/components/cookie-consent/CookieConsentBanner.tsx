@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronRight, Shield } from 'lucide-react';
-import { applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
+import { applyAnalyticsConsent, applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '../../constants/z-index';
 import { Badge } from '@/components/ui/badge';
@@ -198,7 +198,7 @@ export const CookieConsentBanner: React.FC = () => {
     if (forceBanner) {
       setAnalyticsEnabled(false);
       setIsVisible(true);
-      applyConsentToPostHog('declined');
+      applyAnalyticsConsent('declined');
       return;
     }
 
@@ -207,13 +207,13 @@ export const CookieConsentBanner: React.FC = () => {
       setConsentStatus('pending');
       setAnalyticsEnabled(false);
       setIsVisible(true);
-      applyConsentToPostHog('declined');
+      applyAnalyticsConsent('declined');
       return;
     }
 
     setAnalyticsEnabled(consent.status === 'accepted');
     setIsVisible(consent.status === 'pending');
-    applyConsentToPostHog(consent.status);
+    applyAnalyticsConsent(consent.status);
   }, []);
 
   const detailRows = useMemo(
@@ -228,14 +228,14 @@ export const CookieConsentBanner: React.FC = () => {
 
   const handleAccept = () => {
     setConsentStatus('accepted');
-    applyConsentToPostHog('accepted');
+    applyAnalyticsConsent('accepted');
     setAnalyticsEnabled(true);
     setIsVisible(false);
   };
 
   const handleDecline = () => {
     setConsentStatus('declined');
-    applyConsentToPostHog('declined');
+    applyAnalyticsConsent('declined');
     setAnalyticsEnabled(false);
     setIsVisible(false);
   };
@@ -243,7 +243,7 @@ export const CookieConsentBanner: React.FC = () => {
   const handleSaveSettings = () => {
     const nextStatus: ConsentStatus = analyticsEnabled ? 'accepted' : 'declined';
     setConsentStatus(nextStatus);
-    applyConsentToPostHog(nextStatus);
+    applyAnalyticsConsent(nextStatus);
     setIsVisible(false);
     setShowSettings(false);
   };
@@ -386,7 +386,7 @@ export const PrivacySettingsButton: React.FC = () => {
   const handleSave = () => {
     const nextStatus: ConsentStatus = analyticsEnabled ? 'accepted' : 'declined';
     setConsentStatus(nextStatus);
-    applyConsentToPostHog(nextStatus);
+    applyAnalyticsConsent(nextStatus);
     setShowSettings(false);
   };
 

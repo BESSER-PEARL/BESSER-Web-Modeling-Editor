@@ -78,6 +78,8 @@ These are exactly the seven names in the ``define`` block.
 
 ``SENTRY_DSN``
    Optional DSN for Sentry browser error reporting. Leave unset to disable.
+   Sentry starts only for users who accept analytics in the cookie banner, and
+   its events carry the error type, HTTP status and stack, never messages.
 
 ``POSTHOG_KEY`` / ``POSTHOG_HOST``
    Optional PostHog product analytics. Leave unset to disable.
