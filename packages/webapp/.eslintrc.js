@@ -16,6 +16,8 @@ const PARENT_DIRS = '^(\\.\\./)+'
 const STORAGE_MESSAGE =
   'Use a module in shared/services/storage/ (or llmKeyStorage) instead of Web Storage directly.'
 
+const HTTP_MESSAGE = 'Call the backend through a module in shared/api/, not fetch/XMLHttpRequest/sendBeacon directly.'
+
 const featureBoundary = (feature) => ({
   files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
   rules: {
@@ -101,6 +103,22 @@ module.exports = [
         ...['window', 'globalThis', 'self'].flatMap((object) =>
           ['localStorage', 'sessionStorage'].map((property) => ({ object, property, message: STORAGE_MESSAGE })),
         ),
+      ],
+    },
+  },
+  // HTTP only through shared/api (no-restricted-syntax: `typeof fetch` checks stay allowed).
+  {
+    files: ['src/main/**/*.{ts,tsx}'],
+    ignores: ['src/main/shared/api/**', '**/__tests__/**', '**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...[
+          "CallExpression[callee.name='fetch']",
+          "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='fetch']",
+          "CallExpression[callee.property.name='sendBeacon']",
+          "NewExpression[callee.name='XMLHttpRequest']",
+        ].map((selector) => ({ selector, message: HTTP_MESSAGE })),
       ],
     },
   },

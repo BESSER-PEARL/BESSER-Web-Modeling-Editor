@@ -2,7 +2,7 @@
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromKg } from '../../shared/api/conversion';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { bumpEditorRevision } from '../../app/store/workspaceSlice';
@@ -22,15 +22,7 @@ export const useImportDiagramFromKG = () => {
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('kg_file', file);
-      formData.append('api_key', apiKey);
-
-      // Call backend endpoint
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-kg`, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await getJsonModelFromKg(file, apiKey);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));

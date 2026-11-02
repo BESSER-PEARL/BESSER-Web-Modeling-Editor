@@ -2,7 +2,7 @@
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromImage } from '../../shared/api/conversion';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
@@ -17,10 +17,6 @@ export const useImportDiagramPictureFromImage = () => {
 
   const importDiagramFromImage = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('image_file', file);
-      formData.append('api_key', apiKey);
-
       // If the active ClassDiagram already has elements, send it so the backend
       // merges the image into it instead of replacing.
       const currentForMerge = ProjectStorageRepository.getCurrentProject();
@@ -30,17 +26,12 @@ export const useImportDiagramPictureFromImage = () => {
         Math.min(classActiveIndex, Math.max(classDiagramsForMerge.length - 1, 0))
       ];
       const activeClassElements = (activeClassDiagram as any)?.model?.elements;
-      if (activeClassElements && Object.keys(activeClassElements).length > 0) {
-        formData.append('existing_model', JSON.stringify({
-          title: activeClassDiagram.title,
-          model: (activeClassDiagram as any).model,
-        }));
-      }
+      const existingModel =
+        activeClassElements && Object.keys(activeClassElements).length > 0
+          ? { title: activeClassDiagram.title, model: (activeClassDiagram as any).model }
+          : undefined;
 
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-image`, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await getJsonModelFromImage(file, apiKey, existingModel);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));

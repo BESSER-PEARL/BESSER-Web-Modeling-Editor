@@ -4,6 +4,8 @@
  * (`/github/*`) and `routers/spec_driven_router.py` (`/spec-driven/*`).
  */
 import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
+import { BACKEND_URL } from '../constants/constant';
 import type { BesserProject } from '../types/project';
 import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
 import type { RepoCodeAnalysis } from '../services/storage/projectGitHubLink';
@@ -21,25 +23,11 @@ export interface RepoCommit {
   origin: CommitOrigin;
 }
 
-export interface RepoListing {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  html_url: string;
-  private: boolean;
-  updated_at: string;
-  default_branch: string;
-  topics: string[];
-  /** False for a repository the user may only read. */
-  can_push: boolean;
-}
+/** `can_push` is false for a repository the user may only read. */
+export type RepoListing = components['schemas']['GitHubRepoResponse'];
 
-export interface RepoList {
-  repositories: RepoListing[];
-  /** The account has more repositories than the list holds. */
-  truncated: boolean;
-}
+/** `truncated`: the account has more repositories than the list holds. */
+export type RepoList = components['schemas']['GitHubReposListResponse'];
 
 export interface RepoSummary {
   has_model: boolean;
@@ -112,7 +100,7 @@ export const listRepos = async (githubSession: string): Promise<RepoList> => {
 };
 
 export const listBranches = async (githubSession: string, owner: string, repo: string): Promise<string[]> =>
-  (await apiClient.get<{ branches: string[] }>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
+  (await apiClient.get<components['schemas']['GitHubBranchesListResponse']>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
     .branches ?? [];
 
 export const getRepoSummary = (githubSession: string, owner: string, repo: string, branch?: string) =>
@@ -140,7 +128,7 @@ export const getModelHistory = async (githubSession: string, owner: string, repo
 export const createPullRequest = (
   githubSession: string,
   body: { owner: string; repo: string; head: string; base: string; title: string; body?: string },
-) => apiClient.post<{ number: number; html_url: string }>('/github/pull-request', body, session(githubSession));
+) => apiClient.post<components['schemas']['CreatePullRequestResponse']>('/github/pull-request', body, session(githubSession));
 
 /** Outcome of a commit that must not revert newer commits (see GitHubService.commit_tree). */
 export type PushStatus = 'pushed' | 'merged' | 'conflict' | 'pull_request';
@@ -242,7 +230,7 @@ let goLiveAvailable: Promise<boolean> | null = null;
 /** Whether the server deploys the project's own repo ("Go live"); asked once per page load. */
 export const isGoLiveAvailable = (): Promise<boolean> => {
   goLiveAvailable ??= apiClient
-    .get<{ go_live: boolean }>('/github/app/capabilities')
+    .get<components['schemas']['AppCapabilitiesResponse']>('/github/app/capabilities')
     .then((caps) => caps.go_live === true)
     .catch(() => false);
   return goLiveAvailable;
@@ -258,3 +246,29 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
 
 /** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
 export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';
+
+// Sign-in and star calls answer with the raw `Response`: their callers read the
+// body themselves and must not get the client's timeout or 401 event.
+
+/** `GET /github/auth/status`: whether the session still works (`GitHubOAuthResponse`). */
+export const getGitHubAuthStatus = (githubSession: string, signal: AbortSignal): Promise<Response> =>
+  fetch(`${BACKEND_URL}/github/auth/status`, { ...session(githubSession), signal });
+
+/** `POST /github/auth/logout`: end the session on the backend, which also revokes the GitHub token. */
+export const logOutOfGitHub = (githubSession: string): Promise<Response> =>
+  fetch(`${BACKEND_URL}/github/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: githubSession }),
+  });
+
+/** `GET /github/star/status`: `{starred}` for the BESSER repository. */
+export const getStarStatus = (githubSession: string, signal: AbortSignal): Promise<Response> =>
+  fetch(`${BACKEND_URL}/github/star/status`, { ...session(githubSession), signal });
+
+/** `PUT` (star) or `DELETE` (unstar) `/github/star`. */
+export const setStarred = (githubSession: string, starred: boolean): Promise<Response> =>
+  fetch(`${BACKEND_URL}/github/star`, { method: starred ? 'PUT' : 'DELETE', ...session(githubSession) });
+
+/** A file from `raw.githubusercontent.com` (a public repository; no backend involved). */
+export const fetchRawGitHubFile = (rawUrl: string): Promise<Response> => fetch(rawUrl);

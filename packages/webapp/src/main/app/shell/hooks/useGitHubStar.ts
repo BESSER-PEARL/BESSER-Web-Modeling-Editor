@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { getStarStatus, setStarred } from '../../../shared/api/github';
 import { markGitHubStarPromptDone } from '../../../shared/services/githubStarPrompt';
 
 interface UseGitHubStarOptions {
@@ -18,10 +18,7 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
   useEffect(() => {
     if (!isAuthenticated || !githubSession) return;
     const controller = new AbortController();
-    fetch(`${BACKEND_URL}/github/star/status`, {
-      headers: { 'X-GitHub-Session': githubSession },
-      signal: controller.signal,
-    })
+    getStarStatus(githubSession, controller.signal)
       .then((res) => res.json())
       .then((data) => {
         if (data.starred) {
@@ -38,11 +35,7 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
     if (!githubSession || starLoading) return;
     setStarLoading(true);
     try {
-      const method = hasStarred ? 'DELETE' : 'PUT';
-      const res = await fetch(`${BACKEND_URL}/github/star`, {
-        method,
-        headers: { 'X-GitHub-Session': githubSession },
-      });
+      const res = await setStarred(githubSession, !hasStarred);
       if (res.ok) {
         setHasStarred(!hasStarred);
         if (!hasStarred) {

@@ -49,7 +49,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { importProject } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { csvToDomainModel } from '../../shared/api/conversion';
 import { readPreferredInterface, writePreferredInterface } from '../../shared/services/storage/preferencesStorage';
 import { cancelAssistantOpenOnLoad, requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
 import {
@@ -636,12 +636,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     await createProjectFromGeneratedDiagram(
       async () => {
-        const requestData = new FormData();
-        spreadsheetFiles.forEach((file) => requestData.append('files', file));
-        const response = await fetch(`${BACKEND_URL}/csv-to-domain-model`, {
-          method: 'POST',
-          body: requestData,
-        });
+        const response = await csvToDomainModel(spreadsheetFiles);
         if (!response.ok) {
           let message = t('project.hub.toasts.spreadsheetGenerateFailed');
           try {

@@ -4,7 +4,7 @@ import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { exportBuml } from '../../shared/api/conversion';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 
 export const useExportBUML = () => {
@@ -25,18 +25,11 @@ export const useExportBUML = () => {
       }
 
       try {
-        const response = await fetch(`${BACKEND_URL}/export-buml`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json, text/plain, application/zip, */*',
-          },
-          body: JSON.stringify({
-            title: diagramTitle,
-            model: prepareAgentModelForBackend(editor.model),
-            generator: 'buml',
-            ...(referenceDiagramData ? { referenceDiagramData } : {}),
-          }),
+        const response = await exportBuml({
+          title: diagramTitle,
+          model: prepareAgentModelForBackend(editor.model),
+          generator: 'buml',
+          ...(referenceDiagramData ? { referenceDiagramData } : {}),
         });
 
         if (!response.ok) {

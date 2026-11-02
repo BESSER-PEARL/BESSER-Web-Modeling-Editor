@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModel } from '../../shared/api/conversion';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram } from '../../shared/types/project';
 
@@ -10,14 +10,8 @@ import { ProjectDiagram } from '../../shared/types/project';
  */
 export const useBumlToDiagram = () => {
   const convertBumlToDiagram = useCallback(async (file: File): Promise<ProjectDiagram> => {
-    const formData = new FormData();
-    formData.append('buml_file', file);
-
     try {
-      const response = await fetch(`${BACKEND_URL}/get-json-model`, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await getJsonModel(file);
 
       if (!response.ok) {
         const errorData = await response.json().catch((e) => ({ detail: 'Could not parse error response' }));

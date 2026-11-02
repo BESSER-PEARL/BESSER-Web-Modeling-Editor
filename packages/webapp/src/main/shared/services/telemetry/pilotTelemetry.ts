@@ -20,13 +20,14 @@
  */
 
 import { BACKEND_URL } from '../../constants/constant';
+import { postTelemetryEvent, type TelemetryEventRequest } from '../../api/telemetry';
 import { readPilotParticipant, writePilotParticipant } from '../storage/tabStorage';
 import { readAssistantSessionId, writeAssistantSessionId } from '../storage/assistantStorage';
 
 /** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
 const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 
-export type TelemetryEventKind = 'prompt' | 'agent_action' | 'delivery' | 'friction';
+export type TelemetryEventKind = TelemetryEventRequest['kind'];
 
 export type DeliveryAction = 'download' | 'push_github' | 'continue_from_repo';
 
@@ -102,16 +103,11 @@ export const sendTelemetryEvent = (kind: TelemetryEventKind, payload: Record<str
   try {
     const participant = getPilotParticipant();
     if (!participant || !BACKEND_URL) return;
-    void fetch(`${BACKEND_URL}/telemetry/event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session: getOrCreateAssistantSessionId(),
-        participant,
-        kind,
-        payload,
-      }),
-      keepalive: true,
+    void postTelemetryEvent({
+      session: getOrCreateAssistantSessionId(),
+      participant,
+      kind,
+      payload,
     }).catch(() => {
       // Swallowed by design — telemetry can never surface an error.
     });

@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "api:schema": "python ../../scripts/export-openapi.py openapi/besser-openapi.json",
+    "api:types": "openapi-typescript openapi/besser-openapi.json -o src/main/shared/api/generated/besser-openapi.d.ts",
+    "api:generate": "npm run api:schema && npm run api:types"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -101,6 +104,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9.34.0",
     "jsdom": "^28.1.0",
+    "openapi-typescript": "7.13.0",
     "postcss": "^8.5.6",
     "rimraf": "6.0.1",
     "tailwindcss": "^3.4.17",

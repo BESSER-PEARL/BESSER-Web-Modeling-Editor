@@ -283,15 +283,19 @@ If you add a new alias, update **both** files.
 
 ### API communication
 
-All backend calls go through `shared/api/api-client.ts`:
+All backend calls live in `shared/api/` (ESLint rejects `fetch` elsewhere):
 
-- Singleton `apiClient` with a 30 s timeout.
-- Methods: `get()`, `post()`, `upload()` (FormData), `downloadBlob()`
-  (binary).
-- Custom `ApiError` class with HTTP status.
+- `api-client.ts`: singleton `apiClient` with a 30 s timeout; methods `get()`,
+  `post()`, `upload()` (FormData), `downloadBlob()` (binary); custom
+  `ApiError` class with HTTP status.
+- One module per backend area (`generation.ts`, `conversion.ts`,
+  `github.ts`, ...) that components and hooks call.
+- Contract types: `generated/besser-openapi.d.ts`, generated from the
+  backend's OpenAPI schema (`packages/webapp/openapi/besser-openapi.json`).
 
 If you change a backend API contract, **update both the backend (Pydantic
-models / endpoint) and `shared/api/`** in lock-step.
+models / endpoint) and `shared/api/`** in lock-step, and regenerate the
+schema and types with `npm run api:generate --workspace=webapp`.
 
 ### Adding a new diagram element
 

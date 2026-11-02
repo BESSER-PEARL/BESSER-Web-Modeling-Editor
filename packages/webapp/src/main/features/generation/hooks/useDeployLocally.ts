@@ -3,7 +3,7 @@ import { ApollonEditor } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { deployApp } from '../../../shared/api/generation';
 import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import React from 'react';
 
@@ -49,18 +49,11 @@ export const useDeployLocally = () => {
       });
 
       try {
-        const response = await fetch(`${BACKEND_URL}/deploy-app`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/plain, */*',
-          },
-          body: JSON.stringify({
-            title: diagramTitle,
-            model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
-            generator: generatorType,
-            config: config,
-          }),
+        const response = await deployApp({
+          title: diagramTitle,
+          model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
+          generator: generatorType,
+          config: config,
         });
 
         // Update the toast based on the response

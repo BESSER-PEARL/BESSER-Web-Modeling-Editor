@@ -74,10 +74,10 @@ Webapp (`packages/webapp/src/main/`):
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
 | `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
-| `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
+| `shared/api/` | Every HTTP call: `api-client.ts` (singleton, 30 s default timeout, `ApiError`) and one module per backend area (`generation`, `conversion`, `validation`, `feedback`, `telemetry`, `specDriven`, `github`, `knowledgeGraph`, `agentSimulation`, `rateLimit`, `sseClient`); `generated/besser-openapi.d.ts` holds the backend's OpenAPI types |
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
-| `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
+| `shared/api/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
 | `shared/constants/constant.ts` | Env vars, endpoint builders, every storage key |
 | `shared/services/storage/` | The only code that touches Web Storage: projects, GitHub, assistant, preferences, tab values, migrations |
 | `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
@@ -164,9 +164,18 @@ has no npm dependency on the package); `shared` → `../shared/src/index.ts` (le
 exist); `webapp/*` → `./*`.
 
 ### API communication
-Most calls go through `shared/api/api-client.ts` (`request`, `get`, `post`, `upload`, `downloadBlob`; per-request
-`timeout` override). Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL` in
-production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
+Every HTTP call lives in `shared/api/`; ESLint (`no-restricted-syntax`) rejects `fetch`, `XMLHttpRequest` and
+`sendBeacon` anywhere else in `src/main` except tests. Most calls go through `api-client.ts` (`request`, `get`,
+`post`, `upload`, `downloadBlob`; per-request `timeout` override); the modules that return a raw `Response`
+(generation, conversion, validation, feedback, telemetry, spec-driven, GitHub sign-in) keep their callers' own
+timeouts and error handling. Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL`
+in production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
+
+Contract types come from the backend's OpenAPI schema: `packages/webapp/openapi/besser-openapi.json` and the
+generated `shared/api/generated/besser-openapi.d.ts` (`import type { components } from '.../generated/besser-openapi'`).
+Regenerate both with `npm run api:generate --workspace=webapp` (needs Python with BESSER's dependencies; BESSER
+is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of). A hand-written type stays only
+where it is narrower than the schema (e.g. a literal union the schema types as `string`).
 
 ### Browser storage
 Web Storage is read and written only by the typed modules in `shared/services/storage/`

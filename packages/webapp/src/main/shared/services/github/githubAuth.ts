@@ -22,6 +22,7 @@ import { toast } from 'react-toastify';
 import i18n from '../../i18n';
 import { BACKEND_URL } from '../../constants/constant';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../../api/api-client';
+import { getGitHubAuthStatus, logOutOfGitHub } from '../../api/github';
 import {
   expireGitHubSession,
   forgetGitHubSignIn,
@@ -83,10 +84,7 @@ async function verifySession(session: string): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
   try {
-    const response = await fetch(`${BACKEND_URL}/github/auth/status`, {
-      headers: { 'X-GitHub-Session': session },
-      signal: controller.signal,
-    });
+    const response = await getGitHubAuthStatus(session, controller.signal);
     const data: { success?: boolean; username?: string } = await response.json();
     if (state.session !== session) return; // signed out or in again meanwhile
     if (data.success && data.username) {
@@ -180,11 +178,7 @@ export async function signOutOfGitHub(): Promise<void> {
   setState(SIGNED_OUT);
   if (!session) return;
   try {
-    await fetch(`${BACKEND_URL}/github/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: session }),
-    });
+    await logOutOfGitHub(session);
   } catch (error) {
     console.error('Failed to sign out of GitHub:', error);
   }

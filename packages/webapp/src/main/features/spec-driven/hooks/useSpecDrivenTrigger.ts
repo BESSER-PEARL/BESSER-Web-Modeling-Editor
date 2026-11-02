@@ -59,7 +59,7 @@ import { toast } from 'react-toastify';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
+import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
@@ -67,7 +67,7 @@ import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenR
 import {
   SseHttpError,
   SseStallError,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 import {
   claimRunSlot,
@@ -396,20 +396,7 @@ export function useSpecDrivenTrigger(
   const cancelRunOnServer = useCallback(
     (runId: string | undefined, opts: { beacon?: boolean } = {}) => {
       if (!runId) return;
-      const url = cancelSpecDrivenUrl(runId);
-      try {
-        if (
-          opts.beacon &&
-          typeof navigator !== 'undefined' &&
-          typeof navigator.sendBeacon === 'function'
-        ) {
-          navigator.sendBeacon(url);
-          return;
-        }
-        void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
-      } catch {
-        /* best-effort */
-      }
+      cancelSpecDrivenRun(runId, opts);
     },
     [],
   );

@@ -9,7 +9,7 @@ A change must fit the codebase as it already is. Grade it against this repositor
 generic React best-practice rubric.
 
 - **Follow the existing convention.** When the codebase already has a way to do something, a new but equivalent
-  way is a finding: `shared/api/api-client.ts` for backend calls, `app/store/hooks.ts` for Redux,
+  way is a finding: `shared/api/` for backend calls (with the generated OpenAPI types), `app/store/hooks.ts` for Redux,
   `shared/constants/constant.ts` for storage keys and `shared/services/storage/` for reading and writing them,
   `react-i18next` for user-facing strings, Tailwind and Radix UI for styling and primitives.
 - **No papering over.** Flag a client-side workaround for what is really a backend contract issue, an empty

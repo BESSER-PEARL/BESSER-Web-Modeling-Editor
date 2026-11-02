@@ -13,6 +13,7 @@ import {
   readRateLimiterState,
   writeRateLimiterState,
 } from '../../../shared/services/storage/assistantStorage';
+import { checkRateLimit, resetRateLimit } from '../../../shared/api/rateLimit';
 
 export interface RateLimitConfig {
   maxRequestsPerMinute: number;
@@ -276,14 +277,7 @@ export class RateLimiterService {
   private async tryServerRateLimit(messageLength: number): Promise<ServerRateLimitResponse | null> {
     try {
       this.log('Sending server request to:', this.endpoint);
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ messageLength }),
-      });
+      const response = await checkRateLimit(this.endpoint, messageLength);
 
       this.log('Server response status:', response.status);
 
@@ -317,10 +311,7 @@ export class RateLimiterService {
 
   private async sendServerReset(): Promise<void> {
     try {
-      await fetch(this.endpoint, {
-        method: 'DELETE',
-        credentials: 'same-origin',
-      });
+      await resetRateLimit(this.endpoint);
     } catch {
       // Ignore reset errors - mainly used for tests/manual overrides.
     }

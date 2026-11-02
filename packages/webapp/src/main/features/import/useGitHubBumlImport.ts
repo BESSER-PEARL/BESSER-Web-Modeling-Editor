@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { convertToRawUrl, extractFileName, validateGitHubUrl } from '../../shared/utils/githubUrlUtils';
 import { importProjectFromBUML } from '../../shared/services/project-import/projectImport';
 import { useProject } from '../../app/hooks/useProject';
+import { fetchRawGitHubFile } from '../../shared/api/github';
 
 export const useGitHubBumlImport = () => {
     const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,7 @@ export const useGitHubBumlImport = () => {
             const loadingToast = toast.loading(t('github.toasts.fetchingFromGitHub', { filename }));
 
             // Fetch the file from GitHub
-            const response = await fetch(rawUrl);
+            const response = await fetchRawGitHubFile(rawUrl);
 
             if (!response.ok) {
                 toast.dismiss(loadingToast);

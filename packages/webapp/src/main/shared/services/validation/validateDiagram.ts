@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
-import { BACKEND_URL } from '../../constants/constant';
+import { postValidateDiagram } from '../../api/validation';
 import { ApollonEditor } from '@besser/wme';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
@@ -86,17 +86,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     const timeoutId = setTimeout(() => controller.abort(), 120000);
     let response: Response;
     try {
-      response = await fetch(`${BACKEND_URL}/validate-diagram`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: diagramTitle,
-          model: modelToSend
-        }),
-        signal: controller.signal,
-      });
+      response = await postValidateDiagram({ title: diagramTitle, model: modelToSend }, controller.signal);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {

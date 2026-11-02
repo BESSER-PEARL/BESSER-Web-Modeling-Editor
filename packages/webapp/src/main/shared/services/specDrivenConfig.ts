@@ -13,7 +13,7 @@
  * advertisement too, and shared code must not import from features.
  */
 
-import { SMART_GEN_CONFIG_ENDPOINT } from '../constants/constant';
+import { getSpecDrivenConfigResponse } from '../api/specDriven';
 
 export interface SpecDrivenConfigCaps {
   /** Server-enforced ceiling for the per-run cost budget (USD). */
@@ -320,7 +320,7 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
   if (!_configPromise) {
     _configPromise = (async (): Promise<SpecDrivenConfig> => {
       try {
-        const response = await fetch(SMART_GEN_CONFIG_ENDPOINT);
+        const response = await getSpecDrivenConfigResponse();
         if (!response.ok) {
           throw new Error(`config endpoint returned ${response.status}`);
         }

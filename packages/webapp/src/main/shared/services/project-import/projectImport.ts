@@ -17,7 +17,7 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
-import { BACKEND_URL } from '../../constants/constant';
+import { getProjectJsonModel } from '../../api/conversion';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 
@@ -345,13 +345,7 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
-  const formData = new FormData();
-  formData.append('buml_file', file);
-
-  const response = await fetch(`${BACKEND_URL}/get-project-json-model`, {
-    method: 'POST',
-    body: formData,
-  });
+  const response = await getProjectJsonModel(file);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

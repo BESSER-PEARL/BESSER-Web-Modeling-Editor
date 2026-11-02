@@ -4,7 +4,7 @@ import { useFileDownload } from '../../../shared/services/file-download/useFileD
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { generateFromDiagram, generateFromProject } from '../../../shared/api/generation';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { promptForGitHubStarOnce } from '../../../shared/services/githubStarPrompt';
@@ -211,15 +211,7 @@ export const useGenerateCode = () => {
         webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
       const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
-        const response = await fetch(`${BACKEND_URL}/generate-output-from-project`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/plain, */*',
-          },
-          body: JSON.stringify(projectWithSettings),
-          signal: controller.signal,
-        });
+        const response = await generateFromProject(projectWithSettings, controller.signal);
 
         if (!response.ok) {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
@@ -373,15 +365,7 @@ export const useGenerateCode = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000);
       try {
-        const response = await fetch(`${BACKEND_URL}/generate-output`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/plain, */*',
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
+        const response = await generateFromDiagram(body, controller.signal);
 
         if (!response.ok) {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));

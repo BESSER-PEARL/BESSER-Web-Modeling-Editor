@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { exportProjectAsBuml } from '../../shared/api/conversion';
 import { toast } from 'react-toastify';
 import i18n from '../../shared/i18n';
 import { BesserProject, SupportedDiagramType } from '../../shared/types/project';
@@ -24,13 +24,7 @@ export async function exportProjectAsSingleBUMLFile(
   const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes);
 
   try {
-    const response = await fetch(`${BACKEND_URL}/export-project-as-buml`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(projectToExport),
-    });
+    const response = await exportProjectAsBuml(projectToExport);
 
     if (!response.ok) {
       const errorText = await response.text();

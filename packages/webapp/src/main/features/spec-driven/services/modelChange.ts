@@ -4,7 +4,7 @@
  * run starts. See `resolveRunMode`.
  */
 
-import { SMART_GEN_PREVIEW_ENDPOINT } from '../../../shared/constants/constant';
+import { previewSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { GlobalConfirmOptions } from '../../../shared/services/confirm/globalConfirm';
 
 /**
@@ -55,17 +55,10 @@ export async function fetchModelChange(
   const stop = () => controller.abort();
   signal?.addEventListener('abort', stop);
   try {
-    const response = await fetch(SMART_GEN_PREVIEW_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project,
-        instructions,
-        mode: 'modify',
-        base_run_id: baseRunId,
-      }),
-      signal: controller.signal,
-    });
+    const response = await previewSpecDrivenRun(
+      { project, instructions, mode: 'modify', base_run_id: baseRunId },
+      controller.signal,
+    );
     if (!response.ok) {
       console.warn(`[modelChange] preview returned ${response.status}; modifying without the check`);
       return null;

@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
 import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiagramModel } from '../types/project';
 import { KEY_PROVIDERS, type KeyProvider } from '../services/llmKeyStorage';
 
@@ -9,8 +10,9 @@ import { KEY_PROVIDERS, type KeyProvider } from '../services/llmKeyStorage';
  * One function per endpoint (`/besser_api/kg/...`); the flows built on them
  * (batching, merging, retries) belong to the features that use them. Every KG
  * HTTP call goes through the shared `apiClient` (timeouts, `{"detail"}` error
- * parsing into `ApiError`). The response types below mirror the backend's
- * `backend/models/responses.py`; a change there is a change here.
+ * parsing into `ApiError`). Response types come from the generated OpenAPI
+ * types where they match; the hand-written ones below mirror the backend's
+ * `backend/models/responses.py` more narrowly; a change there is a change here.
  */
 
 // ---------------------------------------------------------------------------
@@ -30,13 +32,10 @@ const HEAVY_TIMEOUT_MS = 60_000;
 
 /** Backend `GET /kg/config`: the limits the server enforces on the KG LLM
  *  endpoints. Never hardcode a copy: a stale one silently becomes the binding
- *  limit (a timeout shorter than the server's, or a batch it rejects). */
-export interface KgConfig {
-  /** Overall deadline, in seconds, the server gives one KG LLM request. */
-  llmRequestTimeoutSeconds: number;
-  /** Most node ids one `/kg/classify-orphans` request may carry. */
-  maxOrphanClassifyNodes: number;
-}
+ *  limit (a timeout shorter than the server's, or a batch it rejects).
+ *  `llmRequestTimeoutSeconds`: the deadline of one KG LLM request;
+ *  `maxOrphanClassifyNodes`: most node ids one `/kg/classify-orphans` request may carry. */
+export type KgConfig = components['schemas']['KGConfigResponse'];
 
 /** The server's KG limits could not be loaded, so no LLM call is attempted
  *  (guessing them could cut a request short or send a batch it rejects). */
@@ -123,11 +122,7 @@ export interface KgPreflightReport {
 /** Backend `KGConsistencyReportResponse`. Declared with the project types. */
 export type KgConsistencyReport = ConsistencyReport;
 
-/** Backend `KGPendingOrphanClassification`. */
-export interface KgPendingOrphanClassification {
-  nodeIds: string[];
-  kgSignature: string;
-}
+export type KgPendingOrphanClassification = components['schemas']['KGPendingOrphanClassification'];
 
 /** Backend `KGRefinementResponse`: answer of `/kg/apply-refinement`. */
 export interface KgRefinementResponse {

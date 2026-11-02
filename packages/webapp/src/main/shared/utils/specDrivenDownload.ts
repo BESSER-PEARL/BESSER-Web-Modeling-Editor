@@ -12,7 +12,7 @@
  * (or after a successful save) is safe.
  */
 
-import { specDrivenDownloadUrl } from '../constants/constant';
+import { downloadSpecDrivenOutput } from '../api/specDriven';
 import { emitDeliveryEvent } from '../services/telemetry/pilotTelemetry';
 import { downloadFile } from './download';
 
@@ -36,13 +36,12 @@ export async function fetchAndSaveSpecDrivenArtifact(
   fileName: string,
   isZip: boolean,
 ): Promise<SpecDrivenDownloadResult> {
-  const fullUrl = specDrivenDownloadUrl(runId);
   // Research telemetry: the user took the generated output with them.
   // Fire-and-forget, no-op unless telemetry is active.
   emitDeliveryEvent('download', runId);
   let response: Response;
   try {
-    response = await fetch(fullUrl);
+    response = await downloadSpecDrivenOutput(runId);
   } catch (err) {
     console.error('[specDrivenDownload] download fetch failed', err);
     return { ok: false };
@@ -79,7 +78,7 @@ export async function fetchAndSaveSpecDrivenArtifact(
  */
 export async function fetchSpecDrivenArtifactBlob(runId: string): Promise<Blob | null> {
   try {
-    const response = await fetch(specDrivenDownloadUrl(runId));
+    const response = await downloadSpecDrivenOutput(runId);
     return response.ok ? await response.blob() : null;
   } catch (err) {
     console.error('[specDrivenDownload] view fetch failed', err);

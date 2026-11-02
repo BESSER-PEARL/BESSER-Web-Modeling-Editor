@@ -9,11 +9,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
-import { BACKEND_URL } from '../constants/constant';
+import { submitFeedback, type FeedbackSubmission } from '../api/feedback';
 import { validateEmail, validateRequired, validateMinLength } from '../utils/validation';
 import { useFieldValidation } from '../hooks/useFieldValidation';
 
-type Satisfaction = 'happy' | 'neutral' | 'sad';
+type Satisfaction = FeedbackSubmission['satisfaction'];
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -86,17 +86,13 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${BACKEND_URL}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          satisfaction,
-          category,
-          feedback: feedback.trim(),
-          email: email.trim() || null,
-          timestamp: new Date().toISOString(),
-          user_agent: navigator.userAgent,
-        }),
+      const response = await submitFeedback({
+        satisfaction,
+        category,
+        feedback: feedback.trim(),
+        email: email.trim() || null,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent,
       });
 
       if (!response.ok) {
