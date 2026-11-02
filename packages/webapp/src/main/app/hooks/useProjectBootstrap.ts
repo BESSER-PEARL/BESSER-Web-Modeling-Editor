@@ -1,10 +1,8 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  localStorageLatestProject,
-  sessionStorageContinueFromGithubIntent,
-  sessionStorageOpenAssistantOnLoad,
-} from '../../shared/constants/constant';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
+import { readContinueFromGithubIntent } from '../../shared/services/storage/githubStorage';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
 import { notifyError } from '../../shared/utils/notifyError';
 import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
@@ -45,15 +43,7 @@ export const useProjectBootstrap = ({
   // OPEN on return (even when a latest project loads) so the hub can jump the
   // user straight to the repo picker. The ProjectHubDialog consumes-and-clears
   // the flag; this ref keeps the intent for the lifetime of this load only.
-  const continueFromGithubReopenRef = useRef<boolean>(
-    (() => {
-      try {
-        return sessionStorage.getItem(sessionStorageContinueFromGithubIntent) !== null;
-      } catch {
-        return false;
-      }
-    })(),
-  );
+  const continueFromGithubReopenRef = useRef<boolean>(readContinueFromGithubIntent() !== null);
 
   useEffect(() => {
     const checkForLatestProject = async () => {
@@ -71,7 +61,7 @@ export const useProjectBootstrap = ({
         return;
       }
 
-      const latestProjectId = localStorage.getItem(localStorageLatestProject);
+      const latestProjectId = ProjectStorageRepository.getLatestProjectId();
 
       if (latestProjectId) {
         try {
@@ -123,11 +113,7 @@ export const useProjectBootstrap = ({
       return;
     }
     trackInterfaceChoice('agent', 'url');
-    try {
-      sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
-    } catch {
-      /* storage unavailable — the drawer just won't auto-open, non-fatal */
-    }
+    requestAssistantOpenOnLoad();
   }, []);
 
   // Read ?buml= once on mount — not reactively — to avoid re-triggers

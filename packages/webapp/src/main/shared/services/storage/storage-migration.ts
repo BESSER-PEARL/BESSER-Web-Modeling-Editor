@@ -1,6 +1,14 @@
-import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+import { LocalStorageRepository } from './local-storage-repository';
+import {
+  legacyUnprefixedLocalStorageKeys,
+  localStorageCollaborationColor,
+  localStorageCollaborationName,
+  localStorageDiagramPrefix,
+  localStorageDiagramsList,
+  localStorageLatest,
+  localStorageStorageVersion,
+} from '../../constants/constant';
 
-const STORAGE_VERSION_KEY = 'besser_storage_version';
 const CURRENT_VERSION = 4;
 
 interface Migration {
@@ -42,25 +50,17 @@ const migrations: Migration[] = [
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('besser_diagram_')) {
+        if (key && key.startsWith(localStorageDiagramPrefix)) {
           keysToRemove.push(key);
         }
       }
       // Old webapp top-level keys
       keysToRemove.push(
-        'besser_diagrams',
-        'besser_latest',
-        'besser_collaborationName',
-        'besser_collaborationColor',
-        // Legacy non-prefixed keys
-        'latestDiagram',
-        'agentConfig',
-        'agentPersonalization',
-        'github_session',
-        'github_username',
-        'last_published_token',
-        'last_published_type',
-        'umlAgentRateLimiterState',
+        localStorageDiagramsList,
+        localStorageLatest,
+        localStorageCollaborationName,
+        localStorageCollaborationColor,
+        ...legacyUnprefixedLocalStorageKeys,
       );
       for (const key of keysToRemove) {
         localStorage.removeItem(key);
@@ -97,7 +97,7 @@ const migrations: Migration[] = [
 ];
 
 export function runStorageMigrations(): void {
-  const current = parseInt(localStorage.getItem(STORAGE_VERSION_KEY) || '0');
+  const current = parseInt(localStorage.getItem(localStorageStorageVersion) || '0');
   for (const m of migrations) {
     if (m.version > current) {
       try {
@@ -107,5 +107,5 @@ export function runStorageMigrations(): void {
       }
     }
   }
-  localStorage.setItem(STORAGE_VERSION_KEY, String(CURRENT_VERSION));
+  localStorage.setItem(localStorageStorageVersion, String(CURRENT_VERSION));
 }

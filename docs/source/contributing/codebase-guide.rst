@@ -105,7 +105,8 @@ deployment.
    │   ├── perspectives.ts         #   Diagram-visibility presets
    │   ├── services/               #   Storage, validation, analytics, SSE,
    │   │   │                       #   telemetry, llmKeyStorage
-   │   │   └── storage/ProjectStorageRepository.ts
+   │   │   └── storage/            #   The only Web Storage access: projects,
+   │   │                           #   GitHub, assistant, preferences
    │   ├── components/             #   Reusable UI, incl. byok/LlmKeyDialog
    │   ├── hooks/                  #   Shared React hooks
    │   ├── dialogs/                #   Shared dialog components
@@ -125,6 +126,10 @@ deployment.
   ``features/``.
 - ESLint (``no-restricted-imports`` in ``packages/webapp/.eslintrc.js``)
   enforces both rules as errors.
+- Browser storage is read and written only through the typed modules in
+  ``shared/services/storage/`` (and ``llmKeyStorage``); every key is a constant
+  in ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
+  anywhere else outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.

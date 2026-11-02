@@ -20,7 +20,6 @@ import {
   getReferencedDiagram,
 } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
@@ -159,7 +158,7 @@ export const loadProjectThunk = createAsyncThunk(
 
     if (!project) throw new Error('Project not found');
 
-    localStorage.setItem(localStorageLatestProject, project.id);
+    ProjectStorageRepository.setLatestProjectId(project.id);
 
     // Mirror the bridge setup that `switchDiagramTypeThunk` would do, so
     // imported / template-loaded projects whose active diagram is a User

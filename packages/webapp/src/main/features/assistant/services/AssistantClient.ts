@@ -17,11 +17,12 @@ import type {
 } from './assistant-types';
 import { ProtocolError } from './errors';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
-  assistantSessionStorageKey,
-  getOrCreateAssistantSessionId,
-  getPilotParticipant,
-} from '../../../shared/services/telemetry/pilotTelemetry';
+  clearAssistantSessionId,
+  readAssistantUserId,
+  writeAssistantUserId,
+} from '../../../shared/services/storage/assistantStorage';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -47,11 +48,6 @@ type QueuedMessage =
     context?: Partial<AssistantWorkspaceContext>;
   };
 
-// Per-tab session id key — owned by the shared telemetry/session service so
-// the telemetry session id is guaranteed to be the SAME id.
-const SESSION_STORAGE_KEY = assistantSessionStorageKey;
-const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
-
 const getStableUserId = (): string => {
   // BAF's websocket platform keys backend sessions on the `user_id`
   // query param; without a stable id every reconnect creates a brand-new
@@ -59,7 +55,7 @@ const getStableUserId = (): string => {
   // (and re-running the greeting). Persisted in localStorage so the id
   // survives tab and browser restarts (create once, reuse forever).
   try {
-    const existing = localStorage.getItem(USER_ID_STORAGE_KEY);
+    const existing = readAssistantUserId();
     if (existing) return existing;
   } catch {
     // localStorage unavailable (e.g. iframe sandbox) — fall through
@@ -71,7 +67,7 @@ const getStableUserId = (): string => {
       : `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    localStorage.setItem(USER_ID_STORAGE_KEY, id);
+    writeAssistantUserId(id);
   } catch {
     // best-effort
   }
@@ -735,7 +731,7 @@ export class AssistantClient {
    */
   resetSession(): void {
     try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      clearAssistantSessionId();
     } catch {
       // sessionStorage unavailable — fall through to a fresh in-memory id
     }

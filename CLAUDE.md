@@ -78,7 +78,8 @@ Webapp (`packages/webapp/src/main/`):
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
 | `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
-| `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
+| `shared/constants/constant.ts` | Env vars, endpoint builders, every storage key |
+| `shared/services/storage/` | The only code that touches Web Storage: projects, GitHub, assistant, preferences, tab values, migrations |
 | `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
 | `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store; its providers and models come from the backend's model catalog (`/spec-driven/config` → `providers`) |
 
@@ -168,7 +169,14 @@ Most calls go through `shared/api/api-client.ts` (`request`, `get`, `post`, `upl
 production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
 
 ### Browser storage
-All keys are prefixed `besser_`; most constants live in `shared/constants/constant.ts`. **Secrets and
+Web Storage is read and written only by the typed modules in `shared/services/storage/`
+(`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,
+`githubStorage`, `assistantStorage`, `preferencesStorage`, `tabStorage`, the migration runner), plus
+`llmKeyStorage` and `features/spec-driven/storage.ts`. Components, hooks and services call those; ESLint
+(`no-restricted-globals` / `no-restricted-properties` in `packages/webapp/.eslintrc.js`) rejects
+`localStorage` / `sessionStorage` anywhere else outside tests. Every key is a constant in
+`shared/constants/constant.ts`; most are prefixed `besser_`, a few legacy ones (`github_session`,
+`umlAgentRateLimiterState`, ...) keep their old spelling so users keep their data. **Secrets and
 tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYOK key
 (`besser_llm_api_key` / `_provider` / `_model` / `_base_url`), free-tier opt-in, run budget, the GitHub
 session id, and assistant UI state. `localStorage` holds projects (`besser_projects`, `besser_latest_project`,

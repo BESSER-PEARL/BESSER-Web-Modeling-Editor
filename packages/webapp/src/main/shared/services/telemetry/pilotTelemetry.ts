@@ -19,13 +19,9 @@
  * to it — one id per tab, never two.
  */
 
-import { BACKEND_URL, sessionStoragePilotParticipant } from '../../constants/constant';
-
-/**
- * Per-tab assistant session id key. Predates telemetry (hence the
- * non-`besser_` spelling) — kept stable so existing tabs keep their id.
- */
-export const assistantSessionStorageKey = 'besser-assistant-session-id';
+import { BACKEND_URL } from '../../constants/constant';
+import { readPilotParticipant, writePilotParticipant } from '../storage/tabStorage';
+import { readAssistantSessionId, writeAssistantSessionId } from '../storage/assistantStorage';
 
 /** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
 const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
@@ -45,7 +41,7 @@ export const initPilotModeFromUrl = (): void => {
     const params = new URLSearchParams(window.location.search);
     const label = params.get('study') ?? params.get('pilot');
     if (label && PILOT_PARTICIPANT_PATTERN.test(label)) {
-      window.sessionStorage.setItem(sessionStoragePilotParticipant, label);
+      writePilotParticipant(label);
     }
   } catch {
     // Storage or URL unavailable — study mode simply stays off.
@@ -60,7 +56,7 @@ export const initPilotModeFromUrl = (): void => {
 export const getPilotParticipant = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    const stored = window.sessionStorage.getItem(sessionStoragePilotParticipant);
+    const stored = readPilotParticipant();
     return stored && PILOT_PARTICIPANT_PATTERN.test(stored) ? stored : null;
   } catch {
     return null;
@@ -77,7 +73,7 @@ export const isPilotSession = (): boolean => getPilotParticipant() !== null;
  */
 export const getOrCreateAssistantSessionId = (): string => {
   try {
-    const existing = sessionStorage.getItem(assistantSessionStorageKey);
+    const existing = readAssistantSessionId();
     if (existing) return existing;
   } catch {
     // sessionStorage unavailable (e.g. iframe sandbox) — fall through
@@ -89,7 +85,7 @@ export const getOrCreateAssistantSessionId = (): string => {
       : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    sessionStorage.setItem(assistantSessionStorageKey, id);
+    writeAssistantSessionId(id);
   } catch {
     // best-effort
   }

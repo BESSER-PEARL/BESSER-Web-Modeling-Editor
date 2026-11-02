@@ -10,8 +10,8 @@ generic React best-practice rubric.
 
 - **Follow the existing convention.** When the codebase already has a way to do something, a new but equivalent
   way is a finding: `shared/api/api-client.ts` for backend calls, `app/store/hooks.ts` for Redux,
-  `shared/constants/constant.ts` for storage keys, `react-i18next` for user-facing strings, Tailwind and Radix
-  UI for styling and primitives.
+  `shared/constants/constant.ts` for storage keys and `shared/services/storage/` for reading and writing them,
+  `react-i18next` for user-facing strings, Tailwind and Radix UI for styling and primitives.
 - **No papering over.** Flag a client-side workaround for what is really a backend contract issue, an empty
   `catch` that swallows an error, a new `ts-ignore` or `any` used to silence a real type mismatch, a duplicated
   helper instead of an import, and a test made to pass by loosening its assertion.
@@ -32,6 +32,7 @@ Important is for findings that break behavior, a contract, or a security rule:
 - a backend endpoint or response shape used without the matching change in `shared/api/` (or the reverse)
 - `editorRevision` bumped for a model update or a view-only toggle (it remounts the editor and clears undo)
 - a storage write from a thunk without `withoutNotify()`
+- a storage key renamed on disk without a migration (users lose that data)
 
 Cosmetic convention breaks, naming, and style are Nit at most.
 

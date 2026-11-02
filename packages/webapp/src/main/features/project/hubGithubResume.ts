@@ -6,7 +6,11 @@
  * written by "Continue from GitHub", resumes on the repo picker; a JSON value
  * resumes on the landing or on the create form with what the user had typed.
  */
-import { sessionStorageContinueFromGithubIntent } from '../../shared/constants/constant';
+import {
+  clearContinueFromGithubIntent,
+  readContinueFromGithubIntent,
+  writeContinueFromGithubIntent,
+} from '../../shared/services/storage/githubStorage';
 import type { InterfaceMode } from '../../shared/types/project';
 
 export interface CreateFormResume {
@@ -51,26 +55,11 @@ const parse = (raw: string): HubGithubResume | null => {
 };
 
 export const peekHubGithubResume = (): HubGithubResume | null => {
-  try {
-    const raw = sessionStorage.getItem(sessionStorageContinueFromGithubIntent);
-    return raw === null ? null : parse(raw);
-  } catch {
-    return null;
-  }
+  const raw = readContinueFromGithubIntent();
+  return raw === null ? null : parse(raw);
 };
 
-export const stashHubGithubResume = (resume: Exclude<HubGithubResume, { step: 'github' }>): void => {
-  try {
-    sessionStorage.setItem(sessionStorageContinueFromGithubIntent, JSON.stringify(resume));
-  } catch {
-    /* storage unavailable: sign-in still proceeds, the hub just opens at its default step */
-  }
-};
+export const stashHubGithubResume = (resume: Exclude<HubGithubResume, { step: 'github' }>): void =>
+  writeContinueFromGithubIntent(JSON.stringify(resume));
 
-export const clearHubGithubResume = (): void => {
-  try {
-    sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
-  } catch {
-    /* ignore */
-  }
-};
+export const clearHubGithubResume = clearContinueFromGithubIntent;

@@ -188,6 +188,47 @@ export const sessionStorageSpecDrivenPushIntent = localStoragePrefix + 'smart_ge
 // straight to the GitHub repo picker (consuming-and-clearing this flag once).
 export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
 
+// Every other Web Storage key. Read and written only through the modules in
+// shared/services/storage/ (ESLint forbids storage access anywhere else). Some
+// predate the `besser_` prefix; the spellings are kept so users keep their data.
+export const localStorageStorageVersion = localStoragePrefix + 'storage_version';
+export const localStorageLanguage = localStoragePrefix + 'language'; // written by the i18next detector
+export const localStorageAnalyticsConsent = localStoragePrefix + 'analytics_consent';
+// BAF keys the assistant's backend session on this per-browser id.
+export const localStorageAssistantUserId = localStoragePrefix + 'assistant_user_id';
+export const localStorageAssistantRateLimiterState = 'umlAgentRateLimiterState';
+export const localStorageAssistantRateLimiterProbe = '__umlAgentRateLimiter__';
+export const localStorageGitHubUsername = 'github_username';
+export const localStorageSpecDrivenRunSeedModels = localStoragePrefix + 'smartgen_run_seed_models';
+// Pre-unified GitHub metadata; read for migration and removed with the project.
+export const localStorageLegacyGitHubLinkedRepos = localStoragePrefix + 'github_linked_repos';
+export const localStorageLegacyGitHubAutoCommit = localStoragePrefix + 'github_auto_commit';
+// Pre-projects agent config; migrated once into per-project storage.
+export const localStorageLegacyAgentConfig = 'agentConfig';
+// Unprefixed keys of the pre-v7 webapp, removed by the v2 storage migration and by "Reset and reload".
+export const legacyUnprefixedLocalStorageKeys: readonly string[] = [
+  'latestDiagram',
+  localStorageLegacyAgentConfig,
+  'agentPersonalization',
+  'github_session',
+  localStorageGitHubUsername,
+  'last_published_token',
+  'last_published_type',
+  localStorageAssistantRateLimiterState,
+];
+
+export const sessionStorageAssistantConversation = localStoragePrefix + 'assistant_conversation_v1';
+// Per-tab assistant session id, shared by the WebSocket payloads and telemetry.
+export const sessionStorageAssistantSessionId = 'besser-assistant-session-id';
+// Per-tab `?demo=` token; never localStorage, a demo must not outlive the tab.
+export const sessionStorageDemoToken = 'besser-demo-token';
+// Set when a stale lazy chunk forced one reload this tab (no reload loop).
+export const sessionStorageChunkReloaded = localStoragePrefix + 'chunkReloaded';
+// GitHub sign-in: the session id is tab-scoped; the username lives in localStorage.
+export const sessionStorageGitHubSession = 'github_session';
+export const sessionStorageGitHubSessionTimestamp = 'github_session_timestamp';
+export const sessionStorageGitHubSessionExpired = 'github_session_expired';
+
 // Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
 export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;

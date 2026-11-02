@@ -26,7 +26,11 @@ import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven';
-import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
+import {
+  claimAssistantHandleHint,
+  clearPendingAssistantPrompt,
+  readPendingAssistantPrompt,
+} from '../../../shared/services/storage/assistantStorage';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
@@ -230,16 +234,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // (sessionStorage-gated) and only when the drawer starts closed, so a
   // returning user with the drawer already open never sees it. The bob itself
   // is a finite CSS animation disabled under reduced-motion (see styles.css).
-  const [showHandleHint] = useState<boolean>(() => {
-    try {
-      if (open) return false;
-      if (sessionStorage.getItem(sessionStorageAssistantHandleHinted) === '1') return false;
-      sessionStorage.setItem(sessionStorageAssistantHandleHinted, '1');
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const [showHandleHint] = useState<boolean>(() => !open && claimAssistantHandleHint());
 
   /* ---- Drawer-specific switchDiagram: delegates to parent ---- */
 
@@ -304,22 +299,14 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       onOpenChange(true);
     };
 
-    const readStash = (): string => {
-      try {
-        return sessionStorage.getItem(sessionStoragePendingAssistantPrompt) ?? '';
-      } catch {
-        return '';
-      }
-    };
-
     // Fallback: a prompt stashed before this listener existed.
-    const stashed = readStash();
+    const stashed = readPendingAssistantPrompt();
     if (stashed) armPrompt(stashed);
 
     const onRunPrompt = (event: Event) => {
       const detail = (event as CustomEvent).detail as { prompt?: string } | undefined;
       // Prefer the event payload; fall back to the stash if it carried none.
-      armPrompt(typeof detail?.prompt === 'string' && detail.prompt ? detail.prompt : readStash());
+      armPrompt(typeof detail?.prompt === 'string' && detail.prompt ? detail.prompt : readPendingAssistantPrompt());
     };
 
     window.addEventListener('wme:assistant-run-prompt', onRunPrompt);
@@ -351,11 +338,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     promptConsumedRef.current = true;
     pendingPromptRef.current = null;
     setHasPendingPrompt(false);
-    try {
-      sessionStorage.removeItem(sessionStoragePendingAssistantPrompt);
-    } catch {
-      // Ignore storage failures — the in-memory guard already prevents replay.
-    }
+    clearPendingAssistantPrompt();
     void handleSubmit(undefined, { overrideText: prompt });
   }, [hasPendingPrompt, open, connectionStatus, handleSubmit]);
 

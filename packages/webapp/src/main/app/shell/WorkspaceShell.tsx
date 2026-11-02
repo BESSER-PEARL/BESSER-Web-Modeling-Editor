@@ -44,7 +44,11 @@ import {
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
-import { sessionStorageOpenAssistantOnLoad, sessionStorageAssistantDrawerOpen } from '../../shared/constants/constant';
+import {
+  consumeAssistantOpenOnLoad,
+  readAssistantDrawerOpen,
+  writeAssistantDrawerOpen,
+} from '../../shared/services/storage/assistantStorage';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
@@ -236,13 +240,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [isGistDialogOpen, setIsGistDialogOpen] = useState(false);
   // Restore the drawer to wherever the user left it this tab (sessionStorage).
   // Defaults to closed when nothing is stored or storage is unavailable.
-  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(readAssistantDrawerOpen);
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -437,16 +435,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     if (!currentProject) {
       return;
     }
-    let shouldOpen = false;
-    try {
-      shouldOpen = sessionStorage.getItem(sessionStorageOpenAssistantOnLoad) === '1';
-      if (shouldOpen) {
-        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
-      }
-    } catch {
-      shouldOpen = false;
-    }
-    if (shouldOpen) {
+    if (consumeAssistantOpenOnLoad()) {
       setIsAssistantWorkspaceOpen(true);
     }
   }, [currentProject?.id]);
@@ -457,11 +446,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   // only one assistant surface shows — this also covers a restore-open on mount,
   // when no user toggle fired the event.
   useEffect(() => {
-    try {
-      sessionStorage.setItem(sessionStorageAssistantDrawerOpen, isAssistantWorkspaceOpen ? '1' : '0');
-    } catch {
-      // Ignore storage failures — persistence is a convenience, not a requirement.
-    }
+    writeAssistantDrawerOpen(isAssistantWorkspaceOpen);
     window.dispatchEvent(
       new CustomEvent('besser:assistant-drawer', { detail: { open: isAssistantWorkspaceOpen } }),
     );

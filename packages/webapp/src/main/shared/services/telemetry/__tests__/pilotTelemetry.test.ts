@@ -12,7 +12,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  assistantSessionStorageKey,
   emitDeliveryEvent,
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -20,7 +19,11 @@ import {
   isPilotSession,
   sendTelemetryEvent,
 } from '../pilotTelemetry';
-import { BACKEND_URL, sessionStoragePilotParticipant } from '../../../constants/constant';
+import {
+  BACKEND_URL,
+  sessionStorageAssistantSessionId as assistantSessionStorageKey,
+  sessionStoragePilotParticipant,
+} from '../../../constants/constant';
 
 const setUrl = (search: string) => {
   window.history.replaceState({}, '', `/${search}`);

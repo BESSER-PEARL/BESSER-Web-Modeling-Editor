@@ -16,49 +16,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  readAnalyticsConsent,
+  writeAnalyticsConsent,
+  type StoredAnalyticsConsent,
+} from '../../services/storage/preferencesStorage';
 
-const CONSENT_KEY = 'besser_analytics_consent';
 const CONSENT_VERSION = '1.2';
 
-export type ConsentStatus = 'pending' | 'accepted' | 'declined';
+export type ConsentStatus = StoredAnalyticsConsent['status'];
 
-interface ConsentData {
-  status: ConsentStatus;
-  timestamp: string;
-  version: string;
-}
-
-export const getConsentStatus = (): ConsentData | null => {
-  try {
-    const stored = localStorage.getItem(CONSENT_KEY);
-    if (!stored) {
-      return null;
-    }
-
-    const data = JSON.parse(stored) as ConsentData;
-    if (data.version !== CONSENT_VERSION) {
-      return null;
-    }
-
-    return data;
-  } catch {
-    return null;
-  }
+export const getConsentStatus = (): StoredAnalyticsConsent | null => {
+  const data = readAnalyticsConsent();
+  return data?.version === CONSENT_VERSION ? data : null;
 };
 
-export const setConsentStatus = (status: ConsentStatus): boolean => {
-  try {
-    const data: ConsentData = {
-      status,
-      timestamp: new Date().toISOString(),
-      version: CONSENT_VERSION,
-    };
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(data));
-    return true;
-  } catch {
-    return false;
-  }
-};
+export const setConsentStatus = (status: ConsentStatus): boolean =>
+  writeAnalyticsConsent({ status, timestamp: new Date().toISOString(), version: CONSENT_VERSION });
 
 export const hasUserConsented = (): boolean => {
   return getConsentStatus()?.status === 'accepted';

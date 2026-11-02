@@ -5,7 +5,8 @@ import { setTheme } from './shared/utils/theme-switcher';
 import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
 import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
-import { runStorageMigrations } from './shared/utils/storage-migration';
+import { runStorageMigrations } from './shared/services/storage/storage-migration';
+import { claimChunkReload } from './shared/services/storage/tabStorage';
 import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
 import { initDemoModeFromUrl } from './shared/services/demoMode';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
@@ -35,12 +36,7 @@ initDemoModeFromUrl();
 // vite:preloadError for exactly this — reload ONCE to pick up the new build
 // (guarded per-session so a genuinely broken deploy can't reload-loop).
 window.addEventListener('vite:preloadError', (event) => {
-  try {
-    if (sessionStorage.getItem('besser_chunkReloaded') === '1') return;
-    sessionStorage.setItem('besser_chunkReloaded', '1');
-  } catch {
-    /* private mode — still reload once per page lifetime */
-  }
+  if (!claimChunkReload()) return;
   event.preventDefault();
   window.location.reload();
 });

@@ -13,6 +13,9 @@ const features = fs
 const MAIN_ALIAS = '^(@/main|webapp/src/main)'
 const PARENT_DIRS = '^(\\.\\./)+'
 
+const STORAGE_MESSAGE =
+  'Use a module in shared/services/storage/ (or llmKeyStorage) instead of Web Storage directly.'
+
 const featureBoundary = (feature) => ({
   files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
   rules: {
@@ -78,6 +81,29 @@ module.exports = [
     files: ['**/*.ts', '**/*.tsx'],
   },
   ...features.map(featureBoundary),
+  // Web Storage only through the typed storage modules; their keys live in constant.ts.
+  {
+    files: ['src/main/**/*.{ts,tsx}'],
+    ignores: [
+      'src/main/shared/services/storage/**',
+      'src/main/shared/services/llmKeyStorage.ts',
+      'src/main/features/spec-driven/storage.ts',
+      '**/__tests__/**',
+      '**/*.test.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['localStorage', 'sessionStorage'].map((name) => ({ name, message: STORAGE_MESSAGE })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...['window', 'globalThis', 'self'].flatMap((object) =>
+          ['localStorage', 'sessionStorage'].map((property) => ({ object, property, message: STORAGE_MESSAGE })),
+        ),
+      ],
+    },
+  },
   {
     files: ['src/main/shared/**/*.{ts,tsx}'],
     rules: {

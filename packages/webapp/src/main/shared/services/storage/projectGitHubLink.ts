@@ -21,7 +21,7 @@
  * `models/shop.json`); the next save sends it so the commit that writes
  * `buml/diagrams.json` deletes it, and then forgets it.
  */
-import { localStorageGitHubLinkPrefix, localStoragePrefix } from '../../constants/constant';
+import { localStorageGitHubLinkPrefix, localStorageLegacyGitHubLinkedRepos } from '../../constants/constant';
 import { LocalStorageRepository } from './local-storage-repository';
 import type { BesserProject } from '../../types/project';
 
@@ -76,7 +76,6 @@ export const GITHUB_LINK_CHANGED_EVENT = 'besser:github-link-changed';
 
 // Links written before the unified store: the agent push target and the sidebar's map.
 const LEGACY_PUSH_TARGET = 'github';
-const LEGACY_SIDEBAR_LINKS_KEY = `${localStoragePrefix}github_linked_repos`;
 
 const linkKey = (projectId: string): string => `${localStorageGitHubLinkPrefix}${projectId}`;
 
@@ -123,7 +122,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
 
 const readLegacySidebarLinks = (): Record<string, unknown> => {
   try {
-    const parsed = JSON.parse(localStorage.getItem(LEGACY_SIDEBAR_LINKS_KEY) || '{}');
+    const parsed = JSON.parse(localStorage.getItem(localStorageLegacyGitHubLinkedRepos) || '{}');
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
@@ -161,7 +160,7 @@ const adoptLegacyLink = (projectId: string): ProjectGitHubLink | null => {
   LocalStorageRepository.clearDeployLinkedRepo(projectId, LEGACY_PUSH_TARGET);
   if (projectId in sidebarLinks) {
     delete sidebarLinks[projectId];
-    localStorage.setItem(LEGACY_SIDEBAR_LINKS_KEY, JSON.stringify(sidebarLinks));
+    localStorage.setItem(localStorageLegacyGitHubLinkedRepos, JSON.stringify(sidebarLinks));
   }
   return adopted;
 };

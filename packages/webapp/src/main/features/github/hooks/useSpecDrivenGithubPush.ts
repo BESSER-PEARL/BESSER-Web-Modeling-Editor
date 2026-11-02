@@ -47,7 +47,11 @@ import {
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
-import { sessionStorageSpecDrivenPushIntent } from '../../../shared/constants/constant';
+import {
+  clearSpecDrivenPushIntent,
+  readSpecDrivenPushIntent,
+  writeSpecDrivenPushIntent,
+} from '../../../shared/services/storage/githubStorage';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -241,14 +245,7 @@ export function useSpecDrivenGithubPush(
     if (!isAuthenticated) {
       // Connect-first: stash the intent so we can reopen the dialog for this
       // run once the OAuth redirect returns and the session is established.
-      try {
-        sessionStorage.setItem(
-          sessionStorageSpecDrivenPushIntent,
-          JSON.stringify({ runId: pushDialogRunId, projectId: project.id }),
-        );
-      } catch {
-        /* sessionStorage may be unavailable — the login still proceeds. */
-      }
+      writeSpecDrivenPushIntent({ runId: pushDialogRunId, projectId: project.id });
       dispatch(closePushDialog());
       toast.info(i18n.t('github.push.toasts.connectFirst', { defaultValue: 'Connect GitHub to push your generated app.' }));
       login();
@@ -268,25 +265,9 @@ export function useSpecDrivenGithubPush(
     if (!isAuthenticated) return;
     const project = projectRef.current;
     if (!project) return;
-    let raw: string | null = null;
-    try {
-      raw = sessionStorage.getItem(sessionStorageSpecDrivenPushIntent);
-    } catch {
-      raw = null;
-    }
-    if (!raw) return;
-    let intent: { runId?: string; projectId?: string } | null = null;
-    try {
-      intent = JSON.parse(raw);
-    } catch {
-      intent = null;
-    }
+    const intent = readSpecDrivenPushIntent();
     if (!intent?.runId || intent.projectId !== project.id) return;
-    try {
-      sessionStorage.removeItem(sessionStorageSpecDrivenPushIntent);
-    } catch {
-      /* ignore */
-    }
+    clearSpecDrivenPushIntent();
     dispatch(openPushDialog(intent.runId));
   }, [isAuthenticated, currentProject?.id, dispatch]);
 

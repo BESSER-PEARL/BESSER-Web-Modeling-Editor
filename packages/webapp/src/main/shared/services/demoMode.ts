@@ -14,8 +14,7 @@
  * Mirrors `initPilotModeFromUrl` in services/telemetry/pilotTelemetry.ts.
  */
 
-/** Per-tab storage key. Not `localStorage` — a demo must not outlive the tab. */
-const sessionStorageDemoToken = 'besser-demo-token';
+import { readDemoToken, writeDemoToken } from './storage/tabStorage';
 
 /**
  * URL-safe token of a plausible length. The minimum is the point: it stops a
@@ -35,7 +34,7 @@ export const initDemoModeFromUrl = (): void => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get('demo');
     if (token && DEMO_TOKEN_PATTERN.test(token)) {
-      window.sessionStorage.setItem(sessionStorageDemoToken, token);
+      writeDemoToken(token);
     }
     // Drop the secret from the address bar so it cannot leak through the page
     // URL (history, analytics, the issue report's page link).
@@ -56,7 +55,7 @@ export const initDemoModeFromUrl = (): void => {
 export const getDemoToken = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    const stored = window.sessionStorage.getItem(sessionStorageDemoToken);
+    const stored = readDemoToken();
     return stored && DEMO_TOKEN_PATTERN.test(stored) ? stored : null;
   } catch {
     return null;

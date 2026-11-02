@@ -49,12 +49,14 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { importProject } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
+import { BACKEND_URL } from '../../shared/constants/constant';
+import { readPreferredInterface, writePreferredInterface } from '../../shared/services/storage/preferencesStorage';
+import { cancelAssistantOpenOnLoad, requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
 import {
-  BACKEND_URL,
-  localStoragePreferredInterface,
-  sessionStorageContinueFromGithubIntent,
-  sessionStorageOpenAssistantOnLoad,
-} from '../../shared/constants/constant';
+  clearContinueFromGithubIntent,
+  readContinueFromGithubIntent,
+  writeContinueFromGithubIntent,
+} from '../../shared/services/storage/githubStorage';
 import { useImportDiagramToProject } from '../import';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
@@ -79,16 +81,6 @@ interface ProjectHubDialogProps {
 }
 
 type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
-
-/** Read the per-user default interface saved via "Remember my choice". */
-const readPreferredInterface = (): InterfaceMode | null => {
-  try {
-    const v = localStorage.getItem(localStoragePreferredInterface);
-    return v === 'model' || v === 'agent' ? v : null;
-  } catch {
-    return null;
-  }
-};
 
 /**
  * Per-link interface override read from the URL for this load only (never
@@ -305,20 +297,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     if (!open || !isGithubAuthenticated) {
       return;
     }
-    let hasIntent = false;
-    try {
-      hasIntent = sessionStorage.getItem(sessionStorageContinueFromGithubIntent) !== null;
-    } catch {
-      hasIntent = false;
-    }
-    if (!hasIntent) {
+    if (readContinueFromGithubIntent() === null) {
       return;
     }
-    try {
-      sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
-    } catch {
-      /* ignore */
-    }
+    clearContinueFromGithubIntent();
     setStep('github');
   }, [open, isGithubAuthenticated]);
 
@@ -399,15 +381,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // difference is post-create — 'agent' opens the assistant drawer once the
   // editor loads (handleCreateProject sets the flag), 'model' stays on canvas.
   const handleChooseInterface = (mode: InterfaceMode, remember: boolean) => {
-    try {
-      if (remember) {
-        localStorage.setItem(localStoragePreferredInterface, mode);
-      } else {
-        localStorage.removeItem(localStoragePreferredInterface);
-      }
-    } catch {
-      /* storage may be unavailable (private mode / quota) — non-fatal */
-    }
+    writePreferredInterface(remember ? mode : null);
     setPendingPreferredInterface(mode);
     const firstRun = ProjectStorageRepository.getAllProjects().length === 0;
     trackInterfaceChoice(mode, firstRun ? 'first_run' : 'new_project', { remembered: remember });
@@ -493,11 +467,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       // effect — if we set the flag AFTER the await, that effect has already run
       // and missed it (the race that left the agentic drawer closed on create).
       if (pendingPreferredInterface === 'agent') {
-        try {
-          sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
-        } catch {
-          /* storage unavailable — the drawer just won't auto-open, non-fatal */
-        }
+        requestAssistantOpenOnLoad();
       }
       const created = await createProject(
         name,
@@ -517,11 +487,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     } catch (error) {
       // Creation failed — disarm the flag so it can't spuriously open the drawer
       // on some later, unrelated project load.
-      try {
-        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
-      } catch {
-        /* non-fatal */
-      }
+      cancelAssistantOpenOnLoad();
       toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
@@ -718,11 +684,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     setGithubError(null);
     // While a stored session is being verified, the step waits for it rather than signing in again.
     if (!isGithubAuthenticated && !isGithubChecking) {
-      try {
-        sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
-      } catch {
-        /* sessionStorage may be unavailable — login still proceeds. */
-      }
+      writeContinueFromGithubIntent();
       toast.info(t('project.hub.github.toasts.connectToContinue', {
         defaultValue: 'Connect GitHub to continue from one of your repositories.',
       }));
