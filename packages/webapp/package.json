@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "api:schema": "python ../../scripts/export-openapi.py openapi/besser-openapi.json",
+    "api:schema": "node ../../scripts/run-python.mjs ../../scripts/export-openapi.py openapi/besser-openapi.json",
     "api:types": "openapi-typescript openapi/besser-openapi.json -o src/main/shared/api/generated/besser-openapi.d.ts",
     "api:generate": "npm run api:schema && npm run api:types"
   },
