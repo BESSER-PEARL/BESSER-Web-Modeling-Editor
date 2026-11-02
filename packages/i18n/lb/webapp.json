@@ -11,6 +11,27 @@
     "no": "Nee",
     "retry": "Nach eng Kéier probéieren"
   },
+  "whatsNew": {
+    "title": "Wat ass nei",
+    "unread_one": "Wat ass nei (1 nei)",
+    "unread_other": "Wat ass nei ({{count}} nei)",
+    "new": "Nei",
+    "entries": {
+      "anyStack": {
+        "title": "Apps am Stack, deen s du wëlls",
+        "body": "Fro de Spec-Driven Agent no enger REST-API a Go oder engem Kommandozeilen-Tool a Rust: Hie baut genee dat a préift d’App esou, wéi hien eng Web-App préift."
+      },
+      "githubRepo": {
+        "title": "Projeten mat GitHub verbonnen",
+        "body": "Verbann e Projet mat engem GitHub-Repository. De GitHub-Menü späichert däi Modell do, hëlt déi neist Versioun, weist d’Geschicht a seet dir, ob alles synchron ass."
+      },
+      "knowledgeGraph": {
+        "title": "Knowledge-Graph-Diagrammer",
+        "body": "Importéier eng OWL- oder RDF-Ontologie, beaarbecht se als Graph, préif se géint hir OWL- a SHACL-Constrainten a maach doraus e Klassendiagramm mat OCL-Constrainten.",
+        "action": "Knowledge-Graph-Editor opmaachen"
+      }
+    }
+  },
   "topbar": {
     "language": "Sprooch",
     "openProjectHub": "Projet-Hub opmaachen",

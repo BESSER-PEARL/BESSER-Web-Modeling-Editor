@@ -187,6 +187,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogout={onGitHubLogout}
             onToggleStar={onToggleStar}
             onRepoOpened={onRepoOpened}
+            onSwitchDiagramType={onSwitchDiagramType}
           />
           <div className="hidden sm:contents">
             <LanguageSelector outlineButtonClass={outlineButtonClass} />
