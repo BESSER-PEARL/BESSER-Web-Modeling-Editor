@@ -1466,6 +1466,7 @@
       "saved": "Modèle enregistré sur GitHub.",
       "savedMerged": "Enregistré et fusionné avec les modifications plus récentes sur GitHub.",
       "repoHasModelChoice": "{{repo}} contient « {{name}} ». Chargez-le dans ce projet, en remplaçant le modèle ouvert, ou gardez votre modèle et liez : votre prochain enregistrement remplacera alors le modèle du dépôt.",
+      "pickModelFile": "Ce dépôt contient {{number}} modèles. Choisissez celui à utiliser :",
       "keepModelAndLink": "Garder mon modèle et lier"
     },
     "proposal": {

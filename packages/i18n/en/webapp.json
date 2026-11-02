@@ -1416,6 +1416,7 @@
       "historyFailed": "Could not load the history.",
       "moreChanges": "and {{count}} more",
       "repoHasModelChoice": "{{repo}} holds \"{{name}}\". Load it into this project, replacing the model you have open, or keep your model and link: your next save then replaces the repository's model.",
+      "pickModelFile": "This repository holds {{number}} models. Pick the one to use:",
       "keepModelAndLink": "Keep my model and link"
     },
     "status": {

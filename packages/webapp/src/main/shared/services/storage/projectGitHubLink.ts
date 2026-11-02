@@ -88,6 +88,10 @@ const isLegacyModelPath = (value: unknown): value is string =>
   typeof value === 'string' && value.endsWith('.json') && !value.startsWith('/') && !value.includes('\\')
   && !value.split('/').includes('..') && !CURRENT_MODEL_FILES.has(value);
 
+/** `path` when it is a model file an older editor saved (the next save replaces it), else undefined. */
+export const legacyModelPath = (path: string | null | undefined): string | undefined =>
+  isLegacyModelPath(path) ? path : undefined;
+
 const isPendingChange = (value: unknown): value is PendingGitHubChange => {
   const pending = value as Partial<PendingGitHubChange> | null;
   return !!pending && (pending.kind === 'conflict' || pending.kind === 'pull_request')
