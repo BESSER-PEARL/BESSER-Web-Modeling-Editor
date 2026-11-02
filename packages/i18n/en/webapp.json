@@ -9,7 +9,8 @@
     "loading": "Loading…",
     "yes": "Yes",
     "no": "No",
-    "retry": "Retry"
+    "retry": "Retry",
+    "ok": "OK"
   },
   "topbar": {
     "language": "Language",

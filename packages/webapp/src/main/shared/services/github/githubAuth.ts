@@ -19,6 +19,7 @@
  * - `signed-out`.
  */
 import { toast } from 'react-toastify';
+import { reportError } from '../errors/reportError';
 import i18n from '../../i18n';
 import { BACKEND_URL } from '../../constants/constant';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../../api/api-client';
@@ -124,7 +125,7 @@ export function startGitHubAuth(): void {
   const cleanUrl = () => window.history.replaceState({}, document.title, window.location.pathname);
 
   if (error) {
-    toast.error(i18n.t('github.toasts.authFailed', { error }));
+    reportError(i18n.t('github.toasts.authFailed', { error }));
     cleanUrl();
   } else if (sessionFromUrl) {
     cleanUrl();

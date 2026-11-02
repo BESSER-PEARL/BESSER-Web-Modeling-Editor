@@ -16,11 +16,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '../../app/store/hooks';
-import { notifyError } from '../../shared/utils/notifyError';
+import { notifyError, reportError } from '../../shared/services/errors/reportError';
 import { useProject } from '../../app/hooks/useProject';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../shared/constants/constant';
@@ -782,7 +781,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           autoDownload: !options?.deferDownload,
         });
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
+        reportError(t('generation.toasts.createOrLoadProject'));
         return { ok: false, error: 'Create or load a project before generating code.' };
       }
 
@@ -799,7 +798,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               const autoGenerateError = await ensureGuiForAssistantWebAppGeneration();
               if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
               if (autoGenerateError) {
-                toast.error(autoGenerateError.error);
+                reportError(autoGenerateError.error);
                 return autoGenerateError;
               }
               // After auto-generation, read from storage as a safety net
@@ -810,7 +809,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
 
             if (isGuiModelEmpty(guiModel)) {
-              toast.error(t('generation.toasts.guiDiagramEmpty'));
+              reportError(t('generation.toasts.guiDiagramEmpty'));
               return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.' };
             }
           }
@@ -829,7 +828,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'qiskit') {
           if (!isQuantumContext) {
-            toast.error(t('generation.toasts.openQuantumEditor'));
+            reportError(t('generation.toasts.openQuantumEditor'));
             return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
           }
 
@@ -852,7 +851,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'pytorch' || generatorType === 'tensorflow' || generatorType === 'forecaster') {
           if (!isNNContext) {
-            toast.error(t('generation.toasts.openNnEditor'));
+            reportError(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
           const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
@@ -908,12 +907,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         }
 
         if (isQuantumContext || isGuiContext) {
-          toast.error(t('generation.toasts.switchToUmlDiagram'));
+          reportError(t('generation.toasts.switchToUmlDiagram'));
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
         }
 
         if (!editor) {
-          toast.error(t('generation.toasts.noUmlEditor'));
+          reportError(t('generation.toasts.noUmlEditor'));
           return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.' };
         }
 
@@ -955,7 +954,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
-              toast.error(t('generation.toasts.switchToObjectOrUserDiagram'));
+              reportError(t('generation.toasts.switchToObjectOrUserDiagram'));
               return { ok: false, error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.' };
             }
             // Object diagrams need their referenced ClassDiagram so the backend can build
@@ -990,7 +989,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         const errorMessage = t('generation.toasts.generationFailed', {
           error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
         });
-        toast.error(errorMessage);
+        reportError(errorMessage, { error });
         return { ok: false, error: errorMessage };
       } finally {
         setIsGenerating(false);
@@ -1007,7 +1006,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const handleGenerateRequest = useCallback(
     async (generatorType: GeneratorType, menuConfig?: Record<string, any>) => {
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
+        reportError(t('generation.toasts.createOrLoadProject'));
         return;
       }
       const requiredDialog = getConfigDialogForGenerator(generatorType);
@@ -1033,12 +1032,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
     if (!currentProject) {
-      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
       return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error(t('generation.toasts.comingSoon'));
+      reportError(t('generation.toasts.comingSoon'));
       return { executed: false, passed: false };
     }
 
@@ -1053,12 +1052,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         return { executed: true, passed: didValidationPass(result) };
       }
 
-      toast.error(t('generation.toasts.noDiagramToValidate'));
+      reportError(t('generation.toasts.noDiagramToValidate'));
       return { executed: false, passed: false };
     } catch (error) {
-      toast.error(t('generation.toasts.qualityCheckFailed', {
+      reportError(t('generation.toasts.qualityCheckFailed', {
         error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
-      }));
+      }), { error });
       return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
@@ -1067,15 +1066,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleDjangoGenerate = useCallback(async () => {
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
       return;
     }
     await executeGenerator('django', {
@@ -1088,19 +1087,19 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleDjangoDeploy = useCallback(async () => {
     if (!editor || !currentProject) {
-      toast.error(t('generation.toasts.openUmlBeforeDeploy'));
+      reportError(t('generation.toasts.openUmlBeforeDeploy'));
       return;
     }
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
       return;
     }
     await deployLocally(editor, 'django', activeDiagramTitle, {
@@ -1115,19 +1114,19 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // source directory path, so invalid identifiers here produce a project that
     // does not compile. Guard with the same validators the dialog shows inline.
     if (!springProjectName || !springAppName || !springPackageName) {
-      toast.error(t('generation.toasts.springFieldsRequired'));
+      reportError(t('generation.toasts.springFieldsRequired'));
       return;
     }
     if (validateProjectName(springProjectName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
       return;
     }
     if (validateJavaClassName(springAppName)) {
-      toast.error(t('generation.toasts.springAppNameInvalid'));
+      reportError(t('generation.toasts.springAppNameInvalid'));
       return;
     }
     if (validateJavaPackageName(springPackageName)) {
-      toast.error(t('generation.toasts.springPackageNameInvalid'));
+      reportError(t('generation.toasts.springPackageNameInvalid'));
       return;
     }
     await executeGenerator('spring', {
@@ -1291,7 +1290,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         } => Boolean(entry));
 
       if (personalizationMapping.length === 0) {
-        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
         return;
       }
 

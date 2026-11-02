@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { convertToRawUrl, extractFileName, validateGitHubUrl } from '../../shared/utils/githubUrlUtils';
 import { importProjectFromBUML } from '../../shared/services/project-import/projectImport';
 import { useProject } from '../../app/hooks/useProject';
@@ -14,7 +15,7 @@ export const useGitHubBumlImport = () => {
     const importFromGitHub = useCallback(async (githubUrl: string) => {
         // Validate GitHub URL
         if (!validateGitHubUrl(githubUrl)) {
-            toast.error(t('github.toasts.invalidGitHubUrl'));
+            reportError(t('github.toasts.invalidGitHubUrl'));
             return;
         }
 
@@ -34,9 +35,9 @@ export const useGitHubBumlImport = () => {
             if (!response.ok) {
                 toast.dismiss(loadingToast);
                 if (response.status === 404) {
-                    toast.error(t('github.toasts.fileNotFound'));
+                    reportError(t('github.toasts.fileNotFound'));
                 } else {
-                    toast.error(t('github.toasts.fetchFileFailed', { status: response.statusText }));
+                    reportError(t('github.toasts.fetchFileFailed', { status: response.statusText }));
                 }
                 setIsLoading(false);
                 return;
@@ -67,7 +68,7 @@ export const useGitHubBumlImport = () => {
                 errorMessage = error.message;
             }
 
-            toast.error(errorMessage);
+            reportError(errorMessage, { error });
         } finally {
             setIsLoading(false);
         }

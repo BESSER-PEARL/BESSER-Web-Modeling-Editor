@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { CloudDownload, Link2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,7 +36,7 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
     try {
       await action();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      reportError(error instanceof Error ? error.message : String(error), { error });
     } finally {
       setIsLinking(false);
     }

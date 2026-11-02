@@ -14,6 +14,7 @@ const defaultState: DialogState = {
   confirmLabel: 'Confirm',
   cancelLabel: 'Cancel',
   variant: 'default',
+  alert: false,
 };
 
 /**
@@ -46,9 +47,10 @@ export const GlobalConfirmProvider: React.FC = () => {
         open: true,
         title: options.title,
         description: options.description,
-        confirmLabel: options.confirmLabel ?? t('common.confirm'),
+        confirmLabel: options.confirmLabel ?? t(options.alert ? 'common.ok' : 'common.confirm'),
         cancelLabel: options.cancelLabel ?? t('common.cancel'),
         variant: options.variant ?? 'default',
+        alert: options.alert ?? false,
       });
     });
   }, [t]);
@@ -78,6 +80,7 @@ export const GlobalConfirmProvider: React.FC = () => {
       confirmLabel={state.confirmLabel}
       cancelLabel={state.cancelLabel}
       variant={state.variant}
+      hideCancel={state.alert}
       onConfirm={handleConfirm}
       onCancel={handleCancel}
     />

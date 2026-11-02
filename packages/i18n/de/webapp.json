@@ -9,7 +9,8 @@
     "loading": "Wird geladen…",
     "yes": "Ja",
     "no": "Nein",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "ok": "OK"
   },
   "topbar": {
     "language": "Sprache",

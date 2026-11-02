@@ -32,6 +32,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import i18n from '../../../shared/i18n';
 
 import { apiClient, ApiError } from '../../../shared/api/api-client';
@@ -236,7 +237,7 @@ export function useSpecDrivenGithubPush(
     if (pushDialogRunId === null) return;
     const project = projectRef.current;
     if (!project) {
-      toast.error(i18n.t('github.push.toasts.noProject', { defaultValue: 'Open a project before pushing to GitHub.' }));
+      reportError(i18n.t('github.push.toasts.noProject', { defaultValue: 'Open a project before pushing to GitHub.' }));
       dispatch(closePushDialog());
       return;
     }
@@ -294,12 +295,12 @@ export function useSpecDrivenGithubPush(
       const id = runId;
       if (!project || !id) {
         const message = i18n.t('github.push.toasts.nothingToPush', { defaultValue: 'Nothing to push.' });
-        toast.error(message);
+        reportError(message);
         return { ok: false, code: 'other', message };
       }
       if (!githubSession) {
         const message = t('auth', 'Your GitHub session expired. Reconnect and try again.');
-        toast.error(message);
+        reportError(message);
         return { ok: false, code: 'auth', message };
       }
 
@@ -344,7 +345,7 @@ export function useSpecDrivenGithubPush(
 
         if (!res.success) {
           const message = t('failed', 'Save to GitHub failed.');
-          toast.error(message);
+          reportError(message);
           return { ok: false, code: 'other', message };
         }
 
@@ -427,7 +428,7 @@ export function useSpecDrivenGithubPush(
         return { ok: true, result: res };
       } catch (error) {
         const { code, message } = describePushError(error);
-        toast.error(message);
+        reportError(message, { error });
         return { ok: false, code, message };
       } finally {
         setIsPushing(false);
@@ -455,9 +456,9 @@ export function useSpecDrivenGithubPush(
       setResult({ ...result, status: 'pull_request', pull_request_url: pr.html_url });
       return pr.html_url;
     } catch (error) {
-      toast.error(error instanceof Error
+      reportError(error instanceof Error
         ? error.message
-        : i18n.t('github.push.toasts.pullRequestFailed', { defaultValue: 'Could not open the pull request.' }));
+        : i18n.t('github.push.toasts.pullRequestFailed', { defaultValue: 'Could not open the pull request.' }), { error });
       return null;
     }
   }, [result, githubSession]);

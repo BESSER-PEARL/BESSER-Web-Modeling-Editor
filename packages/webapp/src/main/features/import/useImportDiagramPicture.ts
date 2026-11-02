@@ -1,5 +1,5 @@
 // Import diagram from image using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getJsonModelFromImage } from '../../shared/api/conversion';
@@ -36,7 +36,7 @@ export const useImportDiagramPictureFromImage = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
         const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
 

@@ -9,7 +9,8 @@
     "loading": "Chargement…",
     "yes": "Oui",
     "no": "Non",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "ok": "OK"
   },
   "topbar": {
     "language": "Langue",

@@ -1,6 +1,5 @@
 import { AgentComponentType, ApollonEditor, LineageProvider, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback, useMemo } from 'react';
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { toEditorLocale } from '../../../shared/i18n/languages';
@@ -21,7 +20,7 @@ import {
   openDiagramThunk,
   selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
-import { notifyError } from '../../../shared/utils/notifyError';
+import { notifyError, reportError } from '../../../shared/services/errors/reportError';
 import { isAgenticModeEnabled } from '../../../shared/perspectives';
 import { useAgentDiagramLinker, useElementPickerProvider } from '../../inter-diagram';
 
@@ -107,7 +106,7 @@ export const ApollonEditorComponent: React.FC = () => {
         } catch (err) {
           console.error('[lineage] opening the source diagram failed:', err);
           pendingSelectionRef.current = null;
-          toast.error(t('editors.diagramTabs.lineage.openFailed'));
+          reportError(t('editors.diagramTabs.lineage.openFailed'), { error: err });
         }
       },
     };

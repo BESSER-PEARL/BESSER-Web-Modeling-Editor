@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import { reportError } from '../errors/reportError';
 import type { CSSProperties } from 'react';
 import { postValidateDiagram } from '../../api/validation';
 import { ApollonEditor } from '@besser/wme';
@@ -50,7 +51,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     if (model && model._suppressToasts) delete model._suppressToasts;
 
     if (!model) {
-      if (!suppressToasts) toast.error(i18n.t('validation.toasts.noDiagramToValidate'));
+      if (!suppressToasts) reportError(i18n.t('validation.toasts.noDiagramToValidate'));
       return { isValid: false, errors: ['No diagram available'] };
     }
 
@@ -91,7 +92,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       clearTimeout(timeoutId);
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
         toast.dismiss(VALIDATION_TOAST_ID);
-        toast.error(i18n.t('validation.toasts.timedOut'));
+        reportError(i18n.t('validation.toasts.timedOut'), { error: fetchError });
         return { isValid: false, errors: ['Validation timed out'] };
       }
       throw fetchError;
@@ -107,7 +108,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       if (!suppressToasts) {
         toast.dismiss(VALIDATION_TOAST_ID);
         const errorMessage = errorData.errors?.join('\n') || i18n.t('validation.toasts.validationFailed');
-        toast.error(errorMessage, {
+        reportError(errorMessage, {
           position: "top-right",
           autoClose: false,
           style: {
@@ -129,7 +130,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     // Show validation errors
     if (!suppressToasts && result.errors && result.errors.length > 0) {
       const errorMessage = `${i18n.t('validation.toasts.errorsLabel')}\n\n` + result.errors.map(stripStatusEmoji).join("\n\n");
-      toast.error(errorMessage, {
+      reportError(errorMessage, {
         position: "top-right",
         autoClose: false,
         hideProgressBar: false,
@@ -180,7 +181,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     // Show invalid OCL constraints
     if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
       const invalidMessage = `${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.map(stripStatusEmoji).join("\n\n");
-      toast.error(invalidMessage, {
+      reportError(invalidMessage, {
         position: "top-right",
         autoClose: false,
         hideProgressBar: false,
@@ -228,9 +229,10 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       const message = isNetworkError(error)
         ? describeNetworkError(error)
         : i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') });
-      toast.error(message, {
+      reportError(message, {
         position: "top-right",
         autoClose: 5000,
+        error,
       });
     }
     return { 

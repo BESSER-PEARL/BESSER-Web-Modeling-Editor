@@ -9,6 +9,7 @@
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 
 import { checkKgConsistency, kgApiErrorMessage, kgToClassDiagram } from '../../../shared/api/knowledgeGraph';
@@ -114,7 +115,7 @@ export const useKgToUmlConversion = () => {
       } catch (error) {
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.toUml.conversionFailed'));
         dispatch(displayError(t('knowledgeGraph.toUml.failedTitle'), message));
-        toast.error(message);
+        reportError(message, { error });
       }
     },
     [dispatch, t],

@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { diagramBridge } from '@besser/wme';
 import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -150,13 +151,13 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const handleGenerateObjectsFromClasses = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
     if (!apollonEditor || !apollonEditor.model) {
-      toast.error(t('editors.diagramTabs.editorNotReady'));
+      reportError(t('editors.diagramTabs.editorNotReady'));
       return;
     }
     const refDiagram = classDiagrams.find((d) => d.id === classRefId);
     const refModel = refDiagram?.model;
     if (!isUMLModel(refModel)) {
-      toast.error(t('editors.diagramTabs.pickClassRefFirst'));
+      reportError(t('editors.diagramTabs.pickClassRefFirst'));
       return;
     }
     const classCount = Object.values(refModel.elements ?? {}).filter(

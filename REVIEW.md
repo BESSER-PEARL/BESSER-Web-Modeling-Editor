@@ -11,7 +11,8 @@ generic React best-practice rubric.
 - **Follow the existing convention.** When the codebase already has a way to do something, a new but equivalent
   way is a finding: `shared/api/` for backend calls (with the generated OpenAPI types), `app/store/hooks.ts` for Redux,
   `shared/constants/constant.ts` for storage keys and `shared/services/storage/` for reading and writing them,
-  `react-i18next` for user-facing strings, Tailwind and Radix UI for styling and primitives.
+  `shared/services/errors/reportError.ts` for telling the user something failed, `globalConfirm` / `globalAlert`
+  instead of `window.confirm` / `alert`, `react-i18next` for user-facing strings, Tailwind and Radix UI for styling and primitives.
 - **No papering over.** Flag a client-side workaround for what is really a backend contract issue, an empty
   `catch` that swallows an error, a new `ts-ignore` or `any` used to silence a real type mismatch, a duplicated
   helper instead of an import, and a test made to pass by loosening its assertion.

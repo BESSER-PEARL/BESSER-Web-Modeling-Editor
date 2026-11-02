@@ -17,6 +17,21 @@ const STORAGE_MESSAGE =
   'Use a module in shared/services/storage/ (or llmKeyStorage) instead of Web Storage directly.'
 
 const HTTP_MESSAGE = 'Call the backend through a module in shared/api/, not fetch/XMLHttpRequest/sendBeacon directly.'
+const HTTP_SYNTAX = [
+  "CallExpression[callee.name='fetch']",
+  "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='fetch']",
+  "CallExpression[callee.property.name='sendBeacon']",
+  "NewExpression[callee.name='XMLHttpRequest']",
+].map((selector) => ({ selector, message: HTTP_MESSAGE }))
+
+const REPORT_ERROR_MESSAGE = 'Report a failure with reportError() from shared/services/errors/reportError.'
+const ALERT_MESSAGE = 'Use globalAlert() from shared/services/confirm/globalConfirm instead of alert().'
+const ERROR_SYNTAX = [
+  { selector: "CallExpression[callee.object.name='toast'][callee.property.name='error']", message: REPORT_ERROR_MESSAGE },
+  { selector: "CallExpression[callee.name='alert']", message: ALERT_MESSAGE },
+  { selector: "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='alert']", message: ALERT_MESSAGE },
+]
+const TESTS = ['**/__tests__/**', '**/*.test.{ts,tsx}']
 
 const featureBoundary = (feature) => ({
   files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
@@ -84,6 +99,7 @@ module.exports = [
   },
   ...features.map(featureBoundary),
   // Web Storage only through the typed storage modules; their keys live in constant.ts.
+  // Also: the global window.reportError is not ours, so a missing import must not compile silently.
   {
     files: ['src/main/**/*.{ts,tsx}'],
     ignores: [
@@ -97,6 +113,7 @@ module.exports = [
       'no-restricted-globals': [
         'error',
         ...['localStorage', 'sessionStorage'].map((name) => ({ name, message: STORAGE_MESSAGE })),
+        { name: 'reportError', message: `Import it: ${REPORT_ERROR_MESSAGE}` },
       ],
       'no-restricted-properties': [
         'error',
@@ -106,21 +123,23 @@ module.exports = [
       ],
     },
   },
-  // HTTP only through shared/api (no-restricted-syntax: `typeof fetch` checks stay allowed).
+  // no-restricted-syntax: HTTP only through shared/api (`typeof fetch` checks stay allowed);
+  // error toasts only through reportError; no alert(). A later block replaces the
+  // rule's whole list, so the two exempt folders get the other list back.
   {
     files: ['src/main/**/*.{ts,tsx}'],
-    ignores: ['src/main/shared/api/**', '**/__tests__/**', '**/*.test.{ts,tsx}'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        ...[
-          "CallExpression[callee.name='fetch']",
-          "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='fetch']",
-          "CallExpression[callee.property.name='sendBeacon']",
-          "NewExpression[callee.name='XMLHttpRequest']",
-        ].map((selector) => ({ selector, message: HTTP_MESSAGE })),
-      ],
-    },
+    ignores: TESTS,
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX] },
+  },
+  {
+    files: ['src/main/shared/api/**/*.{ts,tsx}'],
+    ignores: TESTS,
+    rules: { 'no-restricted-syntax': ['error', ...ERROR_SYNTAX] },
+  },
+  {
+    files: ['src/main/shared/services/errors/**/*.{ts,tsx}'],
+    ignores: TESTS,
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX] },
   },
   {
     files: ['src/main/shared/**/*.{ts,tsx}'],

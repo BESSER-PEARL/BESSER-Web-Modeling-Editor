@@ -13,7 +13,7 @@ import { ensureDesignSystemStyles } from './designSystem';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
-import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { globalAlert, globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
@@ -934,7 +934,7 @@ function setupCommands(editor: Editor) {
         const editorModel = (editor as any).em;
         if (!editorModel || !editorModel.storables) {
           console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          alert(i18n.t('editors.gui.editorStillLoading'));
+          void globalAlert({ title: i18n.t('editors.gui.editorStillLoading') });
           return;
         }
         
@@ -942,7 +942,7 @@ function setupCommands(editor: Editor) {
         console.log('[Save] Manual save completed');
       } catch (error) {
         console.error('[Save] Manual save error:', error);
-        alert(i18n.t('editors.gui.errorSavingProject'));
+        void globalAlert({ title: i18n.t('editors.gui.errorSavingProject') });
       }
     }
   });
@@ -1727,7 +1727,7 @@ function setupPageRouting(editor: Editor) {
     run(editor: Editor) {
       const currentPage = editor.Pages.getSelected();
       if (!currentPage) {
-        alert(i18n.t('editors.gui.noPageSelected'));
+        void globalAlert({ title: i18n.t('editors.gui.noPageSelected') });
         return;
       }
       
@@ -1751,7 +1751,7 @@ function setupPageRouting(editor: Editor) {
         currentPage.set('route_path', route);
         
         // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        alert(i18n.t('editors.gui.routeUpdated', { route }));
+        void globalAlert({ title: i18n.t('editors.gui.routeUpdated', { route }) });
       }
     }
   });

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
@@ -488,7 +489,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       // Creation failed — disarm the flag so it can't spuriously open the drawer
       // on some later, unrelated project load.
       cancelAssistantOpenOnLoad();
-      toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      reportError(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -501,7 +502,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       closeWithProject();
       toast.success(t('project.hub.toasts.loaded'));
     } catch (error) {
-      toast.error(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      reportError(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -524,7 +525,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       refreshProjects();
       toast.success(t('project.hub.toasts.deleted', { name: projectName }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      reportError(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -544,7 +545,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      reportError(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
       event.target.value = '';
@@ -561,7 +562,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'json' && ext !== 'py') {
-      toast.error(t('project.hub.toasts.unsupportedFileType'));
+      reportError(t('project.hub.toasts.unsupportedFileType'));
       return;
     }
     try {
@@ -572,7 +573,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      reportError(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -615,8 +616,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       closeWithProject();
       toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
-      toast.error(
-        t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }),
+      reportError(
+        t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error },
       );
     } finally {
       setIsBusy(false);
@@ -630,7 +631,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
 
     if (spreadsheetFiles.length === 0) {
-      toast.error(t('project.hub.toasts.noSpreadsheetFile'));
+      reportError(t('project.hub.toasts.noSpreadsheetFile'));
       return;
     }
 
@@ -662,7 +663,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
 
     if (!isSdmxSourceComplete(sdmxSource)) {
-      toast.error(t('project.hub.toasts.noSdmxDataflow'));
+      reportError(t('project.hub.toasts.noSdmxDataflow'));
       return;
     }
 
@@ -721,7 +722,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       const message =
         error instanceof Error ? error.message : t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
       setGithubError(message);
-      toast.error(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }));
+      reportError(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }), { error });
     } finally {
       setIsBusy(false);
     }

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
@@ -139,11 +140,11 @@ export const useGitHubRepo = () => {
       options: CreateRepoOptions
     ): Promise<GitHubRepoResult | null> => {
       if (!projectData) {
-        toast.error(t('github.toasts.noProjectToDeploy'));
+        reportError(t('github.toasts.noProjectToDeploy'));
         return null;
       }
       if (!options.githubSession) {
-        toast.error(t('github.toasts.notSignedIn'));
+        reportError(t('github.toasts.notSignedIn'));
         return null;
       }
 
@@ -290,7 +291,7 @@ export const useGitHubRepo = () => {
               : t('github.toasts.repoCreated', { name: repoResult.repo_name })
           );
         } else {
-          toast.error(t('github.toasts.deploymentFailed'));
+          reportError(t('github.toasts.deploymentFailed'));
         }
 
         return repoResult;
@@ -301,7 +302,7 @@ export const useGitHubRepo = () => {
             : error instanceof Error
               ? error.message
               : t('github.toasts.repoCreationFailed');
-        toast.error(errorMessage);
+        reportError(errorMessage, { error });
         console.error('GitHub repository creation error:', error);
         return null;
       } finally {

@@ -4,7 +4,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
 import { readContinueFromGithubIntent } from '../../shared/services/storage/githubStorage';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
-import { notifyError } from '../../shared/utils/notifyError';
+import { notifyError } from '../../shared/services/errors/reportError';
 import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
 
 const KNOWN_ROUTES = [

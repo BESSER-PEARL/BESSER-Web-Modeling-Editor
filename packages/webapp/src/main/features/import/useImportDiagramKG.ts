@@ -1,5 +1,5 @@
 // Import diagram from KG using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getJsonModelFromKg } from '../../shared/api/conversion';
@@ -27,7 +27,7 @@ export const useImportDiagramFromKG = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
         const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
 

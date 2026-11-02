@@ -9,7 +9,8 @@
     "loading": "S'està carregant…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Torna-ho a provar"
+    "retry": "Torna-ho a provar",
+    "ok": "D'acord"
   },
   "topbar": {
     "language": "Idioma",

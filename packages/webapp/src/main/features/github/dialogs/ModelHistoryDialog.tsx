@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { Loader2, RefreshCw, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,7 @@ export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, on
       onOpenChange(false);
       toast.success(t('github.toasts.projectRestored'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      reportError(error instanceof Error ? error.message : String(error), { error });
     } finally {
       setIsRestoring(false);
     }

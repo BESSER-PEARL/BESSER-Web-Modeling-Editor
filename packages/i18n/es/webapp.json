@@ -9,7 +9,8 @@
     "loading": "Cargando…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "ok": "Aceptar"
   },
   "topbar": {
     "language": "Idioma",

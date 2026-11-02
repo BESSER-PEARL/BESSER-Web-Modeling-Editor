@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
@@ -396,7 +397,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const project = currentProjectRef.current;
 
       if (!project) {
-        toast.error(t('shell.errors.noProject'));
+        reportError(t('shell.errors.noProject'));
         return;
       }
 
@@ -412,7 +413,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           downloadFile(buml, `${normalizedName}_buml.py`, 'text/x-python');
           toast.success(t('shell.export.bumlSuccess'));
         } catch (err) {
-          toast.error(t('shell.export.bumlFailed', { message: err instanceof Error ? err.message : t('shell.errors.unknown') }));
+          reportError(t('shell.export.bumlFailed', { message: err instanceof Error ? err.message : t('shell.errors.unknown') }), { error: err });
         }
       } else {
         const exportData = buildProjectExportEnvelope(freshProject);
@@ -624,7 +625,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             : r.reason === 'no-lanes-in-any-pool'
               ? 'interDiagram.derive.component.noLanes'
               : 'interDiagram.derive.component.notBpmn';
-        toast.error(t('interDiagram.derive.component.failed', { reason: t(reasonKey) }));
+        reportError(t('interDiagram.derive.component.failed', { reason: t(reasonKey) }));
         return;
       }
       if (r.warnings.length > 0) {
@@ -643,7 +644,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       console.error('[inter-diagram] derivation failed:', err);
       const message = thunkErrorMessage(err);
       const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.component.limitReached') : message;
-      toast.error(t('interDiagram.derive.component.failed', { reason }));
+      reportError(t('interDiagram.derive.component.failed', { reason }), { error: err });
     }
   }, [deriveComponentDiagram, t]);
 
@@ -656,7 +657,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           r.reason === 'no-components'
             ? 'interDiagram.derive.deployment.noComponents'
             : 'interDiagram.derive.deployment.notComponentDiagram';
-        toast.error(t('interDiagram.derive.deployment.failed', { reason: t(reasonKey) }));
+        reportError(t('interDiagram.derive.deployment.failed', { reason: t(reasonKey) }));
         return;
       }
       if (r.warnings.length > 0) {
@@ -673,7 +674,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       console.error('[inter-diagram] deployment derivation failed:', err);
       const message = thunkErrorMessage(err);
       const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.deployment.limitReached') : message;
-      toast.error(t('interDiagram.derive.deployment.failed', { reason }));
+      reportError(t('interDiagram.derive.deployment.failed', { reason }), { error: err });
     }
   }, [deriveDeploymentDiagram, t]);
 
@@ -778,7 +779,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (!variantId) {
         const baseModel = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
         if (!baseModel) {
-          toast.error(t('shell.agentVariant.noBaseModel'));
+          reportError(t('shell.agentVariant.noBaseModel'));
           return;
         }
 
@@ -803,7 +804,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       const selectedVariant = readAgentVariants(activeAgentDiagram).find((variant) => variant.id === variantId);
       if (!selectedVariant || !isUMLModel(selectedVariant.model) || selectedVariant.model.type !== UMLDiagramType.AgentDiagram) {
-        toast.error(t('shell.agentVariant.notAvailable'));
+        reportError(t('shell.agentVariant.notAvailable'));
         return;
       }
 
@@ -828,7 +829,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     } catch (error) {
       console.error('Failed to switch agent variant:', error);
       const message = error instanceof Error ? error.message : t('shell.agentVariant.switchFailed');
-      toast.error(message);
+      reportError(message, { error });
     }
   });
 
@@ -846,7 +847,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const supported = diagramType as SupportedDiagramType;
       await dispatch(switchDiagramTypeThunk({ diagramType: supported })).unwrap();
     } catch {
-      toast.error(t('shell.errors.couldNotSwitchDiagram', { type: diagramType }));
+      reportError(t('shell.errors.couldNotSwitchDiagram', { type: diagramType }));
       return false;
     }
 
@@ -959,14 +960,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     if (validateAgentThunk.rejected.match(result)) {
       const msg = result.payload ?? t('agentSimulation.launch.validationFailedGeneric');
-      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
+      reportError(t('agentSimulation.launch.validationFailed', { message: msg }));
       return;
     }
 
     if (validateAgentThunk.fulfilled.match(result) && !result.payload.valid) {
       const errors = result.payload.errors;
       const msg = errors.length > 0 ? `\n${errors.join('\n')}` : t('agentSimulation.launch.validationFailedGeneric');
-      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
+      reportError(t('agentSimulation.launch.validationFailed', { message: msg }));
       return;
     }
 
@@ -984,7 +985,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const handleImportSingleDiagram = useStableCallback(async () => {
     if (!currentProject) {
-      toast.error(t('shell.errors.noProject'));
+      reportError(t('shell.errors.noProject'));
       return;
     }
 
@@ -996,13 +997,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (message.toLowerCase().includes('cancel')) {
         return;
       }
-      toast.error(t('shell.import.failed', { message }));
+      reportError(t('shell.import.failed', { message }), { error });
     }
   });
 
   const handleImportBpmnDiagram = useStableCallback(async () => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      reportError('Create or load a project first.');
       return;
     }
 
@@ -1014,7 +1015,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (message.toLowerCase().includes('cancel')) {
         return;
       }
-      toast.error(`Import failed: ${message}`);
+      reportError(`Import failed: ${message}`, { error });
     }
   });
 

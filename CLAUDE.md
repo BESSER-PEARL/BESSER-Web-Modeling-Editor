@@ -177,6 +177,20 @@ Regenerate both with `npm run api:generate --workspace=webapp` (needs Python wit
 is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of). A hand-written type stays only
 where it is narrower than the schema (e.g. a literal union the schema types as `string`).
 
+### Error reporting
+A failure the user should see goes through `reportError(message, { error, ...toastOptions })` in
+`shared/services/errors/reportError.ts`: the react-toastify error toast (same options and `toastId` dedupe), plus
+the caught `error` to Sentry once Sentry has loaded (`SENTRY_DSN` set). Pass the message already translated; pass
+`error` only for a caught exception, not for an expected case such as "open a project first". `notifyError(context)`
+in the same module is the `.catch()` handler for fire-and-forget promises. Developer diagnostics stay `console.*`
+at the call site; `reportError` never logs. Notices that used `alert()` use `globalAlert()` from
+`shared/services/confirm/globalConfirm.ts` (the confirm dialog with one OK button; it does not block, so await it if
+code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(` and `alert(` outside those modules and tests,
+and `no-restricted-globals` rejects the un-imported global `reportError` (the browser's own, which only fires an
+`error` event). A loading toast turned into an error with `toast.update(id, { type: 'error' })` stays as it is.
+Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
+stays in Redux.
+
 ### Browser storage
 Web Storage is read and written only by the typed modules in `shared/services/storage/`
 (`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,

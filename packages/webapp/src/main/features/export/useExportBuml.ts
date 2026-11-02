@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import { exportBuml } from '../../shared/api/conversion';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
@@ -15,12 +16,12 @@ export const useExportBUML = () => {
     async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('export.toasts.validationFailed'));
+        reportError(validationResult.message || t('export.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
-        toast.error(t('export.toasts.noDiagramToExport'));
+        reportError(t('export.toasts.noDiagramToExport'));
         return;
       }
 
@@ -36,7 +37,7 @@ export const useExportBUML = () => {
           const errorData = await response.json().catch(() => ({ detail: t('export.toasts.couldNotParseError') }));
 
           if ((response.status === 400 || response.status === 500) && errorData.detail) {
-            toast.error(errorData.detail);
+            reportError(errorData.detail);
             return;
           }
 
@@ -69,7 +70,7 @@ export const useExportBUML = () => {
         toast.success(t('export.toasts.bumlExportSuccess'));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : t('export.toasts.unknownError');
-        toast.error(errorMessage);
+        reportError(errorMessage, { error });
       }
     },
     [downloadFile, t],

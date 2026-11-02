@@ -104,7 +104,8 @@ deployment.
    │   ├── constants/constant.ts   #   Environment variables, URLs, storage keys
    │   ├── perspectives.ts         #   Diagram-visibility presets
    │   ├── services/               #   Storage, validation, analytics, SSE,
-   │   │   │                       #   telemetry, llmKeyStorage
+   │   │   │                       #   telemetry, llmKeyStorage, confirm
+   │   │   ├── errors/             #   reportError: error toast + Sentry
    │   │   └── storage/            #   The only Web Storage access: projects,
    │   │                           #   GitHub, assistant, preferences
    │   ├── components/             #   Reusable UI, incl. byok/LlmKeyDialog
@@ -130,6 +131,11 @@ deployment.
   ``shared/services/storage/`` (and ``llmKeyStorage``); every key is a constant
   in ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
   anywhere else outside tests.
+- A failure the user should see is reported with ``reportError()`` from
+  ``shared/services/errors/reportError.ts``: the error toast, plus the caught
+  error to Sentry when ``SENTRY_DSN`` is set. A notice uses ``globalAlert()``
+  (the confirm dialog with one button). ESLint rejects ``toast.error(`` and
+  ``alert(`` anywhere else outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.

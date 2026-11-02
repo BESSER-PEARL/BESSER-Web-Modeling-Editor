@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
@@ -294,7 +295,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
+      reportError(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }), { error });
     } finally {
       setIsLoading(false);
     }

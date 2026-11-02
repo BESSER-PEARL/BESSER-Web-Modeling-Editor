@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../services/errors/reportError';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -78,7 +79,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     const errors = validation.touchAll();
     if (Object.keys(errors).length > 0 || !satisfaction) {
       if (!satisfaction) {
-        toast.error(t('feedback.toasts.selectRating'));
+        reportError(t('feedback.toasts.selectRating'));
       }
       return;
     }
@@ -111,7 +112,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
       toast.success(t('feedback.toasts.thankYou'));
       handleOpenChange(false);
     } catch (error) {
-      toast.error(t('feedback.toasts.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toasts.unknownError') }));
+      reportError(t('feedback.toasts.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toasts.unknownError') }), { error });
       setIsSubmitting(false);
     }
   };

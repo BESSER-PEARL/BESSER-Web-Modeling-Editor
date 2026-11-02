@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApollonEditor } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
@@ -97,17 +97,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
     if ((isImageExport || isSingleDiagramExport) && !editor) {
-      toast.error(t('export.toasts.openUmlFirst'));
+      reportError(t('export.toasts.openUmlFirst'));
       return;
     }
 
     if (!currentProject) {
-      toast.error(t('export.toasts.noProject'));
+      reportError(t('export.toasts.noProject'));
       return;
     }
 
     if (formatsRequiringSelection.has(format) && selectedDiagrams.length === 0) {
-      toast.error(t('export.toasts.selectAtLeastOne'));
+      reportError(t('export.toasts.selectAtLeastOne'));
       return;
     }
 
@@ -143,7 +143,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }));
+      reportError(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }), { error });
     } finally {
       pendingRef.current = null;
       setPendingFormat(null);

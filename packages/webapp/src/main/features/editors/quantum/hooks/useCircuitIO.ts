@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Circuit, Gate, GateType } from '../types';
 import { GATES } from '../constants';
 import { downloadCircuitAsJSON, deserializeCircuit, trimCircuit } from '../utils';
+import { globalAlert } from '../../../../shared/services/confirm/globalConfirm';
 
 interface UseCircuitIOOptions {
     setCircuit: (updater: Circuit | ((prev: Circuit) => Circuit)) => void;
@@ -47,7 +48,7 @@ export function useCircuitIO(
                 setCircuit(trimCircuit(newCircuit));
             } catch (error) {
                 console.error('Error parsing JSON:', error);
-                alert('Failed to parse JSON file or invalid format.');
+                void globalAlert({ title: 'Failed to parse JSON file or invalid format.' });
             }
         };
         reader.readAsText(file);

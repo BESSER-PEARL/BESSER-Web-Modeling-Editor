@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
-import { toast, Id } from 'react-toastify'; // Import Id type
+import { toast, Id } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { deployApp } from '../../../shared/api/generation';
@@ -27,13 +28,13 @@ export const useDeployLocally = () => {
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+        reportError(validationResult.message || t('generation.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error(t('generation.toasts.noDiagram'));
+        reportError(t('generation.toasts.noDiagram'));
         return;
       }
 

@@ -1,5 +1,6 @@
 import { exportProjectAsBuml } from '../../shared/api/conversion';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import i18n from '../../shared/i18n';
 import { BesserProject, SupportedDiagramType } from '../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
@@ -11,7 +12,7 @@ export async function exportProjectAsSingleBUMLFile(
   diagramTypes?: SupportedDiagramType[]
 ): Promise<void> {
   if (!project) {
-    toast.error(i18n.t('export.toasts.noProjectData'));
+    reportError(i18n.t('export.toasts.noProjectData'));
     return;
   }
 
@@ -60,6 +61,6 @@ export async function exportProjectAsSingleBUMLFile(
     toast.success(i18n.t('export.toasts.projectExportedAs', { filename }));
   } catch (error) {
     console.error('Error exporting project as BUML file:', error);
-    toast.error(i18n.t('export.toasts.projectExportFailed', { error: error instanceof Error ? error.message : i18n.t('export.toasts.unknownError') }));
+    reportError(i18n.t('export.toasts.projectExportFailed', { error: error instanceof Error ? error.message : i18n.t('export.toasts.unknownError') }), { error });
   }
 }

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { generateFromDiagram, generateFromProject } from '../../../shared/api/generation';
@@ -172,7 +173,7 @@ export const useGenerateCode = () => {
       const currentProject = ProjectStorageRepository.getCurrentProject();
 
       if (!currentProject) {
-        toast.error(t('generation.toasts.noProjectAvailable'));
+        reportError(t('generation.toasts.noProjectAvailable'));
         return { ok: false, error: 'No project available for code generation' };
       }
 
@@ -224,7 +225,7 @@ export const useGenerateCode = () => {
             (response.status === 422 && typeof errorData.detail === 'string');
           if (hasDetail) {
             const detail = `${errorData.detail}`;
-            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            reportError(opts?.describeError?.(response.status, detail) ?? detail);
             return { ok: false, error: detail };
           }
 
@@ -264,14 +265,14 @@ export const useGenerateCode = () => {
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error(t('generation.toasts.requestTimedOut'));
+          reportError(t('generation.toasts.requestTimedOut'), { error });
           return { ok: false, error: 'Request timed out' };
         }
         let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
-        toast.error(`${errorMessage}`);
+        reportError(`${errorMessage}`, { error });
         return { ok: false, error: errorMessage };
       } finally {
         clearTimeout(timeoutId);
@@ -319,7 +320,7 @@ export const useGenerateCode = () => {
       const modelForGeneration = modelOverride ?? editor?.model;
       if (!modelForGeneration) {
         console.error('No editor or model available');
-        toast.error(t('generation.toasts.noDiagram'));
+        reportError(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
@@ -332,7 +333,7 @@ export const useGenerateCode = () => {
       if (editor) {
         const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
         if (!validationResult.isValid) {
-          toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+          reportError(validationResult.message || t('generation.toasts.validationFailed'));
           return { ok: false, error: validationResult.message || 'Validation failed' };
         }
       }
@@ -378,7 +379,7 @@ export const useGenerateCode = () => {
             (response.status === 422 && typeof errorData.detail === 'string');
           if (hasDetail) {
             const detail = `${errorData.detail}`;
-            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            reportError(opts?.describeError?.(response.status, detail) ?? detail);
             return { ok: false, error: detail };
           }
 
@@ -416,7 +417,7 @@ export const useGenerateCode = () => {
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error(t('generation.toasts.requestTimedOut'));
+          reportError(t('generation.toasts.requestTimedOut'), { error });
           return { ok: false, error: 'Request timed out' };
         }
 
@@ -425,7 +426,7 @@ export const useGenerateCode = () => {
           errorMessage = error.message;
         }
 
-        toast.error(`${errorMessage}`);
+        reportError(`${errorMessage}`, { error });
         return { ok: false, error: errorMessage };
       } finally {
         clearTimeout(timeoutId);

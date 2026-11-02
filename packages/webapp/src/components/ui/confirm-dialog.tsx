@@ -13,6 +13,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'default';
+  /** Only the confirm button, for a notice. */
+  hideCancel?: boolean;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -24,6 +26,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   variant = 'default',
+  hideCancel = false,
 }) => {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel(); }}>
@@ -43,9 +46,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
 
           <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
+            {!hideCancel && (
+              <Button variant="outline" onClick={onCancel}>
+                {cancelLabel}
+              </Button>
+            )}
             <Button
               variant={variant === 'danger' ? 'destructive' : 'default'}
               onClick={onConfirm}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
 import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
@@ -134,7 +135,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       return;
     }
     if (!currentProject) {
-      toast.error(t('project.toasts.createOrLoadFirst'));
+      reportError(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -203,15 +204,15 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handlePublishToRender = useCallback(async () => {
     if (!currentProject) {
-      toast.error(t('deploy.toasts.noProjectAvailable'));
+      reportError(t('deploy.toasts.noProjectAvailable'));
       return;
     }
     if (!githubSession) {
-      toast.error(t('deploy.toasts.githubSessionNotFound'));
+      reportError(t('deploy.toasts.githubSessionNotFound'));
       return;
     }
     if (!githubRepoName.trim()) {
-      toast.error(t('deploy.toasts.repoNameRequired'));
+      reportError(t('deploy.toasts.repoNameRequired'));
       return;
     }
 
@@ -221,7 +222,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     if (deploymentTarget === 'agent' && includePersonalization) {
       const mapping = buildPersonalizationMapping(projectForDeploy);
       if (mapping.length === 0) {
-        toast.error(t('deploy.toasts.noPersonalizationMappings'));
+        reportError(t('deploy.toasts.noPersonalizationMappings'));
         return;
       }
       personalizationMapping = mapping;

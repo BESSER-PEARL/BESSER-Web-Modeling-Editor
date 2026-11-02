@@ -6,6 +6,7 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import {
   ChevronDown,
   CloudDownload,
@@ -224,7 +225,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       );
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }
@@ -257,7 +258,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       await sync.pull();
       toast.success(t('github.toasts.projectPulled'));
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }
@@ -290,7 +291,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
     flushEditor();
     const project = ProjectStorageRepository.loadProject(currentProject.id);
     if (!project) {
-      toast.error(t('github.toasts.couldNotLoadProjectData'));
+      reportError(t('github.toasts.couldNotLoadProjectData'));
       return;
     }
     setBusy(true);
@@ -307,7 +308,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       setDialog(null);
       toast.success(t('github.panel.created', { defaultValue: 'Created {{repo}} with your model.', repo: `${result.owner}/${repo}` }));
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }

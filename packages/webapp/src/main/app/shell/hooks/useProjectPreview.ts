@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { useProjectBumlPreview } from '../../../features/export/useProjectBumlPreview';
@@ -25,7 +26,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleOpenProjectPreview = useCallback(() => {
     if (!currentProject) {
-      toast.error(t('project.toasts.createOrLoadFirst'));
+      reportError(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -43,7 +44,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
     if (success) {
       toast.success(t('project.preview.toasts.jsonCopied'));
     } else {
-      toast.error(t('project.preview.toasts.jsonCopyFailed'));
+      reportError(t('project.preview.toasts.jsonCopyFailed'));
     }
   }, [projectPreviewJson]);
 
@@ -54,7 +55,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleRequestProjectBumlPreview = useCallback(async () => {
     if (!currentProject) {
-      toast.error(t('project.toasts.createOrLoadFirst'));
+      reportError(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -70,7 +71,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
       const message = error instanceof Error ? error.message : t('project.preview.toasts.bumlFailedFallback');
       setProjectBumlPreview('');
       setProjectBumlPreviewError(message);
-      toast.error(t('project.preview.toasts.bumlFailed', { message }));
+      reportError(t('project.preview.toasts.bumlFailed', { message }), { error });
     } finally {
       setIsProjectBumlPreviewLoading(false);
     }
@@ -86,7 +87,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleCopyProjectBumlPreview = useCallback(async () => {
     if (!projectBumlPreview) {
-      toast.error(t('project.preview.toasts.noBumlToCopy'));
+      reportError(t('project.preview.toasts.noBumlToCopy'));
       return;
     }
 
@@ -94,13 +95,13 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
     if (success) {
       toast.success(t('project.preview.toasts.bumlCopied'));
     } else {
-      toast.error(t('project.preview.toasts.bumlCopyFailed'));
+      reportError(t('project.preview.toasts.bumlCopyFailed'));
     }
   }, [projectBumlPreview]);
 
   const handleDownloadProjectBumlPreview = useCallback(() => {
     if (!projectBumlPreview) {
-      toast.error(t('project.preview.toasts.noBumlToDownload'));
+      reportError(t('project.preview.toasts.noBumlToDownload'));
       return;
     }
 

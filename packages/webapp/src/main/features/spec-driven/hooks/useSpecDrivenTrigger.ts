@@ -56,6 +56,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -747,7 +748,7 @@ export function useSpecDrivenTrigger(
                     `You can retry the run; if this keeps happening, the ` +
                     `model provider may be temporarily unavailable.`,
                 );
-                toast.error('Spec-Driven Agent run ended without a result');
+                reportError('Spec-Driven Agent run ended without a result');
                 reportRunFinished({
                   ok: false,
                   runId: currentRunIdRef.current,
@@ -776,7 +777,7 @@ export function useSpecDrivenTrigger(
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
             );
-            toast.error(`Spec-Driven Agent: ${event.code}`);
+            reportError(`Spec-Driven Agent: ${event.code}`);
           }
           reportRunFinished({
             ok: false,
@@ -916,7 +917,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
-          toast.error('Could not reconnect to the active generation');
+          reportError('Could not reconnect to the active generation', { error });
           reportRunFinished({
             ok: false,
             runId: saved.runId,
@@ -987,7 +988,7 @@ export function useSpecDrivenTrigger(
       const project = currentProjectRef.current;
       if (!project) {
         appendErrorToChat('Spec-Driven Agent needs an open project.');
-        toast.error('Spec-Driven Agent needs an open project');
+        reportError('Spec-Driven Agent needs an open project');
         return;
       }
       const runProject = {
@@ -1015,7 +1016,7 @@ export function useSpecDrivenTrigger(
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
-        toast.error('Spec-Driven Agent: invalid provider');
+        reportError('Spec-Driven Agent: invalid provider');
         return;
       }
       const provider: SpecDrivenProvider = rawProvider;
@@ -1203,7 +1204,7 @@ export function useSpecDrivenTrigger(
         );
         finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
         appendErrorToChat(message);
-        toast.error('Spec-Driven Agent failed to start');
+        reportError('Spec-Driven Agent failed to start', { error: err });
         isRunningRef.current = false;
         activeCardRef.current = null;
         setIsGenerating(false);
@@ -1244,7 +1245,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
-          toast.error('Spec-Driven Agent stream ended early');
+          reportError('Spec-Driven Agent stream ended early');
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -1299,10 +1300,10 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
-          toast.error(
+          reportError(
             isStall
               ? 'Spec-Driven Agent: live progress stream went quiet'
-              : 'Spec-Driven Agent stream error',
+              : 'Spec-Driven Agent stream error', { error: err },
           );
           reportRunFinished({
             ok: false,

@@ -11,6 +11,7 @@
 
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
 import type { InjectionCommand, UMLModelingService, ClassSpec, ModelModification } from '../services';
@@ -658,7 +659,7 @@ export function useModelInjection({
     } catch (error) {
       setProgressMessage('');
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
-      toast.error(`Could not apply assistant update: ${errorMessage}`);
+      reportError(`Could not apply assistant update: ${errorMessage}`, { error });
       const errMsg = toKitMessage(
         'assistant',
         `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`,
