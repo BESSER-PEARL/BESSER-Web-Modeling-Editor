@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
-import { UMLDiagramType } from '@besser/wme';
 import { getJsonModel } from '../../shared/api/conversion';
 import { ApiError } from '../../shared/api/api-client';
 import { uuid } from '../../shared/utils/uuid';
-import { ProjectDiagram, isUMLModel } from '../../shared/types/project';
+import { ProjectDiagram, isUMLModel, toSupportedDiagramType, toUMLDiagramType } from '../../shared/types/project';
 import { reportImportRepairs } from '../../shared/services/project-import/reportImportRepairs';
 
 /**
@@ -33,35 +32,18 @@ export const useBumlToDiagram = () => {
       }
       const title = data.title || file.name.replace('.py', '');
 
-      // Determine diagram type
-      let modelType: UMLDiagramType;
-      switch (data.model.type) {
-        case 'StateMachineDiagram':
-          modelType = UMLDiagramType.StateMachineDiagram;
-          break;
-        case 'AgentDiagram':
-          modelType = UMLDiagramType.AgentDiagram;
-          break;
-        case 'ObjectDiagram':
-          modelType = UMLDiagramType.ObjectDiagram;
-          break;
-        case 'BPMNDiagram':
-          modelType = UMLDiagramType.BPMN;
-          break;
-        case 'ClassDiagram':
-        default:
-          modelType = UMLDiagramType.ClassDiagram;
-          break;
+      // Keep the model's own type when a project slot holds it; anything else
+      // (GUI, quantum, KG...) cannot be placed as an Apollon diagram.
+      const modelType = data.model.type;
+      if (toUMLDiagramType(toSupportedDiagramType(modelType)) !== modelType) {
+        throw new Error(`Unsupported diagram type for a B-UML diagram import: ${modelType}`);
       }
 
       // Create the diagram object
       const diagram: ProjectDiagram = {
         id: uuid(),
         title: title,
-        model: {
-          ...data.model,
-          type: modelType,
-        },
+        model: data.model,
         lastUpdate: new Date().toISOString(),
         description: `Imported from ${file.name}`,
       };
