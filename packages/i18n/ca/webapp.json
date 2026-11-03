@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Tipus de diagrama i complexitat del model",
           "assistantUsage": "Recompte d'ús de l'assistent d'IA",
           "errorReports": "Informes d'error anònims",
-          "noContent": "Sense contingut del model ni dades personals"
+          "visitStats": "Estadístiques de visites (Google Analytics)",
+          "noContent": "Sense contingut del model, noms de projectes ni dades d'identitat"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Mètriques del model (recomptes de mida i estructura)",
           "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
           "session": "Metadades de sessió anònimes",
-          "errors": "Informes d'error anònims (tipus d'error, traça de la pila i estat HTTP)"
+          "visits": "Estadístiques de visites: pàgines visitades, ubicació aproximada derivada de la teva adreça IP, tipus de dispositiu i de navegador",
+          "errors": "Informes d'error anònims (tipus d'error, traça de la pila, estat HTTP, ruta de la pàgina i tipus de navegador)"
         },
         "noCollectTitle": "Dades que no recollim",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "Utilitzem PostHog (allotjat a la UE) per a l'analítica d'ús. Veu la",
         "providerLinkText": "Política de privadesa de PostHog",
         "errorProviderIntro": "Els informes d'error s'envien a Sentry (allotjat a la UE, de.sentry.io) només després que acceptis l'analítica, i mai no inclouen contingut de models ni noms de projectes. Veu la",
-        "errorProviderLinkText": "Política de privadesa de Sentry"
+        "errorProviderLinkText": "Política de privadesa de Sentry",
+        "visitProviderIntro": "Les estadístiques de visites s'envien a Google Analytics només després que acceptis l'analítica. Google no emmagatzema la teva adreça IP, i els senyals de Google i la personalització d'anuncis estan desactivats. Veu la",
+        "visitProviderLinkText": "Política de privadesa de Google"
       }
     },
     "errors": {

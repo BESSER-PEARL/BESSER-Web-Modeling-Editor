@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Diagram type and model complexity",
           "assistantUsage": "AI assistant usage count",
           "errorReports": "Anonymous error reports",
-          "noContent": "No model content or personal data"
+          "visitStats": "Visit statistics (Google Analytics)",
+          "noContent": "No model content, project names or identity data"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Model metrics (size and structure counts)",
           "assistant": "AI assistant usage counts (not content)",
           "session": "Anonymous session metadata",
-          "errors": "Anonymous error reports (error type, stack trace and HTTP status)"
+          "visits": "Visit statistics: pages visited, approximate location derived from your IP address, device and browser type",
+          "errors": "Anonymous error reports (error type, stack trace, HTTP status, page path and browser type)"
         },
         "noCollectTitle": "Data We Do Not Collect",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "We use PostHog (EU-hosted) for usage analytics. See",
         "providerLinkText": "PostHog Privacy Policy",
         "errorProviderIntro": "Error reports go to Sentry (EU-hosted, de.sentry.io), only after you accept analytics, and never include model content or project names. See",
-        "errorProviderLinkText": "Sentry Privacy Policy"
+        "errorProviderLinkText": "Sentry Privacy Policy",
+        "visitProviderIntro": "Visit statistics go to Google Analytics, only after you accept analytics. Google does not store your IP address, and Google signals and ad personalisation are turned off. See",
+        "visitProviderLinkText": "Google Privacy Policy"
       }
     },
     "errors": {

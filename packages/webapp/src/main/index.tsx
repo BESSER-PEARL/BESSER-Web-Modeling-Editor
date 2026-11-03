@@ -4,7 +4,7 @@ import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner'
 import { setTheme } from './shared/utils/theme-switcher';
 import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY, GA_MEASUREMENT_ID } from './shared/constants/constant';
 import { runStorageMigrations } from './shared/services/storage/storage-migration';
 import { claimChunkReload } from './shared/services/storage/tabStorage';
 import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
@@ -41,13 +41,15 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload();
 });
 
-// Defer Sentry + PostHog initialization until the browser is idle.
-// This removes ~40KB+ of synchronous JS from the critical render path.
+// Defer Sentry + PostHog + Google Analytics initialization until the browser is idle.
+// This removes ~40KB+ of synchronous JS from the critical render path. It runs after
+// initDemoModeFromUrl, so no analytics ever sees a `?demo=` token in the address bar.
 initLazyAnalytics({
   sentryDsn: SENTRY_DSN,
   sentryEnvironment: NO_HTTP_URL,
   posthogKey: POSTHOG_KEY,
   posthogHost: POSTHOG_HOST,
+  gaMeasurementId: GA_MEASUREMENT_ID,
   hasUserConsented,
 });
 const themePreference = LocalStorageRepository.getUserThemePreference();

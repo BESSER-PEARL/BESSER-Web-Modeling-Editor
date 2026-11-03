@@ -29,7 +29,8 @@ Highlights
   (``BACKEND_URL``) to produce Django, SQL, SQLAlchemy, JSON Schema, agent and
   other artefacts.
 * **Observability and analytics** – optional PostHog and Sentry integration via
-  env-configured keys.
+  env-configured keys, plus Google Analytics; all three start only after the
+  user accepts analytics in the cookie banner.
 
 Directory tour
 --------------

@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Type de diagramme et complexité du modèle",
           "assistantUsage": "Nombre d'utilisations de l'assistant IA",
           "errorReports": "Rapports d'erreur anonymes",
-          "noContent": "Aucun contenu de modèle ni donnée personnelle"
+          "visitStats": "Statistiques de visite (Google Analytics)",
+          "noContent": "Aucun contenu de modèle, nom de projet ni donnée d'identité"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Métriques du modèle (taille et décomptes de structure)",
           "assistant": "Nombre d'utilisations de l'assistant IA (pas le contenu)",
           "session": "Métadonnées de session anonymes",
-          "errors": "Rapports d'erreur anonymes (type d'erreur, pile d'appels et statut HTTP)"
+          "visits": "Statistiques de visite : pages consultées, localisation approximative déduite de votre adresse IP, type d'appareil et de navigateur",
+          "errors": "Rapports d'erreur anonymes (type d'erreur, pile d'appels, statut HTTP, chemin de la page et type de navigateur)"
         },
         "noCollectTitle": "Données que nous ne collectons pas",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "Nous utilisons PostHog (hébergé dans l'UE) pour les statistiques d'utilisation. Voir",
         "providerLinkText": "Politique de confidentialité de PostHog",
         "errorProviderIntro": "Les rapports d'erreur sont envoyés à Sentry (hébergé dans l'UE, de.sentry.io), uniquement après que vous avez accepté les statistiques, et ne contiennent jamais le contenu des modèles ni les noms de projets. Voir",
-        "errorProviderLinkText": "Politique de confidentialité de Sentry"
+        "errorProviderLinkText": "Politique de confidentialité de Sentry",
+        "visitProviderIntro": "Les statistiques de visite sont envoyées à Google Analytics, uniquement après que vous avez accepté les statistiques. Google ne stocke pas votre adresse IP, et les signaux Google ainsi que la personnalisation des annonces sont désactivés. Voir",
+        "visitProviderLinkText": "Règles de confidentialité de Google"
       }
     },
     "errors": {

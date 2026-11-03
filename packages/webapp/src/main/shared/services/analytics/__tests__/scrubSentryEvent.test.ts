@@ -74,6 +74,38 @@ describe('scrubSentryEvent', () => {
     }
   });
 
+  it('drops the query and fragment from stack frame files (window.onerror on an inline script)', () => {
+    // What GlobalHandlers builds for `onerror` without an Error object: the frame is the page URL.
+    const onerror: ErrorEvent = {
+      type: undefined,
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Uncaught boom',
+            mechanism: { type: 'onerror', handled: false, synthetic: true },
+            stacktrace: {
+              frames: [
+                { filename: 'https://editor.example/?demo=SECRET-TOKEN#x', abs_path: 'https://editor.example/?study=p7', lineno: 7, colno: 3 },
+                { filename: '<anonymous>', function: 'f' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(scrubSentryEvent(onerror).exception?.values?.[0].stacktrace?.frames).toEqual([
+      { filename: 'https://editor.example/', abs_path: 'https://editor.example/', lineno: 7, colno: 3 },
+      { filename: '<anonymous>', function: 'f' },
+    ]);
+  });
+
+  it('sends no user, and asks Sentry not to infer the IP address (ip_address: null)', () => {
+    const withUser = { ...event(), user: { id: 'u1', email: 'jdoe@example.com', ip_address: '{{auto}}' } };
+    expect(scrubSentryEvent(withUser).user).toEqual({ ip_address: null });
+    expect(scrubSentryEvent(event()).user).toEqual({ ip_address: null });
+  });
+
   it('tags the HTTP status of an ApiError or SseHttpError and keeps the other tags', () => {
     expect(scrubSentryEvent(event(), { originalException: new ApiError(503, DETAIL) }).tags).toEqual({
       package: 'webapp',

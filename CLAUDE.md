@@ -195,9 +195,12 @@ A failure the user should see goes through `reportError(message, { error, ...toa
 the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
 cookie banner (`applyAnalyticsConsent` in `lazy-analytics.ts` starts and stops it, like PostHog's opt-in); offline,
 aborted and 4xx failures (`isNetworkError`, `ApiError`/`SseHttpError` status < 500) are toast-only, and the
-`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path and breadcrumb
-categories: no message, backend `detail`, query string or extra data, as the privacy policy promises. Captures are
-tagged `handled: reportError`. Pass the message already translated; pass
+`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path, browser and
+breadcrumb categories: no message, backend `detail`, query string (stack frame URLs included), extra data or user
+(`ip_address: null` stops Sentry inferring the IP), as the privacy policy promises. Captures are
+tagged `handled: reportError`. Google Analytics (`GA_MEASUREMENT_ID` in `constant.ts`) follows the same consent: gtag.js
+is injected by `lazy-analytics.ts` after Accept and disabled with Google's `ga-disable-<id>` flag on withdrawal, so
+never add a tracking tag to `index.html`; every provider is named in the cookie banner and privacy policy. Pass the message already translated; pass
 `error` only for a caught exception, not for an expected case such as "open a project first". `notifyError(context)`
 in the same module is the `.catch()` handler for fire-and-forget promises. Developer diagnostics stay `console.*`
 at the call site; `reportError` never logs. Notices that used `alert()` use `globalAlert()` from

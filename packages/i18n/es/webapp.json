@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Tipo de diagrama y complejidad del modelo",
           "assistantUsage": "Recuento de uso del asistente de IA",
           "errorReports": "Informes de errores anónimos",
-          "noContent": "Sin contenido del modelo ni datos personales"
+          "visitStats": "Estadísticas de visitas (Google Analytics)",
+          "noContent": "Sin contenido del modelo, nombres de proyectos ni datos de identidad"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Métricas del modelo (recuentos de tamaño y estructura)",
           "assistant": "Recuentos de uso del asistente de IA (no el contenido)",
           "session": "Metadatos de sesión anónimos",
-          "errors": "Informes de errores anónimos (tipo de error, traza de la pila y estado HTTP)"
+          "visits": "Estadísticas de visitas: páginas visitadas, ubicación aproximada derivada de tu dirección IP, tipo de dispositivo y de navegador",
+          "errors": "Informes de errores anónimos (tipo de error, traza de la pila, estado HTTP, ruta de la página y tipo de navegador)"
         },
         "noCollectTitle": "Datos que no recopilamos",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "Usamos PostHog (alojado en la UE) para las analíticas de uso. Consulta la",
         "providerLinkText": "Política de privacidad de PostHog",
         "errorProviderIntro": "Los informes de errores se envían a Sentry (alojado en la UE, de.sentry.io) solo después de que aceptes las analíticas, y nunca incluyen contenido de modelos ni nombres de proyectos. Consulta la",
-        "errorProviderLinkText": "Política de privacidad de Sentry"
+        "errorProviderLinkText": "Política de privacidad de Sentry",
+        "visitProviderIntro": "Las estadísticas de visitas se envían a Google Analytics solo después de que aceptes las analíticas. Google no almacena tu dirección IP, y las señales de Google y la personalización de anuncios están desactivadas. Consulta la",
+        "visitProviderLinkText": "Política de privacidad de Google"
       }
     },
     "errors": {

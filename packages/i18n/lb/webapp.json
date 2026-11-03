@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
           "errorReports": "Anonym Feelerberichter",
-          "noContent": "Keng Modellinhalter oder perséinlech Donnéeën"
+          "visitStats": "Statistiken iwwer d'Visitten (Google Analytics)",
+          "noContent": "Keng Modellinhalter, Projetsnimm oder Identitéitsdonnéeën"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
           "session": "Anonym Sessiounsmetadaten",
-          "errors": "Anonym Feelerberichter (Feelertyp, Stacktrace an HTTP-Status)"
+          "visits": "Statistiken iwwer d'Visitten: besicht Säiten, ongeféier Standuert (vun Ärer IP-Adress ofgeleet), Apparat- a Browsertyp",
+          "errors": "Anonym Feelerberichter (Feelertyp, Stacktrace, HTTP-Status, Säitepfad a Browsertyp)"
         },
         "noCollectTitle": "Donnéeën, déi mir net sammelen",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "Mir benotzen PostHog (an der EU gehost) fir d'Notzungsanalyse. Kuckt d'",
         "providerLinkText": "PostHog Dateschutzerklärung",
         "errorProviderIntro": "Feelerberichter ginn un Sentry (an der EU gehost, de.sentry.io), eréischt nodeems Dir d'Analyse akzeptéiert hutt, an enthalen ni Modellinhalter oder Projetsnimm. Kuckt d'",
-        "errorProviderLinkText": "Sentry Dateschutzerklärung"
+        "errorProviderLinkText": "Sentry Dateschutzerklärung",
+        "visitProviderIntro": "Statistiken iwwer d'Visitte ginn un Google Analytics, eréischt nodeems Dir d'Analyse akzeptéiert hutt. Google späichert Är IP-Adress net, a Google Signals a personaliséiert Reklamm sinn ausgeschalt. Kuckt d'",
+        "visitProviderLinkText": "Google Dateschutzerklärung"
       }
     },
     "errors": {

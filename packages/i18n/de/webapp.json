@@ -2233,7 +2233,8 @@
           "diagramComplexity": "Diagrammtyp und Modellkomplexität",
           "assistantUsage": "Nutzungshäufigkeit des KI-Assistenten",
           "errorReports": "Anonyme Fehlerberichte",
-          "noContent": "Keine Modellinhalte oder personenbezogenen Daten"
+          "visitStats": "Besuchsstatistiken (Google Analytics)",
+          "noContent": "Keine Modellinhalte, Projektnamen oder Identitätsdaten"
         }
       },
       "settings": {
@@ -2253,7 +2254,8 @@
           "metrics": "Modellmetriken (Größen- und Strukturzählungen)",
           "assistant": "Nutzungszahlen des KI-Assistenten (nicht die Inhalte)",
           "session": "Anonyme Sitzungsmetadaten",
-          "errors": "Anonyme Fehlerberichte (Fehlertyp, Stacktrace und HTTP-Status)"
+          "visits": "Besuchsstatistiken: besuchte Seiten, ungefährer Standort (aus Ihrer IP-Adresse abgeleitet), Geräte- und Browsertyp",
+          "errors": "Anonyme Fehlerberichte (Fehlertyp, Stacktrace, HTTP-Status, Seitenpfad und Browsertyp)"
         },
         "noCollectTitle": "Daten, die wir nicht erfassen",
         "noCollect": {
@@ -2268,7 +2270,9 @@
         "providerIntro": "Wir verwenden PostHog (in der EU gehostet) für die Nutzungsanalyse. Siehe",
         "providerLinkText": "PostHog-Datenschutzerklärung",
         "errorProviderIntro": "Fehlerberichte gehen an Sentry (in der EU gehostet, de.sentry.io), erst nachdem Sie der Analyse zugestimmt haben, und enthalten nie Modellinhalte oder Projektnamen. Siehe",
-        "errorProviderLinkText": "Sentry-Datenschutzerklärung"
+        "errorProviderLinkText": "Sentry-Datenschutzerklärung",
+        "visitProviderIntro": "Besuchsstatistiken gehen an Google Analytics, erst nachdem Sie der Analyse zugestimmt haben. Google speichert Ihre IP-Adresse nicht, und Google Signals sowie personalisierte Werbung sind deaktiviert. Siehe",
+        "visitProviderLinkText": "Google-Datenschutzerklärung"
       }
     },
     "errors": {
