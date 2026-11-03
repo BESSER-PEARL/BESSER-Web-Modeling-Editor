@@ -7,6 +7,10 @@
  */
 import { apiClient, type ApiRequestOptions } from './api-client';
 import { cancelSpecDrivenUrl, specDrivenRunEventsJsonUrl } from '../constants/constant';
+import type { components } from './generated/besser-openapi';
+
+export type SpecDrivenConfigResponse = components['schemas']['SpecDrivenConfigResponse'];
+export type SmartPreviewResponse = components['schemas']['SmartPreviewResponse'];
 
 const CONFIG_TIMEOUT_MS = 30_000;
 /** A finished run's output can be a large zip. */
@@ -14,13 +18,13 @@ const DOWNLOAD_TIMEOUT_MS = 300_000;
 
 /** `GET /spec-driven/config`: models, caps and features the server offers. */
 export const fetchSpecDrivenConfig = () =>
-  apiClient.get<unknown>('/spec-driven/config', { timeout: CONFIG_TIMEOUT_MS });
+  apiClient.get<SpecDrivenConfigResponse>('/spec-driven/config', { timeout: CONFIG_TIMEOUT_MS });
 
 /** `POST /spec-driven/preview`: how the project's model relates to a base run's (no LLM call). */
 export const previewSpecDrivenRun = (
   body: { project: unknown; instructions: string; mode: 'modify'; base_run_id: string },
   options: Pick<ApiRequestOptions, 'signal' | 'timeout'>,
-) => apiClient.post<{ model_change?: unknown } | null>('/spec-driven/preview', body, options);
+) => apiClient.post<SmartPreviewResponse>('/spec-driven/preview', body, options);
 
 /** `GET /spec-driven/runs/{id}/events.json`: one page of a run's durable event log. */
 export const getSpecDrivenRunEventsPage = (runId: string, afterSequence: number, signal: AbortSignal): Promise<Response> =>

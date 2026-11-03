@@ -176,6 +176,12 @@ describe('FastAPI error details', () => {
     ['an entry without loc', [{ msg: 'Value error, bad' }], 'Value error, bad'],
     ['a query parameter', [{ loc: ['query', 'fmt'], msg: 'bad' }], 'query.fmt: bad'],
     ['an entry without msg', [{ loc: ['body', 'x'] }], 'x: {"loc":["body","x"]}'],
+    // POST /spec-driven/import-github-run with owner "../orgs", as the backend answers it.
+    [
+      'a validator error',
+      [{ type: 'value_error', loc: ['body', 'owner'], msg: 'Value error, Invalid GitHub owner or repository name.', input: '../orgs', ctx: { error: {} } }],
+      'owner: Value error, Invalid GitHub owner or repository name.',
+    ],
     ['an empty list', [], 'fallback'],
     ['an object with a message', { message: 'Nope' }, 'Nope'],
     ['any other object', { code: 7 }, '{"code":7}'],

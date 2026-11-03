@@ -2944,7 +2944,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
               }
             }
           },
@@ -3209,9 +3211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Smart Gen Config Besser Api Spec Driven Config Get"
+                  "$ref": "#/components/schemas/SpecDrivenConfigResponse"
                 }
               }
             }
@@ -3243,9 +3243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Smart Preview Besser Api Spec Driven Preview Post"
+                  "$ref": "#/components/schemas/SmartPreviewResponse"
                 }
               }
             }
@@ -4140,6 +4138,80 @@
         ],
         "title": "Body_import_owl_besser_api_kg_import_owl_post"
       },
+      "CatalogModelResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "default": {
+            "type": "boolean",
+            "title": "Default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "default"
+        ],
+        "title": "CatalogModelResponse"
+      },
+      "CatalogProviderResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "key_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Prefix"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogModelResponse"
+            },
+            "type": "array",
+            "title": "Models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "hint",
+          "key_prefix",
+          "models"
+        ],
+        "title": "CatalogProviderResponse",
+        "description": "A model-catalog provider as the key dialog shows it (``public_providers``)."
+      },
       "CodeAnalysisResponse": {
         "properties": {
           "stack": {
@@ -4638,6 +4710,26 @@
         ],
         "title": "DiagramInput"
       },
+      "FeedbackResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "success",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "FeedbackResponse",
+        "description": "Response for feedback submission."
+      },
       "FeedbackSubmission": {
         "properties": {
           "satisfaction": {
@@ -4706,6 +4798,69 @@
         ],
         "title": "FileExistsResponse",
         "description": "Response for file existence check."
+      },
+      "FreeTierModelResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "default": {
+            "type": "boolean",
+            "title": "Default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "default"
+        ],
+        "title": "FreeTierModelResponse"
+      },
+      "FreeTierResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/FreeTierModelResponse"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "pilot_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pilot Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "model",
+          "models",
+          "pilot_model"
+        ],
+        "title": "FreeTierResponse"
       },
       "GitHubBranchesListResponse": {
         "properties": {
@@ -6055,6 +6210,71 @@
         "title": "LogoutRequest",
         "description": "Body of ``POST /auth/logout``, as the editor sends it."
       },
+      "ModelChangeResponse": {
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "small",
+              "large",
+              "unrelated"
+            ],
+            "title": "Verdict"
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "attributes",
+              "classes"
+            ],
+            "title": "Basis"
+          },
+          "gone": {
+            "type": "number",
+            "title": "Gone"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Added"
+          },
+          "renamed": {
+            "items": {
+              "$ref": "#/components/schemas/RenamedElementResponse"
+            },
+            "type": "array",
+            "title": "Renamed"
+          },
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "basis",
+          "gone",
+          "removed",
+          "added",
+          "renamed",
+          "changes"
+        ],
+        "title": "ModelChangeResponse",
+        "description": "``ModelChange.to_dict()``: how a modify's model relates to its base app's."
+      },
       "ModelHistoryEntry": {
         "properties": {
           "sha": {
@@ -6514,6 +6734,25 @@
         ],
         "title": "PushSmartToGitHubResponse",
         "description": "Response of ``POST /besser_api/spec-driven/push-to-github``."
+      },
+      "RenamedElementResponse": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "title": "From"
+          },
+          "to": {
+            "type": "string",
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "title": "RenamedElementResponse",
+        "description": "A class (\"Room\") or attribute (\"Room.floor\") kept under a new name."
       },
       "RepoSummaryResponse": {
         "properties": {
@@ -7287,6 +7526,40 @@
         "title": "SmartGenerateRequest",
         "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap."
       },
+      "SmartPreviewModelSummaryResponse": {
+        "properties": {
+          "primary": {
+            "type": "string",
+            "title": "Primary"
+          },
+          "present": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Present"
+          },
+          "assembly_issues": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Assembly Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "primary",
+          "present",
+          "assembly_issues"
+        ],
+        "title": "SmartPreviewModelSummaryResponse",
+        "description": "``AssembledModels.summary()``: the diagrams present, counts only."
+      },
       "SmartPreviewRequest": {
         "properties": {
           "project": {
@@ -7360,6 +7633,97 @@
         ],
         "title": "SmartPreviewRequest",
         "description": "Body of ``POST /besser_api/spec-driven/preview``.\n\nSame shape as ``SmartGenerateRequest`` minus the ``api_key`` —\npreview is a pure-local computation (no LLM call) so we don't want\nusers leaking their API key just to see the pre-flight plan."
+      },
+      "SmartPreviewResponse": {
+        "properties": {
+          "execution_mode": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "modify"
+            ],
+            "title": "Execution Mode"
+          },
+          "primary_kind": {
+            "type": "string",
+            "title": "Primary Kind"
+          },
+          "auxiliary_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Auxiliary Kinds"
+          },
+          "target_generator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Generator"
+          },
+          "target_generator_confidence": {
+            "type": "number",
+            "title": "Target Generator Confidence"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "estimated_turns": {
+            "type": "integer",
+            "title": "Estimated Turns"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          },
+          "estimated_duration_seconds": {
+            "type": "integer",
+            "title": "Estimated Duration Seconds"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "model_summary": {
+            "$ref": "#/components/schemas/SmartPreviewModelSummaryResponse"
+          },
+          "model_change": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelChangeResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_mode",
+          "primary_kind",
+          "auxiliary_kinds",
+          "target_generator",
+          "target_generator_confidence",
+          "summary",
+          "estimated_turns",
+          "estimated_cost_usd",
+          "estimated_duration_seconds",
+          "notes",
+          "model_summary",
+          "model_change"
+        ],
+        "title": "SmartPreviewResponse",
+        "description": "Response of ``POST /besser_api/spec-driven/preview``: ``PreviewPlan.to_dict()`` and the model."
       },
       "SmartPushDeployConfig": {
         "properties": {
@@ -7457,6 +7821,174 @@
         ],
         "title": "SmartPushDeployConfig",
         "description": "Deployment target for ``POST /besser_api/spec-driven/push-to-github``.\n\nMirrors the ``deploy_config`` block the existing ``/deploy-webapp``\nendpoint reads from its body, but as a typed model. ``is_private``\ndefaults to ``True`` — a spec-driven generation run is customized,\nunreviewed LLM output and should not be world-readable by accident."
+      },
+      "SpecDrivenCapsResponse": {
+        "properties": {
+          "max_cost_usd_hard_cap": {
+            "type": "number",
+            "title": "Max Cost Usd Hard Cap"
+          },
+          "max_runtime_seconds_hard_cap": {
+            "type": "integer",
+            "title": "Max Runtime Seconds Hard Cap"
+          },
+          "max_turns_hard_cap": {
+            "type": "integer",
+            "title": "Max Turns Hard Cap"
+          },
+          "default_max_cost_usd": {
+            "type": "number",
+            "title": "Default Max Cost Usd"
+          },
+          "default_max_runtime_seconds": {
+            "type": "integer",
+            "title": "Default Max Runtime Seconds"
+          },
+          "default_max_turns": {
+            "type": "integer",
+            "title": "Default Max Turns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_cost_usd_hard_cap",
+          "max_runtime_seconds_hard_cap",
+          "max_turns_hard_cap",
+          "default_max_cost_usd",
+          "default_max_runtime_seconds",
+          "default_max_turns"
+        ],
+        "title": "SpecDrivenCapsResponse"
+      },
+      "SpecDrivenConcurrencyResponse": {
+        "properties": {
+          "max_concurrent_runs": {
+            "type": "integer",
+            "title": "Max Concurrent Runs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_concurrent_runs"
+        ],
+        "title": "SpecDrivenConcurrencyResponse"
+      },
+      "SpecDrivenConfigResponse": {
+        "properties": {
+          "caps": {
+            "$ref": "#/components/schemas/SpecDrivenCapsResponse"
+          },
+          "download_ttl_seconds": {
+            "type": "integer",
+            "title": "Download Ttl Seconds"
+          },
+          "cost_emitter_interval_seconds": {
+            "type": "number",
+            "title": "Cost Emitter Interval Seconds"
+          },
+          "concurrency": {
+            "$ref": "#/components/schemas/SpecDrivenConcurrencyResponse"
+          },
+          "features": {
+            "$ref": "#/components/schemas/SpecDrivenFeaturesResponse"
+          },
+          "supported_providers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Providers"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogProviderResponse"
+            },
+            "type": "array",
+            "title": "Providers"
+          },
+          "default_models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Default Models"
+          },
+          "free_tier": {
+            "$ref": "#/components/schemas/FreeTierResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caps",
+          "download_ttl_seconds",
+          "cost_emitter_interval_seconds",
+          "concurrency",
+          "features",
+          "supported_providers",
+          "providers",
+          "default_models",
+          "free_tier"
+        ],
+        "title": "SpecDrivenConfigResponse",
+        "description": "Response of ``GET /besser_api/spec-driven/config``: public caps and feature flags."
+      },
+      "SpecDrivenFeaturesResponse": {
+        "properties": {
+          "tracing_enabled": {
+            "type": "boolean",
+            "title": "Tracing Enabled"
+          },
+          "checkpointing_enabled": {
+            "type": "boolean",
+            "title": "Checkpointing Enabled"
+          },
+          "resume_enabled": {
+            "type": "boolean",
+            "title": "Resume Enabled"
+          },
+          "toolchain_validation_enabled": {
+            "type": "boolean",
+            "title": "Toolchain Validation Enabled"
+          },
+          "shell_tools_enabled": {
+            "type": "boolean",
+            "title": "Shell Tools Enabled"
+          },
+          "per_write_diagnostics_enabled": {
+            "type": "boolean",
+            "title": "Per Write Diagnostics Enabled"
+          },
+          "durable_runs_enabled": {
+            "type": "boolean",
+            "title": "Durable Runs Enabled"
+          },
+          "event_replay_enabled": {
+            "type": "boolean",
+            "title": "Event Replay Enabled"
+          },
+          "cancel_abandoned_runs": {
+            "type": "boolean",
+            "title": "Cancel Abandoned Runs"
+          },
+          "disconnected_grace_seconds": {
+            "type": "integer",
+            "title": "Disconnected Grace Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tracing_enabled",
+          "checkpointing_enabled",
+          "resume_enabled",
+          "toolchain_validation_enabled",
+          "shell_tools_enabled",
+          "per_write_diagnostics_enabled",
+          "durable_runs_enabled",
+          "event_replay_enabled",
+          "cancel_abandoned_runs",
+          "disconnected_grace_seconds"
+        ],
+        "title": "SpecDrivenFeaturesResponse"
       },
       "SyncStatusResponse": {
         "properties": {

@@ -1875,6 +1875,31 @@ export interface components {
             /** Owl File */
             owl_file: string;
         };
+        /** CatalogModelResponse */
+        CatalogModelResponse: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Default */
+            default: boolean;
+        };
+        /**
+         * CatalogProviderResponse
+         * @description A model-catalog provider as the key dialog shows it (``public_providers``).
+         */
+        CatalogProviderResponse: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Hint */
+            hint: string | null;
+            /** Key Prefix */
+            key_prefix: string | null;
+            /** Models */
+            models: components["schemas"]["CatalogModelResponse"][];
+        };
         /**
          * CodeAnalysisResponse
          * @description What a repo's code holds: ``CodeAnalysis.to_dict()`` (reverse_engineering).
@@ -2101,6 +2126,19 @@ export interface components {
             } | null;
         };
         /**
+         * FeedbackResponse
+         * @description Response for feedback submission.
+         */
+        FeedbackResponse: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "success";
+            /** Message */
+            message: string;
+        };
+        /**
          * FeedbackSubmission
          * @description Model for user feedback submissions.
          */
@@ -2133,6 +2171,24 @@ export interface components {
             exists: boolean;
             /** Path */
             path: string;
+        };
+        /** FreeTierModelResponse */
+        FreeTierModelResponse: {
+            /** Id */
+            id: string;
+            /** Default */
+            default: boolean;
+        };
+        /** FreeTierResponse */
+        FreeTierResponse: {
+            /** Available */
+            available: boolean;
+            /** Model */
+            model: string | null;
+            /** Models */
+            models: components["schemas"]["FreeTierModelResponse"][];
+            /** Pilot Model */
+            pilot_model: string | null;
         };
         /**
          * GitHubBranchesListResponse
@@ -2698,6 +2754,32 @@ export interface components {
             session_id: string;
         };
         /**
+         * ModelChangeResponse
+         * @description ``ModelChange.to_dict()``: how a modify's model relates to its base app's.
+         */
+        ModelChangeResponse: {
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "small" | "large" | "unrelated";
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "attributes" | "classes";
+            /** Gone */
+            gone: number;
+            /** Removed */
+            removed: string[];
+            /** Added */
+            added: string[];
+            /** Renamed */
+            renamed: components["schemas"]["RenamedElementResponse"][];
+            /** Changes */
+            changes: string[];
+        };
+        /**
          * ModelHistoryEntry
          * @description A commit that changed the model, with what it changed.
          */
@@ -2883,6 +2965,16 @@ export interface components {
             project_export: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * RenamedElementResponse
+         * @description A class ("Room") or attribute ("Room.floor") kept under a new name.
+         */
+        RenamedElementResponse: {
+            /** From */
+            from: string;
+            /** To */
+            to: string;
         };
         /**
          * RepoSummaryResponse
@@ -3207,6 +3299,22 @@ export interface components {
             demo_token?: string | null;
         };
         /**
+         * SmartPreviewModelSummaryResponse
+         * @description ``AssembledModels.summary()``: the diagrams present, counts only.
+         */
+        SmartPreviewModelSummaryResponse: {
+            /** Primary */
+            primary: string;
+            /** Present */
+            present: {
+                [key: string]: unknown;
+            }[];
+            /** Assembly Issues */
+            assembly_issues: {
+                [key: string]: string;
+            }[];
+        };
+        /**
          * SmartPreviewRequest
          * @description Body of ``POST /besser_api/spec-driven/preview``.
          *
@@ -3238,6 +3346,37 @@ export interface components {
             base_run_id?: string | null;
             /** Primary Kind Override */
             primary_kind_override?: ("class" | "gui" | "agent" | "state_machine" | "object" | "bpmn" | "nn" | "quantum") | null;
+        };
+        /**
+         * SmartPreviewResponse
+         * @description Response of ``POST /besser_api/spec-driven/preview``: ``PreviewPlan.to_dict()`` and the model.
+         */
+        SmartPreviewResponse: {
+            /**
+             * Execution Mode
+             * @enum {string}
+             */
+            execution_mode: "generate" | "modify";
+            /** Primary Kind */
+            primary_kind: string;
+            /** Auxiliary Kinds */
+            auxiliary_kinds: string[];
+            /** Target Generator */
+            target_generator: string | null;
+            /** Target Generator Confidence */
+            target_generator_confidence: number;
+            /** Summary */
+            summary: string;
+            /** Estimated Turns */
+            estimated_turns: number;
+            /** Estimated Cost Usd */
+            estimated_cost_usd: number;
+            /** Estimated Duration Seconds */
+            estimated_duration_seconds: number;
+            /** Notes */
+            notes: string[];
+            model_summary: components["schemas"]["SmartPreviewModelSummaryResponse"];
+            model_change: components["schemas"]["ModelChangeResponse"] | null;
         };
         /**
          * SmartPushDeployConfig
@@ -3277,6 +3416,71 @@ export interface components {
              * @enum {string}
              */
             push_mode: "commit" | "pull_request";
+        };
+        /** SpecDrivenCapsResponse */
+        SpecDrivenCapsResponse: {
+            /** Max Cost Usd Hard Cap */
+            max_cost_usd_hard_cap: number;
+            /** Max Runtime Seconds Hard Cap */
+            max_runtime_seconds_hard_cap: number;
+            /** Max Turns Hard Cap */
+            max_turns_hard_cap: number;
+            /** Default Max Cost Usd */
+            default_max_cost_usd: number;
+            /** Default Max Runtime Seconds */
+            default_max_runtime_seconds: number;
+            /** Default Max Turns */
+            default_max_turns: number;
+        };
+        /** SpecDrivenConcurrencyResponse */
+        SpecDrivenConcurrencyResponse: {
+            /** Max Concurrent Runs */
+            max_concurrent_runs: number;
+        };
+        /**
+         * SpecDrivenConfigResponse
+         * @description Response of ``GET /besser_api/spec-driven/config``: public caps and feature flags.
+         */
+        SpecDrivenConfigResponse: {
+            caps: components["schemas"]["SpecDrivenCapsResponse"];
+            /** Download Ttl Seconds */
+            download_ttl_seconds: number;
+            /** Cost Emitter Interval Seconds */
+            cost_emitter_interval_seconds: number;
+            concurrency: components["schemas"]["SpecDrivenConcurrencyResponse"];
+            features: components["schemas"]["SpecDrivenFeaturesResponse"];
+            /** Supported Providers */
+            supported_providers: string[];
+            /** Providers */
+            providers: components["schemas"]["CatalogProviderResponse"][];
+            /** Default Models */
+            default_models: {
+                [key: string]: string;
+            };
+            free_tier: components["schemas"]["FreeTierResponse"];
+        };
+        /** SpecDrivenFeaturesResponse */
+        SpecDrivenFeaturesResponse: {
+            /** Tracing Enabled */
+            tracing_enabled: boolean;
+            /** Checkpointing Enabled */
+            checkpointing_enabled: boolean;
+            /** Resume Enabled */
+            resume_enabled: boolean;
+            /** Toolchain Validation Enabled */
+            toolchain_validation_enabled: boolean;
+            /** Shell Tools Enabled */
+            shell_tools_enabled: boolean;
+            /** Per Write Diagnostics Enabled */
+            per_write_diagnostics_enabled: boolean;
+            /** Durable Runs Enabled */
+            durable_runs_enabled: boolean;
+            /** Event Replay Enabled */
+            event_replay_enabled: boolean;
+            /** Cancel Abandoned Runs */
+            cancel_abandoned_runs: boolean;
+            /** Disconnected Grace Seconds */
+            disconnected_grace_seconds: number;
         };
         /**
          * SyncStatusResponse
@@ -5163,7 +5367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["FeedbackResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5327,9 +5531,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SpecDrivenConfigResponse"];
                 };
             };
         };
@@ -5353,9 +5555,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SmartPreviewResponse"];
                 };
             };
             /** @description Validation Error */
