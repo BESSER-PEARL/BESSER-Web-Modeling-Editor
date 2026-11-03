@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronRight, Shield } from 'lucide-react';
-import { applyAnalyticsConsent, applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
+import { applyAnalyticsConsent } from '../../services/analytics/lazy-analytics';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '../../constants/z-index';
 import { Badge } from '@/components/ui/badge';
@@ -36,10 +36,6 @@ export const setConsentStatus = (status: ConsentStatus): boolean =>
 
 export const hasUserConsented = (): boolean => {
   return getConsentStatus()?.status === 'accepted';
-};
-
-export const initializePostHogWithConsent = (): void => {
-  applyConsentToPostHog(hasUserConsented() ? 'accepted' : 'declined');
 };
 
 const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => void }> = ({
