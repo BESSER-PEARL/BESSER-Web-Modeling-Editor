@@ -18,7 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { apiClient, ApiError } from '../../shared/api/api-client';
+import { ApiError } from '../../shared/api/api-client';
+import { transformAgentModelJson } from '../../shared/api/conversion';
+import { recommendAgentConfigLlm, recommendAgentConfigMapping } from '../../shared/api/generation';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import {
@@ -1760,13 +1762,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       };
 
       try {
-        const recommendation = await apiClient.post<{
-          config?: unknown;
-          matchedRules?: unknown;
-          signals?: unknown;
-        }>('/recommend-agent-config-mapping', payload, {
-          headers: { 'X-GitHub-Session': githubSession },
-        });
+        const recommendation = await recommendAgentConfigMapping(payload, githubSession);
 
         if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
           reportError(t('agentConfig.toasts.invalidMappingResponse'));
@@ -1845,11 +1841,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       };
 
       try {
-        const recommendation = await apiClient.post<{ config?: unknown }>(
-          '/recommend-agent-config-llm',
-          payload,
-          { headers: { 'X-GitHub-Session': githubSession } },
-        );
+        const recommendation = await recommendAgentConfigLlm(payload, githubSession);
 
         if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
           reportError(t('agentConfig.toasts.invalidRecResponse'));
@@ -1979,17 +1971,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       let transformedModel: unknown;
       try {
-        // 10-minute timeout: personalization runs sequential OpenAI calls
-        // (translation + style + complexity + length) over every training
-        // sentence and reply, so the default 30s cap aborts the request while
-        // the backend is still working. Large agents with many intents have
-        // been observed to need several minutes; we keep generous headroom
-        // rather than risk another silent regression.
-        transformedModel = await apiClient.post<unknown>(
-          '/transform-agent-model-json',
-          payload,
-          { timeout: 600_000 },
-        );
+        transformedModel = await transformAgentModelJson(payload);
       } catch (err) {
         if (err instanceof ApiError) {
           reportError(t('agentConfig.toasts.transformFailed', { message: err.message }), { error: err });

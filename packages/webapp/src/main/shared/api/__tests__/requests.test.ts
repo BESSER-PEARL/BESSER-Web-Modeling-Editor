@@ -6,7 +6,14 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BACKEND_URL } from '../../constants/constant';
-import { deployApp, generateFromDiagram, generateFromProject } from '../generation';
+import {
+  deployApp,
+  generateFromDiagram,
+  generateFromProject,
+  personalizeGuiPage,
+  recommendAgentConfigLlm,
+  recommendAgentConfigMapping,
+} from '../generation';
 import {
   csvToDomainModel,
   exportBuml,
@@ -15,6 +22,9 @@ import {
   getJsonModelFromImage,
   getJsonModelFromKg,
   getProjectJsonModel,
+  getSdmxProviders,
+  sdmxToDomainModel,
+  transformAgentModelJson,
 } from '../conversion';
 import { postValidateDiagram } from '../validation';
 import { submitFeedback } from '../feedback';
@@ -133,11 +143,68 @@ describe('conversion', () => {
     expect(entries[2][1]).toBe('{"title":"Shop","model":{"elements":{"a":1}}}');
   });
 
+  it('reads the SDMX providers and posts an SDMX import as JSON', async () => {
+    await getSdmxProviders();
+    expect(lastCall()).toEqual([`${BACKEND_URL}/sdmx-providers`, { method: 'GET', headers: JSON_ONLY, signal: SIGNAL }]);
+
+    await sdmxToDomainModel({ provider: 'eurostat', dataflow: 'une_rt_m' });
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/sdmx-to-domain-model`,
+      { method: 'POST', headers: JSON_ONLY, body: '{"provider":"eurostat","dataflow":"une_rt_m"}', signal: SIGNAL },
+    ]);
+  });
+
+  it('posts an agent model to /transform-agent-model-json', async () => {
+    const body = { ...DIAGRAM, generator: 'agent', config: { language: 'fr' } };
+    await transformAgentModelJson(body);
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/transform-agent-model-json`,
+      { method: 'POST', headers: JSON_ONLY, body: JSON.stringify(body), signal: SIGNAL },
+    ]);
+  });
+
   it('uploads a knowledge graph as kg_file with the key', async () => {
     await getJsonModelFromKg(new File(['k'], 'kg.ttl'), 'sk-test');
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/get-json-model-from-kg`);
     expect(formEntries(init).map(([name]) => name)).toEqual(['kg_file', 'api_key']);
+  });
+});
+
+describe('agent configuration and GUI personalization', () => {
+  const body = { userProfileName: 'Ana', userProfileModel: { elements: {} }, currentConfig: {} };
+
+  it('posts both recommendations with the GitHub session header', async () => {
+    await recommendAgentConfigMapping(body, 'sess');
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/recommend-agent-config-mapping`,
+      {
+        method: 'POST',
+        headers: { 'X-GitHub-Session': 'sess', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: SIGNAL,
+      },
+    ]);
+
+    await recommendAgentConfigLlm({ ...body, model: 'gpt-5' }, 'sess');
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/recommend-agent-config-llm`,
+      {
+        method: 'POST',
+        headers: { 'X-GitHub-Session': 'sess', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, model: 'gpt-5' }),
+        signal: SIGNAL,
+      },
+    ]);
+  });
+
+  it('posts a GUI page to /personalize-gui-page', async () => {
+    const page = { guiPage: { components: [], css: [] }, pageName: 'Home', userProfileModel: { elements: {} } };
+    await personalizeGuiPage(page);
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/personalize-gui-page`,
+      { method: 'POST', headers: JSON_ONLY, body: JSON.stringify(page), signal: SIGNAL },
+    ]);
   });
 });
 
@@ -270,6 +337,12 @@ describe('timeouts', () => {
     ['csv-to-domain-model', 120_000, () => csvToDomainModel([file])],
     ['get-json-model-from-image', 300_000, () => getJsonModelFromImage(file, 'k')],
     ['get-json-model-from-kg', 300_000, () => getJsonModelFromKg(file, 'k')],
+    ['sdmx-providers', 30_000, () => getSdmxProviders()],
+    ['sdmx-to-domain-model', 120_000, () => sdmxToDomainModel({ dataflow: 'x' })],
+    ['transform-agent-model-json', 600_000, () => transformAgentModelJson(DIAGRAM)],
+    ['recommend-agent-config-mapping', 30_000, () => recommendAgentConfigMapping({}, 's')],
+    ['recommend-agent-config-llm', 30_000, () => recommendAgentConfigLlm({}, 's')],
+    ['personalize-gui-page', 600_000, () => personalizeGuiPage({})],
     ['validate-diagram', 120_000, () => postValidateDiagram(DIAGRAM)],
     ['feedback', 60_000, () => submitFeedback(feedback)],
     ['spec-driven/config', 30_000, () => fetchSpecDrivenConfig()],

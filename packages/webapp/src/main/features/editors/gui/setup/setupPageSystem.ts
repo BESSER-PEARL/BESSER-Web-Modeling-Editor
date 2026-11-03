@@ -1,7 +1,8 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalAlert, globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
-import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import { ApiError } from '../../../../shared/api/api-client';
+import { personalizeGuiPage } from '../../../../shared/api/generation';
 import i18n from '@/main/shared/i18n';
 
 // Track initialization per editor instance
@@ -296,16 +297,11 @@ const personalizeSnapshotWithAI = async (
   profile: ProfileOption,
 ): Promise<PageSnapshot> => {
   const baseline = captureSnapshot(editor, page);
-  const response = await apiClient.post<{ guiPage?: PageSnapshot }>(
-    '/personalize-gui-page',
-    {
-      guiPage: baseline,
-      pageName: page?.getName?.() || 'page',
-      userProfileModel: profile.model,
-    },
-    // LLM calls are slow; mirror the long timeout used by other transforms.
-    { timeout: 600_000 },
-  );
+  const response = await personalizeGuiPage<PageSnapshot>({
+    guiPage: baseline,
+    pageName: page?.getName?.() || 'page',
+    userProfileModel: profile.model,
+  });
 
   const result = response?.guiPage;
   if (!result || !Array.isArray(result.components)) {

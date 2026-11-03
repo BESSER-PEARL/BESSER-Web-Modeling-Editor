@@ -9,6 +9,8 @@ import type { DiagramInput } from './generation';
 
 type DiagramExportResponse = components['schemas']['DiagramExportResponse'];
 type ProjectExportResponse = components['schemas']['ProjectExportResponse'];
+type SdmxImportRequest = components['schemas']['SdmxImportRequest'];
+type SdmxProvidersResponse = components['schemas']['SdmxProvidersResponse'];
 
 /** A model conversion runs B-UML code server side; well past the client's 30 s default. */
 const CONVERSION_TIMEOUT_MS = 120_000;
@@ -81,3 +83,23 @@ export const getJsonModelFromKg = (kgFile: File, apiKey: string) =>
     ]),
     { timeout: LLM_CONVERSION_TIMEOUT_MS },
   );
+
+/** `GET /sdmx-providers`: the preset SDMX providers and whether a custom API URL is accepted. */
+export const getSdmxProviders = () => apiClient.get<SdmxProvidersResponse>('/sdmx-providers');
+
+/**
+ * How long the editor waits for `POST /sdmx-to-domain-model`: above the backend's own deadline for one
+ * import (`BESSER_SDMX_TIMEOUT`, 60 s by default) plus the time to build and convert the model.
+ */
+const SDMX_IMPORT_TIMEOUT_MS = 120_000;
+
+/** `POST /sdmx-to-domain-model`: the class diagram of an SDMX dataflow. */
+export const sdmxToDomainModel = (body: SdmxImportRequest) =>
+  apiClient.post<DiagramExportResponse>('/sdmx-to-domain-model', body, { timeout: SDMX_IMPORT_TIMEOUT_MS });
+
+/** Personalization runs several sequential LLM calls over every training sentence and reply. */
+const AGENT_TRANSFORM_TIMEOUT_MS = 600_000;
+
+/** `POST /transform-agent-model-json`: an agent model personalized by its configuration. No response model in the schema. */
+export const transformAgentModelJson = (body: DiagramInput) =>
+  apiClient.post<unknown>('/transform-agent-model-json', body, { timeout: AGENT_TRANSFORM_TIMEOUT_MS });
