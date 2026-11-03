@@ -46,19 +46,6 @@ export class KgConfigUnavailableError extends Error {
   }
 }
 
-const isPositiveNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0;
-
-function parseKgConfig(raw: unknown): KgConfig {
-  const data = raw as Partial<KgConfig> | null | undefined;
-  const timeout = data?.llmRequestTimeoutSeconds;
-  const maxNodes = data?.maxOrphanClassifyNodes;
-  if (!isPositiveNumber(timeout) || !isPositiveNumber(maxNodes) || maxNodes < 1) {
-    throw new Error(`Unexpected /kg/config payload: ${JSON.stringify(raw)}`);
-  }
-  return { llmRequestTimeoutSeconds: timeout, maxOrphanClassifyNodes: Math.floor(maxNodes) };
-}
-
 let kgConfigPromise: Promise<KgConfig> | null = null;
 
 /**
@@ -70,8 +57,7 @@ let kgConfigPromise: Promise<KgConfig> | null = null;
 export function getKgConfig(): Promise<KgConfig> {
   if (!kgConfigPromise) {
     kgConfigPromise = apiClient
-      .get<unknown>('/kg/config')
-      .then(parseKgConfig)
+      .get<KgConfig>('/kg/config')
       .catch((error: unknown) => {
         kgConfigPromise = null;
         throw new KgConfigUnavailableError(error);
