@@ -56,10 +56,11 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
+import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
@@ -67,7 +68,7 @@ import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenR
 import {
   SseHttpError,
   SseStallError,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 import {
   claimRunSlot,
@@ -89,17 +90,20 @@ import {
 import {
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
-  clearSessionKey,
   readActiveSpecDrivenRun,
-  readFreeTierModel,
-  readFreeTierSelected,
   readProjectLastRun,
-  readSessionBudget,
-  readSessionKey,
-  writeFreeTierSelected,
   writeActiveSpecDrivenRun,
   writeProjectLastRun,
 } from '../storage';
+import {
+  clearLlmKey,
+  isLlmProviderId,
+  readFreeTierModel,
+  readFreeTierSelected,
+  readLlmBudget,
+  readLlmKey,
+  writeFreeTierSelected,
+} from '../../../shared/services/llmKeyStorage';
 import {
   followSpecDrivenRun,
   startSpecDrivenRun,
@@ -108,7 +112,7 @@ import {
 import {
   getSpecDrivenConfig,
   resolveFreeRunModel,
-} from '../services/specDrivenConfig';
+} from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
 import type { RunModeDecision } from '../runModeDecision';
 import { getDemoToken } from '@/main/shared/services/demoMode';
@@ -157,20 +161,6 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   text: '',
   status: 'running',
 });
-
-const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvider>([
-  'anthropic',
-  'openai',
-  'mistral',
-  'nebius',
-  'pia',
-  'local',
-  'free',
-  'sponsored',
-]);
-
-const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
-  typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
 
 /**
  * Terminal outcome of a spec-driven run, reported exactly once per run
@@ -407,20 +397,7 @@ export function useSpecDrivenTrigger(
   const cancelRunOnServer = useCallback(
     (runId: string | undefined, opts: { beacon?: boolean } = {}) => {
       if (!runId) return;
-      const url = cancelSpecDrivenUrl(runId);
-      try {
-        if (
-          opts.beacon &&
-          typeof navigator !== 'undefined' &&
-          typeof navigator.sendBeacon === 'function'
-        ) {
-          navigator.sendBeacon(url);
-          return;
-        }
-        void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
-      } catch {
-        /* best-effort */
-      }
+      cancelSpecDrivenRun(runId, opts);
     },
     [],
   );
@@ -558,7 +535,7 @@ export function useSpecDrivenTrigger(
 
       switch (event.event) {
         case 'start': {
-          if (!isValidProvider(event.provider)) {
+          if (!isLlmProviderId(event.provider)) {
             console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
@@ -771,7 +748,7 @@ export function useSpecDrivenTrigger(
                     `You can retry the run; if this keeps happening, the ` +
                     `model provider may be temporarily unavailable.`,
                 );
-                toast.error('Spec-Driven Agent run ended without a result');
+                reportError('Spec-Driven Agent run ended without a result');
                 reportRunFinished({
                   ok: false,
                   runId: currentRunIdRef.current,
@@ -784,7 +761,7 @@ export function useSpecDrivenTrigger(
             return;
           }
           if (event.code === 'INVALID_KEY') {
-            clearSessionKey();
+            clearLlmKey();
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
@@ -800,7 +777,7 @@ export function useSpecDrivenTrigger(
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
             );
-            toast.error(`Spec-Driven Agent: ${event.code}`);
+            reportError(`Spec-Driven Agent: ${event.code}`);
           }
           reportRunFinished({
             ok: false,
@@ -940,7 +917,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
-          toast.error('Could not reconnect to the active generation');
+          reportError('Could not reconnect to the active generation', { error });
           reportRunFinished({
             ok: false,
             runId: saved.runId,
@@ -1002,7 +979,7 @@ export function useSpecDrivenTrigger(
       // spend is ours. Checked first so it wins over a stale stored key.
       const demoToken = getDemoToken();
       const freeSelected = readFreeTierSelected();
-      const key = readSessionKey();
+      const key = readLlmKey();
       if (!demoToken && !freeSelected && !key) {
         dispatch(openByokDialog(payload));
         return;
@@ -1011,7 +988,7 @@ export function useSpecDrivenTrigger(
       const project = currentProjectRef.current;
       if (!project) {
         appendErrorToChat('Spec-Driven Agent needs an open project.');
-        toast.error('Spec-Driven Agent needs an open project');
+        reportError('Spec-Driven Agent needs an open project');
         return;
       }
       const runProject = {
@@ -1035,11 +1012,11 @@ export function useSpecDrivenTrigger(
         : freeSelected
           ? 'free'
           : (key?.provider ?? payload.provider);
-      if (!isValidProvider(rawProvider)) {
+      if (!isLlmProviderId(rawProvider)) {
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
-        toast.error('Spec-Driven Agent: invalid provider');
+        reportError('Spec-Driven Agent: invalid provider');
         return;
       }
       const provider: SpecDrivenProvider = rawProvider;
@@ -1160,7 +1137,7 @@ export function useSpecDrivenTrigger(
       // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, so swapping
       // the model is an env edit, not a frontend release.
       let llmModel: string | undefined =
-        demoToken || freeSelected ? undefined : key?.llmModel;
+        demoToken || freeSelected ? undefined : key?.model;
       if (!demoToken && !freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
@@ -1171,7 +1148,7 @@ export function useSpecDrivenTrigger(
       // User-chosen run budget from the BYOK dialog (sessionStorage).
       // When absent the fields stay undefined and the backend applies
       // its own defaults — the SSE client only serialises set values.
-      const budget = readSessionBudget();
+      const budget = readLlmBudget();
 
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The
@@ -1227,7 +1204,7 @@ export function useSpecDrivenTrigger(
         );
         finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
         appendErrorToChat(message);
-        toast.error('Spec-Driven Agent failed to start');
+        reportError('Spec-Driven Agent failed to start', { error: err });
         isRunningRef.current = false;
         activeCardRef.current = null;
         setIsGenerating(false);
@@ -1268,7 +1245,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
-          toast.error('Spec-Driven Agent stream ended early');
+          reportError('Spec-Driven Agent stream ended early');
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -1323,10 +1300,10 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
-          toast.error(
+          reportError(
             isStall
               ? 'Spec-Driven Agent: live progress stream went quiet'
-              : 'Spec-Driven Agent stream error',
+              : 'Spec-Driven Agent stream error', { error: err },
           );
           reportRunFinished({
             ok: false,
@@ -1393,7 +1370,7 @@ export function useSpecDrivenTrigger(
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
       // here because there is no separate plan-review step.
-      if (readSessionKey() || readFreeTierSelected()) {
+      if (readLlmKey() || readFreeTierSelected()) {
         await startRun({ ...payload, planApproved: true });
         return;
       }

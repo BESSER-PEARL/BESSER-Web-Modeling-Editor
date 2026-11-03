@@ -9,7 +9,8 @@
     "loading": "Lueden…",
     "yes": "Jo",
     "no": "Nee",
-    "retry": "Nach eng Kéier probéieren"
+    "retry": "Nach eng Kéier probéieren",
+    "ok": "OK"
   },
   "whatsNew": {
     "title": "Wat ass nei",
@@ -2220,7 +2221,7 @@
       "settingsButton": "Privatsphär-Astellungen",
       "banner": {
         "title": "Analyse-Cookien",
-        "subtitle": "Anonym Analyse fir BESSER ze verbesseren.",
+        "subtitle": "Analysen a Feelerberichter fir BESSER ze verbesseren.",
         "details": "Detailer",
         "hideDetails": "Detailer verstoppen",
         "decline": "Ofleenen",
@@ -2231,7 +2232,9 @@
           "generators": "Benotzte Code-Generatoren",
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
-          "noContent": "Keng Modellinhalter oder perséinlech Donnéeën"
+          "errorReports": "Anonym Feelerberichter",
+          "visitStats": "Statistiken iwwer d'Visitten (Google Analytics)",
+          "noContent": "Keng Modellinhalter, Projetsnimm oder Identitéitsdonnéeën"
         }
       },
       "settings": {
@@ -2250,7 +2253,9 @@
           "usage": "Funktiounsnotzung (Generatoren an Diagramm-Workflows)",
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
-          "session": "Anonym Sessiounsmetadaten"
+          "session": "Anonym Sessiounsmetadaten",
+          "visits": "Statistiken iwwer d'Visitten: besicht Säiten, ongeféier Standuert (vun Ärer IP-Adress ofgeleet), Apparat- a Browsertyp",
+          "errors": "Anonym Feelerberichter (Feelertyp, Stacktrace, HTTP-Status, Säitepfad a Browsertyp)"
         },
         "noCollectTitle": "Donnéeën, déi mir net sammelen",
         "noCollect": {
@@ -2262,8 +2267,12 @@
         "useTitle": "Wéi mir Donnéeën benotzen",
         "useBody": "D'Analyse gëtt nëmme benotzt fir d'Produktqualitéit ze verbesseren an d'Funktiounsentwécklung ze prioriséieren. Si gëtt net fir Marketing oder Verkaf benotzt.",
         "providerTitle": "Ubidder",
-        "providerIntro": "Mir benotzen PostHog (an der EU gehost). Kuckt d'",
-        "providerLinkText": "PostHog Dateschutzerklärung"
+        "providerIntro": "Mir benotzen PostHog (an der EU gehost) fir d'Notzungsanalyse. Kuckt d'",
+        "providerLinkText": "PostHog Dateschutzerklärung",
+        "errorProviderIntro": "Feelerberichter ginn un Sentry (an der EU gehost, de.sentry.io), eréischt nodeems Dir d'Analyse akzeptéiert hutt, an enthalen ni Modellinhalter oder Projetsnimm. Kuckt d'",
+        "errorProviderLinkText": "Sentry Dateschutzerklärung",
+        "visitProviderIntro": "Statistiken iwwer d'Visitte ginn un Google Analytics, eréischt nodeems Dir d'Analyse akzeptéiert hutt. Google späichert Är IP-Adress net, a Google Signals a personaliséiert Reklamm sinn ausgeschalt. Kuckt d'",
+        "visitProviderLinkText": "Google Dateschutzerklärung"
       }
     },
     "errors": {
@@ -2863,8 +2872,6 @@
       "statusSaved": "Gespäichert",
       "statusSaving": "Späicheren…",
       "statusErrorSaving": "Feeler beim Späicheren",
-      "editorStillLoading": "Den Editor lued nach. Waart wannechgelift e Moment a probéiert nach eng Kéier.",
-      "errorSavingProject": "Feeler beim Späichere vum Projet. Kuckt wannechgelift d'Konsol fir Detailer.",
       "downloadHtml": "HTML eroflueden",
       "exportTemplate": "Template exportéieren",
       "downloadJson": "JSON eroflueden",
@@ -2888,9 +2895,6 @@
       "qualityCheckFailedMessage": "Et goufe Feeler an ärem Klassendiagramm fonnt. Léist se wannechgelift, ier Dir de GUI generéiert.",
       "classDiagramErrors": "Klassendiagramm-Feeler",
       "noClassesFound": "Keng Klassen am Klassendiagramm fonnt. Erstellt wannechgelift fir d'éischt ee Klassendiagramm.",
-      "noPageSelected": "Keng Säit ausgewielt",
-      "editRoutePrompt": "Route fir d'Säit \"{{pageName}}\" änneren:\n\nBeispiller:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Route aktualiséiert op: {{route}}",
       "sidebarBlocks": "Bléck",
       "sidebarStyles": "Stiler",
       "sidebarTraits": "Eegeschaften",
@@ -3692,7 +3696,6 @@
       "failed": "Export feelgeschloen: {{error}}",
       "validationFailed": "Validéierung feelgeschloen",
       "noDiagramToExport": "Keen Diagramm fir z'exportéieren",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "bumlExportSuccess": "B-UML-Export erfollegräich ofgeschloss",
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
@@ -3763,8 +3766,7 @@
       "couldNotImportFromKg": "Diagramm konnt net vum Knowledge Graph importéiert ginn: {{message}}",
       "couldNotImportFromImage": "Diagramm konnt net vun engem Bild importéiert ginn: {{message}}",
       "readFileFailed": "Datei konnt net gelies ginn",
-      "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+      "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn"
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",

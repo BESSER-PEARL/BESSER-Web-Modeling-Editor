@@ -617,7 +617,6 @@ function setupEditorFeatures(
   // Page system (consolidated)
   if (editor.Pages) {
     setupPageSystem(editor);
-    setupPageRouting(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
@@ -924,29 +923,6 @@ export function setupProjectStorageIntegration(
  * Setup custom commands for export, JSON, etc.
  */
 function setupCommands(editor: Editor) {
-  // Save project command
-  editor.Commands.add('save-project', {
-    run(editor: Editor) {
-      try {
-        console.log('[Save] Manual save triggered');
-        
-        // Check if editor has storables before trying to save
-        const editorModel = (editor as any).em;
-        if (!editorModel || !editorModel.storables) {
-          console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          alert(i18n.t('editors.gui.editorStillLoading'));
-          return;
-        }
-        
-        editor.store();
-        console.log('[Save] Manual save completed');
-      } catch (error) {
-        console.error('[Save] Manual save error:', error);
-        alert(i18n.t('editors.gui.errorSavingProject'));
-      }
-    }
-  });
-  
   // Export template command
   editor.Commands.add('export-template', {
     run(editor: Editor) {
@@ -1702,59 +1678,6 @@ function buildPageComponents(
     }
   }, 300);
   
-}
-
-/**
- * Setup page routing system
- */
-/**
- * Setup page routing system
- */
-function setupPageRouting(editor: Editor) {
-  if (!editor.Pages) return;
-  
-  editor.on('page:select', (page: any) => {
-    if (!page) return;
-    // Use route_path as primary, fallback to attributes.route or auto-generated
-    const currentRoute = page.get('route_path') || 
-      page.get('attributes')?.route || 
-      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
-  });
-  
-  // Add command to edit page route (legacy - now handled in Pages panel)
-  editor.Commands.add('edit-page-route', {
-    run(editor: Editor) {
-      const currentPage = editor.Pages.getSelected();
-      if (!currentPage) {
-        alert(i18n.t('editors.gui.noPageSelected'));
-        return;
-      }
-      
-      const pageName = currentPage.getName();
-      const storedRoute = currentPage.get('route_path');
-      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
-        ? storedRoute 
-        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
-      
-      const newRoute = prompt(
-        i18n.t('editors.gui.editRoutePrompt', { pageName }),
-        currentRoute
-      );
-      
-      if (newRoute !== null && newRoute.trim()) {
-        let route = newRoute.trim();
-        if (!route.startsWith('/')) route = '/' + route;
-        // Clean the route
-        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
-        
-        currentPage.set('route_path', route);
-        
-        // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        alert(i18n.t('editors.gui.routeUpdated', { route }));
-      }
-    }
-  });
 }
 
 // ============================================

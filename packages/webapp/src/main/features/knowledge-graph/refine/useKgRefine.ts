@@ -15,6 +15,7 @@
 // instead of landing in a dialog that has been closed.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -125,13 +126,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         toast.success(t('knowledgeGraph.refine.refined'));
         return {
-          pendingOrphanClassification: data.pendingOrphanClassification ?? null,
+          pendingOrphanClassification: data.pendingOrphanClassification,
           newKgSignature: data.kgSignature,
         };
       } catch (error) {
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyFailed'));
         dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
-        toast.error(message);
+        reportError(message, { error });
         return null;
       }
     },
@@ -147,7 +148,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (credentials.apiKey || '').trim();
       if (!key) {
-        toast.error(t('knowledgeGraph.refine.apiKeyRequired'));
+        reportError(t('knowledgeGraph.refine.apiKeyRequired'));
         return null;
       }
 
@@ -170,7 +171,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       } catch (error) {
         if (signal.aborted) return null;
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.aiFailed'));
-        toast.error(message);
+        reportError(message, { error });
         setLlmStatus('error');
         setLlmReport(null);
         return null;
@@ -193,11 +194,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (credentials.apiKey || '').trim();
       if (!key) {
-        toast.error(t('knowledgeGraph.refine.apiKeyRequired'));
+        reportError(t('knowledgeGraph.refine.apiKeyRequired'));
         return null;
       }
       if (!nodeIds.length) {
-        toast.error(t('knowledgeGraph.refine.noOrphans'));
+        reportError(t('knowledgeGraph.refine.noOrphans'));
         return null;
       }
 
@@ -225,7 +226,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
           error instanceof InvalidOrphanReportError
             ? t('knowledgeGraph.refine.invalidOrphanResponse')
             : kgApiErrorMessage(error, t, t('knowledgeGraph.refine.orphanFailed'));
-        toast.error(message);
+        reportError(message, { error });
         setLlmStatus('error');
         setLlmReport(null);
         return null;
@@ -262,7 +263,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
       } catch (error) {
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyLlmFailed'));
         dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
-        toast.error(message);
+        reportError(message, { error });
         return false;
       }
     },

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
+import { writeContinueFromGithubIntent } from '../../../shared/services/storage/githubStorage';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../../shared/services/github/continueFromGithub';
@@ -78,12 +78,8 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
   };
 
   const connect = () => {
-    try {
-      // The Project Hub reopens on its GitHub step once the OAuth redirect returns.
-      sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
-    } catch {
-      /* sessionStorage may be unavailable — login still proceeds. */
-    }
+    // The Project Hub reopens on its GitHub step once the OAuth redirect returns.
+    writeContinueFromGithubIntent();
     login();
   };
 

@@ -8,13 +8,13 @@
 
 import {
   SMART_GEN_ENDPOINT,
-  specDrivenRunEventsJsonUrl,
   specDrivenRunEventsUrl,
 } from '../../../shared/constants/constant';
+import { getSpecDrivenRunEventsPage } from '../../../shared/api/specDriven';
 import {
   SseHttpError,
   streamSse,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 /**
  * Liveness bound for the run stream. The backend's cost emitter puts a
@@ -300,10 +300,7 @@ async function* pollSpecDrivenRun(
       status?: string;
     };
     try {
-      const response = await fetch(
-        specDrivenRunEventsJsonUrl(runId, cursor),
-        { signal: requestController.signal, headers: { Accept: 'application/json' } },
-      );
+      const response = await getSpecDrivenRunEventsPage(runId, cursor, requestController.signal);
       if (!response.ok) {
         let text = '';
         try {

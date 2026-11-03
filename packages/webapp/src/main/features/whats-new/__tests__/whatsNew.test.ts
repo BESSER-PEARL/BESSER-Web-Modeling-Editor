@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { localStorageLatestProject, localStorageWhatsNewSeen } from '../../../shared/constants/constant';
 import { compareVersions, countUnread, markAllSeen, WHATS_NEW, type WhatsNewEntry } from '../whatsNew';
 
@@ -53,6 +53,19 @@ describe('countUnread', () => {
       throw new Error('SecurityError');
     };
     expect(countUnread(entries, broken)).toBe(0);
+  });
+});
+
+describe('with the browser storage blocked', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('neither counting nor marking throws when reading localStorage itself throws', () => {
+    // Blocked site data: the localStorage getter throws a SecurityError.
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    expect(countUnread(entries)).toBe(0);
+    expect(() => markAllSeen(entries)).not.toThrow();
   });
 });
 

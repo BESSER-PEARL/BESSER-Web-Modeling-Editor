@@ -34,7 +34,7 @@ import type {
   SpecDrivenVerificationView,
   SpecDrivenWarningView,
 } from "@/main/features/spec-driven/types"
-import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
+import { cancelSpecDrivenRun } from "@/main/shared/api/specDriven"
 import {
   fetchAndSaveSpecDrivenArtifact,
   fetchSpecDrivenArtifactBlob,
@@ -1355,16 +1355,10 @@ function SpecDrivenCard({
       onStop(runId)
       return
     }
-    // Fire-and-forget — no body needed. Errors are swallowed: if the
-    // cancel request itself fails the run simply keeps streaming and
-    // the user can hit Stop again after the button re-enables.
-    void fetch(cancelSpecDrivenUrl(runId), { method: "POST" })
-      .then((response) => {
-        if (!response.ok) setStopRequested(false)
-      })
-      .catch(() => {
-        setStopRequested(false)
-      })
+    // If the cancel request fails the run keeps streaming; re-enable Stop so the user can retry.
+    void cancelSpecDrivenRun(runId).then((accepted) => {
+      if (!accepted) setStopRequested(false)
+    })
   }
 
   const handleRedownload = async () => {

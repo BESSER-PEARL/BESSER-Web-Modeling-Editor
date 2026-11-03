@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   clearLlmKey,
+  isAssistantKeyProvider,
+  KEY_PROVIDERS,
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
@@ -35,6 +37,7 @@ import {
   writeFreeTierSelected,
   writeLlmBudget,
   writeLlmKey,
+  type KeyProvider,
   type LlmProvider,
 } from '../../services/llmKeyStorage';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
@@ -125,30 +128,28 @@ interface ProviderOption {
   expectedPrefix: string;
 }
 
-export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
-  {
-    value: 'anthropic',
+type ProviderCopy = Omit<ProviderOption, 'value'>;
+
+const PROVIDER_COPY: Record<KeyProvider, ProviderCopy> = {
+  anthropic: {
     label: 'Anthropic (Claude)',
     placeholder: 'sk-ant-...',
     hint: 'Keys typically start with sk-ant-',
     expectedPrefix: 'sk-ant-',
   },
-  {
-    value: 'openai',
+  openai: {
     label: 'OpenAI (GPT)',
     placeholder: 'sk-...',
     hint: 'Keys typically start with sk-',
     expectedPrefix: 'sk-',
   },
-  {
-    value: 'mistral',
+  mistral: {
     label: 'Mistral',
     placeholder: 'Your Mistral API key',
     hint: 'Paste your Mistral API key (no fixed prefix)',
     expectedPrefix: '',
   },
-  {
-    value: 'nebius',
+  nebius: {
     label: 'Nebius Token Factory',
     placeholder: 'Your Nebius Token Factory API key',
     hint:
@@ -158,21 +159,25 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
   },
   // A gateway whose endpoint, models and wording come from the server's model
   // catalog; offered only where the server lists it.
-  {
-    value: 'pia',
+  pia: {
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
     hint: 'Your personal gateway key.',
     expectedPrefix: '',
   },
-  {
-    value: 'local',
+  local: {
     label: 'Local (self-hosted)',
     placeholder: 'ollama (any value)',
     hint: 'A local OpenAI-compatible server (Ollama, llama.cpp, vLLM, LM Studio…). Most need no key — leave it as "ollama".',
     expectedPrefix: '',
   },
-] as const;
+};
+
+/** The key providers, in LLM_PROVIDERS order; 'free' has its own option below. */
+export const PROVIDER_OPTIONS: readonly ProviderOption[] = KEY_PROVIDERS.map((value) => ({
+  value,
+  ...PROVIDER_COPY[value],
+}));
 
 /**
  * The keyless free tier. Offered in the dropdown only when the backend
@@ -207,23 +212,6 @@ const LOCAL_BACKEND_NOTE: Partial<Record<LlmProvider, string>> = {
  */
 function _isCustomEndpoint(provider: LlmProvider): boolean {
   return provider === 'pia' || provider === 'local';
-}
-
-/**
- * Whether the modeling assistant can actually use a key for this provider.
- * Mirrors the agent's own allowlist (modeling-agent `src/byok.py`
- * SUPPORTED_PROVIDERS) plus the two gateway labels it accepts as 'openai'.
- * A provider outside it is Spec-Driven-only.
- */
-function _assistantSupportsProvider(provider: LlmProvider): boolean {
-  return (
-    provider === 'anthropic' ||
-    provider === 'openai' ||
-    provider === 'mistral' ||
-    provider === 'nebius' ||
-    provider === 'pia' ||
-    provider === 'local'
-  );
 }
 
 /**
@@ -726,15 +714,10 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     // Arm the live agent socket immediately when a client is provided. If the
     // socket is momentarily down this is a no-op — the key is in sessionStorage
-    // so the next (re)connect re-arms it automatically.
-    //
-    // Skipped for providers the modeling agent's own BYOK layer does not
-    // support (it allowlists anthropic/openai/mistral/nebius and discards the rest).
-    // Sending the key anyway would hand a secret to a service that will only
-    // log "unsupported provider" and drop it. The assistant then runs on the
-    // server's default model — which is exactly what its own re-arm path does,
-    // since readAssistantApiKey() rejects the stored provider too.
-    if (client && _assistantSupportsProvider(provider)) {
+    // so the next (re)connect re-arms it automatically. Only a provider on the
+    // assistant's allowlist reaches the agent (a Spec-Driven-only key never
+    // does); the re-arm path applies the same list.
+    if (client && isAssistantKeyProvider(provider)) {
       client.setUserApiKey({
         apiKey: trimmedKey,
         provider,

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { Download, FolderKanban, KeyRound, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
@@ -74,7 +75,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(setPerspectiveEnabledThunk({ type, enabled }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : t('project.settings.toasts.updatePerspectiveFailed'));
+          reportError(err instanceof Error ? err.message : t('project.settings.toasts.updatePerspectiveFailed'), { error: err });
         });
     },
     [dispatch, t],
@@ -85,7 +86,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : t('project.settings.toasts.applyPresetFailed'));
+          reportError(err instanceof Error ? err.message : t('project.settings.toasts.applyPresetFailed'), { error: err });
         });
     },
     [dispatch, t],
@@ -141,7 +142,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       await exportProject(currentProject.id, true);
       toast.success(t('project.settings.toasts.exported'));
     } catch (exportError) {
-      toast.error(t('project.settings.toasts.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }));
+      reportError(t('project.settings.toasts.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }), { error: exportError });
     } finally {
       setIsExporting(false);
     }

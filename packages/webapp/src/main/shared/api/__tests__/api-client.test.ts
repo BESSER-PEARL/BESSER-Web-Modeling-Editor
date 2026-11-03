@@ -176,10 +176,60 @@ describe('FastAPI error details', () => {
     ['an entry without loc', [{ msg: 'Value error, bad' }], 'Value error, bad'],
     ['a query parameter', [{ loc: ['query', 'fmt'], msg: 'bad' }], 'query.fmt: bad'],
     ['an entry without msg', [{ loc: ['body', 'x'] }], 'x: {"loc":["body","x"]}'],
+    // POST /spec-driven/import-github-run with owner "../orgs", as the backend answers it.
+    [
+      'a validator error',
+      [{ type: 'value_error', loc: ['body', 'owner'], msg: 'Value error, Invalid GitHub owner or repository name.', input: '../orgs', ctx: { error: {} } }],
+      'owner: Value error, Invalid GitHub owner or repository name.',
+    ],
     ['an empty list', [], 'fallback'],
     ['an object with a message', { message: 'Nope' }, 'Nope'],
     ['any other object', { code: 7 }, '{"code":7}'],
   ])('formats %s', (_label, detail, expected) => {
     expect(formatErrorDetail(detail, 'fallback')).toBe(expected);
+  });
+});
+
+describe('ApiError.detail', () => {
+  it("carries the server's own explanation, formatted", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: 'Invalid generator type: x' }), { status: 400 }));
+    const error = (await apiClient.downloadBlob('/generate-output', {}).catch((e) => e)) as ApiError;
+    expect(error.detail).toBe('Invalid generator type: x');
+
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: [{ loc: ['body', 'title'], msg: 'Field required' }] }), { status: 422 }));
+    expect(((await apiClient.post('/x', {}).catch((e) => e)) as ApiError).detail).toBe('title: Field required');
+  });
+
+  it.each([
+    ['a body without detail', () => new Response('{}', { status: 500 }), 'Request failed'],
+    ['an empty detail', () => new Response('{"detail":""}', { status: 400 }), 'Request failed'],
+    ['a body that is not JSON', () => new Response('<html>', { status: 502, statusText: 'Bad Gateway' }), 'Bad Gateway'],
+  ])('is absent for %s, while the message keeps its fallback', async (_label, response, message) => {
+    fetchMock.mockResolvedValue(response());
+    const error = (await apiClient.post('/x', {}).catch((e) => e)) as ApiError;
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.detail).toBeUndefined();
+    expect(error.message).toBe(message);
+  });
+});
+
+describe('apiClient.getBlob', () => {
+  it('GETs a file without a body or a JSON content type', async () => {
+    fetchMock.mockResolvedValue(new Response('zip', { headers: { 'Content-Type': 'application/zip' } }));
+    const { blob, headers } = await apiClient.getBlob('/spec-driven/download/r1');
+    expect(await textOf(blob)).toBe('zip');
+    expect(headers.get('Content-Type')).toBe('application/zip');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/spec-driven\/download\/r1$/);
+    expect(init).toEqual({ method: 'GET', signal: expect.any(AbortSignal) });
+  });
+
+  it('raises an ApiError on a failed status', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: 'Run not found' }), { status: 404 }));
+    await expect(apiClient.getBlob('/spec-driven/download/gone')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 404,
+      detail: 'Run not found',
+    });
   });
 });

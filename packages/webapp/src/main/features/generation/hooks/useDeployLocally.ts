@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
-import { toast, Id } from 'react-toastify'; // Import Id type
+import { toast, Id } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { deployApp } from '../../../shared/api/generation';
+import { ApiError } from '../../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import React from 'react';
 
@@ -27,13 +29,13 @@ export const useDeployLocally = () => {
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+        reportError(validationResult.message || t('generation.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error(t('generation.toasts.noDiagram'));
+        reportError(t('generation.toasts.noDiagram'));
         return;
       }
 
@@ -49,54 +51,12 @@ export const useDeployLocally = () => {
       });
 
       try {
-        const response = await fetch(`${BACKEND_URL}/deploy-app`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/plain, */*',
-          },
-          body: JSON.stringify({
-            title: diagramTitle,
-            model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
-            generator: generatorType,
-            config: config,
-          }),
+        await deployApp({
+          title: diagramTitle,
+          model: generatorType === 'agent' ? prepareAgentModelForBackend(editor.model) : editor.model,
+          generator: generatorType,
+          config: config,
         });
-
-        // Update the toast based on the response
-        if (!response.ok) {
-          const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
-          console.error('Response not OK:', response.status, errorData);
-          
-          // Update the toast to an error state
-          if (response.status === 400 && errorData.detail) {
-            toast.update(toastId, { 
-              render: `${errorData.detail}`, 
-              type: "error", 
-              isLoading: false,
-              autoClose: 5000
-            });
-            return;
-          }
-          
-          if (response.status === 500 && errorData.detail) {
-            toast.update(toastId, { 
-              render: `${errorData.detail}`, 
-              type: "error", 
-              isLoading: false,
-              autoClose: 5000
-            });
-            return;
-          }
-
-          toast.update(toastId, {
-            render: t('generation.toasts.httpError', { status: response.status }),
-            type: "error",
-            isLoading: false,
-            autoClose: 5000
-          });
-          return;
-        }
 
         toast.update(toastId, {
           render: React.createElement('div', null,
@@ -122,18 +82,25 @@ export const useDeployLocally = () => {
           autoClose: 5000,
         });
       } catch (error) {
+        if (error instanceof ApiError) {
+          console.error('Response not OK:', error.status, error.message);
+          // Update the toast to an error state
+          reportError(
+            error.detail && (error.status === 400 || error.status === 500)
+              ? error.detail
+              : t('generation.toasts.httpError', { status: error.status }),
+            { updateToast: toastId, isLoading: false, autoClose: 5000, error },
+          );
+          return;
+        }
+
         let errorMessage = t('generation.toasts.unknownDeploymentError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
 
         // Update the toast to error
-        toast.update(toastId, {
-          render: errorMessage,
-          type: "error",
-          isLoading: false,
-          autoClose: 5000
-        });
+        reportError(errorMessage, { updateToast: toastId, isLoading: false, autoClose: 5000, error });
       }
     },
     [t]

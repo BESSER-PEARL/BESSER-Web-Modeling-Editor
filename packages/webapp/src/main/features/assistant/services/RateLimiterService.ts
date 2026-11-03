@@ -7,6 +7,13 @@
  *   - model:      diagram / metamodel operations
  *   - generation: code generation, deploy, export
  */
+import {
+  canPersistRateLimiterState,
+  clearRateLimiterState,
+  readRateLimiterState,
+  writeRateLimiterState,
+} from '../../../shared/services/storage/assistantStorage';
+import { checkRateLimit, resetRateLimit } from '../../../shared/api/rateLimit';
 
 export interface RateLimitConfig {
   maxRequestsPerMinute: number;
@@ -98,7 +105,6 @@ function getRateLimitMessage(
 
 // ---------------------------------------------------------------------------
 
-const RATE_LIMIT_STORAGE_KEY = 'umlAgentRateLimiterState';
 const RATE_LIMIT_ENDPOINT_DEFAULT = '/api/uml-agent/rate-limit/check';
 
 export type RateLimiterOptions = Partial<RateLimitConfig> & {
@@ -115,7 +121,7 @@ export class RateLimiterService {
   private requestHistory: RequestRecord[] = [];
   private lastRequestTime: number = 0;
   private config: RateLimitConfig;
-  private storage: Storage | null;
+  private storageAvailable: boolean;
   private persistLocally: boolean;
   private useServerSide: boolean;
   private endpoint: string;
@@ -143,13 +149,13 @@ export class RateLimiterService {
     this.useServerSide = options?.useServerSideLimit ?? true;
     this.endpoint = options?.endpoint ?? RATE_LIMIT_ENDPOINT_DEFAULT;
     this.persistLocally = options?.persistLocally ?? true;
-    this.storage = RateLimiterService.resolveStorage();
+    this.storageAvailable = canPersistRateLimiterState();
 
     this.log('RateLimiter initialized:', {
       persistLocally: this.persistLocally,
       useServerSide: this.useServerSide,
       endpoint: this.endpoint,
-      storageAvailable: !!this.storage,
+      storageAvailable: this.storageAvailable,
       config: this.config,
     });
 
@@ -271,14 +277,7 @@ export class RateLimiterService {
   private async tryServerRateLimit(messageLength: number): Promise<ServerRateLimitResponse | null> {
     try {
       this.log('Sending server request to:', this.endpoint);
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ messageLength }),
-      });
+      const response = await checkRateLimit(this.endpoint, messageLength);
 
       this.log('Server response status:', response.status);
 
@@ -312,10 +311,7 @@ export class RateLimiterService {
 
   private async sendServerReset(): Promise<void> {
     try {
-      await fetch(this.endpoint, {
-        method: 'DELETE',
-        credentials: 'same-origin',
-      });
+      await resetRateLimit(this.endpoint);
     } catch {
       // Ignore reset errors - mainly used for tests/manual overrides.
     }
@@ -411,31 +407,15 @@ export class RateLimiterService {
     }
   }
 
-  private static resolveStorage(): Storage | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    try {
-      const storage = window.localStorage;
-      const testKey = '__umlAgentRateLimiter__';
-      storage.setItem(testKey, '1');
-      storage.removeItem(testKey);
-      return storage;
-    } catch {
-      return null;
-    }
-  }
-
   private loadState(): void {
-    if (!this.storage) {
+    if (!this.storageAvailable) {
       this.log('No storage available for loading state');
       return;
     }
 
     try {
-      const storedValue = this.storage.getItem(RATE_LIMIT_STORAGE_KEY);
-      this.log('Reading from storage:', RATE_LIMIT_STORAGE_KEY);
+      const storedValue = readRateLimiterState();
+      this.log('Reading from storage');
 
       if (!storedValue) {
         this.log('No stored state found');
@@ -466,7 +446,7 @@ export class RateLimiterService {
     } catch (error) {
       this.log('Error loading state:', error);
       try {
-        this.storage.removeItem(RATE_LIMIT_STORAGE_KEY);
+        clearRateLimiterState();
       } catch {
         // ignore storage cleanup errors
       }
@@ -474,7 +454,7 @@ export class RateLimiterService {
   }
 
   private persistState(): void {
-    if (!this.storage) {
+    if (!this.storageAvailable) {
       this.log('No storage available for persisting state');
       return;
     }
@@ -486,15 +466,14 @@ export class RateLimiterService {
 
     try {
       const serialized = JSON.stringify(state);
-      this.storage.setItem(RATE_LIMIT_STORAGE_KEY, serialized);
+      writeRateLimiterState(serialized);
       this.log('State persisted:', {
-        key: RATE_LIMIT_STORAGE_KEY,
         requestCount: this.requestHistory.length,
         lastRequestTime: new Date(this.lastRequestTime).toISOString(),
       });
     } catch (error) {
       this.log('Error persisting state:', error);
-      this.storage = null;
+      this.storageAvailable = false;
     }
   }
 }

@@ -17,7 +17,7 @@ import {
   SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS,
   followSpecDrivenRun,
 } from '../specDrivenSseClient';
-import * as sse from '../../../../shared/services/sse/sseClient';
+import * as sse from '../../../../shared/api/sseClient';
 
 function failingStream(): AsyncGenerator<never, void, void> {
   return (async function* () {

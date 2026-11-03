@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import i18n from '@/main/shared/i18n';
 import { Button } from '@/components/ui/button';
+import { clearAppLocalStorage } from '../../services/storage/resetStorage';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -38,15 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // and known legacy keys, then reloads. Triggered only by the user
     // clicking the "Reset and reload" button in the fallback UI — never
     // automatically, because that silently destroys the user's project.
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k?.startsWith('besser_')) keys.push(k);
-    }
-    keys.forEach((k) => localStorage.removeItem(k));
-    ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
-     'github_username', 'last_published_token', 'last_published_type',
-     'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
+    clearAppLocalStorage();
     window.location.reload();
   };
 

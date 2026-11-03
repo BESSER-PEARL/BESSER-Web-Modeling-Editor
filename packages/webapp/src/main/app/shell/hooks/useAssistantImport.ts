@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { useImportDiagramPictureFromImage } from '../../../features/import/useImportDiagramPicture';
 import { useImportDiagramFromKG } from '../../../features/import/useImportDiagramKG';
@@ -31,7 +32,7 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
 
   const openAssistantImportDialog = useCallback((mode: Exclude<AssistantImportMode, null>) => {
     if (!currentProject) {
-      toast.error(t('assistant.import.errors.noProject'));
+      reportError(t('assistant.import.errors.noProject'));
       return;
     }
     setAssistantImportMode(mode);
@@ -84,9 +85,9 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
       toast.success(result.message);
       resetAssistantImportDialog();
     } catch (error) {
-      toast.error(t('assistant.import.errors.importFailed', {
+      reportError(t('assistant.import.errors.importFailed', {
         error: error instanceof Error ? error.message : t('assistant.errors.unknownError'),
-      }));
+      }), { error });
     } finally {
       setIsAssistantImporting(false);
     }

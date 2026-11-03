@@ -17,7 +17,8 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
-import { BACKEND_URL } from '../../constants/constant';
+import { getProjectJsonModel } from '../../api/conversion';
+import { ApiError } from '../../api/api-client';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
 import { reportImportRepairs } from './reportImportRepairs';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
@@ -359,20 +360,13 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
-  const formData = new FormData();
-  formData.append('buml_file', file);
-
-  const response = await fetch(`${BACKEND_URL}/get-project-json-model`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Import failed with status ${response.status}`);
+  let jsonData;
+  try {
+    jsonData = await getProjectJsonModel(file);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    throw new Error(error.detail || `Import failed with status ${error.status}`);
   }
-
-  const jsonData = await response.json();
   reportImportRepairs(jsonData.warnings);
 
   if (isOldWebappFormat(jsonData)) {

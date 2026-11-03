@@ -33,7 +33,7 @@ import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
-import { sessionStorageAssistantDrawerOpen } from '../../../shared/constants/constant';
+import { readAssistantDrawerOpen } from '../../../shared/services/storage/assistantStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
@@ -247,13 +247,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   // Initialize from the persisted drawer state so a restored-open drawer hides
   // the FAB on first paint (no reliance on the sync event racing our mount).
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(readAssistantDrawerOpen);
 
   useEffect(() => {
     const onDrawer = (e: Event) => {

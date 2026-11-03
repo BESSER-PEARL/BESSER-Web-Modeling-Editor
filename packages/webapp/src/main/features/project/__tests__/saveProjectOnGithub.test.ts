@@ -64,7 +64,7 @@ describe('saveProjectOnGithub', () => {
     const project = createDefaultProject('Shop', 'A shop', 'me');
     vi.mocked(listRepos).mockResolvedValue(listing(repo('shop'), repo('notes')));
     vi.mocked(createRepoForProject).mockResolvedValue({
-      owner: 'octocat', repo_url: 'https://github.com/octocat/shop-2', commit_sha: 'abc123', branch: 'main',
+      success: true, owner: 'octocat', repo_url: 'https://github.com/octocat/shop-2', commit_sha: 'abc123', branch: 'main', message: '',
     });
 
     const link = await saveProjectOnGithub('session', project);
@@ -87,7 +87,7 @@ describe('saveProjectOnGithub', () => {
     const project = createDefaultProject('Shop', '', 'me');
     vi.mocked(listRepos).mockResolvedValue(listing(repo('shop', 'acme')));
     vi.mocked(createRepoForProject).mockResolvedValue({
-      owner: 'octocat', repo_url: 'https://github.com/octocat/shop', commit_sha: 'abc', branch: 'main',
+      success: true, owner: 'octocat', repo_url: 'https://github.com/octocat/shop', commit_sha: 'abc', branch: 'main', message: '',
     });
 
     await saveProjectOnGithub('session', project);
@@ -99,7 +99,7 @@ describe('saveProjectOnGithub', () => {
     const project = createDefaultProject('Shop', '', 'me');
     vi.mocked(listRepos).mockRejectedValue(new Error('offline'));
     vi.mocked(createRepoForProject).mockResolvedValue({
-      owner: 'octocat', repo_url: 'https://github.com/octocat/shop', commit_sha: 'abc', branch: 'main',
+      success: true, owner: 'octocat', repo_url: 'https://github.com/octocat/shop', commit_sha: 'abc', branch: 'main', message: '',
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 

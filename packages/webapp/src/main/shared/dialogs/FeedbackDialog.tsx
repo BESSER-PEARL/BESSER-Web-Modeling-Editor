@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../services/errors/reportError';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -9,11 +10,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
-import { BACKEND_URL } from '../constants/constant';
+import { submitFeedback, type FeedbackSubmission } from '../api/feedback';
+import { ApiError } from '../api/api-client';
 import { validateEmail, validateRequired, validateMinLength } from '../utils/validation';
 import { useFieldValidation } from '../hooks/useFieldValidation';
 
-type Satisfaction = 'happy' | 'neutral' | 'sad';
+type Satisfaction = FeedbackSubmission['satisfaction'];
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -78,7 +80,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     const errors = validation.touchAll();
     if (Object.keys(errors).length > 0 || !satisfaction) {
       if (!satisfaction) {
-        toast.error(t('feedback.toasts.selectRating'));
+        reportError(t('feedback.toasts.selectRating'));
       }
       return;
     }
@@ -86,36 +88,25 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${BACKEND_URL}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          satisfaction,
-          category,
-          feedback: feedback.trim(),
-          email: email.trim() || null,
-          timestamp: new Date().toISOString(),
-          user_agent: navigator.userAgent,
-        }),
+      await submitFeedback({
+        satisfaction,
+        category,
+        feedback: feedback.trim(),
+        email: email.trim() || null,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent,
       });
-
-      if (!response.ok) {
-        let detail = t('feedback.toasts.submitFailedDefault');
-        try {
-          const payload = await response.json();
-          if (typeof payload?.detail === 'string') {
-            detail = payload.detail;
-          }
-        } catch {
-          // Use fallback detail.
-        }
-        throw new Error(detail);
-      }
 
       toast.success(t('feedback.toasts.thankYou'));
       handleOpenChange(false);
     } catch (error) {
-      toast.error(t('feedback.toasts.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toasts.unknownError') }));
+      const message =
+        error instanceof ApiError
+          ? (error.detail ?? t('feedback.toasts.submitFailedDefault'))
+          : error instanceof Error
+            ? error.message
+            : t('feedback.toasts.unknownError');
+      reportError(t('feedback.toasts.submitFailed', { error: message }), { error });
       setIsSubmitting(false);
     }
   };

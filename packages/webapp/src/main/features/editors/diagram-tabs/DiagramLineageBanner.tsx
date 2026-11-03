@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { Trans, useTranslation } from 'react-i18next';
 import { ProjectDiagram, SupportedDiagramType, isUMLModel } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -56,7 +56,7 @@ export const DiagramLineageBanner: React.FC<DiagramLineageBannerProps> = ({ acti
       await dispatch(openDiagramThunk({ diagramType, index })).unwrap();
     } catch (err) {
       console.error('[lineage] opening the source diagram failed:', err);
-      toast.error(t('editors.diagramTabs.lineage.openFailed'));
+      reportError(t('editors.diagramTabs.lineage.openFailed'), { error: err });
     }
   };
 

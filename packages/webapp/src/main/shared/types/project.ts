@@ -1,4 +1,5 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
+import type { components } from '../api/generated/besser-openapi';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -224,32 +225,15 @@ export interface KnowledgeGraphData {
   settings?: KnowledgeGraphSettings;
 }
 
-/** A single inconsistency surfaced by the OWL/SHACL consistency check.
- *  Mirrors `besser.BUML.notations.kg_to_buml.consistency.ConsistencyIssue`. */
-export interface ConsistencyIssue {
-  id: string;
-  code: string;
-  severity: 'info' | 'warning' | 'violation';
-  message: string;
-  affectedNodeIds: string[];
-  affectedEdgeIds: string[];
-  constraintNodeId: string | null;
-  specKind: string | null;
-  pathIri: string | null;
-  /** Short human-readable summary of the violated constraint, e.g.
-   *  "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
-  constraintLabel: string | null;
-}
+/** A single inconsistency surfaced by the OWL/SHACL consistency check
+ *  (`kg_to_buml.consistency.ConsistencyIssue`). `constraintLabel`: short summary
+ *  of the violated constraint, e.g. "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
+export type ConsistencyIssue = components['schemas']['KGConsistencyIssueResponse'];
 
-export interface ConsistencyReport {
-  issues: ConsistencyIssue[];
-  issueCount: number;
-  severityCounts: Record<'info' | 'warning' | 'violation', number>;
-  kgSignature: string;
-  inferenceUsed: 'rdfs' | 'owlrl';
-  exportedAt?: string;
-  version?: string;
-}
+export type ConsistencySeverity = ConsistencyIssue['severity'];
+
+/** Answer of `/kg/consistency`. */
+export type ConsistencyReport = components['schemas']['KGConsistencyReportResponse'];
 
 export const DEFAULT_KG_SOFT_LIMIT = 50;
 export const DEFAULT_KG_HARD_LIMIT = 100;

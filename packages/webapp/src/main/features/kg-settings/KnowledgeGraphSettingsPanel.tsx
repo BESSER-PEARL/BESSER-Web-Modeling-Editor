@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { Trans, useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -129,7 +130,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
       if (!updated) throw new Error('no active diagram');
       toast.success(t('editors.kg.settings.saved'));
     } catch {
-      toast.error(t('editors.kg.settings.saveFailed'));
+      reportError(t('editors.kg.settings.saveFailed'));
     }
   };
 

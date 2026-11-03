@@ -1,4 +1,4 @@
-import { localStorageLatestProject, localStorageWhatsNewSeen } from '../../shared/constants/constant';
+import { readWhatsNewState, writeWhatsNewSeen } from '../../shared/services/storage/preferencesStorage';
 import type { SupportedDiagramType } from '../../shared/types/project';
 
 export interface WhatsNewEntry {
@@ -29,14 +29,10 @@ export const compareVersions = (a: string, b: string): number => {
   return 0;
 };
 
-/** Record that the user has seen every entry. Storage failures are ignored: the dot comes back next load. */
+/** Record that the user has seen every entry. */
 export function markAllSeen(entries: WhatsNewEntry[], storage?: Storage): void {
   if (entries.length === 0) return;
-  try {
-    (storage ?? window.localStorage).setItem(localStorageWhatsNewSeen, entries[0].version);
-  } catch {
-    /* storage unavailable */
-  }
+  writeWhatsNewSeen(entries[0].version, storage);
 }
 
 /**
@@ -45,16 +41,13 @@ export function markAllSeen(entries: WhatsNewEntry[], storage?: Storage): void {
  * who has seen none of them; a first visit has nothing to catch up on.
  */
 export function countUnread(entries: WhatsNewEntry[], storage?: Storage): number {
-  try {
-    const store = storage ?? window.localStorage;
-    const seen = store.getItem(localStorageWhatsNewSeen);
-    if (seen === null) {
-      if (store.getItem(localStorageLatestProject) !== null) return entries.length;
-      markAllSeen(entries, store);
-      return 0;
-    }
-    return entries.filter((entry) => compareVersions(entry.version, seen) > 0).length;
-  } catch {
+  const state = readWhatsNewState(storage);
+  if (!state) return 0;
+  if (state.seen === null) {
+    if (state.hasProject) return entries.length;
+    markAllSeen(entries, storage);
     return 0;
   }
+  const seen = state.seen;
+  return entries.filter((entry) => compareVersions(entry.version, seen) > 0).length;
 }

@@ -27,8 +27,8 @@ import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecD
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import {
-  sessionStorageSpecDrivenApiKey,
-  sessionStorageSpecDrivenProvider,
+  sessionStorageLlmApiKey,
+  sessionStorageLlmProvider,
 } from '@/main/shared/constants/constant';
 
 vi.mock('react-toastify', () => ({
@@ -73,7 +73,7 @@ vi.mock('@/main/features/spec-driven/services/specDrivenSseClient', () => ({
   }),
 }));
 
-vi.mock('@/main/features/spec-driven/services/specDrivenConfig', async (importOriginal) => {
+vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<any>();
   return {
     ...mod,
@@ -118,8 +118,8 @@ beforeEach(() => {
   conversationStore.clear();
   window.sessionStorage.clear();
   window.localStorage?.clear();
-  window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-test');
-  window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+  window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-test');
+  window.sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
 });
 
 afterEach(() => {

@@ -52,6 +52,21 @@ describe('CredentialsDialog', () => {
     expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/simulation\/limits$/);
   });
 
+  it('lists only the limits the server sets (it sends the others as null)', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ memoryMb: 512, cpuCores: null, diskMb: null, sessionLifetimeSeconds: null, editorQuotaEnabled: false }),
+    );
+    renderDialog();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Resource Limits/ }));
+
+    expect(screen.getByText('Memory')).toBeInTheDocument();
+    expect(screen.getByText('512 MB')).toBeInTheDocument();
+    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
+    expect(screen.queryByText('Disk')).not.toBeInTheDocument();
+    expect(screen.queryByText('Session lifetime')).not.toBeInTheDocument();
+  });
+
   it('links each key label to its input', () => {
     fetchMock.mockResolvedValue(jsonResponse({}));
     renderDialog();

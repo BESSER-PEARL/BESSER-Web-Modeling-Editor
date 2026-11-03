@@ -1,6 +1,7 @@
 import type { MutableRefObject } from 'react';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import type { AgentDiagramLinker, ApollonEditor, UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
@@ -111,13 +112,13 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
     async (suggestedTitle: string, elementId: string) => {
       const sourceDiagram = activeDiagram;
       if (!sourceDiagram || activeDiagramType !== 'BPMN' || !isUMLModel(sourceDiagram.model)) {
-        toast.error(t('interDiagram.linker.bpmnNotActive'));
+        reportError(t('interDiagram.linker.bpmnNotActive'));
         return null;
       }
 
       const project = ProjectStorageRepository.getCurrentProject();
       if (!project) {
-        toast.error(t('interDiagram.linker.noProject'));
+        reportError(t('interDiagram.linker.noProject'));
         return null;
       }
       if (project.diagrams.AgentDiagram.length >= MAX_DIAGRAMS_PER_TYPE) {
@@ -135,7 +136,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
           await dispatch(updateDiagramModelThunk({ model: sourceModel })).unwrap();
         } catch (err) {
           console.error('[agent-diagram-linker] saving the BPMN diagram failed:', err);
-          toast.error(t('interDiagram.linker.flushFailed'));
+          reportError(t('interDiagram.linker.flushFailed'), { error: err });
           return null;
         }
       }
@@ -154,7 +155,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
         newDiagramId = added.diagram.id;
       } catch (err) {
         console.error('[agent-diagram-linker] adding the Agent diagram failed:', err);
-        toast.error(t('interDiagram.linker.createFailed'));
+        reportError(t('interDiagram.linker.createFailed'), { error: err });
         return null;
       }
 
@@ -168,7 +169,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
         await dispatch(refreshProjectStateThunk()).unwrap();
       } catch (err) {
         console.error('[agent-diagram-linker] reloading the project failed:', err);
-        toast.error(t('interDiagram.linker.openFailed'));
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
         return null;
       }
 
@@ -178,7 +179,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
         await dispatch(switchDiagramTypeThunk({ diagramType: 'AgentDiagram' })).unwrap();
       } catch (err) {
         console.error('[agent-diagram-linker] switching to the Agent diagram failed:', err);
-        toast.error(t('interDiagram.linker.openFailed'));
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
         return null;
       }
 
@@ -191,7 +192,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
           dispatch(bumpEditorRevision());
         } catch (err) {
           console.error('[agent-diagram-linker] filling the Agent diagram failed:', err);
-          toast.error(t('interDiagram.linker.populateFailed'));
+          reportError(t('interDiagram.linker.populateFailed'), { error: err });
           return newDiagramId;
         }
         reportDerivationWarnings(
@@ -216,7 +217,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
         .unwrap()
         .catch((err: unknown) => {
           console.error('[agent-diagram-linker] opening the Agent diagram failed:', err);
-          toast.error(t('interDiagram.linker.openExistingFailed'));
+          reportError(t('interDiagram.linker.openExistingFailed'), { error: err });
         });
     },
     [dispatch, t],

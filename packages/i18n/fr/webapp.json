@@ -9,7 +9,8 @@
     "loading": "Chargement…",
     "yes": "Oui",
     "no": "Non",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "ok": "OK"
   },
   "whatsNew": {
     "title": "Nouveautés",
@@ -2220,7 +2221,7 @@
       "settingsButton": "Paramètres de confidentialité",
       "banner": {
         "title": "Cookies d'analyse",
-        "subtitle": "Statistiques anonymes pour améliorer BESSER.",
+        "subtitle": "Statistiques et rapports d'erreur pour améliorer BESSER.",
         "details": "Détails",
         "hideDetails": "Masquer les détails",
         "decline": "Refuser",
@@ -2231,7 +2232,9 @@
           "generators": "Générateurs de code utilisés",
           "diagramComplexity": "Type de diagramme et complexité du modèle",
           "assistantUsage": "Nombre d'utilisations de l'assistant IA",
-          "noContent": "Aucun contenu de modèle ni donnée personnelle"
+          "errorReports": "Rapports d'erreur anonymes",
+          "visitStats": "Statistiques de visite (Google Analytics)",
+          "noContent": "Aucun contenu de modèle, nom de projet ni donnée d'identité"
         }
       },
       "settings": {
@@ -2250,7 +2253,9 @@
           "usage": "Utilisation des fonctionnalités (générateurs et workflows de diagrammes)",
           "metrics": "Métriques du modèle (taille et décomptes de structure)",
           "assistant": "Nombre d'utilisations de l'assistant IA (pas le contenu)",
-          "session": "Métadonnées de session anonymes"
+          "session": "Métadonnées de session anonymes",
+          "visits": "Statistiques de visite : pages consultées, localisation approximative déduite de votre adresse IP, type d'appareil et de navigateur",
+          "errors": "Rapports d'erreur anonymes (type d'erreur, pile d'appels, statut HTTP, chemin de la page et type de navigateur)"
         },
         "noCollectTitle": "Données que nous ne collectons pas",
         "noCollect": {
@@ -2261,9 +2266,13 @@
         },
         "useTitle": "Comment nous utilisons les données",
         "useBody": "Les statistiques servent uniquement à améliorer la qualité du produit et à prioriser le développement des fonctionnalités. Elles ne sont pas utilisées à des fins de marketing ou de revente.",
-        "providerTitle": "Fournisseur",
-        "providerIntro": "Nous utilisons PostHog (hébergé dans l'UE). Voir",
-        "providerLinkText": "Politique de confidentialité de PostHog"
+        "providerTitle": "Fournisseurs",
+        "providerIntro": "Nous utilisons PostHog (hébergé dans l'UE) pour les statistiques d'utilisation. Voir",
+        "providerLinkText": "Politique de confidentialité de PostHog",
+        "errorProviderIntro": "Les rapports d'erreur sont envoyés à Sentry (hébergé dans l'UE, de.sentry.io), uniquement après que vous avez accepté les statistiques, et ne contiennent jamais le contenu des modèles ni les noms de projets. Voir",
+        "errorProviderLinkText": "Politique de confidentialité de Sentry",
+        "visitProviderIntro": "Les statistiques de visite sont envoyées à Google Analytics, uniquement après que vous avez accepté les statistiques. Google ne stocke pas votre adresse IP, et les signaux Google ainsi que la personnalisation des annonces sont désactivés. Voir",
+        "visitProviderLinkText": "Règles de confidentialité de Google"
       }
     },
     "errors": {
@@ -2863,8 +2872,6 @@
       "statusSaved": "Enregistré",
       "statusSaving": "Enregistrement…",
       "statusErrorSaving": "Erreur d'enregistrement",
-      "editorStillLoading": "L'éditeur est en cours de chargement. Veuillez patienter un instant et réessayer.",
-      "errorSavingProject": "Erreur lors de l'enregistrement du projet. Veuillez consulter la console pour plus de détails.",
       "downloadHtml": "Télécharger HTML",
       "exportTemplate": "Exporter le modèle",
       "downloadJson": "Télécharger JSON",
@@ -2888,9 +2895,6 @@
       "qualityCheckFailedMessage": "Des erreurs ont été détectées dans votre diagramme de classes. Veuillez les corriger avant de générer l'interface.",
       "classDiagramErrors": "Erreurs du diagramme de classes",
       "noClassesFound": "Aucune classe trouvée dans le diagramme de classes. Veuillez d'abord créer un diagramme de classes.",
-      "noPageSelected": "Aucune page sélectionnée",
-      "editRoutePrompt": "Modifier le chemin de route pour la page \"{{pageName}}\" :\n\nExemples :\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Route mise à jour vers : {{route}}",
       "sidebarBlocks": "Blocs",
       "sidebarStyles": "Styles",
       "sidebarTraits": "Propriétés",
@@ -3692,7 +3696,6 @@
       "failed": "Échec de l'exportation : {{error}}",
       "validationFailed": "Échec de la validation",
       "noDiagramToExport": "Aucun diagramme à exporter",
-      "couldNotParseError": "Impossible d'analyser la réponse d'erreur",
       "bumlExportSuccess": "Export B-UML terminé avec succès",
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
@@ -3763,8 +3766,7 @@
       "couldNotImportFromKg": "Impossible d'importer le diagramme depuis Knowledge Graph : {{message}}",
       "couldNotImportFromImage": "Impossible d'importer le diagramme depuis une image : {{message}}",
       "readFileFailed": "Échec de la lecture du fichier",
-      "invalidFromBackend": "Diagramme non valide renvoyé par le backend",
-      "couldNotParseError": "Impossible d'analyser la réponse d'erreur"
+      "invalidFromBackend": "Diagramme non valide renvoyé par le backend"
     },
     "warnings": {
       "danglingAgentRef": "L'élément « {{name}} » référence un comportement d'agent absent de ce projet. Utilisez « Définir le comportement de l'agent » sur cet élément pour en créer un nouveau.",

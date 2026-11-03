@@ -8,6 +8,7 @@
 //   - non-empty  → `KgImportTargetModal` asks the user to either merge it into
 //     the current tab (see `kgMerge.ts`) or drop it into a new tab.
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { importOwl, kgApiErrorMessage } from '../../shared/api/knowledgeGraph';
@@ -166,7 +167,7 @@ export const useImportOwlToKg = () => {
     } catch (error) {
       const errorMessage = kgApiErrorMessage(error, t, t('import.kg.owl.unknownError'));
       dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
-      toast.error(errorMessage);
+      reportError(errorMessage, { error });
     }
   }, [dispatch, writeToActiveTab, t]);
 
@@ -226,7 +227,7 @@ export const useImportOwlToKg = () => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : t('import.kg.owl.unknownError');
         dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
-        toast.error(errorMessage);
+        reportError(errorMessage, { error });
       }
     },
     [pending, dispatch, importIntoNewTab, writeToActiveTab, t],

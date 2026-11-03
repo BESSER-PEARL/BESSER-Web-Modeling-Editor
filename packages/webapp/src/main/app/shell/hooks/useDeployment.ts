@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
 import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
@@ -134,7 +135,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       return;
     }
     if (!currentProject) {
-      toast.error(t('project.toasts.createOrLoadFirst'));
+      reportError(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -203,15 +204,15 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handlePublishToRender = useCallback(async () => {
     if (!currentProject) {
-      toast.error(t('deploy.toasts.noProjectAvailable'));
+      reportError(t('deploy.toasts.noProjectAvailable'));
       return;
     }
     if (!githubSession) {
-      toast.error(t('deploy.toasts.githubSessionNotFound'));
+      reportError(t('deploy.toasts.githubSessionNotFound'));
       return;
     }
     if (!githubRepoName.trim()) {
-      toast.error(t('deploy.toasts.repoNameRequired'));
+      reportError(t('deploy.toasts.repoNameRequired'));
       return;
     }
 
@@ -221,7 +222,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     if (deploymentTarget === 'agent' && includePersonalization) {
       const mapping = buildPersonalizationMapping(projectForDeploy);
       if (mapping.length === 0) {
-        toast.error(t('deploy.toasts.noPersonalizationMappings'));
+        reportError(t('deploy.toasts.noPersonalizationMappings'));
         return;
       }
       personalizationMapping = mapping;
@@ -255,12 +256,10 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       setIsDeployDialogOpen(false);
       setIsDeployResultOpen(true);
 
+      // No repo name, owner or URL: the privacy policy promises no project names or identity.
       getPostHog()?.capture('render_deploy_success', {
         deployment_status: 'success',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
-        repo_url: result.repo_url,
-        owner: result.owner,
         files_uploaded: result.files_uploaded,
         is_redeployment: useExistingRepo,
         diagram_type: currentProject.currentDiagramType,
@@ -270,7 +269,6 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       getPostHog()?.capture('render_deploy_failure', {
         deployment_status: 'failed',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
         diagram_type: currentProject.currentDiagramType,
         deployment_target: deploymentTarget,
       });

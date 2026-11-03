@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 
 import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
@@ -721,7 +722,7 @@ export function useAssistantLogic({
         console.error('[useAssistantLogic] task queue error:', error);
         streaming.setIsGenerating(false);
         streaming.setProgressMessage('');
-        toast.error(formatErrorForUser(error));
+        reportError(formatErrorForUser(error), { error });
       });
   };
 
@@ -796,7 +797,7 @@ export function useAssistantLogic({
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
         const errorMsg = error instanceof Error ? error.message : t('assistant.errors.unknownError');
-        toast.error(t('assistant.errors.createTabFailed', { error: errorMsg }));
+        reportError(t('assistant.errors.createTabFailed', { error: errorMsg }), { error });
       }
       return;
     }
@@ -1265,7 +1266,7 @@ export function useAssistantLogic({
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
           if (file.size > MAX_FILE_SIZE) {
-            toast.error(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
+            reportError(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
             return;
           }
         }
@@ -1276,7 +1277,7 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -1333,7 +1334,7 @@ export function useAssistantLogic({
           );
         } catch (error) {
           console.error('Failed to read attached files:', error);
-          toast.error(t('assistant.errors.readFileFailed'));
+          reportError(t('assistant.errors.readFileFailed'), { error });
           return;
         }
       }
@@ -1363,7 +1364,7 @@ export function useAssistantLogic({
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error(t('assistant.errors.sendFailed'));
+        reportError(t('assistant.errors.sendFailed'));
       }
     } finally {
       isSendingRef.current = false;
@@ -1386,7 +1387,7 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -1421,12 +1422,12 @@ export function useAssistantLogic({
       } else if (sendResult === 'error') {
         // Send failed outright - no echo is coming, so drop the placeholder.
         removeVoicePlaceholder();
-        toast.error(t('assistant.errors.sendVoiceFailed'));
+        reportError(t('assistant.errors.sendVoiceFailed'));
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
       removeVoicePlaceholder();
-      toast.error(t('assistant.errors.voiceProcessFailed'));
+      reportError(t('assistant.errors.voiceProcessFailed'), { error });
     } finally {
       isSendingRef.current = false;
     }
@@ -1590,7 +1591,7 @@ export function useAssistantLogic({
       }
     } catch (error) {
       console.error('[useAssistantLogic] failed to build issue report', error);
-      toast.error('Could not prepare the issue report. Please try again.');
+      reportError('Could not prepare the issue report. Please try again.', { error });
     }
   };
 

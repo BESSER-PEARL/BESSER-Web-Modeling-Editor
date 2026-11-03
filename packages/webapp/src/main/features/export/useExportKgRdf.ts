@@ -4,6 +4,7 @@
 // Resolves to whether a file was downloaded; failures are reported by toast.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 
 import { exportKgRdf, kgApiErrorMessage, type KgRdfFormat, type KgRdfVocab } from '../../shared/api/knowledgeGraph';
@@ -28,13 +29,13 @@ export const useExportKgRdf = () => {
     async (format: KgRdfFormat, vocab: KgRdfVocab = 'both'): Promise<boolean> => {
       const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
       if (!project) {
-        toast.error(t('export.kg.toasts.noProject'));
+        reportError(t('export.kg.toasts.noProject'));
         return false;
       }
 
       const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
       if (!kgDiagram || !kgDiagram.model) {
-        toast.error(t('export.kg.toasts.noDiagram'));
+        reportError(t('export.kg.toasts.noDiagram'));
         return false;
       }
 
@@ -57,7 +58,7 @@ export const useExportKgRdf = () => {
         });
         return true;
       } catch (error) {
-        toast.error(kgApiErrorMessage(error, t, t('export.kg.toasts.failed')));
+        reportError(kgApiErrorMessage(error, t, t('export.kg.toasts.failed')), { error });
         return false;
       }
     },

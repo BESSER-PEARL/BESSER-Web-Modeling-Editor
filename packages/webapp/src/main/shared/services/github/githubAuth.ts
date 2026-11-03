@@ -19,9 +19,21 @@
  * - `signed-out`.
  */
 import { toast } from 'react-toastify';
+import { reportError } from '../errors/reportError';
 import i18n from '../../i18n';
 import { BACKEND_URL } from '../../constants/constant';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../../api/api-client';
+import { getGitHubAuthStatus, logOutOfGitHub } from '../../api/github';
+import {
+  expireGitHubSession,
+  forgetGitHubSignIn,
+  isGitHubSessionExpired,
+  readGitHubSession,
+  readGitHubSessionTimestamp,
+  readGitHubUsername,
+  writeGitHubSession,
+  writeGitHubUsername,
+} from '../storage/githubStorage';
 
 export type GitHubAuthStatus = 'checking' | 'signed-in' | 'expired' | 'not-in-tab' | 'signed-out';
 
@@ -33,10 +45,6 @@ export interface GitHubAuthState {
   redirecting: boolean;
 }
 
-const SESSION_KEY = 'github_session';
-const SESSION_TIMESTAMP_KEY = 'github_session_timestamp';
-const USERNAME_KEY = 'github_username';
-const EXPIRED_KEY = 'github_session_expired';
 // The backend keeps sessions in memory for a day.
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const VERIFY_TIMEOUT_MS = 30_000;
@@ -55,17 +63,6 @@ const setState = (next: Partial<GitHubAuthState>) => {
   listeners.forEach((listener) => listener());
 };
 
-const clearStoredSession = () => {
-  sessionStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
-};
-
-/** This tab's session ended (rejected or too old): keep saying "expired" after a reload. */
-const expireStoredSession = () => {
-  clearStoredSession();
-  sessionStorage.setItem(EXPIRED_KEY, '1');
-};
-
 export const getGitHubAuthState = (): GitHubAuthState => state;
 
 /** The session id for `X-GitHub-Session`, or null when not signed in. */
@@ -79,7 +76,8 @@ export function subscribeGitHubAuth(listener: () => void): () => void {
 /** The session the backend or GitHub refused: keep the username, ask to reconnect. */
 export function markGitHubSessionExpired(): void {
   if (state.status !== 'signed-in' && state.status !== 'checking') return;
-  expireStoredSession();
+  // This tab's session ended: keep saying "expired" after a reload.
+  expireGitHubSession();
   setState({ status: 'expired', session: null });
 }
 
@@ -87,14 +85,11 @@ async function verifySession(session: string): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
   try {
-    const response = await fetch(`${BACKEND_URL}/github/auth/status`, {
-      headers: { 'X-GitHub-Session': session },
-      signal: controller.signal,
-    });
+    const response = await getGitHubAuthStatus(session, controller.signal);
     const data: { success?: boolean; username?: string } = await response.json();
     if (state.session !== session) return; // signed out or in again meanwhile
     if (data.success && data.username) {
-      localStorage.setItem(USERNAME_KEY, data.username);
+      writeGitHubUsername(data.username);
       setState({ status: 'signed-in', username: data.username });
     } else {
       markGitHubSessionExpired();
@@ -130,42 +125,40 @@ export function startGitHubAuth(): void {
   const cleanUrl = () => window.history.replaceState({}, document.title, window.location.pathname);
 
   if (error) {
-    toast.error(i18n.t('github.toasts.authFailed', { error }));
+    reportError(i18n.t('github.toasts.authFailed', { error }));
     cleanUrl();
   } else if (sessionFromUrl) {
     cleanUrl();
     if (!isValidSessionToken(sessionFromUrl) || (usernameFromUrl !== null && !isValidGitHubUsername(usernameFromUrl))) {
       console.warn('Invalid GitHub sign-in callback rejected');
     } else {
-      sessionStorage.setItem(SESSION_KEY, sessionFromUrl);
-      sessionStorage.setItem(SESSION_TIMESTAMP_KEY, String(Date.now()));
-      sessionStorage.removeItem(EXPIRED_KEY);
+      writeGitHubSession(sessionFromUrl);
       if (usernameFromUrl) {
-        localStorage.setItem(USERNAME_KEY, usernameFromUrl);
+        writeGitHubUsername(usernameFromUrl);
         setState({ status: 'signed-in', session: sessionFromUrl, username: usernameFromUrl });
         toast.success(i18n.t('github.toasts.signedInAs', { username: usernameFromUrl }));
       } else {
         // A callback without the username: the backend names the account.
-        setState({ status: 'checking', session: sessionFromUrl, username: localStorage.getItem(USERNAME_KEY) });
+        setState({ status: 'checking', session: sessionFromUrl, username: readGitHubUsername() });
         void verifySession(sessionFromUrl);
       }
       return;
     }
   }
 
-  const stored = sessionStorage.getItem(SESSION_KEY);
-  const username = localStorage.getItem(USERNAME_KEY);
+  const stored = readGitHubSession();
+  const username = readGitHubUsername();
   // Signing out forgets the username. A username without a session in this
   // tab is "expired" when this tab's session ended, else a tab that has not
   // connected yet (sessions are tab-scoped, the username is not).
   if (!stored) {
-    if (username) setState({ status: sessionStorage.getItem(EXPIRED_KEY) ? 'expired' : 'not-in-tab', username });
+    if (username) setState({ status: isGitHubSessionExpired() ? 'expired' : 'not-in-tab', username });
     return;
   }
   if (!username) return;
-  const age = Date.now() - parseInt(sessionStorage.getItem(SESSION_TIMESTAMP_KEY) || '0', 10);
+  const age = Date.now() - readGitHubSessionTimestamp();
   if (age > SESSION_MAX_AGE_MS) {
-    expireStoredSession();
+    expireGitHubSession();
     setState({ status: 'expired', username });
     return;
   }
@@ -182,17 +175,11 @@ export function signInWithGitHub(): void {
 /** End the session here and on the backend (which also revokes the GitHub token). */
 export async function signOutOfGitHub(): Promise<void> {
   const { session } = state;
-  clearStoredSession();
-  sessionStorage.removeItem(EXPIRED_KEY);
-  localStorage.removeItem(USERNAME_KEY);
+  forgetGitHubSignIn();
   setState(SIGNED_OUT);
   if (!session) return;
   try {
-    await fetch(`${BACKEND_URL}/github/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: session }),
-    });
+    await logOutOfGitHub(session);
   } catch (error) {
     console.error('Failed to sign out of GitHub:', error);
   }

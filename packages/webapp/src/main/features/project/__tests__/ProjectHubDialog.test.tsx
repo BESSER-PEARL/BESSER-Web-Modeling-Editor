@@ -238,6 +238,24 @@ describe('ProjectHubDialog', () => {
       expect(mockCreateProject).not.toHaveBeenCalled();
       expect(mockImportDiagram).not.toHaveBeenCalled();
     });
+
+    it('shows its own message, not a generic status text, when the backend gives no explanation', async () => {
+      const fetchMock = vi.fn((url: string, _init?: RequestInit) =>
+        url.endsWith('/sdmx-providers') ? jsonResponse(providers) : jsonResponse({}, false, 502),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+      fireEvent.click(screen.getByTestId('data-source-sdmx'));
+      await waitFor(() => expect(screen.getByTestId('sdmx-provider').hasAttribute('disabled')).toBe(false));
+      fireEvent.change(screen.getByLabelText(/^Dataflow/), { target: { value: 'une_rt_m' } });
+      fireEvent.click(screen.getByRole('button', { name: /create from sdmx/i }));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      const shown = String(vi.mocked(toast.error).mock.calls[0][0]);
+      expect(shown).toContain('Could not generate class diagram from the SDMX dataflow.');
+      expect(shown).not.toContain('Request failed');
+      expect(mockCreateProject).not.toHaveBeenCalled();
+    });
   });
 
   it('creates the project from spreadsheet files only once the diagram is back', async () => {
