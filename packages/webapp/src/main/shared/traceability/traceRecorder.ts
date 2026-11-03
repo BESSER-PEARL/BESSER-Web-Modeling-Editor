@@ -38,10 +38,11 @@ export const KEPT_GENERATIONS_PER_GENERATOR = 5;
 
 export const EDITOR_TOOL_NAME = 'BESSER Web Modeling Editor';
 export const ASSISTANT_AGENT_NAME = 'BESSER modeling assistant';
-/** The LLM the assistant answers with. The assistant does not say which model it runs, so the trace
- *  names it after the assistant, with an unknown provider. */
-export const ASSISTANT_LLM_NAME = 'BESSER modeling assistant model';
-export const ASSISTANT_LLM_PROVIDER = 'unknown';
+/** The LLM the assistant answers with. The assistant does not report the model it ran, so the trace
+ *  assumes the modeling agent's default for class diagrams and its classifier (`MODEL_GENERATION_SMALL`
+ *  and `MODEL_CLASSIFIER` in its `model_config.py`); a deployment or a user's own key can change it. */
+export const ASSISTANT_LLM_NAME = 'gpt-6-luna';
+export const ASSISTANT_LLM_PROVIDER = 'openai';
 /** A conversation message longer than this is cut in the trace (a pasted document would otherwise fill it). */
 export const MAX_LOGGED_MESSAGE_CHARS = 10_000;
 /** How much of a request names its prompt artifact. */

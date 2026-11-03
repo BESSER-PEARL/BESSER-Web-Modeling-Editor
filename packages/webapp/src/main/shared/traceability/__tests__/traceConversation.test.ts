@@ -3,6 +3,7 @@ import { diffClassModel } from '../classModelDiff';
 import type { ClassModelLike } from '../classModelDiff';
 import {
   ASSISTANT_LLM_NAME,
+  ASSISTANT_LLM_PROVIDER,
   endConversation,
   MAX_LOGGED_MESSAGE_CHARS,
   recordConversationReply,
@@ -44,7 +45,7 @@ describe('conversations with the assistant', () => {
     const [chat] = conversations(trace);
     expect(chat.status).toBe('RUNNING'); // the conversation goes on
     expect(trace.actors.map((a) => a.type)).toEqual(['Person', 'Agent']);
-    expect(trace.tools).toEqual([expect.objectContaining({ type: 'LLM', name: ASSISTANT_LLM_NAME, provider: 'unknown' })]);
+    expect(trace.tools).toEqual([expect.objectContaining({ type: 'LLM', name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER })]);
     const [turn] = chat.toolCalls;
     expect(turn).toMatchObject({ toolId: trace.tools[0].id, sequenceNumber: 0, status: 'SUCCEEDED', endedAt: at(2000) });
     expect(turn.logs.map((l) => [l.sequenceNumber, l.logType, l.content])).toEqual([

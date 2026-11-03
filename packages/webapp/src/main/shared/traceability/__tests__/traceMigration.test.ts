@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { migrateTraceFile } from '../traceMigration';
 import { loadProjectTrace, recordGenerationTrace, setTraceStorage, traceFileProblem } from '../traceStore';
-import { ASSISTANT_LLM_NAME } from '../traceRecorder';
+import { ASSISTANT_LLM_NAME, ASSISTANT_LLM_PROVIDER } from '../traceRecorder';
 import { memoryTraceStorage } from '../traceDatabase';
 import { TRACE_SCHEMA_VERSION } from '../../types/traceability';
 import type { TraceFile } from '../../types/traceability';
@@ -89,7 +89,7 @@ describe('version 2 traces', () => {
     expect(modeling.toolCalls[1].logs[0]).not.toHaveProperty('toolId');
     // An operation with messages but no tool talked to the assistant, whose model is unknown.
     const llm = migrated.tools.find((t) => t.id === chat.toolCalls[0].toolId)!;
-    expect(llm).toMatchObject({ type: 'LLM', name: ASSISTANT_LLM_NAME, provider: 'unknown' });
+    expect(llm).toMatchObject({ type: 'LLM', name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER });
     expect(chat.toolCalls[0].logs.map((l) => l.content)).toEqual(['hi']);
     expect(traceFileProblem(migrated, 'p1')).toBeNull();
   });

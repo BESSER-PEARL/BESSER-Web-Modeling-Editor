@@ -18,7 +18,7 @@ function trace(): TraceFile {
     ],
     tools: [
       { id: 'gen', type: 'CodeGenerator', name: 'sqlalchemy', timestamp: at(0) },
-      { id: 'llm', type: 'LLM', name: 'BESSER modeling assistant model', provider: 'unknown', timestamp: at(0) },
+      { id: 'llm', type: 'LLM', name: 'gpt-6-luna', provider: 'openai', timestamp: at(0) },
     ],
     artifacts: [{ id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', timestamp: at(0) }],
     operations: [

@@ -110,6 +110,9 @@ export interface TraceToolCall {
   startedAt: string;
   endedAt?: string;
   logs: TraceLogRecord[];
+  /** Tokens an LLM read and wrote, when reported (what the call cost); only on a call to an LLM. */
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 interface OperationBase {
