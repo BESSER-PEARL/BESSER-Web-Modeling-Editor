@@ -10,8 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { ASSISTANT_KEY_PROVIDERS, KEY_PROVIDERS } from '../llmKeyStorage';
 import { KG_LLM_PROVIDERS } from '../../api/knowledgeGraph';
 
-// modeling-agent `src/llm/byok.py` SUPPORTED_PROVIDERS. Pinned: the agent is
-// another repo; update both together.
+// Copied from modeling-agent src/llm/byok.py SUPPORTED_PROVIDERS @ 7668673 (another repo, no shared schema): update both together.
 const AGENT_SUPPORTED_PROVIDERS = ['openai', 'anthropic', 'mistral', 'nebius'];
 
 const sorted = (list: readonly string[]) => [...list].sort();
