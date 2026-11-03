@@ -150,6 +150,10 @@ function _normalize(raw: unknown): SpecDrivenConfig {
                 ? data.free_tier.model
                 : null,
             models: _normalizeFreeModels(data.free_tier.models),
+            pilot_model:
+              typeof data.free_tier.pilot_model === 'string' && data.free_tier.pilot_model
+                ? data.free_tier.pilot_model
+                : null,
           }
         : FALLBACK_SMART_GEN_CONFIG.free_tier,
     providers: _normalizeProviders(data.providers),
