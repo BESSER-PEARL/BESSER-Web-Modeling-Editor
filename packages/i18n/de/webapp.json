@@ -2229,7 +2229,8 @@
         "accept": "Akzeptieren",
         "privacyPolicy": "Datenschutzerklärung",
         "rows": {
-          "generators": "Verwendete Code-Generatoren",
+          "generators": "Genutzte Funktionen und ob sie funktionieren",
+          "interactions": "Klickpositionen (Heatmaps) und Ladezeiten der Seiten",
           "diagramComplexity": "Diagrammtyp und Modellkomplexität",
           "assistantUsage": "Nutzungshäufigkeit des KI-Assistenten",
           "errorReports": "Anonyme Fehlerberichte",
@@ -2250,7 +2251,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ist eine quelloffene Low-Code-Plattform, die von der Software Engineering Research Group am LIST (Luxembourg Institute of Science and Technology) entwickelt wird.",
         "collectTitle": "Daten, die wir erfassen",
         "collect": {
-          "usage": "Funktionsnutzung (Generatoren und Diagramm-Workflows)",
+          "usage": "Funktionsnutzung und Ergebnisse: welche Funktionen Sie nutzen, ob sie gelingen oder fehlschlagen, wie lange sie dauern und der Fehlertyp (nie, was Sie eingeben oder modellieren)",
+          "interactions": "Klick- und Zeigerpositionen auf Seiten (Heatmaps) und Ladezeiten der Seiten",
           "metrics": "Modellmetriken (Größen- und Strukturzählungen)",
           "assistant": "Nutzungszahlen des KI-Assistenten (nicht die Inhalte)",
           "session": "Anonyme Sitzungsmetadaten",

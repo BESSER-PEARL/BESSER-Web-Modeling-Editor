@@ -81,6 +81,7 @@ const PrivacyPolicyContent: React.FC = () => {
         <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.collectTitle')}</h4>
         <ul className="list-disc flex flex-col gap-1 pl-5">
           <li>{t('shared.cookie.privacy.collect.usage')}</li>
+          <li>{t('shared.cookie.privacy.collect.interactions')}</li>
           <li>{t('shared.cookie.privacy.collect.metrics')}</li>
           <li>{t('shared.cookie.privacy.collect.assistant')}</li>
           <li>{t('shared.cookie.privacy.collect.session')}</li>
@@ -242,6 +243,7 @@ export const CookieConsentBanner: React.FC = () => {
   const detailRows = useMemo(
     () => [
       t('shared.cookie.banner.rows.generators'),
+      t('shared.cookie.banner.rows.interactions'),
       t('shared.cookie.banner.rows.diagramComplexity'),
       t('shared.cookie.banner.rows.assistantUsage'),
       t('shared.cookie.banner.rows.errorReports'),

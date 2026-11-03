@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import i18n from '@/main/shared/i18n';
 import { Button } from '@/components/ui/button';
 import { clearAppLocalStorage } from '../../services/storage/resetStorage';
+import { errorProperties, track } from '../../services/analytics/events';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -32,6 +33,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo);
+    track('app_crashed', { boundary: 'app', ...errorProperties(error) });
   }
 
   private handleResetAndReload = (): void => {

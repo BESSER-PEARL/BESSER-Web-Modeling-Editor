@@ -2,6 +2,8 @@ import React, { useMemo, useRef, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../shared/services/analytics/events';
+import { trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
@@ -228,6 +230,8 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const file = new File([jsonStr], `${selectedTemplate.type}.json`, { type: 'application/json' });
         const importedProject = await importProjectFromJson(file);
         await dispatch(loadProjectThunk(importedProject.id)).unwrap();
+        track('template_used', { mode: 'project', had_model: false });
+        trackProjectCreated(importedProject.settings?.preferredInterface ?? 'model', 'template');
         navigate('/');
         toast.success(t('project.templates.toasts.loadedProjectTemplate', { name: selectedTemplate.type }));
         onOpenChange(false);
@@ -292,9 +296,16 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         navigate('/');
       }
 
+      track('template_used', { diagram_type: selectedTemplate.diagramType, mode, had_model: hasExistingModel });
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
+      if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) {
+        trackFailure('project_creation_failed', error, { via: 'template', reason: 'exception' });
+        trackFailure('template_failed', error, {});
+      } else {
+        trackFailure('template_failed', error, { diagram_type: selectedTemplate.diagramType });
+      }
       reportError(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }), { error });
     } finally {
       setIsLoading(false);

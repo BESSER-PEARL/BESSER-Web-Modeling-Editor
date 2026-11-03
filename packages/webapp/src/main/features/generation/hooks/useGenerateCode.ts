@@ -164,13 +164,13 @@ const DETAIL_STATUSES = new Set([400, 422, 500]);
 function reportGenerationFailure(error: unknown, t: TFunction, opts?: GenerationOptions): GenerationResult {
   if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
     reportError(t('generation.toasts.requestTimedOut'), { error });
-    return { ok: false, error: 'Request timed out' };
+    return { ok: false, error: 'Request timed out', cause: error };
   }
   if (error instanceof ApiError) {
     console.error('Response not OK:', error.status, error.message);
     if (error.detail && DETAIL_STATUSES.has(error.status)) {
       reportError(opts?.describeError?.(error.status, error.detail) ?? error.detail);
-      return { ok: false, error: error.detail };
+      return { ok: false, error: error.detail, cause: error };
     }
   }
   let errorMessage = t('generation.toasts.unknownError');
@@ -180,7 +180,7 @@ function reportGenerationFailure(error: unknown, t: TFunction, opts?: Generation
     errorMessage = error.message;
   }
   reportError(`${errorMessage}`, { error });
-  return { ok: false, error: errorMessage };
+  return { ok: false, error: errorMessage, cause: error };
 }
 
 export const useGenerateCode = () => {
@@ -202,7 +202,7 @@ export const useGenerateCode = () => {
 
       if (!currentProject) {
         reportError(t('generation.toasts.noProjectAvailable'));
-        return { ok: false, error: 'No project available for code generation' };
+        return { ok: false, error: 'No project available for code generation', reason: 'no_project' };
       }
 
       // Web app generation embeds agents using each AgentDiagram's own
@@ -316,7 +316,7 @@ export const useGenerateCode = () => {
       if (!modelForGeneration) {
         console.error('No editor or model available');
         reportError(t('generation.toasts.noDiagram'));
-        return { ok: false, error: 'No diagram to generate code from' };
+        return { ok: false, error: 'No diagram to generate code from', reason: 'invalid_input' };
       }
 
       // Validate before generation when a live editor is present (the
@@ -329,7 +329,15 @@ export const useGenerateCode = () => {
         const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
         if (!validationResult.isValid) {
           reportError(validationResult.message || t('generation.toasts.validationFailed'));
-          return { ok: false, error: validationResult.message || 'Validation failed' };
+          return {
+            ok: false,
+            error: validationResult.message || 'Validation failed',
+            // `failure` is set when the validation request itself failed, not the model:
+            // no reason then, which is how a failed request is reported.
+            ...(validationResult.failure === undefined
+              ? { reason: 'validation' as const }
+              : { cause: validationResult.failure }),
+          };
         }
       }
 

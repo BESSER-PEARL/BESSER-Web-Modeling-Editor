@@ -100,8 +100,9 @@ vi.mock('../../../../shared/services/validation/validateDiagram', () => ({
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';

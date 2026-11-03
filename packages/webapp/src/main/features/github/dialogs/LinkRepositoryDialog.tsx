@@ -10,6 +10,7 @@ import { useProject } from '../../../app/hooks/useProject';
 import type { RepoSync } from '../hooks/useRepoSync';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { legacyModelPath } from '../../../shared/services/storage/projectGitHubLink';
+import { trackGitHubAction, type GitHubActionDetails } from '../githubAnalytics';
 
 interface LinkRepositoryDialogProps {
   open: boolean;
@@ -40,10 +41,10 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
     setModelPath(choice?.summary.model_path ?? null);
   }, [choice]);
 
-  const run = async (action: () => Promise<void> | void) => {
+  const run = async (action: () => Promise<void> | void, details: GitHubActionDetails) => {
     setIsLinking(true);
     try {
-      await action();
+      await trackGitHubAction('link', action, () => details);
     } catch (error) {
       reportError(error instanceof Error ? error.message : String(error), { error });
     } finally {
@@ -57,7 +58,7 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
       sync.linkTo(owner, repo, branch, summary.head_sha || undefined, path);
       onOpenChange(false);
       toast.success(t('github.panel.linked', { defaultValue: 'Linked to {{repo}}. Save to put your model in it.', repo: `${owner}/${repo}` }));
-    });
+    }, { has_model: summary.has_model, kind: 'kept_model' });
 
   const loadRepoModel = ({ owner, repo, branch }: RepoChoice, path: string | null) =>
     run(async () => {
@@ -66,7 +67,7 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
       await sync.pullInto({ owner, repo, branch, ...(legacyFilePath ? { legacyFilePath } : {}) }, currentProject.id);
       onOpenChange(false);
       toast.success(t('github.toasts.projectLoadedFromRepo'));
-    });
+    }, { has_model: true, kind: 'loaded_model' });
 
   const handlePick = (picked: RepoChoice) => {
     if (!currentProject) return;

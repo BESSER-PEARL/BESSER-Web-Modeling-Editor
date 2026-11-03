@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { getStarStatus, setStarred } from '../../../shared/api/github';
 import { markGitHubStarPromptDone } from '../../../shared/services/githubStarPrompt';
 
@@ -39,12 +40,17 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
       const res = await setStarred(githubSession, !hasStarred);
       if (res.ok) {
         setHasStarred(!hasStarred);
+        track('github_star_toggled', { starred: !hasStarred });
         if (!hasStarred) {
           toast.success(t('github.toasts.starThanks'));
           markGitHubStarPromptDone();
         }
+      } else {
+        track('github_star_failed', { http_status: res.status, network_error: false });
+        reportError(t('github.toasts.starFailed'));
       }
-    } catch {
+    } catch (error) {
+      track('github_star_failed', errorProperties(error));
       reportError(t('github.toasts.starFailed'));
     } finally {
       setStarLoading(false);

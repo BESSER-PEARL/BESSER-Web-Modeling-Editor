@@ -38,6 +38,7 @@ export const AssistantByokDialog: React.FC<AssistantByokDialogProps> = ({
   const dispatch = useDispatch();
   return (
     <LlmKeyDialog
+      surface="assistant"
       open={open}
       onOpenChange={onOpenChange}
       client={client}

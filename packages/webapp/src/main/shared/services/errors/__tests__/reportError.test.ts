@@ -17,6 +17,7 @@ const captureException = vi.fn();
 let sentryLoaded = true;
 vi.mock('../../analytics/lazy-analytics', () => ({
   getSentry: () => (sentryLoaded ? { captureException } : null),
+  captureEvent: vi.fn(),
 }));
 
 import { notifyError, reportError } from '../reportError';

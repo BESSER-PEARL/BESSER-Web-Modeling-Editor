@@ -20,6 +20,7 @@ import {
   getReferencedDiagram,
 } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import { DeepPartial } from '../../shared/utils/types';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
@@ -220,13 +221,22 @@ export const switchDiagramTypeThunk = createAsyncThunk(
       : toSupportedDiagramType(diagramType as UMLDiagramType);
 
     let diagram: ProjectDiagram | null = null;
-    ProjectStorageRepository.withoutNotify(() => {
-      diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
-    });
-    if (!diagram) throw new Error('Failed to switch diagram type');
+    try {
+      ProjectStorageRepository.withoutNotify(() => {
+        diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
+      });
+      if (!diagram) throw new Error('Failed to switch diagram type');
 
-    await setupBridgeForActiveDiagram(project, diagram, supportedType);
+      await setupBridgeForActiveDiagram(project, diagram, supportedType);
+    } catch (error) {
+      trackFailure('diagram_type_switch_failed', error, { to_type: supportedType });
+      throw error;
+    }
 
+    // Every switch (sidebar, palette, assistant, perspective auto-switch) passes here.
+    if (project.currentDiagramType !== supportedType) {
+      track('diagram_type_switched', { from_type: project.currentDiagramType, to_type: supportedType });
+    }
     return { diagram, diagramType: supportedType };
   },
 );

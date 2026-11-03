@@ -16,6 +16,7 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
+import { track } from '../../../shared/services/analytics/events';
 import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
@@ -332,6 +333,8 @@ export class AssistantClient {
   private readonly baseReconnectDelay = 2000;
   private readonly maxReconnectDelay = 30000;
   private readonly maxReconnectAttempts = 8;
+  /** Analytics: the give-up is reported once, until the next successful connect. */
+  private gaveUpReported = false;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -390,6 +393,12 @@ export class AssistantClient {
   private readonly actionHandlers = new Set<ActionHandler>();
 
   private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  /** Count an unexpected drop of a live socket once (a failed connection attempt was never live). */
+  private trackUnexpectedDrop(): void {
+    if (this.isConnected && this.shouldReconnect) {
+      track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
+    }
+  }
   private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
   private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
   private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
@@ -426,6 +435,11 @@ export class AssistantClient {
         this.ws = new WebSocket(withStableUserParam(this.url));
         this.ws.onopen = () => {
           this.isConnected = true;
+          track('assistant_connection', {
+            state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
+            attempt: this.reconnectAttempts,
+          });
+          this.gaveUpReported = false;
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -447,6 +461,7 @@ export class AssistantClient {
         };
 
         this.ws.onclose = () => {
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.stopHeartbeat();
           this.connectingPromise = null;
@@ -461,6 +476,8 @@ export class AssistantClient {
 
         this.ws.onerror = (error) => {
           console.error('Assistant WebSocket error:', error);
+          // An abnormal drop fires `error` before `close`, so it is counted here.
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.connectingPromise = null;
           this.emitTyping(false);
@@ -995,6 +1012,7 @@ export class AssistantClient {
         { cause: error instanceof Error ? error : undefined },
       );
       console.error('Error parsing assistant websocket message', protocolError);
+      track('assistant_client_error', { kind: 'protocol' });
       // Surface parse failures as a chat message so the user knows something went wrong
       const chatMessage: ChatMessage = {
         id: createMessageId(),
@@ -1076,6 +1094,10 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
+    if (this.shouldReconnect && this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpReported) {
+      this.gaveUpReported = true;
+      track('assistant_connection', { state: 'gave_up', attempt: this.reconnectAttempts });
+    }
     if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
       return;
     }
@@ -1083,7 +1105,10 @@ export class AssistantClient {
     const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
-      this.connect().catch((error) => console.error('Assistant reconnect failed', error));
+      this.connect().catch((error) => {
+        console.error('Assistant reconnect failed', error);
+        track('assistant_connection', { state: 'reconnect_failed', attempt: this.reconnectAttempts });
+      });
     }, delay);
   }
 
@@ -1101,6 +1126,7 @@ export class AssistantClient {
     if (elapsed >= this.responseHardTimeoutMs) {
       // Genuinely stuck (no reply after the hard cap) — give up so the user
       // can retry.
+      track('assistant_client_error', { kind: 'timeout' });
       this.emitTyping(false);
       this.emitMessage({
         id: createMessageId(),

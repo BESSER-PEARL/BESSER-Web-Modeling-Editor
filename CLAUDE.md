@@ -212,6 +212,22 @@ and `no-restricted-globals` rejects the un-imported global `reportError` (the br
 Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
 stays in Redux.
 
+### Product analytics (PostHog)
+Every event goes through `track(event, properties)` in `shared/services/analytics/events.ts`, whose
+`AnalyticsEvents` interface is the catalog: a new event or property is added there first, and TypeScript rejects
+an undeclared event or property (a few properties, such as `editor_action.action`, are still plain strings). Properties are content-free by contract (enums, counts, booleans, durations, HTTP status, error class
+name via `errorProperties(error)` / `trackFailure`): never a name, title, prompt, message, URL, repository or key.
+Track both sides of an action: the success event only after it really succeeded, and a failure event at every
+failure exit (`reportError` already sends a generic `error_shown`). PostHog is initialised in `lazy-analytics.ts`
+(no React provider: swapping one in late remounted the whole app); events tracked before it loads are queued with
+their timestamp. Without consent the page makes no request to PostHog at all: no remote config call, and the
+heatmap and web-vitals scripts load only on a page that loads with consent (`lazy-analytics.posthog.test.ts`
+checks this against the real posthog-js). URL properties lose their query and fragment
+(`sanitizePostHogProperties`). A Spec-Driven run whose stream stalled is counted as failed (stage `stall`); if a
+reload later reattaches to it, its outcome is sent again with `reattached: true`, so exclude reattached runs when
+counting runs. Collecting a new kind of data means updating the privacy copy
+(`shared.cookie.privacy` in every locale) too.
+
 ### Browser storage
 Web Storage is read and written only by the typed modules in `shared/services/storage/`
 (`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,

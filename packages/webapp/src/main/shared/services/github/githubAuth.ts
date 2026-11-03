@@ -20,6 +20,7 @@
  */
 import { toast } from 'react-toastify';
 import { reportError } from '../errors/reportError';
+import { track } from '../analytics/events';
 import i18n from '../../i18n';
 import { BACKEND_URL } from '../../constants/constant';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../../api/api-client';
@@ -76,12 +77,14 @@ export function subscribeGitHubAuth(listener: () => void): () => void {
 /** The session the backend or GitHub refused: keep the username, ask to reconnect. */
 export function markGitHubSessionExpired(): void {
   if (state.status !== 'signed-in' && state.status !== 'checking') return;
+  track('github_session_expired', { reason: 'rejected' });
   // This tab's session ended: keep saying "expired" after a reload.
   expireGitHubSession();
   setState({ status: 'expired', session: null });
 }
 
-async function verifySession(session: string): Promise<void> {
+/** `fromCallback`: the session just came back from the OAuth callback, so this verifies a sign-in. */
+async function verifySession(session: string, fromCallback = false): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
   try {
@@ -91,6 +94,11 @@ async function verifySession(session: string): Promise<void> {
     if (data.success && data.username) {
       writeGitHubUsername(data.username);
       setState({ status: 'signed-in', username: data.username });
+      if (fromCallback) track('github_signed_in', { verified: true });
+    } else if (fromCallback) {
+      track('github_sign_in_failed', { reason: 'session_rejected' });
+      expireGitHubSession();
+      setState({ status: 'expired', session: null });
     } else {
       markGitHubSessionExpired();
     }
@@ -98,6 +106,7 @@ async function verifySession(session: string): Promise<void> {
     // The backend could not answer (e.g. restarting during a deploy): keep the
     // session; a GitHub call that gets a 401 marks it expired.
     console.warn('Could not verify the GitHub session; keeping it:', error);
+    if (fromCallback) track('github_signed_in', { verified: false });
     if (state.session === session) setState({ status: 'signed-in' });
   } finally {
     clearTimeout(timer);
@@ -125,22 +134,25 @@ export function startGitHubAuth(): void {
   const cleanUrl = () => window.history.replaceState({}, document.title, window.location.pathname);
 
   if (error) {
+    track('github_sign_in_failed', { reason: 'oauth_error' });
     reportError(i18n.t('github.toasts.authFailed', { error }));
     cleanUrl();
   } else if (sessionFromUrl) {
     cleanUrl();
     if (!isValidSessionToken(sessionFromUrl) || (usernameFromUrl !== null && !isValidGitHubUsername(usernameFromUrl))) {
       console.warn('Invalid GitHub sign-in callback rejected');
+      track('github_sign_in_failed', { reason: 'invalid_callback' });
     } else {
       writeGitHubSession(sessionFromUrl);
       if (usernameFromUrl) {
         writeGitHubUsername(usernameFromUrl);
         setState({ status: 'signed-in', session: sessionFromUrl, username: usernameFromUrl });
+        track('github_signed_in', { verified: false });
         toast.success(i18n.t('github.toasts.signedInAs', { username: usernameFromUrl }));
       } else {
         // A callback without the username: the backend names the account.
         setState({ status: 'checking', session: sessionFromUrl, username: readGitHubUsername() });
-        void verifySession(sessionFromUrl);
+        void verifySession(sessionFromUrl, true);
       }
       return;
     }
@@ -158,6 +170,7 @@ export function startGitHubAuth(): void {
   if (!username) return;
   const age = Date.now() - readGitHubSessionTimestamp();
   if (age > SESSION_MAX_AGE_MS) {
+    track('github_session_expired', { reason: 'age' });
     expireGitHubSession();
     setState({ status: 'expired', username });
     return;
@@ -166,8 +179,13 @@ export function startGitHubAuth(): void {
   void verifySession(stored);
 }
 
-/** Leave for GitHub's sign-in page; the callback brings the session back. */
-export function signInWithGitHub(): void {
+/**
+ * Leave for GitHub's sign-in page; the callback brings the session back.
+ * `source` names the button that started it; anything else (e.g. a click
+ * event, when passed straight to `onClick`) counts as `unknown`.
+ */
+export function signInWithGitHub(source?: unknown): void {
+  track('github_sign_in_started', { source: typeof source === 'string' ? source : 'unknown' });
   setState({ redirecting: true });
   window.location.href = `${BACKEND_URL}/github/auth/login`;
 }
@@ -177,6 +195,7 @@ export async function signOutOfGitHub(): Promise<void> {
   const { session } = state;
   forgetGitHubSignIn();
   setState(SIGNED_OUT);
+  if (session) track('github_signed_out', {});
   if (!session) return;
   try {
     await logOutOfGitHub(session);

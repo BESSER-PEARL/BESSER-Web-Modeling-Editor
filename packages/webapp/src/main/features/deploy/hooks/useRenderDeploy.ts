@@ -6,7 +6,7 @@ import type { BesserProject } from '../../../shared/types/project';
 export type RenderDeploymentUrls = GitHubDeploymentUrls;
 
 export interface DeployToRenderResult {
-  success: boolean;
+  success: true;
   repo_url: string;
   repo_name: string;
   owner: string;
@@ -18,6 +18,13 @@ export interface DeployToRenderResult {
   // here so consumers like ``DeployResultDialog`` can branch their copy/UI on
   // standalone-agent vs webapp deploys.
   deployment_type?: DeploymentTarget;
+}
+
+/** A deploy that produced no repository: `github` = the repository step failed, `exception` = this hook threw. */
+export interface DeployToRenderFailure {
+  success: false;
+  stage: 'github' | 'exception';
+  error?: unknown;
 }
 
 /**
@@ -44,13 +51,13 @@ export const useRenderDeploy = () => {
    * and then providing the Render deployment URL.
    * @param projectData - The project data to deploy
    * @param options - Repository creation options
-   * @returns The deployment result with both GitHub and Render URLs
+   * @returns The deployment result with both GitHub and Render URLs, or why it failed
    */
   const deployToRender = useCallback(
     async (
       projectData: BesserProject,
       options: CreateRepoOptions
-    ): Promise<DeployToRenderResult | null> => {
+    ): Promise<DeployToRenderResult | DeployToRenderFailure> => {
       console.log('Starting Render deployment via GitHub...');
       setIsDeploying(true);
       setDeploymentResult(null);
@@ -59,8 +66,8 @@ export const useRenderDeploy = () => {
         // First, create the GitHub repository
         const repoResult = await createRepo(projectData, options);
 
-        if (!repoResult || !repoResult.success) {
-          return null;
+        if (!repoResult.success) {
+          return { success: false, stage: 'github', error: 'error' in repoResult ? repoResult.error : undefined };
         }
 
         // The backend already computed the correct ``deployment_urls`` (including
@@ -68,7 +75,7 @@ export const useRenderDeploy = () => {
         // them through — do NOT rebuild them locally, or the "Create Blueprint"
         // URL will override the live-site link we want to use on redeploys.
         const result: DeployToRenderResult = {
-          success: repoResult.success,
+          success: true,
           repo_url: repoResult.repo_url,
           repo_name: repoResult.repo_name,
           owner: repoResult.owner,
@@ -83,7 +90,7 @@ export const useRenderDeploy = () => {
         return result;
       } catch (error) {
         console.error('Render deployment error:', error);
-        return null;
+        return { success: false, stage: 'exception', error };
       } finally {
         setIsDeploying(false);
       }

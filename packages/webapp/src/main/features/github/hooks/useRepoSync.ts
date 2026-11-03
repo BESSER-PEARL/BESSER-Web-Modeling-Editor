@@ -35,6 +35,7 @@ import {
 } from '../../../shared/services/github/repoSyncStatus';
 import { setLastRunForProject } from '../../spec-driven';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
+import { trackGitHubAction } from '../githubAnalytics';
 import {
   createPullRequest,
   loadModelAtCommit,
@@ -185,13 +186,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
 
   const pull = useCallback(async () => {
     if (!link || !projectId) return;
-    await pullInto(link, projectId);
+    await trackGitHubAction('pull', () => pullInto(link, projectId));
     await refresh();
   }, [link, projectId, pullInto, refresh]);
 
   /** Commit the project's model to the linked repo; newer commits are merged, never reverted. */
   const save = useCallback(
-    async (commitMessage: string): Promise<SaveModelResult> => {
+    async (commitMessage: string): Promise<SaveModelResult> => trackGitHubAction('save_model', async () => {
       if (!link || !projectId || !githubSession) throw new Error('No linked repository.');
       const project = ProjectStorageRepository.loadProject(projectId);
       if (!project) throw new Error('Could not read the project.');
@@ -220,13 +221,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       }
       await refresh();
       return result;
-    },
+    }, (result) => ({ status: result.status, warnings_count: result.warnings?.length ?? 0 })),
     [link, projectId, githubSession, pullInto, markSynced, refresh],
   );
 
   /** Open (or find) the pull request of the pending change; returns its URL. `title` when the change has none. */
   const openPullRequest = useCallback(
-    async (title: string): Promise<string> => {
+    async (title: string): Promise<string> => trackGitHubAction('open_pull_request', async () => {
       const pending = link?.pendingChange;
       if (!link || !pending || !projectId || !githubSession) throw new Error('Nothing waits for a pull request.');
       const pr = await createPullRequest(githubSession, {
@@ -234,22 +235,27 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       });
       setPendingGitHubChange(projectId, { ...pending, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number });
       return pr.html_url;
-    },
+    }, () => ({ kind: link?.pendingChange?.kind })),
     [link, projectId, githubSession],
   );
 
   /** Stop tracking the pending change; its branch stays on GitHub. */
   const dismissPending = useCallback(() => {
-    if (projectId) setPendingGitHubChange(projectId, null);
-  }, [projectId]);
+    if (!projectId) return;
+    const kind = link?.pendingChange?.kind;
+    setPendingGitHubChange(projectId, null);
+    void trackGitHubAction('dismiss_pending', () => undefined, () => ({ kind }));
+  }, [projectId, link]);
 
   /** Replace the project's model with the one at `commitSha`. The change is then unsaved. */
   const restore = useCallback(
     async (commitSha: string) => {
       if (!link || !projectId || !githubSession) return;
-      const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha, link.legacyFilePath);
-      storeRepoModelAsProject(version.project, projectId);
-      await loadProject(projectId);
+      await trackGitHubAction('restore_version', async () => {
+        const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha, link.legacyFilePath);
+        storeRepoModelAsProject(version.project, projectId);
+        await loadProject(projectId);
+      });
     },
     [link, projectId, githubSession, loadProject],
   );
@@ -274,7 +280,9 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   );
 
   const unlink = useCallback(() => {
-    if (projectId) clearProjectGitHubLink(projectId);
+    if (!projectId) return;
+    clearProjectGitHubLink(projectId);
+    void trackGitHubAction('unlink', () => undefined);
   }, [projectId]);
 
   return {

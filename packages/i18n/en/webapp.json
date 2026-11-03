@@ -2229,7 +2229,8 @@
         "accept": "Accept",
         "privacyPolicy": "Privacy Policy",
         "rows": {
-          "generators": "Code generators used",
+          "generators": "Features used and whether they work",
+          "interactions": "Click positions (heatmaps) and page-load speed",
           "diagramComplexity": "Diagram type and model complexity",
           "assistantUsage": "AI assistant usage count",
           "errorReports": "Anonymous error reports",
@@ -2250,7 +2251,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) is an open-source low-code platform developed by the Software Engineering Research Group at LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Data We Collect",
         "collect": {
-          "usage": "Feature usage (generators and diagram workflows)",
+          "usage": "Feature usage and outcomes: which features you use, whether they succeed or fail, how long they take and the error type (never what you typed or modelled)",
+          "interactions": "Click and pointer positions on pages (heatmaps) and page-load performance",
           "metrics": "Model metrics (size and structure counts)",
           "assistant": "AI assistant usage counts (not content)",
           "session": "Anonymous session metadata",

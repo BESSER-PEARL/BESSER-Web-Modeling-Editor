@@ -16,16 +16,34 @@ const sentry = vi.hoisted(() => ({
 }));
 vi.mock('@sentry/react', () => sentry);
 
-const posthog = vi.hoisted(() => ({ opt_in_capturing: vi.fn(), opt_out_capturing: vi.fn() }));
+/** A PostHog stand-in that keeps its opted-out state, like the real client. */
+const posthogState = vi.hoisted(() => ({ optedOut: true }));
+const posthog = vi.hoisted(() => ({
+  init: vi.fn((_key: string, options: { opt_out_capturing_by_default?: boolean }) => {
+    posthogState.optedOut = options.opt_out_capturing_by_default === true;
+  }),
+  register: vi.fn(),
+  capture: vi.fn(),
+  set_config: vi.fn(),
+  has_opted_out_capturing: vi.fn(() => posthogState.optedOut),
+  _start_queue_if_opted_in: vi.fn(),
+  opt_in_capturing: vi.fn(() => {
+    posthogState.optedOut = false;
+  }),
+  opt_out_capturing: vi.fn(() => {
+    posthogState.optedOut = true;
+  }),
+}));
 vi.mock('posthog-js', () => ({ default: posthog }));
 
 let consented = false;
 const config = (dsn: string | undefined = 'https://key@sentry.example/1') => ({
   sentryDsn: dsn,
   sentryEnvironment: 'test',
-  posthogKey: undefined,
-  posthogHost: undefined,
+  posthogKey: 'phc_test' as string | undefined,
+  posthogHost: 'https://eu.i.posthog.com' as string | undefined,
   gaMeasurementId: undefined,
+  editorVersion: '9.9.9' as string | undefined,
   hasUserConsented: () => consented,
 });
 
@@ -47,6 +65,8 @@ const beforeSend = () =>
 beforeEach(() => {
   consented = false;
   Object.values(sentry).forEach((fn) => fn.mockClear());
+  Object.values(posthog).forEach((fn) => fn.mockClear());
+  posthogState.optedOut = true;
   vi.stubGlobal('requestIdleCallback', (fn: () => void) => fn());
 });
 
@@ -195,7 +215,181 @@ describe('Google Analytics consent', () => {
   });
 });
 
+describe('PostHog', () => {
+  const initOptions = () => posthog.init.mock.lastCall?.[1] as Record<string, unknown>;
+
+  it('is initialised here, with only our own events and nothing stored, before consent', async () => {
+    await start('');
+    expect(posthog.init).toHaveBeenCalledTimes(1);
+    expect(posthog.init.mock.lastCall?.[0]).toBe('phc_test');
+    expect(initOptions()).toMatchObject({
+      api_host: 'https://eu.i.posthog.com',
+      autocapture: false,
+      capture_dead_clicks: false,
+      disable_session_recording: true,
+      capture_pageview: false,
+      opt_out_capturing_by_default: true,
+      disable_persistence: true,
+    });
+    expect(posthog.register).toHaveBeenCalledWith({ editor_version: '9.9.9' });
+  });
+
+  it('keeps its id in a cookie when the user had already consented', async () => {
+    consented = true;
+    await start('');
+    expect(initOptions()).toMatchObject({
+      opt_out_capturing_by_default: false,
+      persistence: 'localStorage+cookie',
+      disable_persistence: false,
+    });
+  });
+
+  it('sends events tracked before it loaded, with the time they happened', async () => {
+    // A consented user: without consent PostHog itself drops these.
+    consented = true;
+    vi.resetModules();
+    const analytics = await import('../lazy-analytics');
+    const before = Date.now();
+    analytics.captureEvent('early_event', { count: 1 });
+    expect(posthog.capture).not.toHaveBeenCalled();
+    analytics.initLazyAnalytics(config(''));
+    await vi.dynamicImportSettled();
+    expect(posthog.capture).toHaveBeenCalledWith('early_event', { count: 1 }, { timestamp: expect.any(Date) });
+    const sentAt = (posthog.capture.mock.lastCall?.[2] as { timestamp: Date }).timestamp.getTime();
+    expect(sentAt).toBeGreaterThanOrEqual(before);
+    analytics.captureEvent('late_event');
+    expect(posthog.capture).toHaveBeenLastCalledWith('late_event', {});
+  });
+
+  it('stores its id on Accept, and deletes it again on withdrawal', async () => {
+    const analytics = await start('');
+    analytics.applyAnalyticsConsent('accepted');
+    expect(posthog.set_config).toHaveBeenLastCalledWith({ disable_persistence: false });
+    expect(posthog.opt_in_capturing).toHaveBeenCalled();
+    analytics.applyAnalyticsConsent('declined');
+    expect(posthog.opt_out_capturing).toHaveBeenCalled();
+    expect(posthog.set_config).toHaveBeenLastCalledWith({ disable_persistence: true });
+  });
+
+  it('counts the page the user accepted on, which was dropped before consent', async () => {
+    const analytics = await start('');
+    analytics.applyAnalyticsConsent('accepted');
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+  });
+
+  it('starts sending batched events as soon as the user accepts, not at the next page unload', async () => {
+    const analytics = await start('');
+    analytics.applyAnalyticsConsent('accepted');
+    expect(posthog._start_queue_if_opted_in).toHaveBeenCalledTimes(1);
+    expect(posthog._start_queue_if_opted_in.mock.invocationCallOrder[0]).toBeGreaterThan(
+      posthog.opt_in_capturing.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not opt in again, or send another page view, on each load of a consented user', async () => {
+    consented = true;
+    const analytics = await start('');
+    // The cookie banner re-applies the stored decision on every load.
+    analytics.applyAnalyticsConsent('accepted');
+    expect(posthog.opt_in_capturing).not.toHaveBeenCalled();
+    expect(posthog.capture).not.toHaveBeenCalledWith('$pageview');
+  });
+
+  it('stays opted out when this tab declined before it loaded (?force_cookies=1)', async () => {
+    consented = true;
+    vi.resetModules();
+    const analytics = await import('../lazy-analytics');
+    analytics.applyAnalyticsConsent('declined');
+    analytics.initLazyAnalytics(config(''));
+    await vi.dynamicImportSettled();
+    expect(initOptions()).toMatchObject({ opt_out_capturing_by_default: true, disable_persistence: true });
+    expect(posthog.opt_out_capturing).toHaveBeenCalled();
+  });
+
+  it('loads nothing and queues nothing without a key', async () => {
+    vi.resetModules();
+    const analytics = await import('../lazy-analytics');
+    analytics.captureEvent('early_event');
+    analytics.initLazyAnalytics({ ...config(''), posthogKey: undefined });
+    await vi.dynamicImportSettled();
+    analytics.captureEvent('late_event');
+    expect(posthog.init).not.toHaveBeenCalled();
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it('makes no request to PostHog before consent: no remote config call, no extension scripts', async () => {
+    await start('');
+    expect(initOptions()).toMatchObject({
+      advanced_disable_decide: true,
+      capture_performance: { web_vitals: true, network_timing: false },
+      disable_external_dependency_loading: true,
+    });
+  });
+
+  it('loads the heatmap and web-vitals scripts when the page loads with consent', async () => {
+    consented = true;
+    await start('');
+    expect(initOptions()).toMatchObject({ disable_external_dependency_loading: false });
+  });
+
+  it('opts out at load without consent, even when an earlier consent left an opt-in stored', async () => {
+    posthog.init.mockImplementationOnce(() => {
+      posthogState.optedOut = false; // the stored opt-in wins over opt_out_capturing_by_default
+    });
+    vi.resetModules();
+    const analytics = await import('../lazy-analytics');
+    analytics.captureEvent('queued_before_consent');
+    analytics.initLazyAnalytics(config(''));
+    await vi.dynamicImportSettled();
+    expect(posthog.opt_out_capturing).toHaveBeenCalled();
+    expect(posthog.opt_out_capturing.mock.invocationCallOrder[0]).toBeLessThan(
+      posthog.capture.mock.invocationCallOrder[0] ?? Infinity,
+    );
+  });
+
+  it('strips the query and fragment inside heatmap data and web-vitals metrics too', async () => {
+    const { sanitizePostHogProperties } = await import('../lazy-analytics');
+    expect(
+      sanitizePostHogProperties({
+        $heatmap_data: {
+          'https://editor.besser-pearl.org/?buml=https://raw.githubusercontent.com/acme/x': [{ x: 1 }],
+          'https://editor.besser-pearl.org/#github_session=abc': [{ x: 2 }],
+        },
+        $web_vitals_LCP_event: { value: 900, $current_url: 'https://editor.besser-pearl.org/?demo=secret' },
+      }),
+    ).toEqual({
+      $heatmap_data: { 'https://editor.besser-pearl.org/': [{ x: 1 }, { x: 2 }] },
+      $web_vitals_LCP_event: { value: 900, $current_url: 'https://editor.besser-pearl.org/' },
+    });
+  });
+
+  it('strips the query and fragment from every URL it sends (OAuth code, ?buml= link)', async () => {
+    const { sanitizePostHogProperties } = await import('../lazy-analytics');
+    expect(
+      sanitizePostHogProperties({
+        $current_url: 'https://editor.besser-pearl.org/auth/callback?code=secret#x',
+        $referrer: 'https://github.com/login?return_to=/acme/repo',
+        $set_once: { $initial_current_url: 'https://editor.besser-pearl.org/?buml=https://raw.githubusercontent.com/acme/x' },
+        // PostHog's own short keys: the first page (u) and its referrer (r), sent with every event.
+        $initial_person_info: { u: 'https://editor.besser-pearl.org/auth/callback?code=secret&study=p1#f', r: 'https://github.com/login?x=1' },
+        count: 3,
+      }),
+    ).toEqual({
+      $current_url: 'https://editor.besser-pearl.org/auth/callback',
+      $referrer: 'https://github.com/login',
+      $set_once: { $initial_current_url: 'https://editor.besser-pearl.org/' },
+      $initial_person_info: { u: 'https://editor.besser-pearl.org/auth/callback', r: 'https://github.com/login' },
+      count: 3,
+    });
+  });
+});
+
 describe('entry point', () => {
+  it('does not wrap the app in a PostHog provider, whose late load remounted the whole tree', () => {
+    const app = readFileSync(resolve(__dirname, '../../../../app/application.tsx'), 'utf-8');
+    expect(app).not.toMatch(/posthog/i);
+  });
+
   it('strips the ?demo= token from the address bar before it starts any analytics', () => {
     const entry = readFileSync(resolve(__dirname, '../../../../index.tsx'), 'utf-8');
     expect(entry.indexOf('initDemoModeFromUrl();')).toBeGreaterThan(-1);

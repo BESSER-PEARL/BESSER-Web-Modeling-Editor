@@ -56,6 +56,7 @@ import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
 import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
+import { track } from "@/main/shared/services/analytics/events"
 
 const chatBubbleVariants = cva(
   "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
@@ -1370,7 +1371,12 @@ function SpecDrivenCard({
       isZip === true
     )
     setRedownloadState(result.ok ? "idle" : "failed")
-    if (result.ok) setHasDownloaded(true)
+    if (result.ok) {
+      track("spec_result_downloaded", { is_zip: isZip === true, again: hasDownloaded, size_bytes: result.sizeBytes })
+      setHasDownloaded(true)
+    } else {
+      track("spec_result_download_failed", { is_zip: isZip === true, again: hasDownloaded })
+    }
   }
 
   // Deterministic runs hold the artifact in-hand (no server run id), so the
@@ -1383,8 +1389,10 @@ function SpecDrivenCard({
     emitDeliveryEvent("download", runId || undefined)
     try {
       downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
+      track("spec_result_downloaded", { is_zip: true, again: hasDownloaded, size_bytes: deterministicBlob.size })
       setHasDownloaded(true)
     } catch {
+      track("spec_result_download_failed", { is_zip: true, again: hasDownloaded })
       setRedownloadState("failed")
     }
   }

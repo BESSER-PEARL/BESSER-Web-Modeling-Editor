@@ -1,5 +1,6 @@
 import { toast, type Id, type ToastContent, type ToastOptions } from 'react-toastify';
 import { getSentry } from '../analytics/lazy-analytics';
+import { errorProperties, track } from '../analytics/events';
 import { ApiError } from '../../api/api-client';
 import { SseHttpError } from '../../api/sseClient';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
@@ -26,6 +27,7 @@ function isReportable(error: unknown): boolean {
  */
 export function reportError(message: ToastContent, options: ReportErrorOptions = {}): Id {
   const { error, updateToast, ...toastOptions } = options;
+  track('error_shown', errorProperties(error));
   if (error !== undefined && isReportable(error)) {
     getSentry()?.captureException(error, { tags: { handled: 'reportError' } });
   }

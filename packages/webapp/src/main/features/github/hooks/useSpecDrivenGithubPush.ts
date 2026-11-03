@@ -33,6 +33,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import i18n from '../../../shared/i18n';
 
 import { ApiError } from '../../../shared/api/api-client';
@@ -223,6 +224,7 @@ export function useSpecDrivenGithubPush(
     if (pushDialogRunId === null) return;
     const project = projectRef.current;
     if (!project) {
+      track('github_push_failed', { code: 'no_project' });
       reportError(i18n.t('github.push.toasts.noProject', { defaultValue: 'Open a project before pushing to GitHub.' }));
       dispatch(closePushDialog());
       return;
@@ -235,7 +237,7 @@ export function useSpecDrivenGithubPush(
       writeSpecDrivenPushIntent({ runId: pushDialogRunId, projectId: project.id });
       dispatch(closePushDialog());
       toast.info(i18n.t('github.push.toasts.connectFirst', { defaultValue: 'Connect GitHub to push your generated app.' }));
-      login();
+      login('spec_driven_push');
       return;
     }
     // Signed in: (re)load the linked repo for this run and clear any prior
@@ -281,11 +283,13 @@ export function useSpecDrivenGithubPush(
       const id = runId;
       if (!project || !id) {
         const message = i18n.t('github.push.toasts.nothingToPush', { defaultValue: 'Nothing to push.' });
+        track('github_push_failed', { code: 'nothing_to_push' });
         reportError(message);
         return { ok: false, code: 'other', message };
       }
       if (!githubSession) {
         const message = t('auth', 'Your GitHub session expired. Reconnect and try again.');
+        track('github_push_failed', { code: 'no_session', new_repo: !config.useExisting });
         reportError(message);
         return { ok: false, code: 'auth', message };
       }
@@ -322,6 +326,7 @@ export function useSpecDrivenGithubPush(
 
         if (!res.success) {
           const message = t('failed', 'Save to GitHub failed.');
+          track('github_push_failed', { code: 'other', new_repo: !config.useExisting });
           reportError(message);
           return { ok: false, code: 'other', message };
         }
@@ -402,9 +407,21 @@ export function useSpecDrivenGithubPush(
         if (takeRunModel) {
           toast.info(i18n.t('github.push.toasts.modelUpdated', { defaultValue: 'The model now includes the classes the agent added.' }));
         }
+        track('github_push_completed', {
+          status: res.status,
+          new_repo: !config.useExisting,
+          to_linked_repo: pushesToLink,
+          is_private: config.useExisting ? undefined : config.isPrivate,
+          push_mode: config.pushMode ?? 'commit',
+          is_first_push: res.is_first_push,
+          files_uploaded: res.files_uploaded,
+          warnings_count: res.warnings?.length ?? 0,
+          took_run_model: takeRunModel,
+        });
         return { ok: true, result: res };
       } catch (error) {
         const { code, message } = describePushError(error);
+        track('github_push_failed', { code, new_repo: !config.useExisting, ...errorProperties(error) });
         reportError(message, { error });
         return { ok: false, code, message };
       } finally {
@@ -431,8 +448,10 @@ export function useSpecDrivenGithubPush(
         setPendingGitHubChange(project.id, { ...pending, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number });
       }
       setResult({ ...result, status: 'pull_request', pull_request_url: pr.html_url });
+      track('github_action_completed', { action: 'open_conflict_pull_request' });
       return pr.html_url;
     } catch (error) {
+      track('github_action_failed', { action: 'open_conflict_pull_request', ...errorProperties(error) });
       reportError(error instanceof Error
         ? error.message
         : i18n.t('github.push.toasts.pullRequestFailed', { defaultValue: 'Could not open the pull request.' }), { error });

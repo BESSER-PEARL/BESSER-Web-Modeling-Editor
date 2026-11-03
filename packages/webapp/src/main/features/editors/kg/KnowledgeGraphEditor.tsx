@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 // Toasts fired from the ref-based `useCallback([], ...)` handlers below read the
@@ -323,6 +324,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
     const notShown = newlyCreated.length - fitting.length;
 
     if (notShown > 0) {
+      track('editor_action', { editor: 'kg', action: 'node_cap_reached', nodes_count: next.nodes.length });
       if (newlyCreated.length === 1) {
         reportError(i18n.t('editors.kg.editor.toasts.createdButCapped', { limit: hardLimit }));
       } else {
@@ -588,9 +590,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
             );
             if (!html) {
               reportError(t('editors.kg.editor.toasts.exportNotReady'));
+              track('editor_action_failed', { editor: 'kg', action: 'html_exported', reason: 'not_ready' });
               return;
             }
             downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
+            track('editor_action', { editor: 'kg', action: 'html_exported' });
           }}
         />
         <div className="relative min-h-0 flex-1 overflow-hidden">

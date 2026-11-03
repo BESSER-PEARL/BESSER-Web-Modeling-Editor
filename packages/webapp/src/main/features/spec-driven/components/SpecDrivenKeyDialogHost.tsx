@@ -93,6 +93,7 @@ export const SpecDrivenKeyDialogHost: React.FC = () => {
 
   return (
     <LlmKeyDialog
+      surface="spec_driven"
       open={open}
       onOpenChange={handleOpenChange}
       onSaved={handleSaved}

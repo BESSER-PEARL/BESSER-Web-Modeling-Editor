@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -125,6 +126,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         toast.success(t('knowledgeGraph.refine.refined'));
+        track('editor_action', { editor: 'kg', action: 'refine_apply', kind: 'static', issue_count: decisions.length });
         return {
           pendingOrphanClassification: data.pendingOrphanClassification,
           newKgSignature: data.kgSignature,
@@ -133,6 +135,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyFailed'));
         dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
         reportError(message, { error });
+        track('editor_action_failed', { editor: 'kg', action: 'refine_apply', kind: 'static', ...errorProperties(error) });
         return null;
       }
     },
@@ -167,11 +170,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
         }
         setLlmReport(data);
         setLlmStatus('success');
+        track('editor_action', { editor: 'kg', action: 'ai_review', kind: 'full_cleanup', issue_count: data.issues.length });
         return data;
       } catch (error) {
         if (signal.aborted) return null;
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.aiFailed'));
         reportError(message, { error });
+        track('editor_action_failed', { editor: 'kg', action: 'ai_review', kind: 'full_cleanup', ...errorProperties(error) });
         setLlmStatus('error');
         setLlmReport(null);
         return null;
@@ -219,9 +224,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
         if (signal.aborted) return null;
         setLlmReport(data);
         setLlmStatus('success');
+        track('editor_action', { editor: 'kg', action: 'ai_review', kind: 'orphans', nodes_count: nodeIds.length });
         return data;
       } catch (error) {
         if (signal.aborted) return null;
+        track('editor_action_failed', { editor: 'kg', action: 'ai_review', kind: 'orphans', ...errorProperties(error) });
         const message =
           error instanceof InvalidOrphanReportError
             ? t('knowledgeGraph.refine.invalidOrphanResponse')
@@ -259,11 +266,13 @@ export const useKgRefine = (): UseKgRefineReturn => {
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         toast.success(t('knowledgeGraph.refine.refined'));
+        track('editor_action', { editor: 'kg', action: 'refine_apply', kind: 'llm', issue_count: decisions.length });
         return true;
       } catch (error) {
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.refine.applyLlmFailed'));
         dispatch(displayError(t('knowledgeGraph.refine.failedTitle'), message));
         reportError(message, { error });
+        track('editor_action_failed', { editor: 'kg', action: 'refine_apply', kind: 'llm', ...errorProperties(error) });
         return false;
       }
     },

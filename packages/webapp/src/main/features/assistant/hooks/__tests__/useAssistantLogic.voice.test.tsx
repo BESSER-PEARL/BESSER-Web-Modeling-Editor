@@ -117,8 +117,9 @@ vi.mock('react-toastify', () => ({
 }));
 
 // Avoid lazy analytics import side effects.
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
 }));
 
 /* ------------------------------------------------------------------ */
