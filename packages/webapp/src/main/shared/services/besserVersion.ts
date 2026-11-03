@@ -6,7 +6,7 @@
  * than guess.
  */
 
-import { apiClient } from '../api/api-client';
+import { getApiInfo } from '../api/apiInfo';
 
 const TIMEOUT_MS = 3000;
 
@@ -24,7 +24,7 @@ export function loadBesserVersion(): Promise<string | undefined> {
   if (!pending) {
     pending = (async () => {
       try {
-        const body = await apiClient.get<{ besser_version?: unknown }>('/', { timeout: TIMEOUT_MS });
+        const body = await getApiInfo(TIMEOUT_MS);
         const version = body?.besser_version;
         if (typeof version === 'string' && version && version !== 'unknown') cached = version;
         return cached;

@@ -65,30 +65,40 @@ const ERROR_SYNTAX = [
 ]
 const TESTS = ['**/__tests__/**', '**/*.test.{ts,tsx}', 'src/test/**']
 
-const featureBoundary = (feature) => ({
-  files: [`src/main/features/${feature}/**/*.{ts,tsx}`],
-  rules: {
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            regex: `${PARENT_DIRS}(features/)?(?!${feature}/)(${features.join('|')})/`,
-            message: 'Import another feature through its index.ts, not its internals.',
-          },
-          {
-            regex: `${MAIN_ALIAS}/features/(?!${feature}/)[^/]+/`,
-            message: 'Import another feature through its index.ts, not its internals.',
-          },
-          {
-            regex: `(${PARENT_DIRS}(features/)?|${MAIN_ALIAS}/features/)${feature}$`,
-            message: "Import the file directly: going through the feature's own index.ts creates a cycle.",
-          },
-        ],
-      },
-    ],
-  },
-})
+// Every backend call is a function in shared/api; tests may still stub the client.
+const API_CLIENT_IMPORT = {
+  regex: '(^|/)api-client$',
+  importNames: ['apiClient'],
+  message: 'Call the backend through a function in shared/api/, not apiClient directly.',
+}
+
+// A later block replaces the rule's whole list, so non-test files get API_CLIENT_IMPORT back.
+const featureBoundary = (feature) => {
+  const files = [`src/main/features/${feature}/**/*.{ts,tsx}`]
+  const patterns = [
+    {
+      regex: `${PARENT_DIRS}(features/)?(?!${feature}/)(${features.join('|')})/`,
+      message: 'Import another feature through its index.ts, not its internals.',
+    },
+    {
+      regex: `${MAIN_ALIAS}/features/(?!${feature}/)[^/]+/`,
+      message: 'Import another feature through its index.ts, not its internals.',
+    },
+    {
+      regex: `(${PARENT_DIRS}(features/)?|${MAIN_ALIAS}/features/)${feature}$`,
+      message: "Import the file directly: going through the feature's own index.ts creates a cycle.",
+    },
+  ]
+  return [
+    { files, rules: { 'no-restricted-imports': ['error', { patterns }] } },
+    { files, ignores: TESTS, rules: { 'no-restricted-imports': ['error', { patterns: [...patterns, API_CLIENT_IMPORT] }] } },
+  ]
+}
+
+const SHARED_BOUNDARY = {
+  regex: `(${PARENT_DIRS}|${MAIN_ALIAS}/)(app|features)(/|$)`,
+  message: 'shared/ must not depend on app/ or features/.',
+}
 
 module.exports = [
   {
@@ -129,7 +139,12 @@ module.exports = [
     },
     files: ['**/*.ts', '**/*.tsx'],
   },
-  ...features.map(featureBoundary),
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: TESTS,
+    rules: { 'no-restricted-imports': ['error', { patterns: [API_CLIENT_IMPORT] }] },
+  },
+  ...features.flatMap(featureBoundary),
   // no-restricted-globals: Web Storage only through the storage modules; and the global
   // window.reportError is not ours, so a missing import must not compile silently.
   // A later block replaces the rule's whole list, so the storage modules get the reportError ban back.
@@ -168,18 +183,11 @@ module.exports = [
   },
   {
     files: ['src/main/shared/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              regex: `(${PARENT_DIRS}|${MAIN_ALIAS}/)(app|features)(/|$)`,
-              message: 'shared/ must not depend on app/ or features/.',
-            },
-          ],
-        },
-      ],
-    },
+    rules: { 'no-restricted-imports': ['error', { patterns: [SHARED_BOUNDARY] }] },
+  },
+  {
+    files: ['src/main/shared/**/*.{ts,tsx}'],
+    ignores: [...TESTS, 'src/main/shared/api/**'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [SHARED_BOUNDARY, API_CLIENT_IMPORT] }] },
   },
 ]

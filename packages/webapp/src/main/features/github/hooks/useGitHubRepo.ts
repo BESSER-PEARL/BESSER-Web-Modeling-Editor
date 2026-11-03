@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
-import { apiClient, ApiError } from '../../../shared/api/api-client';
+import { ApiError } from '../../../shared/api/api-client';
+import { deployToGitHub } from '../../../shared/api/github';
 import type { components } from '../../../shared/api/generated/besser-openapi';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
@@ -241,19 +242,7 @@ export const useGitHubRepo = () => {
           projectExport,
         };
 
-        const result = await apiClient.post<DeployWebappResponse>(
-          '/github/deploy-webapp',
-          requestBody,
-          {
-            headers: {
-              'X-GitHub-Session': options.githubSession,
-            },
-            // Deployment performs multiple GitHub API calls + code generation;
-            // observed durations up to ~37s in production. Use 2 min so the
-            // 30s default timeout doesn't abort a successful in-flight request.
-            timeout: 120_000,
-          }
-        );
+        const result = await deployToGitHub(options.githubSession, requestBody);
 
         const repoResult = toGitHubRepoResult(result);
 

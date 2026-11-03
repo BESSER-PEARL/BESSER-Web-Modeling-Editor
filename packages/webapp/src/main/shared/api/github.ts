@@ -4,7 +4,7 @@
  * (`/github/*`) and `routers/spec_driven_router.py` (`/spec-driven/*`).
  */
 import { apiClient } from './api-client';
-import type { components } from './generated/besser-openapi';
+import type { components, operations } from './generated/besser-openapi';
 import { BACKEND_URL } from '../constants/constant';
 import type { BesserProject } from '../types/project';
 import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
@@ -168,6 +168,31 @@ export const importRepoAsRun = (
     // The AI fallback reader can take up to 90 s on top of the download.
     { ...session(githubSession), timeout: 150_000 },
   );
+
+/** `POST /github/deploy-webapp` takes the project with `deploy_config` and `projectExport` as an open object. */
+export type DeployToGitHubBody =
+  operations['deploy_webapp_to_github_besser_api_github_deploy_webapp_post']['requestBody']['content']['application/json'];
+
+/** Generate the project's web app (or agent) and commit it to a new or existing repo. */
+export const deployToGitHub = (githubSession: string, body: DeployToGitHubBody) =>
+  apiClient.post<components['schemas']['DeployToGitHubResponse']>('/github/deploy-webapp', body, {
+    ...session(githubSession),
+    // Several GitHub API calls plus code generation, observed up to ~37 s.
+    timeout: 120_000,
+  });
+
+/** `projectExport`: the re-importable model the push writes next to the run's code. */
+export type PushRunBody = Omit<components['schemas']['PushSmartToGitHubRequest'], 'projectExport'> & {
+  projectExport: ProjectExportEnvelope;
+};
+
+/** `POST /spec-driven/push-to-github`: commit a finished Spec-Driven run's stored code to a repo. */
+export const pushRunToGitHub = (githubSession: string, body: PushRunBody) =>
+  apiClient.post<components['schemas']['PushSmartToGitHubResponse']>('/spec-driven/push-to-github', body, {
+    ...session(githubSession),
+    // Code generation plus several GitHub API calls, as for a deploy.
+    timeout: 120_000,
+  });
 
 /** `changed` is false when the repo already held these exact deploy files. */
 export type GoLiveResult = components['schemas']['GoLiveResponse'];

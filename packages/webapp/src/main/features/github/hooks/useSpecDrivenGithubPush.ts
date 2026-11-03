@@ -35,7 +35,7 @@ import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import i18n from '../../../shared/i18n';
 
-import { apiClient, ApiError } from '../../../shared/api/api-client';
+import { ApiError } from '../../../shared/api/api-client';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import {
   getProjectGitHubLink,
@@ -62,7 +62,7 @@ import {
   openPushDialog,
   setLastRunForProject,
 } from '../../spec-driven';
-import { createPullRequest, loadModel } from '../../../shared/api/github';
+import { createPullRequest, loadModel, pushRunToGitHub } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import type { components } from '../../../shared/api/generated/besser-openapi';
 
@@ -102,8 +102,6 @@ export type SpecDrivenPushErrorCode =
 export type SpecDrivenPushOutcome =
   | { ok: true; result: SpecDrivenPushResult }
   | { ok: false; code: SpecDrivenPushErrorCode; message: string };
-
-type PushResponse = SpecDrivenPushResult;
 
 /**
  * What a failed push means, from the status and the backend's ``detail``:
@@ -303,31 +301,22 @@ export function useSpecDrivenGithubPush(
           includePersonalization: false,
         });
 
-        const response = await apiClient.post<PushResponse>(
-          '/spec-driven/push-to-github',
-          {
-            run_id: id,
-            projectExport,
-            deploy_config: {
-              repo_name: config.repoName,
-              ...(config.useExisting && config.owner ? { owner: config.owner } : {}),
-              ...(config.description ? { description: config.description } : {}),
-              is_private: config.isPrivate,
-              use_existing: config.useExisting,
-              ...(config.branch ? { branch: config.branch } : {}),
-              ...(config.commitMessage ? { commit_message: config.commitMessage } : {}),
-              // Only the linked repo has a known base; any other repo is new to this project.
-              ...(pushesToLink && linkedRepo?.baseCommitSha ? { base_commit_sha: linkedRepo.baseCommitSha } : {}),
-              push_mode: config.pushMode ?? 'commit',
-            },
+        const response = await pushRunToGitHub(githubSession, {
+          run_id: id,
+          projectExport,
+          deploy_config: {
+            repo_name: config.repoName,
+            ...(config.useExisting && config.owner ? { owner: config.owner } : {}),
+            ...(config.description ? { description: config.description } : {}),
+            is_private: config.isPrivate,
+            use_existing: config.useExisting,
+            ...(config.branch ? { branch: config.branch } : {}),
+            ...(config.commitMessage ? { commit_message: config.commitMessage } : {}),
+            // Only the linked repo has a known base; any other repo is new to this project.
+            ...(pushesToLink && linkedRepo?.baseCommitSha ? { base_commit_sha: linkedRepo.baseCommitSha } : {}),
+            push_mode: config.pushMode ?? 'commit',
           },
-          {
-            headers: { 'X-GitHub-Session': githubSession },
-            // A push runs code generation + multiple GitHub API calls; mirror the
-            // deploy path's 2-min budget so a slow-but-successful push isn't aborted.
-            timeout: 120_000,
-          },
-        );
+        });
 
         const res: SpecDrivenPushResult = response;
 

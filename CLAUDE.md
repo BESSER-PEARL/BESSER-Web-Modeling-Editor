@@ -74,7 +74,7 @@ Webapp (`packages/webapp/src/main/`):
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
 | `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
-| `shared/api/` | Every HTTP call: `api-client.ts` (singleton, 30 s default timeout, `ApiError`) and one module per backend area (`generation`, `conversion`, `validation`, `feedback`, `telemetry`, `specDriven`, `github`, `knowledgeGraph`, `agentSimulation`, `rateLimit`, `sseClient`); `generated/besser-openapi.d.ts` holds the backend's OpenAPI types |
+| `shared/api/` | Every HTTP call: `api-client.ts` (singleton, 30 s default timeout, `ApiError`) and one module per backend area (`generation`, `conversion`, `validation`, `feedback`, `telemetry`, `specDriven`, `github`, `knowledgeGraph`, `agentSimulation`, `apiInfo`, `rateLimit`, `sseClient`); `generated/besser-openapi.d.ts` holds the backend's OpenAPI types |
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
 | `shared/api/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
@@ -168,7 +168,8 @@ exist); `webapp/*` → `./*`.
 
 ### API communication
 Every HTTP call lives in `shared/api/`; ESLint (`no-restricted-syntax`) rejects `fetch`, `XMLHttpRequest` and
-`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests. Calls go through `api-client.ts` (`request`, `get`, `post`,
+`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests, and `no-restricted-imports` rejects
+importing `apiClient` outside `shared/api/` (tests may stub it). Calls go through `api-client.ts` (`request`, `get`, `post`,
 `upload`, `downloadBlob`, `getBlob`) with an explicit `timeout` wherever the 30 s default does not fit; a failure
 rejects with an `ApiError` (`status`, a readable `message`, and `detail` when the server sent one) or, on time-out,
 a `TimeoutError` `DOMException`, so callers never parse the error body. Raw `fetch` stays only where the client cannot

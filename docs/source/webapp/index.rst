@@ -64,7 +64,7 @@ Integration points
 * **Editor API** – the webapp treats the editor as a controlled component. All
   meaningful edits flow through Redux slices (see :doc:`../editor/api`).
 * **Server communication** – every HTTP request is made in ``shared/api/``
-  (ESLint rejects ``fetch`` elsewhere); most go to ``BACKEND_URL`` (the BESSER
+  (ESLint rejects ``fetch``, and importing ``apiClient``, elsewhere); most go to ``BACKEND_URL`` (the BESSER
   Python backend) through the shared ``apiClient``, with contract types
   generated from the backend's OpenAPI schema
   (``npm run api:generate --workspace=webapp``) where the editor's own data

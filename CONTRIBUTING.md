@@ -283,7 +283,8 @@ If you add a new alias, update **both** files.
 
 ### API communication
 
-All backend calls live in `shared/api/` (ESLint rejects `fetch` elsewhere):
+All backend calls live in `shared/api/` (ESLint rejects `fetch`, and importing
+`apiClient`, elsewhere):
 
 - `api-client.ts`: singleton `apiClient` with a 30 s default timeout (pass
   `timeout` for slower endpoints); methods `get()`, `post()`, `upload()`

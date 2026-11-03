@@ -1,6 +1,7 @@
 /**
  * The assistant's rate limiter on the editor's own Node server
  * (`packages/server`, `/api/uml-agent/rate-limit/check`), not the BESSER backend.
+ * Raw `fetch`: `apiClient` prefixes the backend URL and rejects the 429 whose body the caller reads.
  */
 
 /** Ask whether a message of `messageLength` characters may be sent now. */

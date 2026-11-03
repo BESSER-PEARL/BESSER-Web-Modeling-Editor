@@ -37,7 +37,16 @@ import {
   previewSpecDrivenRun,
 } from '../specDriven';
 import { checkRateLimit, resetRateLimit } from '../rateLimit';
-import { fetchRawGitHubFile, getGitHubAuthStatus, getStarStatus, logOutOfGitHub, setStarred } from '../github';
+import {
+  deployToGitHub,
+  fetchRawGitHubFile,
+  getGitHubAuthStatus,
+  getStarStatus,
+  logOutOfGitHub,
+  pushRunToGitHub,
+  setStarred,
+} from '../github';
+import { getApiInfo } from '../apiInfo';
 
 const fetchMock = vi.fn();
 
@@ -351,6 +360,9 @@ describe('timeouts', () => {
     ['spec-driven/config', 30_000, () => fetchSpecDrivenConfig()],
     ['spec-driven/preview (caller-chosen)', 8_000, () => previewSpecDrivenRun(preview, { timeout: 8_000 })],
     ['spec-driven/download', 300_000, () => downloadSpecDrivenOutput('r')],
+    ['github/deploy-webapp', 120_000, () => deployToGitHub('s', {})],
+    ['spec-driven/push-to-github', 120_000, () => pushRunToGitHub('s', {} as Parameters<typeof pushRunToGitHub>[1])],
+    ['api root (caller-chosen)', 3_000, () => getApiInfo(3_000)],
   ])('%s gives up after %i ms', async (_label, timeout, call) => {
     vi.useFakeTimers();
     fetchMock.mockImplementation(hangingFetch);
@@ -362,6 +374,39 @@ describe('timeouts', () => {
     expect(settled).toBe('pending');
     await vi.advanceTimersByTimeAsync(1);
     expect(settled).toMatchObject({ name: 'TimeoutError' });
+  });
+});
+
+describe('github deploy and push', () => {
+  const SESSION_JSON = { 'X-GitHub-Session': 'sess', 'Content-Type': 'application/json' };
+
+  it('posts the project with its deploy config to /github/deploy-webapp', async () => {
+    const body = { name: 'shop', deploy_config: { repo_name: 'shop', use_existing: false }, projectExport: { version: 2 } };
+    await deployToGitHub('sess', body);
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/github/deploy-webapp`,
+      { method: 'POST', headers: SESSION_JSON, body: JSON.stringify(body), signal: SIGNAL },
+    ]);
+  });
+
+  it('posts a finished run to /spec-driven/push-to-github', async () => {
+    const body = {
+      run_id: 'r1',
+      projectExport: { version: '2.0.0', type: 'project', project: {}, exportedAt: 't' },
+      deploy_config: { repo_name: 'shop', is_private: true, use_existing: false, push_mode: 'commit' as const },
+    } as unknown as Parameters<typeof pushRunToGitHub>[1];
+    await pushRunToGitHub('sess', body);
+    expect(lastCall()).toEqual([
+      `${BACKEND_URL}/spec-driven/push-to-github`,
+      { method: 'POST', headers: SESSION_JSON, body: JSON.stringify(body), signal: SIGNAL },
+    ]);
+  });
+});
+
+describe('api info', () => {
+  it('gets the backend root with the caller-chosen timeout', async () => {
+    await getApiInfo(3000);
+    expect(lastCall()).toEqual([`${BACKEND_URL}/`, { method: 'GET', headers: JSON_ONLY, signal: SIGNAL }]);
   });
 });
 
