@@ -7,8 +7,8 @@
  *
  * Consumers should call `initLazyAnalytics()` once from the entry file, and
  * `applyAnalyticsConsent()` whenever the analytics consent changes. Sentry and
- * Google Analytics load only with consent; PostHog loads always but captures only
- * with consent. Product events go through `track` in `events.ts`.
+ * Google Analytics load only with consent; PostHog loads always (from the app's own
+ * bundle) but captures, and contacts PostHog, only with consent. Product events go through `track` in `events.ts`.
  */
 
 import type { ConsentStatus } from '../../components/cookie-consent/CookieConsentBanner';
@@ -101,6 +101,8 @@ let queuedEvents: QueuedEvent[] = [];
 
 /** Every property PostHog sends a URL in; their query and fragment can carry an OAuth `code` or a `?buml=` URL. */
 const URL_PROPERTIES = ['$current_url', '$referrer', '$initial_current_url', '$initial_referrer'];
+/** `$initial_person_info` holds the first page's URL (`u`) and referrer (`r`) under short keys, sent with every event. */
+const INITIAL_PERSON_INFO_URL_KEYS = ['u', 'r'];
 
 const withoutQueryOrFragment = (url: unknown): unknown =>
   typeof url === 'string' ? url.replace(/[?#][\s\S]*$/, '') : url;
@@ -109,8 +111,8 @@ const isObject = (value: unknown): value is Record<string, any> => typeof value 
 
 /**
  * PostHog `sanitize_properties`: strips the query and fragment from every URL, including the
- * `$set`/`$set_once` ones, each web-vitals metric's own `$current_url` and the page keys of
- * `$heatmap_data`.
+ * `$set`/`$set_once` ones, `$initial_person_info`, each web-vitals metric's own `$current_url`
+ * and the page keys of `$heatmap_data`.
  */
 export function sanitizePostHogProperties(properties: Record<string, any>): Record<string, any> {
   const scrub = (props: Record<string, any>) => {
@@ -119,6 +121,13 @@ export function sanitizePostHogProperties(properties: Record<string, any>): Reco
     }
   };
   scrub(properties);
+  if (isObject(properties.$initial_person_info)) {
+    for (const key of INITIAL_PERSON_INFO_URL_KEYS) {
+      if (key in properties.$initial_person_info) {
+        properties.$initial_person_info[key] = withoutQueryOrFragment(properties.$initial_person_info[key]);
+      }
+    }
+  }
   for (const [key, value] of Object.entries(properties)) {
     if (isObject(value) && (key === '$set' || key === '$set_once' || key.startsWith('$web_vitals_'))) scrub(value);
   }
@@ -207,6 +216,10 @@ function loadPostHog(settings: PostHogSettings): void {
         persistence: 'localStorage+cookie',
         disable_persistence: !consented,
         ip: false,
+        // The heatmap and web-vitals extensions are scripts fetched from PostHog's asset host,
+        // which would reach PostHog before consent. They load only when the page loads with
+        // consent; after a mid-session Accept they start on the next page load.
+        disable_external_dependency_loading: !consented,
         sanitize_properties: sanitizePostHogProperties,
       });
       // A stored opt-in from an earlier consent would otherwise override the default above.

@@ -193,7 +193,7 @@ export interface AnalyticsEvents {
     reason: 'no_project' | 'not_supported' | 'no_diagram' | 'empty_diagram' | 'exception';
   } & Partial<ErrorProperties>;
   /** Local deploy refused before it started (no diagram open, invalid names). */
-  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' | 'validation' };
+  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' | 'validation' | 'request' };
   local_deploy_succeeded: { duration_ms: number };
   local_deploy_failed: { duration_ms: number } & ErrorProperties;
 
@@ -410,14 +410,24 @@ export function trackFailure<E extends AnalyticsEventName>(
 /** A page view; the router changes pages without a reload, so each route change sends one. */
 export const trackPageview = (): void => track('$pageview', {});
 
+/** Bounds one page's uncaught-error events, so an error thrown in a render or animation loop cannot flood PostHog. */
+const MAX_UNCAUGHT_ERRORS_PER_PAGE = 20;
+
 /** Report errors nothing caught. Call once from the entry file. */
 export function trackUncaughtErrors(): void {
+  let sent = 0;
+  const send = (kind: 'error' | 'rejection', error: unknown) => {
+    if (sent >= MAX_UNCAUGHT_ERRORS_PER_PAGE) return;
+    sent += 1;
+    track('uncaught_error', { kind, ...errorProperties(error) });
+  };
   window.addEventListener('error', (event) => {
-    track('uncaught_error', { kind: 'error', ...errorProperties(event.error) });
+    // No error object: browser notices such as "ResizeObserver loop completed with undelivered
+    // notifications" or a cross-origin "Script error.", with nothing to classify.
+    if (event.error == null) return;
+    send('error', event.error);
   });
-  window.addEventListener('unhandledrejection', (event) => {
-    track('uncaught_error', { kind: 'rejection', ...errorProperties(event.reason) });
-  });
+  window.addEventListener('unhandledrejection', (event) => send('rejection', event.reason));
 }
 
 /** Milliseconds since `start` (a `performance.now()` value), rounded. */

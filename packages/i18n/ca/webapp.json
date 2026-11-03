@@ -2230,6 +2230,7 @@
         "privacyPolicy": "Política de privadesa",
         "rows": {
           "generators": "Funcions utilitzades i si funcionen",
+          "interactions": "Posicions dels clics (mapes de calor) i velocitat de càrrega de les pàgines",
           "diagramComplexity": "Tipus de diagrama i complexitat del model",
           "assistantUsage": "Recompte d'ús de l'assistent d'IA",
           "errorReports": "Informes d'error anònims",

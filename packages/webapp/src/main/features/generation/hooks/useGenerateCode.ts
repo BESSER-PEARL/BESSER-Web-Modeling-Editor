@@ -329,7 +329,15 @@ export const useGenerateCode = () => {
         const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
         if (!validationResult.isValid) {
           reportError(validationResult.message || t('generation.toasts.validationFailed'));
-          return { ok: false, error: validationResult.message || 'Validation failed', reason: 'validation' };
+          return {
+            ok: false,
+            error: validationResult.message || 'Validation failed',
+            // `failure` is set when the validation request itself failed, not the model:
+            // no reason then, which is how a failed request is reported.
+            ...(validationResult.failure === undefined
+              ? { reason: 'validation' as const }
+              : { cause: validationResult.failure }),
+          };
         }
       }
 

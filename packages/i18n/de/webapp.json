@@ -2230,6 +2230,7 @@
         "privacyPolicy": "Datenschutzerklärung",
         "rows": {
           "generators": "Genutzte Funktionen und ob sie funktionieren",
+          "interactions": "Klickpositionen (Heatmaps) und Ladezeiten der Seiten",
           "diagramComplexity": "Diagrammtyp und Modellkomplexität",
           "assistantUsage": "Nutzungshäufigkeit des KI-Assistenten",
           "errorReports": "Anonyme Fehlerberichte",

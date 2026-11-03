@@ -2230,6 +2230,7 @@
         "privacyPolicy": "Dateschutzerklärung",
         "rows": {
           "generators": "Benotzte Funktiounen an ob se funktionéieren",
+          "interactions": "Klickpositiounen (Heatmaps) an d’Ladezäit vun de Säiten",
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
           "errorReports": "Anonym Feelerberichter",

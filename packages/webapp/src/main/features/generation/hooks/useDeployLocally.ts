@@ -31,7 +31,9 @@ export const useDeployLocally = () => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         reportError(validationResult.message || t('generation.toasts.validationFailed'));
-        track('local_deploy_blocked', { generator_type: generatorType, reason: 'validation' });
+        // `failure` is set when the validation request itself failed, not the model.
+        const reason = validationResult.failure !== undefined ? 'request' : 'validation';
+        track('local_deploy_blocked', { generator_type: generatorType, reason });
         return;
       }
 

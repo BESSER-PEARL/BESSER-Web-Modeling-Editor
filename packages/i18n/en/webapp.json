@@ -2230,6 +2230,7 @@
         "privacyPolicy": "Privacy Policy",
         "rows": {
           "generators": "Features used and whether they work",
+          "interactions": "Click positions (heatmaps) and page-load speed",
           "diagramComplexity": "Diagram type and model complexity",
           "assistantUsage": "AI assistant usage count",
           "errorReports": "Anonymous error reports",

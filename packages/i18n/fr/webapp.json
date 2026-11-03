@@ -2230,6 +2230,7 @@
         "privacyPolicy": "Politique de confidentialité",
         "rows": {
           "generators": "Fonctionnalités utilisées et leur bon fonctionnement",
+          "interactions": "Positions des clics (cartes de chaleur) et vitesse de chargement des pages",
           "diagramComplexity": "Type de diagramme et complexité du modèle",
           "assistantUsage": "Nombre d'utilisations de l'assistant IA",
           "errorReports": "Rapports d'erreur anonymes",

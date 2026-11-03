@@ -245,6 +245,8 @@ describe('PostHog', () => {
   });
 
   it('sends events tracked before it loaded, with the time they happened', async () => {
+    // A consented user: without consent PostHog itself drops these.
+    consented = true;
     vi.resetModules();
     const analytics = await import('../lazy-analytics');
     const before = Date.now();
@@ -315,12 +317,19 @@ describe('PostHog', () => {
     expect(posthog.capture).not.toHaveBeenCalled();
   });
 
-  it('makes no request to PostHog before consent: no remote config call, web vitals set locally', async () => {
+  it('makes no request to PostHog before consent: no remote config call, no extension scripts', async () => {
     await start('');
     expect(initOptions()).toMatchObject({
       advanced_disable_decide: true,
       capture_performance: { web_vitals: true, network_timing: false },
+      disable_external_dependency_loading: true,
     });
+  });
+
+  it('loads the heatmap and web-vitals scripts when the page loads with consent', async () => {
+    consented = true;
+    await start('');
+    expect(initOptions()).toMatchObject({ disable_external_dependency_loading: false });
   });
 
   it('opts out at load without consent, even when an earlier consent left an opt-in stored', async () => {
@@ -361,12 +370,15 @@ describe('PostHog', () => {
         $current_url: 'https://editor.besser-pearl.org/auth/callback?code=secret#x',
         $referrer: 'https://github.com/login?return_to=/acme/repo',
         $set_once: { $initial_current_url: 'https://editor.besser-pearl.org/?buml=https://raw.githubusercontent.com/acme/x' },
+        // PostHog's own short keys: the first page (u) and its referrer (r), sent with every event.
+        $initial_person_info: { u: 'https://editor.besser-pearl.org/auth/callback?code=secret&study=p1#f', r: 'https://github.com/login?x=1' },
         count: 3,
       }),
     ).toEqual({
       $current_url: 'https://editor.besser-pearl.org/auth/callback',
       $referrer: 'https://github.com/login',
       $set_once: { $initial_current_url: 'https://editor.besser-pearl.org/' },
+      $initial_person_info: { u: 'https://editor.besser-pearl.org/auth/callback', r: 'https://github.com/login' },
       count: 3,
     });
   });

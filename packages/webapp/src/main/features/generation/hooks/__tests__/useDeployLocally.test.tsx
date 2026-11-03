@@ -10,6 +10,7 @@ import type { ApollonEditor } from '@besser/wme';
 
 import { useDeployLocally } from '../useDeployLocally';
 import { deployApp } from '../../../../shared/api/generation';
+import { validateDiagram } from '../../../../shared/services/validation/validateDiagram';
 import { ApiError } from '../../../../shared/api/api-client';
 
 const captureException = vi.fn();
@@ -61,6 +62,22 @@ describe('useDeployLocally analytics', () => {
         { duration_ms: expect.any(Number), error_type: 'ApiError', http_status: 500, network_error: false },
       ],
     ]);
+  });
+
+  it('blocks on an invalid model as a validation refusal', async () => {
+    vi.mocked(validateDiagram).mockResolvedValueOnce({ isValid: false, errors: ['Class has no name'] } as never);
+    await deploy();
+    expect(deployEvents()).toEqual([['local_deploy_blocked', { generator_type: 'django', reason: 'validation' }]]);
+  });
+
+  it('blocks on a validation request that failed as a request failure, not an invalid model', async () => {
+    vi.mocked(validateDiagram).mockResolvedValueOnce({
+      isValid: false,
+      errors: ['Validation timed out'],
+      failure: new DOMException('timed out', 'TimeoutError'),
+    } as never);
+    await deploy();
+    expect(deployEvents()).toEqual([['local_deploy_blocked', { generator_type: 'django', reason: 'request' }]]);
   });
 });
 

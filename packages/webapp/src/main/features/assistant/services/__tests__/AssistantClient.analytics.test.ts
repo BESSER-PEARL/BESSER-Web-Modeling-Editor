@@ -30,6 +30,12 @@ class FakeSocket {
     this.readyState = 3;
     this.onclose?.();
   }
+  /** An abnormal drop (network lost): the browser fires `error`, then `close`. */
+  fail() {
+    this.readyState = 3;
+    this.onerror?.(new Event('error'));
+    this.onclose?.();
+  }
 }
 
 const events = (name: string) => track.mock.calls.filter(([event]) => event === name).map(([, props]) => props);
@@ -61,6 +67,21 @@ describe('AssistantClient analytics', () => {
     await vi.advanceTimersByTimeAsync(2000);
     latest().open();
     expect(events('assistant_connection')[2]).toEqual({ state: 'reconnected', attempt: 1 });
+    client.disconnect();
+  });
+
+  it('reports an abnormal drop, where error fires before close, once', async () => {
+    const client = new AssistantClient('ws://agent.test');
+    const connecting = client.connect();
+    latest().open();
+    await connecting;
+
+    latest().fail();
+
+    expect(events('assistant_connection')).toEqual([
+      { state: 'connected', attempt: 0 },
+      { state: 'disconnected', attempt: 0 },
+    ]);
     client.disconnect();
   });
 

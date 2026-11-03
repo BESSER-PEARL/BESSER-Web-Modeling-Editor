@@ -97,4 +97,19 @@ describe('uncaught_error', () => {
       ['uncaught_error', { kind: 'rejection', error_type: 'ApiError', http_status: 503, network_error: false }],
     ]);
   });
+
+  it('skips browser notices that carry no error, such as the ResizeObserver loop notice', () => {
+    trackUncaughtErrors();
+    const handler = listeners.find(([t]) => t === 'error')![1];
+    handler(Object.assign(new Event('error'), { error: null, message: 'ResizeObserver loop completed' }));
+    handler(Object.assign(new Event('error'), { error: null, message: 'Script error.' }));
+    expect(captureEvent).not.toHaveBeenCalled();
+  });
+
+  it('sends at most 20 uncaught errors per page', () => {
+    trackUncaughtErrors();
+    const handler = listeners.find(([t]) => t === 'error')![1];
+    for (let i = 0; i < 50; i += 1) handler(Object.assign(new Event('error'), { error: new TypeError('loop') }));
+    expect(captureEvent).toHaveBeenCalledTimes(20);
+  });
 });

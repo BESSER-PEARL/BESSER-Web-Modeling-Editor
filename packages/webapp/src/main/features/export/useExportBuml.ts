@@ -19,7 +19,9 @@ export const useExportBUML = () => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         reportError(validationResult.message || t('export.toasts.validationFailed'));
-        return { ok: false, reason: 'validation', error: validationResult.failure };
+        // `failure` is set when the validation request itself failed, not the model.
+        const reason = validationResult.failure !== undefined ? 'request' : 'validation';
+        return { ok: false, reason, error: validationResult.failure };
       }
 
       if (!editor || !editor.model) {

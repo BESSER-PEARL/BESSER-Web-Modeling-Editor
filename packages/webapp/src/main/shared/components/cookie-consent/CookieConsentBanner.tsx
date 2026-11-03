@@ -243,6 +243,7 @@ export const CookieConsentBanner: React.FC = () => {
   const detailRows = useMemo(
     () => [
       t('shared.cookie.banner.rows.generators'),
+      t('shared.cookie.banner.rows.interactions'),
       t('shared.cookie.banner.rows.diagramComplexity'),
       t('shared.cookie.banner.rows.assistantUsage'),
       t('shared.cookie.banner.rows.errorReports'),

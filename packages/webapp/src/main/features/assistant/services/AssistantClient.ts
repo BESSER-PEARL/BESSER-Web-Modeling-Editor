@@ -393,6 +393,12 @@ export class AssistantClient {
   private readonly actionHandlers = new Set<ActionHandler>();
 
   private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  /** Count an unexpected drop of a live socket once (a failed connection attempt was never live). */
+  private trackUnexpectedDrop(): void {
+    if (this.isConnected && this.shouldReconnect) {
+      track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
+    }
+  }
   private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
   private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
   private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
@@ -455,10 +461,7 @@ export class AssistantClient {
         };
 
         this.ws.onclose = () => {
-          // Only an unexpected drop of a live socket; a failed attempt also fires onerror.
-          if (this.isConnected && this.shouldReconnect) {
-            track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
-          }
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.stopHeartbeat();
           this.connectingPromise = null;
@@ -473,6 +476,8 @@ export class AssistantClient {
 
         this.ws.onerror = (error) => {
           console.error('Assistant WebSocket error:', error);
+          // An abnormal drop fires `error` before `close`, so it is counted here.
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.connectingPromise = null;
           this.emitTyping(false);
