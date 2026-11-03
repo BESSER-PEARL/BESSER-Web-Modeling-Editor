@@ -5,6 +5,7 @@ import type {
   TraceChange,
   TraceFile,
   TraceLink,
+  TraceLogRecord,
   TraceOperation,
 } from '../types/traceability';
 import { changesOf, isCodeArtifact, isModelArtifact } from '../types/traceability';
@@ -34,6 +35,9 @@ export interface TraceIndex {
   linksByTarget: Map<string, TraceLink[]>;
   /** The latest change on each artifact or any of its fragments (ISO time), for suspect checks. */
   latestChangeBelow: Map<string, string>;
+  /** Every log record by id: an evidence may rest on the records of another operation (the edits
+   *  an assistant made rest on the messages of its conversation). */
+  logs: Map<string, TraceLogRecord>;
 }
 
 const push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
@@ -61,9 +65,10 @@ export function indexTrace(trace: TraceFile): TraceIndex {
     push(linksBySource, link.sourceId, link);
     push(linksByTarget, link.targetId, link);
   }
+  const logs = new Map(trace.operations.flatMap((o) => o.toolCalls.flatMap((call) => call.logs.map((log) => [log.id, log] as const))));
   return {
     trace, artifacts, operations, children, changesByArtifact, linksBySource, linksByTarget,
-    latestChangeBelow: latestChangeBelow(artifacts, changesByArtifact),
+    latestChangeBelow: latestChangeBelow(artifacts, changesByArtifact), logs,
   };
 }
 

@@ -101,6 +101,27 @@ describe('LineageView', () => {
     expect(opacities().filter((o) => o <= 0.15)).toHaveLength(1); // the other link
   });
 
+  it('shows the log records an AI evidence rests on, though another operation holds them', () => {
+    const file = trace();
+    // As with the assistant: the messages are the conversation's, the link is the edits'.
+    file.tools.push({ id: 'llm', type: 'LLM', name: 'gpt-6-luna', provider: 'openai', timestamp: time });
+    file.operations.push({
+      id: 'chat', type: 'Conversation', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'],
+      consumes: [], produces: [],
+      toolCalls: [{ id: 'call', toolId: 'llm', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [
+        { id: 'l1', content: 'Add a Book class', sequenceNumber: 0, logType: 'INPUT_REQUEST', timestamp: time },
+        { id: 'l2', content: 'Added the class Book.', sequenceNumber: 1, logType: 'OUTPUT_RESPONSE', timestamp: time },
+      ] }],
+    });
+    file.traceLinks[0].evidence = [{ id: 'ev', type: 'AIEvidence', algorithm: 'gpt-6-luna', logIds: ['l1', 'l2'], timestamp: time }];
+    const { container, button } = view(file, 'book');
+    fireEvent.click(button('Lines 2–3'));
+    const detail = container.querySelector('aside')!.textContent;
+    expect(detail).toContain('AI (gpt-6-luna), based on 2 log records');
+    expect(detail).toContain('UserAdd a Book class');
+    expect(detail).toContain('AssistantAdded the class Book.');
+  });
+
   it('says so when a link has no confidence', () => {
     const file = trace();
     delete file.traceLinks[0].confidence;

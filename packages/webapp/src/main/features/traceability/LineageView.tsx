@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import type { TraceArtifact, TraceEvidence, TraceOperation } from '../../shared/types/traceability';
+import type { TraceArtifact, TraceEvidence, TraceLogRecord, TraceOperation } from '../../shared/types/traceability';
 import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import {
@@ -712,7 +712,10 @@ const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode:
         <h4 className="text-xs font-semibold">{t('traceability.lineage.evidence')}</h4>
         <ul className="space-y-0.5 text-xs">
           {link.evidence.map((evidence) => (
-            <li key={evidence.id}>{describeEvidence(t, evidence)}</li>
+            <li key={evidence.id} className="space-y-1">
+              <div>{describeEvidence(t, evidence)}</div>
+              <EvidenceLogs logs={(evidence.logIds ?? []).flatMap((id) => index.logs.get(id) ?? [])} />
+            </li>
           ))}
           {link.evidence.length === 0 && <li className="text-muted-foreground">{t('traceability.lineage.noEvidence')}</li>}
         </ul>
@@ -738,6 +741,24 @@ const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode:
         </ul>
       )}
     </aside>
+  );
+};
+
+/** The log records an evidence rests on: what was asked and answered, in order. */
+const EvidenceLogs: React.FC<{ logs: TraceLogRecord[] }> = ({ logs }) => {
+  const { t } = useTranslation();
+  if (logs.length === 0) return null;
+  return (
+    <ol className="space-y-1 border-l-2 border-border pl-2">
+      {logs.map((log) => (
+        <li key={log.id}>
+          <span className="block text-[10px] uppercase text-muted-foreground">
+            {t(`traceability.timeline.logTypes.${log.logType}`, { defaultValue: log.logType })}
+          </span>
+          <p className="max-h-32 overflow-auto whitespace-pre-wrap break-words">{log.content}</p>
+        </li>
+      ))}
+    </ol>
   );
 };
 
