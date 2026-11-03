@@ -2211,6 +2211,7 @@
           "generators": "Code generators used",
           "diagramComplexity": "Diagram type and model complexity",
           "assistantUsage": "AI assistant usage count",
+          "errorReports": "Anonymous error reports",
           "noContent": "No model content or personal data"
         }
       },
@@ -2230,7 +2231,8 @@
           "usage": "Feature usage (generators and diagram workflows)",
           "metrics": "Model metrics (size and structure counts)",
           "assistant": "AI assistant usage counts (not content)",
-          "session": "Anonymous session metadata"
+          "session": "Anonymous session metadata",
+          "errors": "Anonymous error reports (error type, stack trace and HTTP status)"
         },
         "noCollectTitle": "Data We Do Not Collect",
         "noCollect": {
@@ -2241,9 +2243,11 @@
         },
         "useTitle": "How We Use Data",
         "useBody": "Analytics is used only to improve product quality and prioritize feature development. It is not used for marketing or resale.",
-        "providerTitle": "Provider",
-        "providerIntro": "We use PostHog (EU-hosted). See",
-        "providerLinkText": "PostHog Privacy Policy"
+        "providerTitle": "Providers",
+        "providerIntro": "We use PostHog (EU-hosted) for usage analytics. See",
+        "providerLinkText": "PostHog Privacy Policy",
+        "errorProviderIntro": "Error reports go to Sentry (EU-hosted, de.sentry.io), only after you accept analytics, and never include model content or project names. See",
+        "errorProviderLinkText": "Sentry Privacy Policy"
       }
     },
     "errors": {

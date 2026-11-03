@@ -83,6 +83,7 @@ const PrivacyPolicyContent: React.FC = () => {
           <li>{t('shared.cookie.privacy.collect.metrics')}</li>
           <li>{t('shared.cookie.privacy.collect.assistant')}</li>
           <li>{t('shared.cookie.privacy.collect.session')}</li>
+          <li>{t('shared.cookie.privacy.collect.errors')}</li>
         </ul>
       </section>
 
@@ -112,6 +113,18 @@ const PrivacyPolicyContent: React.FC = () => {
             className="text-primary underline-offset-4 hover:underline"
           >
             {t('shared.cookie.privacy.providerLinkText')}
+          </a>
+          .
+        </p>
+        <p>
+          {t('shared.cookie.privacy.errorProviderIntro')}{' '}
+          <a
+            href="https://sentry.io/privacy/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            {t('shared.cookie.privacy.errorProviderLinkText')}
           </a>
           .
         </p>
@@ -217,6 +230,7 @@ export const CookieConsentBanner: React.FC = () => {
       t('shared.cookie.banner.rows.generators'),
       t('shared.cookie.banner.rows.diagramComplexity'),
       t('shared.cookie.banner.rows.assistantUsage'),
+      t('shared.cookie.banner.rows.errorReports'),
       t('shared.cookie.banner.rows.noContent'),
     ],
     [t],

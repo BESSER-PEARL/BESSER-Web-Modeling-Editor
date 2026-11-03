@@ -2211,6 +2211,7 @@
           "generators": "Benotzte Code-Generatoren",
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
+          "errorReports": "Anonym Feelerberichter",
           "noContent": "Keng Modellinhalter oder perséinlech Donnéeën"
         }
       },
@@ -2230,7 +2231,8 @@
           "usage": "Funktiounsnotzung (Generatoren an Diagramm-Workflows)",
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
-          "session": "Anonym Sessiounsmetadaten"
+          "session": "Anonym Sessiounsmetadaten",
+          "errors": "Anonym Feelerberichter (Feelertyp, Stacktrace an HTTP-Status)"
         },
         "noCollectTitle": "Donnéeën, déi mir net sammelen",
         "noCollect": {
@@ -2242,8 +2244,10 @@
         "useTitle": "Wéi mir Donnéeën benotzen",
         "useBody": "D'Analyse gëtt nëmme benotzt fir d'Produktqualitéit ze verbesseren an d'Funktiounsentwécklung ze prioriséieren. Si gëtt net fir Marketing oder Verkaf benotzt.",
         "providerTitle": "Ubidder",
-        "providerIntro": "Mir benotzen PostHog (an der EU gehost). Kuckt d'",
-        "providerLinkText": "PostHog Dateschutzerklärung"
+        "providerIntro": "Mir benotzen PostHog (an der EU gehost) fir d'Notzungsanalyse. Kuckt d'",
+        "providerLinkText": "PostHog Dateschutzerklärung",
+        "errorProviderIntro": "Feelerberichter ginn un Sentry (an der EU gehost, de.sentry.io), eréischt nodeems Dir d'Analyse akzeptéiert hutt, an enthalen ni Modellinhalter oder Projetsnimm. Kuckt d'",
+        "errorProviderLinkText": "Sentry Dateschutzerklärung"
       }
     },
     "errors": {

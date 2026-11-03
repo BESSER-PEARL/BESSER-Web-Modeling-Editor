@@ -2211,6 +2211,7 @@
           "generators": "Generadors de codi utilitzats",
           "diagramComplexity": "Tipus de diagrama i complexitat del model",
           "assistantUsage": "Recompte d'ús de l'assistent d'IA",
+          "errorReports": "Informes d'error anònims",
           "noContent": "Sense contingut del model ni dades personals"
         }
       },
@@ -2230,7 +2231,8 @@
           "usage": "Ús de funcions (generadors i fluxos de treball de diagrames)",
           "metrics": "Mètriques del model (recomptes de mida i estructura)",
           "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
-          "session": "Metadades de sessió anònimes"
+          "session": "Metadades de sessió anònimes",
+          "errors": "Informes d'error anònims (tipus d'error, traça de la pila i estat HTTP)"
         },
         "noCollectTitle": "Dades que no recollim",
         "noCollect": {
@@ -2241,9 +2243,11 @@
         },
         "useTitle": "Com utilitzem les dades",
         "useBody": "L'analítica només s'utilitza per millorar la qualitat del producte i prioritzar el desenvolupament de funcions. No s'utilitza per a màrqueting ni revenda.",
-        "providerTitle": "Proveïdor",
-        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Veu la",
-        "providerLinkText": "Política de privadesa de PostHog"
+        "providerTitle": "Proveïdors",
+        "providerIntro": "Utilitzem PostHog (allotjat a la UE) per a l'analítica d'ús. Veu la",
+        "providerLinkText": "Política de privadesa de PostHog",
+        "errorProviderIntro": "Els informes d'error s'envien a Sentry (allotjat a la UE, de.sentry.io) només després que acceptis l'analítica, i mai no inclouen contingut de models ni noms de projectes. Veu la",
+        "errorProviderLinkText": "Política de privadesa de Sentry"
       }
     },
     "errors": {

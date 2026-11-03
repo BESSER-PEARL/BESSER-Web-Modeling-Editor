@@ -2211,6 +2211,7 @@
           "generators": "Generadores de código utilizados",
           "diagramComplexity": "Tipo de diagrama y complejidad del modelo",
           "assistantUsage": "Recuento de uso del asistente de IA",
+          "errorReports": "Informes de errores anónimos",
           "noContent": "Sin contenido del modelo ni datos personales"
         }
       },
@@ -2230,7 +2231,8 @@
           "usage": "Uso de funciones (generadores y flujos de trabajo de diagramas)",
           "metrics": "Métricas del modelo (recuentos de tamaño y estructura)",
           "assistant": "Recuentos de uso del asistente de IA (no el contenido)",
-          "session": "Metadatos de sesión anónimos"
+          "session": "Metadatos de sesión anónimos",
+          "errors": "Informes de errores anónimos (tipo de error, traza de la pila y estado HTTP)"
         },
         "noCollectTitle": "Datos que no recopilamos",
         "noCollect": {
@@ -2241,9 +2243,11 @@
         },
         "useTitle": "Cómo usamos los datos",
         "useBody": "Las analíticas se usan únicamente para mejorar la calidad del producto y priorizar el desarrollo de funciones. No se utilizan con fines de marketing ni de reventa.",
-        "providerTitle": "Proveedor",
-        "providerIntro": "Usamos PostHog (alojado en la UE). Consulta la",
-        "providerLinkText": "Política de privacidad de PostHog"
+        "providerTitle": "Proveedores",
+        "providerIntro": "Usamos PostHog (alojado en la UE) para las analíticas de uso. Consulta la",
+        "providerLinkText": "Política de privacidad de PostHog",
+        "errorProviderIntro": "Los informes de errores se envían a Sentry (alojado en la UE, de.sentry.io) solo después de que aceptes las analíticas, y nunca incluyen contenido de modelos ni nombres de proyectos. Consulta la",
+        "errorProviderLinkText": "Política de privacidad de Sentry"
       }
     },
     "errors": {
