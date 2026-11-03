@@ -92,11 +92,12 @@ export interface WhatsNewState {
 }
 
 /** Null when storage is unreadable. */
-export function readWhatsNewState(storage: Storage = localStorage): WhatsNewState | null {
+export function readWhatsNewState(storage?: Storage): WhatsNewState | null {
   try {
+    const store = storage ?? localStorage;
     return {
-      seen: storage.getItem(localStorageWhatsNewSeen),
-      hasProject: storage.getItem(localStorageLatestProject) !== null,
+      seen: store.getItem(localStorageWhatsNewSeen),
+      hasProject: store.getItem(localStorageLatestProject) !== null,
     };
   } catch {
     return null;
@@ -104,9 +105,9 @@ export function readWhatsNewState(storage: Storage = localStorage): WhatsNewStat
 }
 
 /** A failed write is ignored: the dot comes back next load. */
-export function writeWhatsNewSeen(version: string, storage: Storage = localStorage): void {
+export function writeWhatsNewSeen(version: string, storage?: Storage): void {
   try {
-    storage.setItem(localStorageWhatsNewSeen, version);
+    (storage ?? localStorage).setItem(localStorageWhatsNewSeen, version);
   } catch {
     // storage unavailable
   }
