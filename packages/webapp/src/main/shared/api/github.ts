@@ -4,93 +4,57 @@
  * (`/github/*`) and `routers/spec_driven_router.py` (`/spec-driven/*`).
  */
 import { apiClient } from './api-client';
-import type { components } from './generated/besser-openapi';
+import type { ApiResponse } from './schema';
 import { BACKEND_URL } from '../constants/constant';
 import type { BesserProject } from '../types/project';
 import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
 import type { RepoCodeAnalysis } from '../services/storage/projectGitHubLink';
 import { getDemoToken } from '../services/demoMode';
 
-/** The `BESSER-Origin` trailer of a commit; null when a person made it. */
-export type CommitOrigin = 'spec-driven-agent' | 'editor' | null;
-
-export interface RepoCommit {
-  sha: string;
-  message: string;
-  author: string;
-  date: string;
-  html_url: string;
-  origin: CommitOrigin;
-}
+/** `origin`: the commit's `BESSER-Origin` trailer as written (BESSER writes
+ *  `spec-driven-agent` or `editor`); null when a person made it. */
+export type RepoCommit = ApiResponse<'GitHubCommitResponse'>;
 
 /** `can_push` is false for a repository the user may only read. */
-export type RepoListing = components['schemas']['GitHubRepoResponse'];
+export type RepoListing = ApiResponse<'GitHubRepoResponse'>;
 
 /** `truncated`: the account has more repositories than the list holds. */
-export type RepoList = components['schemas']['GitHubReposListResponse'];
+export type RepoList = ApiResponse<'GitHubReposListResponse'>;
 
-export interface RepoSummary {
-  has_model: boolean;
-  branch: string;
-  head_sha: string;
-  project_name: string;
-  project_id: string | null;
-  diagram_counts: Record<string, number>;
-  class_count: number;
-  class_names: string[];
-  last_commit: RepoCommit | null;
-  /** Where the model was read: `buml/diagrams.json`, or a file an older editor saved. */
-  model_path?: string | null;
-  /** Every file in the repo holding a BESSER model; more than one lets the user pick. */
-  model_paths?: string[];
-}
+/** `model_path`: where the model was read (`buml/diagrams.json`, or a file an older editor saved);
+ *  `model_paths`: every file holding a BESSER model, more than one lets the user pick. */
+export type RepoSummary = ApiResponse<'RepoSummaryResponse'>;
 
-/** Where a save or push kept on its own branch stands (backend `PendingChangeStatus`). */
-export interface PendingChangeStatus {
-  branch: string;
-  branch_exists: boolean;
-  pull_request_number: number | null;
-  pull_request_url: string | null;
+/** Where a save or push kept on its own branch stands. Narrows the schema's
+ *  `pull_request_state: str` to the three values `_pending_status` sets. */
+export type PendingChangeStatus = Omit<ApiResponse<'PendingChangeStatus'>, 'pull_request_state'> & {
   pull_request_state: 'open' | 'closed' | 'merged' | null;
-}
+};
 
-export interface SyncStatus {
-  head_sha: string;
-  /** Commits on the branch since the editor's last sync, newest first. */
-  commits_since: RepoCommit[];
-  in_sync: boolean;
-  /** Set when the request named a pending branch. */
-  pending?: PendingChangeStatus | null;
-}
+/** `commits_since`: commits on the branch since the editor's last sync, newest
+ *  first; `pending` is set when the request named a pending branch. */
+export type SyncStatus = Omit<ApiResponse<'SyncStatusResponse'>, 'pending'> & {
+  pending: PendingChangeStatus | null;
+};
 
-export interface ModelHistoryEntry extends RepoCommit {
-  changes: string[];
-}
+export type ModelHistoryEntry = ApiResponse<'ModelHistoryEntry'>;
 
 /** What BESSER read in a repo it did not create. */
 export type RepoAnalysis = RepoCodeAnalysis;
 
-export interface ImportedRun {
-  run_id: string;
-  project: unknown | null;
-  has_model: boolean;
-  owner: string;
-  repo: string;
-  branch: string;
-  commit_sha: string;
-  message?: string;
-  /** Repos without a BESSER model: what their code holds. */
-  analysis?: RepoAnalysis | null;
-  /** A class diagram read from their data classes, in the shape the editor imports. */
-  proposed_diagram?: { title: string; model: unknown; diagramType: 'ClassDiagram' } | null;
-  /**
-   * No data classes were readable directly and an AI reading could propose a
-   * model: import again with `allowAiReading` once the user agreed.
-   */
-  ai_reading_offered?: boolean;
-  /** Where `project` was read: `buml/diagrams.json`, or a file an older editor saved. */
-  model_path?: string | null;
-}
+/**
+ * Narrows the schema's free dicts `analysis` and `proposed_diagram` (backend
+ * `Optional[dict]`) to the fixed shapes `github_sync.import_run_from_github` builds.
+ * `analysis`: what the code of a repo without a BESSER model holds;
+ * `proposed_diagram`: a class diagram read from its data classes, in the shape
+ * the editor imports; `ai_reading_offered`: no data classes were readable and an
+ * AI reading could propose a model (import again with `allowAiReading` once the
+ * user agreed); `model_path`: where `project` was read.
+ */
+export type ImportedRun = Omit<ApiResponse<'ImportGitHubRunResponse'>, 'analysis' | 'proposed_diagram'> & {
+  analysis: RepoAnalysis | null;
+  proposed_diagram: { title: string; model: unknown; diagramType: 'ClassDiagram' } | null;
+};
 
 /** The GitHub topic BESSER sets on every repo it pushes to. */
 export const BESSER_TOPIC = 'besser';
@@ -106,7 +70,7 @@ export const listRepos = async (githubSession: string): Promise<RepoList> => {
 };
 
 export const listBranches = async (githubSession: string, owner: string, repo: string): Promise<string[]> =>
-  (await apiClient.get<components['schemas']['GitHubBranchesListResponse']>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
+  (await apiClient.get<ApiResponse<'GitHubBranchesListResponse'>>(`/github/branches?${query({ owner, repo })}`, session(githubSession)))
     .branches ?? [];
 
 export const getRepoSummary = (githubSession: string, owner: string, repo: string, branch?: string) =>
@@ -128,7 +92,7 @@ export const getSyncStatus = (
 export const getModelHistory = async (
   githubSession: string, owner: string, repo: string, branch: string, modelPath?: string,
 ) =>
-  (await apiClient.get<{ commits: ModelHistoryEntry[] }>(
+  (await apiClient.get<ApiResponse<'ModelHistoryResponse'>>(
     `/github/model-history?${query({ owner, repo, branch, model_path: modelPath })}`,
     { ...session(githubSession), timeout: 60_000 },
   )).commits ?? [];
@@ -136,20 +100,14 @@ export const getModelHistory = async (
 export const createPullRequest = (
   githubSession: string,
   body: { owner: string; repo: string; head: string; base: string; title: string; body?: string },
-) => apiClient.post<components['schemas']['CreatePullRequestResponse']>('/github/pull-request', body, session(githubSession));
+) => apiClient.post<ApiResponse<'CreatePullRequestResponse'>>('/github/pull-request', body, session(githubSession));
 
 /** Outcome of a commit that must not revert newer commits (see GitHubService.commit_tree). */
 export type PushStatus = 'pushed' | 'merged' | 'conflict' | 'pull_request';
 
-export interface SaveModelResult {
-  success: boolean;
-  commit_sha: string;
-  message: string;
-  status: PushStatus;
-  conflict_branch: string | null;
-  /** What the save could not do as asked, e.g. the B-UML sources could not be rebuilt. */
-  warnings?: string[];
-}
+/** Narrows the schema's `status: str` to the values `GitHubService.commit_tree` returns.
+ *  `warnings`: what the save could not do as asked, e.g. the B-UML sources could not be rebuilt. */
+export type SaveModelResult = Omit<ApiResponse<'SaveProjectResponse'>, 'status'> & { status: PushStatus };
 
 export const saveModel = (
   githubSession: string,
@@ -168,7 +126,7 @@ export const saveModel = (
 
 /** The repo's model file as stored (a V2 envelope or a legacy project) and the head it was read at. */
 export const loadModel = (githubSession: string, owner: string, repo: string, branch: string) =>
-  apiClient.get<{ project: unknown; sha: string }>(
+  apiClient.get<ApiResponse<'LoadProjectResponse'>>(
     `/github/project/load?${query({ owner, repo, branch })}`,
     { ...session(githubSession), timeout: 60_000 },
   );
@@ -176,7 +134,7 @@ export const loadModel = (githubSession: string, owner: string, repo: string, br
 export const loadModelAtCommit = (
   githubSession: string, owner: string, repo: string, commitSha: string, modelPath?: string,
 ) =>
-  apiClient.get<{ project: unknown; commit_sha: string }>(
+  apiClient.get<ApiResponse<'LoadProjectFromCommitResponse'>>(
     `/github/project/load-commit?${query({ owner, repo, commit_sha: commitSha, model_path: modelPath })}`,
     { ...session(githubSession), timeout: 60_000 },
   );
@@ -191,14 +149,14 @@ export const createRepoForProject = (
     project_export: ProjectExportEnvelope;
   },
 ) =>
-  apiClient.post<{ owner: string; repo_url: string; commit_sha: string; branch: string }>(
+  apiClient.post<ApiResponse<'CreateRepoForProjectResponse'>>(
     '/github/project/create-repo',
     body,
     { ...session(githubSession), timeout: 60_000 },
   );
 
 export const createGist = (githubSession: string, project: BesserProject, description: string, isPublic: boolean) =>
-  apiClient.post<{ gist_url: string }>(
+  apiClient.post<ApiResponse<'CreateGistResponse'>>(
     '/github/gist/create',
     { project_data: project, description, is_public: isPublic },
     session(githubSession),
@@ -227,24 +185,15 @@ export const importRepoAsRun = (
     { ...session(githubSession), timeout: 150_000 },
   );
 
-export interface GoLiveResult {
-  commit_sha: string;
-  /** False when the repo already held these exact deploy files. */
-  changed: boolean;
-  render_deploy_url: string;
-  backend_url: string;
-  frontend_url: string | null;
-  backend_dir: string;
-  frontend_dir: string | null;
-  warnings: string[];
-}
+/** `changed` is false when the repo already held these exact deploy files. */
+export type GoLiveResult = ApiResponse<'GoLiveResponse'>;
 
 let goLiveAvailable: Promise<boolean> | null = null;
 
 /** Whether the server deploys the project's own repo ("Go live"); asked once per page load. */
 export const isGoLiveAvailable = (): Promise<boolean> => {
   goLiveAvailable ??= apiClient
-    .get<components['schemas']['AppCapabilitiesResponse']>('/github/app/capabilities')
+    .get<ApiResponse<'AppCapabilitiesResponse'>>('/github/app/capabilities')
     .then((caps) => caps.go_live === true)
     .catch(() => false);
   return goLiveAvailable;

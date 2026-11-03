@@ -181,9 +181,11 @@ Contract types come from the backend's OpenAPI schema: `packages/webapp/openapi/
 generated `shared/api/generated/besser-openapi.d.ts` (`import type { components } from '.../generated/besser-openapi'`).
 Regenerate both with `npm run api:generate --workspace=webapp` (needs Python with BESSER's dependencies; BESSER
 is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of; the script stops when neither
-has a `besser/` package). CI regenerates the `.d.ts` from the committed JSON and fails on a difference. A
-hand-written type stays only where it is narrower than the schema (e.g. a literal union the schema types as
-`string`). Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
+has a `besser/` package). CI regenerates the `.d.ts` from the committed JSON and fails on a difference. Type a
+response body as `ApiResponse<'SchemaName'>` (`shared/api/schema.ts`): the schema marks fields with a default
+optional, but FastAPI always sends them. Where the schema is looser than what the backend sends (a free `dict`, or
+`str` for a fixed set of values), narrow it as `Omit<ApiResponse<'X'>, 'field'> & { field: ... }` with a one-line
+reason. Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
 a plain record (`buildProjectPayloadForBackend`); diagram payloads are typed `DiagramInput`.
 
 ### Error reporting

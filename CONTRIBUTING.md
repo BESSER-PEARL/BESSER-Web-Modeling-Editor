@@ -295,6 +295,8 @@ All backend calls live in `shared/api/` (ESLint rejects `fetch` elsewhere):
   `github.ts`, ...) that components and hooks call.
 - Contract types: `generated/besser-openapi.d.ts`, generated from the
   backend's OpenAPI schema (`packages/webapp/openapi/besser-openapi.json`).
+  Type a response body as `ApiResponse<'SchemaName'>` (`schema.ts`), and
+  narrow a field only where the schema is looser than what the backend sends.
 
 If you change a backend API contract, **update both the backend (Pydantic
 models / endpoint) and `shared/api/`** in lock-step, and regenerate the

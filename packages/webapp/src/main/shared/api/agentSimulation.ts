@@ -1,5 +1,5 @@
 import { apiClient, ApiError } from './api-client';
-import type { components } from './generated/besser-openapi';
+import type { ApiResponse } from './schema';
 import { BACKEND_URL } from '../constants/constant';
 import { getGitHubSession } from '../services/github/githubAuth';
 
@@ -24,13 +24,16 @@ export const AGENT_SIMULATION_WS_AUTH_FAILED_CODE = 4401;
 // Types
 // ---------------------------------------------------------------------------
 
+/** Narrows the schema's `credentials: Dict[str, str]` to the keys `agent_simulator_router` forwards. */
 export interface AgentSimulationCredentials {
   openAiApiKey?: string;
   huggingFaceToken?: string;
   replicateApiKey?: string;
 }
 
-/** Non-secret part of a start/validate request. */
+/** Non-secret part of a start/validate request (`SimulationSessionInput`). `model` and
+ *  `config` are `object`: the editor's models are interfaces, which TypeScript does not
+ *  assign to the schema's `{ [key: string]: unknown }`. */
 export interface AgentSimulationRequest {
   title: string;
   model: object;
@@ -42,19 +45,16 @@ export interface StartAgentSimulationSessionRequest extends AgentSimulationReque
   credentials?: AgentSimulationCredentials;
 }
 
-export interface StartAgentSimulationSessionResponse {
-  sessionId: string;
-  eventList?: string[];
-}
+export type StartAgentSimulationSessionResponse = ApiResponse<'SimulationSessionResponse'>;
 
-export type ValidateAgentResponse = components['schemas']['SimulationValidationResponse'];
+export type ValidateAgentResponse = ApiResponse<'SimulationValidationResponse'>;
 
-export type AgentSimulationSessionFile = components['schemas']['SimulationSessionFile'];
+export type AgentSimulationSessionFile = ApiResponse<'SimulationSessionFile'>;
 
-export type AgentSimulationSessionFilesResponse = components['schemas']['SimulationSessionFilesResponse'];
+export type AgentSimulationSessionFilesResponse = ApiResponse<'SimulationSessionFilesResponse'>;
 
 /** A limit the server does not set arrives as `null`. */
-export type AgentSimulationLimits = components['schemas']['SimulationLimitsResponse'];
+export type AgentSimulationLimits = ApiResponse<'SimulationLimitsResponse'>;
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -129,8 +129,8 @@ export const agentSimulationApi = {
   stopSession(
     sessionId: string,
     options: { keepalive?: boolean } = {},
-  ): Promise<components['schemas']['SimulationSessionStopResponse']> {
-    return apiClient.request<components['schemas']['SimulationSessionStopResponse']>(`/simulation/sessions/${encodeURIComponent(sessionId)}`, {
+  ): Promise<ApiResponse<'SimulationSessionStopResponse'>> {
+    return apiClient.request<ApiResponse<'SimulationSessionStopResponse'>>(`/simulation/sessions/${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
       headers: authHeaders(),
       keepalive: options.keepalive,

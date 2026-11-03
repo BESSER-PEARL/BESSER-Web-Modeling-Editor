@@ -64,6 +64,7 @@ import {
 } from '../../spec-driven';
 import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
+import type { ApiResponse } from '../../../shared/api/schema';
 
 const DEFAULT_BRANCH = 'main';
 
@@ -81,26 +82,16 @@ export interface SpecDrivenPushConfig {
   pushMode?: 'commit' | 'pull_request';
 }
 
-export interface SpecDrivenPushResult {
-  success: boolean;
-  repo_url: string;
-  owner: string;
-  repo_name: string;
-  is_first_push: boolean;
-  files_uploaded: number;
-  branch: string;
-  commit_sha: string;
+/**
+ * `POST /spec-driven/push-to-github`. Narrows the schema's `status: str` to the
+ * values `github_sync` returns. `pull_request_branch`: the branch the pull request
+ * merges (status `pull_request`); `warnings`: e.g. the app's previous deploy
+ * settings were kept; `project_export`: the model the push wrote when the run
+ * changed it, null when it is the editor's own.
+ */
+export type SpecDrivenPushResult = Omit<ApiResponse<'PushSmartToGitHubResponse'>, 'status'> & {
   status: PushStatus;
-  conflict_branch: string | null;
-  pull_request_url: string | null;
-  /** The branch the pull request merges (status `pull_request`). */
-  pull_request_branch?: string | null;
-  base_run_id: string | null;
-  /** E.g. the app's previous deploy settings were kept; shown on the result view. */
-  warnings?: string[];
-  /** The model the push wrote when the run changed it (e.g. added classes); null when it is the editor's own. */
-  project_export?: unknown;
-}
+};
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
 export type SpecDrivenPushErrorCode =

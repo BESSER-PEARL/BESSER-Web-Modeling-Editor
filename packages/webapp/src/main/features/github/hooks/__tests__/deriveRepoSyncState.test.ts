@@ -9,6 +9,7 @@ const status = (behind: number) => ({
   head_sha: 'b'.repeat(40),
   commits_since: Array.from({ length: behind }, () => commit),
   in_sync: behind === 0,
+  pending: null,
 });
 
 const state = (over: Partial<Parameters<typeof deriveRepoSyncState>[0]>) =>

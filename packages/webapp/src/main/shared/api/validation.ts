@@ -1,9 +1,9 @@
 /** Diagram validation (BESSER `routers/validation_router.py`). */
 import { apiClient } from './api-client';
-import type { components } from './generated/besser-openapi';
+import type { ApiResponse } from './schema';
 import type { DiagramInput } from './generation';
 
-export type ValidationResponse = components['schemas']['ValidationResponse'];
+export type ValidationResponse = ApiResponse<'ValidationResponse'>;
 
 /** Validation converts the model to B-UML and runs its OCL constraints. */
 const VALIDATION_TIMEOUT_MS = 120_000;

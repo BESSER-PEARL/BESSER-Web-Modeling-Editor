@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
+import type { ApiResponse } from '../../../shared/api/schema';
 import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
@@ -89,16 +90,11 @@ export interface CreateRepoOptions {
   personalizationMapping?: ReadonlyArray<unknown> | null;
 }
 
-type DeployWebappResponse = {
-  success: boolean;
-  repo_url: string;
-  repo_name: string;
-  owner: string;
-  files_uploaded: number;
-  message: string;
-  deployment_urls?: GitHubDeploymentUrls;
-  is_first_deploy?: boolean;
-  deployment_type?: unknown;
+/** `POST /github/deploy-webapp`. Narrows the schema's free dict `deployment_urls`
+ *  to the keys the backend sets, and `deployment_type: str` to its two values. */
+type DeployWebappResponse = Omit<ApiResponse<'DeployToGitHubResponse'>, 'deployment_urls' | 'deployment_type'> & {
+  deployment_urls: GitHubDeploymentUrls;
+  deployment_type: BackendDeploymentTarget;
 };
 
 const toGitHubRepoResult = (
