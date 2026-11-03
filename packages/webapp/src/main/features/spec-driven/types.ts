@@ -250,13 +250,11 @@ export type SpecDrivenEvent = (
  * The frontend consumes this from the existing assistant WebSocket
  * action dispatcher and kicks off a spec-driven run.
  *
- * ``provider``, ``llmModel``, and ``message`` are always sent by the
- * modeling agent today (see
- * ``modeling-agent/src/handlers/smart_generation_handler.py::build_trigger_smart_generator_payload``)
- * but kept optional here so the frontend handles older / alternative
- * sources gracefully — ``useSpecDrivenTrigger`` falls back to the
- * sessionStorage provider and a default intro message when they're
- * absent.
+ * ``provider`` and ``message`` are always sent by the modeling agent
+ * (``src/codegen/smart_generation_handler.py::build_trigger_smart_generator_payload``);
+ * ``llmModel`` only when the user picked a model, otherwise the backend's
+ * catalog default decides. All three stay optional: ``useSpecDrivenTrigger``
+ * falls back to the sessionStorage provider and a default intro message.
  */
 export interface TriggerSpecDrivenPayload {
   action: 'trigger_smart_generator';

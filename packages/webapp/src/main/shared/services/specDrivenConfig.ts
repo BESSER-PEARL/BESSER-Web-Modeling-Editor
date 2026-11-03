@@ -117,9 +117,11 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,
   features: {},
+  // The shipped model catalog's defaults. Display data only: a run without a
+  // chosen model omits llm_model and the server's catalog default decides.
   default_models: {
-    anthropic: 'claude-sonnet-5',
-    openai: 'gpt-4o',
+    anthropic: 'claude-sonnet-5-5',
+    openai: 'gpt-6-sol',
     mistral: 'mistral-large-latest',
     nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
   },
