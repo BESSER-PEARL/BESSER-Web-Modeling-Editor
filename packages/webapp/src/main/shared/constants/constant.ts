@@ -207,6 +207,8 @@ export const localStorageLegacyGitHubAutoCommit = localStoragePrefix + 'github_a
 export const localStorageLegacyAgentConfig = 'agentConfig';
 // Unprefixed keys of the pre-v7 webapp, removed by the v2 storage migration and by "Reset and reload".
 // Literals on purpose: the keys of a past version must not follow a rename of a live constant.
+// 'github_username' and 'umlAgentRateLimiterState' are still live: clearing them is intended (Reset
+// wipes all app state, and both are rebuilt on use; the server enforces its own rate limit).
 export const legacyUnprefixedLocalStorageKeys: readonly string[] = [
   'latestDiagram',
   'agentConfig',

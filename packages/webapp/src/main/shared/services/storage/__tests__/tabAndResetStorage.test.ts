@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { claimChunkReload, readDemoToken, readPilotParticipant, writeDemoToken, writePilotParticipant } from '../tabStorage';
 import { clearAppLocalStorage } from '../resetStorage';
 import {
+  legacyUnprefixedLocalStorageKeys,
+  localStorageAssistantRateLimiterState,
+  localStorageGitHubUsername,
   localStorageProjectsList,
   sessionStorageChunkReloaded,
   sessionStorageDemoToken,
@@ -54,5 +57,19 @@ describe('clearAppLocalStorage', () => {
     expect(localStorage.length).toBe(2);
     expect(localStorage.getItem('besser-standalone-settings')).toBe('{}');
     expect(localStorage.getItem('unrelated')).toBe('x');
+  });
+
+  it('clears the live rate limiter state and GitHub username on purpose', () => {
+    // Both keys are in the legacy list, which the v2 migration also removes.
+    expect(legacyUnprefixedLocalStorageKeys).toEqual(
+      expect.arrayContaining([localStorageAssistantRateLimiterState, localStorageGitHubUsername]),
+    );
+    localStorage.setItem(localStorageAssistantRateLimiterState, '{"requestHistory":[],"lastRequestTime":1}');
+    localStorage.setItem(localStorageGitHubUsername, 'octocat');
+
+    clearAppLocalStorage();
+
+    expect(localStorage.getItem(localStorageAssistantRateLimiterState)).toBeNull();
+    expect(localStorage.getItem(localStorageGitHubUsername)).toBeNull();
   });
 });
