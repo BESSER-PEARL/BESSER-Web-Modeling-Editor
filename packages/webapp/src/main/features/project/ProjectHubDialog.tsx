@@ -439,15 +439,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         autoClose: 5000,
       });
     } catch (error) {
-      toast.update(toastId, {
-        render: t('project.hub.create.github.toasts.failed', {
+      reportError(
+        t('project.hub.create.github.toasts.failed', {
           defaultValue: 'Your project was created, but saving it on GitHub failed: {{error}}',
           error: error instanceof Error ? error.message : t('project.hub.unknownError'),
         }),
-        type: 'error',
-        isLoading: false,
-        autoClose: 8000,
-      });
+        { updateToast: toastId, isLoading: false, autoClose: 8000, error },
+      );
     }
   };
 

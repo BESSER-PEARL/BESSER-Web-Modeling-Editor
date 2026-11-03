@@ -139,7 +139,8 @@ deployment.
   Offline, aborted and 4xx failures are not sent, and every Sentry event is
   reduced to the error type, HTTP status and stack (no messages). A notice uses
   ``globalAlert()`` (the confirm dialog with one button). ESLint rejects
-  ``toast.error(`` and ``alert(`` anywhere else in ``src/`` outside tests.
+  ``toast.error(``, an error ``toast.update(`` (use the ``updateToast``
+  option) and ``alert(`` anywhere else in ``src/`` outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.

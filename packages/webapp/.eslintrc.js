@@ -52,9 +52,14 @@ const ALERT_MESSAGE = 'Use globalAlert() from shared/services/confirm/globalConf
 const ERROR_SYNTAX = [
   { selector: "CallExpression[callee.object.name='toast'][callee.property.name='error']", message: REPORT_ERROR_MESSAGE },
   { selector: "CallExpression[callee.object.name='toast'][callee.property.value='error']", message: REPORT_ERROR_MESSAGE },
-  // `toast(m, { type: 'error' })`. A loading toast turned into an error (`toast.update`) stays allowed.
+  // `toast(m, { type: 'error' })`, and `toast.update(id, { type: 'error' })` (use reportError's `updateToast`).
   {
     selector: "CallExpression[callee.name='toast'] > ObjectExpression > Property[key.name='type'][value.value='error']",
+    message: REPORT_ERROR_MESSAGE,
+  },
+  {
+    selector:
+      "CallExpression[callee.object.name='toast'][callee.property.name='update'] > ObjectExpression > Property[key.name='type'][value.value='error']",
     message: REPORT_ERROR_MESSAGE,
   },
   // A renamed import (`import { toast as t }`) would slip past the selectors above.

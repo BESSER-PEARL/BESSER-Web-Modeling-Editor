@@ -192,8 +192,8 @@ a plain record (`buildProjectPayloadForBackend`); diagram payloads are typed `Di
 
 ### Error reporting
 A failure the user should see goes through `reportError(message, { error, ...toastOptions })` in
-`shared/services/errors/reportError.ts`: the react-toastify error toast (same options and `toastId` dedupe), plus
-the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
+`shared/services/errors/reportError.ts`: the react-toastify error toast (same options and `toastId` dedupe; with
+`updateToast: id` it turns that toast, e.g. a `toast.loading`, into the error toast), plus the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
 cookie banner (`applyAnalyticsConsent` in `lazy-analytics.ts` starts and stops it, like PostHog's opt-in); offline,
 aborted and 4xx failures (`isNetworkError`, `ApiError`/`SseHttpError` status < 500) are toast-only, and the
 `beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path, browser and
@@ -206,9 +206,9 @@ never add a tracking tag to `index.html`; every provider is named in the cookie 
 in the same module is the `.catch()` handler for fire-and-forget promises. Developer diagnostics stay `console.*`
 at the call site; `reportError` never logs. Notices that used `alert()` use `globalAlert()` from
 `shared/services/confirm/globalConfirm.ts` (the confirm dialog with one OK button; it does not block, so await it if
-code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(` and `alert(` anywhere in `src/` outside those modules and tests,
+code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(`, `toast.update(id, { type: 'error' })` and `alert(` anywhere in `src/` outside those modules and tests,
 and `no-restricted-globals` rejects the un-imported global `reportError` (the browser's own, which only fires an
-`error` event). A loading toast turned into an error with `toast.update(id, { type: 'error' })` stays as it is.
+`error` event).
 Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
 stays in Redux.
 

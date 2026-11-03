@@ -85,15 +85,12 @@ export const useDeployLocally = () => {
         if (error instanceof ApiError) {
           console.error('Response not OK:', error.status, error.message);
           // Update the toast to an error state
-          toast.update(toastId, {
-            render:
-              error.detail && (error.status === 400 || error.status === 500)
-                ? error.detail
-                : t('generation.toasts.httpError', { status: error.status }),
-            type: "error",
-            isLoading: false,
-            autoClose: 5000
-          });
+          reportError(
+            error.detail && (error.status === 400 || error.status === 500)
+              ? error.detail
+              : t('generation.toasts.httpError', { status: error.status }),
+            { updateToast: toastId, isLoading: false, autoClose: 5000, error },
+          );
           return;
         }
 
@@ -103,12 +100,7 @@ export const useDeployLocally = () => {
         }
 
         // Update the toast to error
-        toast.update(toastId, {
-          render: errorMessage,
-          type: "error",
-          isLoading: false,
-          autoClose: 5000
-        });
+        reportError(errorMessage, { updateToast: toastId, isLoading: false, autoClose: 5000, error });
       }
     },
     [t]

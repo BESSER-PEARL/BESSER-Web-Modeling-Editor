@@ -8,7 +8,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const toastError = vi.fn((..._args: unknown[]) => 'toast-id');
-vi.mock('react-toastify', () => ({ toast: { error: (...args: unknown[]) => toastError(...args) } }));
+const toastUpdate = vi.fn();
+vi.mock('react-toastify', () => ({
+  toast: { error: (...args: unknown[]) => toastError(...args), update: (...args: unknown[]) => toastUpdate(...args) },
+}));
 
 const captureException = vi.fn();
 let sentryLoaded = true;
@@ -24,6 +27,7 @@ const HANDLED = { tags: { handled: 'reportError' } };
 
 beforeEach(() => {
   toastError.mockClear();
+  toastUpdate.mockClear();
   captureException.mockClear();
   sentryLoaded = true;
 });
@@ -98,6 +102,24 @@ describe('notifyError', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     notifyError('Loading latest project')(new TypeError('Failed to fetch'));
     expect(toastError.mock.calls[0][0]).toMatch(/^Loading latest project failed: Couldn.t reach the server/);
+    expect(captureException).not.toHaveBeenCalled();
+  });
+});
+
+describe('reportError on a loading toast', () => {
+  it('turns that toast into the error toast, with the options given, and reports the error', () => {
+    const error = new Error('boom');
+    expect(reportError('Deploy failed', { updateToast: 'loading-id', isLoading: false, autoClose: 5000, error })).toBe('loading-id');
+    expect(toastUpdate.mock.calls).toEqual([
+      ['loading-id', { render: 'Deploy failed', type: 'error', isLoading: false, autoClose: 5000 }],
+    ]);
+    expect(toastError).not.toHaveBeenCalled();
+    expect(captureException).toHaveBeenCalledWith(error, HANDLED);
+  });
+
+  it('keeps an expected failure out of Sentry', () => {
+    reportError('Deploy failed', { updateToast: 'loading-id', error: new ApiError(404, 'Not Found') });
+    expect(toastUpdate).toHaveBeenCalledWith('loading-id', { render: 'Deploy failed', type: 'error' });
     expect(captureException).not.toHaveBeenCalled();
   });
 });

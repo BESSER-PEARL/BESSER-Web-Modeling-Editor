@@ -7,6 +7,8 @@ import { describeNetworkError, isNetworkError } from '../../utils/describeNetwor
 export interface ReportErrorOptions extends ToastOptions {
   /** The caught error. Sent to Sentry when the user consented to analytics; never shown. */
   error?: unknown;
+  /** A toast already showing (e.g. `toast.loading`) to turn into the error toast instead of opening one. */
+  updateToast?: Id;
 }
 
 /** Offline/aborted/timed-out requests and 4xx answers are expected, not bugs: toast only. */
@@ -23,9 +25,13 @@ function isReportable(error: unknown): boolean {
  * diagnostics stay `console.*` at the call site.
  */
 export function reportError(message: ToastContent, options: ReportErrorOptions = {}): Id {
-  const { error, ...toastOptions } = options;
+  const { error, updateToast, ...toastOptions } = options;
   if (error !== undefined && isReportable(error)) {
     getSentry()?.captureException(error, { tags: { handled: 'reportError' } });
+  }
+  if (updateToast !== undefined) {
+    toast.update(updateToast, { render: message, type: 'error', ...toastOptions });
+    return updateToast;
   }
   return Object.keys(toastOptions).length > 0 ? toast.error(message, toastOptions) : toast.error(message);
 }
