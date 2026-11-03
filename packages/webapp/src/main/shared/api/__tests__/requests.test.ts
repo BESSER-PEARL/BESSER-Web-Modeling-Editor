@@ -231,7 +231,7 @@ describe('validation, feedback and telemetry', () => {
     expect(init).toEqual({ method: 'POST', headers: JSON_ONLY, body: JSON.stringify(submission), signal: SIGNAL });
   });
 
-  it('posts a telemetry event with keepalive (raw: fire-and-forget across unload)', async () => {
+  it('posts a telemetry event with keepalive, so it outlives a page unload', async () => {
     await postTelemetryEvent({ session: 's1', participant: 'P1', kind: 'prompt', payload: { n: 1 } });
     const [url, init] = lastCall();
     expect(url).toBe(`${BACKEND_URL}/telemetry/event`);
@@ -240,6 +240,7 @@ describe('validation, feedback and telemetry', () => {
       headers: JSON_ONLY,
       body: '{"session":"s1","participant":"P1","kind":"prompt","payload":{"n":1}}',
       keepalive: true,
+      signal: SIGNAL,
     });
   });
 });
@@ -345,6 +346,8 @@ describe('timeouts', () => {
     ['personalize-gui-page', 600_000, () => personalizeGuiPage({})],
     ['validate-diagram', 120_000, () => postValidateDiagram(DIAGRAM)],
     ['feedback', 60_000, () => submitFeedback(feedback)],
+    ['telemetry/event', 30_000, () => postTelemetryEvent({ session: 's', participant: 'P', kind: 'prompt', payload: {} })],
+    ['github/auth/logout', 30_000, () => logOutOfGitHub('s')],
     ['spec-driven/config', 30_000, () => fetchSpecDrivenConfig()],
     ['spec-driven/preview (caller-chosen)', 8_000, () => previewSpecDrivenRun(preview, { timeout: 8_000 })],
     ['spec-driven/download', 300_000, () => downloadSpecDrivenOutput('r')],
@@ -401,7 +404,7 @@ describe('github sign-in and star', () => {
     await logOutOfGitHub('sess');
     expect(lastCall()).toEqual([
       `${BACKEND_URL}/github/auth/logout`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"session_id":"sess"}' },
+      { method: 'POST', headers: JSON_ONLY, body: '{"session_id":"sess"}', signal: SIGNAL },
     ]);
   });
 

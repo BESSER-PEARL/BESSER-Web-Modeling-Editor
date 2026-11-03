@@ -194,28 +194,26 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
 /** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
 export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';
 
-// Sign-in and star calls answer with the raw `Response`: their callers read the
-// body themselves and must not get the client's timeout or 401 event.
+// Raw `fetch` stays where apiClient cannot send the same request: it adds
+// `Content-Type: application/json` to every call and rejects a non-2xx answer,
+// while these callers read the raw `Response` (status and body) themselves.
 
-/** `GET /github/auth/status`: whether the session still works (`GitHubOAuthResponse`). */
+/** `GET /github/auth/status`: whether the session still works (`GitHubOAuthResponse`). Raw: the
+ *  caller reads every answer itself, a 401 included, which apiClient would turn into its rejected-session event. */
 export const getGitHubAuthStatus = (githubSession: string, signal: AbortSignal): Promise<Response> =>
   fetch(`${BACKEND_URL}/github/auth/status`, { ...session(githubSession), signal });
 
 /** `POST /github/auth/logout`: end the session on the backend, which also revokes the GitHub token. */
-export const logOutOfGitHub = (githubSession: string): Promise<Response> =>
-  fetch(`${BACKEND_URL}/github/auth/logout`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: githubSession }),
-  });
+export const logOutOfGitHub = (githubSession: string) =>
+  apiClient.post<unknown>('/github/auth/logout', { session_id: githubSession });
 
-/** `GET /github/star/status`: `{starred}` for the BESSER repository. */
+/** `GET /github/star/status`: `{starred}` for the BESSER repository. Raw: a GET without a content type. */
 export const getStarStatus = (githubSession: string, signal: AbortSignal): Promise<Response> =>
   fetch(`${BACKEND_URL}/github/star/status`, { ...session(githubSession), signal });
 
-/** `PUT` (star) or `DELETE` (unstar) `/github/star`. */
+/** `PUT` (star) or `DELETE` (unstar) `/github/star`. Raw: no body, so no content type; the caller reads `ok`. */
 export const setStarred = (githubSession: string, starred: boolean): Promise<Response> =>
   fetch(`${BACKEND_URL}/github/star`, { method: starred ? 'PUT' : 'DELETE', ...session(githubSession) });
 
-/** A file from `raw.githubusercontent.com` (a public repository; no backend involved). */
+/** A file from `raw.githubusercontent.com` (a public repository). Raw: not the backend apiClient is bound to. */
 export const fetchRawGitHubFile = (rawUrl: string): Promise<Response> => fetch(rawUrl);
