@@ -13,8 +13,7 @@ import { ensureDesignSystemStyles } from './designSystem';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
-import { globalAlert, globalConfirm } from '../../../shared/services/confirm/globalConfirm';
-import { reportError } from '../../../shared/services/errors/reportError';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
@@ -925,29 +924,6 @@ export function setupProjectStorageIntegration(
  * Setup custom commands for export, JSON, etc.
  */
 function setupCommands(editor: Editor) {
-  // Save project command
-  editor.Commands.add('save-project', {
-    run(editor: Editor) {
-      try {
-        console.log('[Save] Manual save triggered');
-        
-        // Check if editor has storables before trying to save
-        const editorModel = (editor as any).em;
-        if (!editorModel || !editorModel.storables) {
-          console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          void globalAlert({ title: i18n.t('editors.gui.editorStillLoading') });
-          return;
-        }
-        
-        editor.store();
-        console.log('[Save] Manual save completed');
-      } catch (error) {
-        console.error('[Save] Manual save error:', error);
-        reportError(i18n.t('editors.gui.errorSavingProject'), { error });
-      }
-    }
-  });
-  
   // Export template command
   editor.Commands.add('export-template', {
     run(editor: Editor) {
@@ -1721,40 +1697,6 @@ function setupPageRouting(editor: Editor) {
       page.get('attributes')?.route || 
       `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
     // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
-  });
-  
-  // Add command to edit page route (legacy - now handled in Pages panel)
-  editor.Commands.add('edit-page-route', {
-    run(editor: Editor) {
-      const currentPage = editor.Pages.getSelected();
-      if (!currentPage) {
-        void globalAlert({ title: i18n.t('editors.gui.noPageSelected') });
-        return;
-      }
-      
-      const pageName = currentPage.getName();
-      const storedRoute = currentPage.get('route_path');
-      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
-        ? storedRoute 
-        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
-      
-      const newRoute = prompt(
-        i18n.t('editors.gui.editRoutePrompt', { pageName }),
-        currentRoute
-      );
-      
-      if (newRoute !== null && newRoute.trim()) {
-        let route = newRoute.trim();
-        if (!route.startsWith('/')) route = '/' + route;
-        // Clean the route
-        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
-        
-        currentPage.set('route_path', route);
-        
-        // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        void globalAlert({ title: i18n.t('editors.gui.routeUpdated', { route }) });
-      }
-    }
   });
 }
 
