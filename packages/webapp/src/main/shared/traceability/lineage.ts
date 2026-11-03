@@ -1,7 +1,8 @@
 import type { CodeArtifact, ModelArtifact, PromptArtifact, TraceArtifact, TraceLink, TraceOperation } from '../types/traceability';
 import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../types/traceability';
 import type { TraceIndex } from './traceQueries';
-import { isSuspect, withDescendants } from './traceQueries';
+import type { OutOfDateReason } from './traceQueries';
+import { outOfDate, withDescendants } from './traceQueries';
 
 /**
  * The lineage of an artifact: everything it was derived from and everything derived from it,
@@ -13,19 +14,16 @@ import { isSuspect, withDescendants } from './traceQueries';
  * in links (a diagram's elements, a class's members, a file's fragments), and the links reach them.
  */
 
-/** Whether a link still holds: `suspect` when its source changed after it was made, `staleUpstream`
- *  when the link itself holds but something its source was derived from is stale. */
-export type LineageEdgeState = 'current' | 'suspect' | 'staleUpstream';
-
 export interface LineageEdge {
   link: TraceLink;
-  state: LineageEdgeState;
+  /** Why the link may no longer hold (`TraceLink./outOfDate`); empty while it holds. */
+  outOfDate: OutOfDateReason[];
 }
 
 export interface LineageNode {
   artifact: TraceArtifact;
-  /** Reached through a suspect link, directly or further upstream: its content may be out of date. */
-  stale: boolean;
+  /** A link into it has a changed source, here or further upstream: its content may be out of date. */
+  outOfDate: boolean;
 }
 
 export interface Lineage {
@@ -117,33 +115,18 @@ export function lineageOf(index: TraceIndex, rootId: string | null, options: Lin
   // Without older generations, an artifact reached only through them is not part of the lineage.
   const ends = new Set([...links.flatMap((l) => [l.sourceId, l.targetId]), ...(rootId ? [rootId] : [])]);
 
-  const into = new Map<string, TraceLink[]>();
-  for (const link of links) {
-    const list = into.get(link.targetId);
-    if (list) list.push(link);
-    else into.set(link.targetId, [link]);
-  }
-
-  // Staleness flows downstream: a node is stale when a link into it is suspect or comes from a stale node.
-  const layer = layers(ends, links.map((l) => [l.sourceId, l.targetId]));
-  const ordered = [...ends].filter((id) => index.artifacts.has(id)).sort((a, b) => layer.get(a)! - layer.get(b)!);
+  const lineageEdges = links.map((link) => ({ link, outOfDate: outOfDate(index, link) }));
+  // A node may be out of date when a link into it is, because of its source or further upstream; an
+  // edited target is not: it is the edit itself.
+  const behind = new Set(
+    lineageEdges.filter((e) => e.outOfDate.some((reason) => reason !== 'TARGET_CHANGED')).map((e) => e.link.targetId),
+  );
   const nodes = new Map<string, LineageNode>();
-  const states = new Map<string, LineageEdgeState>();
-  for (const id of ordered) {
-    let stale = false;
-    for (const link of into.get(id) ?? []) {
-      const state: LineageEdgeState = isSuspect(index, link)
-        ? 'suspect'
-        : nodes.get(link.sourceId)?.stale
-          ? 'staleUpstream'
-          : 'current';
-      states.set(link.id, state);
-      stale ||= state !== 'current';
-    }
-    nodes.set(id, { artifact: index.artifacts.get(id)!, stale });
+  for (const id of ends) {
+    const artifact = index.artifacts.get(id);
+    if (artifact) nodes.set(id, { artifact, outOfDate: behind.has(id) });
   }
-
-  return { rootId, nodes, edges: links.map((link) => ({ link, state: states.get(link.id) ?? 'current' })) };
+  return { rootId, nodes, edges: lineageEdges };
 }
 
 /** What a row of the layout shows: an artifact, or a generation run holding the files it produced. */
@@ -165,8 +148,8 @@ export interface LineageRow {
   /** Its parts that take part in the lineage: what expanding it shows. */
   parts: number;
   expanded: boolean;
-  /** Stale itself or, while collapsed, in a part it hides. */
-  stale: boolean;
+  /** Out of date itself or, while collapsed, in a part it hides. */
+  outOfDate: boolean;
 }
 
 /** A top-level subject of the lineage (a diagram, a generation run, a prompt) and its visible rows. */
@@ -268,14 +251,14 @@ export function lineageLayout(index: TraceIndex, lineage: Lineage, expanded: Rea
 
   // What the lineage involves: its nodes and every subject holding one.
   const involved = new Map<string, LineageSubject>();
-  const staleBelow = new Set<string>();
+  const outOfDateBelow = new Set<string>();
   const tops = new Set<string>();
   for (const node of lineage.nodes.values()) {
     const chain = tree.chainOf(node.artifact.id);
     tops.add(chain[0].id);
     for (const subject of chain) {
       involved.set(subject.id, subject);
-      if (node.stale) staleBelow.add(subject.id);
+      if (node.outOfDate) outOfDateBelow.add(subject.id);
     }
   }
 
@@ -301,8 +284,8 @@ export function lineageLayout(index: TraceIndex, lineage: Lineage, expanded: Rea
   const rowsOf = (subject: LineageSubject, depth: number, rows: LineageRow[]) => {
     const parts = tree.partsOf(subject, involved);
     const open = expanded.has(subject.id) && parts.length > 0;
-    const stale = open ? lineage.nodes.get(subject.id)?.stale === true : staleBelow.has(subject.id);
-    rows.push({ subject, depth, parts: parts.length, expanded: open, stale });
+    const stale = open ? lineage.nodes.get(subject.id)?.outOfDate === true : outOfDateBelow.has(subject.id);
+    rows.push({ subject, depth, parts: parts.length, expanded: open, outOfDate: stale });
     if (open) for (const part of parts) rowsOf(part, depth + 1, rows);
     return rows;
   };

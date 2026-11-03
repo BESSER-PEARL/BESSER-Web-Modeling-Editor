@@ -13,14 +13,15 @@ import type { TraceArtifact, TraceEvidence, TraceLogRecord, TraceOperation } fro
 import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import {
-  changesSince,
+  changedSince,
   fragmentLines,
   historyOf,
   isDeleted,
   isDiagram,
   qualifiedName,
 } from '../../shared/traceability/traceQueries';
-import type { Lineage, LineageBundle, LineageEdge, LineageEdgeState, LineageLayout, LineageRow, LineageSubject } from '../../shared/traceability/lineage';
+import type { OutOfDateReason } from '../../shared/traceability/traceQueries';
+import type { Lineage, LineageBundle, LineageEdge, LineageLayout, LineageRow, LineageSubject } from '../../shared/traceability/lineage';
 import { expandableIds, lineageLayout, lineageOf, pathTo, runOfSubjectId } from '../../shared/traceability/lineage';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 import { LineageRootPicker, WHOLE_PROJECT } from './LineageRootPicker';
@@ -30,7 +31,12 @@ const EVIDENCE_STROKES: Record<TraceEvidence['type'], string> = {
   RuleEvidence: 'stroke-slate-400 dark:stroke-slate-500',
   AIEvidence: 'stroke-violet-500',
 };
-const STALE_STROKE = 'stroke-amber-500';
+const OUT_OF_DATE_STROKE = 'stroke-amber-500';
+
+/** How a link is drawn: amber, solid when one of its own ends changed, dashed when only something upstream did. */
+type LinkLook = 'upToDate' | 'endChanged' | 'upstreamChanged';
+const lookOf = (edge: LineageEdge): LinkLook =>
+  edge.outOfDate.length === 0 ? 'upToDate' : edge.outOfDate.some((r) => r !== 'UPSTREAM_CHANGED') ? 'endChanged' : 'upstreamChanged';
 /** Zoom levels of the canvas; 1 is the natural size. */
 const ZOOM_LEVELS = [0.5, 0.67, 0.8, 1, 1.25, 1.5];
 /** Indentation per depth of a row inside its card (Tailwind needs the class names spelled out). */
@@ -215,9 +221,8 @@ const Legend: React.FC = () => {
     <div className="ml-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
       <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.RuleEvidence)}{t('traceability.lineage.legend.rule')}</span>
       <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.AIEvidence)}{t('traceability.lineage.legend.ai')}</span>
-      <span className="flex items-center gap-1">{line(STALE_STROKE)}{t('traceability.lineage.legend.suspect')}</span>
-      <span className="flex items-center gap-1">{line(STALE_STROKE, true)}{t('traceability.lineage.legend.staleUpstream')}</span>
-      <span>{t('traceability.lineage.legend.confidence')}</span>
+      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE)}{t('traceability.lineage.legend.outOfDate')}</span>
+      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE, true)}{t('traceability.lineage.legend.upstreamChanged')}</span>
     </div>
   );
 };
@@ -318,8 +323,8 @@ const LineageGraph: React.FC<{
                     fill="none"
                     strokeWidth={(1 + 2.5 * confidence) * emphasis * (bundle.edges.length > 1 ? 1.3 : 1)}
                     strokeOpacity={faded(bundle) ? 0.15 : 0.35 + 0.65 * confidence}
-                    strokeDasharray={look.state === 'staleUpstream' ? '6 4' : undefined}
-                    className={look.state === 'current' ? EVIDENCE_STROKES[look.link.evidence[0]?.type ?? 'RuleEvidence'] : STALE_STROKE}
+                    strokeDasharray={lookOf(look) === 'upstreamChanged' ? '6 4' : undefined}
+                    className={lookOf(look) === 'upToDate' ? EVIDENCE_STROKES[look.link.evidence[0]?.type ?? 'RuleEvidence'] : OUT_OF_DATE_STROKE}
                   />
                   {/* Keyboard users reach the same link from either end's list of links. */}
                   <path
@@ -378,7 +383,7 @@ const LineageGraph: React.FC<{
                 } ${
                   isSelectedEdge(bundle)
                     ? 'border-brand bg-brand text-white'
-                    : look.state === 'current'
+                    : lookOf(look) === 'upToDate'
                       ? 'border-border bg-background'
                       : 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
                 }`}
@@ -408,13 +413,13 @@ const bezier = (p0: number, p1: number, p2: number, p3: number, t: number) =>
 /** Whether a connector carries a pill: a bundle, a link below full confidence, or one that may not hold. */
 function hasPill(bundle: LineageBundle): boolean {
   const look = bundleLook(bundle.edges);
-  return bundle.edges.length > 1 || (look.link.confidence?.value ?? 1) < 1 || look.state !== 'current';
+  return bundle.edges.length > 1 || (look.link.confidence?.value ?? 1) < 1 || lookOf(look) !== 'upToDate';
 }
 
 /** How a bundle of links is drawn: as its least sure link, amber when any of them may not hold. */
 function bundleLook(edges: LineageEdge[]): LineageEdge {
   const weakest = edges.reduce((a, b) => ((b.link.confidence?.value ?? 1) < (a.link.confidence?.value ?? 1) ? b : a));
-  return edges.find((e) => e.state === 'suspect') ?? edges.find((e) => e.state === 'staleUpstream') ?? weakest;
+  return edges.find((e) => lookOf(e) === 'endChanged') ?? edges.find((e) => lookOf(e) === 'upstreamChanged') ?? weakest;
 }
 
 /** What a node is called: a code fragment by its lines, a card by its name, a part by its own name. */
@@ -499,7 +504,7 @@ const RowView: React.FC<{
       {row.parts > 0 && !row.expanded && (
         <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground">{partsLabel(t, subject, row.parts)}</span>
       )}
-      {row.stale && <AlertTriangle className="size-3.5 shrink-0 text-amber-500" aria-label={t('traceability.status.suspect')} />}
+      {row.outOfDate && <AlertTriangle className="size-3.5 shrink-0 text-amber-500" aria-label={t('traceability.status.outOfDate')} />}
     </div>
   );
 };
@@ -557,17 +562,17 @@ const RunDetail: React.FC<{
 /** Shown while nothing is selected: what the lineage holds, and how to explore it. */
 const Overview: React.FC<{ lineage: Lineage; layout: LineageLayout }> = ({ lineage, layout }) => {
   const { t } = useTranslation();
-  const stale = lineage.edges.filter((e) => e.state !== 'current').length;
+  const outdated = lineage.edges.filter((e) => e.outOfDate.length > 0).length;
   return (
     <aside className="space-y-2 rounded-lg border border-border p-3 text-sm">
       <h3 className="font-semibold">{t('traceability.lineage.overviewTitle')}</h3>
       <p className="text-xs text-muted-foreground">
         {t('traceability.lineage.overviewCounts', { cards: layout.columns.flat().length, links: lineage.edges.length })}
       </p>
-      {stale > 0 && (
+      {outdated > 0 && (
         <p className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-300">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          {t('traceability.lineage.overviewStale', { count: stale })}
+          {t('traceability.lineage.overviewOutOfDate', { count: outdated })}
         </p>
       )}
       <p className="text-xs">{t('traceability.lineage.hint')}</p>
@@ -588,7 +593,7 @@ const NodeDetail: React.FC<{
   const history = historyOf(index, artifact.id);
   const file = isCodeArtifact(artifact) && artifact.parentId ? index.artifacts.get(artifact.parentId) : artifact;
   const lines = isCodeArtifact(artifact) && isCodeArtifact(file) ? fragmentLines({ fragment: artifact, file }) : null;
-  const stale = lineage.nodes.get(artifact.id)?.stale ?? false;
+  const outdated = lineage.nodes.get(artifact.id)?.outOfDate ?? false;
   const links = lineage.edges.filter((e) => e.link.sourceId === artifact.id || e.link.targetId === artifact.id);
   return (
     <aside className="min-w-0 space-y-3 rounded-lg border border-border p-3 text-sm">
@@ -599,7 +604,7 @@ const NodeDetail: React.FC<{
             ? elementTypeLabel(t, artifact.elementType)
             : t(isPromptArtifact(artifact) ? 'traceability.lineage.prompt' : 'traceability.lineage.code')}
         </Badge>
-        {stale && <Badge variant="destructive" size="sm">{t('traceability.status.suspect')}</Badge>}
+        {outdated && <Badge variant="destructive" size="sm">{t('traceability.status.outOfDate')}</Badge>}
       </div>
       {isCodeArtifact(artifact) && <code className="block truncate text-xs text-muted-foreground">{artifact.path}</code>}
       {isPromptArtifact(artifact) && (
@@ -633,7 +638,7 @@ const NodeDetail: React.FC<{
         <h4 className="text-xs font-semibold">{t('traceability.lineage.links', { count: links.length })}</h4>
         {links.length === 0 && <p className="text-xs text-muted-foreground">{t('traceability.lineage.noLinks')}</p>}
         <ul className="space-y-0.5 text-xs">
-          {links.slice(0, LISTED_LINKS).map(({ link, state }) => {
+          {links.slice(0, LISTED_LINKS).map(({ link, outOfDate }) => {
             const outgoing = link.sourceId === artifact.id;
             const other = index.artifacts.get(outgoing ? link.targetId : link.sourceId)!;
             return (
@@ -642,7 +647,7 @@ const NodeDetail: React.FC<{
                   <span aria-hidden className="text-muted-foreground">{outgoing ? '→' : '←'}</span>
                   <span className="truncate">{nodeLabel(t, index, other)}</span>
                   {isCodeArtifact(other) && other.parentId && <span className="truncate text-muted-foreground">{other.path}</span>}
-                  {state !== 'current' && <AlertTriangle className="ml-auto size-3 shrink-0 text-amber-500" aria-label={t(`traceability.lineage.legend.${state}`)} />}
+                  {outOfDate.length > 0 && <AlertTriangle className="ml-auto size-3 shrink-0 text-amber-500" aria-label={t('traceability.status.outOfDate')} />}
                 </button>
               </li>
             );
@@ -670,6 +675,13 @@ const NodeDetail: React.FC<{
   );
 };
 
+/** One end of the selected link, which selects it. */
+const LinkEnd: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
+  <button type="button" title={label} onClick={onClick} className="min-w-0 max-w-[48%] truncate rounded border border-border px-1.5 hover:bg-accent">
+    {label}
+  </button>
+);
+
 const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode: (id: string) => void }> = ({ index, edge, onSelectNode }) => {
   const { t, i18n } = useTranslation();
   const { link } = edge;
@@ -677,19 +689,15 @@ const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode:
   const source = index.artifacts.get(link.sourceId)!;
   const target = index.artifacts.get(link.targetId)!;
   const tools = operation ? toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)).filter(Boolean) : [];
-  const later = edge.state === 'suspect' ? changesSince(index, link) : [];
   const confidence = link.confidence?.value;
   return (
     <aside className="min-w-0 space-y-3 rounded-lg border border-border p-3 text-sm">
       <h3 className="font-semibold">{t('traceability.lineage.linkTitle')}</h3>
-      <div className="flex flex-wrap items-center gap-1 text-xs">
-        <button type="button" className="rounded border border-border px-1.5 hover:bg-accent" onClick={() => onSelectNode(source.id)}>
-          {nodeLabel(t, index, source)}
-        </button>
+      {/* One line: a long end (a prompt, a file path) is cut short, and its whole name is the tooltip. */}
+      <div className="flex min-w-0 items-center gap-1 text-xs">
+        <LinkEnd label={nodeLabel(t, index, source)} onClick={() => onSelectNode(source.id)} />
         <span aria-hidden>→</span>
-        <button type="button" className="rounded border border-border px-1.5 hover:bg-accent" onClick={() => onSelectNode(target.id)}>
-          {nodeLabel(t, index, target)}
-        </button>
+        <LinkEnd label={nodeLabel(t, index, target)} onClick={() => onSelectNode(target.id)} />
       </div>
       {isCodeArtifact(target) && target.parentId && <code className="block truncate text-xs text-muted-foreground">{target.path}</code>}
 
@@ -732,14 +740,7 @@ const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode:
         </section>
       )}
 
-      <StatusNote state={edge.state} />
-      {later.length > 0 && (
-        <ul className="list-disc space-y-0.5 pl-4 text-xs">
-          {later.map(({ change }) => (
-            <li key={change.id}>{describeChange(t, change, index)} <span className="text-muted-foreground">{formatTime(change.timestamp, i18n.language)}</span></li>
-          ))}
-        </ul>
-      )}
+      <OutOfDateNote index={index} edge={edge} />
     </aside>
   );
 };
@@ -762,14 +763,33 @@ const EvidenceLogs: React.FC<{ logs: TraceLogRecord[] }> = ({ logs }) => {
   );
 };
 
-const StatusNote: React.FC<{ state: LineageEdgeState }> = ({ state }) => {
-  const { t } = useTranslation();
-  if (state === 'current') return <p className="text-xs text-emerald-700 dark:text-emerald-300">{t('traceability.lineage.state.current')}</p>;
+/** Whether the link still holds and, when not, each reason with the changes behind it. */
+const OutOfDateNote: React.FC<{ index: TraceIndex; edge: LineageEdge }> = ({ index, edge }) => {
+  const { t, i18n } = useTranslation();
+  const { link } = edge;
+  if (edge.outOfDate.length === 0) {
+    return <p className="text-xs text-emerald-700 dark:text-emerald-300">{t('traceability.lineage.outOfDate.upToDate')}</p>;
+  }
+  const changesFor = (reason: OutOfDateReason) =>
+    reason === 'UPSTREAM_CHANGED' ? [] : changedSince(index, reason === 'SOURCE_CHANGED' ? link.sourceId : link.targetId, link);
   return (
-    <p className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-300">
-      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-      {t(`traceability.lineage.state.${state}`)}
-    </p>
+    <section className="space-y-2">
+      {edge.outOfDate.map((reason) => (
+        <div key={reason} className="space-y-0.5">
+          <p className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            {t(`traceability.lineage.outOfDate.${reason}`)}
+          </p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs">
+            {changesFor(reason).map(({ change }) => (
+              <li key={change.id}>
+                {describeChange(t, change, index)} <span className="text-muted-foreground">{formatTime(change.timestamp, i18n.language)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
   );
 };
 

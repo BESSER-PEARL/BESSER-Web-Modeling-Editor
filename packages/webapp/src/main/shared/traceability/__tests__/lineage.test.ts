@@ -92,18 +92,18 @@ describe('lineageOf', () => {
     expect(lineage.nodes.has('f1')).toBe(false); // reached only through an older generation
   });
 
-  it('marks a changed source suspect and everything derived from it stale', () => {
+  it('marks a link whose source changed out of date, and what follows it upstream changed', () => {
     const trace = chain();
     // The concept changes after the conversion: the class may be out of date, and so its code.
     trace.operations.push(operation('edit', 'Modeling', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'concept', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);
-    const state = Object.fromEntries(lineage.edges.map((e) => [e.link.id, e.state]));
-    expect(state).toEqual({ k: 'suspect', g2: 'staleUpstream' });
-    expect(lineage.nodes.get('book')!.stale).toBe(true);
-    expect(lineage.nodes.get('b2')!.stale).toBe(true);
-    expect(lineage.nodes.get('concept')!.stale).toBe(false);
+    const reasons = Object.fromEntries(lineage.edges.map((e) => [e.link.id, e.outOfDate]));
+    expect(reasons).toEqual({ k: ['SOURCE_CHANGED'], g2: ['UPSTREAM_CHANGED'] });
+    expect(lineage.nodes.get('book')!.outOfDate).toBe(true);
+    expect(lineage.nodes.get('b2')!.outOfDate).toBe(true);
+    expect(lineage.nodes.get('concept')!.outOfDate).toBe(false);
   });
 
   it('follows a chain that starts from a prompt in a conversation', () => {
@@ -120,14 +120,28 @@ describe('lineageOf', () => {
     ]);
   });
 
-  it('marks code suspect when a member of its element changes', () => {
+  it('marks code out of date when a member of its element changes, and the link that made the element too', () => {
     const trace = chain();
     trace.operations.push(operation('edit', 'Modeling', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'title', feature: 'type', oldValue: 'str', newValue: 'int', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);
-    expect(lineage.edges.find((e) => e.link.id === 'g2')!.state).toBe('suspect');
-    expect(lineage.edges.find((e) => e.link.id === 'k')!.state).toBe('current');
+    expect(lineage.edges.find((e) => e.link.id === 'g2')!.outOfDate).toEqual(['SOURCE_CHANGED']);
+    // The class was edited after the conversion made it; an edited target is not passed on downstream.
+    expect(lineage.edges.find((e) => e.link.id === 'k')!.outOfDate).toEqual(['TARGET_CHANGED']);
+  });
+
+  it('does not count the changes of the operation that made the link', () => {
+    const trace = chain();
+    // The conversion goes on editing the class it made (an assistant's later reply in the same turn).
+    const convert = trace.operations.find((o) => o.id === 'convert') as Extract<TraceOperation, { type: 'Modeling' }>;
+    convert.changes.push({ id: 'c1', kind: 'CREATED', artifactId: 'title', timestamp: at(3) });
+    const outOfDateOf = (t: TraceFile) => lineageOf(indexTrace(t), 'book', latest).edges.find((e) => e.link.id === 'k')!.outOfDate;
+    expect(outOfDateOf(trace)).toEqual([]);
+    trace.operations.push(operation('edit', 'Modeling', 6, {
+      changes: [{ id: 'c2', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(6) }],
+    }));
+    expect(outOfDateOf(trace)).toEqual(['TARGET_CHANGED']);
   });
 
   it('terminates on a cyclic trace', () => {
@@ -173,7 +187,7 @@ describe('lineageLayout', () => {
     expect(drawn(layout)[2][0]).toEqual(['run:run2', '  f2', '    b2', '    t2', '    p2', '    r2']);
   });
 
-  it('flags a collapsed artifact when a part it hides is stale', () => {
+  it('flags a collapsed artifact when a part it hides may be out of date', () => {
     const trace = chain();
     trace.operations.push(operation('edit', 'Modeling', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: at(6) }],
@@ -181,9 +195,9 @@ describe('lineageLayout', () => {
     const index = indexTrace(trace);
     const lineage = lineageOf(index, null, latest);
     const code = (expanded: Set<string>) => lineageLayout(index, lineage, expanded).columns[2][0].rows;
-    expect(code(new Set()).map((r) => r.stale)).toEqual([true]);
+    expect(code(new Set()).map((r) => r.outOfDate)).toEqual([true]);
     // Opened, the run has no flag of its own: its file and fragment carry theirs.
-    expect(code(new Set(['run:run2', 'f2'])).map((r) => [r.subject.id, r.stale])).toEqual([
+    expect(code(new Set(['run:run2', 'f2'])).map((r) => [r.subject.id, r.outOfDate])).toEqual([
       ['run:run2', false], ['f2', true], ['b2', true],
     ]);
   });

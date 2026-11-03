@@ -71,13 +71,13 @@ describe('LineageView', () => {
     expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
     fireEvent.click(button('Lines 2–3')); // in the element's list of links
     expect(container.textContent).toContain('Deterministic rule: sql_alchemy_template.py.j2#class');
-    expect(container.textContent).toContain('Suspect: the source changed after the link was made');
+    expect(container.textContent).toContain('Out of date, source changed: the source changed after the link was made');
     expect(container.textContent).toContain('Renamed class Libro to Book');
   });
 
   it('shows the confidence of the selected link, on the canvas and in its detail', () => {
     const file = trace();
-    file.operations = file.operations.filter((o) => o.id !== 'edit'); // not suspect: no pill of its own
+    file.operations = file.operations.filter((o) => o.id !== 'edit'); // up to date: no pill of its own
     const { container, button } = view(file, 'book');
     expect(button('1.00')).toBeUndefined(); // a plain rule link carries no pill
     fireEvent.click(button('Lines 2–3')); // the link, from the element's list

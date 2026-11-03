@@ -4175,7 +4175,7 @@
       "noHistory": "No edits recorded (the element existed before recording started).",
       "contentNotKept": "Only this file's hash is kept, not its content: the file was over the size limit, or newer generations replaced it.",
       "evidence": "Evidence: template rule {{rule}} · confidence {{confidence}}",
-      "suspectHelp": "The element changed after this code was generated: regenerate to bring the code up to date."
+      "outOfDateHelp": "This code may no longer match the element: it, or something it was derived from, changed after the code was generated. Regenerate to bring the code up to date."
     },
     "lineage": {
       "show": "Show lineage",
@@ -4216,8 +4216,8 @@
       "exitFullScreen": "Exit full screen",
       "overviewTitle": "Lineage",
       "overviewCounts": "{{cards}} diagrams, prompts and generation runs, joined by {{links}} trace links.",
-      "overviewStale_one": "{{count}} link may be out of date (amber).",
-      "overviewStale_other": "{{count}} links may be out of date (amber).",
+      "overviewOutOfDate_one": "{{count}} link may be out of date (amber).",
+      "overviewOutOfDate_other": "{{count}} links may be out of date (amber).",
       "hint": "Click a diagram or generation run to see its parts, and a part to see its links. A pill with ×N stands for N links: click it to show them one by one. Click a line to see how its link was made.",
       "links": "Links ({{count}})",
       "noLinks": "No links.",
@@ -4235,17 +4235,17 @@
         "logs_one": "(based on {{count}} log record)",
         "logs_other": "(based on {{count}} log records)"
       },
-      "state": {
-        "current": "Holds: the source has not changed since the link was made.",
-        "suspect": "Suspect: the source changed after the link was made, so the target may be out of date. Changes since:",
-        "staleUpstream": "Stale upstream: this link holds, but something its source was derived from changed since."
+      "outOfDate": {
+        "upToDate": "Up to date: neither end changed since the link was made, nor anything its source was derived from.",
+        "SOURCE_CHANGED": "Out of date, source changed: the source changed after the link was made, so the target may no longer match it. Changes since:",
+        "TARGET_CHANGED": "Out of date, target changed: the target was edited after the link was made, so it may no longer be what was derived. Edits since:",
+        "UPSTREAM_CHANGED": "Upstream changed: neither end changed, but something the source was derived from did, so the source may need updating, and this link with it."
       },
       "legend": {
         "rule": "Rule",
         "ai": "AI",
-        "suspect": "Suspect",
-        "staleUpstream": "Stale upstream",
-        "confidence": "Thicker line, higher confidence"
+        "outOfDate": "Out of date",
+        "upstreamChanged": "Upstream changed"
       }
     },
     "coverage": {
@@ -4253,12 +4253,12 @@
       "noGenerations": "No code generated yet. Generate SQLAlchemy code from the class diagram to fill this matrix.",
       "legend": {
         "generated": "Generated, unchanged since",
-        "suspect": "Changed after generation (code may be stale)",
+        "outOfDate": "Out of date (changed after generation)",
         "none": "Not in this generation"
       }
     },
     "status": {
-      "suspect": "Suspect",
+      "outOfDate": "Out of date",
       "upToDate": "Up to date"
     },
     "operations": {

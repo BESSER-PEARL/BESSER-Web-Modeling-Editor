@@ -11,7 +11,7 @@ import {
 } from '../traceRecorder';
 import type { RecordContext } from '../traceRecorder';
 import {
-  changesSince,
+  changedSince,
   coverageMatrix,
   diagramsOf,
   diagramsOfOperation,
@@ -19,11 +19,11 @@ import {
   generatedFrom,
   historyOf,
   indexTrace,
-  isSuspect,
+  outOfDate,
   modelChildren,
 } from '../traceQueries';
 import { changesOf, emptyTraceFile } from '../../types/traceability';
-import type { CodeArtifact, ModelArtifact, TraceFile } from '../../types/traceability';
+import type { CodeArtifact, ModelArtifact, TraceFile, TraceLink } from '../../types/traceability';
 
 const T0 = Date.parse('2026-10-29T10:00:00.000Z');
 const at = (ms: number) => new Date(T0 + ms).toISOString();
@@ -190,22 +190,22 @@ describe('mergeTraceFragment and queries', () => {
     const index = indexTrace(trace);
     const [fragment] = generatedFrom(index, book.id);
     expect(fragment.fragment.startLine).toBe(3);
-    expect(fragment.suspect).toBe(false);
+    expect(fragment.outOfDate).toEqual([]);
   });
 
-  it('marks the link suspect when the element or one of its members changes later', () => {
+  it('marks the link out of date when the element or one of its members changes later', () => {
     const trace = recordedThenGenerated();
     const before = model([cls('c1', 'Book'), attr('a1', 'c1', 'title')]);
     record(trace, before, model([cls('c1', 'Book'), attr('a1', 'c1', 'title', { attributeType: 'int' })]), 120_000);
     const index = indexTrace(trace);
-    expect(isSuspect(index, trace.traceLinks[0])).toBe(true);
+    expect(outOfDate(index, trace.traceLinks[0])).toEqual(['SOURCE_CHANGED']);
     const book = trace.artifacts.find((a) => a.type === 'ModelArtifact' && a.elementId === 'c1')!;
     expect(historyOf(index, book.id).map((c) => c.change.kind)).toEqual(['CREATED', 'CREATED', 'UPDATED']);
     const [group] = coverageMatrix(index, 5).groups;
-    expect(group.elements.find((r) => r.element.id === book.id)!.cells).toEqual(['suspect']);
+    expect(group.elements.find((r) => r.element.id === book.id)!.cells).toEqual(['outOfDate']);
   });
 
-  it('decides suspect links from the index exactly as from their history', () => {
+  it('decides changed sources from the index exactly as from their history', () => {
     const trace = recordedThenGenerated();
     const book = model([cls('c1', 'Book'), attr('a1', 'c1', 'title')]);
     // A change before the generation, one after on a member, and a second generation after both.
@@ -213,8 +213,9 @@ describe('mergeTraceFragment and queries', () => {
     mergeTraceFragment(trace, { ...generationFragment(180_000), traceLinks: generationFragment(180_000).traceLinks.map((l) => ({ ...l, id: 'fl2' })) });
     record(trace, book, model([cls('c1', 'Volume'), attr('a1', 'c1', 'title')]), 240_000);
     const index = indexTrace(trace);
-    for (const link of trace.traceLinks) expect(isSuspect(index, link)).toBe(changesSince(index, link).length > 0);
-    expect(trace.traceLinks.map((l) => isSuspect(index, l))).toEqual([true, true]);
+    const sourceChanged = (link: TraceLink) => outOfDate(index, link).includes('SOURCE_CHANGED');
+    for (const link of trace.traceLinks) expect(sourceChanged(link)).toBe(changedSince(index, link.sourceId, link).length > 0);
+    expect(trace.traceLinks.map(sourceChanged)).toEqual([true, true]);
   });
 
   it('keeps file contents only for the newest generations of a path', () => {

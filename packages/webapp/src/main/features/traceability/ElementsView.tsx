@@ -235,10 +235,10 @@ const CodeFragment: React.FC<{ entry: GeneratedFragment; index: TraceIndex; loca
           </span>
         )}
         <span className="ml-auto flex items-center gap-1">
-          {entry.suspect ? (
-            <Badge variant="destructive" size="sm" title={t('traceability.elements.suspectHelp')}>
+          {entry.outOfDate.length > 0 ? (
+            <Badge variant="destructive" size="sm" title={t('traceability.elements.outOfDateHelp')}>
               <AlertTriangle className="mr-1 size-3" />
-              {t('traceability.status.suspect')}
+              {t('traceability.status.outOfDate')}
             </Badge>
           ) : (
             <Badge variant="soft" size="sm">

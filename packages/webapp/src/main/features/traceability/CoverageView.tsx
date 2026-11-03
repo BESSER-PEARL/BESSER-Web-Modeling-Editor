@@ -10,10 +10,10 @@ const MAX_GENERATION_COLUMNS = 8;
 
 const CELL_STYLES: Record<CoverageCell, string> = {
   generated: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  suspect: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+  outOfDate: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
   none: 'text-muted-foreground',
 };
-const CELL_SYMBOLS: Record<CoverageCell, string> = { generated: '✓', suspect: '⚠', none: '–' };
+const CELL_SYMBOLS: Record<CoverageCell, string> = { generated: '✓', outOfDate: '⚠', none: '–' };
 
 interface CoverageViewProps {
   index: TraceIndex;
@@ -21,7 +21,7 @@ interface CoverageViewProps {
 }
 
 /**
- * Diagrams and their elements × generation runs: generated, generated but changed since (suspect),
+ * Diagrams and their elements × generation runs: generated, generated but out of date since,
  * or not generated. A diagram's own row covers the whole files read from it.
  */
 export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement }) => {
@@ -43,7 +43,7 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        {(['generated', 'suspect', 'none'] as const).map((cell) => (
+        {(['generated', 'outOfDate', 'none'] as const).map((cell) => (
           <span key={cell} className="flex items-center gap-1">
             <span className={`inline-flex size-5 items-center justify-center rounded ${CELL_STYLES[cell]}`}>{CELL_SYMBOLS[cell]}</span>
             {t(`traceability.coverage.legend.${cell}`)}

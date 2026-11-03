@@ -33,7 +33,7 @@ export interface TraceIndex {
   changesByArtifact: Map<string, LocatedChange[]>;
   linksBySource: Map<string, TraceLink[]>;
   linksByTarget: Map<string, TraceLink[]>;
-  /** The latest change on each artifact or any of its fragments (ISO time), for suspect checks. */
+  /** The latest change on each artifact or any of its fragments (ISO time), for out-of-date checks. */
   latestChangeBelow: Map<string, string>;
   /** Every log record by id: an evidence may rest on the records of another operation (the edits
    *  an assistant made rest on the messages of its conversation). */
@@ -74,7 +74,7 @@ export function indexTrace(trace: TraceFile): TraceIndex {
 
 /**
  * Each artifact's latest change, its own or a fragment's, computed once so that checking whether a
- * link is suspect is a lookup rather than a walk of its source's history (a diagram is the source
+ * link is out of date is a lookup rather than a walk of its source's history (a diagram is the source
  * of every whole-file link, and has every change of the diagram below it).
  */
 function latestChangeBelow(
@@ -126,15 +126,57 @@ export function isDeleted(index: TraceIndex, artifactId: string): boolean {
   return false;
 }
 
-/** The changes to a link's source (or its fragments) made after the link: why it is suspect. */
-export function changesSince(index: TraceIndex, link: TraceLink): LocatedChange[] {
-  return historyOf(index, link.sourceId).filter((c) => c.change.timestamp > link.timestamp);
+/** Why a link may no longer hold: the values of `TraceLink./outOfDate`, derived and never stored
+ *  (`OutOfDateReason` in the metamodel).
+ *  - `SOURCE_CHANGED`: the source changed after the link was made, so the target may no longer match it.
+ *  - `TARGET_CHANGED`: the target was edited after the link was made, so it may no longer be what was derived.
+ *  - `UPSTREAM_CHANGED`: neither end changed, but something the source was derived from did. */
+export type OutOfDateReason = 'SOURCE_CHANGED' | 'TARGET_CHANGED' | 'UPSTREAM_CHANGED';
+
+/** The changes to an artifact (or its fragments) made after the link by another operation than the
+ *  link's: that operation's own changes (an assistant's later edits in the same turn) are part of making it. */
+export function changedSince(index: TraceIndex, artifactId: string, link: TraceLink): LocatedChange[] {
+  return historyOf(index, artifactId).filter((c) => c.change.timestamp > link.timestamp && c.operation.id !== link.operationId);
 }
 
-/** True when the link's source, or a fragment of it, changed after the link was made:
- *  the target may no longer match it (`TraceModel.is_suspect` in the metamodel). */
-export function isSuspect(index: TraceIndex, link: TraceLink): boolean {
-  return (index.latestChangeBelow.get(link.sourceId) ?? '') > link.timestamp;
+/** Whether `changedSince` has anything, without walking the history when it can be avoided (a diagram
+ *  is the source of every whole-file link, and has every change of the diagram below it). */
+function hasChangedSince(index: TraceIndex, artifactId: string, link: TraceLink): boolean {
+  if ((index.latestChangeBelow.get(artifactId) ?? '') <= link.timestamp) return false;
+  const operation = index.operations.get(link.operationId);
+  // An operation that changes nothing (a generation run) leaves no changes of its own to set aside.
+  if (!operation || changesOf(operation).length === 0) return true;
+  return changedSince(index, artifactId, link).length > 0;
+}
+
+/** Per index: whether something each artifact was derived from changed (computed once per artifact). */
+const upstreamCache = new WeakMap<TraceIndex, Map<string, boolean>>();
+
+/** True when a link into the artifact (or a fragment of it) has a changed source, or is itself upstream
+ *  changed. Only a changed source travels: an edited target is the source of the next link, which sees it. */
+function upstreamChanged(index: TraceIndex, artifactId: string): boolean {
+  let cache = upstreamCache.get(index);
+  if (!cache) upstreamCache.set(index, (cache = new Map()));
+  const known = cache.get(artifactId);
+  if (known !== undefined) return known;
+  cache.set(artifactId, false); // a cycle back to this artifact adds nothing
+  const changed = withDescendants(index, artifactId).some((part) =>
+    (index.linksByTarget.get(part.id) ?? []).some(
+      (link) => hasChangedSince(index, link.sourceId, link) || upstreamChanged(index, link.sourceId),
+    ),
+  );
+  cache.set(artifactId, changed);
+  return changed;
+}
+
+/** `TraceLink./outOfDate`: why the link may no longer hold, empty while it holds
+ *  (`TraceModel.out_of_date` in the metamodel). */
+export function outOfDate(index: TraceIndex, link: TraceLink): OutOfDateReason[] {
+  const reasons: OutOfDateReason[] = [];
+  if (hasChangedSince(index, link.sourceId, link)) reasons.push('SOURCE_CHANGED');
+  if (hasChangedSince(index, link.targetId, link)) reasons.push('TARGET_CHANGED');
+  if (upstreamChanged(index, link.sourceId)) reasons.push('UPSTREAM_CHANGED');
+  return reasons;
 }
 
 /** A diagram: a model artifact that is not a fragment of another one. */
@@ -193,7 +235,7 @@ export interface GeneratedFragment {
   /** The generated file the fragment belongs to (its content may have been dropped). */
   file: CodeArtifact | undefined;
   operation: TraceOperation | undefined;
-  suspect: boolean;
+  outOfDate: OutOfDateReason[];
 }
 
 /** The code generated from an element, newest generation first. */
@@ -208,7 +250,7 @@ export function generatedFrom(index: TraceIndex, artifactId: string): GeneratedF
         fragment,
         file: isCodeArtifact(file) ? file : undefined,
         operation: index.operations.get(link.operationId),
-        suspect: isSuspect(index, link),
+        outOfDate: outOfDate(index, link),
       };
     })
     .filter((entry): entry is GeneratedFragment => entry !== null)
@@ -225,7 +267,7 @@ export function fragmentLines(entry: Pick<GeneratedFragment, 'fragment' | 'file'
   return lines.slice(fragment.startLine - 1, fragment.endLine);
 }
 
-export type CoverageCell = 'generated' | 'suspect' | 'none';
+export type CoverageCell = 'generated' | 'outOfDate' | 'none';
 
 export interface CoverageRow {
   element: ModelArtifact;
@@ -242,7 +284,7 @@ export interface CoverageMatrix {
 /**
  * Diagrams and their elements × generation runs (newest first, at most `maxGenerations`).
  * Members (attributes, literals) get no row: their code is part of their element's, and
- * changing a member makes its element's code suspect.
+ * changing a member makes its element's code out of date.
  */
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
   // Runs compacted by retention have no links left: they say nothing about coverage.
@@ -256,7 +298,7 @@ export function coverageMatrix(index: TraceIndex, maxGenerations: number): Cover
     const cells = generations.map((generation): CoverageCell => {
       const own = links.filter((l) => l.operationId === generation.id);
       if (own.length === 0) return 'none';
-      return own.some((l) => isSuspect(index, l)) ? 'suspect' : 'generated';
+      return own.some((l) => outOfDate(index, l).length > 0) ? 'outOfDate' : 'generated';
     });
     return { element, deleted: isDeleted(index, element.id), cells };
   };
