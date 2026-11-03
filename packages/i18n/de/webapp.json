@@ -18,6 +18,10 @@
     "unread_other": "Neuigkeiten ({{count}} neu)",
     "new": "Neu",
     "entries": {
+      "keepEdits": {
+        "title": "Deine Änderungen überstehen eine Modelländerung",
+        "body": "Ändere das Klassenmodell einer App, die der Spec-Driven Agent gebaut hat: Er erzeugt die Dateien, die niemand bearbeitet hat, neu und führt deine Änderungen in die übrigen zusammen, sodass deutlich weniger Änderungen die KI brauchen."
+      },
       "anyStack": {
         "title": "Apps im gewünschten Stack",
         "body": "Bitte den Spec-Driven Agent um eine REST-API in Go oder ein Kommandozeilen-Tool in Rust: Er baut genau das und prüft die App so, wie er eine Web-App prüft."

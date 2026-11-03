@@ -18,6 +18,10 @@
     "unread_other": "Novetats ({{count}} noves)",
     "new": "Nou",
     "entries": {
+      "keepEdits": {
+        "title": "Els teus canvis sobreviuen a un canvi de model",
+        "body": "Canvia el model de classes d’una app creada pel Spec-Driven Agent: regenera els fitxers que ningú no ha editat i fusiona els teus canvis amb la resta, de manera que molts menys canvis necessiten la IA."
+      },
       "anyStack": {
         "title": "Aplicacions en la tecnologia que demanis",
         "body": "Demana al Spec-Driven Agent una API REST en Go o una eina de línia d’ordres en Rust: la construeix i després comprova l’aplicació igual que comprova una aplicació web."
