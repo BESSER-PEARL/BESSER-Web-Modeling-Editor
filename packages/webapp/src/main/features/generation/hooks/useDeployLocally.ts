@@ -7,6 +7,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { deployApp } from '../../../shared/api/generation';
 import { ApiError } from '../../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
+import { elapsedMs, errorProperties, track } from '../../../shared/services/analytics/events';
 import React from 'react';
 
 // Add type definitions
@@ -50,6 +51,7 @@ export const useDeployLocally = () => {
         progress: undefined,
       });
 
+      const startedAt = performance.now();
       try {
         await deployApp({
           title: diagramTitle,
@@ -81,7 +83,9 @@ export const useDeployLocally = () => {
           isLoading: false,
           autoClose: 5000,
         });
+        track('local_deploy_succeeded', { duration_ms: elapsedMs(startedAt) });
       } catch (error) {
+        track('local_deploy_failed', { duration_ms: elapsedMs(startedAt), ...errorProperties(error) });
         if (error instanceof ApiError) {
           console.error('Response not OK:', error.status, error.message);
           // Update the toast to an error state

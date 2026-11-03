@@ -21,6 +21,7 @@ import {
   type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { getSyncStatus, goLive, type GoLiveResult } from '../../../shared/api/github';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 
 interface GoLiveDialogProps {
   open: boolean;
@@ -83,7 +84,14 @@ export const GoLiveDialog: React.FC<GoLiveDialogProps> = ({
         ...(advance ? { baseCommitSha: result.commit_sha } : {}),
       });
       setStage({ kind: 'ready', result });
+      track('github_action_completed', {
+        action: 'go_live',
+        status: result.changed ? 'changed' : 'unchanged',
+        warnings_count: result.warnings?.length ?? 0,
+      });
     } catch (error) {
+      const refused = error instanceof ApiError && (error.status === 422 || error.status === 409);
+      track('github_action_failed', { action: 'go_live', reason: refused ? 'refused' : 'error', ...errorProperties(error) });
       if (error instanceof ApiError && (error.status === 422 || error.status === 409)) {
         setStage({ kind: 'refused', reason: error.message });
       } else {

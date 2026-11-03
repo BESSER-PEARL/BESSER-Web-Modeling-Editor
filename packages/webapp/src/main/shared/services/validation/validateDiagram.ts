@@ -26,8 +26,13 @@ const stripStatusEmoji = (text: string): string =>
  */
 const VALIDATION_TOAST_ID = 'diagram-validation-loading';
 
-/** The backend's result, or `isValid: false` with the reason when it could not be had. */
-export type ValidateDiagramResult = Pick<ValidationResponse, 'isValid' | 'errors'> & Partial<ValidationResponse>;
+/**
+ * The backend's result, or `isValid: false` with the reason when it could not be had;
+ * then `failure` holds the caught error (for analytics, never shown). `empty` marks a
+ * diagram with nothing to check, which is reported valid but was never checked.
+ */
+export type ValidateDiagramResult = Pick<ValidationResponse, 'isValid' | 'errors'> &
+  Partial<ValidationResponse> & { failure?: unknown; empty?: boolean };
 
 export async function validateDiagram(
   editor: ApollonEditor | null | undefined,
@@ -72,7 +77,7 @@ export async function validateDiagram(
           autoClose: 4000,
         });
       }
-      return { isValid: true, errors: [] };
+      return { isValid: true, errors: [], empty: true };
     }
 
     // Show loading state
@@ -98,7 +103,7 @@ export async function validateDiagram(
       if (fetchError instanceof DOMException && (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError')) {
         toast.dismiss(VALIDATION_TOAST_ID);
         reportError(i18n.t('validation.toasts.timedOut'), { error: fetchError });
-        return { isValid: false, errors: ['Validation timed out'] };
+        return { isValid: false, errors: ['Validation timed out'], failure: fetchError };
       }
       if (!(fetchError instanceof ApiError)) throw fetchError;
       // A failed request carries a `detail`; only a validation result has `errors`.
@@ -112,7 +117,7 @@ export async function validateDiagram(
           }
         });
       }
-      return { isValid: false, errors: ['Validation failed'] };
+      return { isValid: false, errors: ['Validation failed'], failure: fetchError };
     }
     
     // Small delay to ensure smooth transition
@@ -231,7 +236,8 @@ export async function validateDiagram(
     }
     return { 
       isValid: false, 
-      errors: [error instanceof Error ? error.message : 'Unknown error'] 
+      errors: [error instanceof Error ? error.message : 'Unknown error'],
+      failure: error, 
     };
   }
 }

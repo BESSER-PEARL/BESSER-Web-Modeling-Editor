@@ -24,7 +24,9 @@ import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { markMessageSent, takeReplyLatency } from './replyLatency';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
@@ -84,6 +86,22 @@ import {
 /* ------------------------------------------------------------------ */
 
 export type { ConnectionStatus } from './useWebSocketConnection';
+
+/** The key the assistant would send, by provider only (analytics). */
+function keyProperties(): { uses_own_key: boolean; provider?: string } {
+  const key = readLlmKey();
+  return key && isAssistantKeyProvider(key.provider)
+    ? { uses_own_key: true, provider: key.provider }
+    : { uses_own_key: false };
+}
+
+function trackReply(action: string, diagramType?: unknown): void {
+  track('assistant_reply', {
+    action,
+    latency_ms: takeReplyLatency(),
+    diagram_type: typeof diagramType === 'string' ? diagramType : undefined,
+  });
+}
 
 export interface SuggestedAction {
   label: string;
@@ -750,8 +768,10 @@ export function useAssistantLogic({
   const handleAction = async (payload: AssistantActionPayload) => {
     // Let the streaming sub-hook handle streaming/progress actions first
     if (streaming.handleStreamingAction(payload, setMessages)) {
+      if (payload.action === 'stream_done') trackReply('stream', payload.diagramType);
       return;
     }
+    if (payload.action !== 'agent_error') trackReply(payload.action, payload.diagramType);
 
     // Extract suggestedActions from assistant_message payloads before returning.
     if (payload.action === 'assistant_message') {
@@ -889,10 +909,12 @@ export function useAssistantLogic({
             { isError: true },
           ),
         ]);
+        track('github_repo_open_failed', { source: 'assistant', reason: 'invalid_link' });
         return;
       }
       const ghSession = getGitHubSession();
       if (!ghSession) {
+        track('github_repo_open_failed', { source: 'assistant', reason: 'not_signed_in' });
         setMessages((prev) => [
           ...prev,
           toKitMessage(
@@ -910,6 +932,7 @@ export function useAssistantLogic({
           repo: ghRepo,
           branch: ghBranch,
           githubSession: ghSession,
+          source: 'assistant',
         });
         if (result.ok && result.projectId) {
           await dispatch(loadProjectThunk(result.projectId)).unwrap();
@@ -1051,6 +1074,12 @@ export function useAssistantLogic({
       if (retryable && suggestedRecovery) {
         meta.suggestedActions = [{ label: t('assistant.tryAgain'), prompt: suggestedRecovery }];
       }
+      takeReplyLatency();
+      track('assistant_error', {
+        error_code: errorCode ?? 'unknown',
+        retryable,
+        needs_api_key: meta.needsApiKey === true,
+      });
       setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
 
       streaming.setIsGenerating(false);
@@ -1176,6 +1205,11 @@ export function useAssistantLogic({
 
       const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
+      // `assistant_message` replies are counted in handleAction, `agent_error` as errors.
+      const replyAction = (message as unknown as { action?: string }).action;
+      if (!message.isUser && replyAction !== 'assistant_message' && replyAction !== 'agent_error') {
+        trackReply('text', message.diagramType);
+      }
 
       if (responseTiming || totalTiming) {
         const timingText = [responseTiming, totalTiming].filter(Boolean).join(' \u00b7 ');
@@ -1193,6 +1227,7 @@ export function useAssistantLogic({
     };
 
     const onInjection = (command: InjectionCommand) => {
+      trackReply(command.action, command.diagramType);
       enqueueAssistantTask(() => injection.handleInjection(command));
     };
     const onAction = (payload: AssistantActionPayload) => {
@@ -1266,6 +1301,7 @@ export function useAssistantLogic({
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
           if (file.size > MAX_FILE_SIZE) {
+            track('assistant_message_blocked', { reason: 'file_too_large' });
             reportError(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
             return;
           }
@@ -1277,6 +1313,7 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
+        track('assistant_message_blocked', { reason: 'rate_limited' });
         reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
@@ -1334,6 +1371,7 @@ export function useAssistantLogic({
           );
         } catch (error) {
           console.error('Failed to read attached files:', error);
+          track('assistant_message_blocked', { reason: 'attachment_read_failed', ...errorProperties(error) });
           reportError(t('assistant.errors.readFileFailed'), { error });
           return;
         }
@@ -1344,17 +1382,22 @@ export function useAssistantLogic({
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
+      if (sendResult !== 'error') markMessageSent();
 
-      // Analytics
       const activeModel = modelSnapshot as any;
       const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
       const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
-      getPostHog()?.capture('assistant_message', {
+      track('assistant_message', {
+        input: 'text',
+        send_result: sendResult,
         diagram_type: context.activeDiagramType,
         message_length: messageText.length,
         elements_count: elementsCount,
         relationships_count: relationshipsCount,
         total_size: elementsCount + relationshipsCount,
+        attachment_count: attachments?.length ?? 0,
+        attachment_types: attachments?.map((file) => file.mimeType),
+        ...keyProperties(),
       });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
@@ -1366,6 +1409,9 @@ export function useAssistantLogic({
       } else if (sendResult === 'error') {
         reportError(t('assistant.errors.sendFailed'));
       }
+    } catch (error) {
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
+      throw error;
     } finally {
       isSendingRef.current = false;
     }
@@ -1387,6 +1433,7 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
+        track('assistant_message_blocked', { reason: 'rate_limited' });
         reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
@@ -1410,6 +1457,15 @@ export function useAssistantLogic({
         context.activeDiagramType,
         context,
       );
+      if (sendResult !== 'error') markMessageSent();
+      track('assistant_message', {
+        input: 'voice',
+        send_result: sendResult,
+        diagram_type: context.activeDiagramType,
+        audio_bytes: audioBlob.size,
+        attachment_types: [mimeType],
+        ...keyProperties(),
+      });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
@@ -1426,6 +1482,7 @@ export function useAssistantLogic({
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
       removeVoicePlaceholder();
       reportError(t('assistant.errors.voiceProcessFailed'), { error });
     } finally {
@@ -1496,6 +1553,7 @@ export function useAssistantLogic({
           );
       if (!confirmFn(message)) return;
     }
+    track('assistant_new_chat', { had_spec_run: hasActiveSpecRun, message_count: messages.length });
     clearConversation();
   };
 
@@ -1578,8 +1636,10 @@ export function useAssistantLogic({
         } catch {
           // Some browsers restrict this on cross-origin windows; the tab is open either way.
         }
+        track('assistant_issue_reported', { logs_truncated: logsTruncated });
         toast.success('Opened a pre-filled GitHub issue in a new tab. Review it there and submit.');
       } else {
+        track('assistant_issue_report_failed', { reason: 'popup_blocked' });
         // Popup blocked — surface the link in the conversation so the report is never lost.
         setMessages((prev) => [
           ...prev,
@@ -1591,6 +1651,7 @@ export function useAssistantLogic({
       }
     } catch (error) {
       console.error('[useAssistantLogic] failed to build issue report', error);
+      track('assistant_issue_report_failed', { reason: 'exception', ...errorProperties(error) });
       reportError('Could not prepare the issue report. Please try again.', { error });
     }
   };

@@ -4,6 +4,7 @@ import { ProjectStorageRepository } from '../../../../shared/services/storage/Pr
 import { ApiError } from '../../../../shared/api/api-client';
 import { personalizeGuiPage } from '../../../../shared/api/generation';
 import i18n from '@/main/shared/i18n';
+import { track, trackFailure } from '../../../../shared/services/analytics/events';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -837,6 +838,7 @@ function updatePagesList(editor: Editor) {
               try {
                 snap = await personalizeSnapshotWithAI(editor, page, profile);
               } catch (err) {
+                trackFailure('editor_action_failed', err, { editor: 'gui', action: 'personalize_variant', reason: 'request' });
                 failure =
                   err instanceof ApiError
                     ? err.message
@@ -850,6 +852,7 @@ function updatePagesList(editor: Editor) {
               }
 
               if (snap) {
+                track('editor_action', { editor: 'gui', action: 'personalize_variant' });
                 notify(editor, 'success', i18n.t('editors.gui.pages.personalized', { pageName: page.getName(), profileName: profile.name }));
                 return snap;
               }
@@ -950,6 +953,7 @@ function updatePagesList(editor: Editor) {
 
           editor.Pages.remove(page);
           updatePagesList(editor);
+          track('editor_action', { editor: 'gui', action: 'page_deleted', pages_count: editor.Pages.getAll().length });
         };
 
         const variants = getPageVariants(page);
@@ -1081,6 +1085,7 @@ function setupPageCommands(editor: Editor) {
 
       editor.Pages.select(page);
       updatePagesList(editor);
+      track('editor_action', { editor: 'gui', action: 'page_added', pages_count: editor.Pages.getAll().length });
     }
   });
 

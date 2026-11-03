@@ -8,22 +8,23 @@ import { validateDiagram } from '../../shared/services/validation/validateDiagra
 import { exportBuml } from '../../shared/api/conversion';
 import { ApiError } from '../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
+import type { ExportOutcome } from './exportOutcome';
 
 export const useExportBUML = () => {
   const downloadFile = useFileDownload();
   const { t } = useTranslation();
 
   const exportBUML = useCallback(
-    async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
+    async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel): Promise<ExportOutcome> => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         reportError(validationResult.message || t('export.toasts.validationFailed'));
-        return;
+        return { ok: false, reason: 'validation', error: validationResult.failure };
       }
 
       if (!editor || !editor.model) {
         reportError(t('export.toasts.noDiagramToExport'));
-        return;
+        return { ok: false, reason: 'no_model' };
       }
 
       try {
@@ -56,10 +57,11 @@ export const useExportBUML = () => {
 
         downloadFile({ file: blob, filename });
         toast.success(t('export.toasts.bumlExportSuccess'));
+        return { ok: true };
       } catch (error) {
         if (error instanceof ApiError && error.detail && (error.status === 400 || error.status === 500)) {
           reportError(error.detail);
-          return;
+          return { ok: false, reason: 'request', error };
         }
         const errorMessage =
           error instanceof ApiError
@@ -68,6 +70,7 @@ export const useExportBUML = () => {
               ? error.message
               : t('export.toasts.unknownError');
         reportError(errorMessage, { error });
+        return { ok: false, reason: 'request', error };
       }
     },
     [downloadFile, t],

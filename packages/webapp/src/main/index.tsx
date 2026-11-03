@@ -4,12 +4,13 @@ import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner'
 import { setTheme } from './shared/utils/theme-switcher';
 import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY, GA_MEASUREMENT_ID } from './shared/constants/constant';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY, GA_MEASUREMENT_ID, EDITOR_VERSION } from './shared/constants/constant';
 import { runStorageMigrations } from './shared/services/storage/storage-migration';
 import { claimChunkReload } from './shared/services/storage/tabStorage';
 import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
 import { initDemoModeFromUrl } from './shared/services/demoMode';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
+import { trackUncaughtErrors } from './shared/services/analytics/events';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
 // Initialise i18next (language detection + resource bundles) before first render.
@@ -51,8 +52,10 @@ initLazyAnalytics({
   posthogKey: POSTHOG_KEY,
   posthogHost: POSTHOG_HOST,
   gaMeasurementId: GA_MEASUREMENT_ID,
+  editorVersion: EDITOR_VERSION,
   hasUserConsented,
 });
+trackUncaughtErrors();
 const themePreference = LocalStorageRepository.getUserThemePreference();
 
 if (themePreference === 'dark') {

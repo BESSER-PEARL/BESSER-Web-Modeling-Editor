@@ -9,6 +9,7 @@
 // graph.
 import { useCallback, useState } from 'react';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 
 import { analyzeKg, kgApiErrorMessage, type KgPreflightReport } from '../../../shared/api/knowledgeGraph';
@@ -39,6 +40,7 @@ export const useKgPreflight = (failedKey = 'knowledgeGraph.preflight.failed') =>
         return data;
       } catch (error) {
         reportError(kgApiErrorMessage(error, t, t(failedKey)), { error });
+        track('editor_action_failed', { editor: 'kg', action: 'preflight', ...errorProperties(error) });
         setStatus('error');
         setReport(null);
         return null;

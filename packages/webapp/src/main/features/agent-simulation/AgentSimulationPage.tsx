@@ -35,7 +35,7 @@ export const AgentSimulationPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (sessionIdRef.current) {
-        dispatch(stopAgentSimulationThunk());
+        dispatch(stopAgentSimulationThunk('left_page'));
       }
       // API keys are only kept for Restart while this page is open.
       agentSimulationCredentialStore.clear();

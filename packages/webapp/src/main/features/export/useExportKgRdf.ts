@@ -8,7 +8,7 @@ import { reportError } from '../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 
 import { exportKgRdf, kgApiErrorMessage, type KgRdfFormat, type KgRdfVocab } from '../../shared/api/knowledgeGraph';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { errorProperties, track } from '../../shared/services/analytics/events';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';
@@ -30,12 +30,14 @@ export const useExportKgRdf = () => {
       const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
       if (!project) {
         reportError(t('export.kg.toasts.noProject'));
+        track('generator_failed', { generator_type: `kg_export_${format}`, reason: 'no_project' });
         return false;
       }
 
       const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
       if (!kgDiagram || !kgDiagram.model) {
         reportError(t('export.kg.toasts.noDiagram'));
+        track('generator_failed', { generator_type: `kg_export_${format}`, diagram_type: project.currentDiagramType, reason: 'invalid_input' });
         return false;
       }
 
@@ -51,7 +53,7 @@ export const useExportKgRdf = () => {
         const vocabSuffix =
           vocab === 'both' ? '' : t('export.kg.toasts.vocabSuffix', { vocab: vocab.toUpperCase() });
         toast.success(t('export.kg.toasts.exportCompleted', { format: format.toUpperCase(), suffix: vocabSuffix }));
-        getPostHog()?.capture('generator_used', {
+        track('generator_used', {
           generator_type: `kg_export_${format}`,
           diagram_type: project.currentDiagramType,
           vocab,
@@ -59,6 +61,12 @@ export const useExportKgRdf = () => {
         return true;
       } catch (error) {
         reportError(kgApiErrorMessage(error, t, t('export.kg.toasts.failed')), { error });
+        track('generator_failed', {
+          generator_type: `kg_export_${format}`,
+          diagram_type: project.currentDiagramType,
+          reason: 'request',
+          ...errorProperties(error),
+        });
         return false;
       }
     },

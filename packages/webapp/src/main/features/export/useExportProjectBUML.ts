@@ -7,14 +7,15 @@ import { BesserProject, SupportedDiagramType } from '../../shared/types/project'
 import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../shared/utils/download';
+import type { ExportOutcome } from './exportOutcome';
 
 export async function exportProjectAsSingleBUMLFile(
   project: BesserProject,
   diagramTypes?: SupportedDiagramType[]
-): Promise<void> {
+): Promise<ExportOutcome> {
   if (!project) {
     reportError(i18n.t('export.toasts.noProjectData'));
-    return;
+    return { ok: false, reason: 'no_model' };
   }
 
   // IMPORTANT: Always get fresh data from localStorage to ensure we have the latest changes
@@ -52,6 +53,7 @@ export async function exportProjectAsSingleBUMLFile(
     downloadFile(blob, filename);
 
     toast.success(i18n.t('export.toasts.projectExportedAs', { filename }));
+    return { ok: true };
   } catch (error) {
     console.error('Error exporting project as BUML file:', error);
     const message =
@@ -61,5 +63,6 @@ export async function exportProjectAsSingleBUMLFile(
           ? error.message
           : i18n.t('export.toasts.unknownError');
     reportError(i18n.t('export.toasts.projectExportFailed', { error: message }), { error });
+    return { ok: false, reason: 'request', error };
   }
 }

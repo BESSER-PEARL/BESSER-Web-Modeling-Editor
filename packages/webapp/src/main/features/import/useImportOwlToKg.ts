@@ -9,6 +9,7 @@
 //     the current tab (see `kgMerge.ts`) or drop it into a new tab.
 import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { importOwl, kgApiErrorMessage } from '../../shared/api/knowledgeGraph';
@@ -147,6 +148,7 @@ export const useImportOwlToKg = () => {
       // Empty tab → import straight into it, no question asked.
       if (!diagramHasContent(active)) {
         writeToActiveTab(currentProject, active, incoming, data.title || active.title || file.name);
+        track('diagram_imported', { format: 'owl', diagram_type: KG_TYPE, source: 'empty_tab' });
         toast.success(
           t('import.kg.owl.imported', {
             nodes: t('import.kg.owl.nodesFragment', { count: incoming.nodes.length }),
@@ -168,6 +170,7 @@ export const useImportOwlToKg = () => {
       const errorMessage = kgApiErrorMessage(error, t, t('import.kg.owl.unknownError'));
       dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
       reportError(errorMessage, { error });
+      track('diagram_import_failed', { format: 'owl', source: 'file', reason: 'request', ...errorProperties(error) });
     }
   }, [dispatch, writeToActiveTab, t]);
 
@@ -192,6 +195,7 @@ export const useImportOwlToKg = () => {
 
         if (mode === 'new_tab') {
           await importIntoNewTab(project, incoming, title);
+          track('diagram_imported', { format: 'owl', diagram_type: KG_TYPE, source: 'new_tab' });
           toast.success(
             t('import.kg.owl.importedNewTab', {
               nodes: t('import.kg.owl.nodesFragment', { count: incoming.nodes.length }),
@@ -217,6 +221,7 @@ export const useImportOwlToKg = () => {
         );
 
         const skipped = merged.duplicateNodeCount + merged.duplicateEdgeCount;
+        track('diagram_imported', { format: 'owl', diagram_type: KG_TYPE, source: 'merge' });
         toast.success(
           t('import.kg.owl.merged', {
             nodes: t('import.kg.owl.nodesFragment', { count: merged.addedNodeCount }),
@@ -228,6 +233,7 @@ export const useImportOwlToKg = () => {
         const errorMessage = error instanceof Error ? error.message : t('import.kg.owl.unknownError');
         dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
         reportError(errorMessage, { error });
+        track('diagram_import_failed', { format: 'owl', source: mode, reason: 'exception', ...errorProperties(error) });
       }
     },
     [pending, dispatch, importIntoNewTab, writeToActiveTab, t],

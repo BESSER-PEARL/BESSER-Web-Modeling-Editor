@@ -51,6 +51,13 @@ const forceBaseWebAppGuiModel = (project: BesserProject): BesserProject => {
  *  render.yaml suffix; a first deploy has no stable Render hostname yet. */
 export type GitHubDeploymentUrls = components['schemas']['DeploymentUrls'];
 
+/** Why `createRepo` produced no repository; `error` is the caught error, if any. */
+export interface CreateRepoFailure {
+  success: false;
+  reason: 'no_project' | 'not_signed_in' | 'request';
+  error?: unknown;
+}
+
 export interface GitHubRepoResult {
   success: boolean;
   repo_url: string;
@@ -108,20 +115,20 @@ export const useGitHubRepo = () => {
    * Creates a new GitHub repository and pushes project files to it.
    * @param projectData - The project data to push to the repository
    * @param options - Repository creation options (name, description, private, session)
-   * @returns The result of the repository creation, or null if failed
+   * @returns The result of the repository creation, or why it failed
    */
   const createRepo = useCallback(
     async (
       projectData: BesserProject,
       options: CreateRepoOptions
-    ): Promise<GitHubRepoResult | null> => {
+    ): Promise<GitHubRepoResult | CreateRepoFailure> => {
       if (!projectData) {
         reportError(t('github.toasts.noProjectToDeploy'));
-        return null;
+        return { success: false, reason: 'no_project' };
       }
       if (!options.githubSession) {
         reportError(t('github.toasts.notSignedIn'));
-        return null;
+        return { success: false, reason: 'not_signed_in' };
       }
 
       console.log('Creating GitHub repository...');
@@ -268,7 +275,7 @@ export const useGitHubRepo = () => {
               : t('github.toasts.repoCreationFailed');
         reportError(errorMessage, { error });
         console.error('GitHub repository creation error:', error);
-        return null;
+        return { success: false, reason: 'request', error };
       } finally {
         setIsCreating(false);
       }

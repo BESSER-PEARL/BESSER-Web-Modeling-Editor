@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import { Download, FolderKanban, KeyRound, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
@@ -74,7 +75,9 @@ export const ProjectSettingsPanel: React.FC = () => {
     (type: SupportedDiagramType, enabled: boolean) => {
       dispatch(setPerspectiveEnabledThunk({ type, enabled }))
         .unwrap()
+        .then(() => track('settings_changed', { area: 'perspective', setting: type, value: enabled }))
         .catch((err: unknown) => {
+          trackFailure('settings_change_failed', err, { area: 'perspective', setting: type });
           reportError(err instanceof Error ? err.message : t('project.settings.toasts.updatePerspectiveFailed'), { error: err });
         });
     },
@@ -85,7 +88,9 @@ export const ProjectSettingsPanel: React.FC = () => {
     (preset: PerspectiveDefinition) => {
       dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
         .unwrap()
+        .then(() => track('settings_changed', { area: 'perspective', setting: 'preset', value: preset.key }))
         .catch((err: unknown) => {
+          trackFailure('settings_change_failed', err, { area: 'perspective', setting: 'preset' });
           reportError(err instanceof Error ? err.message : t('project.settings.toasts.applyPresetFailed'), { error: err });
         });
     },
@@ -117,10 +122,24 @@ export const ProjectSettingsPanel: React.FC = () => {
   }), [currentProject?.name]);
   const settingsValidation = useFieldValidation(settingsValidators);
 
+  // Fields save on every keystroke: report each field once per visit, never its value.
+  const editedFieldsRef = useRef(new Set<string>());
   const handleProjectField = useCallback((field: 'name' | 'description' | 'owner', value: string) => {
     if (!currentProject) return;
     updateProject({ [field]: value });
+    if (!editedFieldsRef.current.has(field)) {
+      editedFieldsRef.current.add(field);
+      track('settings_changed', { area: 'project', setting: field });
+    }
   }, [currentProject, updateProject]);
+
+  const updateDisplaySetting = <K extends 'showInstancedObjects' | 'showAssociationNames' | 'usePropertiesPanel' | 'classNotation'>(
+    setting: K,
+    value: K extends 'classNotation' ? ClassNotation : boolean,
+  ) => {
+    settingsService.updateSetting(setting, value as never);
+    track('settings_changed', { area: 'display', setting, value });
+  };
 
   const handleExportProject = async () => {
     if (!currentProject) return;
@@ -140,8 +159,10 @@ export const ProjectSettingsPanel: React.FC = () => {
       }
 
       await exportProject(currentProject.id, true);
+      track('diagram_exported', { format: 'project_json', source: 'settings' });
       toast.success(t('project.settings.toasts.exported'));
     } catch (exportError) {
+      trackFailure('diagram_export_failed', exportError, { format: 'project_json', reason: 'exception', source: 'settings' });
       reportError(t('project.settings.toasts.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }), { error: exportError });
     } finally {
       setIsExporting(false);
@@ -264,7 +285,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     checked={showInstancedObjects}
                     onCheckedChange={(checked) => {
                       setShowInstancedObjects(checked);
-                      settingsService.updateSetting('showInstancedObjects', checked);
+                      updateDisplaySetting('showInstancedObjects', checked);
                     }}
                   />
                 </label>
@@ -278,7 +299,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     checked={showAssociationNames}
                     onCheckedChange={(checked) => {
                       setShowAssociationNames(checked);
-                      settingsService.updateSetting('showAssociationNames', checked);
+                      updateDisplaySetting('showAssociationNames', checked);
                     }}
                   />
                 </label>
@@ -292,7 +313,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     checked={usePropertiesPanel}
                     onCheckedChange={(checked) => {
                       setUsePropertiesPanel(checked);
-                      settingsService.updateSetting('usePropertiesPanel', checked);
+                      updateDisplaySetting('usePropertiesPanel', checked);
                     }}
                   />
                 </label>
@@ -310,7 +331,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     onValueChange={(value) => {
                       const next = value as ClassNotation;
                       setClassNotation(next);
-                      settingsService.updateSetting('classNotation', next);
+                      updateDisplaySetting('classNotation', next);
                     }}
                   >
                     {(['UML', 'ER'] as const).map((value) => (

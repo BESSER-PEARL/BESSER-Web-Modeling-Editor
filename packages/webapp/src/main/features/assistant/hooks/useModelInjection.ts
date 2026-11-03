@@ -12,6 +12,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
 import type { InjectionCommand, UMLModelingService, ClassSpec, ModelModification } from '../services';
@@ -617,6 +618,8 @@ export function useModelInjection({
         throw new Error('Assistant did not provide a valid update payload');
       }
 
+      track('assistant_model_applied', { action: command.action, diagram_type: targetDiagramType });
+
       // Refresh undo state after successful injection
       refreshUndoState();
       setProgressMessage('');
@@ -658,6 +661,11 @@ export function useModelInjection({
       }
     } catch (error) {
       setProgressMessage('');
+      track('assistant_model_apply_failed', {
+        action: command.action,
+        diagram_type: command.diagramType,
+        ...errorProperties(error),
+      });
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       reportError(`Could not apply assistant update: ${errorMessage}`, { error });
       const errMsg = toKitMessage(

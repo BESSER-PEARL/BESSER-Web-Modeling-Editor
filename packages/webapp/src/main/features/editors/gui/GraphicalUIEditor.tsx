@@ -17,6 +17,7 @@ import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
+import { track, trackFailure } from '../../../shared/services/analytics/events';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 
 // Personalization variant data lives on live GrapesJS page objects (set via
@@ -113,7 +114,8 @@ export const GraphicalUIEditor: React.FC = () => {
 
       const handleAssistantAutoGenerate = async () => {
         try {
-          await autoGenerateGUIFromClassDiagram(editor);
+          const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+          track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'assistant' });
           editor.runCommand('notifications:add', {
             type: 'success',
             message: `✓ ${i18n.t('editors.gui.guiGeneratedFromClass')}`,
@@ -127,6 +129,11 @@ export const GraphicalUIEditor: React.FC = () => {
         } catch (error) {
           const message = error instanceof Error ? error.message : i18n.t('editors.gui.unknownError');
           console.error('[Assistant Auto-Generate] Error:', error);
+          trackFailure('editor_action_failed', error, {
+            editor: 'gui',
+            action: 'generate_from_classes',
+            reason: generationFailureReason(error),
+          });
           editor.runCommand('notifications:add', {
             type: 'error',
             message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message })}`,
@@ -266,9 +273,11 @@ export const GraphicalUIEditor: React.FC = () => {
       };
       const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
       const onBlockDragStart = () => setIsDraggingBlock(true);
-      const onBlockDragStop = () => {
+      // GrapesJS passes the dropped component (undefined when the drop was cancelled) and the palette block.
+      const onBlockDragStop = (component?: unknown, block?: { getId?: () => string }) => {
         setIsDraggingBlock(false);
         deferEmptyCheck();
+        if (component) track('editor_action', { editor: 'gui', action: 'block_added', block_id: block?.getId?.() });
       };
       editor.on('load page:select component:add component:remove', deferEmptyCheck);
       editor.on('block:drag:start', onBlockDragStart);
@@ -791,10 +800,12 @@ export function setupProjectStorageIntegration(
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
+          track('editor_action_failed', { editor: 'gui', action: 'save', reason: 'storage' });
         }
       } catch (error) {
         console.error('[Storage] Error saving:', error);
         setSaveStatus('error');
+        trackFailure('editor_action_failed', error, { editor: 'gui', action: 'save', reason: 'exception' });
       }
     },
   });
@@ -1199,7 +1210,8 @@ function addAutoGenerateGUIButton(editor: Editor) {
         confirmBtn.onclick = async () => {
           modal.close();
           try {
-            await autoGenerateGUIFromClassDiagram(editor);
+            const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+            track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'manual' });
             // Show success notification using GrapesJS notification system
             editor.runCommand('notifications:add', {
               type: 'success',
@@ -1208,6 +1220,11 @@ function addAutoGenerateGUIButton(editor: Editor) {
             });
           } catch (error) {
             console.error('[Auto-Generate] Error:', error);
+            trackFailure('editor_action_failed', error, {
+              editor: 'gui',
+              action: 'generate_from_classes',
+              reason: generationFailureReason(error),
+            });
             editor.runCommand('notifications:add', {
               type: 'error',
               message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message: (error as Error).message })}`,
@@ -1232,10 +1249,22 @@ function addAutoGenerateGUIButton(editor: Editor) {
   });
 }
 
+/** Thrown once the class diagram failed validation; its errors are already shown in a modal. */
+class ClassDiagramInvalidError extends Error {
+  constructor() {
+    super(i18n.t('editors.gui.qualityCheckFailed'));
+    this.name = 'ClassDiagramInvalidError';
+  }
+}
+
+const generationFailureReason = (error: unknown): string =>
+  error instanceof ClassDiagramInvalidError ? 'validation' : 'exception';
+
 /**
- * Auto-generate GUI pages and components from the class diagram
+ * Auto-generate GUI pages and components from the class diagram.
+ * Resolves to the number of pages created.
  */
-async function autoGenerateGUIFromClassDiagram(editor: Editor) {
+async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> {
   // Get class diagram model for validation
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
@@ -1280,7 +1309,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
         closeBtn.onclick = () => modal.close();
       }
     }, 100);
-    return; // Abort GUI generation
+    throw new ClassDiagramInvalidError();
   }
 
   // Get all classes from the class diagram
@@ -1360,8 +1389,9 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
   };
 
   // Execute the async page processing
-  return processPages();
-  
+  await processPages();
+  return createdPages.length;
+
 }
 
 /**

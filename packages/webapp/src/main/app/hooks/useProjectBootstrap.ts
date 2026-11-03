@@ -6,6 +6,7 @@ import { readContinueFromGithubIntent } from '../../shared/services/storage/gith
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
 import { notifyError } from '../../shared/services/errors/reportError';
 import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 
 const KNOWN_ROUTES = [
   '/',
@@ -66,8 +67,10 @@ export const useProjectBootstrap = ({
       if (latestProjectId) {
         try {
           await loadProject(latestProjectId);
+          track('project_opened', { source: 'startup' });
           setShowProjectHub(false);
-        } catch {
+        } catch (error) {
+          trackFailure('project_open_failed', error, { source: 'startup' });
           setShowProjectHub(true);
         }
       } else {

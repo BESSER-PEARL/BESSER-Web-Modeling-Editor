@@ -13,11 +13,15 @@ import { deployApp } from '../../../../shared/api/generation';
 import { ApiError } from '../../../../shared/api/api-client';
 
 const captureException = vi.fn();
+const captureEvent = vi.hoisted(() => vi.fn());
 
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), loading: vi.fn(() => 'deploy-toast'), update: vi.fn() },
 }));
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({ getSentry: () => ({ captureException }) }));
+vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
+  getSentry: () => ({ captureException }),
+  captureEvent,
+}));
 vi.mock('../../../../shared/services/validation/validateDiagram', () => ({
   validateDiagram: vi.fn(async () => ({ isValid: true })),
 }));
@@ -36,6 +40,28 @@ beforeEach(() => {
   vi.mocked(toast.update).mockClear();
   vi.mocked(toast.error).mockClear();
   captureException.mockClear();
+  captureEvent.mockClear();
+});
+
+const deployEvents = () => captureEvent.mock.calls.filter(([event]) => event.startsWith('local_deploy_'));
+
+describe('useDeployLocally analytics', () => {
+  it('reports a finished deploy with its duration', async () => {
+    vi.mocked(deployApp).mockResolvedValueOnce(undefined as never);
+    await deploy();
+    expect(deployEvents()).toEqual([['local_deploy_succeeded', { duration_ms: expect.any(Number) }]]);
+  });
+
+  it("reports a failed deploy with the error's kind and status, never its detail", async () => {
+    vi.mocked(deployApp).mockRejectedValueOnce(new ApiError(500, 'Request failed', 'docker compose up failed'));
+    await deploy();
+    expect(deployEvents()).toEqual([
+      [
+        'local_deploy_failed',
+        { duration_ms: expect.any(Number), error_type: 'ApiError', http_status: 500, network_error: false },
+      ],
+    ]);
+  });
 });
 
 describe('useDeployLocally failures', () => {

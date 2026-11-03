@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../services/errors/reportError';
+import { track, trackFailure } from '../services/analytics/events';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -80,6 +81,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     const errors = validation.touchAll();
     if (Object.keys(errors).length > 0 || !satisfaction) {
       if (!satisfaction) {
+        track('feedback_failed', { reason: 'missing_rating' });
         reportError(t('feedback.toasts.selectRating'));
       }
       return;
@@ -97,9 +99,11 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
         user_agent: navigator.userAgent,
       });
 
+      track('feedback_submitted', { satisfaction, category: category || undefined, has_email: email.trim() !== '' });
       toast.success(t('feedback.toasts.thankYou'));
       handleOpenChange(false);
     } catch (error) {
+      trackFailure('feedback_failed', error, { reason: 'request' });
       const message =
         error instanceof ApiError
           ? (error.detail ?? t('feedback.toasts.submitFailedDefault'))

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Circuit } from '../types';
 import { serializeCircuit, deserializeCircuit } from '../utils';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
+import { track, trackFailure } from '../../../../shared/services/analytics/events';
 import { QuantumCircuitData, isQuantumCircuitData, BesserProject, getActiveDiagram } from '../../../../shared/types/project';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
@@ -41,6 +42,7 @@ export function useCircuitPersistence(
             if (!project) {
                 console.error('[saveCircuit] No project found');
                 setSaveStatus('error');
+                track('editor_action_failed', { editor: 'quantum', action: 'save', reason: 'no_project' });
                 return;
             }
             
@@ -71,10 +73,12 @@ export function useCircuitPersistence(
             } else {
                 console.error('[saveCircuit] updateDiagram returned false');
                 setSaveStatus('error');
+                track('editor_action_failed', { editor: 'quantum', action: 'save', reason: 'storage' });
             }
         } catch (error) {
             console.error('[useCircuitPersistence] Error saving circuit:', error);
             setSaveStatus('error');
+            trackFailure('editor_action_failed', error, { editor: 'quantum', action: 'save', reason: 'exception' });
         }
     }, [currentProject?.id]);
 

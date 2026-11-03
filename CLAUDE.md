@@ -212,6 +212,18 @@ and `no-restricted-globals` rejects the un-imported global `reportError` (the br
 Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
 stays in Redux.
 
+### Product analytics (PostHog)
+Every event goes through `track(event, properties)` in `shared/services/analytics/events.ts`, whose
+`AnalyticsEvents` interface is the catalog: a new event or property is added there first, and TypeScript rejects
+anything else. Properties are content-free by contract (enums, counts, booleans, durations, HTTP status, error class
+name via `errorProperties(error)` / `trackFailure`): never a name, title, prompt, message, URL, repository or key.
+Track both sides of an action: the success event only after it really succeeded, and a failure event at every
+failure exit (`reportError` already sends a generic `error_shown`). PostHog is initialised in `lazy-analytics.ts`
+(no React provider: swapping one in late remounted the whole app); events tracked before it loads are queued with
+their timestamp, and nothing is sent without consent. URL properties lose their query and fragment
+(`sanitizePostHogProperties`). Collecting a new kind of data means updating the privacy copy
+(`shared.cookie.privacy` in every locale) too.
+
 ### Browser storage
 Web Storage is read and written only by the typed modules in `shared/services/storage/`
 (`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,

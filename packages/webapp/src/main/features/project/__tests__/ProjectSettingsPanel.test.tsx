@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -39,6 +39,12 @@ vi.mock('../../../shared/services/storage/ProjectStorageRepository', () => ({
     saveProject: vi.fn(),
     getCurrentProject: vi.fn(() => null),
   },
+}));
+
+const mockCapture = vi.fn();
+vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
+  captureEvent: (...args: unknown[]) => mockCapture(...args),
+  getSentry: () => null,
 }));
 
 vi.mock('react-toastify', () => ({
@@ -290,5 +296,27 @@ describe('ProjectSettingsPanel', () => {
     setupUseProject({ currentProject: project });
     renderWithStore(project);
     expect(screen.getByText('Export Project')).toBeInTheDocument();
+  });
+
+  describe('analytics', () => {
+    const changes = () => mockCapture.mock.calls.filter(([event]) => event === 'settings_changed').map(([, props]) => props);
+
+    it('reports a field once per visit, by name and never its value', () => {
+      const project = createDefaultProject('Old Name', '', 'owner');
+      setupUseProject({ currentProject: project });
+      renderWithStore(project);
+      const name = screen.getByDisplayValue('Old Name');
+      fireEvent.change(name, { target: { value: 'New' } });
+      fireEvent.change(name, { target: { value: 'New Name' } });
+      expect(changes()).toEqual([{ area: 'project', setting: 'name' }]);
+    });
+
+    it('reports a display toggle with its new value', () => {
+      const project = createDefaultProject('Test', '', 'owner');
+      setupUseProject({ currentProject: project });
+      renderWithStore(project);
+      fireEvent.click(within(screen.getByText('Show Instanced Objects').closest('label')!).getByRole('checkbox'));
+      expect(changes()).toEqual([{ area: 'display', setting: 'showInstancedObjects', value: true }]);
+    });
   });
 });

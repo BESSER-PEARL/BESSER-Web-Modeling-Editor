@@ -41,6 +41,7 @@ import {
   type LlmProvider,
 } from '../../services/llmKeyStorage';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
+import { track } from '@/main/shared/services/analytics/events';
 import {
   defaultFreeModelId,
   preferredFreeModelId,
@@ -118,6 +119,8 @@ export interface LlmKeyDialogProps {
    * can still pick another; saving replaces the single shared key either way.
    */
   preferProvider?: LlmProvider;
+  /** Which surface opened the dialog, for analytics (`assistant`, `spec_driven`, ...). */
+  surface?: string;
 }
 
 interface ProviderOption {
@@ -368,6 +371,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   showRunBudget = true,
   preferKeyEntry = false,
   preferProvider,
+  surface,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -628,6 +632,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   };
 
   const commitRemoval = () => {
+    track('llm_key_removed', { provider: readLlmKey()?.provider });
     clearLlmKey();
     if (client) {
       client.setUserApiKey({ apiKey: '' });
@@ -664,6 +669,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       );
       persistRunBudget();
       setSaveError(null);
+      track('free_tier_selected', { model: readFreeTierModel() ?? undefined, surface });
       onSaved?.({
         provider: 'free',
         apiKey: '',
@@ -673,6 +679,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       return;
     }
     if (providerMismatch) {
+      track('llm_key_save_failed', { reason: 'provider_mismatch', provider });
       setSaveError(
         `This key looks like ${_providerLabel(inferredProvider, providerOptions)} but the ` +
           `Provider is set to ${selectedProvider.label}. Change one so they ` +
@@ -681,10 +688,12 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       return;
     }
     if (modelMissing) {
+      track('llm_key_save_failed', { reason: 'custom_model_empty', provider });
       setSaveError('Custom model ID is empty — pick a preset or type a model name.');
       return;
     }
     if (modelFormatInvalid) {
+      track('llm_key_save_failed', { reason: 'custom_model_invalid', provider });
       setSaveError(
         'Model ID may only contain letters, digits, dashes, dots, underscores, or slashes.',
       );
@@ -696,16 +705,19 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     if (provider === 'local') {
       effectiveBaseUrl = baseUrl.trim();
       if (!effectiveBaseUrl) {
+        track('llm_key_save_failed', { reason: 'local_url_invalid', provider });
         setSaveError('Enter your local server URL, e.g. http://localhost:11434/v1');
         return;
       }
       if (!/^https?:\/\//i.test(effectiveBaseUrl)) {
+        track('llm_key_save_failed', { reason: 'local_url_invalid', provider });
         setSaveError('Local server URL must start with http:// or https://');
         return;
       }
     }
     const saved = writeLlmKey(provider, trimmedKey, effectiveModel, effectiveBaseUrl);
     if (!saved) {
+      track('llm_key_save_failed', { reason: 'storage', provider });
       setSaveError(
         'Could not store the key in this browser tab (sessionStorage is unavailable). ' +
           'Try enabling site storage or use a different browser.',
@@ -730,6 +742,17 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     persistRunBudget();
     setSaveError(null);
     setKeyPresent(true);
+    const modelSource =
+      modelChoice === DEFAULT_MODEL_VALUE ? 'default' : modelChoice === CUSTOM_MODEL_VALUE ? 'custom' : 'preset';
+    track('llm_key_saved', {
+      provider,
+      model_source: modelSource,
+      // A typed custom id is never sent; a preset is a catalog id.
+      model: modelSource === 'preset' ? modelChoice : undefined,
+      surface,
+      armed_assistant: Boolean(client) && isAssistantKeyProvider(provider),
+      budget_set: showRunBudget,
+    });
     onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel, baseUrl: effectiveBaseUrl });
     onOpenChange(false);
   };

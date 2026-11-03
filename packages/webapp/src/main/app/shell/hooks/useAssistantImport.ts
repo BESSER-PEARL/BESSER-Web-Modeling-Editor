@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import { useImportDiagramPictureFromImage } from '../../../features/import/useImportDiagramPicture';
 import { useImportDiagramFromKG } from '../../../features/import/useImportDiagramKG';
@@ -77,17 +78,21 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
     }
 
     setIsAssistantImporting(true);
+    // Read by an LLM: from a picture, or from a knowledge-graph file.
+    const format = assistantImportMode === 'image' ? 'image' : 'kg_file';
     try {
       const result =
         assistantImportMode === 'image'
           ? await importDiagramPictureFromImage(assistantSelectedFile, assistantApiKey)
           : await importDiagramFromKG(assistantSelectedFile, assistantApiKey);
       toast.success(result.message);
+      track('diagram_imported', { format, diagram_type: result.diagramType, source: 'ai' });
       resetAssistantImportDialog();
     } catch (error) {
       reportError(t('assistant.import.errors.importFailed', {
         error: error instanceof Error ? error.message : t('assistant.errors.unknownError'),
       }), { error });
+      track('diagram_import_failed', { format, source: 'ai', reason: 'request', ...errorProperties(error) });
     } finally {
       setIsAssistantImporting(false);
     }

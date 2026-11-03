@@ -10,7 +10,7 @@ const mockCreateProject = vi.fn();
 const mockCapture = vi.fn();
 
 vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => ({ capture: mockCapture }),
+  captureEvent: (...args: unknown[]) => mockCapture(...args),
 }));
 vi.mock('../../../app/hooks/useProject', () => ({
   useProject: () => ({

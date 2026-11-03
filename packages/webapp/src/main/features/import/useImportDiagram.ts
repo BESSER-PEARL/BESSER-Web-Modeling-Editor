@@ -8,6 +8,13 @@ import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { useBumlToDiagram, isBumlFile, isJsonFile, isBpmnXmlFile } from './useBumlToDiagram';
 import { useImportBpmnXml } from './useImportBpmnXml';
+import { errorProperties, track } from '../../shared/services/analytics/events';
+
+/** The file kind an import was given, for analytics. */
+const importFormat = (file: File): string =>
+  isBumlFile(file) ? 'buml' : isBpmnXmlFile(file) ? 'bpmn_xml' : isJsonFile(file) ? 'json' : 'unsupported';
+
+type ImportFailureReason = 'unsupported' | 'limit_reached' | 'invalid' | 'request' | 'no_project' | 'exception';
 
 export const useImportDiagram = () => {
   const dispatch = useAppDispatch();
@@ -73,16 +80,22 @@ export const useImportDiagramToProject = () => {
 
   const importDiagramToProject = useCallback(
     async (file: File) => {
+      const format = importFormat(file);
+      // Set before each step that can throw, so the failure event says which one did.
+      let failureReason: ImportFailureReason = 'exception';
       try {
         let diagram: ProjectDiagram;
 
         if (isBumlFile(file)) {
           // Handle Python/BUML file - convert to diagram
+          failureReason = 'request';
           diagram = await convertBumlToDiagram(file);
         } else if (isBpmnXmlFile(file)) {
           // Handle BPMN 2.0 XML file - parse with bpmn-xml-importer
+          failureReason = 'invalid';
           diagram = await convertBpmnXmlToDiagram(file);
         } else if (isJsonFile(file)) {
+          failureReason = 'invalid';
           // Handle JSON file - parse directly
           const fileContent = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -93,17 +106,21 @@ export const useImportDiagramToProject = () => {
 
           diagram = JSON.parse(fileContent);
         } else {
+          failureReason = 'unsupported';
           throw new Error('Unsupported file type. Please select a .json, .py, or .bpmn file.');
         }
 
         // Validate that it's a valid diagram
         if (!isUMLModel(diagram.model)) {
+          failureReason = 'invalid';
           throw new Error('Invalid diagram format: missing model or type');
         }
+        failureReason = 'exception';
 
         // Get the current project
         const currentProject = ProjectStorageRepository.getCurrentProject();
         if (!currentProject) {
+          failureReason = 'no_project';
           throw new Error('No project is currently open. Please create or open a project first.');
         }
 
@@ -122,6 +139,7 @@ export const useImportDiagramToProject = () => {
         // Add the imported diagram as a new entry (never overwrite existing diagrams)
         const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
         if (existingDiagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
+          failureReason = 'limit_reached';
           throw new Error(
             `Cannot import: maximum of ${MAX_DIAGRAMS_PER_TYPE} ${diagramType} diagrams per project has been reached.`,
           );
@@ -163,6 +181,7 @@ export const useImportDiagramToProject = () => {
           }
         }
 
+        track('diagram_imported', { format, diagram_type: diagramType, source: 'file' });
         return {
           success: true,
           diagramType,
@@ -170,6 +189,7 @@ export const useImportDiagramToProject = () => {
           message: `${diagramType} diagram imported into project "${currentProject.name}".`,
         };
       } catch (error) {
+        track('diagram_import_failed', { format, source: 'file', reason: failureReason, ...errorProperties(error) });
         // Don't dispatch displayError here — the caller (WorkspaceShell handler)
         // surfaces the error via react-toastify, and a duplicate persistent
         // banner from errorManagementSlice would be uniformity drift.

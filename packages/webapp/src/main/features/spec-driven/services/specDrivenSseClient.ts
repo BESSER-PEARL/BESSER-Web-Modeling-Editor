@@ -80,6 +80,7 @@ import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
 } from '../../../shared/services/telemetry/pilotTelemetry';
+import { track } from '../../../shared/services/analytics/events';
 import type {
   SpecDrivenEvent,
   SpecDrivenMode,
@@ -458,6 +459,11 @@ async function* withDurableReconnect(
 
     const delayMs = RECONNECT_BACKOFF_MS[reconnectAttempts] ?? 60_000;
     reconnectAttempts += 1;
+    track('spec_stream_reconnecting', {
+      attempt: reconnectAttempts,
+      stream_failures: streamFailures,
+      polling: usePolling,
+    });
     // A wake signal means the network just changed under us — retry now and
     // restore the budget rather than counting this against it.
     const wokeEarly = await waitForReconnect(delayMs, signal);

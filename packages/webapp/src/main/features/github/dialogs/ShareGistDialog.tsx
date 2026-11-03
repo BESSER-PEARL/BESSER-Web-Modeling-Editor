@@ -7,6 +7,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createGist } from '../../../shared/api/github';
 import { CreateGistDialog } from './CreateGistDialog';
+import { trackGitHubAction } from '../githubAnalytics';
 
 interface ShareGistDialogProps {
   open: boolean;
@@ -37,11 +38,15 @@ export const ShareGistDialog: React.FC<ShareGistDialogProps> = ({ open, onOpenCh
     }
     setIsCreating(true);
     try {
-      const result = await createGist(
-        githubSession,
-        project,
-        description || t('github.defaultGistDescription', { name: project.name }),
-        isPublic,
+      const result = await trackGitHubAction(
+        'create_gist',
+        () => createGist(
+          githubSession,
+          project,
+          description || t('github.defaultGistDescription', { name: project.name }),
+          isPublic,
+        ),
+        () => ({ is_private: !isPublic }),
       );
       onOpenChange(false);
       toast.success(t('github.toasts.gistCreated'));

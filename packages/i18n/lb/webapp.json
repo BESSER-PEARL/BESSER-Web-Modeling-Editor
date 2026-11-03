@@ -2229,7 +2229,7 @@
         "accept": "Akzeptéieren",
         "privacyPolicy": "Dateschutzerklärung",
         "rows": {
-          "generators": "Benotzte Code-Generatoren",
+          "generators": "Benotzte Funktiounen an ob se funktionéieren",
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
           "errorReports": "Anonym Feelerberichter",
@@ -2250,7 +2250,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ass eng Open-Source Low-Code-Plattform, déi vun der Software Engineering Research Group beim LIST (Luxembourg Institute of Science and Technology) entwéckelt gëtt.",
         "collectTitle": "Donnéeën, déi mir sammelen",
         "collect": {
-          "usage": "Funktiounsnotzung (Generatoren an Diagramm-Workflows)",
+          "usage": "Funktiounsnotzung a Resultater: wéi eng Funktiounen Dir benotzt an ob se klappen oder net (nëmmen Feelertyp an HTTP-Status)",
+          "interactions": "Klickpositiounen op de Säiten (Heatmaps) an d’Ladezäit vun de Säiten",
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
           "session": "Anonym Sessiounsmetadaten",

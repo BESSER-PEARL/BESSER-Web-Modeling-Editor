@@ -15,6 +15,7 @@ import { selectProject, setPerspectiveEnabledThunk } from '../../app/store/works
 import { HeaderTooltip } from '../../app/shell/menus/HeaderTooltip';
 import { isPerspectiveVisible, type SupportedDiagramType } from '../../shared/types/project';
 import { countUnread, markAllSeen, WHATS_NEW } from './whatsNew';
+import { track } from '../../shared/services/analytics/events';
 
 interface WhatsNewMenuProps {
   outlineButtonClass: string;
@@ -43,13 +44,16 @@ export const WhatsNewMenu: React.FC<WhatsNewMenuProps> = ({ outlineButtonClass, 
   const triggerLabel = unread > 0 ? t('whatsNew.unread', { count: unread }) : title;
 
   const handleOpenChange = (open: boolean) => {
-    if (!open || unread === 0) return;
+    if (!open) return;
+    track('ui_action', { action: 'whats_new_opened', unread_count: unread });
+    if (unread === 0) return;
     setHighlighted(unread);
     markAllSeen(WHATS_NEW);
     setUnread(0);
   };
 
-  const openDiagram = async (type: SupportedDiagramType) => {
+  const openDiagram = async (type: SupportedDiagramType, entryId: string) => {
+    track('ui_action', { action: 'whats_new_entry_opened', entry_id: entryId, diagram_type: type });
     if (!isPerspectiveVisible(project?.settings?.perspectives, type)) {
       await dispatch(setPerspectiveEnabledThunk({ type, enabled: true }));
     }
@@ -97,7 +101,7 @@ export const WhatsNewMenu: React.FC<WhatsNewMenuProps> = ({ outlineButtonClass, 
               {entry.diagramType && project && (
                 <DropdownMenuItem
                   className="-mx-2 mt-1.5 w-fit gap-1.5 font-medium text-brand focus:text-brand"
-                  onSelect={() => void openDiagram(entry.diagramType!)}
+                  onSelect={() => void openDiagram(entry.diagramType!, entry.id)}
                 >
                   {t(`whatsNew.entries.${entry.id}.action`)}
                   <ArrowRight className="size-3.5" aria-hidden="true" />

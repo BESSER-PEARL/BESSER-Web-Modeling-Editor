@@ -8,7 +8,7 @@
  * Consumers should call `initLazyAnalytics()` once from the entry file, and
  * `applyAnalyticsConsent()` whenever the analytics consent changes. Sentry and
  * Google Analytics load only with consent; PostHog loads always but captures only
- * with consent.
+ * with consent. Product events go through `track` in `events.ts`.
  */
 
 import type { ConsentStatus } from '../../components/cookie-consent/CookieConsentBanner';
@@ -80,38 +80,132 @@ export const applyConsentToSentry = (status: ConsentStatus): void => {
 
 // ── PostHog ─────────────────────────────────────────────────────────────────
 
-let posthogModule: typeof import('posthog-js') | null = null;
+type PostHog = (typeof import('posthog-js'))['default'];
 
-/**
- * Returns the lazily-loaded PostHog default export, or `null` if it hasn't
- * loaded yet.
- */
-export const getPostHog = (): (typeof import('posthog-js'))['default'] | null =>
-  posthogModule?.default ?? null;
+/** The initialised client, or `null` before it has loaded (or when no key is configured). */
+let posthogClient: PostHog | null = null;
+/** False once we know no PostHog key is configured: events are then dropped, not queued. */
+let posthogEnabled = true;
+/** This tab's last decision, applied on load; like `sentryDecision` it can only narrow the stored consent. */
+let posthogDecision: ConsentStatus | null = null;
 
-/**
- * Queue of consent operations that arrived before PostHog was loaded.
- * Once PostHog is ready we flush and apply them in order.
- */
-let pendingConsentStatus: ConsentStatus | null = null;
+/** Events tracked before PostHog loaded (it loads when the browser is idle), sent with their own time. */
+interface QueuedEvent {
+  event: string;
+  properties: Record<string, unknown>;
+  timestamp: Date;
+}
+/** Bounds memory when PostHog never loads (blocked by an ad blocker, offline). */
+const MAX_QUEUED_EVENTS = 200;
+let queuedEvents: QueuedEvent[] = [];
 
-/**
- * Apply an opt-in / opt-out decision to PostHog.
- * If PostHog hasn't loaded yet the decision is queued and applied on load.
- */
-export const applyConsentToPostHog = (status: ConsentStatus): void => {
-  const ph = getPostHog();
-  if (ph) {
-    if (status === 'accepted') {
-      ph.opt_in_capturing();
-    } else {
-      ph.opt_out_capturing();
+/** Every property PostHog sends a URL in; their query and fragment can carry an OAuth `code` or a `?buml=` URL. */
+const URL_PROPERTIES = ['$current_url', '$referrer', '$initial_current_url', '$initial_referrer'];
+
+const withoutQueryOrFragment = (url: unknown): unknown =>
+  typeof url === 'string' ? url.replace(/[?#][\s\S]*$/, '') : url;
+
+/** PostHog `sanitize_properties`: strips the query and fragment from URLs, including `$set`/`$set_once` ones. */
+export function sanitizePostHogProperties(properties: Record<string, any>): Record<string, any> {
+  const scrub = (props: Record<string, any>) => {
+    for (const key of URL_PROPERTIES) {
+      if (key in props) props[key] = withoutQueryOrFragment(props[key]);
     }
+  };
+  scrub(properties);
+  for (const nested of ['$set', '$set_once']) {
+    if (properties[nested] && typeof properties[nested] === 'object') scrub(properties[nested]);
+  }
+  return properties;
+}
+
+/**
+ * Send a product-analytics event. Safe to call at any time: before PostHog has loaded
+ * the event is queued, and PostHog itself drops it unless the user accepted analytics.
+ * Prefer the typed `track` in `events.ts`, which fixes each event's properties.
+ */
+export function captureEvent(event: string, properties: Record<string, unknown> = {}): void {
+  if (posthogClient) {
+    posthogClient.capture(event, properties);
     return;
   }
-  // PostHog not loaded yet -- remember so we can apply when it arrives.
-  pendingConsentStatus = status;
+  if (posthogEnabled && queuedEvents.length < MAX_QUEUED_EVENTS) {
+    queuedEvents.push({ event, properties, timestamp: new Date() });
+  }
+}
+
+/**
+ * Apply an opt-in / opt-out decision to PostHog. Accepting also stores its id (cookie and
+ * localStorage), so a returning user stays one person; declining deletes it again.
+ * The banner re-applies the stored decision on every load, so only a real change opts in:
+ * otherwise each page load would send another `$opt_in`.
+ */
+export const applyConsentToPostHog = (status: ConsentStatus): void => {
+  posthogDecision = status;
+  const ph = posthogClient;
+  if (!ph) return;
+  if (status === 'accepted') {
+    if (!ph.has_opted_out_capturing()) return;
+    ph.set_config({ disable_persistence: false });
+    ph.opt_in_capturing();
+    // posthog-js 1.186 starts its batch queue only at load, so after a later opt-in every
+    // event would wait for the page to unload. Start it the way its own load does.
+    (ph as unknown as { _start_queue_if_opted_in?: () => void })._start_queue_if_opted_in?.();
+    // The page view of the page the user accepted on was dropped before consent.
+    ph.capture('$pageview');
+  } else {
+    ph.opt_out_capturing();
+    // Disabling persistence deletes the stored id, including one left by an earlier consent.
+    ph.set_config({ disable_persistence: true });
+  }
 };
+
+interface PostHogSettings {
+  key: string;
+  host: string | undefined;
+  editorVersion: string | undefined;
+  hasUserConsented: () => boolean;
+}
+
+function loadPostHog(settings: PostHogSettings): void {
+  import('posthog-js')
+    .then(({ default: posthog }) => {
+      const consented = settings.hasUserConsented() && posthogDecision !== 'declined';
+      posthog.init(settings.key, {
+        api_host: settings.host,
+        // Only the events we send ourselves: autocapture and dead clicks record element text,
+        // which on the canvas is model content. Heatmaps (click positions) and web vitals are kept.
+        autocapture: false,
+        capture_dead_clicks: false,
+        enable_heatmaps: true,
+        disable_session_recording: true,
+        disable_surveys: true,
+        // The router changes pages without a reload; `trackPageview` sends those.
+        capture_pageview: false,
+        respect_dnt: true,
+        opt_out_capturing_by_default: !consented,
+        // Disabled persistence stores nothing and deletes a stale id from an earlier consent
+        // (withdrawn in another tab, or asked again after a consent-version change).
+        persistence: 'localStorage+cookie',
+        disable_persistence: !consented,
+        ip: false,
+        sanitize_properties: sanitizePostHogProperties,
+      });
+      posthog.register({ editor_version: settings.editorVersion });
+      posthogClient = posthog;
+      if (posthogDecision !== null) applyConsentToPostHog(posthogDecision);
+      const queued = queuedEvents;
+      queuedEvents = [];
+      for (const { event, properties, timestamp } of queued) {
+        posthog.capture(event, properties, { timestamp });
+      }
+    })
+    .catch((err) => {
+      posthogEnabled = false;
+      queuedEvents = [];
+      console.warn('[analytics] Failed to load PostHog:', err);
+    });
+}
 
 // ── Google Analytics ────────────────────────────────────────────────────────
 
@@ -179,6 +273,7 @@ interface AnalyticsConfig {
   posthogKey: string | undefined;
   posthogHost: string | undefined;
   gaMeasurementId: string | undefined;
+  editorVersion: string | undefined;
   hasUserConsented: () => boolean;
 }
 
@@ -213,19 +308,18 @@ export function initLazyAnalytics(config: AnalyticsConfig): void {
     }
 
     // ── PostHog ───────────────────────────────────────────────────────────
-    // PostHog is loaded by <PostHogProvider> in the React tree, but we also
-    // need the module available for consent toggling. Pre-warm it here.
-    import('posthog-js')
-      .then((mod) => {
-        posthogModule = mod;
-        // Flush any consent decision that was queued before load.
-        if (pendingConsentStatus !== null) {
-          applyConsentToPostHog(pendingConsentStatus);
-          pendingConsentStatus = null;
-        }
-      })
-      .catch((err) => {
-        console.warn('[analytics] Failed to load PostHog:', err);
+    // Loaded always (so events queued before load can be sent or dropped by its
+    // consent check), but it captures only after Accept.
+    if (config.posthogKey) {
+      loadPostHog({
+        key: config.posthogKey,
+        host: config.posthogHost,
+        editorVersion: config.editorVersion,
+        hasUserConsented: config.hasUserConsented,
       });
+    } else {
+      posthogEnabled = false;
+      queuedEvents = [];
+    }
   });
 }

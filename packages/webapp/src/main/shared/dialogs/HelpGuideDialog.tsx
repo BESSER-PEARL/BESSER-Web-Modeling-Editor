@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { besserWMERepositoryLink } from '../constants/application-constants';
 import type { HelpGuideSectionId as GuideSectionId } from './helpGuide';
+import { track } from '../services/analytics/events';
 
 interface GuideDetail {
   /** i18n key resolved with t() at render time (also used as a stable React key). */
@@ -56,6 +57,7 @@ const oclBodyComponents = {
       href="https://b-ocl-interpreter.readthedocs.io/en/latest/"
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => track('ui_action', { action: 'link_opened', link: 'ocl_docs' })}
       className={sharedLinkClass}
     />
   ),
@@ -457,11 +459,17 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
         </div>
 
         <DialogFooter className="border-t border-border/70 px-6 py-4">
-          <Button variant="outline" onClick={() => openExternalUrl(DOCS_URL)} className="gap-2">
+          <Button variant="outline" onClick={() => {
+            track('ui_action', { action: 'link_opened', link: 'docs' });
+            openExternalUrl(DOCS_URL);
+          }} className="gap-2">
             {t('dialogs.guide.openDocs')}
             <ExternalLink className="size-3.5" />
           </Button>
-          <Button variant="outline" onClick={() => openExternalUrl(besserWMERepositoryLink)} className="gap-2">
+          <Button variant="outline" onClick={() => {
+            track('ui_action', { action: 'link_opened', link: 'wme_repository' });
+            openExternalUrl(besserWMERepositoryLink);
+          }} className="gap-2">
             {t('dialogs.guide.openWmeRepo')}
             <ExternalLink className="size-3.5" />
           </Button>
