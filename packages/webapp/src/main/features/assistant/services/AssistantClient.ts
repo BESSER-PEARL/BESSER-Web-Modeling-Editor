@@ -328,6 +328,9 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
   return compacted;
 };
 
+/** What an injection says when the agent sent no message with it (written by the client, not the agent). */
+export const INJECTION_FALLBACK_MESSAGE = 'Applied assistant update.';
+
 export class AssistantClient {
   private ws: WebSocket | null = null;
   private isConnected = false;
@@ -954,7 +957,7 @@ export class AssistantClient {
                 ? directAction.message
                 : payload.message && typeof payload.message === 'string'
                   ? payload.message
-                  : 'Applied assistant update.',
+                  : INJECTION_FALLBACK_MESSAGE,
           });
           // Don't fire the action handler for injection commands —
           // they are fully processed by the injection handler above.

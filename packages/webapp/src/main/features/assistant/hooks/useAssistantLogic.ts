@@ -24,7 +24,7 @@ import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
+import { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
   conversationStore,
@@ -56,6 +56,11 @@ import {
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
+import {
+  endAssistantConversation,
+  recordAssistantReply,
+  recordAssistantRequest,
+} from '../../../shared/traceability/traceStore';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 
@@ -592,11 +597,13 @@ export function useAssistantLogic({
           errors.map((e) => `- ${e}`).join('\n');
         // Pass the just-applied model explicitly — the store refs can lag one
         // render behind right after an injection.
-        assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
+        if (assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
           ...context,
           activeDiagramType: 'ClassDiagram',
           activeModel: info.model,
-        });
+        }) !== 'error') {
+          void recordAssistantRequest(currentProjectRef.current, repairRequest);
+        }
       } catch (loopError) {
         console.warn('[auto-fix] validation loop skipped:', loopError);
       }
@@ -746,7 +753,22 @@ export function useAssistantLogic({
   /*  handleAction                                                     */
   /* ================================================================ */
 
+  /** Record an agent reply in the project trace: a progress step, or an answer (a message or a finished stream). */
+  const recordReply = (payload: AssistantActionPayload) => {
+    const project = currentProjectRef.current;
+    if (payload.action === 'progress' && typeof payload.message === 'string') {
+      const { step, total } = payload as { step?: unknown; total?: unknown };
+      const label = typeof step === 'number' && typeof total === 'number' ? `[${step}/${total}] ${payload.message}` : payload.message;
+      recordAssistantReply(project, 'progress', label);
+    } else if (payload.action === 'assistant_message' && typeof payload.message === 'string') {
+      recordAssistantReply(project, 'answer', payload.message);
+    } else if (payload.action === 'stream_done' && typeof payload.fullText === 'string') {
+      recordAssistantReply(project, 'answer', payload.fullText);
+    }
+  };
+
   const handleAction = async (payload: AssistantActionPayload) => {
+    recordReply(payload);
     // Let the streaming sub-hook handle streaming/progress actions first
     if (streaming.handleStreamingAction(payload, setMessages)) {
       return;
@@ -1147,6 +1169,11 @@ export function useAssistantLogic({
       // in place with the real transcribed text instead of appending a second
       // user bubble (which would leave a duplicate). This keeps exactly ONE
       // user bubble for the voice message.
+      // A transcribed voice message is the user's request; an error ends the turn. The assistant's other
+      // messages are recorded from the action handler, which also sees those that are not displayed.
+      if (message.isUser) void recordAssistantRequest(currentProjectRef.current, toAssistantText(message.message));
+      else if (message.action === 'agent_error') recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message));
+
       if (message.isUser && voicePlaceholderIdRef.current) {
         const placeholderId = voicePlaceholderIdRef.current;
         voicePlaceholderIdRef.current = null;
@@ -1201,6 +1228,9 @@ export function useAssistantLogic({
     };
 
     const onInjection = (command: InjectionCommand) => {
+      if (typeof command.message === 'string' && command.message !== INJECTION_FALLBACK_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'answer', command.message);
+      }
       enqueueAssistantTask(() => injection.handleInjection(command));
     };
     const onAction = (payload: AssistantActionPayload) => {
@@ -1352,6 +1382,7 @@ export function useAssistantLogic({
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
+      if (sendResult !== 'error') void recordAssistantRequest(currentProjectRef.current, displayText);
 
       // Analytics
       const activeModel = modelSnapshot as any;
@@ -1469,6 +1500,7 @@ export function useAssistantLogic({
     // the rest of the list, so a late transcription echo should append fresh
     // rather than try to replace a now-gone id.
     voicePlaceholderIdRef.current = null;
+    endAssistantConversation(currentProjectRef.current);
     setMessages([]);
     streaming.setIsGenerating(false);
     setInputValue('');
