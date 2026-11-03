@@ -52,6 +52,26 @@ describe('scrubSentryEvent', () => {
     expect(scrubbed.extra).toBeUndefined();
   });
 
+  it("keeps only the SDK's own contexts", () => {
+    const trace = { trace_id: 'a'.repeat(32), span_id: 'b'.repeat(16) };
+    const react = { version: '18.3.1' };
+    const browser = { name: 'Firefox', version: '132.0' };
+    const scrubbed = scrubSentryEvent({
+      ...event(),
+      contexts: {
+        trace,
+        react,
+        browser,
+        // Integrations or app code can attach state, responses or names.
+        state: { state: { type: 'redux', value: { project: { name: 'Hospital-Acme' } } } },
+        response: { status_code: 404, headers: { 'x-repo': 'acme/hospital-secret' } },
+        feedback: { contact_email: 'someone@example.com', message: DETAIL },
+        project: { name: 'Hospital-Acme' },
+      },
+    });
+    expect(scrubbed.contexts).toEqual({ trace, react, browser });
+  });
+
   it('keeps only the category, type, level and time of each breadcrumb', () => {
     expect(scrubSentryEvent(event()).breadcrumbs).toEqual([
       { type: 'default', category: 'console', level: 'error', timestamp: 1 },

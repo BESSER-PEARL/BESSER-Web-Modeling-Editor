@@ -35,9 +35,16 @@ const scrubFrame = (frame: StackFrame): StackFrame => ({
 const NO_USER = { ip_address: null } as unknown as User;
 
 /**
+ * Contexts the SDK sets itself: `trace` and `react` (version, an error boundary's component
+ * stack) in @sentry/react 8, plus Sentry's device-description contexts. Any other context
+ * (an integration's Redux state or HTTP response, `setContext` from app code) is dropped.
+ */
+const SDK_CONTEXTS = new Set(['trace', 'react', 'os', 'browser', 'device', 'runtime', 'culture']);
+
+/**
  * Sentry `beforeSend`: keeps what the privacy policy allows (error type, HTTP status,
- * stack, page path, browser, breadcrumb categories) and drops every free-text field and
- * the user, since error messages, logged text and request URLs can carry model content,
+ * stack, page path, browser, breadcrumb categories, the SDK's own contexts) and drops
+ * every free-text field, any other context and the user, since error messages, logged text and request URLs can carry model content,
  * project or repository names.
  */
 export function scrubSentryEvent(event: ErrorEvent, hint?: EventHint): ErrorEvent {
@@ -60,6 +67,9 @@ export function scrubSentryEvent(event: ErrorEvent, hint?: EventHint): ErrorEven
     scrubbed.breadcrumbs = event.breadcrumbs.map(
       ({ type, category, level, timestamp }): Breadcrumb => ({ type, category, level, timestamp }),
     );
+  }
+  if (event.contexts) {
+    scrubbed.contexts = Object.fromEntries(Object.entries(event.contexts).filter(([key]) => SDK_CONTEXTS.has(key)));
   }
   if (event.request) {
     const userAgent = event.request.headers?.['User-Agent'];
