@@ -4181,6 +4181,12 @@
       "show": "Show lineage",
       "startFrom": "Lineage of",
       "wholeProject": "Whole project",
+      "picker": {
+        "selected": "Selected",
+        "models": "Models",
+        "prompts": "Prompts",
+        "code": "Generated code"
+      },
       "empty": "No trace links yet. Generate code from a diagram, or derive one diagram from another, to see its lineage.",
       "olderGenerations": "Show older generations",
       "file": "Generated file",
@@ -4218,8 +4224,6 @@
       "moreLinks": "and {{count}} more",
       "expandBundle": "{{count}} links: click to show them one by one",
       "confidence": "Confidence",
-      "confidenceValue": "Confidence {{value}}",
-      "confidenceNotAssessed": "Confidence not assessed",
       "confidenceNotAssessedNote": "Not assessed: the operation that made this link reported no confidence.",
       "evidence": "Evidence",
       "noEvidence": "No evidence recorded.",
@@ -4288,6 +4292,7 @@
       "Property": "attribute",
       "Method": "method",
       "Constraint": "constraint",
+      "OCLConstraint": "constraint",
       "BinaryAssociation": "association",
       "Generalization": "generalization"
     },

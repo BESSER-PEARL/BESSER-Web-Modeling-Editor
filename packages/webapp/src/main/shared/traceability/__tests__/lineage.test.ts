@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expandableIds, lineageLayout, lineageOf } from '../lineage';
+import { expandableIds, lineageLayout, lineageOf, lineageStartingPoints } from '../lineage';
 import type { Lineage, LineageLayout } from '../lineage';
 import { indexTrace } from '../traceQueries';
 import { emptyTraceFile } from '../../types/traceability';
@@ -203,5 +203,27 @@ describe('lineageLayout', () => {
   it('expands everything that has parts', () => {
     const { index, lineage } = project();
     expect([...expandableIds(index, lineage)].sort()).toEqual(['cd', 'f2', 'kg', 'run:run2']);
+  });
+});
+
+describe('lineageStartingPoints', () => {
+  it('offers the models with their elements, the prompts and the files of each run, all taking part in links', () => {
+    const trace = chain();
+    trace.artifacts.push(
+      model('status', 'Status', 'Enumeration', 'cd'), model('lends', 'lends', 'BinaryAssociation', 'cd'),
+      model('idle', 'Idle', 'Class', 'cd'), // no link: no lineage to start from
+      code('s2', 'f2', [20, 22]), code('a2', 'f2', [30, 31]),
+      { id: 'prompt', type: 'PromptArtifact', name: 'A library', content: 'A library', contentHash: 'h', timestamp: at(0) },
+    );
+    trace.traceLinks.push(link('gs', 'status', 's2', 'run2', 4), link('ga', 'lends', 'a2', 'run2', 4), link('p', 'prompt', 'book', 'convert', 1));
+    const index = indexTrace(trace);
+    const points = lineageStartingPoints(index, lineageOf(index, null, latest));
+    expect(points.models.map(({ model: m, elements }) => [m.id, elements.map((e) => e.id)])).toEqual([
+      ['cd', ['book', 'status', 'lends']], // classes, then enumerations, then associations
+      ['kg', ['concept']],
+    ]);
+    expect(points.prompts.map((p) => p.id)).toEqual(['prompt']);
+    // The latest run only (the older one is not in the lineage), with its files.
+    expect(points.runs.map((r) => [r.operation.id, r.files.map((f) => f.id)])).toEqual([['run2', ['f2']]]);
   });
 });

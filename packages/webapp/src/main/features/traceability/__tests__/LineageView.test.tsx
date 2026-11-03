@@ -82,7 +82,23 @@ describe('LineageView', () => {
     expect(button('1.00')).toBeUndefined(); // a plain rule link carries no pill
     fireEvent.click(button('Lines 2–3')); // the link, from the element's list
     expect(button('1.00')).toBeTruthy();
-    expect(container.textContent).toContain('Confidence 1.00');
+    expect(container.querySelector('aside')!.textContent).toContain('Confidence1.00'); // the section, once
+    expect(container.querySelector('aside')!.textContent).not.toContain('Confidence 1.00'); // no badge
+  });
+
+  it('fades the other links while a link is selected', () => {
+    const file = trace();
+    file.artifacts.push(
+      { id: 'author', type: 'ModelArtifact', name: 'Author', elementId: 'c2', elementType: 'Class', parentId: 'cd', timestamp: time },
+      { id: 'alines', type: 'CodeArtifact', name: 'Author (5-6)', path: 'sql_alchemy.py', contentHash: 'h3', startLine: 5, endLine: 6, parentId: 'file', timestamp: time },
+    );
+    file.traceLinks.push({ ...file.traceLinks[0], id: 'link2', sourceId: 'author', targetId: 'alines' });
+    const { container, button } = view(file);
+    fireEvent.click(button('Expand all'));
+    const opacities = () => [...container.querySelectorAll('svg path[stroke-opacity]')].map((p) => Number(p.getAttribute('stroke-opacity')));
+    expect(opacities().every((o) => o > 0.3)).toBe(true);
+    fireEvent.click(container.querySelectorAll('svg path.cursor-pointer')[0]); // a line
+    expect(opacities().filter((o) => o <= 0.15)).toHaveLength(1); // the other link
   });
 
   it('says so when a link has no confidence', () => {
@@ -90,7 +106,6 @@ describe('LineageView', () => {
     delete file.traceLinks[0].confidence;
     const { container, button } = view(file, 'book');
     fireEvent.click(button('Lines 2–3'));
-    expect(container.textContent).toContain('Confidence not assessed');
     expect(container.textContent).toContain('the operation that made this link reported no confidence');
     expect(button('–')).toBeTruthy(); // on the canvas too
   });
@@ -119,6 +134,23 @@ describe('LineageView', () => {
     expect(document.body.querySelector('.fixed.inset-0')).toBeTruthy(); // a portal: full screen leaves the page
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(document.body.querySelector('.fixed.inset-0')).toBeNull();
+  });
+
+  it('keeps full screen when the lineage starts from another element', () => {
+    // The page keeps the starting point, as TraceabilityPage does.
+    const Page = () => {
+      const [root, setRoot] = React.useState<string | null>(null);
+      return <LineageView index={indexTrace(trace())} rootId={root} onRootChange={setRoot} onOpenElement={() => {}} />;
+    };
+    render(<Page />);
+    const find = (selector: string, text: string) =>
+      [...document.body.querySelectorAll<HTMLElement>(selector)].find((e) => e.textContent?.startsWith(text))!;
+    fireEvent.click(find('button', 'Full screen'));
+    fireEvent.click(find('[aria-pressed]', 'Class Diagram')); // opens it
+    fireEvent.click(find('[aria-pressed]', 'Book'));
+    fireEvent.click(find('button', 'Show its lineage'));
+    expect(document.body.textContent).toContain('Exit full screen');
+    expect(document.body.querySelector('.fixed.inset-0')).toBeTruthy();
   });
 
   it('zooms the canvas', () => {

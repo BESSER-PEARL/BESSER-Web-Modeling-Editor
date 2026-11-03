@@ -1,4 +1,4 @@
-import type { TraceArtifact, TraceLink, TraceOperation } from '../types/traceability';
+import type { CodeArtifact, ModelArtifact, PromptArtifact, TraceArtifact, TraceLink, TraceOperation } from '../types/traceability';
 import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../types/traceability';
 import type { TraceIndex } from './traceQueries';
 import { isSuspect, withDescendants } from './traceQueries';
@@ -355,4 +355,48 @@ export function expandableIds(index: TraceIndex, lineage: Lineage): Set<string> 
     for (const subject of tree.chainOf(node.artifact.id).slice(0, -1)) result.add(subject.id);
   }
   return result;
+}
+
+/** What the lineage can start from, by kind: what the "Lineage of" list offers. */
+export interface LineageStartingPoints {
+  /** Each model (diagram) with its elements, both taking part in links. */
+  models: { model: ModelArtifact; elements: ModelArtifact[] }[];
+  prompts: PromptArtifact[];
+  /** Each generation run with its files, newest run first. */
+  runs: { operation: TraceOperation; files: CodeArtifact[] }[];
+}
+
+/** Classes first, then enumerations, associations, generalizations and constraints. */
+const ELEMENT_RANK: Record<string, number> = {
+  Class: 0, AssociationClass: 0, Enumeration: 1, BinaryAssociation: 2, Generalization: 3, Constraint: 4,
+};
+
+/** The artifacts of `lineage` (the whole project's) a lineage can start from, by kind. */
+export function lineageStartingPoints(index: TraceIndex, lineage: Lineage): LineageStartingPoints {
+  const tree = new LineageTree(index);
+  const involved = new Map<string, LineageSubject>();
+  for (const node of lineage.nodes.values()) {
+    for (const subject of tree.chainOf(node.artifact.id)) involved.set(subject.id, subject);
+  }
+  const artifacts = [...involved.values()].flatMap((s) => (s.kind === 'artifact' ? [s.artifact] : []));
+  const byName = (a: TraceArtifact, b: TraceArtifact) => a.name.localeCompare(b.name);
+  const elementOrder = (a: ModelArtifact, b: ModelArtifact) =>
+    (ELEMENT_RANK[a.elementType] ?? 5) - (ELEMENT_RANK[b.elementType] ?? 5) || byName(a, b);
+
+  const models = artifacts
+    .filter((a): a is ModelArtifact => isModelArtifact(a) && !a.parentId)
+    .sort(byName)
+    .map((model) => ({
+      model,
+      elements: artifacts.filter((a): a is ModelArtifact => isModelArtifact(a) && a.parentId === model.id).sort(elementOrder),
+    }));
+  const prompts = artifacts.filter((a): a is PromptArtifact => isPromptArtifact(a)).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const runs = [...involved.values()]
+    .flatMap((s) => (s.kind === 'run' ? [s] : []))
+    .map((run) => ({
+      operation: run.operation,
+      files: tree.partsOf(run, involved).flatMap((part) => (part.kind === 'artifact' && isCodeArtifact(part.artifact) ? [part.artifact] : [])),
+    }))
+    .sort((a, b) => b.operation.startedAt.localeCompare(a.operation.startedAt));
+  return { models, prompts, runs };
 }

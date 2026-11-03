@@ -9,23 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { TraceArtifact, TraceEvidence, TraceOperation } from '../../shared/types/traceability';
 import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import {
   changesSince,
-  diagramsOf,
   fragmentLines,
   historyOf,
   isDeleted,
   isDiagram,
-  modelChildren,
   qualifiedName,
 } from '../../shared/traceability/traceQueries';
 import type { Lineage, LineageBundle, LineageEdge, LineageEdgeState, LineageLayout, LineageRow, LineageSubject } from '../../shared/traceability/lineage';
 import { expandableIds, lineageLayout, lineageOf, pathTo, runOfSubjectId } from '../../shared/traceability/lineage';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
+import { LineageRootPicker, WHOLE_PROJECT } from './LineageRootPicker';
 
 /** Stroke colour per evidence kind; a link that may no longer hold is amber whatever its evidence. */
 const EVIDENCE_STROKES: Record<TraceEvidence['type'], string> = {
@@ -39,7 +37,6 @@ const ZOOM_LEVELS = [0.5, 0.67, 0.8, 1, 1.25, 1.5];
 const ROW_INDENT = ['pl-1', 'pl-5', 'pl-9', 'pl-12', 'pl-16'];
 /** How many of a node's links its detail lists. */
 const LISTED_LINKS = 20;
-const WHOLE_PROJECT = '__whole_project__';
 
 type T = ReturnType<typeof useTranslation>['t'];
 type Selection = { kind: 'node'; id: string } | { kind: 'edge'; id: string };
@@ -58,8 +55,23 @@ interface LineageViewProps {
  */
 export const LineageView: React.FC<LineageViewProps> = ({ index, rootId, onRootChange, onOpenElement }) => {
   const root = rootId && index.artifacts.has(rootId) ? rootId : null;
+  // Full screen and zoom are the view's: a new starting point keeps them.
+  const [fullScreen, setFullScreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
   // A new starting point starts collapsed again, with the path to it open.
-  return <LineageExplorer key={root ?? WHOLE_PROJECT} index={index} root={root} onRootChange={onRootChange} onOpenElement={onOpenElement} />;
+  return (
+    <LineageExplorer
+      key={root ?? WHOLE_PROJECT}
+      index={index}
+      root={root}
+      onRootChange={onRootChange}
+      onOpenElement={onOpenElement}
+      fullScreen={fullScreen}
+      setFullScreen={setFullScreen}
+      zoom={zoom}
+      setZoom={setZoom}
+    />
+  );
 };
 
 const LineageExplorer: React.FC<{
@@ -67,7 +79,11 @@ const LineageExplorer: React.FC<{
   root: string | null;
   onRootChange: (artifactId: string | null) => void;
   onOpenElement: (artifactId: string) => void;
-}> = ({ index, root, onRootChange, onOpenElement }) => {
+  fullScreen: boolean;
+  setFullScreen: React.Dispatch<React.SetStateAction<boolean>>;
+  zoom: number;
+  setZoom: (zoom: number) => void;
+}> = ({ index, root, onRootChange, onOpenElement, fullScreen, setFullScreen, zoom, setZoom }) => {
   const { t } = useTranslation();
   const [olderGenerations, setOlderGenerations] = useState(false);
   const lineage = useMemo(
@@ -79,8 +95,6 @@ const LineageExplorer: React.FC<{
   );
   const layout = useMemo(() => lineageLayout(index, lineage, expanded), [index, lineage, expanded]);
   const [selection, setSelection] = useState<Selection | null>(root ? { kind: 'node', id: root } : null);
-  const [fullScreen, setFullScreen] = useState(false);
-  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (!fullScreen) return undefined;
@@ -120,7 +134,7 @@ const LineageExplorer: React.FC<{
   const explorer = (
     <div className={fullScreen ? 'fixed inset-0 z-50 flex flex-col gap-3 bg-background p-4' : 'space-y-3'}>
       <div className="flex flex-wrap items-center gap-3">
-        <RootPicker index={index} rootId={root} onChange={onRootChange} />
+        <LineageRootPicker index={index} rootId={root} onChange={onRootChange} />
         <div className="flex items-center gap-2">
           <Checkbox id="lineage-older" checked={olderGenerations} onCheckedChange={(checked) => setOlderGenerations(checked === true)} />
           <Label htmlFor="lineage-older" className="text-xs font-normal">{t('traceability.lineage.olderGenerations')}</Label>
@@ -188,37 +202,6 @@ const LineageExplorer: React.FC<{
   );
   // Full screen leaves the page: inside it, the page's stacking context would keep it under the top bar.
   return fullScreen ? createPortal(explorer, document.body) : explorer;
-};
-
-/** The whole project, or a diagram or one of its elements, as the lineage's starting point. */
-const RootPicker: React.FC<{ index: TraceIndex; rootId: string | null; onChange: (id: string | null) => void }> = ({ index, rootId, onChange }) => {
-  const { t } = useTranslation();
-  const root = rootId ? index.artifacts.get(rootId) : undefined;
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">{t('traceability.lineage.startFrom')}</span>
-      <Select value={rootId ?? WHOLE_PROJECT} onValueChange={(value) => onChange(value === WHOLE_PROJECT ? null : value)}>
-        <SelectTrigger className="h-8 w-64" aria-label={t('traceability.lineage.startFrom')}>
-          <SelectValue>{root ? (isModelArtifact(root) ? qualifiedName(index, root) : root.name) : t('traceability.lineage.wholeProject')}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={WHOLE_PROJECT} className="font-semibold">{t('traceability.lineage.wholeProject')}</SelectItem>
-          {diagramsOf(index).map((diagram) => (
-            <SelectGroup key={diagram.id}>
-              <SelectLabel>{elementTypeLabel(t, diagram.elementType)}</SelectLabel>
-              <SelectItem value={diagram.id} className="font-semibold">{diagram.name}</SelectItem>
-              {modelChildren(index, diagram.id).map((element) => (
-                <SelectItem key={element.id} value={element.id} className="pl-6">
-                  {element.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          ))}
-          {root && !isModelArtifact(root) && <SelectItem value={root.id}>{root.name}</SelectItem>}
-        </SelectContent>
-      </Select>
-    </div>
-  );
 };
 
 const Legend: React.FC = () => {
@@ -313,7 +296,10 @@ const LineageGraph: React.FC<{
     selected?.kind === 'edge' ? layout.bundles.flatMap((b) => b.edges).find((e) => e.link.id === selected.id)?.link : undefined;
   // With a row selected, its links stand out and the others fade.
   const touches = (bundle: LineageBundle) => selectedNode !== null && (bundle.sourceId === selectedNode || bundle.targetId === selectedNode);
-  const faded = (bundle: LineageBundle) => selectedNode !== null && rowsById.has(selectedNode) && !touches(bundle);
+  const faded = (bundle: LineageBundle) =>
+    selected?.kind === 'edge'
+      ? !isSelectedEdge(bundle)
+      : selectedNode !== null && rowsById.has(selectedNode) && !touches(bundle);
 
   return (
     <div className="relative h-full min-h-0 overflow-auto rounded-lg border border-border bg-muted/20">
@@ -695,14 +681,7 @@ const EdgeDetail: React.FC<{ index: TraceIndex; edge: LineageEdge; onSelectNode:
   const confidence = link.confidence?.value;
   return (
     <aside className="min-w-0 space-y-3 rounded-lg border border-border p-3 text-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-semibold">{t('traceability.lineage.linkTitle')}</h3>
-        <Badge variant="soft" size="sm" className="tabular-nums">
-          {confidence === undefined
-            ? t('traceability.lineage.confidenceNotAssessed')
-            : t('traceability.lineage.confidenceValue', { value: formatConfidence(confidence) })}
-        </Badge>
-      </div>
+      <h3 className="font-semibold">{t('traceability.lineage.linkTitle')}</h3>
       <div className="flex flex-wrap items-center gap-1 text-xs">
         <button type="button" className="rounded border border-border px-1.5 hover:bg-accent" onClick={() => onSelectNode(source.id)}>
           {nodeLabel(t, index, source)}
