@@ -43,7 +43,8 @@ window.addEventListener('vite:preloadError', (event) => {
 
 // Defer Sentry + PostHog + Google Analytics initialization until the browser is idle.
 // This removes ~40KB+ of synchronous JS from the critical render path. It runs after
-// initDemoModeFromUrl, so no analytics ever sees a `?demo=` token in the address bar.
+// initPilotModeFromUrl and initDemoModeFromUrl, so no analytics ever sees a `?demo=`
+// token or a `?study=`/`?pilot=` label in the address bar.
 initLazyAnalytics({
   sentryDsn: SENTRY_DSN,
   sentryEnvironment: NO_HTTP_URL,

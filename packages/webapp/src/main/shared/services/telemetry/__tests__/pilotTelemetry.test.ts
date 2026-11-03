@@ -84,6 +84,28 @@ describe('initPilotModeFromUrl', () => {
     expect(isPilotSession()).toBe(false);
   });
 
+  it('removes both forms from the page URL, keeping other parameters and the label', () => {
+    setUrl('?study=P4&pilot=P9&view=class');
+    initPilotModeFromUrl();
+    expect(window.location.search).toBe('?view=class');
+    expect(getPilotParticipant()).toBe('P4');
+  });
+
+  it('removes an invalid label from the page URL too', () => {
+    setUrl(`?pilot=${encodeURIComponent('P 3')}`);
+    initPilotModeFromUrl();
+    expect(window.location.search).toBe('');
+    expect(getPilotParticipant()).toBeNull();
+  });
+
+  it('is idempotent', () => {
+    setUrl('?study=P4');
+    initPilotModeFromUrl();
+    initPilotModeFromUrl();
+    expect(window.location.search).toBe('');
+    expect(getPilotParticipant()).toBe('P4');
+  });
+
   it('keeps the label for the tab across later URL changes', () => {
     setUrl('?pilot=P7');
     initPilotModeFromUrl();

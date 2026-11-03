@@ -33,16 +33,24 @@ export type DeliveryAction = 'download' | 'push_github' | 'continue_from_repo';
 
 /**
  * Read the `study` (or legacy `pilot`) URL query parameter on app load and,
- * when it carries a valid participant label, store it for the tab.
+ * when it carries a valid participant label, store it for the tab; both
+ * parameters are then removed from the URL (as `initDemoModeFromUrl` does).
  * Idempotent and safe to call in any environment (SSR, sandboxed iframe, tests).
  */
 export const initPilotModeFromUrl = (): void => {
   try {
     if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const label = params.get('study') ?? params.get('pilot');
+    const url = new URL(window.location.href);
+    const label = url.searchParams.get('study') ?? url.searchParams.get('pilot');
     if (label && PILOT_PARTICIPANT_PATTERN.test(label)) {
       writePilotParticipant(label);
+    }
+    // Drop the label from the address bar so analytics page locations never
+    // carry it; the tab keeps it in sessionStorage.
+    if (url.searchParams.has('study') || url.searchParams.has('pilot')) {
+      url.searchParams.delete('study');
+      url.searchParams.delete('pilot');
+      window.history.replaceState(window.history.state, '', url.toString());
     }
   } catch {
     // Storage or URL unavailable — study mode simply stays off.
