@@ -28,6 +28,8 @@ export const TraceabilityPage: React.FC = () => {
   const index = useMemo(() => (trace ? indexTrace(trace) : null), [trace]);
   const [tab, setTab] = useState<Tab>('timeline');
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  // Where the lineage starts: the whole project until an element's lineage is asked for.
+  const [lineageRoot, setLineageRoot] = useState<string | null>(null);
 
   if (!currentProject) {
     return <div className="p-6 text-sm text-muted-foreground">{t('traceability.noProject')}</div>;
@@ -44,7 +46,7 @@ export const TraceabilityPage: React.FC = () => {
   };
 
   const showLineage = (artifactId: string) => {
-    setSelectedElement(artifactId);
+    setLineageRoot(artifactId);
     setTab('lineage');
   };
 
@@ -122,8 +124,8 @@ export const TraceabilityPage: React.FC = () => {
                 {tab === 'lineage' && (
                   <LineageView
                     index={index}
-                    rootId={selectedElement}
-                    onRootChange={setSelectedElement}
+                    rootId={lineageRoot}
+                    onRootChange={setLineageRoot}
                     onOpenElement={openElement}
                   />
                 )}

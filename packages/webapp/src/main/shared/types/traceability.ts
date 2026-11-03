@@ -9,9 +9,10 @@
  */
 
 /** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. */
-export const TRACE_SCHEMA_VERSION = 2;
+export const TRACE_SCHEMA_VERSION = 3;
 
-export type OperationStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
+/** How an execution went: an operation, or one of its tool calls. */
+export type ExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
 
 export type ChangeKind = 'CREATED' | 'UPDATED' | 'DELETED';
 
@@ -88,26 +89,39 @@ export interface TraceChange {
   timestamp: string;
 }
 
+/** One message exchanged in a tool call (a prompt, an answer, an error). */
 export interface TraceLogRecord {
   id: string;
   content: string;
+  /** Position within its call. */
   sequenceNumber: number;
   logType: LogType;
-  toolId?: string;
   timestamp: string;
+}
+
+/** One use of a tool within an operation (an LLM prompted, a generator run, an editor session),
+ *  with the messages exchanged with it. An operation reaches its tools only through these. */
+export interface TraceToolCall {
+  id: string;
+  toolId: string;
+  /** Position within its operation. */
+  sequenceNumber: number;
+  status: ExecutionStatus;
+  startedAt: string;
+  endedAt?: string;
+  logs: TraceLogRecord[];
 }
 
 interface OperationBase {
   id: string;
-  status: OperationStatus;
+  status: ExecutionStatus;
   startedAt: string;
   endedAt?: string;
   /** A Person, an Agent, or both: who did the work tells manual from assistant modeling. */
   performedBy: string[];
-  uses: string[];
+  toolCalls: TraceToolCall[];
   consumes: string[];
   produces: string[];
-  logs: TraceLogRecord[];
 }
 
 /** Edits made to models, change by change. */
@@ -121,8 +135,8 @@ export interface CodeGenerationOperation extends OperationBase {
   type: 'CodeGeneration';
 }
 
-/** A dialogue between a user and an agent, with its messages in `logs`. It may consume prompts and
- *  produce artifacts (requirements), or produce nothing (a clarification question). */
+/** A dialogue between a user and an agent: each turn is a call to the agent's LLM, holding the turn's
+ *  messages. It may consume prompts and produce artifacts (requirements), or produce nothing. */
 export interface ConversationOperation extends OperationBase {
   type: 'Conversation';
 }
@@ -136,10 +150,20 @@ export const isModeling = (operation: TraceOperation | undefined): operation is 
 /** The changes of an operation: only a Modeling has any. */
 export const changesOf = (operation: TraceOperation): TraceChange[] => (isModeling(operation) ? operation.changes : []);
 
+/** `Operation./tools`, derived: the ids of the distinct tools its calls invoked, in call order. */
+export const toolIdsOf = (operation: TraceOperation): string[] => [...new Set(operation.toolCalls.map((call) => call.toolId))];
+
+/** An operation's messages, call by call, each call's in order. */
+export const logsOf = (operation: TraceOperation): TraceLogRecord[] =>
+  [...operation.toolCalls]
+    .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+    .flatMap((call) => [...call.logs].sort((a, b) => a.sequenceNumber - b.sequenceNumber));
+
+/** Why a link holds: a deterministic rule, or an AI decision. Any evidence can rest on log records
+ *  (`logIds`, left out when there are none). */
 export type TraceEvidence =
-  | { id: string; type: 'RuleEvidence'; rule: string; timestamp: string }
-  | { id: string; type: 'AIEvidence'; algorithm: string; logIds: string[]; timestamp: string }
-  | { id: string; type: 'ChangeEvidence'; changeIds: string[]; timestamp: string };
+  | { id: string; type: 'RuleEvidence'; rule: string; logIds?: string[]; timestamp: string }
+  | { id: string; type: 'AIEvidence'; algorithm: string; logIds?: string[]; timestamp: string };
 
 export interface TraceConfidence {
   id: string;

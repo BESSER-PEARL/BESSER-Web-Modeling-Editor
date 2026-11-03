@@ -14,7 +14,7 @@ function history(sessions: number): TraceFile {
     actors: [{ id: 'ada', type: 'Person', name: 'Ada', timestamp: at(0) }],
     artifacts: [{ id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', timestamp: at(0) }],
     operations: Array.from({ length: sessions }, (_, i) => ({
-      id: `m${i}`, type: 'Modeling', status: 'SUCCEEDED', startedAt: at(i), performedBy: ['ada'], uses: [], consumes: [], produces: [], logs: [],
+      id: `m${i}`, type: 'Modeling', status: 'SUCCEEDED', startedAt: at(i), performedBy: ['ada'], toolCalls: [], consumes: [], produces: [],
       changes: [{ id: `c${i}`, kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: `v${i}`, newValue: `v${i + 1}`, timestamp: at(i) }],
     }) as TraceOperation),
   };

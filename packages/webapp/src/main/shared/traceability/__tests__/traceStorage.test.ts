@@ -95,7 +95,8 @@ describe('retention of generation runs', () => {
         { id: `l${run}`, type: 'CodeArtifact', name: 'Book', path: 'sql_alchemy.py', contentHash: 'x', startLine: 1, endLine: 2, parentId: `f${run}`, timestamp: at(run) },
       );
       trace.operations.push({ id: `g${run}`, type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: at(run), performedBy: ['ada'],
-        uses: ['gen'], consumes: ['book'], produces: [`f${run}`, `l${run}`], logs: [] } as TraceOperation);
+        toolCalls: [{ id: `c${run}`, toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(run), logs: [] }],
+        consumes: ['book'], produces: [`f${run}`, `l${run}`] } as TraceOperation);
       trace.traceLinks.push({ id: `k${run}`, sourceId: 'book', targetId: `l${run}`, operationId: `g${run}`, timestamp: at(run),
         evidence: [{ id: `e${run}`, type: 'RuleEvidence', rule: 'r', timestamp: at(run) }] });
     }

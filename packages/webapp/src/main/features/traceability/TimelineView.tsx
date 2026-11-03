@@ -9,7 +9,7 @@ import type {
   TraceChange,
   TraceOperation,
 } from '../../shared/types/traceability';
-import { changesOf, isCodeArtifact, isModelArtifact } from '../../shared/types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact, logsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { diagramsOfOperation, isDiagram, topLevelOf } from '../../shared/traceability/traceQueries';
 import type { OperationKind } from './traceLabels';
@@ -154,7 +154,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
           {isGeneration
             ? t('traceability.timeline.linkCount', { count: linkCount })
             : operation.type === 'Conversation'
-              ? t('traceability.timeline.messageCount', { count: operation.logs.length })
+              ? t('traceability.timeline.messageCount', { count: logsOf(operation).length })
               : t('traceability.timeline.changeCount', { count: changesOf(operation).length })}
         </Badge>
       </button>
@@ -180,7 +180,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
             <GenerationSummary operation={operation} index={index} onOpenElement={onOpenElement} />
           ) : operation.type === 'Conversation' ? (
             <ol className="space-y-1">
-              {operation.logs.map((log) => (
+              {logsOf(operation).map((log) => (
                 <li key={log.id} className="text-sm">
                   <span className="mr-2 text-[10px] uppercase text-muted-foreground">
                     {t(`traceability.timeline.logTypes.${log.logType}`, { defaultValue: log.logType })}

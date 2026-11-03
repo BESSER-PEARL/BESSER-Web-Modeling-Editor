@@ -1,12 +1,16 @@
-import type { TraceArtifact, TraceLink } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact } from '../types/traceability';
+import type { TraceArtifact, TraceLink, TraceOperation } from '../types/traceability';
+import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../types/traceability';
 import type { TraceIndex } from './traceQueries';
-import { diagramOf, isSuspect, withDescendants } from './traceQueries';
+import { isSuspect, withDescendants } from './traceQueries';
 
 /**
  * The lineage of an artifact: everything it was derived from and everything derived from it,
  * following trace links transitively in both directions. Generic over artifact and link kinds,
  * so a chain requirement -> model element -> code needs nothing beyond what model -> code does.
+ *
+ * It is shown overview first: one card per top-level artifact (a diagram, a generated file, a
+ * prompt), with the links between them bundled. Expanding a card shows its parts that take part
+ * in links (a diagram's elements, a class's members, a file's fragments), and the links reach them.
  */
 
 /** Whether a link still holds: `suspect` when its source changed after it was made, `staleUpstream`
@@ -20,25 +24,16 @@ export interface LineageEdge {
 
 export interface LineageNode {
   artifact: TraceArtifact;
-  /** Distance from the leftmost column: each link points one column or more to the right. */
-  column: number;
   /** Reached through a suspect link, directly or further upstream: its content may be out of date. */
   stale: boolean;
 }
 
-/** The nodes of one column that share a container (a diagram for model elements, a file for code). */
-export interface LineageGroup {
-  container: TraceArtifact;
-  /** True when the container is itself a node of this column (drawn as the group's header). */
-  containerIsNode: boolean;
-  nodes: LineageNode[];
-}
-
 export interface Lineage {
-  rootId: string;
+  /** The artifact the lineage starts from; null for the whole project. */
+  rootId: string | null;
+  /** The artifacts at either end of a link. */
   nodes: Map<string, LineageNode>;
   edges: LineageEdge[];
-  columns: LineageGroup[][];
 }
 
 export interface LineageOptions {
@@ -46,14 +41,13 @@ export interface LineageOptions {
   latestGenerationOnly: boolean;
 }
 
-
 /** `links` without generation links superseded by a newer run of the same generator. */
 function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLink[] {
   const newest = new Map<string, string>(); // generator tool ids -> newest operation id
   const started = (operationId: string) => index.operations.get(operationId)?.startedAt ?? '';
   const keyOf = (link: TraceLink) => {
     const operation = index.operations.get(link.operationId);
-    return operation?.type === 'CodeGeneration' ? operation.uses.join(',') : undefined;
+    return operation?.type === 'CodeGeneration' ? toolIdsOf(operation).join(',') : undefined;
   };
   for (const link of links) {
     const key = keyOf(link);
@@ -67,71 +61,61 @@ function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLi
   });
 }
 
-/** The container a node is grouped under: the diagram of a model element, the file of a code fragment. */
-function containerOf(index: TraceIndex, artifact: TraceArtifact): TraceArtifact {
-  if (isModelArtifact(artifact)) return diagramOf(index, artifact) ?? artifact;
-  let current: TraceArtifact = artifact;
-  while (current.parentId) {
-    const parent = index.artifacts.get(current.parentId);
-    if (!parent) break;
-    current = parent;
+/** Longest-path layering of `ids` along `pairs` (source, target); capped at one pass per id, so a
+ *  (malformed) cycle cannot loop forever. Self-pairs are ignored. */
+function layers(ids: Iterable<string>, pairs: [string, string][]): Map<string, number> {
+  const layer = new Map([...ids].map((id) => [id, 0]));
+  for (let pass = 0; pass < layer.size; pass += 1) {
+    let moved = false;
+    for (const [source, target] of pairs) {
+      if (source === target) continue;
+      const wanted = layer.get(source)! + 1;
+      if (wanted > layer.get(target)!) {
+        layer.set(target, wanted);
+        moved = true;
+      }
+    }
+    if (!moved) break;
   }
-  return current;
+  return layer;
 }
 
-const nodeOrder = (a: LineageNode, b: LineageNode) => {
-  const x = a.artifact;
-  const y = b.artifact;
-  if (isCodeArtifact(x) && isCodeArtifact(y)) return (x.startLine ?? 0) - (y.startLine ?? 0);
-  return x.name.localeCompare(y.name);
-};
-
-export function lineageOf(index: TraceIndex, rootId: string, options: LineageOptions): Lineage {
+/** The lineage of `rootId` (the root and its parts that take part in links), or of the whole project. */
+export function lineageOf(index: TraceIndex, rootId: string | null, options: LineageOptions): Lineage {
   const outgoing = (id: string) => {
     const links = index.linksBySource.get(id) ?? [];
     return options.latestGenerationOnly ? withoutOlderGenerations(index, links) : links;
   };
   const incoming = (id: string) => index.linksByTarget.get(id) ?? [];
 
-  // The root and its fragments that take part in links (a diagram's elements, a file's fragments).
-  const seeds = withDescendants(index, rootId)
-    .filter((a) => a.id === rootId || index.linksBySource.has(a.id) || index.linksByTarget.has(a.id))
-    .map((a) => a.id);
-
-  const nodeIds = new Set<string>(seeds);
   const edges = new Map<string, TraceLink>();
-  const walk = (next: (id: string) => TraceLink[], end: (link: TraceLink) => string) => {
-    const pending = [...seeds];
-    const seen = new Set(seeds);
-    while (pending.length) {
-      for (const link of next(pending.pop()!)) {
-        edges.set(link.id, link);
-        const other = end(link);
-        nodeIds.add(other);
-        if (!seen.has(other)) {
-          seen.add(other);
-          pending.push(other);
+  if (rootId === null) {
+    // The whole project: every source's links (its newest generations only, unless asked otherwise).
+    for (const source of index.linksBySource.keys()) for (const link of outgoing(source)) edges.set(link.id, link);
+  } else {
+    // The root and its parts that take part in links (a diagram's elements, a file's fragments).
+    const linked = (a: TraceArtifact) => index.linksBySource.has(a.id) || index.linksByTarget.has(a.id);
+    const seeds = withDescendants(index, rootId).filter(linked).map((a) => a.id);
+    const walk = (next: (id: string) => TraceLink[], end: (link: TraceLink) => string) => {
+      const pending = [...seeds];
+      const seen = new Set(seeds);
+      while (pending.length) {
+        for (const link of next(pending.pop()!)) {
+          edges.set(link.id, link);
+          const other = end(link);
+          if (!seen.has(other)) {
+            seen.add(other);
+            pending.push(other);
+          }
         }
       }
-    }
-  };
-  walk(outgoing, (link) => link.targetId); // what was derived from the root
-  walk(incoming, (link) => link.sourceId); // what the root was derived from
-  const links = [...edges.values()].filter((l) => index.artifacts.has(l.sourceId) && index.artifacts.has(l.targetId));
-
-  // Longest-path layering; capped at one pass per node so a (malformed) cycle cannot loop forever.
-  const column = new Map([...nodeIds].map((id) => [id, 0]));
-  for (let pass = 0; pass < nodeIds.size; pass += 1) {
-    let moved = false;
-    for (const link of links) {
-      const wanted = column.get(link.sourceId)! + 1;
-      if (wanted > column.get(link.targetId)!) {
-        column.set(link.targetId, wanted);
-        moved = true;
-      }
-    }
-    if (!moved) break;
+    };
+    walk(outgoing, (link) => link.targetId); // what was derived from the root
+    walk(incoming, (link) => link.sourceId); // what the root was derived from
   }
+  const links = [...edges.values()].filter((l) => index.artifacts.has(l.sourceId) && index.artifacts.has(l.targetId));
+  // Without older generations, an artifact reached only through them is not part of the lineage.
+  const ends = new Set([...links.flatMap((l) => [l.sourceId, l.targetId]), ...(rootId ? [rootId] : [])]);
 
   const into = new Map<string, TraceLink[]>();
   for (const link of links) {
@@ -140,8 +124,9 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
     else into.set(link.targetId, [link]);
   }
 
-  // Staleness flows left to right: a node is stale when a link into it is suspect or comes from a stale node.
-  const ordered = [...nodeIds].filter((id) => index.artifacts.has(id)).sort((a, b) => column.get(a)! - column.get(b)!);
+  // Staleness flows downstream: a node is stale when a link into it is suspect or comes from a stale node.
+  const layer = layers(ends, links.map((l) => [l.sourceId, l.targetId]));
+  const ordered = [...ends].filter((id) => index.artifacts.has(id)).sort((a, b) => layer.get(a)! - layer.get(b)!);
   const nodes = new Map<string, LineageNode>();
   const states = new Map<string, LineageEdgeState>();
   for (const id of ordered) {
@@ -155,59 +140,219 @@ export function lineageOf(index: TraceIndex, rootId: string, options: LineageOpt
       states.set(link.id, state);
       stale ||= state !== 'current';
     }
-    nodes.set(id, { artifact: index.artifacts.get(id)!, column: column.get(id)!, stale });
+    nodes.set(id, { artifact: index.artifacts.get(id)!, stale });
   }
 
-  const columnCount = Math.max(0, ...[...nodes.values()].map((n) => n.column + 1));
-  const columns: LineageGroup[][] = Array.from({ length: columnCount }, () => []);
-  for (const node of nodes.values()) {
-    const container = containerOf(index, node.artifact);
-    const groups = columns[node.column];
-    let group = groups.find((g) => g.container.id === container.id);
-    if (!group) {
-      group = { container, containerIsNode: false, nodes: [] };
-      groups.push(group);
-    }
-    if (container.id === node.artifact.id) group.containerIsNode = true;
-    else group.nodes.push(node);
-  }
-  orderColumns(columns, into);
+  return { rootId, nodes, edges: links.map((link) => ({ link, state: states.get(link.id) ?? 'current' })) };
+}
 
-  return { rootId, nodes, edges: links.map((link) => ({ link, state: states.get(link.id) ?? 'current' })), columns };
+/** What a row of the layout shows: an artifact, or a generation run holding the files it produced. */
+export type LineageSubject =
+  | { kind: 'artifact'; id: string; artifact: TraceArtifact }
+  | { kind: 'run'; id: string; operation: TraceOperation };
+
+const RUN_PREFIX = 'run:';
+/** The id of a generation run's row (runs are operations, so their ids live apart from artifacts'). */
+export const runSubjectId = (operationId: string) => RUN_PREFIX + operationId;
+/** The generation run a row id names, if it names one. */
+export const runOfSubjectId = (index: TraceIndex, subjectId: string) =>
+  subjectId.startsWith(RUN_PREFIX) ? index.operations.get(subjectId.slice(RUN_PREFIX.length)) : undefined;
+
+/** One visible row of a card: the card's subject itself (depth 0) or one of its parts. */
+export interface LineageRow {
+  subject: LineageSubject;
+  depth: number;
+  /** Its parts that take part in the lineage: what expanding it shows. */
+  parts: number;
+  expanded: boolean;
+  /** Stale itself or, while collapsed, in a part it hides. */
+  stale: boolean;
+}
+
+/** A top-level subject of the lineage (a diagram, a generation run, a prompt) and its visible rows. */
+export interface LineageCard {
+  subject: LineageSubject;
+  rows: LineageRow[];
+}
+
+/** The links between two visible rows: one link, or several bundled while an end is collapsed. */
+export interface LineageBundle {
+  key: string;
+  sourceId: string;
+  targetId: string;
+  edges: LineageEdge[];
+}
+
+export interface LineageLayout {
+  /** Cards in columns: each link points one column or more to the right. */
+  columns: LineageCard[][];
+  /** Links between cards. One between parts of a single card (an element derived from another of the
+   *  same diagram) is not drawn; the detail of either end lists it. */
+  bundles: LineageBundle[];
+}
+
+/** Diagrams first, then prompts, then generated code: the order a lineage usually reads in. */
+function cardKind(subject: LineageSubject): number {
+  if (subject.kind === 'run') return 2;
+  return isModelArtifact(subject.artifact) ? 0 : isPromptArtifact(subject.artifact) ? 1 : 3;
+}
+const subjectName = (subject: LineageSubject) => (subject.kind === 'run' ? subject.operation.startedAt : subject.artifact.name);
+/** Elements before their members, attributes before methods and constraints. */
+const MEMBER_RANK: Record<string, number> = { Property: 1, EnumerationLiteral: 1, Method: 2, Constraint: 3 };
+
+function partOrder(a: LineageSubject, b: LineageSubject): number {
+  if (a.kind === 'run' || b.kind === 'run') return 0;
+  const [x, y] = [a.artifact, b.artifact];
+  if (isCodeArtifact(x) && isCodeArtifact(y)) return (x.startLine ?? 0) - (y.startLine ?? 0) || x.path.localeCompare(y.path);
+  const rank = (z: TraceArtifact) => (isModelArtifact(z) ? (MEMBER_RANK[z.elementType] ?? 0) : 0);
+  return rank(x) - rank(y) || x.name.localeCompare(y.name);
 }
 
 /**
- * Order each column so links cross as little as possible: the first column by name, every later
- * one by the mean position of its nodes' sources (the barycentre heuristic), name as a tie-break.
+ * Who holds what: an artifact's parent holds it, and a generation run holds the files it produced
+ * (so a run with dozens of files is one card until opened).
  */
-function orderColumns(columns: LineageGroup[][], into: Map<string, TraceLink[]>): void {
-  const position = new Map<string, number>();
-  // Each node's score is computed once per column (its sources are all in earlier columns).
-  const scores = new Map<string, number>();
-  const barycentre = (id: string) => {
-    let score = scores.get(id);
-    if (score === undefined) {
-      const sources = (into.get(id) ?? []).filter((l) => position.has(l.sourceId)).map((l) => position.get(l.sourceId)!);
-      score = sources.length ? sources.reduce((a, b) => a + b, 0) / sources.length : Number.POSITIVE_INFINITY;
-      scores.set(id, score);
+class LineageTree {
+  private readonly runOfFile = new Map<string, TraceOperation>();
+  private readonly chains = new Map<string, LineageSubject[]>();
+
+  constructor(private readonly index: TraceIndex) {
+    for (const operation of index.trace.operations) {
+      if (operation.type !== 'CodeGeneration') continue;
+      for (const id of operation.produces) {
+        if (!index.artifacts.get(id)?.parentId) this.runOfFile.set(id, operation);
+      }
     }
-    return score;
-  };
-  for (const groups of columns) {
-    for (const group of groups) group.nodes.sort((a, b) => barycentre(a.artifact.id) - barycentre(b.artifact.id) || nodeOrder(a, b));
-    const groupKey = (group: LineageGroup) =>
-      Math.min(...[group.container.id, ...group.nodes.map((n) => n.artifact.id)].map(barycentre));
-    groups.sort(
-      (a, b) =>
-        groupKey(a) - groupKey(b) ||
-        a.container.name.localeCompare(b.container.name) ||
-        a.container.timestamp.localeCompare(b.container.timestamp),
-    );
-    let next = 0;
-    for (const group of groups) {
-      if (group.containerIsNode) position.set(group.container.id, next++);
-      for (const node of group.nodes) position.set(node.artifact.id, next++);
+  }
+
+  /** The subjects holding the artifact, from the top-level one down to the artifact itself. */
+  chainOf(artifactId: string): LineageSubject[] {
+    let chain = this.chains.get(artifactId);
+    if (!chain) {
+      chain = [];
+      // The step cap guards against a parent cycle in a hand-edited trace.
+      for (let current = this.index.artifacts.get(artifactId); current && chain.length <= this.index.artifacts.size; ) {
+        chain.unshift({ kind: 'artifact', id: current.id, artifact: current });
+        current = current.parentId ? this.index.artifacts.get(current.parentId) : undefined;
+      }
+      const run = chain.length > 0 ? this.runOfFile.get(chain[0].id) : undefined;
+      if (run) chain.unshift({ kind: 'run', id: runSubjectId(run.id), operation: run });
+      this.chains.set(artifactId, chain);
     }
+    return chain;
+  }
+
+  /** The subject's direct parts, among `involved`. */
+  partsOf(subject: LineageSubject, involved: Map<string, LineageSubject>): LineageSubject[] {
+    const ids =
+      subject.kind === 'run'
+        ? subject.operation.produces.filter((id) => this.runOfFile.get(id) === subject.operation)
+        : (this.index.children.get(subject.id) ?? []).map((child) => child.id);
+    return ids.flatMap((id) => (involved.has(id) ? [involved.get(id)!] : [])).sort(partOrder);
   }
 }
 
+/** The ids of the subjects holding the artifact, without the artifact: what to expand to show it. */
+export function pathTo(index: TraceIndex, artifactId: string): string[] {
+  return new LineageTree(index).chainOf(artifactId).slice(0, -1).map((subject) => subject.id);
+}
+
+/**
+ * The lineage as cards, rows and bundles, with `expanded` subjects showing their parts. A link is
+ * drawn between the deepest visible rows holding its ends, so links into a collapsed card or part
+ * are bundled; cards keep their columns whatever is expanded.
+ */
+export function lineageLayout(index: TraceIndex, lineage: Lineage, expanded: ReadonlySet<string>): LineageLayout {
+  const tree = new LineageTree(index);
+  const topOf = (id: string) => tree.chainOf(id)[0].id;
+
+  // What the lineage involves: its nodes and every subject holding one.
+  const involved = new Map<string, LineageSubject>();
+  const staleBelow = new Set<string>();
+  const tops = new Set<string>();
+  for (const node of lineage.nodes.values()) {
+    const chain = tree.chainOf(node.artifact.id);
+    tops.add(chain[0].id);
+    for (const subject of chain) {
+      involved.set(subject.id, subject);
+      if (node.stale) staleBelow.add(subject.id);
+    }
+  }
+
+  // A link end is drawn at its deepest visible holder: below a collapsed one, its parts are hidden.
+  const anchorOf = (id: string) => {
+    const chain = tree.chainOf(id);
+    let depth = 0;
+    while (depth < chain.length - 1 && expanded.has(chain[depth].id)) depth += 1;
+    return chain[depth].id;
+  };
+
+  const bundles = new Map<string, LineageBundle>();
+  for (const edge of lineage.edges) {
+    if (topOf(edge.link.sourceId) === topOf(edge.link.targetId)) continue;
+    const sourceId = anchorOf(edge.link.sourceId);
+    const targetId = anchorOf(edge.link.targetId);
+    const key = `${sourceId}->${targetId}`;
+    const bundle = bundles.get(key);
+    if (bundle) bundle.edges.push(edge);
+    else bundles.set(key, { key, sourceId, targetId, edges: [edge] });
+  }
+
+  const rowsOf = (subject: LineageSubject, depth: number, rows: LineageRow[]) => {
+    const parts = tree.partsOf(subject, involved);
+    const open = expanded.has(subject.id) && parts.length > 0;
+    const stale = open ? lineage.nodes.get(subject.id)?.stale === true : staleBelow.has(subject.id);
+    rows.push({ subject, depth, parts: parts.length, expanded: open, stale });
+    if (open) for (const part of parts) rowsOf(part, depth + 1, rows);
+    return rows;
+  };
+
+  // Columns from the links between cards, so expanding a card never moves another one sideways.
+  const pairs = lineage.edges.map((e): [string, string] => [topOf(e.link.sourceId), topOf(e.link.targetId)]);
+  const column = layers(tops, pairs);
+  const columns: LineageSubject[][] = Array.from({ length: Math.max(0, ...column.values()) + 1 }, () => []);
+  for (const id of tops) columns[column.get(id)!].push(involved.get(id)!);
+  orderColumns(columns, pairs);
+
+  return {
+    columns: columns.map((cards) => cards.map((subject) => ({ subject, rows: rowsOf(subject, 0, []) }))),
+    bundles: [...bundles.values()],
+  };
+}
+
+/**
+ * Order each column so links cross as little as possible: the first by kind and name, every later
+ * one by the mean position of its cards' sources (the barycentre heuristic), kind and name as tie-breaks.
+ */
+function orderColumns(columns: LineageSubject[][], pairs: [string, string][]): void {
+  const position = new Map<string, number>();
+  const sources = new Map<string, string[]>();
+  for (const [source, target] of pairs) {
+    if (source !== target) sources.set(target, [...(sources.get(target) ?? []), source]);
+  }
+  const barycentre = (id: string) => {
+    const placed = (sources.get(id) ?? []).filter((s) => position.has(s)).map((s) => position.get(s)!);
+    return placed.length ? placed.reduce((a, b) => a + b, 0) / placed.length : Number.POSITIVE_INFINITY;
+  };
+  for (const cards of columns) {
+    const score = new Map(cards.map((card) => [card.id, barycentre(card.id)]));
+    cards.sort(
+      (a, b) =>
+        score.get(a.id)! - score.get(b.id)! ||
+        cardKind(a) - cardKind(b) ||
+        subjectName(a).localeCompare(subjectName(b)) ||
+        a.id.localeCompare(b.id),
+    );
+    cards.forEach((card, i) => position.set(card.id, i));
+  }
+}
+
+/** Every subject of the lineage that has parts to show: what "expand all" opens. */
+export function expandableIds(index: TraceIndex, lineage: Lineage): Set<string> {
+  const tree = new LineageTree(index);
+  const result = new Set<string>();
+  for (const node of lineage.nodes.values()) {
+    for (const subject of tree.chainOf(node.artifact.id).slice(0, -1)) result.add(subject.id);
+  }
+  return result;
+}

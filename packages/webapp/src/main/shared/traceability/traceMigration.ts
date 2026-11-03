@@ -1,5 +1,6 @@
-import type { TraceFile, TraceOperation } from '../types/traceability';
+import type { TraceFile, TraceLogRecord, TraceOperation, TraceTool, TraceToolCall } from '../types/traceability';
 import { TRACE_SCHEMA_VERSION } from '../types/traceability';
+import { ASSISTANT_LLM_NAME, ASSISTANT_LLM_PROVIDER } from './traceRecorder';
 
 /**
  * Brings a trace written by an older version up to {@link TRACE_SCHEMA_VERSION}, so traces already
@@ -7,18 +8,57 @@ import { TRACE_SCHEMA_VERSION } from '../types/traceability';
  *
  * Version 1 had one Operation class with an `operationType`; version 2 has one class per kind of
  * operation (`type`), and tells manual from assistant modeling by the actors, not by the type.
+ * Version 3 reaches tools only through tool calls: an operation's `uses` became one call per tool,
+ * and its `logs` moved into the calls of the tools they named.
  */
 export function migrateTraceFile(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
-  const trace = value as { schemaVersion?: unknown; operations?: unknown };
-  if (trace.schemaVersion !== 1 || !Array.isArray(trace.operations)) return value;
-  return { ...(value as TraceFile), schemaVersion: TRACE_SCHEMA_VERSION, operations: trace.operations.map(operationV1toV2) };
+  let trace = value as { schemaVersion?: unknown; operations?: unknown };
+  if (!Array.isArray(trace.operations) || (trace.schemaVersion !== 1 && trace.schemaVersion !== 2)) return value;
+  if (trace.schemaVersion === 1) {
+    trace = { ...(trace as object), schemaVersion: 2, operations: (trace.operations as Record<string, unknown>[]).map(operationV1toV2) };
+  }
+  return traceV2toV3(trace as unknown as V2Trace);
 }
 
-function operationV1toV2(raw: Record<string, unknown>): TraceOperation {
+function operationV1toV2(raw: Record<string, unknown>): Record<string, unknown> {
   const { operationType, changes, ...rest } = raw;
-  const base = rest as Omit<TraceOperation, 'type'>;
-  if (operationType === 'CODE_GENERATION') return { ...base, type: 'CodeGeneration' };
+  if (operationType === 'CODE_GENERATION') return { ...rest, type: 'CodeGeneration' };
   // MANUAL_MODELLING and ASSISTANT_MODELLING (the other types were never recorded): the actors already say who.
-  return { ...base, type: 'Modeling', changes: Array.isArray(changes) ? (changes as never) : [] };
+  return { ...rest, type: 'Modeling', changes: Array.isArray(changes) ? changes : [] };
+}
+
+type V2Log = TraceLogRecord & { toolId?: string };
+type V2Operation = Omit<TraceOperation, 'toolCalls'> & { uses?: string[]; logs?: V2Log[] };
+type V2Trace = Omit<TraceFile, 'operations'> & { operations: V2Operation[] };
+
+function traceV2toV3(trace: V2Trace): TraceFile {
+  const tools: TraceTool[] = [...(trace.tools ?? [])];
+  const assistantLlm = (startedAt: string): TraceTool => {
+    let tool = tools.find((t) => t.type === 'LLM' && t.name === ASSISTANT_LLM_NAME);
+    if (!tool) {
+      tool = { id: 'assistant-llm', type: 'LLM', name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER, timestamp: startedAt };
+      tools.push(tool);
+    }
+    return tool;
+  };
+  const operations = trace.operations.map((operation): TraceOperation => {
+    const { uses = [], logs = [], ...rest } = operation;
+    const toolIds = [...new Set(uses)];
+    // A message naming none of the operation's tools goes to its first one; with no tool at all, it was
+    // exchanged with the assistant, whose model is unknown.
+    if (toolIds.length === 0 && logs.length > 0) toolIds.push(assistantLlm(operation.startedAt).id);
+    const callOf = (log: V2Log) => (log.toolId && toolIds.includes(log.toolId) ? log.toolId : toolIds[0]);
+    const toolCalls: TraceToolCall[] = toolIds.map((toolId, sequenceNumber) => ({
+      id: `${operation.id}:call:${sequenceNumber}`,
+      toolId,
+      sequenceNumber,
+      status: operation.status,
+      startedAt: operation.startedAt,
+      ...(operation.endedAt ? { endedAt: operation.endedAt } : {}),
+      logs: logs.filter((log) => callOf(log) === toolId).map(({ toolId: _named, ...log }) => log),
+    }));
+    return { ...rest, toolCalls } as TraceOperation;
+  });
+  return { ...trace, schemaVersion: TRACE_SCHEMA_VERSION, tools, operations };
 }

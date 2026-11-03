@@ -1,6 +1,6 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LineageView } from '../LineageView';
 import { indexTrace } from '../../../shared/traceability/traceQueries';
 import { emptyTraceFile } from '../../../shared/types/traceability';
@@ -9,6 +9,7 @@ import type { TraceFile } from '../../../shared/types/traceability';
 const time = '2026-10-29T10:00:00.000Z';
 const later = '2026-10-29T11:00:00.000Z';
 
+/** Class Book generated into lines 2-3 of sql_alchemy.py, then renamed. */
 function trace(): TraceFile {
   return {
     ...emptyTraceFile('p1'),
@@ -21,10 +22,11 @@ function trace(): TraceFile {
       { id: 'lines', type: 'CodeArtifact', name: 'Book (2-3)', path: 'sql_alchemy.py', contentHash: 'h2', startLine: 2, endLine: 3, parentId: 'file', timestamp: time },
     ],
     operations: [
-      { id: 'run', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'], uses: ['gen'],
-        consumes: ['cd', 'book'], produces: ['file', 'lines'], logs: [] },
-      { id: 'edit', type: 'Modeling', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], uses: [],
-        consumes: [], produces: [], logs: [],
+      { id: 'run', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'],
+        toolCalls: [{ id: 'rc', toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [] }],
+        consumes: ['cd', 'book'], produces: ['file', 'lines'] },
+      { id: 'edit', type: 'Modeling', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], toolCalls: [],
+        consumes: [], produces: [],
         changes: [{ id: 'ch', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: later }] },
     ],
     traceLinks: [{
@@ -35,54 +37,95 @@ function trace(): TraceFile {
   };
 }
 
+// Plain DOM queries: role queries walk the accessibility tree and are slow on this large view.
+const view = (file: TraceFile, rootId: string | null = null) => {
+  const { container } = render(<LineageView index={indexTrace(file)} rootId={rootId} onRootChange={() => {}} onOpenElement={() => {}} />);
+  const rowLabels = () => [...container.querySelectorAll('[aria-pressed] > span:first-child')].map((e) => e.textContent);
+  const button = (text: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(text))!;
+  const labelled = (label: string) => container.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`);
+  return { container, rowLabels, button, labelled };
+};
+
 describe('LineageView', () => {
-  it('shows the lineage of the selected element and the details of a link', () => {
-    // jsdom has no layout, so give every box a size for the connectors to be measured.
+  beforeEach(() => {
+    // jsdom has no layout, so give every row a size for the connectors to be measured.
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON: () => ({}) });
-    render(<LineageView index={indexTrace(trace())} rootId="book" onRootChange={() => {}} onOpenElement={() => {}} />);
-
-    expect(screen.getAllByText('Book').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Lines 2–3/ })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: '1.00' }));
-    expect(screen.getByText('Deterministic rule: sql_alchemy_template.py.j2#class')).toBeTruthy();
-    expect(screen.getByText(/Suspect: the source changed after the link was made/)).toBeTruthy();
-    expect(screen.getByText('Renamed class Libro to Book', { exact: false })).toBeTruthy();
   });
 
-  it('starts from the first diagram when nothing is selected', () => {
-    render(<LineageView index={indexTrace(trace())} rootId={null} onRootChange={() => {}} onOpenElement={() => {}} />);
-    expect(screen.getAllByText('Class Diagram').length).toBeGreaterThan(0);
+  it('starts with the diagrams and generation runs, and shows their parts on demand', () => {
+    const { container, rowLabels, labelled } = view(trace());
+    expect(rowLabels()).toEqual(['Class Diagram', 'Generated sqlalchemy']);
+    expect(container.textContent).toContain('2 diagrams, prompts and generation runs, joined by 1 trace links');
+
+    fireEvent.click(container.querySelector('[aria-pressed]')!); // clicking a card opens it
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
+    fireEvent.click(labelled('Show the parts of Generated sqlalchemy')!);
+    fireEvent.click(labelled('Show the parts of sql_alchemy.py')!);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy', 'sql_alchemy.py', 'Book · lines 2–3']);
+    fireEvent.click(labelled('Hide the parts of Generated sqlalchemy')!);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
   });
-});
 
-describe('LineageView with many links', () => {
-  /** A diagram whose 20 classes were each generated into a fragment of one file: 42 nodes. */
-  function large(): TraceFile {
-    const base = trace();
-    const classes = Array.from({ length: 20 }, (_, i) => i);
-    return {
-      ...base,
-      artifacts: [
-        base.artifacts[0], base.artifacts[2],
-        ...classes.map((i) => ({ id: `c${i}`, type: 'ModelArtifact' as const, name: `Class${i}`, elementId: `e${i}`, elementType: 'Class', parentId: 'cd', timestamp: time })),
-        ...classes.map((i) => ({ id: `l${i}`, type: 'CodeArtifact' as const, name: `Class${i}`, path: 'sql_alchemy.py', contentHash: 'h', startLine: i + 1, endLine: i + 1, parentId: 'file', timestamp: time })),
-      ],
-      operations: [base.operations[0]],
-      traceLinks: classes.map((i) => ({
-        id: `k${i}`, sourceId: `c${i}`, targetId: `l${i}`, operationId: 'run', timestamp: time,
-        evidence: [{ id: `e${i}`, type: 'RuleEvidence' as const, rule: 'r', timestamp: time }], confidence: { id: `f${i}`, value: 1, timestamp: time },
-      })),
-    };
-  }
+  it('opens the path to an element whose lineage was asked for, and explains its links', () => {
+    const { container, rowLabels, button } = view(trace(), 'book');
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
+    fireEvent.click(button('Lines 2–3')); // in the element's list of links
+    expect(container.textContent).toContain('Deterministic rule: sql_alchemy_template.py.j2#class');
+    expect(container.textContent).toContain('Suspect: the source changed after the link was made');
+    expect(container.textContent).toContain('Renamed class Libro to Book');
+  });
 
-  it('starts with each generated file collapsed, and expands it on demand', () => {
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON: () => ({}) });
-    render(<LineageView index={indexTrace(large())} rootId="cd" onRootChange={() => {}} onOpenElement={() => {}} />);
-    const row = screen.getByRole('button', { name: /20 fragments/ });
-    expect(row.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByRole('button', { name: /^Lines 1–1/ })).toBeNull();
-    fireEvent.click(row);
-    expect(screen.getByRole('button', { name: /^Lines 1–1/ })).toBeTruthy();
+  it('shows the confidence of the selected link, on the canvas and in its detail', () => {
+    const file = trace();
+    file.operations = file.operations.filter((o) => o.id !== 'edit'); // not suspect: no pill of its own
+    const { container, button } = view(file, 'book');
+    expect(button('1.00')).toBeUndefined(); // a plain rule link carries no pill
+    fireEvent.click(button('Lines 2–3')); // the link, from the element's list
+    expect(button('1.00')).toBeTruthy();
+    expect(container.textContent).toContain('Confidence 1.00');
+  });
+
+  it('says so when a link has no confidence', () => {
+    const file = trace();
+    delete file.traceLinks[0].confidence;
+    const { container, button } = view(file, 'book');
+    fireEvent.click(button('Lines 2–3'));
+    expect(container.textContent).toContain('Confidence not assessed');
+    expect(container.textContent).toContain('the operation that made this link reported no confidence');
+    expect(button('–')).toBeTruthy(); // on the canvas too
+  });
+
+  it('opens a bundle of links down to their ends', () => {
+    const file = trace();
+    file.artifacts.push(
+      { id: 'author', type: 'ModelArtifact', name: 'Author', elementId: 'c2', elementType: 'Class', parentId: 'cd', timestamp: time },
+      { id: 'alines', type: 'CodeArtifact', name: 'Author (5-6)', path: 'sql_alchemy.py', contentHash: 'h3', startLine: 5, endLine: 6, parentId: 'file', timestamp: time },
+    );
+    file.traceLinks.push({ ...file.traceLinks[0], id: 'link2', sourceId: 'author', targetId: 'alines' });
+    const { rowLabels, button } = view(file);
+    fireEvent.click(button('×2'));
+    expect(rowLabels()).toEqual(['Class Diagram', 'Author', 'Book', 'Generated sqlalchemy', 'sql_alchemy.py', 'Book · lines 2–3', 'Author · lines 5–6']);
+    expect(button('×2')).toBeUndefined();
+  });
+
+  it('expands and collapses everything, and goes full screen', () => {
+    const { container, rowLabels, button } = view(trace());
+    fireEvent.click(button('Expand all'));
+    expect(rowLabels()).toContain('Book · lines 2–3');
+    fireEvent.click(button('Collapse all'));
+    expect(rowLabels()).toEqual(['Class Diagram', 'Generated sqlalchemy']);
+
+    fireEvent.click(button('Full screen'));
+    expect(document.body.querySelector('.fixed.inset-0')).toBeTruthy(); // a portal: full screen leaves the page
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.body.querySelector('.fixed.inset-0')).toBeNull();
+  });
+
+  it('zooms the canvas', () => {
+    const { labelled, button } = view(trace());
+    fireEvent.click(labelled('Zoom in')!);
+    expect(button('125%')).toBeTruthy();
+    fireEvent.click(button('125%')); // resets
+    expect(button('100%')).toBeTruthy();
   });
 });

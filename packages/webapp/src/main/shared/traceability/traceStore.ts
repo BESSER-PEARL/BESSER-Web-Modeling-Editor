@@ -8,9 +8,17 @@ import { diffClassModel } from './classModelDiff';
 import type { ClassModelLike, ElementChange } from './classModelDiff';
 import { indexedDbTraceStorage, memoryTraceStorage } from './traceDatabase';
 import type { TraceStorage } from './traceDatabase';
-import { findModelArtifact, mergeTraceFragment, pruneStoredContents, recordElementChanges } from './traceRecorder';
+import {
+  endConversation,
+  findModelArtifact,
+  mergeTraceFragment,
+  pruneStoredContents,
+  recordConversationReply,
+  recordConversationRequest,
+  recordElementChanges,
+} from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
-import type { ModelingSource } from './traceRecorder';
+import type { AssistantReplyKind, AssistantRequest, ModelingSource } from './traceRecorder';
 
 /**
  * The project trace, kept in the browser's IndexedDB (`traceDatabase.ts`), apart from the project
@@ -255,8 +263,47 @@ export function recordClassDiagramUpdate(
       actorName: traceActorName(project),
       source,
       now,
+      // Read when the update applies, after the request it answers has been recorded.
+      request: source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest.request : undefined,
     }),
   );
+}
+
+/** The last request to the assistant: the edits it leads to are linked from it. One at a time, as the
+ *  assistant answers one request at a time. */
+let pendingRequest: { projectId: string; request: AssistantRequest } | null = null;
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Record a request sent to the modeling assistant, when the project records traces: a new turn of the
+ * conversation under way. Returns when it is recorded (it waits for the request's hash).
+ */
+export async function recordAssistantRequest(project: BesserProject | null | undefined, text: string): Promise<void> {
+  if (!project || !isTraceabilityEnabled(project)) return;
+  const now = new Date().toISOString();
+  const contentHash = await sha256Hex(text);
+  await updateProjectTrace(project.id, (trace) => {
+    const { callId, logId } = recordConversationRequest(trace, text, { actorName: traceActorName(project), now });
+    pendingRequest = { projectId: project.id, request: { callId, logId, text, contentHash } };
+  });
+}
+
+/** Record what the assistant sent back: progress, its answer, or an error. */
+export function recordAssistantReply(project: BesserProject | null | undefined, kind: AssistantReplyKind, text: string): void {
+  if (!project || !isTraceabilityEnabled(project) || !text.trim()) return;
+  const now = new Date().toISOString();
+  void updateProjectTrace(project.id, (trace) => (recordConversationReply(trace, kind, text, now) ? undefined : false));
+}
+
+/** End the conversation under way: the user starts a new chat. */
+export function endAssistantConversation(project: BesserProject | null | undefined): void {
+  pendingRequest = null;
+  if (!project || !isTraceabilityEnabled(project)) return;
+  void updateProjectTrace(project.id, (trace) => (endConversation(trace) ? undefined : false));
 }
 
 /**

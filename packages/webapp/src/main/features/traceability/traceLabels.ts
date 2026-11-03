@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { TraceArtifact, TraceChange, TraceOperation } from '../../shared/types/traceability';
-import { isModelArtifact } from '../../shared/types/traceability';
+import { isModelArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { qualifiedName } from '../../shared/traceability/traceQueries';
 
@@ -22,7 +22,7 @@ export const byAgent = (operation: TraceOperation, index: TraceIndex): boolean =
 
 export const operationLabel = (t: TFunction, operation: TraceOperation, index: TraceIndex): string => {
   if (operation.type === 'CodeGeneration') {
-    const generator = operation.uses.map((id) => index.trace.tools.find((tool) => tool.id === id)?.name).find(Boolean);
+    const generator = toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)?.name).find(Boolean);
     return t('traceability.operations.generation', { generator: generator ?? '?' });
   }
   if (operation.type === 'Conversation') return t('traceability.operations.conversation');

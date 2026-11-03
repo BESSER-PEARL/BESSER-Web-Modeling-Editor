@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lineageOf } from '../lineage';
+import { expandableIds, lineageLayout, lineageOf } from '../lineage';
+import type { Lineage, LineageLayout } from '../lineage';
 import { indexTrace } from '../traceQueries';
 import { emptyTraceFile } from '../../types/traceability';
 import type { TraceArtifact, TraceFile, TraceLink, TraceOperation } from '../../types/traceability';
@@ -16,10 +17,13 @@ const code = (id: string, parentId?: string, lines?: [number, number]): TraceArt
 const operation = (id: string, type: TraceOperation['type'], minute: number, extra: Record<string, unknown> = {}): TraceOperation =>
   ({
     id, type, status: 'SUCCEEDED', startedAt: at(minute), endedAt: at(minute),
-    performedBy: ['ada'], uses: [], consumes: [], produces: [], logs: [],
+    performedBy: ['ada'], toolCalls: [], consumes: [], produces: [],
     ...(type === 'Modeling' ? { changes: [] } : {}),
     ...extra,
   }) as TraceOperation;
+/** A call to a generator, made at `minute`. */
+const call = (toolId: string, minute: number) =>
+  ({ id: `${toolId}-${minute}`, toolId, sequenceNumber: 0, status: 'SUCCEEDED' as const, startedAt: at(minute), logs: [] });
 const link = (id: string, sourceId: string, targetId: string, operationId: string, minute: number, confidence = 1): TraceLink => ({
   id, sourceId, targetId, operationId, timestamp: at(minute),
   evidence: [{ id: `${id}-e`, type: confidence < 1 ? 'AIEvidence' : 'RuleEvidence', ...(confidence < 1 ? { algorithm: 'llm', logIds: [] } : { rule: 'r' }), timestamp: at(minute) } as TraceLink['evidence'][number]],
@@ -42,8 +46,8 @@ function chain(): TraceFile {
     ],
     operations: [
       operation('convert', 'Modeling', 1),
-      operation('run1', 'CodeGeneration', 2, { uses: ['gen'], produces: ['f1', 'b1'] }),
-      operation('run2', 'CodeGeneration', 4, { uses: ['gen'], produces: ['f2', 'b2'] }),
+      operation('run1', 'CodeGeneration', 2, { toolCalls: [call('gen', 2)], produces: ['f1', 'b1'] }),
+      operation('run2', 'CodeGeneration', 4, { toolCalls: [call('gen', 4)], produces: ['f2', 'b2'] }),
     ],
     traceLinks: [
       link('k', 'concept', 'book', 'convert', 1, 0.8),
@@ -54,30 +58,38 @@ function chain(): TraceFile {
 }
 
 const latest = { latestGenerationOnly: true };
+const ids = (lineage: Lineage) => [...lineage.nodes.keys()].sort();
+const edgeIds = (lineage: Lineage) => lineage.edges.map((e) => e.link.id).sort();
+/** Each column's cards, each card as its visible rows (`id`, or `id+` when it hides parts), indented by depth.
+ *  A generation run's card is `run:<operation id>`. */
+const drawn = (layout: LineageLayout) =>
+  layout.columns.map((cards) =>
+    cards.map((card) => card.rows.map((r) => `${'  '.repeat(r.depth)}${r.subject.id}${r.parts > 0 && !r.expanded ? '+' : ''}`)),
+  );
+const bundles = (layout: LineageLayout) =>
+  Object.fromEntries(layout.bundles.map((b) => [`${b.sourceId}->${b.targetId}`, b.edges.map((e) => e.link.id).sort()]));
 
 describe('lineageOf', () => {
-  it('follows links upstream and downstream, one column per step', () => {
+  it('follows links upstream and downstream', () => {
     const lineage = lineageOf(indexTrace(chain()), 'book', latest);
-    expect([...lineage.nodes.values()].map((n) => [n.artifact.id, n.column])).toEqual(
-      expect.arrayContaining([['concept', 0], ['book', 1], ['b2', 2]]),
-    );
-    expect(lineage.nodes.size).toBe(3);
-    expect(lineage.edges.map((e) => e.link.id).sort()).toEqual(['g2', 'k']);
+    expect(ids(lineage)).toEqual(['b2', 'book', 'concept']);
+    expect(edgeIds(lineage)).toEqual(['g2', 'k']);
   });
 
   it('shows older generations only when asked', () => {
     const lineage = lineageOf(indexTrace(chain()), 'book', { latestGenerationOnly: false });
-    expect(lineage.edges.map((e) => e.link.id).sort()).toEqual(['g1', 'g2', 'k']);
+    expect(edgeIds(lineage)).toEqual(['g1', 'g2', 'k']);
   });
 
-  it("starts a diagram's lineage from the diagram and its linked elements, grouped by container", () => {
+  it("starts a diagram's lineage from the diagram and its linked elements", () => {
     const lineage = lineageOf(indexTrace(chain()), 'cd', latest);
-    expect([...lineage.nodes.keys()].sort()).toEqual(['b2', 'book', 'cd', 'concept', 'f2']);
-    const classColumn = lineage.columns[lineage.nodes.get('book')!.column];
-    const diagramGroup = classColumn.find((g) => g.container.id === 'cd')!;
-    expect(diagramGroup.nodes.map((n) => n.artifact.id)).toEqual(['book']);
-    const codeGroup = lineage.columns[lineage.nodes.get('b2')!.column].find((g) => g.container.id === 'f2')!;
-    expect(codeGroup.nodes.map((n) => n.artifact.id)).toEqual(['b2']);
+    expect(ids(lineage)).toEqual(['b2', 'book', 'cd', 'concept', 'f2']);
+  });
+
+  it('covers the whole project without a starting point', () => {
+    const lineage = lineageOf(indexTrace(chain()), null, latest);
+    expect(edgeIds(lineage)).toEqual(['d2', 'g2', 'k']);
+    expect(lineage.nodes.has('f1')).toBe(false); // reached only through an older generation
   });
 
   it('marks a changed source suspect and everything derived from it stale', () => {
@@ -100,10 +112,12 @@ describe('lineageOf', () => {
       contentHash: 'h', timestamp: at(0) });
     trace.operations.push(operation('chat', 'Conversation', 0, { performedBy: ['ada', 'assistant'] }));
     trace.traceLinks.push(link('p', 'prompt', 'concept', 'chat', 0, 0.9));
-    const lineage = lineageOf(indexTrace(trace), 'book', latest);
-    expect([...lineage.nodes.values()].map((n) => [n.artifact.id, n.column])).toEqual(
-      expect.arrayContaining([['prompt', 0], ['concept', 1], ['book', 2], ['b2', 3]]),
-    );
+    const index = indexTrace(trace);
+    const lineage = lineageOf(index, 'book', latest);
+    expect(ids(lineage)).toEqual(['b2', 'book', 'concept', 'prompt']);
+    expect(drawn(lineageLayout(index, lineage, new Set())).map((column) => column.map((card) => card[0]))).toEqual([
+      ['prompt'], ['kg+'], ['cd+'], ['run:run2+'],
+    ]);
   });
 
   it('marks code suspect when a member of its element changes', () => {
@@ -116,20 +130,78 @@ describe('lineageOf', () => {
     expect(lineage.edges.find((e) => e.link.id === 'k')!.state).toBe('current');
   });
 
-  it('orders code by the position of the element it comes from, so links do not cross', () => {
-    const trace = chain();
-    trace.traceLinks = trace.traceLinks.filter((l) => l.id !== 'k'); // both classes in the first column
-    // Author comes before Book, but its code comes after Book's in the file.
-    trace.artifacts.push(model('author', 'Author', 'Class', 'cd'), code('a2', 'f2', [20, 25]));
-    trace.traceLinks.push(link('g3', 'author', 'a2', 'run2', 4));
-    const lineage = lineageOf(indexTrace(trace), 'cd', latest);
-    const codeGroup = lineage.columns[lineage.nodes.get('b2')!.column].find((g) => g.container.id === 'f2')!;
-    expect(codeGroup.nodes.map((n) => n.artifact.id)).toEqual(['a2', 'b2']);
-  });
-
   it('terminates on a cyclic trace', () => {
     const trace = chain();
     trace.traceLinks.push(link('loop', 'b2', 'concept', 'run2', 5));
-    expect(() => lineageOf(indexTrace(trace), 'book', latest)).not.toThrow();
+    const index = indexTrace(trace);
+    expect(() => lineageLayout(index, lineageOf(index, 'book', latest), new Set(['kg', 'cd', 'f2']))).not.toThrow();
+  });
+});
+
+describe('lineageLayout', () => {
+  const project = () => {
+    const index = indexTrace(chain());
+    return { index, lineage: lineageOf(index, null, latest) };
+  };
+
+  it('starts with diagrams and generation runs, their links bundled', () => {
+    const { index, lineage } = project();
+    const layout = lineageLayout(index, lineage, new Set());
+    expect(drawn(layout)).toEqual([[['kg+']], [['cd+']], [['run:run2+']]]);
+    // The class's fragment link and the diagram's whole-file link both join the diagram to the run's code.
+    expect(bundles(layout)).toEqual({ 'kg->cd': ['k'], 'cd->run:run2': ['d2', 'g2'] });
+  });
+
+  it('shows the parts of an expanded subject, and the links reach them', () => {
+    const { index, lineage } = project();
+    const layout = lineageLayout(index, lineage, new Set(['cd', 'run:run2', 'f2']));
+    // The class shows no members: none of them takes part in a link.
+    expect(drawn(layout)).toEqual([[['kg+']], [['cd', '  book']], [['run:run2', '  f2', '    b2']]]);
+    expect(bundles(layout)).toEqual({ 'kg->book': ['k'], 'book->b2': ['g2'], 'cd->f2': ['d2'] });
+  });
+
+  it('lists members by kind and fragments by line', () => {
+    const trace = chain();
+    trace.artifacts.push(
+      model('read', 'read', 'Method', 'book'), model('pages', 'pages', 'Property', 'book'),
+      code('t2', 'f2', [6, 6]), code('r2', 'f2', [9, 10]), code('p2', 'f2', [7, 7]),
+    );
+    trace.traceLinks.push(link('gt', 'title', 't2', 'run2', 4), link('gr', 'read', 'r2', 'run2', 4), link('gp', 'pages', 'p2', 'run2', 4));
+    const index = indexTrace(trace);
+    const layout = lineageLayout(index, lineageOf(index, null, latest), new Set(['cd', 'book', 'run:run2', 'f2']));
+    expect(drawn(layout)[1][0]).toEqual(['cd', '  book', '    pages', '    title', '    read']);
+    expect(drawn(layout)[2][0]).toEqual(['run:run2', '  f2', '    b2', '    t2', '    p2', '    r2']);
+  });
+
+  it('flags a collapsed artifact when a part it hides is stale', () => {
+    const trace = chain();
+    trace.operations.push(operation('edit', 'Modeling', 6, {
+      changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: at(6) }],
+    }));
+    const index = indexTrace(trace);
+    const lineage = lineageOf(index, null, latest);
+    const code = (expanded: Set<string>) => lineageLayout(index, lineage, expanded).columns[2][0].rows;
+    expect(code(new Set()).map((r) => r.stale)).toEqual([true]);
+    // Opened, the run has no flag of its own: its file and fragment carry theirs.
+    expect(code(new Set(['run:run2', 'f2'])).map((r) => [r.subject.id, r.stale])).toEqual([
+      ['run:run2', false], ['f2', true], ['b2', true],
+    ]);
+  });
+
+  it('places each card right of what it was derived from, ordered so links cross less', () => {
+    const trace = chain();
+    // A second diagram, first by name, generated into a second file.
+    trace.artifacts.push(model('ad', 'A diagram', 'DomainModel'), code('f3'));
+    trace.operations.push(operation('run3', 'CodeGeneration', 5, { toolCalls: [call('other', 5)], produces: ['f3'] }));
+    trace.traceLinks.push(link('d3', 'ad', 'f3', 'run3', 5));
+    const index = indexTrace(trace);
+    const layout = lineageLayout(index, lineageOf(index, null, latest), new Set());
+    const cards = drawn(layout).map((column) => column.map((card) => card[0]));
+    expect(cards).toEqual([['ad', 'kg+'], ['run:run3+', 'cd+'], ['run:run2+']]);
+  });
+
+  it('expands everything that has parts', () => {
+    const { index, lineage } = project();
+    expect([...expandableIds(index, lineage)].sort()).toEqual(['cd', 'f2', 'kg', 'run:run2']);
   });
 });

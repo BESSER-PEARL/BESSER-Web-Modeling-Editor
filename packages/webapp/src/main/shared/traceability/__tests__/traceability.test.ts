@@ -102,6 +102,10 @@ describe('recordElementChanges', () => {
     expect(trace.actors.map((a) => a.name)).toEqual(['BESSER User']);
     expect(trace.tools.map((t) => t.type)).toEqual(['Editor']);
     expect(trace.operations).toHaveLength(1);
+    // The session reaches the editor through one call, which lasts as long as the session.
+    expect(trace.operations[0].toolCalls).toEqual([
+      expect.objectContaining({ toolId: trace.tools[0].id, sequenceNumber: 0, logs: [] }),
+    ]);
     const title = trace.artifacts.find((a) => a.type === 'ModelArtifact' && a.elementId === 'a1')!;
     const book = trace.artifacts.find((a) => a.type === 'ModelArtifact' && a.elementId === 'c1')!;
     expect(title.parentId).toBe(book.id);
@@ -111,6 +115,8 @@ describe('recordElementChanges', () => {
     const trace = emptyTraceFile('p1');
     record(trace, model([]), model([cls('c1', 'Class')]), 0);
     record(trace, model([cls('c1', 'Class')]), model([cls('c1', 'Book')]), CREATION_FOLD_MS - 1);
+    const [editorCall] = trace.operations[0].toolCalls;
+    expect([editorCall.startedAt, editorCall.endedAt]).toEqual([trace.operations[0].startedAt, trace.operations[0].endedAt]);
     const changes = changesOf(trace.operations[0]);
     expect(changes).toHaveLength(1);
     expect(changes[0]).toMatchObject({ kind: 'CREATED', newValue: 'Book' });
@@ -160,7 +166,8 @@ function generationFragment(ms: number, content = 'line\n'.repeat(12)): TraceFil
       { id: 'fr', type: 'CodeArtifact', name: 'Book (3-9)', path: 'sql_alchemy.py', contentHash: 'h2', startLine: 3, endLine: 9, parentId: 'ff', timestamp: time },
     ],
     operations: [{ id: 'fo', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time,
-      performedBy: ['fa'], uses: ['ft'], consumes: ['fm', 'fc'], produces: ['ff', 'fr'], logs: [] }],
+      performedBy: ['fa'], toolCalls: [{ id: 'fk-call', toolId: 'ft', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [] }],
+      consumes: ['fm', 'fc'], produces: ['ff', 'fr'] }],
     traceLinks: [{ id: 'fl', sourceId: 'fc', targetId: 'fr', operationId: 'fo', timestamp: time,
       evidence: [{ id: 'fe', type: 'RuleEvidence', rule: 'sql_alchemy_template.py.j2#class', timestamp: time }],
       confidence: { id: 'fk', value: 1, timestamp: time } }],

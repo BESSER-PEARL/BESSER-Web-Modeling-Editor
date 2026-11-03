@@ -7,7 +7,7 @@ import { emptyTraceFile } from '../../../shared/types/traceability';
 import type { TraceFile } from '../../../shared/types/traceability';
 
 const at = (minute: number) => new Date(Date.UTC(2026, 9, 30, 10, minute)).toISOString();
-const base = { status: 'SUCCEEDED' as const, uses: [], consumes: [], produces: [], logs: [] };
+const base = { status: 'SUCCEEDED' as const, toolCalls: [], consumes: [], produces: [] };
 
 function trace(): TraceFile {
   return {
@@ -16,19 +16,23 @@ function trace(): TraceFile {
       { id: 'ada', type: 'Person', name: 'Ada', timestamp: at(0) },
       { id: 'bot', type: 'Agent', name: 'BESSER modeling assistant', timestamp: at(0) },
     ],
-    tools: [{ id: 'gen', type: 'CodeGenerator', name: 'sqlalchemy', timestamp: at(0) }],
+    tools: [
+      { id: 'gen', type: 'CodeGenerator', name: 'sqlalchemy', timestamp: at(0) },
+      { id: 'llm', type: 'LLM', name: 'BESSER modeling assistant model', provider: 'unknown', timestamp: at(0) },
+    ],
     artifacts: [{ id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', timestamp: at(0) }],
     operations: [
       { ...base, id: 'm1', type: 'Modeling', startedAt: at(1), performedBy: ['ada'],
         changes: [{ id: 'c1', kind: 'CREATED', artifactId: 'book', newValue: 'Book', timestamp: at(1) }] },
       { ...base, id: 'm2', type: 'Modeling', startedAt: at(2), performedBy: ['ada', 'bot'],
         changes: [{ id: 'c2', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(2) }] },
-      { ...base, id: 'g', type: 'CodeGeneration', startedAt: at(3), performedBy: ['ada'], uses: ['gen'] },
+      { ...base, id: 'g', type: 'CodeGeneration', startedAt: at(3), performedBy: ['ada'],
+        toolCalls: [{ id: 'gc', toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(3), logs: [] }] },
       { ...base, id: 'chat', type: 'Conversation', startedAt: at(4), performedBy: ['ada', 'bot'],
-        logs: [
-          { id: 'l1', content: 'What does Book hold?', sequenceNumber: 1, logType: 'INPUT_REQUEST', timestamp: at(4) },
-          { id: 'l2', content: 'A title.', sequenceNumber: 2, logType: 'OUTPUT_RESPONSE', timestamp: at(4) },
-        ] },
+        toolCalls: [{ id: 'turn', toolId: 'llm', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(4), logs: [
+          { id: 'l1', content: 'What does Book hold?', sequenceNumber: 0, logType: 'INPUT_REQUEST', timestamp: at(4) },
+          { id: 'l2', content: 'A title.', sequenceNumber: 1, logType: 'OUTPUT_RESPONSE', timestamp: at(4) },
+        ] }] },
     ],
   };
 }
