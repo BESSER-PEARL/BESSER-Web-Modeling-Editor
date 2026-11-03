@@ -9,7 +9,7 @@ import { uuid } from '../../shared/utils/uuid';
 import { bumpEditorRevision } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { useBumlToDiagram } from './useBumlToDiagram';
 
 
@@ -33,7 +33,7 @@ export const useImportDiagramFromKG = () => {
         throw new Error(errorMsg);
       }
       // Should be a diagram JSON
-      if (!data || !data.model || !data.model.type) {
+      if (!isUMLModel(data.model)) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
 
@@ -49,7 +49,7 @@ export const useImportDiagramFromKG = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || t('import.descriptions.importedFromKg', { diagramType }),
+        description: t('import.descriptions.importedFromKg', { diagramType }),
       };
       const updatedProject = {
         ...currentProject,

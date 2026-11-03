@@ -8,7 +8,7 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
 
 // Hook to import diagram from image file and API key
@@ -41,7 +41,7 @@ export const useImportDiagramPictureFromImage = () => {
         reportError(errorMsg);
         throw new Error(errorMsg);
       }
-      if (!data || !data.model || !data.model.type) {
+      if (!isUMLModel(data.model)) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
 
@@ -57,7 +57,7 @@ export const useImportDiagramPictureFromImage = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || t('import.descriptions.importedFromImage', { diagramType }),
+        description: t('import.descriptions.importedFromImage', { diagramType }),
       };
 
       // Update the active diagram in the array (preserving the array structure)
@@ -67,7 +67,7 @@ export const useImportDiagramPictureFromImage = () => {
       const newDiagram = {
         id: newId,
         title: importedDiagram.title,
-        model: importedDiagram.model,
+        model: data.model,
         lastUpdate: importedDiagram.lastUpdate,
         description: importedDiagram.description,
       };

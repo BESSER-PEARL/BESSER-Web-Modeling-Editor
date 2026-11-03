@@ -4,7 +4,11 @@
  * `routers/kg_router.py`). A failure rejects with an `ApiError`.
  */
 import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
 import type { DiagramInput } from './generation';
+
+type DiagramExportResponse = components['schemas']['DiagramExportResponse'];
+type ProjectExportResponse = components['schemas']['ProjectExportResponse'];
 
 /** A model conversion runs B-UML code server side; well past the client's 30 s default. */
 const CONVERSION_TIMEOUT_MS = 120_000;
@@ -33,18 +37,18 @@ export const exportProjectAsBuml = (project: unknown) =>
   apiClient.downloadBlob('/export-project-as-buml', project, { timeout: CONVERSION_TIMEOUT_MS });
 
 /** `POST /get-json-model`: a B-UML file to a diagram (or a project) JSON model. */
-export const getJsonModel = <T = any>(bumlFile: File) =>
-  apiClient.upload<T>('/get-json-model', formData([['buml_file', bumlFile]]), { timeout: CONVERSION_TIMEOUT_MS });
+export const getJsonModel = (bumlFile: File) =>
+  apiClient.upload<DiagramExportResponse>('/get-json-model', formData([['buml_file', bumlFile]]), { timeout: CONVERSION_TIMEOUT_MS });
 
 /** `POST /get-project-json-model`: a B-UML project file to a project JSON model. */
-export const getProjectJsonModel = <T = any>(bumlFile: File) =>
-  apiClient.upload<T>('/get-project-json-model', formData([['buml_file', bumlFile]]), {
+export const getProjectJsonModel = (bumlFile: File) =>
+  apiClient.upload<ProjectExportResponse>('/get-project-json-model', formData([['buml_file', bumlFile]]), {
     timeout: CONVERSION_TIMEOUT_MS,
   });
 
 /** `POST /csv-to-domain-model`: spreadsheets to a class diagram. */
-export const csvToDomainModel = <T = any>(files: File[]) =>
-  apiClient.upload<T>('/csv-to-domain-model', formData(files.map((file): [string, File] => ['files', file])), {
+export const csvToDomainModel = (files: File[]) =>
+  apiClient.upload<DiagramExportResponse>('/csv-to-domain-model', formData(files.map((file): [string, File] => ['files', file])), {
     timeout: CONVERSION_TIMEOUT_MS,
   });
 
@@ -52,12 +56,12 @@ export const csvToDomainModel = <T = any>(files: File[]) =>
  * `POST /get-json-model-from-image`: a picture of a diagram to a class diagram.
  * `existingModel` (the active class diagram) is merged with the picture instead of replaced.
  */
-export const getJsonModelFromImage = <T = any>(
+export const getJsonModelFromImage = (
   imageFile: File,
   apiKey: string,
   existingModel?: { title: string; model: unknown },
 ) =>
-  apiClient.upload<T>(
+  apiClient.upload<DiagramExportResponse>(
     '/get-json-model-from-image',
     formData([
       ['image_file', imageFile],
@@ -68,8 +72,8 @@ export const getJsonModelFromImage = <T = any>(
   );
 
 /** `POST /get-json-model-from-kg`: a knowledge-graph file to a diagram. */
-export const getJsonModelFromKg = <T = any>(kgFile: File, apiKey: string) =>
-  apiClient.upload<T>(
+export const getJsonModelFromKg = (kgFile: File, apiKey: string) =>
+  apiClient.upload<DiagramExportResponse>(
     '/get-json-model-from-kg',
     formData([
       ['kg_file', kgFile],
