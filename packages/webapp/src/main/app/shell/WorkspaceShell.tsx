@@ -902,12 +902,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       setDiagramTitleDraft(currentTitle);
       return;
     }
-    const type = currentProject?.currentDiagramType;
-    dispatch(updateDiagramModelThunk({ title: normalized }))
-      .unwrap()
-      .then(() => track('diagram_renamed', { type }))
-      .catch((error: unknown) => trackFailure('diagram_rename_failed', error, { type }));
-  }, [diagramTitleDraft, diagram?.title, dispatch, currentProject?.currentDiagramType]);
+    dispatch(updateDiagramModelThunk({ title: normalized }));
+  }, [diagramTitleDraft, diagram?.title, dispatch]);
 
   const handleSimulateAgent = useStableCallback(async () => {
     if (isModelEmpty(diagram?.model)) {

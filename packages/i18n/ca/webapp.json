@@ -2250,8 +2250,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) és una plataforma low-code de codi obert desenvolupada pel Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Dades que recollim",
         "collect": {
-          "usage": "Ús de funcions i resultats: quines funcions feu servir i si funcionen o fallen (només el tipus d'error i l'estat HTTP)",
-          "interactions": "Posicions dels clics a les pàgines (mapes de calor) i rendiment de càrrega de les pàgines",
+          "usage": "Ús de funcions i resultats: quines funcions feu servir, si funcionen o fallen, quant triguen i el tipus d'error (mai el que escriviu o modeleu)",
+          "interactions": "Posicions dels clics i del punter a les pàgines (mapes de calor) i rendiment de càrrega de les pàgines",
           "metrics": "Mètriques del model (recomptes de mida i estructura)",
           "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
           "session": "Metadades de sessió anònimes",

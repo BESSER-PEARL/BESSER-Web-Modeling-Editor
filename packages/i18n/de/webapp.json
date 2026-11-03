@@ -2250,8 +2250,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ist eine quelloffene Low-Code-Plattform, die von der Software Engineering Research Group am LIST (Luxembourg Institute of Science and Technology) entwickelt wird.",
         "collectTitle": "Daten, die wir erfassen",
         "collect": {
-          "usage": "Funktionsnutzung und Ergebnisse: welche Funktionen Sie nutzen und ob sie gelingen oder fehlschlagen (nur Fehlertyp und HTTP-Status)",
-          "interactions": "Klickpositionen auf Seiten (Heatmaps) und Ladezeiten der Seiten",
+          "usage": "Funktionsnutzung und Ergebnisse: welche Funktionen Sie nutzen, ob sie gelingen oder fehlschlagen, wie lange sie dauern und der Fehlertyp (nie, was Sie eingeben oder modellieren)",
+          "interactions": "Klick- und Zeigerpositionen auf Seiten (Heatmaps) und Ladezeiten der Seiten",
           "metrics": "Modellmetriken (Größen- und Strukturzählungen)",
           "assistant": "Nutzungszahlen des KI-Assistenten (nicht die Inhalte)",
           "session": "Anonyme Sitzungsmetadaten",

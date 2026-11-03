@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../../../app/store/hooks';
-import { selectActiveDiagram } from '../../../app/store/workspaceSlice';
+import { selectActiveDiagram, selectProject } from '../../../app/store/workspaceSlice';
 import { isUMLModel, type ProjectDiagram } from '../../../shared/types/project';
+import { elapsedMs } from '../../../shared/services/analytics/events';
+import { trackGeneration } from '../useGeneratorExecution';
 import { useGenerateCode } from './useGenerateCode';
 
 const GOVERNANCE_DSL_ERROR = /^Invalid Governance DSL on merging gateway '([^']+)'(?=:|$)/;
@@ -27,6 +29,7 @@ export function useGenerateDockerCompose(): { generate: () => Promise<void>; isL
   const { t } = useTranslation();
   const generateCode = useGenerateCode();
   const activeDiagram = useAppSelector(selectActiveDiagram);
+  const project = useAppSelector(selectProject);
   const [isLoading, setIsLoading] = useState(false);
 
   const describeError = useCallback(
@@ -51,17 +54,19 @@ export function useGenerateDockerCompose(): { generate: () => Promise<void>; isL
 
   const generate = useCallback(async () => {
     setIsLoading(true);
+    const startedAt = performance.now();
     try {
       const result = await generateCode(null, 'docker_compose', activeDiagram?.title ?? '', {}, undefined, undefined, {
         describeError,
       });
+      trackGeneration('docker_compose', result, { project, source: 'menu', durationMs: elapsedMs(startedAt) });
       if (result.ok && !hasLinkedAgent(activeDiagram)) {
         toast.warning(t('generation.dockerCompose.noLinkedAgents'));
       }
     } finally {
       setIsLoading(false);
     }
-  }, [activeDiagram, describeError, generateCode, t]);
+  }, [activeDiagram, describeError, generateCode, project, t]);
 
   return { generate, isLoading };
 }

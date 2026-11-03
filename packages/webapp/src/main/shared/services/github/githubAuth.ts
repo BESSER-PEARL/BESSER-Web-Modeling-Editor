@@ -106,6 +106,7 @@ async function verifySession(session: string, fromCallback = false): Promise<voi
     // The backend could not answer (e.g. restarting during a deploy): keep the
     // session; a GitHub call that gets a 401 marks it expired.
     console.warn('Could not verify the GitHub session; keeping it:', error);
+    if (fromCallback) track('github_signed_in', { verified: false });
     if (state.session === session) setState({ status: 'signed-in' });
   } finally {
     clearTimeout(timer);

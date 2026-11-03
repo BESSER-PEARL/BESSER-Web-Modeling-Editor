@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '../../app/store/hooks';
 import { notifyError, reportError } from '../../shared/services/errors/reportError';
 import { useProject } from '../../app/hooks/useProject';
-import { elapsedMs, errorProperties, track } from '../../shared/services/analytics/events';
+import { elapsedMs, errorProperties, track, type ModelMetrics } from '../../shared/services/analytics/events';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../shared/constants/constant';
 import {
   useGenerateCode,
@@ -152,7 +152,7 @@ function didValidationPass(result: any): boolean {
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
 
-function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+function getModelMetrics(project: BesserProject | undefined): ModelMetrics {
   const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);

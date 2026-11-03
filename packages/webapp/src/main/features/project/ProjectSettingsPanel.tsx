@@ -519,6 +519,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       </div>
 
       <LlmKeyDialog
+        surface="project_settings"
         open={llmKeyOpen}
         onOpenChange={setLlmKeyOpen}
         onSaved={(detail) => {

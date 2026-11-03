@@ -19,6 +19,7 @@ import type { TriggerSpecDrivenPayload } from '../../types';
 import { track } from '../../../../shared/services/analytics/events';
 import {
   sessionStorageLlmApiKey,
+  sessionStorageLlmModel,
   sessionStorageLlmProvider,
 } from '../../../../shared/constants/constant';
 
@@ -186,6 +187,34 @@ describe('Spec-Driven run analytics', () => {
 
     expect(sent('spec_run_started')[0]).toMatchObject({ tier: 'free', provider: 'free' });
     expect(sent('spec_run_completed')).toHaveLength(1);
+  });
+
+  describe('with a model catalog', () => {
+    beforeEach(async () => {
+      const { getSpecDrivenConfig, FALLBACK_SMART_GEN_CONFIG } = await import('../../../../shared/services/specDrivenConfig');
+      vi.mocked(getSpecDrivenConfig).mockResolvedValue({
+        ...FALLBACK_SMART_GEN_CONFIG,
+        providers: [{ id: 'anthropic', label: 'Anthropic', hint: null, key_prefix: null, models: [{ id: 'claude-sonnet-5-5', label: 'Sonnet', default: true }] }],
+      });
+    });
+
+    afterEach(async () => {
+      const { getSpecDrivenConfig, FALLBACK_SMART_GEN_CONFIG } = await import('../../../../shared/services/specDrivenConfig');
+      vi.mocked(getSpecDrivenConfig).mockImplementation(() => Promise.resolve(FALLBACK_SMART_GEN_CONFIG));
+    });
+
+    it('never sends a model id the user typed', async () => {
+      window.sessionStorage.setItem(sessionStorageLlmModel, 'acme-corp/customer-x-ft');
+      await runOnce(streamOf([START_FRAME, DONE_FRAME]));
+      expect(sent('spec_run_started')[0]).toMatchObject({ provider: 'anthropic', llm_model: undefined });
+      expect(JSON.stringify(vi.mocked(track).mock.calls)).not.toMatch(/acme/i);
+    });
+
+    it('sends a model id from the catalog', async () => {
+      window.sessionStorage.setItem(sessionStorageLlmModel, 'claude-sonnet-5-5');
+      await runOnce(streamOf([START_FRAME, DONE_FRAME]));
+      expect(sent('spec_run_started')[0]).toMatchObject({ llm_model: 'claude-sonnet-5-5' });
+    });
   });
 
   it('says a key is needed when the server offers no free tier', async () => {

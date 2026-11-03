@@ -119,8 +119,8 @@ export interface LlmKeyDialogProps {
    * can still pick another; saving replaces the single shared key either way.
    */
   preferProvider?: LlmProvider;
-  /** Which surface opened the dialog, for analytics (`assistant`, `spec_driven`, ...). */
-  surface?: string;
+  /** Which surface opened the dialog, for analytics. */
+  surface?: LlmKeyDialogSurface;
 }
 
 interface ProviderOption {
@@ -358,6 +358,9 @@ function _providerLabel(
   const found = options.find((p) => p.value === provider);
   return found ? found.label : 'the other provider';
 }
+
+/** The places that open the key dialog. */
+export type LlmKeyDialogSurface = 'assistant' | 'spec_driven' | 'kg_refine' | 'project_settings';
 
 export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   open,

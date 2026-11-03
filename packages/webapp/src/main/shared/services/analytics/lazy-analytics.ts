@@ -105,7 +105,13 @@ const URL_PROPERTIES = ['$current_url', '$referrer', '$initial_current_url', '$i
 const withoutQueryOrFragment = (url: unknown): unknown =>
   typeof url === 'string' ? url.replace(/[?#][\s\S]*$/, '') : url;
 
-/** PostHog `sanitize_properties`: strips the query and fragment from URLs, including `$set`/`$set_once` ones. */
+const isObject = (value: unknown): value is Record<string, any> => typeof value === 'object' && value !== null;
+
+/**
+ * PostHog `sanitize_properties`: strips the query and fragment from every URL, including the
+ * `$set`/`$set_once` ones, each web-vitals metric's own `$current_url` and the page keys of
+ * `$heatmap_data`.
+ */
 export function sanitizePostHogProperties(properties: Record<string, any>): Record<string, any> {
   const scrub = (props: Record<string, any>) => {
     for (const key of URL_PROPERTIES) {
@@ -113,8 +119,16 @@ export function sanitizePostHogProperties(properties: Record<string, any>): Reco
     }
   };
   scrub(properties);
-  for (const nested of ['$set', '$set_once']) {
-    if (properties[nested] && typeof properties[nested] === 'object') scrub(properties[nested]);
+  for (const [key, value] of Object.entries(properties)) {
+    if (isObject(value) && (key === '$set' || key === '$set_once' || key.startsWith('$web_vitals_'))) scrub(value);
+  }
+  if (isObject(properties.$heatmap_data)) {
+    const byPage: Record<string, unknown[]> = {};
+    for (const [url, points] of Object.entries(properties.$heatmap_data)) {
+      const page = withoutQueryOrFragment(url) as string;
+      byPage[page] = [...(byPage[page] ?? []), ...(Array.isArray(points) ? points : [])];
+    }
+    properties.$heatmap_data = byPage;
   }
   return properties;
 }
@@ -150,7 +164,7 @@ export const applyConsentToPostHog = (status: ConsentStatus): void => {
     ph.opt_in_capturing();
     // posthog-js 1.186 starts its batch queue only at load, so after a later opt-in every
     // event would wait for the page to unload. Start it the way its own load does.
-    (ph as unknown as { _start_queue_if_opted_in?: () => void })._start_queue_if_opted_in?.();
+    ph._start_queue_if_opted_in();
     // The page view of the page the user accepted on was dropped before consent.
     ph.capture('$pageview');
   } else {
@@ -178,6 +192,10 @@ function loadPostHog(settings: PostHogSettings): void {
         autocapture: false,
         capture_dead_clicks: false,
         enable_heatmaps: true,
+        capture_performance: { web_vitals: true, network_timing: false },
+        // No remote config call: everything above is set here, and the call would reach
+        // PostHog before consent (with an id stored by an earlier consent).
+        advanced_disable_decide: true,
         disable_session_recording: true,
         disable_surveys: true,
         // The router changes pages without a reload; `trackPageview` sends those.
@@ -191,6 +209,8 @@ function loadPostHog(settings: PostHogSettings): void {
         ip: false,
         sanitize_properties: sanitizePostHogProperties,
       });
+      // A stored opt-in from an earlier consent would otherwise override the default above.
+      if (!consented) posthog.opt_out_capturing();
       posthog.register({ editor_version: settings.editorVersion });
       posthogClient = posthog;
       if (posthogDecision !== null) applyConsentToPostHog(posthogDecision);

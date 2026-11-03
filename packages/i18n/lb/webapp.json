@@ -2250,8 +2250,8 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ass eng Open-Source Low-Code-Plattform, déi vun der Software Engineering Research Group beim LIST (Luxembourg Institute of Science and Technology) entwéckelt gëtt.",
         "collectTitle": "Donnéeën, déi mir sammelen",
         "collect": {
-          "usage": "Funktiounsnotzung a Resultater: wéi eng Funktiounen Dir benotzt an ob se klappen oder net (nëmmen Feelertyp an HTTP-Status)",
-          "interactions": "Klickpositiounen op de Säiten (Heatmaps) an d’Ladezäit vun de Säiten",
+          "usage": "Funktiounsnotzung a Resultater: wéi eng Funktiounen Dir benotzt, ob se klappen oder net, wéi laang se daueren an de Feelertyp (ni dat, wat Dir aginn oder modelléiert)",
+          "interactions": "Klick- a Pointerpositiounen op de Säiten (Heatmaps) an d’Ladezäit vun de Säiten",
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
           "session": "Anonym Sessiounsmetadaten",

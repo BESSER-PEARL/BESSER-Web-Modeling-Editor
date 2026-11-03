@@ -152,17 +152,27 @@ const interfaceColorOptions: InterfaceColorOption[] = [
   },
 ];
 
-/** The configuration's enum choices for analytics; never its names, profile or model. */
+/**
+ * The configuration's enum choices for analytics; never its names, profile or model. A loaded
+ * or uploaded config holds whatever its file says, so only known option values are sent.
+ */
+const AGENT_PLATFORMS = new Set(['streamlit', 'websocket', 'telegram']);
+const INTENT_TECHNOLOGIES = new Set<string>(['classical', 'llm-based']);
+const LANGUAGE_NAME = /^[a-z]{2,20}$/;
+const AGENT_PROVIDERS = new Set<string>(AGENT_LLM_PROVIDERS);
+const knownOnly = (value: unknown, allowed: ReadonlySet<string> | RegExp): string | undefined =>
+  typeof value === 'string' && (allowed instanceof RegExp ? allowed.test(value) : allowed.has(value)) ? value : undefined;
+
 const agentConfigProperties = (config: {
   agentPlatform?: string;
   agentLanguage?: string;
   intentRecognitionTechnology?: string;
   llm?: object;
 }) => ({
-  agent_platform: config.agentPlatform,
-  agent_language: config.agentLanguage,
-  intent_recognition: config.intentRecognitionTechnology,
-  llm_provider: config.llm && 'provider' in config.llm ? String(config.llm.provider) : undefined,
+  agent_platform: knownOnly(config.agentPlatform, AGENT_PLATFORMS),
+  agent_language: knownOnly(config.agentLanguage, LANGUAGE_NAME),
+  intent_recognition: knownOnly(config.intentRecognitionTechnology, INTENT_TECHNOLOGIES),
+  llm_provider: knownOnly(config.llm && 'provider' in config.llm ? config.llm.provider : undefined, AGENT_PROVIDERS),
 });
 
 const createDefaultConfig = (): AgentConfigurationPayload => ({

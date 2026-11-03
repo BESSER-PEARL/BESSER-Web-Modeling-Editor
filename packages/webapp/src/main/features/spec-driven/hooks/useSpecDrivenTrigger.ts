@@ -58,7 +58,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { track, type SpecRunTier } from '../../../shared/services/analytics/events';
-import { runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
+import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -164,11 +164,6 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   status: 'running',
 });
 
-/**
- * Terminal outcome of a spec-driven run, reported exactly once per run
- * via `onRunFinished` — used by the assistant orchestrator to close
- * the agent loop (`generator_result` frontend event).
- */
 /** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
 function currentRunTier(): { tier: SpecRunTier; provider: string } {
   if (getDemoToken()) return { tier: 'sponsored', provider: 'sponsored' };
@@ -176,6 +171,11 @@ function currentRunTier(): { tier: SpecRunTier; provider: string } {
   return { tier: 'own_key', provider: readLlmKey()?.provider ?? 'unknown' };
 }
 
+/**
+ * Terminal outcome of a spec-driven run, reported exactly once per run
+ * via `onRunFinished` — used by the assistant orchestrator to close
+ * the agent loop (`generator_result` frontend event).
+ */
 export interface SpecDrivenRunResult {
   ok: boolean;
   runId?: string;
@@ -1238,7 +1238,7 @@ export function useSpecDrivenTrigger(
       };
 
       runAnalyticsRef.current = {
-        properties: runProperties({ ...runSetup, llmModel, runMode: runDecision.mode }),
+        properties: runProperties({ ...runSetup, llmModel, catalogModels: catalogModelIds(cfg), runMode: runDecision.mode }),
         startedAt: activeRunStartedAtRef.current,
       };
       track('spec_run_started', runAnalyticsRef.current.properties);

@@ -31,12 +31,14 @@ export const useDeployLocally = () => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         reportError(validationResult.message || t('generation.toasts.validationFailed'));
+        track('local_deploy_blocked', { generator_type: generatorType, reason: 'validation' });
         return;
       }
 
       if (!editor || !editor.model) {
         console.error('No editor or model available');
         reportError(t('generation.toasts.noDiagram'));
+        track('local_deploy_blocked', { generator_type: generatorType, reason: 'no_diagram' });
         return;
       }
 

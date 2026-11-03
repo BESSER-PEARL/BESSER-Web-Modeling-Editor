@@ -26,6 +26,18 @@ export type ProjectCreationSource =
   | 'file_import'
   | 'url_import';
 
+/** The size of the generated model: counts only. */
+export interface ModelMetrics {
+  elements_count: number;
+  classes_count: number;
+  abstract_classes_count: number;
+  attributes_count: number;
+  methods_count: number;
+  enumerations_count: number;
+  relationships_count: number;
+  total_size: number;
+}
+
 /** How a Spec-Driven run is paid for. */
 export type SpecRunTier = 'free' | 'sponsored' | 'own_key';
 
@@ -167,8 +179,7 @@ export interface AnalyticsEvents {
     vocab?: string;
     nodes_count?: number;
     edges_count?: number;
-    [metric: string]: unknown;
-  };
+  } & Partial<ModelMetrics>;
   generator_failed: {
     generator_type: string;
     diagram_type?: string;
@@ -182,7 +193,7 @@ export interface AnalyticsEvents {
     reason: 'no_project' | 'not_supported' | 'no_diagram' | 'empty_diagram' | 'exception';
   } & Partial<ErrorProperties>;
   /** Local deploy refused before it started (no diagram open, invalid names). */
-  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' };
+  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' | 'validation' };
   local_deploy_succeeded: { duration_ms: number };
   local_deploy_failed: { duration_ms: number } & ErrorProperties;
 
@@ -316,7 +327,7 @@ export interface AnalyticsEvents {
     issue_count?: number;
     kind?: string;
   };
-  editor_action_failed: { editor: EditorKind; action: string; reason?: string } & Partial<ErrorProperties>;
+  editor_action_failed: { editor: EditorKind; action: string; kind?: string; reason?: string } & Partial<ErrorProperties>;
 
   // ── Agent features ──
   agent_simulation_checked: {

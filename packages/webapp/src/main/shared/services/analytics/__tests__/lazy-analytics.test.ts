@@ -315,6 +315,45 @@ describe('PostHog', () => {
     expect(posthog.capture).not.toHaveBeenCalled();
   });
 
+  it('makes no request to PostHog before consent: no remote config call, web vitals set locally', async () => {
+    await start('');
+    expect(initOptions()).toMatchObject({
+      advanced_disable_decide: true,
+      capture_performance: { web_vitals: true, network_timing: false },
+    });
+  });
+
+  it('opts out at load without consent, even when an earlier consent left an opt-in stored', async () => {
+    posthog.init.mockImplementationOnce(() => {
+      posthogState.optedOut = false; // the stored opt-in wins over opt_out_capturing_by_default
+    });
+    vi.resetModules();
+    const analytics = await import('../lazy-analytics');
+    analytics.captureEvent('queued_before_consent');
+    analytics.initLazyAnalytics(config(''));
+    await vi.dynamicImportSettled();
+    expect(posthog.opt_out_capturing).toHaveBeenCalled();
+    expect(posthog.opt_out_capturing.mock.invocationCallOrder[0]).toBeLessThan(
+      posthog.capture.mock.invocationCallOrder[0] ?? Infinity,
+    );
+  });
+
+  it('strips the query and fragment inside heatmap data and web-vitals metrics too', async () => {
+    const { sanitizePostHogProperties } = await import('../lazy-analytics');
+    expect(
+      sanitizePostHogProperties({
+        $heatmap_data: {
+          'https://editor.besser-pearl.org/?buml=https://raw.githubusercontent.com/acme/x': [{ x: 1 }],
+          'https://editor.besser-pearl.org/#github_session=abc': [{ x: 2 }],
+        },
+        $web_vitals_LCP_event: { value: 900, $current_url: 'https://editor.besser-pearl.org/?demo=secret' },
+      }),
+    ).toEqual({
+      $heatmap_data: { 'https://editor.besser-pearl.org/': [{ x: 1 }, { x: 2 }] },
+      $web_vitals_LCP_event: { value: 900, $current_url: 'https://editor.besser-pearl.org/' },
+    });
+  });
+
   it('strips the query and fragment from every URL it sends (OAuth code, ?buml= link)', async () => {
     const { sanitizePostHogProperties } = await import('../lazy-analytics');
     expect(

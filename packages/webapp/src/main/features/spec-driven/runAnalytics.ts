@@ -5,6 +5,7 @@ import {
   type SpecRunStage,
   type SpecRunTier,
 } from '../../shared/services/analytics/events';
+import type { SpecDrivenConfig } from '../../shared/services/specDrivenConfig';
 import type { SpecDrivenRunResult } from './hooks/useSpecDrivenTrigger';
 
 /** The run being tracked: its set-up properties and when it began (`Date.now()`). */
@@ -24,13 +25,21 @@ export interface RunFinishDetails {
   stats?: { fileCount?: number; changedFileCount?: number; tokensUsed?: number; isZip?: boolean };
 }
 
-/** Providers whose model id is free text the user typed, not a catalog id. */
-const FREE_TEXT_MODEL_PROVIDERS = new Set(['local']);
+/** Every model id the server's catalog names; any other id is text the user typed and is never sent. */
+export function catalogModelIds(cfg: SpecDrivenConfig): ReadonlySet<string> {
+  return new Set([
+    ...cfg.providers.flatMap((provider) => provider.models.map((model) => model.id)),
+    ...cfg.free_tier.models.map((model) => model.id),
+    ...Object.values(cfg.default_models),
+  ]);
+}
 
 export function runProperties(input: {
   tier: SpecRunTier;
   provider: string;
   llmModel?: string;
+  /** From `catalogModelIds`; without it no model id is sent. */
+  catalogModels?: ReadonlySet<string>;
   runMode?: 'generate' | 'modify';
   explicitMode: boolean;
   maxCostUsd?: number;
@@ -44,7 +53,7 @@ export function runProperties(input: {
     run_mode: input.runMode,
     tier: input.tier,
     provider: input.provider,
-    llm_model: FREE_TEXT_MODEL_PROVIDERS.has(input.provider) ? undefined : input.llmModel,
+    llm_model: input.llmModel && input.catalogModels?.has(input.llmModel) ? input.llmModel : undefined,
     explicit_mode: input.explicitMode,
     has_budget: input.maxCostUsd !== undefined || input.maxRuntimeSeconds !== undefined,
     max_cost_usd: input.maxCostUsd,
