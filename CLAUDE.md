@@ -196,8 +196,8 @@ A failure the user should see goes through `reportError(message, { error, ...toa
 `updateToast: id` it turns that toast, e.g. a `toast.loading`, into the error toast), plus the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
 cookie banner (`applyAnalyticsConsent` in `lazy-analytics.ts` starts and stops it, like PostHog's opt-in); offline,
 aborted and 4xx failures (`isNetworkError`, `ApiError`/`SseHttpError` status < 500) are toast-only, and the
-`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path, browser and
-breadcrumb categories: no message, backend `detail`, query string (stack frame URLs included), extra data or user
+`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path, browser,
+breadcrumb categories and the SDK's own contexts (`trace`, `react`, device description): no message, other context, backend `detail`, query string (stack frame URLs included), extra data or user
 (`ip_address: null` stops Sentry inferring the IP), as the privacy policy promises. Captures are
 tagged `handled: reportError`. Google Analytics (`GA_MEASUREMENT_ID` in `constant.ts`) follows the same consent: gtag.js
 is injected by `lazy-analytics.ts` after Accept and disabled with Google's `ga-disable-<id>` flag on withdrawal, so
