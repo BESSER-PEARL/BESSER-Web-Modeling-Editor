@@ -1,11 +1,14 @@
 /**
  * Per-browser preferences in localStorage: the default interface, the one-time
- * GitHub star prompt and the analytics consent. Best effort: never throws.
+ * GitHub star prompt, the analytics consent and the What's new version last seen.
+ * Best effort: never throws.
  */
 import {
   localStorageAnalyticsConsent,
   localStorageGitHubStarPrompted,
+  localStorageLatestProject,
   localStoragePreferredInterface,
+  localStorageWhatsNewSeen,
 } from '../../constants/constant';
 import type { InterfaceMode } from '../../types/project';
 
@@ -78,5 +81,33 @@ export function writeAnalyticsConsent(consent: StoredAnalyticsConsent): boolean 
     return true;
   } catch {
     return false;
+  }
+}
+
+export interface WhatsNewState {
+  /** The version the user last saw, or null when never recorded. */
+  seen: string | null;
+  /** Whether this browser already holds a project. */
+  hasProject: boolean;
+}
+
+/** Null when storage is unreadable. */
+export function readWhatsNewState(storage: Storage = localStorage): WhatsNewState | null {
+  try {
+    return {
+      seen: storage.getItem(localStorageWhatsNewSeen),
+      hasProject: storage.getItem(localStorageLatestProject) !== null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** A failed write is ignored: the dot comes back next load. */
+export function writeWhatsNewSeen(version: string, storage: Storage = localStorage): void {
+  try {
+    storage.setItem(localStorageWhatsNewSeen, version);
+  } catch {
+    // storage unavailable
   }
 }
