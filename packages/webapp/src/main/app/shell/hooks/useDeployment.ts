@@ -256,12 +256,10 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       setIsDeployDialogOpen(false);
       setIsDeployResultOpen(true);
 
+      // No repo name, owner or URL: the privacy policy promises no project names or identity.
       getPostHog()?.capture('render_deploy_success', {
         deployment_status: 'success',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
-        repo_url: result.repo_url,
-        owner: result.owner,
         files_uploaded: result.files_uploaded,
         is_redeployment: useExistingRepo,
         diagram_type: currentProject.currentDiagramType,
@@ -271,7 +269,6 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       getPostHog()?.capture('render_deploy_failure', {
         deployment_status: 'failed',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
         diagram_type: currentProject.currentDiagramType,
         deployment_target: deploymentTarget,
       });
