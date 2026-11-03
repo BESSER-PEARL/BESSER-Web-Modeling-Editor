@@ -30,12 +30,20 @@ const STORAGE_SYNTAX = [
 ].map((selector) => ({ selector, message: STORAGE_MESSAGE }))
 const STORAGE_GLOBALS = ['localStorage', 'sessionStorage'].map((name) => ({ name, message: STORAGE_MESSAGE }))
 
+const GLOBAL_OBJECT = '/^(window|globalThis|self)$/'
 const HTTP_MESSAGE = 'Call the backend through a module in shared/api/, not fetch/XMLHttpRequest/sendBeacon directly.'
 const HTTP_SYNTAX = [
   "CallExpression[callee.name='fetch']",
-  "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='fetch']",
+  `CallExpression[callee.object.name=${GLOBAL_OBJECT}][callee.property.name='fetch']`,
   "CallExpression[callee.property.name='sendBeacon']",
   "NewExpression[callee.name='XMLHttpRequest']",
+  `NewExpression[callee.object.name=${GLOBAL_OBJECT}][callee.property.name='XMLHttpRequest']`,
+  // fetch taken as a value, to be called under another name: `const f = fetch`, `f = window.fetch`,
+  // `const { fetch } = window`, `fetch.call(...)`.
+  ":matches(VariableDeclarator > .init, AssignmentExpression > .right)[name='fetch']",
+  `:matches(VariableDeclarator > .init, AssignmentExpression > .right)[object.name=${GLOBAL_OBJECT}][property.name='fetch']`,
+  `VariableDeclarator[init.name=${GLOBAL_OBJECT}] > ObjectPattern > Property[key.name='fetch']`,
+  "MemberExpression[object.name='fetch']",
 ].map((selector) => ({ selector, message: HTTP_MESSAGE }))
 
 const REPORT_ERROR_MESSAGE = 'Report a failure with reportError() from shared/services/errors/reportError.'
@@ -43,8 +51,17 @@ const REPORT_ERROR_GLOBAL = { name: 'reportError', message: `Import it: ${REPORT
 const ALERT_MESSAGE = 'Use globalAlert() from shared/services/confirm/globalConfirm instead of alert().'
 const ERROR_SYNTAX = [
   { selector: "CallExpression[callee.object.name='toast'][callee.property.name='error']", message: REPORT_ERROR_MESSAGE },
+  { selector: "CallExpression[callee.object.name='toast'][callee.property.value='error']", message: REPORT_ERROR_MESSAGE },
+  // `toast(m, { type: 'error' })`. A loading toast turned into an error (`toast.update`) stays allowed.
+  {
+    selector: "CallExpression[callee.name='toast'] > ObjectExpression > Property[key.name='type'][value.value='error']",
+    message: REPORT_ERROR_MESSAGE,
+  },
+  // A renamed import (`import { toast as t }`) would slip past the selectors above.
+  { selector: "ImportSpecifier[imported.name='toast'][local.name!='toast']", message: 'Import toast under its own name.' },
+  { selector: `CallExpression[callee.object.name=${GLOBAL_OBJECT}][callee.property.name='reportError']`, message: REPORT_ERROR_MESSAGE },
   { selector: "CallExpression[callee.name='alert']", message: ALERT_MESSAGE },
-  { selector: "CallExpression[callee.object.name=/^(window|globalThis|self)$/][callee.property.name='alert']", message: ALERT_MESSAGE },
+  { selector: `CallExpression[callee.object.name=${GLOBAL_OBJECT}][callee.property.name='alert']`, message: ALERT_MESSAGE },
 ]
 const TESTS = ['**/__tests__/**', '**/*.test.{ts,tsx}', 'src/test/**']
 
