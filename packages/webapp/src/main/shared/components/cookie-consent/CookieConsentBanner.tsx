@@ -22,7 +22,8 @@ import {
   type StoredAnalyticsConsent,
 } from '../../services/storage/preferencesStorage';
 
-const CONSENT_VERSION = '1.2';
+/** Raise it when the banner names a new provider or use: everyone is asked again. */
+const CONSENT_VERSION = '1.3';
 
 export type ConsentStatus = StoredAnalyticsConsent['status'];
 

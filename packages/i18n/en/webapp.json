@@ -2221,7 +2221,7 @@
       "settingsButton": "Privacy Settings",
       "banner": {
         "title": "Analytics Cookies",
-        "subtitle": "Anonymous analytics to improve BESSER.",
+        "subtitle": "Analytics and error reports to improve BESSER.",
         "details": "Details",
         "hideDetails": "Hide details",
         "decline": "Decline",

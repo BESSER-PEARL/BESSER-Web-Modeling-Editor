@@ -4,15 +4,24 @@
  */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../services/analytics/lazy-analytics', () => ({ applyAnalyticsConsent: vi.fn() }));
 
-import { CookieConsentBanner } from '../CookieConsentBanner';
+import { applyAnalyticsConsent } from '../../../services/analytics/lazy-analytics';
+import { localStorageAnalyticsConsent } from '../../../constants/constant';
+import { CookieConsentBanner, hasUserConsented } from '../CookieConsentBanner';
+
+const storeConsent = (version: string) =>
+  localStorage.setItem(
+    localStorageAnalyticsConsent,
+    JSON.stringify({ status: 'accepted', timestamp: '2026-10-01T00:00:00.000Z', version }),
+  );
 
 describe('CookieConsentBanner', () => {
   it('names Google Analytics, Sentry and PostHog, with what Google Analytics collects', () => {
     render(<CookieConsentBanner />);
+    expect(screen.getByText('Analytics and error reports to improve BESSER.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
     expect(screen.getByText('Visit statistics (Google Analytics)')).toBeInTheDocument();
 
@@ -29,5 +38,34 @@ describe('CookieConsentBanner', () => {
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     }
+  });
+
+  describe('consent given before Google Analytics was named (version 1.2)', () => {
+    afterEach(() => {
+      localStorage.clear();
+      vi.mocked(applyAnalyticsConsent).mockClear();
+    });
+
+    it('asks again and keeps analytics off until the user answers', () => {
+      storeConsent('1.2');
+      expect(hasUserConsented()).toBe(false);
+
+      render(<CookieConsentBanner />);
+      expect(screen.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(applyAnalyticsConsent).toHaveBeenCalledWith('declined');
+      expect(JSON.parse(localStorage.getItem(localStorageAnalyticsConsent)!)).toMatchObject({
+        status: 'pending',
+        version: '1.3',
+      });
+    });
+
+    it('does not ask a user who accepted the current version', () => {
+      storeConsent('1.3');
+      expect(hasUserConsented()).toBe(true);
+
+      render(<CookieConsentBanner />);
+      expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+      expect(applyAnalyticsConsent).toHaveBeenCalledWith('accepted');
+    });
   });
 });
