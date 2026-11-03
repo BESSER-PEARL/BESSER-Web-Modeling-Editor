@@ -12,6 +12,27 @@
     "retry": "Erneut versuchen",
     "ok": "OK"
   },
+  "whatsNew": {
+    "title": "Neuigkeiten",
+    "unread_one": "Neuigkeiten (1 neu)",
+    "unread_other": "Neuigkeiten ({{count}} neu)",
+    "new": "Neu",
+    "entries": {
+      "anyStack": {
+        "title": "Apps im gewünschten Stack",
+        "body": "Bitte den Spec-Driven Agent um eine REST-API in Go oder ein Kommandozeilen-Tool in Rust: Er baut genau das und prüft die App so, wie er eine Web-App prüft."
+      },
+      "githubRepo": {
+        "title": "Projekte mit GitHub verknüpft",
+        "body": "Verknüpfe ein Projekt mit einem GitHub-Repository. Das GitHub-Menü speichert dein Modell dort, holt die neueste Version, zeigt den Verlauf und sagt dir, ob alles synchron ist."
+      },
+      "knowledgeGraph": {
+        "title": "Knowledge-Graph-Diagramme",
+        "body": "Importiere eine OWL- oder RDF-Ontologie, bearbeite sie als Graph, prüfe sie gegen ihre OWL- und SHACL-Constraints und wandle sie in ein Klassendiagramm mit OCL-Constraints um.",
+        "action": "Knowledge-Graph-Editor öffnen"
+      }
+    }
+  },
   "topbar": {
     "language": "Sprache",
     "openProjectHub": "Projekt-Hub öffnen",

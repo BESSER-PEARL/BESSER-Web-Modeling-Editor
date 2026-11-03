@@ -12,6 +12,27 @@
     "retry": "Réessayer",
     "ok": "OK"
   },
+  "whatsNew": {
+    "title": "Nouveautés",
+    "unread_one": "Nouveautés (1 nouvelle)",
+    "unread_other": "Nouveautés ({{count}} nouvelles)",
+    "new": "Nouveau",
+    "entries": {
+      "anyStack": {
+        "title": "Des applications dans la technologie demandée",
+        "body": "Demandez au Spec-Driven Agent une API REST en Go ou un outil en ligne de commande en Rust : il le construit, puis vérifie l’application comme il vérifie une application web."
+      },
+      "githubRepo": {
+        "title": "Des projets liés à GitHub",
+        "body": "Liez un projet à un dépôt GitHub. Le menu GitHub y enregistre votre modèle, récupère la dernière version, affiche l’historique et indique si vous êtes à jour."
+      },
+      "knowledgeGraph": {
+        "title": "Diagrammes Knowledge Graph",
+        "body": "Importez une ontologie OWL ou RDF, modifiez-la sous forme de graphe, vérifiez-la par rapport à ses contraintes OWL et SHACL et transformez-la en diagramme de classes avec des contraintes OCL.",
+        "action": "Ouvrir l’éditeur Knowledge Graph"
+      }
+    }
+  },
   "topbar": {
     "language": "Langue",
     "openProjectHub": "Ouvrir le hub de projet",

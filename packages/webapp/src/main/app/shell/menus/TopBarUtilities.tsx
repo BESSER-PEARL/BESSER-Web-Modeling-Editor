@@ -6,6 +6,8 @@ import { inputBaseClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { QualityCheckResult, QualityCheckState } from '../../../shared/types/quality-check';
 import { GitHubMenu } from '../../../features/github/components/GitHubMenu';
+import { WhatsNewMenu } from '../../../features/whats-new/WhatsNewMenu';
+import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { AgentVariantOption } from '../topbar-types';
 import { HeaderTooltip } from './HeaderTooltip';
 
@@ -29,6 +31,7 @@ interface TopBarUtilitiesProps {
   onGitHubLogout: () => void;
   onToggleStar: () => void;
   onRepoOpened?: (summary: string) => void;
+  onSwitchDiagramType: (type: SupportedDiagramType) => void;
 }
 
 export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
@@ -51,6 +54,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onGitHubLogout,
   onToggleStar,
   onRepoOpened,
+  onSwitchDiagramType,
 }) => {
   const { t } = useTranslation();
   const qualityStateLabel = qualityCheckState === 'valid'
@@ -123,6 +127,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
           </Button>
         </HeaderTooltip>
       )}
+
+      <WhatsNewMenu outlineButtonClass={outlineButtonClass} onSwitchDiagramType={onSwitchDiagramType} />
 
       <HeaderTooltip label={themeLabel}>
         <Button

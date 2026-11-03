@@ -12,6 +12,27 @@
     "retry": "Retry",
     "ok": "OK"
   },
+  "whatsNew": {
+    "title": "What's new",
+    "unread_one": "What's new (1 new)",
+    "unread_other": "What's new ({{count}} new)",
+    "new": "New",
+    "entries": {
+      "anyStack": {
+        "title": "Apps in the stack you ask for",
+        "body": "Ask the Spec-Driven Agent for a REST API in Go or a command-line tool in Rust and it builds that, then checks the app the same way it checks a web app."
+      },
+      "githubRepo": {
+        "title": "Projects linked to GitHub",
+        "body": "Link a project to a GitHub repository. The GitHub menu saves your model there, gets the latest version, shows the history and tells you whether you are in sync."
+      },
+      "knowledgeGraph": {
+        "title": "Knowledge Graph diagrams",
+        "body": "Import an OWL or RDF ontology, edit it as a graph, check it against its OWL and SHACL constraints and turn it into a class diagram with OCL constraints.",
+        "action": "Open the Knowledge Graph editor"
+      }
+    }
+  },
   "topbar": {
     "language": "Language",
     "openProjectHub": "Open project hub",
