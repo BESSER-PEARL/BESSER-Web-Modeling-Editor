@@ -617,7 +617,6 @@ function setupEditorFeatures(
   // Page system (consolidated)
   if (editor.Pages) {
     setupPageSystem(editor);
-    setupPageRouting(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
@@ -1679,25 +1678,6 @@ function buildPageComponents(
     }
   }, 300);
   
-}
-
-/**
- * Setup page routing system
- */
-/**
- * Setup page routing system
- */
-function setupPageRouting(editor: Editor) {
-  if (!editor.Pages) return;
-  
-  editor.on('page:select', (page: any) => {
-    if (!page) return;
-    // Use route_path as primary, fallback to attributes.route or auto-generated
-    const currentRoute = page.get('route_path') || 
-      page.get('attributes')?.route || 
-      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
-  });
 }
 
 // ============================================
