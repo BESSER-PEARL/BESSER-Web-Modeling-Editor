@@ -1,5 +1,5 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import type { ApiResponse } from '../api/schema';
+import type { components } from '../api/generated/besser-openapi';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -225,26 +225,15 @@ export interface KnowledgeGraphData {
   settings?: KnowledgeGraphSettings;
 }
 
-export type ConsistencySeverity = 'info' | 'warning' | 'violation';
-
 /** A single inconsistency surfaced by the OWL/SHACL consistency check
- *  (`kg_to_buml.consistency.ConsistencyIssue`). Narrows the schema's
- *  `severity: str` to the three values the check sets. `constraintLabel`: short
- *  summary of the violated constraint, e.g. "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
-export type ConsistencyIssue = Omit<ApiResponse<'KGConsistencyIssueResponse'>, 'severity'> & {
-  severity: ConsistencySeverity;
-};
+ *  (`kg_to_buml.consistency.ConsistencyIssue`). `constraintLabel`: short summary
+ *  of the violated constraint, e.g. "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
+export type ConsistencyIssue = components['schemas']['KGConsistencyIssueResponse'];
 
-/** Answer of `/kg/consistency`. Narrows the schema's `str` / `Dict[str, int]`
- *  fields to the values the check sets (`inference` is `rdfs` or `owlrl`). */
-export type ConsistencyReport = Omit<
-  ApiResponse<'KGConsistencyReportResponse'>,
-  'issues' | 'severityCounts' | 'inferenceUsed'
-> & {
-  issues: ConsistencyIssue[];
-  severityCounts: Record<ConsistencySeverity, number>;
-  inferenceUsed: 'rdfs' | 'owlrl';
-};
+export type ConsistencySeverity = ConsistencyIssue['severity'];
+
+/** Answer of `/kg/consistency`. */
+export type ConsistencyReport = components['schemas']['KGConsistencyReportResponse'];
 
 export const DEFAULT_KG_SOFT_LIMIT = 50;
 export const DEFAULT_KG_HARD_LIMIT = 100;

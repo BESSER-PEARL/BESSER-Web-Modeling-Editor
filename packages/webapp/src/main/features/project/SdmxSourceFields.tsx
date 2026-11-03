@@ -4,12 +4,12 @@ import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/ui/form-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiClient, ApiError } from '../../shared/api/api-client';
-import type { ApiResponse } from '../../shared/api/schema';
+import type { components } from '../../shared/api/generated/besser-openapi';
 
 /** A preset SDMX provider, as served by the backend's `GET /sdmx-providers`. */
-export type SdmxProviderOption = ApiResponse<'SdmxProvider'>;
+export type SdmxProviderOption = components['schemas']['SdmxProvider'];
 
-type SdmxProvidersResponse = ApiResponse<'SdmxProvidersResponse'>;
+type SdmxProvidersResponse = components['schemas']['SdmxProvidersResponse'];
 
 /** What the "Statistics API (SDMX)" source of the "From Data" step collects. */
 export interface SdmxSourceValue {

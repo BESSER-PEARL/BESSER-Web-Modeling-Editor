@@ -1,5 +1,5 @@
 import { apiClient, ApiError } from './api-client';
-import type { ApiResponse } from './schema';
+import type { components } from './generated/besser-openapi';
 import { BACKEND_URL } from '../constants/constant';
 import { getGitHubSession } from '../services/github/githubAuth';
 
@@ -45,16 +45,16 @@ export interface StartAgentSimulationSessionRequest extends AgentSimulationReque
   credentials?: AgentSimulationCredentials;
 }
 
-export type StartAgentSimulationSessionResponse = ApiResponse<'SimulationSessionResponse'>;
+export type StartAgentSimulationSessionResponse = components['schemas']['SimulationSessionResponse'];
 
-export type ValidateAgentResponse = ApiResponse<'SimulationValidationResponse'>;
+export type ValidateAgentResponse = components['schemas']['SimulationValidationResponse'];
 
-export type AgentSimulationSessionFile = ApiResponse<'SimulationSessionFile'>;
+export type AgentSimulationSessionFile = components['schemas']['SimulationSessionFile'];
 
-export type AgentSimulationSessionFilesResponse = ApiResponse<'SimulationSessionFilesResponse'>;
+export type AgentSimulationSessionFilesResponse = components['schemas']['SimulationSessionFilesResponse'];
 
 /** A limit the server does not set arrives as `null`. */
-export type AgentSimulationLimits = ApiResponse<'SimulationLimitsResponse'>;
+export type AgentSimulationLimits = components['schemas']['SimulationLimitsResponse'];
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -129,8 +129,8 @@ export const agentSimulationApi = {
   stopSession(
     sessionId: string,
     options: { keepalive?: boolean } = {},
-  ): Promise<ApiResponse<'SimulationSessionStopResponse'>> {
-    return apiClient.request<ApiResponse<'SimulationSessionStopResponse'>>(`/simulation/sessions/${encodeURIComponent(sessionId)}`, {
+  ): Promise<components['schemas']['SimulationSessionStopResponse']> {
+    return apiClient.request<components['schemas']['SimulationSessionStopResponse']>(`/simulation/sessions/${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
       headers: authHeaders(),
       keepalive: options.keepalive,

@@ -1815,7 +1815,7 @@ export interface components {
             /** Besser Version */
             besser_version: string;
             /** Besser Build */
-            besser_build?: string | null;
+            besser_build: string | null;
             /** Supported Generators */
             supported_generators: string[];
             /** Endpoints */
@@ -1874,6 +1874,24 @@ export interface components {
         Body_import_owl_besser_api_kg_import_owl_post: {
             /** Owl File */
             owl_file: string;
+        };
+        /**
+         * CodeAnalysisResponse
+         * @description What a repo's code holds: ``CodeAnalysis.to_dict()`` (reverse_engineering).
+         */
+        CodeAnalysisResponse: {
+            /** Stack */
+            stack: string[];
+            /** Model Source */
+            model_source: string | null;
+            /** Source Files */
+            source_files: string[];
+            /** Entities */
+            entities: string[];
+            /** Ai */
+            ai: boolean;
+            /** Skipped Relationships */
+            skipped_relationships: string[];
         };
         /**
          * CreateGistRequest
@@ -1997,24 +2015,36 @@ export interface components {
             repo_name: string;
             /** Owner */
             owner: string;
-            /** Deployment Urls */
-            deployment_urls: {
-                [key: string]: unknown;
-            };
+            deployment_urls: components["schemas"]["DeploymentUrls"];
             /** Files Uploaded */
             files_uploaded: number;
             /** Message */
             message: string;
-            /**
-             * Is First Deploy
-             * @default true
-             */
+            /** Is First Deploy */
             is_first_deploy: boolean;
             /**
              * Deployment Type
-             * @default webapp
+             * @enum {string}
              */
-            deployment_type: string;
+            deployment_type: "webapp" | "chatbot";
+        };
+        /**
+         * DeploymentUrls
+         * @description Links for a deployed repo; the live and dashboard ones only on a redeploy.
+         */
+        DeploymentUrls: {
+            /** Github */
+            github: string;
+            /** Render */
+            render: string;
+            /** Live Frontend */
+            live_frontend?: string;
+            /** Live Backend */
+            live_backend?: string;
+            /** Live Chatbot */
+            live_chatbot?: string;
+            /** Render Dashboard */
+            render_dashboard?: string;
         };
         /**
          * DiagramExportResponse
@@ -2030,14 +2060,14 @@ export interface components {
             /** Diagramtype */
             diagramType: string;
             /** Exportedat */
-            exportedAt?: string;
+            exportedAt: string;
             /**
              * Version
              * @default 1.0.0
              */
             version: string;
             /** Warnings */
-            warnings?: {
+            warnings: {
                 [key: string]: unknown;
             }[] | null;
         };
@@ -2128,7 +2158,7 @@ export interface components {
             /** Html Url */
             html_url: string;
             /** Origin */
-            origin?: string | null;
+            origin: string | null;
         };
         /**
          * GitHubCommitsListResponse
@@ -2173,17 +2203,17 @@ export interface components {
             /** Success */
             success: boolean;
             /** Authenticated */
-            authenticated?: boolean | null;
+            authenticated: boolean | null;
             /** Session Id */
-            session_id?: string | null;
+            session_id: string | null;
             /** User */
-            user?: string | null;
+            user: string | null;
             /** Avatar */
-            avatar?: string | null;
+            avatar: string | null;
             /** Username */
-            username?: string | null;
+            username: string | null;
             /** Error */
-            error?: string | null;
+            error: string | null;
         };
         /**
          * GitHubRepoResponse
@@ -2256,11 +2286,11 @@ export interface components {
             /** Backend Url */
             backend_url: string;
             /** Frontend Url */
-            frontend_url?: string | null;
+            frontend_url: string | null;
             /** Backend Dir */
             backend_dir: string;
             /** Frontend Dir */
-            frontend_dir?: string | null;
+            frontend_dir: string | null;
             /**
              * Warnings
              * @default []
@@ -2325,13 +2355,13 @@ export interface components {
             /** Run Id */
             run_id: string;
             /** Project */
-            project?: {
+            project: {
                 [key: string]: unknown;
             } | null;
             /** Has Model */
             has_model: boolean;
             /** Model Path */
-            model_path?: string | null;
+            model_path: string | null;
             /** Owner */
             owner: string;
             /** Repo */
@@ -2343,16 +2373,10 @@ export interface components {
              * @default
              */
             commit_sha: string;
-            /** Analysis */
-            analysis?: {
-                [key: string]: unknown;
-            } | null;
-            /** Proposed Diagram */
-            proposed_diagram?: {
-                [key: string]: unknown;
-            } | null;
+            analysis: components["schemas"]["CodeAnalysisResponse"] | null;
+            proposed_diagram: components["schemas"]["ProposedDiagramResponse"] | null;
             /** Message */
-            message?: string | null;
+            message: string | null;
             /**
              * Ai Reading Offered
              * @default false
@@ -2401,22 +2425,25 @@ export interface components {
             id: string;
             /** Code */
             code: string;
-            /** Severity */
-            severity: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "violation";
             /** Message */
             message: string;
             /** Affectednodeids */
-            affectedNodeIds?: string[];
+            affectedNodeIds: string[];
             /** Affectededgeids */
-            affectedEdgeIds?: string[];
+            affectedEdgeIds: string[];
             /** Constraintnodeid */
-            constraintNodeId?: string | null;
+            constraintNodeId: string | null;
             /** Speckind */
-            specKind?: string | null;
+            specKind: string | null;
             /** Pathiri */
-            pathIri?: string | null;
+            pathIri: string | null;
             /** Constraintlabel */
-            constraintLabel?: string | null;
+            constraintLabel: string | null;
         };
         /**
          * KGConsistencyReportResponse
@@ -2424,19 +2451,19 @@ export interface components {
          */
         KGConsistencyReportResponse: {
             /** Issues */
-            issues?: components["schemas"]["KGConsistencyIssueResponse"][];
+            issues: components["schemas"]["KGConsistencyIssueResponse"][];
             /** Issuecount */
             issueCount: number;
-            /** Severitycounts */
-            severityCounts: {
-                [key: string]: number;
-            };
+            severityCounts: components["schemas"]["KGSeverityCountsResponse"];
             /** Kgsignature */
             kgSignature: string;
-            /** Inferenceused */
-            inferenceUsed: string;
+            /**
+             * Inferenceused
+             * @enum {string}
+             */
+            inferenceUsed: "rdfs" | "owlrl";
             /** Exportedat */
-            exportedAt?: string;
+            exportedAt: string;
             /**
              * Version
              * @default 1.0.0
@@ -2578,7 +2605,7 @@ export interface components {
             /** Issuecount */
             issueCount: number;
             /** Issues */
-            issues?: components["schemas"]["KGIssueResponse"][];
+            issues: components["schemas"]["KGIssueResponse"][];
         };
         /**
          * KGRefinementResponse
@@ -2595,9 +2622,9 @@ export interface components {
             diagramType: string;
             /** Kgsignature */
             kgSignature: string;
-            pendingOrphanClassification?: components["schemas"]["KGPendingOrphanClassification"] | null;
+            pendingOrphanClassification: components["schemas"]["KGPendingOrphanClassification"] | null;
             /** Exportedat */
-            exportedAt?: string;
+            exportedAt: string;
             /**
              * Version
              * @default 1.0.0
@@ -2617,6 +2644,18 @@ export interface components {
             issueId: string;
             /** Decision */
             decision: string;
+        };
+        /**
+         * KGSeverityCountsResponse
+         * @description How many issues of each severity a consistency report holds.
+         */
+        KGSeverityCountsResponse: {
+            /** Info */
+            info: number;
+            /** Warning */
+            warning: number;
+            /** Violation */
+            violation: number;
         };
         /**
          * LoadProjectFromCommitResponse
@@ -2674,7 +2713,7 @@ export interface components {
             /** Html Url */
             html_url: string;
             /** Origin */
-            origin?: string | null;
+            origin: string | null;
             /** Changes */
             changes: string[];
         };
@@ -2693,11 +2732,11 @@ export interface components {
             /** Branch Exists */
             branch_exists: boolean;
             /** Pull Request Number */
-            pull_request_number?: number | null;
+            pull_request_number: number | null;
             /** Pull Request Url */
-            pull_request_url?: string | null;
+            pull_request_url: string | null;
             /** Pull Request State */
-            pull_request_state?: string | null;
+            pull_request_state: ("open" | "closed" | "merged") | null;
         };
         /**
          * ProjectExportResponse
@@ -2709,14 +2748,14 @@ export interface components {
                 [key: string]: unknown;
             };
             /** Exportedat */
-            exportedAt?: string;
+            exportedAt: string;
             /**
              * Version
              * @default 1.0.0
              */
             version: string;
             /** Warnings */
-            warnings?: {
+            warnings: {
                 [key: string]: unknown;
             }[] | null;
         };
@@ -2748,6 +2787,20 @@ export interface components {
             settings?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * ProposedDiagramResponse
+         * @description A class diagram read from a repo's code, in the shape the editor imports.
+         */
+        ProposedDiagramResponse: {
+            /** Title */
+            title: string;
+            /** Model */
+            model: {
+                [key: string]: unknown;
+            };
+            /** Diagramtype */
+            diagramType: string;
         };
         /**
          * PushSmartToGitHubRequest
@@ -2810,23 +2863,24 @@ export interface components {
             /**
              * Status
              * @default pushed
+             * @enum {string}
              */
-            status: string;
+            status: "pushed" | "merged" | "conflict" | "pull_request";
             /** Conflict Branch */
-            conflict_branch?: string | null;
+            conflict_branch: string | null;
             /** Pull Request Url */
-            pull_request_url?: string | null;
+            pull_request_url: string | null;
             /** Pull Request Branch */
-            pull_request_branch?: string | null;
+            pull_request_branch: string | null;
             /** Base Run Id */
-            base_run_id?: string | null;
+            base_run_id: string | null;
             /**
              * Warnings
              * @default []
              */
             warnings: string[];
             /** Project Export */
-            project_export?: {
+            project_export: {
                 [key: string]: unknown;
             } | null;
         };
@@ -2847,7 +2901,7 @@ export interface components {
              */
             project_name: string;
             /** Project Id */
-            project_id?: string | null;
+            project_id: string | null;
             /**
              * Diagram Counts
              * @default {}
@@ -2865,9 +2919,9 @@ export interface components {
              * @default []
              */
             class_names: string[];
-            last_commit?: components["schemas"]["GitHubCommitResponse"] | null;
+            last_commit: components["schemas"]["GitHubCommitResponse"] | null;
             /** Model Path */
-            model_path?: string | null;
+            model_path: string | null;
             /**
              * Model Paths
              * @default []
@@ -2920,10 +2974,11 @@ export interface components {
             /**
              * Status
              * @default pushed
+             * @enum {string}
              */
-            status: string;
+            status: "pushed" | "merged" | "conflict";
             /** Conflict Branch */
-            conflict_branch?: string | null;
+            conflict_branch: string | null;
             /**
              * Warnings
              * @default []
@@ -2984,13 +3039,13 @@ export interface components {
          */
         SimulationLimitsResponse: {
             /** Memorymb */
-            memoryMb?: number | null;
+            memoryMb: number | null;
             /** Cpucores */
-            cpuCores?: number | null;
+            cpuCores: number | null;
             /** Diskmb */
-            diskMb?: number | null;
+            diskMb: number | null;
             /** Sessionlifetimeseconds */
-            sessionLifetimeSeconds?: number | null;
+            sessionLifetimeSeconds: number | null;
             /**
              * Editorquotaenabled
              * @default false
@@ -3015,7 +3070,7 @@ export interface components {
             /** Files */
             files: components["schemas"]["SimulationSessionFile"][];
             /** Directories */
-            directories?: string[];
+            directories: string[];
         };
         /**
          * SimulationSessionInput
@@ -3234,7 +3289,7 @@ export interface components {
             commits_since: components["schemas"]["GitHubCommitResponse"][];
             /** In Sync */
             in_sync: boolean;
-            pending?: components["schemas"]["PendingChangeStatus"] | null;
+            pending: components["schemas"]["PendingChangeStatus"] | null;
         };
         /**
          * TelemetryEventRequest

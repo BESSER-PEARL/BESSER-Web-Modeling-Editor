@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import { apiClient } from './api-client';
-import type { ApiResponse } from './schema';
+import type { components } from './generated/besser-openapi';
 import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiagramModel } from '../types/project';
 import type { KeyProvider } from '../services/llmKeyStorage';
 
@@ -35,7 +35,7 @@ const HEAVY_TIMEOUT_MS = 60_000;
  *  limit (a timeout shorter than the server's, or a batch it rejects).
  *  `llmRequestTimeoutSeconds`: the deadline of one KG LLM request;
  *  `maxOrphanClassifyNodes`: most node ids one `/kg/classify-orphans` request may carry. */
-export type KgConfig = ApiResponse<'KGConfigResponse'>;
+export type KgConfig = components['schemas']['KGConfigResponse'];
 
 /** The server's KG limits could not be loaded, so no LLM call is attempted
  *  (guessing them could cut a request short or send a batch it rejects). */
@@ -93,28 +93,29 @@ const llmTimeoutMs = (config: KgConfig) => config.llmRequestTimeoutSeconds * 100
 // ---------------------------------------------------------------------------
 
 /** A pre-filled action attached to a preflight issue. */
-export type KgAction = ApiResponse<'KGActionResponse'>;
+export type KgAction = components['schemas']['KGActionResponse'];
 
-/** One KG element with no clean 1-to-1 B-UML mapping. */
-export type KgIssue = ApiResponse<'KGIssueResponse'>;
+/** One KG element with no clean 1-to-1 B-UML mapping. Its defaulted fields stay optional in
+ *  the schema: the model is also part of a request body (`llmIssues`). */
+export type KgIssue = components['schemas']['KGIssueResponse'];
 
 /** Answer of `/kg/preflight`, `/kg/llm-clean` and `/kg/classify-orphans`. */
-export type KgPreflightReport = ApiResponse<'KGPreflightReportResponse'>;
+export type KgPreflightReport = components['schemas']['KGPreflightReportResponse'];
 
 /** Backend `KGConsistencyReportResponse`. Declared with the project types. */
 export type KgConsistencyReport = ConsistencyReport;
 
-export type KgPendingOrphanClassification = ApiResponse<'KGPendingOrphanClassification'>;
+export type KgPendingOrphanClassification = components['schemas']['KGPendingOrphanClassification'];
 
 /** Answer of `/kg/apply-refinement`. Narrows the schema's free dict `model` to the cleaned graph. */
-export type KgRefinementResponse = Omit<ApiResponse<'KGRefinementResponse'>, 'model'> & {
+export type KgRefinementResponse = Omit<components['schemas']['KGRefinementResponse'], 'model'> & {
   model: KnowledgeGraphData;
 };
 
 /** Answer of `/kg/import-owl` (a KG model) and `/kg/to-class-diagram` (a class
  *  diagram model). Narrows the schema's free dict `model` to that model.
  *  `warnings` is the conversion's list of `{code, message}` anomalies. */
-export type KgDiagramResponse<TModel> = Omit<ApiResponse<'DiagramExportResponse'>, 'model'> & {
+export type KgDiagramResponse<TModel> = Omit<components['schemas']['DiagramExportResponse'], 'model'> & {
   model: TModel;
 };
 

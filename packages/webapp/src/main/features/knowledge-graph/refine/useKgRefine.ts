@@ -126,7 +126,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         toast.success(t('knowledgeGraph.refine.refined'));
         return {
-          pendingOrphanClassification: data.pendingOrphanClassification ?? null,
+          pendingOrphanClassification: data.pendingOrphanClassification,
           newKgSignature: data.kgSignature,
         };
       } catch (error) {

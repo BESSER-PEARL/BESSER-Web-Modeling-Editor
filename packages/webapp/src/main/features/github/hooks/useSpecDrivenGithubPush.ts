@@ -62,9 +62,9 @@ import {
   openPushDialog,
   setLastRunForProject,
 } from '../../spec-driven';
-import { createPullRequest, loadModel, type PushStatus } from '../../../shared/api/github';
+import { createPullRequest, loadModel } from '../../../shared/api/github';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
-import type { ApiResponse } from '../../../shared/api/schema';
+import type { components } from '../../../shared/api/generated/besser-openapi';
 
 const DEFAULT_BRANCH = 'main';
 
@@ -83,15 +83,12 @@ export interface SpecDrivenPushConfig {
 }
 
 /**
- * `POST /spec-driven/push-to-github`. Narrows the schema's `status: str` to the
- * values `github_sync` returns. `pull_request_branch`: the branch the pull request
- * merges (status `pull_request`); `warnings`: e.g. the app's previous deploy
- * settings were kept; `project_export`: the model the push wrote when the run
- * changed it, null when it is the editor's own.
+ * `POST /spec-driven/push-to-github`. `pull_request_branch`: the branch the pull
+ * request merges (status `pull_request`); `warnings`: e.g. the app's previous
+ * deploy settings were kept; `project_export`: the model the push wrote when the
+ * run changed it, null when it is the editor's own.
  */
-export type SpecDrivenPushResult = Omit<ApiResponse<'PushSmartToGitHubResponse'>, 'status'> & {
-  status: PushStatus;
-};
+export type SpecDrivenPushResult = components['schemas']['PushSmartToGitHubResponse'];
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
 export type SpecDrivenPushErrorCode =

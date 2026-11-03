@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
-import type { ApiResponse } from '../../../shared/api/schema';
-import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
+import type { components } from '../../../shared/api/generated/besser-openapi';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
@@ -12,17 +11,16 @@ import { isGrapesJSProjectData } from '../../../shared/types/project';
 import { buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
 
 export type DeploymentTarget = 'webapp' | 'agent';
-type BackendDeploymentTarget = 'webapp' | 'chatbot';
+type DeployWebappResponse = components['schemas']['DeployToGitHubResponse'];
+type BackendDeploymentTarget = DeployWebappResponse['deployment_type'];
 
 const toBackendDeploymentTarget = (target: DeploymentTarget): BackendDeploymentTarget => (
   target === 'agent' ? 'chatbot' : 'webapp'
 );
 
-const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefined => {
-  if (target === 'chatbot') return 'agent';
-  if (target === 'webapp') return 'webapp';
-  return undefined;
-};
+const fromBackendDeploymentTarget = (target: BackendDeploymentTarget): DeploymentTarget => (
+  target === 'chatbot' ? 'agent' : 'webapp'
+);
 
 /**
  * Deploy always ships the BASE web app — personalized page variants are a
@@ -48,16 +46,9 @@ const forceBaseWebAppGuiModel = (project: BesserProject): BesserProject => {
   };
 };
 
-export interface GitHubDeploymentUrls {
-  github: string;
-  render: string;
-  // Populated on redeploys when the backend reuses an existing render.yaml
-  // suffix. Absent on a first deploy (no stable Render hostname yet).
-  live_frontend?: string;
-  live_backend?: string;
-  live_chatbot?: string;
-  render_dashboard?: string;
-}
+/** The live and dashboard links are set on a redeploy that reuses the repo's
+ *  render.yaml suffix; a first deploy has no stable Render hostname yet. */
+export type GitHubDeploymentUrls = components['schemas']['DeploymentUrls'];
 
 export interface GitHubRepoResult {
   success: boolean;
@@ -90,29 +81,17 @@ export interface CreateRepoOptions {
   personalizationMapping?: ReadonlyArray<unknown> | null;
 }
 
-/** `POST /github/deploy-webapp`. Narrows the schema's free dict `deployment_urls`
- *  to the keys the backend sets, and `deployment_type: str` to its two values. */
-type DeployWebappResponse = Omit<ApiResponse<'DeployToGitHubResponse'>, 'deployment_urls' | 'deployment_type'> & {
-  deployment_urls: GitHubDeploymentUrls;
-  deployment_type: BackendDeploymentTarget;
-};
-
-const toGitHubRepoResult = (
-  resp: DeployWebappResponse,
-  fallbackTarget?: DeploymentTarget,
-): GitHubRepoResult => ({
+/** `POST /github/deploy-webapp`. */
+const toGitHubRepoResult = (resp: DeployWebappResponse): GitHubRepoResult => ({
   success: resp.success,
   repo_url: resp.repo_url,
   repo_name: resp.repo_name,
   owner: resp.owner,
   files_uploaded: resp.files_uploaded,
   message: resp.message,
-  deployment_urls: resp.deployment_urls ?? {
-    github: resp.repo_url,
-    render: `${RENDER_DEPLOY_URL_BASE}?repo=${encodeURIComponent(resp.repo_url)}`,
-  },
-  is_first_deploy: resp.is_first_deploy ?? true,
-  deployment_type: fromBackendDeploymentTarget(resp.deployment_type) ?? fallbackTarget ?? 'webapp',
+  deployment_urls: resp.deployment_urls,
+  is_first_deploy: resp.is_first_deploy,
+  deployment_type: fromBackendDeploymentTarget(resp.deployment_type),
 });
 
 /**
@@ -276,7 +255,7 @@ export const useGitHubRepo = () => {
           }
         );
 
-        const repoResult = toGitHubRepoResult(result, options.deploymentTarget);
+        const repoResult = toGitHubRepoResult(result);
 
         setRepoResult(repoResult);
 

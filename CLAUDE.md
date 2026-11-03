@@ -182,10 +182,11 @@ generated `shared/api/generated/besser-openapi.d.ts` (`import type { components 
 Regenerate both with `npm run api:generate --workspace=webapp` (needs Python with BESSER's dependencies; BESSER
 is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of; the script stops when neither
 has a `besser/` package). CI regenerates the `.d.ts` from the committed JSON and fails on a difference. Type a
-response body as `ApiResponse<'SchemaName'>` (`shared/api/schema.ts`): the schema marks fields with a default
-optional, but FastAPI always sends them. Where the schema is looser than what the backend sends (a free `dict`, or
-`str` for a fixed set of values), narrow it as `Omit<ApiResponse<'X'>, 'field'> & { field: ... }` with a one-line
-reason. Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
+response body as the generated `components['schemas']['SchemaName']`: BESSER's response models state the real
+contract (fields they always send are required, closed value sets are `Literal`s, fixed shapes are models), so fix
+a loose type in the backend model, not in the editor. Only a free `dict` that holds an editor model is narrowed,
+as `Omit<components['schemas']['X'], 'model'> & { model: ... }` (`KgRefinementResponse`, `KgDiagramResponse`).
+Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
 a plain record (`buildProjectPayloadForBackend`); diagram payloads are typed `DiagramInput`.
 
 ### Error reporting

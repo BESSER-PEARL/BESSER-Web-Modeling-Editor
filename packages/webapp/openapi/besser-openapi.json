@@ -4002,6 +4002,7 @@
           "message",
           "version",
           "besser_version",
+          "besser_build",
           "supported_generators",
           "endpoints"
         ],
@@ -4138,6 +4139,64 @@
           "owl_file"
         ],
         "title": "Body_import_owl_besser_api_kg_import_owl_post"
+      },
+      "CodeAnalysisResponse": {
+        "properties": {
+          "stack": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stack"
+          },
+          "model_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Source"
+          },
+          "source_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Files"
+          },
+          "entities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entities"
+          },
+          "ai": {
+            "type": "boolean",
+            "title": "Ai"
+          },
+          "skipped_relationships": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skipped Relationships"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stack",
+          "model_source",
+          "source_files",
+          "entities",
+          "ai",
+          "skipped_relationships"
+        ],
+        "title": "CodeAnalysisResponse",
+        "description": "What a repo's code holds: ``CodeAnalysis.to_dict()`` (reverse_engineering)."
       },
       "CreateGistRequest": {
         "properties": {
@@ -4327,7 +4386,8 @@
           "repo_url",
           "owner",
           "commit_sha",
-          "message"
+          "message",
+          "branch"
         ],
         "title": "CreateRepoForProjectResponse",
         "description": "Response for creating repo with project."
@@ -4351,9 +4411,7 @@
             "title": "Owner"
           },
           "deployment_urls": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Deployment Urls"
+            "$ref": "#/components/schemas/DeploymentUrls"
           },
           "files_uploaded": {
             "type": "integer",
@@ -4365,13 +4423,15 @@
           },
           "is_first_deploy": {
             "type": "boolean",
-            "title": "Is First Deploy",
-            "default": true
+            "title": "Is First Deploy"
           },
           "deployment_type": {
             "type": "string",
-            "title": "Deployment Type",
-            "default": "webapp"
+            "enum": [
+              "webapp",
+              "chatbot"
+            ],
+            "title": "Deployment Type"
           }
         },
         "type": "object",
@@ -4382,10 +4442,47 @@
           "owner",
           "deployment_urls",
           "files_uploaded",
-          "message"
+          "message",
+          "is_first_deploy",
+          "deployment_type"
         ],
         "title": "DeployToGitHubResponse",
         "description": "Response model for GitHub deployment."
+      },
+      "DeploymentUrls": {
+        "properties": {
+          "github": {
+            "type": "string",
+            "title": "Github"
+          },
+          "render": {
+            "type": "string",
+            "title": "Render"
+          },
+          "live_frontend": {
+            "type": "string",
+            "title": "Live Frontend"
+          },
+          "live_backend": {
+            "type": "string",
+            "title": "Live Backend"
+          },
+          "live_chatbot": {
+            "type": "string",
+            "title": "Live Chatbot"
+          },
+          "render_dashboard": {
+            "type": "string",
+            "title": "Render Dashboard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "github",
+          "render"
+        ],
+        "title": "DeploymentUrls",
+        "description": "Links for a deployed repo; the live and dashboard ones only on a redeploy."
       },
       "DiagramExportResponse": {
         "properties": {
@@ -4431,7 +4528,10 @@
         "required": [
           "title",
           "model",
-          "diagramType"
+          "diagramType",
+          "exportedAt",
+          "version",
+          "warnings"
         ],
         "title": "DiagramExportResponse",
         "description": "Response for diagram export/conversion endpoints."
@@ -4664,7 +4764,8 @@
           "message",
           "author",
           "date",
-          "html_url"
+          "html_url",
+          "origin"
         ],
         "title": "GitHubCommitResponse",
         "description": "Commit information response."
@@ -4722,6 +4823,7 @@
           "name",
           "path",
           "type",
+          "size",
           "sha"
         ],
         "title": "GitHubContentItem",
@@ -4819,7 +4921,13 @@
         },
         "type": "object",
         "required": [
-          "success"
+          "success",
+          "authenticated",
+          "session_id",
+          "user",
+          "avatar",
+          "username",
+          "error"
         ],
         "title": "GitHubOAuthResponse",
         "description": "Response model for OAuth flow."
@@ -4888,7 +4996,9 @@
           "html_url",
           "private",
           "updated_at",
-          "default_branch"
+          "default_branch",
+          "topics",
+          "can_push"
         ],
         "title": "GitHubRepoResponse",
         "description": "Repository information response."
@@ -4910,7 +5020,8 @@
         },
         "type": "object",
         "required": [
-          "repositories"
+          "repositories",
+          "truncated"
         ],
         "title": "GitHubReposListResponse",
         "description": "Response for list of repositories."
@@ -4997,7 +5108,10 @@
           "changed",
           "render_deploy_url",
           "backend_url",
-          "backend_dir"
+          "frontend_url",
+          "backend_dir",
+          "frontend_dir",
+          "warnings"
         ],
         "title": "GoLiveResponse",
         "description": "The repo is ready for Render: ``render_deploy_url`` connects it once."
@@ -5134,26 +5248,22 @@
           "analysis": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/CodeAnalysisResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Analysis"
+            ]
           },
           "proposed_diagram": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/ProposedDiagramResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Proposed Diagram"
+            ]
           },
           "message": {
             "anyOf": [
@@ -5175,10 +5285,17 @@
         "type": "object",
         "required": [
           "run_id",
+          "project",
           "has_model",
+          "model_path",
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "commit_sha",
+          "analysis",
+          "proposed_diagram",
+          "message",
+          "ai_reading_offered"
         ],
         "title": "ImportGitHubRunResponse",
         "description": "Response of ``POST /besser_api/spec-driven/import-github-run``."
@@ -5240,6 +5357,11 @@
           },
           "severity": {
             "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "violation"
+            ],
             "title": "Severity"
           },
           "message": {
@@ -5310,7 +5432,13 @@
           "id",
           "code",
           "severity",
-          "message"
+          "message",
+          "affectedNodeIds",
+          "affectedEdgeIds",
+          "constraintNodeId",
+          "specKind",
+          "pathIri",
+          "constraintLabel"
         ],
         "title": "KGConsistencyIssueResponse",
         "description": "One OWL/SHACL finding."
@@ -5329,11 +5457,7 @@
             "title": "Issuecount"
           },
           "severityCounts": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Severitycounts"
+            "$ref": "#/components/schemas/KGSeverityCountsResponse"
           },
           "kgSignature": {
             "type": "string",
@@ -5341,6 +5465,10 @@
           },
           "inferenceUsed": {
             "type": "string",
+            "enum": [
+              "rdfs",
+              "owlrl"
+            ],
             "title": "Inferenceused"
           },
           "exportedAt": {
@@ -5355,10 +5483,13 @@
         },
         "type": "object",
         "required": [
+          "issues",
           "issueCount",
           "severityCounts",
           "kgSignature",
-          "inferenceUsed"
+          "inferenceUsed",
+          "exportedAt",
+          "version"
         ],
         "title": "KGConsistencyReportResponse",
         "description": "Response of ``/kg/consistency``."
@@ -5748,7 +5879,8 @@
         "required": [
           "kgSignature",
           "diagramType",
-          "issueCount"
+          "issueCount",
+          "issues"
         ],
         "title": "KGPreflightReportResponse",
         "description": "Response of ``/kg/preflight``, ``/kg/llm-clean`` and\n``/kg/classify-orphans``."
@@ -5797,7 +5929,10 @@
           "title",
           "model",
           "diagramType",
-          "kgSignature"
+          "kgSignature",
+          "pendingOrphanClassification",
+          "exportedAt",
+          "version"
         ],
         "title": "KGRefinementResponse",
         "description": "Response of ``/kg/apply-refinement``: the cleaned KG plus its new signature."
@@ -5821,6 +5956,30 @@
         ],
         "title": "KGResolutionInput",
         "description": "The user's choice for one preflight or LLM issue.\n\n``decision`` is ``\"accept\"`` (apply the issue's recommended action) or\n``\"skip\"`` (apply its skip action); any other value is refused by the\nresolver with HTTP 400."
+      },
+      "KGSeverityCountsResponse": {
+        "properties": {
+          "info": {
+            "type": "integer",
+            "title": "Info"
+          },
+          "warning": {
+            "type": "integer",
+            "title": "Warning"
+          },
+          "violation": {
+            "type": "integer",
+            "title": "Violation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "info",
+          "warning",
+          "violation"
+        ],
+        "title": "KGSeverityCountsResponse",
+        "description": "How many issues of each severity a consistency report holds."
       },
       "LoadProjectFromCommitResponse": {
         "properties": {
@@ -5944,6 +6103,7 @@
           "author",
           "date",
           "html_url",
+          "origin",
           "changes"
         ],
         "title": "ModelHistoryEntry",
@@ -6000,7 +6160,12 @@
           "pull_request_state": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "open",
+                  "closed",
+                  "merged"
+                ]
               },
               {
                 "type": "null"
@@ -6012,7 +6177,10 @@
         "type": "object",
         "required": [
           "branch",
-          "branch_exists"
+          "branch_exists",
+          "pull_request_number",
+          "pull_request_url",
+          "pull_request_state"
         ],
         "title": "PendingChangeStatus",
         "description": "Where a save or push that did not land on the branch stands."
@@ -6051,7 +6219,10 @@
         },
         "type": "object",
         "required": [
-          "project"
+          "project",
+          "exportedAt",
+          "version",
+          "warnings"
         ],
         "title": "ProjectExportResponse",
         "description": "Response for project export/conversion endpoints."
@@ -6154,6 +6325,31 @@
         ],
         "title": "ProjectInput"
       },
+      "ProposedDiagramResponse": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Model"
+          },
+          "diagramType": {
+            "type": "string",
+            "title": "Diagramtype"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "model",
+          "diagramType"
+        ],
+        "title": "ProposedDiagramResponse",
+        "description": "A class diagram read from a repo's code, in the shape the editor imports."
+      },
       "PushSmartToGitHubRequest": {
         "properties": {
           "run_id": {
@@ -6224,6 +6420,12 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "pushed",
+              "merged",
+              "conflict",
+              "pull_request"
+            ],
             "title": "Status",
             "default": "pushed"
           },
@@ -6299,7 +6501,16 @@
           "owner",
           "repo_name",
           "is_first_push",
-          "files_uploaded"
+          "files_uploaded",
+          "branch",
+          "commit_sha",
+          "status",
+          "conflict_branch",
+          "pull_request_url",
+          "pull_request_branch",
+          "base_run_id",
+          "warnings",
+          "project_export"
         ],
         "title": "PushSmartToGitHubResponse",
         "description": "Response of ``POST /besser_api/spec-driven/push-to-github``."
@@ -6389,7 +6600,15 @@
         "required": [
           "has_model",
           "branch",
-          "head_sha"
+          "head_sha",
+          "project_name",
+          "project_id",
+          "diagram_counts",
+          "class_count",
+          "class_names",
+          "last_commit",
+          "model_path",
+          "model_paths"
         ],
         "title": "RepoSummaryResponse",
         "description": "What the repo browser shows on a repo card."
@@ -6481,6 +6700,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "pushed",
+              "merged",
+              "conflict"
+            ],
             "title": "Status",
             "default": "pushed"
           },
@@ -6508,7 +6732,10 @@
         "required": [
           "success",
           "commit_sha",
-          "message"
+          "message",
+          "status",
+          "conflict_branch",
+          "warnings"
         ],
         "title": "SaveProjectResponse",
         "description": "Response for project save."
@@ -6694,6 +6921,13 @@
           }
         },
         "type": "object",
+        "required": [
+          "memoryMb",
+          "cpuCores",
+          "diskMb",
+          "sessionLifetimeSeconds",
+          "editorQuotaEnabled"
+        ],
         "title": "SimulationLimitsResponse",
         "description": "Resource limits and quota settings that apply to a simulation session."
       },
@@ -6735,7 +6969,8 @@
         },
         "type": "object",
         "required": [
-          "files"
+          "files",
+          "directories"
         ],
         "title": "SimulationSessionFilesResponse",
         "description": "Files and directories produced inside a simulation session's workspace."
@@ -7255,7 +7490,8 @@
         "required": [
           "head_sha",
           "commits_since",
-          "in_sync"
+          "in_sync",
+          "pending"
         ],
         "title": "SyncStatusResponse",
         "description": "How a linked repo's branch relates to the commit the editor last synced."
@@ -7388,7 +7624,13 @@
         },
         "type": "object",
         "required": [
-          "isValid"
+          "isValid",
+          "errors",
+          "warnings",
+          "message",
+          "valid_constraints",
+          "invalid_constraints",
+          "ocl_message"
         ],
         "title": "ValidationResponse",
         "description": "Response for validation endpoints."
