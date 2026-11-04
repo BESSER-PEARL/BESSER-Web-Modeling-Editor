@@ -29,8 +29,8 @@ import {
  * this one; what another service accepts is an explicit allowlist (below).
  * - 'local': the user's OpenAI-compatible server, sent on the wire as
  *   provider='openai' + a base_url; works only when the WME backend runs locally.
- * - 'pia': a gateway whose endpoint the server resolves from its model catalog;
- *   the dialog offers it only where the server lists it.
+ * - 'pia', 'gateway': gateways whose endpoints the server resolves from its model
+ *   catalog; the dialog offers each only where the server lists it.
  * - 'nebius': Nebius Token Factory, an OpenAI-compatible endpoint the backend
  *   pins server-side (no base_url travels with the request).
  * - 'free': the keyless server-hosted tier (Spec-Driven Agent only). Never a
@@ -44,6 +44,7 @@ export const LLM_PROVIDERS = [
   'mistral',
   'nebius',
   'pia',
+  'gateway',
   'local',
   'free',
   'sponsored',
@@ -67,8 +68,8 @@ export const isKeyProvider = (value: unknown): value is KeyProvider =>
 
 /**
  * Providers whose key the modeling assistant may receive: the agent's
- * SUPPORTED_PROVIDERS (modeling-agent `src/llm/byok.py`), plus 'pia' (a gateway
- * of its model catalog) and 'local' (sent as 'openai' + a base URL). An explicit
+ * SUPPORTED_PROVIDERS (modeling-agent `src/llm/byok.py`), plus 'pia' and 'gateway'
+ * (gateways of its model catalog) and 'local' (sent as 'openai' + a base URL). An explicit
  * allowlist: a new key provider reaches the agent only once listed here.
  */
 export const ASSISTANT_KEY_PROVIDERS: readonly KeyProvider[] = [
@@ -77,6 +78,7 @@ export const ASSISTANT_KEY_PROVIDERS: readonly KeyProvider[] = [
   'mistral',
   'nebius',
   'pia',
+  'gateway',
   'local',
 ];
 
@@ -121,7 +123,7 @@ export function readLlmKey(): LlmKey | null {
 /**
  * Store the unified BYOK key in sessionStorage. Returns true on success.
  * Pass `model=undefined`/empty to clear a previously saved model preference.
- * `baseUrl` is the OpenAI-compatible endpoint for the 'local'/'pia' providers.
+ * `baseUrl` is the OpenAI-compatible endpoint for the 'local' provider and the gateways.
  */
 export function writeLlmKey(
   provider: KeyProvider,

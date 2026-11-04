@@ -3319,7 +3319,7 @@ export interface components {
              * @default anthropic
              * @enum {string}
              */
-            provider: "anthropic" | "openai" | "mistral" | "nebius" | "free" | "sponsored" | "pia";
+            provider: "anthropic" | "openai" | "mistral" | "nebius" | "free" | "sponsored" | "pia" | "gateway";
             /** Llm Model */
             llm_model?: string | null;
             /** Base Url */

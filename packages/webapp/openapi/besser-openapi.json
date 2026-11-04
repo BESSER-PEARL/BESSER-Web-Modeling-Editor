@@ -7523,7 +7523,8 @@
               "nebius",
               "free",
               "sponsored",
-              "pia"
+              "pia",
+              "gateway"
             ],
             "title": "Provider",
             "default": "anthropic"
