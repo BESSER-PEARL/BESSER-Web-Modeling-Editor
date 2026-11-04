@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "Déi generéiert Instanz ersetzt d'Objeten an d'Linke vun dësem Diagramm.",
       "replaceConfirmAction": "Ersetzen",
       "payloadMissing": "Eng Instanz gouf fonnt, mee de Server huet hiren Objetdiagramm net geschéckt.",
-      "generationDiscarded": "Semantesch Generatioun gestoppt: Dir hutt den Objetdiagramm verlooss.",
+      "generationDiscarded": "Semantesch Generatioun gestoppt: Dir hutt den Diagramm gewiesselt.",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",

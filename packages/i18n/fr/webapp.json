@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "L'instance générée remplace les objets et les liens de ce diagramme.",
       "replaceConfirmAction": "Remplacer",
       "payloadMissing": "Une instance a été trouvée, mais le serveur n'a pas envoyé son diagramme d'objets.",
-      "generationDiscarded": "Génération sémantique arrêtée : vous avez quitté le diagramme d'objets.",
+      "generationDiscarded": "Génération sémantique arrêtée : vous avez changé de diagramme.",
       "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
       "tablistLabel": "Diagrammes",
       "editAsForm": "Modifier comme formulaire",

@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "Die generierte Instanz ersetzt die Objekte und Links dieses Diagramms.",
       "replaceConfirmAction": "Ersetzen",
       "payloadMissing": "Eine Instanz wurde gefunden, aber der Server hat ihr Objektdiagramm nicht gesendet.",
-      "generationDiscarded": "Semantische Generierung abgebrochen: Sie haben das Objektdiagramm verlassen.",
+      "generationDiscarded": "Semantische Generierung abgebrochen: Sie haben das Diagramm gewechselt.",
       "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
       "tablistLabel": "Diagramme",
       "editAsForm": "Als Formular bearbeiten",

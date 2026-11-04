@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "La instància generada substitueix els objectes i els enllaços d'aquest diagrama.",
       "replaceConfirmAction": "Substitueix",
       "payloadMissing": "S'ha trobat una instància, però el servidor no n'ha enviat el diagrama d'objectes.",
-      "generationDiscarded": "Generació semàntica aturada: heu sortit del diagrama d'objectes.",
+      "generationDiscarded": "Generació semàntica aturada: heu canviat de diagrama.",
       "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
       "tablistLabel": "Diagrames",
       "editAsForm": "Edita com a formulari",

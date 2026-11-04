@@ -203,10 +203,11 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     track('object_diagram_generated_from_class', { created, skipped, links });
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
 
-  // The semantic generation in progress, aborted when the user leaves its diagram: its result
-  // would otherwise replace whichever diagram is active when the search ends.
+  // The semantic generation in progress, aborted when the user leaves its object diagram or picks
+  // another class diagram for it: its result is an instance of one class diagram, for one object
+  // diagram, and would otherwise replace whichever diagram is active when the search ends.
   const generationRef = useRef<AbortController | null>(null);
-  useEffect(() => () => generationRef.current?.abort(), [activeDiagram?.id]);
+  useEffect(() => () => generationRef.current?.abort(), [activeDiagram?.id, classRefId]);
 
   // Replaces the object diagram with an instance of the referenced class diagram that satisfies
   // its OCL constraints, searched for by the backend's semantic check.

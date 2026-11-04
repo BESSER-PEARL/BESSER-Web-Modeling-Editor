@@ -588,13 +588,21 @@ describe('semantic generation', () => {
   let releaseSearch: (event: SemanticSearchEvent) => void;
   let editor: { model: unknown; nextRender: Promise<void> };
 
-  /** Makes the object diagram `id` active, referencing a class diagram with one class. */
-  const activateObjectDiagram = (id: string) => {
+  /**
+   * Makes the object diagram `id` active, referencing a class diagram with one class: the project's first,
+   * or `classRef`, a second class diagram of the project (as the picker leaves the store).
+   */
+  const activateObjectDiagram = (id: string, classRef?: string) => {
     const project = createDefaultProject('Test', '', 'owner');
     project.diagrams.ClassDiagram[0].model = umlModel(UMLDiagramType.ClassDiagram, {
       c1: { id: 'c1', type: 'Class', name: 'Book' },
     }) as any;
-    setMockState({ diagrams: [makeDiagram(id, 'Object Diagram')], activeDiagramType: 'ObjectDiagram', project });
+    const objectDiagram = makeDiagram(id, 'Object Diagram');
+    if (classRef) {
+      project.diagrams.ClassDiagram.push(makeDiagram(classRef, 'Class Diagram 2'));
+      objectDiagram.references = { ClassDiagram: classRef };
+    }
+    setMockState({ diagrams: [objectDiagram], activeDiagramType: 'ObjectDiagram', project });
   };
 
   const tabs = () => (
@@ -675,7 +683,25 @@ describe('semantic generation', () => {
     releaseSearch(instanceFound);
 
     await waitFor(() =>
-      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you left the object diagram.'),
+      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you switched diagrams.'),
+    );
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toEqual(umlModel(UMLDiagramType.ObjectDiagram));
+  });
+
+  it('discards the result when the user picks another class diagram during the search', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const { toast } = await import('react-toastify');
+    const { rerender } = render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    activateObjectDiagram('od1', 'cd2');
+    rerender(tabs());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you switched diagrams.'),
     );
     expect(updateDiagramModelThunk).not.toHaveBeenCalled();
     expect(editor.model).toEqual(umlModel(UMLDiagramType.ObjectDiagram));

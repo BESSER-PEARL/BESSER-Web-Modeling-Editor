@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "The generated instance replaces the objects and links of this diagram.",
       "replaceConfirmAction": "Replace",
       "payloadMissing": "An instance was found, but the server did not send its object diagram.",
-      "generationDiscarded": "Semantic generation stopped: you left the object diagram.",
+      "generationDiscarded": "Semantic generation stopped: you switched diagrams.",
       "noClassDiagramsAvailable": "No Class Diagrams available",
       "tablistLabel": "Diagrams",
       "editAsForm": "Edit as form",

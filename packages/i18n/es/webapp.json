@@ -2417,7 +2417,7 @@
       "replaceConfirmDescription": "La instancia generada reemplaza los objetos y enlaces de este diagrama.",
       "replaceConfirmAction": "Reemplazar",
       "payloadMissing": "Se encontró una instancia, pero el servidor no envió su diagrama de objetos.",
-      "generationDiscarded": "Generación semántica detenida: ha salido del diagrama de objetos.",
+      "generationDiscarded": "Generación semántica detenida: cambió de diagrama.",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
