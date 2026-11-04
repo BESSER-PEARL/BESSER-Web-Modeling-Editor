@@ -67,9 +67,9 @@ Supported providers
   assistant keeps using its own default model.
 * **Local** — any OpenAI-compatible endpoint you run yourself, for example
   ``http://localhost:11434/v1`` for Ollama.
-* **PIA** — an organisation's AI gateway. Offered only by servers whose model
-  catalog defines it; the server holds its address, so you paste only your
-  key.
+* **PIA** and other **gateways** — an AI gateway. Offered only by servers whose
+  model catalog defines one, under the name the catalog gives it; the server
+  holds its address, so you paste only your key.
 * **Free** — the keyless server-hosted tier described above (Spec-Driven Agent
   only).
 
