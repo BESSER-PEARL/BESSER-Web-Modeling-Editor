@@ -49,6 +49,6 @@ export function applyImportedRepo(imported: ImportedRun, target: ProjectGitHubLi
   } else {
     setProjectGitHubLink(projectId, { ...link, baseCommitSha: imported.commit_sha });
   }
-  // Last: a repo model that cannot be stored leaves no base pointing at its code.
+  // Last: a model that was refused above leaves the next modify run on the code it matches.
   writeProjectLastRun(projectId, imported.run_id, Date.now());
 }

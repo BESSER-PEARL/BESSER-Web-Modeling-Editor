@@ -23,6 +23,17 @@ const kgModel = (): KnowledgeGraphData => ({
   edges: [],
 });
 
+// The model file of a real repo (written by a test script, not the editor): the import
+// accepted it, and opening the project then failed with "Project not found".
+const invalidProject = {
+  id: 'live659',
+  type: 'BesserProject',
+  name: 'Live659',
+  createdAt: '2026-11-02T00:00:00Z',
+  diagrams: { ClassDiagram: [{ id: 'c1', title: 'Class Diagram', model: { elements: {}, relationships: {} } }] },
+  currentDiagramIndices: { ClassDiagram: 0 },
+};
+
 describe('importProjectFromJson: empty diagrams are re-created with the right model', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -85,6 +96,12 @@ describe('importProjectFromJson: empty diagrams are re-created with the right mo
     expect(Object.keys((imported.diagrams.ClassDiagram[0].model as { elements: object }).elements)).toEqual(['g1']);
     expect(isKnowledgeGraphData(imported.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
     expect(ProjectStorageRepository.loadProject(imported.id)?.name).toBe('OCL_Gen');
+  });
+
+  it('refuses a project the editor could not open, and stores nothing', async () => {
+    await expect(importProjectFromJson(asFile(invalidProject))).rejects.toThrow('not a valid BESSER project');
+    await expect(importProjectFromJson(asFile({ project: invalidProject }))).rejects.toThrow('not a valid BESSER project');
+    expect(ProjectStorageRepository.getAllProjects()).toEqual([]);
   });
 
   it('says "Invalid JSON" only for a file that is not JSON', async () => {
