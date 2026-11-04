@@ -74,7 +74,20 @@ vi.mock('../../../services/specDrivenConfig', async (importOriginal) => {
   };
 });
 
+// Every key provider is on the assistant's allowlist today; a test drops one to
+// stand in for a future Spec-Driven-only provider.
+const assistantAllowlist = vi.hoisted(() => ({ drop: null as string | null }));
+vi.mock('../../../services/llmKeyStorage', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../services/llmKeyStorage')>();
+  return {
+    ...mod,
+    isAssistantKeyProvider: (value: unknown) =>
+      value !== assistantAllowlist.drop && mod.isAssistantKeyProvider(value),
+  };
+});
+
 beforeEach(() => {
+  assistantAllowlist.drop = null;
   window.sessionStorage.clear();
   vi.clearAllMocks();
   // clearAllMocks wipes call data but NOT implementations — restore the
@@ -181,6 +194,25 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(setUserApiKey).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'sk-ant-armed', provider: 'anthropic' }),
     );
+  });
+
+  it('stores but never sends the agent a key whose provider is off the assistant allowlist', () => {
+    assistantAllowlist.drop = 'mistral';
+    const setUserApiKey = vi.fn();
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} onSaved={onSaved} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'mistral' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'spec-driven-only-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('mistral');
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ provider: 'mistral' }));
+    expect(setUserApiKey).not.toHaveBeenCalled();
   });
 
   it('refuses to save when the key prefix contradicts the selected provider', () => {

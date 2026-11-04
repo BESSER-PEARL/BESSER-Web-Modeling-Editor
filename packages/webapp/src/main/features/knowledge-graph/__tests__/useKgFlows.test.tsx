@@ -27,9 +27,7 @@ vi.mock('../activeKgDiagram', () => ({
   }),
 }));
 vi.mock('../../../shared/kg/kgFocus', () => ({ focus: mocks.focus }));
-vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => ({ capture: mocks.capture }),
-}));
+vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({ captureEvent: mocks.capture }));
 
 import { useKgFlows } from '../useKgFlows';
 
@@ -232,19 +230,31 @@ describe('Fix in KG', () => {
 });
 
 describe('analytics', () => {
-  it('records which flow was used, with the size of the graph', async () => {
-    mocks.runPreflight.mockResolvedValue(REPORT(0));
+  it('records opening Refine with the size of the graph, not as a generator run', () => {
     const { result } = renderHook(() => useFlows());
 
-    await act(async () => result.current.convertToClassDiagram());
     act(() => result.current.openRefine());
 
-    expect(mocks.capture).toHaveBeenCalledWith('generator_used', {
-      generator_type: 'kg_to_class',
-      diagram_type: 'KnowledgeGraphDiagram',
+    expect(mocks.capture).toHaveBeenCalledWith('editor_action', {
+      editor: 'kg',
+      action: 'refine_opened',
       nodes_count: 2,
       edges_count: 1,
     });
-    expect(mocks.capture).toHaveBeenCalledWith('generator_used', expect.objectContaining({ generator_type: 'kg_refine' }));
+    expect(mocks.capture).not.toHaveBeenCalledWith('generator_used', expect.anything());
+  });
+
+  it('records a conversion that has to go through Refine first, with its issue count', async () => {
+    mocks.runPreflight.mockResolvedValue(REPORT(3));
+    const { result } = renderHook(() => useFlows());
+
+    await act(async () => result.current.convertToClassDiagram());
+
+    expect(mocks.capture).toHaveBeenCalledWith('editor_action', {
+      editor: 'kg',
+      action: 'refine_opened',
+      kind: 'convert',
+      issue_count: 3,
+    });
   });
 });

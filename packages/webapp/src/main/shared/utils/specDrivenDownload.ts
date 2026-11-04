@@ -12,7 +12,7 @@
  * (or after a successful save) is safe.
  */
 
-import { specDrivenDownloadUrl } from '../constants/constant';
+import { downloadSpecDrivenOutput } from '../api/specDriven';
 import { emitDeliveryEvent } from '../services/telemetry/pilotTelemetry';
 import { downloadFile } from './download';
 
@@ -36,33 +36,22 @@ export async function fetchAndSaveSpecDrivenArtifact(
   fileName: string,
   isZip: boolean,
 ): Promise<SpecDrivenDownloadResult> {
-  const fullUrl = specDrivenDownloadUrl(runId);
   // Research telemetry: the user took the generated output with them.
   // Fire-and-forget, no-op unless telemetry is active.
   emitDeliveryEvent('download', runId);
-  let response: Response;
-  try {
-    response = await fetch(fullUrl);
-  } catch (err) {
-    console.error('[specDrivenDownload] download fetch failed', err);
-    return { ok: false };
-  }
-  if (!response.ok) {
-    console.error('[specDrivenDownload] download status', response.status);
-    return { ok: false };
-  }
   let blob: Blob;
+  let headers: Headers;
   try {
-    blob = await response.blob();
+    ({ blob, headers } = await downloadSpecDrivenOutput(runId));
   } catch (err) {
-    console.error('[specDrivenDownload] download blob decode failed', err);
+    console.error('[specDrivenDownload] download failed', err);
     return { ok: false };
   }
   // For explicit zip results, trust the backend's flag over the
   // response header — some proxies drop or rewrite Content-Type.
   const mime = isZip
     ? 'application/zip'
-    : response.headers.get('Content-Type') || blob.type || 'application/octet-stream';
+    : headers.get('Content-Type') || blob.type || 'application/octet-stream';
   try {
     downloadFile(blob, fileName, mime);
   } catch (err) {
@@ -79,8 +68,7 @@ export async function fetchAndSaveSpecDrivenArtifact(
  */
 export async function fetchSpecDrivenArtifactBlob(runId: string): Promise<Blob | null> {
   try {
-    const response = await fetch(specDrivenDownloadUrl(runId));
-    return response.ok ? await response.blob() : null;
+    return (await downloadSpecDrivenOutput(runId)).blob;
   } catch (err) {
     console.error('[specDrivenDownload] view fetch failed', err);
     return null;

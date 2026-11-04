@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createGist } from '../../../shared/api/github';
 import { CreateGistDialog } from './CreateGistDialog';
+import { trackGitHubAction } from '../githubAnalytics';
 
 interface ShareGistDialogProps {
   open: boolean;
@@ -31,22 +33,26 @@ export const ShareGistDialog: React.FC<ShareGistDialogProps> = ({ open, onOpenCh
     flushEditor();
     const project = ProjectStorageRepository.loadProject(currentProject.id);
     if (!project) {
-      toast.error(t('github.toasts.couldNotLoadProjectData'));
+      reportError(t('github.toasts.couldNotLoadProjectData'));
       return;
     }
     setIsCreating(true);
     try {
-      const result = await createGist(
-        githubSession,
-        project,
-        description || t('github.defaultGistDescription', { name: project.name }),
-        isPublic,
+      const result = await trackGitHubAction(
+        'create_gist',
+        () => createGist(
+          githubSession,
+          project,
+          description || t('github.defaultGistDescription', { name: project.name }),
+          isPublic,
+        ),
+        () => ({ is_private: !isPublic }),
       );
       onOpenChange(false);
       toast.success(t('github.toasts.gistCreated'));
       window.open(result.gist_url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      reportError(error instanceof Error ? error.message : String(error), { error });
     } finally {
       setIsCreating(false);
     }

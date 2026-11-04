@@ -38,6 +38,10 @@ import { escapeMarkdownText, markdownCode } from '../../utils/markdownText';
 import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../api/github';
 import { pullRepoIntoProject } from './pullRepoIntoProject';
 import { writeProjectLastRun } from '../storage/specDrivenRunRecords';
+import { errorProperties, track } from '../analytics/events';
+
+/** Where "continue from a GitHub repo" was started, for its analytics events. */
+export type RepoOpenSource = 'hub' | 'start_dialog' | 'assistant';
 
 export interface ContinueFromGithubResult {
   ok: boolean;
@@ -153,12 +157,23 @@ export async function continueFromGithubRepo(args: {
   repo: string;
   branch?: string;
   githubSession: string;
+  /** Which button started it; callers should pass their own. */
+  source?: RepoOpenSource;
 }): Promise<ContinueFromGithubResult> {
+  const source = args.source ?? 'hub';
   try {
     // A repo a local project already links to opens in that project: a second
     // copy would diverge from it, each with its own base commit.
     const linked = findProjectLinkedTo(args.owner, args.repo);
-    if (linked) return await continueInLinkedProject(linked, args);
+    if (linked) {
+      const result = await continueInLinkedProject(linked, args);
+      track('github_repo_opened', {
+        source,
+        reused: true,
+        kept_local_changes: result.keptLocalChanges === true,
+      });
+      return result;
+    }
 
     const response = await importAskingForAiReading(args.githubSession, args.owner, args.repo, args.branch);
     const isBesserRepo = response.has_model && !!response.project;
@@ -197,6 +212,15 @@ export async function continueFromGithubRepo(args: {
     // Research telemetry: a completed continue-from-repo import is a delivery
     // action. Fire-and-forget, no-op unless telemetry is active.
     emitDeliveryEvent('continue_from_repo', response.run_id);
+    track('github_repo_opened', {
+      source,
+      reused: false,
+      kept_local_changes: false,
+      besser_repo: isBesserRepo,
+      proposed_model: !isBesserRepo && !!response.proposed_diagram,
+      ai_reading: response.analysis?.ai === true,
+      entity_count: response.analysis?.entities?.length,
+    });
 
     return {
       ok: true,
@@ -212,6 +236,12 @@ export async function continueFromGithubRepo(args: {
       }),
     };
   } catch (error) {
+    const failure = errorProperties(error);
+    track('github_repo_open_failed', {
+      source,
+      reason: error instanceof ApiError || failure.network_error ? 'request' : 'exception',
+      ...failure,
+    });
     if (error instanceof ApiError && error.status === 401) {
       return {
         ok: false,

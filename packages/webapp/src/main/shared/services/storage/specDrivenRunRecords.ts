@@ -6,7 +6,7 @@
  * - the model each run started from (`runSeedModel`), so a later push can tell
  *   whether the canvas changed since and must not be replaced silently.
  */
-import { localStorageSpecDrivenLastRunPrefix, localStoragePrefix } from '../../constants/constant';
+import { localStorageSpecDrivenLastRunPrefix, localStorageSpecDrivenRunSeedModels } from '../../constants/constant';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
 const RUN_ID_RE = /^[a-f0-9]{32}$/i;
@@ -55,13 +55,12 @@ export function writeProjectLastRun(projectId: string, runId: string, at: number
   }
 }
 
-const RUN_SEED_MODELS_KEY = `${localStoragePrefix}smartgen_run_seed_models`;
 // Pushes come from recent run cards; older runs fall back to asking the user.
 const MAX_RUN_SEED_MODELS = 20;
 
 const readRunSeedModels = (): [string, string][] => {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(RUN_SEED_MODELS_KEY) || '[]');
+    const parsed = JSON.parse(window.localStorage.getItem(localStorageSpecDrivenRunSeedModels) || '[]');
     return Array.isArray(parsed)
       ? parsed.filter((e): e is [string, string] => Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string')
       : [];
@@ -76,7 +75,7 @@ export function recordRunSeedModel(runId: string, fingerprint: string): void {
   const entries = readRunSeedModels().filter(([id]) => id !== runId);
   entries.push([runId, fingerprint]);
   try {
-    window.localStorage.setItem(RUN_SEED_MODELS_KEY, JSON.stringify(entries.slice(-MAX_RUN_SEED_MODELS)));
+    window.localStorage.setItem(localStorageSpecDrivenRunSeedModels, JSON.stringify(entries.slice(-MAX_RUN_SEED_MODELS)));
   } catch {
     /* ignore */
   }

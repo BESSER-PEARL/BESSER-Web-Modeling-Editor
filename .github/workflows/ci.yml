@@ -30,6 +30,11 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Lint (errors fail, warnings are reported)
         run: npm run lint
+      - name: OpenAPI types match the committed schema
+        run: |
+          npm run api:types --workspace=webapp
+          git diff --exit-code -- packages/webapp/src/main/shared/api/generated/ \
+            || { echo "::error::besser-openapi.d.ts is stale: run 'npm run api:types --workspace=webapp' and commit it."; exit 1; }
 
   test:
     runs-on: ubuntu-latest

@@ -19,7 +19,10 @@ const opened = (analysis: Partial<NonNullable<ContinueFromGithubResult['analysis
   repo: 'shop',
   projectId: 'p',
   proposedModel: true,
-  analysis: { stack: ['Django'], model_source: 'Django models', entities: ['Book'], source_files: ['app/models.py'], ...analysis },
+  analysis: {
+    stack: ['Django'], model_source: 'Django models', entities: ['Book'], source_files: ['app/models.py'],
+    ai: false, skipped_relationships: [], ...analysis,
+  },
   ...extra,
 });
 

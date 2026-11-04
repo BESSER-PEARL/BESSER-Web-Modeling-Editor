@@ -206,25 +206,25 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
 
               {limitsExpanded && (
                 <dl className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs">
-                  {limits.memoryMb !== undefined && (
+                  {limits.memoryMb != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.memory')}</dt>
                       <dd className="font-medium">{limits.memoryMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
-                  {limits.cpuCores !== undefined && (
+                  {limits.cpuCores != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.cpu')}</dt>
                       <dd className="font-medium">{limits.cpuCores}{t('agentSimulation.credentials.unitCores')}</dd>
                     </div>
                   )}
-                  {limits.diskMb !== undefined && (
+                  {limits.diskMb != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.disk')}</dt>
                       <dd className="font-medium">{limits.diskMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
-                  {limits.sessionLifetimeSeconds !== undefined && (
+                  {limits.sessionLifetimeSeconds != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.lifetime')}</dt>
                       <dd className="font-medium">{Math.round(limits.sessionLifetimeSeconds / 60)}{t('agentSimulation.credentials.unitMin')}</dd>

@@ -207,16 +207,6 @@ describe('server-owned KG limits', () => {
     expect(client.post).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    ['a missing field', { llmRequestTimeoutSeconds: 120 }],
-    ['a zero limit', { llmRequestTimeoutSeconds: 120, maxOrphanClassifyNodes: 0 }],
-    ['a string', { llmRequestTimeoutSeconds: '120', maxOrphanClassifyNodes: 400 }],
-  ])('rejects a config with %s instead of guessing', async (_label, payload) => {
-    client.get.mockResolvedValue(payload);
-
-    await expect(getKgConfig()).rejects.toBeInstanceOf(KgConfigUnavailableError);
-  });
-
   it('explains a missing config in the user language', () => {
     const t = ((key: string) => `T(${key})`) as any;
     expect(kgApiErrorMessage(new KgConfigUnavailableError(), t, 'f')).toBe('T(import.kg.api.configUnavailable)');

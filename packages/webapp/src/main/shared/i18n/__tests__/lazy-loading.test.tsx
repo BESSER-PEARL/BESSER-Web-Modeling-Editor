@@ -11,7 +11,7 @@ import { I18nProvider } from '../../../../../../editor/src/main/components/i18n/
 import { I18nConsumer } from '../../../../../../editor/src/main/components/i18n/i18n-context';
 
 import i18n from '../index';
-import { LANGUAGE_STORAGE_KEY } from '../languages';
+import { localStorageLanguage as LANGUAGE_STORAGE_KEY } from '../../constants/constant';
 
 const SHELL_KEY = 'menu.file.importProject';
 

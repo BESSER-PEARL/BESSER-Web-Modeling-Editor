@@ -16,12 +16,14 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
-import { readAssistantApiKey } from './byokStorage';
+import { track } from '../../../shared/services/analytics/events';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
-  assistantSessionStorageKey,
-  getOrCreateAssistantSessionId,
-  getPilotParticipant,
-} from '../../../shared/services/telemetry/pilotTelemetry';
+  clearAssistantSessionId,
+  readAssistantUserId,
+  writeAssistantUserId,
+} from '../../../shared/services/storage/assistantStorage';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -47,11 +49,6 @@ type QueuedMessage =
     context?: Partial<AssistantWorkspaceContext>;
   };
 
-// Per-tab session id key — owned by the shared telemetry/session service so
-// the telemetry session id is guaranteed to be the SAME id.
-const SESSION_STORAGE_KEY = assistantSessionStorageKey;
-const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
-
 const getStableUserId = (): string => {
   // BAF's websocket platform keys backend sessions on the `user_id`
   // query param; without a stable id every reconnect creates a brand-new
@@ -59,7 +56,7 @@ const getStableUserId = (): string => {
   // (and re-running the greeting). Persisted in localStorage so the id
   // survives tab and browser restarts (create once, reuse forever).
   try {
-    const existing = localStorage.getItem(USER_ID_STORAGE_KEY);
+    const existing = readAssistantUserId();
     if (existing) return existing;
   } catch {
     // localStorage unavailable (e.g. iframe sandbox) — fall through
@@ -71,7 +68,7 @@ const getStableUserId = (): string => {
       : `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    localStorage.setItem(USER_ID_STORAGE_KEY, id);
+    writeAssistantUserId(id);
   } catch {
     // best-effort
   }
@@ -336,6 +333,8 @@ export class AssistantClient {
   private readonly baseReconnectDelay = 2000;
   private readonly maxReconnectDelay = 30000;
   private readonly maxReconnectAttempts = 8;
+  /** Analytics: the give-up is reported once, until the next successful connect. */
+  private gaveUpReported = false;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -394,6 +393,12 @@ export class AssistantClient {
   private readonly actionHandlers = new Set<ActionHandler>();
 
   private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  /** Count an unexpected drop of a live socket once (a failed connection attempt was never live). */
+  private trackUnexpectedDrop(): void {
+    if (this.isConnected && this.shouldReconnect) {
+      track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
+    }
+  }
   private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
   private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
   private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
@@ -430,6 +435,11 @@ export class AssistantClient {
         this.ws = new WebSocket(withStableUserParam(this.url));
         this.ws.onopen = () => {
           this.isConnected = true;
+          track('assistant_connection', {
+            state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
+            attempt: this.reconnectAttempts,
+          });
+          this.gaveUpReported = false;
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -451,6 +461,7 @@ export class AssistantClient {
         };
 
         this.ws.onclose = () => {
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.stopHeartbeat();
           this.connectingPromise = null;
@@ -465,6 +476,8 @@ export class AssistantClient {
 
         this.ws.onerror = (error) => {
           console.error('Assistant WebSocket error:', error);
+          // An abnormal drop fires `error` before `close`, so it is counted here.
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.connectingPromise = null;
           this.emitTyping(false);
@@ -643,10 +656,11 @@ export class AssistantClient {
    */
   private rearmUserApiKey(): void {
     try {
-      const stored = readAssistantApiKey();
-      if (!stored) {
+      const stored = readLlmKey();
+      if (!stored || !isAssistantKeyProvider(stored.provider)) {
         // The agent session outlives the tab (keyed by the persistent user
-        // id): clear a key the user removed or that died with an old tab.
+        // id): clear a key the user removed, that died with an old tab, or
+        // whose provider the assistant does not take.
         this.setUserApiKey({ apiKey: '' });
         return;
       }
@@ -735,7 +749,7 @@ export class AssistantClient {
    */
   resetSession(): void {
     try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      clearAssistantSessionId();
     } catch {
       // sessionStorage unavailable — fall through to a fresh in-memory id
     }
@@ -998,6 +1012,7 @@ export class AssistantClient {
         { cause: error instanceof Error ? error : undefined },
       );
       console.error('Error parsing assistant websocket message', protocolError);
+      track('assistant_client_error', { kind: 'protocol' });
       // Surface parse failures as a chat message so the user knows something went wrong
       const chatMessage: ChatMessage = {
         id: createMessageId(),
@@ -1079,6 +1094,10 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
+    if (this.shouldReconnect && this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpReported) {
+      this.gaveUpReported = true;
+      track('assistant_connection', { state: 'gave_up', attempt: this.reconnectAttempts });
+    }
     if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
       return;
     }
@@ -1086,7 +1105,10 @@ export class AssistantClient {
     const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
-      this.connect().catch((error) => console.error('Assistant reconnect failed', error));
+      this.connect().catch((error) => {
+        console.error('Assistant reconnect failed', error);
+        track('assistant_connection', { state: 'reconnect_failed', attempt: this.reconnectAttempts });
+      });
     }, delay);
   }
 
@@ -1104,6 +1126,7 @@ export class AssistantClient {
     if (elapsed >= this.responseHardTimeoutMs) {
       // Genuinely stuck (no reply after the hard cap) — give up so the user
       // can retry.
+      track('assistant_client_error', { kind: 'timeout' });
       this.emitTyping(false);
       this.emitMessage({
         id: createMessageId(),

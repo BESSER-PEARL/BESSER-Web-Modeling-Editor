@@ -15,6 +15,11 @@ const localProjects: { id: string; name: string; diagrams: Record<string, unknow
 vi.mock('../../../services/storage/ProjectStorageRepository', () => ({
   ProjectStorageRepository: { getAllProjects: () => localProjects },
 }));
+const track = vi.fn();
+vi.mock('../../analytics/events', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../analytics/events')>()),
+  track: (...args: unknown[]) => track(...args),
+}));
 const globalConfirm = vi.fn(async () => true);
 vi.mock('../../../services/confirm/globalConfirm', () => ({
   globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
@@ -39,6 +44,7 @@ afterEach(() => {
   storeRepoModelAsProject.mockClear();
   importRepoAsRun.mockReset();
   importProjectFromJson.mockClear();
+  track.mockClear();
   consumeAutoLayoutRequest(); // the layout request is module state
 });
 
@@ -271,6 +277,49 @@ describe('continueFromGithubRepo — reading the code with AI', () => {
 
     expect(globalConfirm).not.toHaveBeenCalled();
     expect(importRepoAsRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('continueFromGithubRepo — analytics', () => {
+  it('reports an opened repo with its source and what BESSER read, never its name', async () => {
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: null, has_model: false,
+      owner: 'me', repo: 'shop', branch: 'main', commit_sha: HEAD,
+      analysis: { ...ANALYSIS, ai: true }, proposed_diagram: { title: 't', model: {}, diagramType: 'ClassDiagram' },
+    });
+    await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's', source: 'assistant' });
+    expect(track).toHaveBeenCalledWith('github_repo_opened', {
+      source: 'assistant',
+      reused: false,
+      kept_local_changes: false,
+      besser_repo: false,
+      proposed_model: true,
+      ai_reading: true,
+      entity_count: 2,
+    });
+    expect(JSON.stringify(track.mock.calls)).not.toMatch(/shop|Book|Author|main/);
+  });
+
+  it('reports a repo reopened in its linked project, keeping local changes', async () => {
+    const project = { id: 'p-linked', name: 'Shop', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } as Record<string, unknown> };
+    localProjects.push(project);
+    markProjectGitHubSynced({ owner: 'me', repo: 'shop', branch: 'main' }, project as never, HEAD);
+    project.diagrams = { ClassDiagram: [{ model: { v: 2 } }] };
+    globalConfirm.mockResolvedValueOnce(false);
+    await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's', source: 'hub' });
+    expect(track).toHaveBeenCalledWith('github_repo_opened', { source: 'hub', reused: true, kept_local_changes: true });
+  });
+
+  it('reports a failed open with its source and HTTP status', async () => {
+    importRepoAsRun.mockRejectedValueOnce(new ApiError(404, 'Not Found'));
+    await continueFromGithubRepo({ owner: 'me', repo: 'shop', githubSession: 's', source: 'start_dialog' });
+    expect(track).toHaveBeenCalledWith('github_repo_open_failed', {
+      source: 'start_dialog',
+      reason: 'request',
+      error_type: 'ApiError',
+      http_status: 404,
+      network_error: false,
+    });
   });
 });
 

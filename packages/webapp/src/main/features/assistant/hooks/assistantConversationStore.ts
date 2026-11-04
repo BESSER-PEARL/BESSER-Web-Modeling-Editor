@@ -34,12 +34,16 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import type { ChatMessage, InjectionCommand, AssistantActionPayload } from '../services';
 // Type-only import — erased at runtime, so no circular dependency with the hook.
 import type { MessageMeta } from './useAssistantLogic';
+import {
+  clearStoredConversation,
+  readStoredConversation,
+  writeStoredConversation,
+} from '../../../shared/services/storage/assistantStorage';
 
 /* ------------------------------------------------------------------ */
 /*  Persistence (sessionStorage-backed, bounded, best-effort)         */
 /* ------------------------------------------------------------------ */
 
-export const CONVERSATION_STORAGE_KEY = 'besser_assistant_conversation_v1';
 /** Newest messages kept when persisting (older ones are dropped first). */
 export const MAX_PERSISTED_MESSAGES = 100;
 /** Hard cap on the serialized payload; oldest messages are shed to fit. */
@@ -54,16 +58,6 @@ interface StoredConversation {
   messages: unknown[];
   messageMeta: Record<string, MessageMeta>;
 }
-
-const getSessionStorage = (): Storage | null => {
-  try {
-    if (typeof window === 'undefined' || !window.sessionStorage) return null;
-    return window.sessionStorage;
-  } catch {
-    // Accessing sessionStorage itself can throw (sandboxed iframe).
-    return null;
-  }
-};
 
 /**
  * Project one message into a JSON-safe, lean shape for persistence.
@@ -169,33 +163,22 @@ export const reviveStoredConversation = (
   }
 };
 
-const restoreFromStorage = (): { messages: ChatKitMessage[]; messageMeta: Record<string, MessageMeta> } => {
-  const storage = getSessionStorage();
-  if (!storage) return { messages: [], messageMeta: {} };
-  try {
-    const revived = reviveStoredConversation(storage.getItem(CONVERSATION_STORAGE_KEY));
-    if (revived) return revived;
-  } catch {
-    // fall through to a fresh conversation
-  }
-  return { messages: [], messageMeta: {} };
-};
+const restoreFromStorage = (): { messages: ChatKitMessage[]; messageMeta: Record<string, MessageMeta> } =>
+  reviveStoredConversation(readStoredConversation()) ?? { messages: [], messageMeta: {} };
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 const persistNow = (): void => {
-  const storage = getSessionStorage();
-  if (!storage) return;
   try {
     if (messages.length === 0) {
-      storage.removeItem(CONVERSATION_STORAGE_KEY);
+      clearStoredConversation();
       return;
     }
     const payload = serializeConversation(messages, messageMeta);
     if (payload === null) return; // over budget even after shedding — keep last good copy
-    storage.setItem(CONVERSATION_STORAGE_KEY, payload);
+    writeStoredConversation(payload);
   } catch {
-    // Quota exceeded / storage unavailable — persistence is best-effort.
+    // Unserializable message — persistence is best-effort.
   }
 };
 

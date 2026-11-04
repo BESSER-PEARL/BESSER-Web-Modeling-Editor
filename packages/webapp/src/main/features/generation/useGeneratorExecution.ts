@@ -16,13 +16,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '../../app/store/hooks';
-import { notifyError } from '../../shared/utils/notifyError';
+import { notifyError, reportError } from '../../shared/services/errors/reportError';
 import { useProject } from '../../app/hooks/useProject';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { elapsedMs, errorProperties, track, type ModelMetrics } from '../../shared/services/analytics/events';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../shared/constants/constant';
 import {
   useGenerateCode,
@@ -59,7 +58,7 @@ import {
   validateProjectName,
 } from '../../shared/utils/validation';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
-import { validateDiagram } from '../../shared/services/validation/validateDiagram';
+import { validateDiagram, type ValidateDiagramResult } from '../../shared/services/validation/validateDiagram';
 import {
   ConfigDialog,
   getConfigDialogForGenerator,
@@ -153,7 +152,7 @@ function didValidationPass(result: any): boolean {
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
 
-function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+function getModelMetrics(project: BesserProject | undefined): ModelMetrics {
   const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);
@@ -180,6 +179,44 @@ function getModelMetrics(project: BesserProject | undefined): Record<string, num
     relationships_count: relationshipsCount,
     total_size: elements.length + relationshipsCount,
   };
+}
+
+interface ExecuteGeneratorOptions {
+  autoGenerateGuiIfEmpty?: boolean;
+  agentModelOverride?: UMLModel;
+  deferDownload?: boolean;
+}
+
+/** The generator's config dialog rejected the input, so it never ran. */
+const trackInvalidGeneratorInput = (generatorType: string): void =>
+  track('generator_failed', { generator_type: generatorType, source: 'menu', reason: 'invalid_input' });
+
+/** Sends generator_used or generator_failed for one run; an unmounted surface is not a failure. */
+export function trackGeneration(
+  generatorType: string,
+  result: GenerationResult,
+  context: { project: BesserProject | null | undefined; source: 'menu' | 'assistant'; durationMs: number },
+): void {
+  const base = {
+    generator_type: generatorType,
+    diagram_type: context.project?.currentDiagramType,
+    source: context.source,
+    duration_ms: context.durationMs,
+  };
+  if (result.ok) {
+    track('generator_used', {
+      ...base,
+      ...(result.fromStoredModel ? { diagram_type: 'ClassDiagram', from_stored_model: true } : {}),
+      ...getModelMetrics(context.project ?? undefined),
+    });
+    return;
+  }
+  if (result.reason === 'unmounted') return;
+  track('generator_failed', {
+    ...base,
+    reason: result.reason ?? 'request',
+    ...(result.cause !== undefined ? errorProperties(result.cause) : {}),
+  });
 }
 
 // ─── Web App checklist builder ──────────────────────────────────────────────
@@ -769,11 +806,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [currentProject, dispatch, location.pathname, navigate, t],
   );
 
-  const executeGenerator = useCallback(
+  const executeGeneratorUntracked = useCallback(
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel; deferDownload?: boolean },
+      options?: ExecuteGeneratorOptions,
     ): Promise<GenerationResult> => {
       // The assistant flow defers the browser download so the result renders as
       // a card with a manual Download button; the menu path auto-downloads.
@@ -782,8 +819,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           autoDownload: !options?.deferDownload,
         });
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
-        return { ok: false, error: 'Create or load a project before generating code.' };
+        reportError(t('generation.toasts.createOrLoadProject'));
+        return { ok: false, error: 'Create or load a project before generating code.', reason: 'no_project' };
       }
 
       try {
@@ -797,10 +834,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
               const autoGenerateError = await ensureGuiForAssistantWebAppGeneration();
-              if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-              if (autoGenerateError) {
-                toast.error(autoGenerateError.error);
-                return autoGenerateError;
+              if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
+              if (autoGenerateError && !autoGenerateError.ok) {
+                reportError(autoGenerateError.error);
+                return { ...autoGenerateError, reason: 'auto_gui' };
               }
               // After auto-generation, read from storage as a safety net
               // (the async Redux sync may not have propagated yet)
@@ -810,27 +847,20 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
 
             if (isGuiModelEmpty(guiModel)) {
-              toast.error(t('generation.toasts.guiDiagramEmpty'));
-              return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.' };
+              reportError(t('generation.toasts.guiDiagramEmpty'));
+              return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.', reason: 'gui_empty' };
             }
           }
 
           const webAppResult = await runGen(null, 'web_app', activeDiagramTitle, config as any);
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (webAppResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: 'web_app',
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return webAppResult;
         }
 
         if (generatorType === 'qiskit') {
           if (!isQuantumContext) {
-            toast.error(t('generation.toasts.openQuantumEditor'));
-            return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
+            reportError(t('generation.toasts.openQuantumEditor'));
+            return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.', reason: 'wrong_context' };
           }
 
           const qiskitResult = await runGen(
@@ -839,31 +869,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             activeDiagramTitle,
             (config as QiskitConfig) ?? { backend: 'aer_simulator', shots: 1024 },
           );
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (qiskitResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: 'qiskit',
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return qiskitResult;
         }
 
         if (generatorType === 'pytorch' || generatorType === 'tensorflow' || generatorType === 'forecaster') {
           if (!isNNContext) {
-            toast.error(t('generation.toasts.openNnEditor'));
-            return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
+            reportError(t('generation.toasts.openNnEditor'));
+            return {
+              ok: false,
+              error: 'Open the NN Diagram editor before generating neural network code.',
+              reason: 'wrong_context',
+            };
           }
           const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (nnResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: generatorType,
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return nnResult;
         }
 
@@ -894,27 +914,19 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               undefined,
               storedModel,
             );
-            if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-            if (overrideResult.ok) {
-              getPostHog()?.capture('generator_used', {
-                generator_type: generatorType,
-                diagram_type: 'ClassDiagram',
-                from_stored_model: true,
-                ...getModelMetrics(currentProject),
-              });
-            }
-            return overrideResult;
+            if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
+            return overrideResult.ok ? { ...overrideResult, fromStoredModel: true } : overrideResult;
           }
         }
 
         if (isQuantumContext || isGuiContext) {
-          toast.error(t('generation.toasts.switchToUmlDiagram'));
-          return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
+          reportError(t('generation.toasts.switchToUmlDiagram'));
+          return { ok: false, error: 'Switch to a UML diagram to use this generator.', reason: 'wrong_context' };
         }
 
         if (!editor) {
-          toast.error(t('generation.toasts.noUmlEditor'));
-          return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.' };
+          reportError(t('generation.toasts.noUmlEditor'));
+          return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.', reason: 'no_editor' };
         }
 
         let result: GenerationResult = { ok: false, error: 'Generation was not executed.' };
@@ -955,8 +967,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
-              toast.error(t('generation.toasts.switchToObjectOrUserDiagram'));
-              return { ok: false, error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.' };
+              reportError(t('generation.toasts.switchToObjectOrUserDiagram'));
+              return {
+                ok: false,
+                error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.',
+                reason: 'wrong_context',
+              };
             }
             // Object diagrams need their referenced ClassDiagram so the backend can build
             // the domain model. User diagrams use a preset reference domain server-side
@@ -975,23 +991,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await runGen(editor, generatorType, activeDiagramTitle, config as any);
         }
 
-        if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-
-        if (result.ok) {
-          getPostHog()?.capture('generator_used', {
-            generator_type: generatorType,
-            diagram_type: currentProject.currentDiagramType,
-            ...getModelMetrics(currentProject),
-          });
-        }
+        if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
 
         return result;
       } catch (error) {
         const errorMessage = t('generation.toasts.generationFailed', {
           error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
         });
-        toast.error(errorMessage);
-        return { ok: false, error: errorMessage };
+        reportError(errorMessage, { error });
+        return { ok: false, error: errorMessage, reason: 'exception', cause: error };
       } finally {
         setIsGenerating(false);
       }
@@ -1002,12 +1010,28 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     ],
   );
 
+  /** Runs a generator and reports its outcome once: generator_used or generator_failed. */
+  const executeGenerator = useCallback(
+    async (generatorType: GeneratorType, config?: unknown, options?: ExecuteGeneratorOptions): Promise<GenerationResult> => {
+      const startedAt = performance.now();
+      const result = await executeGeneratorUntracked(generatorType, config, options);
+      trackGeneration(generatorType, result, {
+        project: currentProject,
+        source: options?.deferDownload ? 'assistant' : 'menu',
+        durationMs: elapsedMs(startedAt),
+      });
+      return result;
+    },
+    [currentProject, executeGeneratorUntracked],
+  );
+
   // ── Public handlers ────────────────────────────────────────────────────────
 
   const handleGenerateRequest = useCallback(
     async (generatorType: GeneratorType, menuConfig?: Record<string, any>) => {
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
+        reportError(t('generation.toasts.createOrLoadProject'));
+        track('generator_failed', { generator_type: generatorType, source: 'menu', reason: 'no_project' });
         return;
       }
       const requiredDialog = getConfigDialogForGenerator(generatorType);
@@ -1032,33 +1056,54 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   );
 
   const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
+    const diagramType = currentProject?.currentDiagramType;
     if (!currentProject) {
-      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
+      track('quality_check_failed', { reason: 'no_project' });
       return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error(t('generation.toasts.comingSoon'));
+      reportError(t('generation.toasts.comingSoon'));
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'not_supported' });
       return { executed: false, passed: false };
     }
 
+    /** Reports a finished check: a request that failed, or a result with its counts. */
+    const checked = (result: ValidateDiagramResult): QualityCheckResult => {
+      const passed = didValidationPass(result);
+      if (result.failure !== undefined) {
+        track('quality_check_failed', { diagram_type: diagramType, reason: 'exception', ...errorProperties(result.failure) });
+      } else if (result.empty) {
+        track('quality_check_failed', { diagram_type: diagramType, reason: 'empty_diagram' });
+      } else {
+        track('quality_check_run', {
+          diagram_type: diagramType,
+          passed,
+          error_count: (result.errors?.length ?? 0) + (result.invalid_constraints?.length ?? 0),
+          warning_count: result.warnings?.length ?? 0,
+        });
+      }
+      return { executed: true, passed };
+    };
+
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
-        const result = await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
-        return { executed: true, passed: didValidationPass(result) };
+        return checked(await validateDiagram(null, activeDiagramTitle, activeDiagram.model));
       }
 
       if (editor) {
-        const result = await validateDiagram(editor, activeDiagramTitle);
-        return { executed: true, passed: didValidationPass(result) };
+        return checked(await validateDiagram(editor, activeDiagramTitle));
       }
 
-      toast.error(t('generation.toasts.noDiagramToValidate'));
+      reportError(t('generation.toasts.noDiagramToValidate'));
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'no_diagram' });
       return { executed: false, passed: false };
     } catch (error) {
-      toast.error(t('generation.toasts.qualityCheckFailed', {
+      reportError(t('generation.toasts.qualityCheckFailed', {
         error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
-      }));
+      }), { error });
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'exception', ...errorProperties(error) });
       return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
@@ -1067,15 +1112,18 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleDjangoGenerate = useCallback(async () => {
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     await executeGenerator('django', {
@@ -1088,19 +1136,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleDjangoDeploy = useCallback(async () => {
     if (!editor || !currentProject) {
-      toast.error(t('generation.toasts.openUmlBeforeDeploy'));
+      reportError(t('generation.toasts.openUmlBeforeDeploy'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'no_diagram' });
       return;
     }
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     await deployLocally(editor, 'django', activeDiagramTitle, {
@@ -1115,19 +1167,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // source directory path, so invalid identifiers here produce a project that
     // does not compile. Guard with the same validators the dialog shows inline.
     if (!springProjectName || !springAppName || !springPackageName) {
-      toast.error(t('generation.toasts.springFieldsRequired'));
+      reportError(t('generation.toasts.springFieldsRequired'));
+      trackInvalidGeneratorInput('spring');
       return;
     }
     if (validateProjectName(springProjectName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
+      trackInvalidGeneratorInput('spring');
       return;
     }
     if (validateJavaClassName(springAppName)) {
-      toast.error(t('generation.toasts.springAppNameInvalid'));
+      reportError(t('generation.toasts.springAppNameInvalid'));
+      trackInvalidGeneratorInput('spring');
       return;
     }
     if (validateJavaPackageName(springPackageName)) {
-      toast.error(t('generation.toasts.springPackageNameInvalid'));
+      reportError(t('generation.toasts.springPackageNameInvalid'));
+      trackInvalidGeneratorInput('spring');
       return;
     }
     await executeGenerator('spring', {
@@ -1291,7 +1347,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         } => Boolean(entry));
 
       if (personalizationMapping.length === 0) {
-        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
         return;
       }
 

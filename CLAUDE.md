@@ -74,11 +74,12 @@ Webapp (`packages/webapp/src/main/`):
 | `features/spec-driven/` | Spec-Driven Agent: SSE client, trigger hook, `state/specDrivenSlice.ts` |
 | `features/{generation,deploy,github,import,export,project,agent-config,agent-components,agent-simulation,kg-settings}/` | One feature module each |
 | `features/knowledge-graph/` | KG workflow: `refine/` (Refine dialog, preflight, AI suggestions), `convert/` (KG → class diagram, consistency gate), `useKgFlows` (OWL import stays in `import/`) |
-| `shared/api/api-client.ts` | Central HTTP client (singleton, 30 s default timeout, `ApiError`) |
+| `shared/api/` | Every HTTP call: `api-client.ts` (singleton, 30 s default timeout, `ApiError`) and one module per backend area (`generation`, `conversion`, `validation`, `feedback`, `telemetry`, `specDriven`, `github`, `knowledgeGraph`, `agentSimulation`, `apiInfo`, `rateLimit`, `sseClient`); `generated/besser-openapi.d.ts` holds the backend's OpenAPI types |
 | `shared/api/knowledgeGraph.ts` | Every Knowledge Graph endpoint, typed against the backend's response models; the LLM key goes only in the JSON body |
 | `shared/kg/` | Knowledge Graph code several features use (constraint catalog, node priority, focus registry) |
-| `shared/services/sse/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
-| `shared/constants/constant.ts` | Env vars, endpoint builders, most storage-key constants |
+| `shared/api/sseClient.ts` | Streaming client used by the spec-driven SSE path (bypasses `api-client`) |
+| `shared/constants/constant.ts` | Env vars, endpoint builders, every storage key |
+| `shared/services/storage/` | The only code that touches Web Storage: projects, GitHub, assistant, preferences, tab values, migrations |
 | `shared/types/project.ts` | `SupportedDiagramType`, `ALL_DIAGRAM_TYPES`, `BesserProject`, `PROJECT_SCHEMA_VERSION` |
 | `shared/components/byok/LlmKeyDialog.tsx`, `shared/services/llmKeyStorage.ts` | The one BYOK dialog and key store; its providers and models come from the backend's model catalog (`/spec-driven/config` → `providers`) |
 
@@ -119,10 +120,16 @@ First-class part of the app, with two independent backends.
 - The backend contract is BESSER's `backend/models/spec_driven.py` (request) and
   `services/spec_driven/sse_events.py` (stream).
 
-**BYOK, shared by both.** One dialog, one store (paths above). The key lives **only** in `sessionStorage`.
-`features/assistant/services/byokStorage.ts` and `features/spec-driven/storage.ts` are thin readers over the same
-keys. `provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
+**BYOK, shared by both.** One dialog, one store (paths above). The key lives **only** in `sessionStorage`, and
+`llmKeyStorage` is the only code that reads, writes or clears it (`readLlmKey` / `writeLlmKey` / `clearLlmKey`,
+which also removes the model and base URL). It also holds `LLM_PROVIDERS`, the one provider list: the app's own lists
+(`KEY_PROVIDERS`, the dialog's options, `SpecDrivenProvider`) are derived from it by filtering. The lists of what
+another service accepts a key for are explicit allowlists, never derived, so a new provider is not sent to a service
+by default: `ASSISTANT_KEY_PROVIDERS` (the modeling agent's) and `KG_LLM_PROVIDERS` (the backend's `KGLLMProvider`),
+each pinned to its counterpart by `llmProviderAllowlists.test.ts`.
+`provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
 assistant's dialog, and its opt-in flag is kept separate from the key so no placeholder can break the assistant.
+`'sponsored'` is the server-paid demo tier, set only by a `?demo=` link; neither is ever a stored key's provider.
 
 ### Security rules (AI features)
 - Never let an agent-controlled payload set a privilege flag. `useAssistantLogic` rebuilds the
@@ -160,12 +167,77 @@ has no npm dependency on the package); `shared` → `../shared/src/index.ts` (le
 exist); `webapp/*` → `./*`.
 
 ### API communication
-Most calls go through `shared/api/api-client.ts` (`request`, `get`, `post`, `upload`, `downloadBlob`; per-request
-`timeout` override). Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL` in
-production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
+Every HTTP call lives in `shared/api/`; ESLint (`no-restricted-syntax`) rejects `fetch`, `XMLHttpRequest` and
+`sendBeacon` anywhere else in `src/` (including `src/components/`) except tests, and `no-restricted-imports` rejects
+importing `apiClient` outside `shared/api/` (tests may stub it). Calls go through `api-client.ts` (`request`, `get`, `post`,
+`upload`, `downloadBlob`, `getBlob`) with an explicit `timeout` wherever the 30 s default does not fit; a failure
+rejects with an `ApiError` (`status`, a readable `message`, and `detail` when the server sent one) or, on time-out,
+a `TimeoutError` `DOMException`, so callers never parse the error body. Raw `fetch` stays only where the client cannot
+carry the call: the SSE streams and their events-page fallback (`sseClient`, `specDriven`), fire-and-forget
+`keepalive`/`sendBeacon` calls (telemetry, run cancel), GitHub sign-in and star calls (they must not get the
+client's timeout or 401 session event), raw.githubusercontent.com files, and the editor's own Node rate limiter (`rateLimit`). Backend URL is hardcoded to `http://localhost:9000/besser_api` in dev, `BACKEND_URL`
+in production. Backend endpoint or shape changes must be mirrored in `shared/api/` and the spec-driven SSE client.
+
+Contract types come from the backend's OpenAPI schema: `packages/webapp/openapi/besser-openapi.json` and the
+generated `shared/api/generated/besser-openapi.d.ts` (`import type { components } from '.../generated/besser-openapi'`).
+Regenerate both with `npm run api:generate --workspace=webapp` (needs Python with BESSER's dependencies; BESSER
+is imported from `BESSER_ROOT`, else from the checkout this repo is a submodule of; the script stops when neither
+has a `besser/` package). CI regenerates the `.d.ts` from the committed JSON and fails on a difference. Type a
+response body as the generated `components['schemas']['SchemaName']`: BESSER's response models state the real
+contract (fields they always send are required, closed value sets are `Literal`s, fixed shapes are models), so fix
+a loose type in the backend model, not in the editor. Only a free `dict` that holds an editor model is narrowed,
+as `Omit<components['schemas']['X'], 'model'> & { model: ... }` (`KgRefinementResponse`, `KgDiagramResponse`).
+Project payloads (`ProjectInput`) stay `unknown` in `generation`/`conversion`: the editor builds them as
+a plain record (`buildProjectPayloadForBackend`); diagram payloads are typed `DiagramInput`.
+
+### Error reporting
+A failure the user should see goes through `reportError(message, { error, ...toastOptions })` in
+`shared/services/errors/reportError.ts`: the react-toastify error toast (same options and `toastId` dedupe; with
+`updateToast: id` it turns that toast, e.g. a `toast.loading`, into the error toast), plus the caught `error` to Sentry. Sentry loads only when `SENTRY_DSN` is set **and** the user accepted analytics in the
+cookie banner (`applyAnalyticsConsent` in `lazy-analytics.ts` starts and stops it, like PostHog's opt-in); offline,
+aborted and 4xx failures (`isNetworkError`, `ApiError`/`SseHttpError` status < 500) are toast-only, and the
+`beforeSend` scrub (`scrubSentryEvent.ts`) keeps only the error type, HTTP status, stack, page path, browser,
+breadcrumb categories and the SDK's own contexts (`trace`, `react`, device description): no message, other context, backend `detail`, query string (stack frame URLs included), extra data or user
+(`ip_address: null` stops Sentry inferring the IP), as the privacy policy promises. Captures are
+tagged `handled: reportError`. Google Analytics (`GA_MEASUREMENT_ID` in `constant.ts`) follows the same consent: gtag.js
+is injected by `lazy-analytics.ts` after Accept and disabled with Google's `ga-disable-<id>` flag on withdrawal, so
+never add a tracking tag to `index.html`; every provider is named in the cookie banner and privacy policy. Pass the message already translated; pass
+`error` only for a caught exception, not for an expected case such as "open a project first". `notifyError(context)`
+in the same module is the `.catch()` handler for fire-and-forget promises. Developer diagnostics stay `console.*`
+at the call site; `reportError` never logs. Notices that used `alert()` use `globalAlert()` from
+`shared/services/confirm/globalConfirm.ts` (the confirm dialog with one OK button; it does not block, so await it if
+code must wait). ESLint (`no-restricted-syntax`) rejects `toast.error(`, `toast.update(id, { type: 'error' })` and `alert(` anywhere in `src/` outside those modules and tests,
+and `no-restricted-globals` rejects the un-imported global `reportError` (the browser's own, which only fires an
+`error` event).
+Redux error state that drives a panel (`errorManagementSlice`, the agent simulation's error) is domain state and
+stays in Redux.
+
+### Product analytics (PostHog)
+Every event goes through `track(event, properties)` in `shared/services/analytics/events.ts`, whose
+`AnalyticsEvents` interface is the catalog: a new event or property is added there first, and TypeScript rejects
+an undeclared event or property (a few properties, such as `editor_action.action`, are still plain strings). Properties are content-free by contract (enums, counts, booleans, durations, HTTP status, error class
+name via `errorProperties(error)` / `trackFailure`): never a name, title, prompt, message, URL, repository or key.
+Track both sides of an action: the success event only after it really succeeded, and a failure event at every
+failure exit (`reportError` already sends a generic `error_shown`). PostHog is initialised in `lazy-analytics.ts`
+(no React provider: swapping one in late remounted the whole app); events tracked before it loads are queued with
+their timestamp. Without consent the page makes no request to PostHog at all: no remote config call, and the
+heatmap and web-vitals scripts load only on a page that loads with consent (`lazy-analytics.posthog.test.ts`
+checks this against the real posthog-js). URL properties lose their query and fragment
+(`sanitizePostHogProperties`). A Spec-Driven run whose stream stalled is counted as failed (stage `stall`); if a
+reload later reattaches to it, its outcome is sent again with `reattached: true`, so exclude reattached runs when
+counting runs. Collecting a new kind of data means updating the privacy copy
+(`shared.cookie.privacy` in every locale) too.
 
 ### Browser storage
-All keys are prefixed `besser_`; most constants live in `shared/constants/constant.ts`. **Secrets and
+Web Storage is read and written only by the typed modules in `shared/services/storage/`
+(`ProjectStorageRepository`, `LocalStorageRepository`, `projectGitHubLink`, `specDrivenRunRecords`,
+`githubStorage`, `assistantStorage`, `preferencesStorage`, `tabStorage`, the migration runner), plus
+`llmKeyStorage` and `features/spec-driven/storage.ts` (`STORAGE_MODULES` in `packages/webapp/.eslintrc.js`).
+Components, hooks and services call those; ESLint (`no-restricted-globals`, plus a `no-restricted-syntax` member
+selector that also catches `window.localStorage`, casts, aliases and `document.defaultView`) rejects
+`localStorage` / `sessionStorage` anywhere else in `src/` outside tests. Every key is a constant in
+`shared/constants/constant.ts`; most are prefixed `besser_`, a few legacy ones (`github_session`,
+`umlAgentRateLimiterState`, ...) keep their old spelling so users keep their data. **Secrets and
 tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYOK key
 (`besser_llm_api_key` / `_provider` / `_model` / `_base_url`), free-tier opt-in, run budget, the GitHub
 session id, and assistant UI state. `localStorage` holds projects (`besser_projects`, `besser_latest_project`,
@@ -273,9 +345,6 @@ Documented so they are not rediscovered as bugs:
   `/opt/besser/build/server` and `bundle.js` and does not invoke it.
 - `create_diagram_tab` is in `KNOWN_ACTIONS` but missing from the `AssistantActionName` union in
   `features/assistant/services/assistant-types.ts`.
-- `SMART_GEN_PREVIEW_ENDPOINT` (`/spec-driven/preview`) has no callers — there is no plan-review step.
 - `selectProjectFile()` advertises `.zip`, but `importProject()` has no zip branch.
 - `DIAGRAM_GENERATOR_MAP` in `workspace-navigation.tsx` is out of sync with `generator-menu-config.ts`, which is
   the source of truth for what users see.
-- The doc comment in `features/assistant/services/byokStorage.ts` still claims the assistant keeps a separate key;
-  the keys were unified and the constants are aliases.

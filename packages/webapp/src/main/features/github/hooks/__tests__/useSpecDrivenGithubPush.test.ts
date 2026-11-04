@@ -17,6 +17,12 @@ vi.mock('../../../../shared/services/confirm/globalConfirm', () => {
   return { globalConfirm: confirm.fn };
 });
 
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../../../shared/services/analytics/events', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/services/analytics/events')>()),
+  track,
+}));
+
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warn: vi.fn() } }));
 // Stable references, as the real hooks return: the hook's effects depend on them.
 const stable = vi.hoisted(() => ({
@@ -258,5 +264,60 @@ describe('useSpecDrivenGithubPush — sign-in', () => {
     } finally {
       Object.assign(stable.auth, { isAuthenticated: true, isChecking: false, githubSession: 'session' });
     }
+  });
+});
+
+describe('useSpecDrivenGithubPush — analytics', () => {
+  const project = { id: 'p1', name: 'Library', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } } as never;
+  const push = async () => {
+    const { result } = renderHook(() => useSpecDrivenGithubPush({ currentProject: project }));
+    await act(async () => {
+      await result.current.dialog.push({ useExisting: false, repoName: 'library', isPrivate: true });
+    });
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    recordRunSeedModel(RUN_ID, modelFingerprint(project));
+    post.mockReset();
+    track.mockClear();
+  });
+
+  it('reports a completed push with its outcome and counts, never the repository', async () => {
+    post.mockResolvedValue({
+      success: true, repo_url: 'https://github.com/me/library', owner: 'me', repo_name: 'library',
+      is_first_push: true, files_uploaded: 12, branch: 'main', commit_sha: 'c'.repeat(40), status: 'pushed',
+      conflict_branch: null, pull_request_url: null, base_run_id: null, warnings: ['w'], project_export: null,
+    });
+
+    await push();
+
+    expect(track).toHaveBeenCalledWith('github_push_completed', {
+      status: 'pushed',
+      new_repo: true,
+      to_linked_repo: false,
+      is_private: true,
+      push_mode: 'commit',
+      is_first_push: true,
+      files_uploaded: 12,
+      warnings_count: 1,
+      took_run_model: false,
+    });
+    expect(JSON.stringify(track.mock.calls)).not.toMatch(/library|github\.com|cccc/);
+  });
+
+  it('reports a failed push with the same code the dialog shows', async () => {
+    post.mockRejectedValue(new ApiError(409, 'name already exists on this account'));
+
+    await push();
+
+    expect(track).toHaveBeenCalledWith('github_push_failed', {
+      code: 'conflict',
+      new_repo: true,
+      error_type: 'ApiError',
+      http_status: 409,
+      network_error: false,
+    });
+    expect(track).not.toHaveBeenCalledWith('github_push_completed', expect.anything());
   });
 });

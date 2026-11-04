@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ConnectionStatus } from 'besser-agentic-framework-ui';
 import { useAppDispatch } from '@/main/app/store/hooks';
+import { track } from '@/main/shared/services/analytics/events';
 import {
   AGENT_SIMULATION_WS_AUTH_FAILED_CODE,
   buildAgentSimulationAuthFrame,
@@ -58,6 +59,7 @@ export function useAgentSimulationSocket(
 
     const wsUrl = getAgentSimulationWebSocketUrl(sessionId);
     if (!wsUrl) {
+      track('agent_simulation_connection', { state: 'no_url' });
       setStatus('error');
       dispatch(setError(handlersRef.current.t('agentSimulation.chat.backendUnavailable')));
       return;
@@ -76,6 +78,7 @@ export function useAgentSimulationSocket(
       if (disposed) return;
       if (wsRef.current === ws) wsRef.current = null;
       if (event.code === AGENT_SIMULATION_WS_AUTH_FAILED_CODE) {
+        track('agent_simulation_connection', { state: 'auth_failed', close_code: event.code });
         setStatus('error');
         dispatch(setError(handlersRef.current.t('agentSimulation.chat.authRequired')));
         return;
@@ -83,6 +86,7 @@ export function useAgentSimulationSocket(
       // 4400 (bad session id), 4404 (not this user's session), 4429 (rate limited):
       // the backend refused the connection, so the session cannot be used.
       if (event.code >= 4400 && event.code < 4500) {
+        track('agent_simulation_connection', { state: 'refused', close_code: event.code });
         setStatus('error');
         dispatch(setError(event.reason || handlersRef.current.t('agentSimulation.chat.connectionRejected')));
         return;
@@ -92,6 +96,7 @@ export function useAgentSimulationSocket(
 
     ws.onerror = () => {
       if (disposed) return;
+      track('agent_simulation_connection', { state: 'error' });
       setStatus('error');
       dispatch(reportRuntimeError(handlersRef.current.t('agentSimulation.chat.websocketError')));
     };
@@ -119,6 +124,7 @@ export function useAgentSimulationSocket(
       // Events injected by the sandbox from the agent's stdout
       switch (frame.type) {
         case 'auth_ok':
+          track('agent_simulation_connection', { state: 'connected' });
           setStatus('connected');
           break;
         case 'state_change':
@@ -134,6 +140,7 @@ export function useAgentSimulationSocket(
               ? frame.message
               : handlersRef.current.t('agentSimulation.chat.unknownError');
           dispatch(reportRuntimeError(message));
+          track('agent_simulation_runtime_error', {});
           handlersRef.current.onRuntimeError?.(message);
           break;
         }

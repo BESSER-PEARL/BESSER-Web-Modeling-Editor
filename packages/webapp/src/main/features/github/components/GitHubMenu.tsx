@@ -6,6 +6,7 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import {
   ChevronDown,
   CloudDownload,
@@ -45,6 +46,7 @@ import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
+import { trackGitHubAction } from '../githubAnalytics';
 
 // The menu is in the top bar from the start; its dialogs load on first open.
 const CreateRepositoryDialog = React.lazy(() =>
@@ -68,7 +70,8 @@ interface GitHubMenuProps {
   isAuthenticated: boolean;
   username?: string;
   githubLoading: boolean;
-  onLogin: () => void;
+  /** Starts the GitHub sign-in; the argument names the button, for analytics. */
+  onLogin: (source?: string) => void;
   onLogout: () => void;
   /** Called with a summary of a repository opened through "Start from a GitHub repository". */
   onRepoOpened?: (summary: string) => void;
@@ -137,7 +140,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
 
   // The chat's repo header (and anything else) opens this menu through the event.
   const openFromEventRef = useRef<() => void>(() => undefined);
-  openFromEventRef.current = () => (isAuthenticated || (isExpired && link) ? setMenuOpen(true) : onLogin());
+  openFromEventRef.current = () => (isAuthenticated || (isExpired && link) ? setMenuOpen(true) : onLogin('github_panel'));
   useEffect(() => {
     const onOpen = () => openFromEventRef.current();
     window.addEventListener(OPEN_GITHUB_PANEL_EVENT, onOpen);
@@ -169,7 +172,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
             variant="ghost"
             size="sm"
             className={`gap-2 ${outlineButtonClass}`}
-            onClick={onLogin}
+            onClick={() => onLogin('github_menu')}
             disabled={busyConnecting}
             aria-label={label}
             aria-description={isNotInTab ? hint : undefined}
@@ -224,7 +227,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       );
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }
@@ -257,7 +260,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
       await sync.pull();
       toast.success(t('github.toasts.projectPulled'));
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }
@@ -290,24 +293,28 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
     flushEditor();
     const project = ProjectStorageRepository.loadProject(currentProject.id);
     if (!project) {
-      toast.error(t('github.toasts.couldNotLoadProjectData'));
+      reportError(t('github.toasts.couldNotLoadProjectData'));
       return;
     }
     setBusy(true);
     try {
-      const result = await createRepoForProject(githubSession, {
-        repo_name: newRepoName.trim(),
-        description: newRepoDescription || t('github.defaultRepoDescription', { name: project.name }),
-        is_private: isRepoPrivate,
-        project_data: project,
-        project_export: buildProjectExportEnvelope(project, undefined, { includePersonalization: false }),
-      });
+      const result = await trackGitHubAction(
+        'create_repo',
+        () => createRepoForProject(githubSession, {
+          repo_name: newRepoName.trim(),
+          description: newRepoDescription || t('github.defaultRepoDescription', { name: project.name }),
+          is_private: isRepoPrivate,
+          project_data: project,
+          project_export: buildProjectExportEnvelope(project, undefined, { includePersonalization: false }),
+        }),
+        () => ({ is_private: isRepoPrivate }),
+      );
       const repo = result.repo_url.split('/').pop() || sanitizeRepoName(newRepoName);
       sync.markSynced({ owner: result.owner, repo, branch: result.branch }, project, result.commit_sha);
       setDialog(null);
       toast.success(t('github.panel.created', { defaultValue: 'Created {{repo}} with your model.', repo: `${result.owner}/${repo}` }));
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setBusy(false);
     }
@@ -394,7 +401,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
               )}
               <DropdownMenuSeparator />
               {state === 'reconnect' && (
-                <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => onLogin()}>
+                <DropdownMenuItem className={cn(itemClass, 'font-medium')} onSelect={() => onLogin('github_menu')}>
                   <RefreshCw className="size-4 shrink-0 text-brand" aria-hidden="true" />
                   {t('github.menu.reconnect', { defaultValue: 'Reconnect GitHub' })}
                 </DropdownMenuItem>

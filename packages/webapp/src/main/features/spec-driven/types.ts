@@ -6,25 +6,11 @@
  * and renders them into the existing assistant chat message list.
  */
 
-// 'local' is a frontend-only label for the user's OpenAI-compatible server; on
-// the wire it is sent as provider='openai' + a base_url (the SSE client maps
-// it), so it only works when the WME backend runs locally. 'pia' is sent as-is:
-// a gateway the server resolves from its model catalog.
-// 'free' is the keyless server-hosted open-weight tier: sent to the backend as
-// provider='free' with NO api_key and NO base_url — the server injects the
-// hosted endpoint + token. Offered only when /spec-driven/config advertises it.
-export type SpecDrivenProvider =
-  | 'anthropic'
-  | 'openai'
-  | 'mistral'
-  // Nebius Token Factory: a real backend provider, sent on the wire as-is
-  // with NO base_url (the endpoint is pinned server-side).
-  | 'nebius'
-  | 'pia'
-  | 'local'
-  | 'free'
-  // Server-paid demo tier: endpoint, token and model all live in server env.
-  | 'sponsored';
+import type { LlmProviderId } from '../../shared/services/llmKeyStorage';
+
+// Every provider a run can use (LLM_PROVIDERS); the SSE client maps 'local' to
+// provider='openai' + base_url and sends no key for 'free' / 'sponsored'.
+export type SpecDrivenProvider = LlmProviderId;
 
 export type SpecDrivenPrimaryKind =
   | 'class'
@@ -264,13 +250,11 @@ export type SpecDrivenEvent = (
  * The frontend consumes this from the existing assistant WebSocket
  * action dispatcher and kicks off a spec-driven run.
  *
- * ``provider``, ``llmModel``, and ``message`` are always sent by the
- * modeling agent today (see
- * ``modeling-agent/src/handlers/smart_generation_handler.py::build_trigger_smart_generator_payload``)
- * but kept optional here so the frontend handles older / alternative
- * sources gracefully — ``useSpecDrivenTrigger`` falls back to the
- * sessionStorage provider and a default intro message when they're
- * absent.
+ * ``provider`` and ``message`` are always sent by the modeling agent
+ * (``src/codegen/smart_generation_handler.py::build_trigger_smart_generator_payload``);
+ * ``llmModel`` only when the user picked a model, otherwise the backend's
+ * catalog default decides. All three stay optional: ``useSpecDrivenTrigger``
+ * falls back to the sessionStorage provider and a default intro message.
  */
 export interface TriggerSpecDrivenPayload {
   action: 'trigger_smart_generator';

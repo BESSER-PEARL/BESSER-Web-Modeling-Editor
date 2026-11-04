@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { Trans, useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -12,6 +13,7 @@ import { useProject } from '../../app/hooks/useProject';
 import { useAppDispatch } from '../../app/store/hooks';
 import { switchDiagramTypeThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import {
   DEFAULT_KG_HARD_LIMIT,
   DEFAULT_KG_LAYOUT,
@@ -127,9 +129,12 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
     try {
       const updated = await dispatch(updateDiagramModelThunk({ model: nextModel })).unwrap();
       if (!updated) throw new Error('no active diagram');
+      // One save covers every field: report the layout (an enum) and whether it changed.
+      track('settings_changed', { area: 'kg', setting: layoutChanged ? 'layout' : 'limits', value: layoutInput });
       toast.success(t('editors.kg.settings.saved'));
-    } catch {
-      toast.error(t('editors.kg.settings.saveFailed'));
+    } catch (error) {
+      trackFailure('settings_change_failed', error, { area: 'kg', setting: layoutChanged ? 'layout' : 'limits' });
+      reportError(t('editors.kg.settings.saveFailed'));
     }
   };
 

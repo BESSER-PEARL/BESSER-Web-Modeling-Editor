@@ -9,7 +9,33 @@
     "loading": "Cargando…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "ok": "Aceptar"
+  },
+  "whatsNew": {
+    "title": "Novedades",
+    "unread_one": "Novedades (1 nueva)",
+    "unread_other": "Novedades ({{count}} nuevas)",
+    "new": "Nuevo",
+    "entries": {
+      "keepEdits": {
+        "title": "Tus cambios sobreviven a un cambio de modelo",
+        "body": "Cambia el modelo de clases de una app creada por el Spec-Driven Agent: regenera los archivos que nadie editó y fusiona tus cambios en los demás, así que muchos menos cambios necesitan la IA."
+      },
+      "anyStack": {
+        "title": "Aplicaciones en la tecnología que pidas",
+        "body": "Pide al Spec-Driven Agent una API REST en Go o una herramienta de línea de comandos en Rust: la construye y después comprueba la aplicación igual que comprueba una aplicación web."
+      },
+      "githubRepo": {
+        "title": "Proyectos vinculados a GitHub",
+        "body": "Vincula un proyecto a un repositorio de GitHub. El menú GitHub guarda allí tu modelo, obtiene la última versión, muestra el historial y te dice si estás sincronizado."
+      },
+      "knowledgeGraph": {
+        "title": "Diagramas Knowledge Graph",
+        "body": "Importa una ontología OWL o RDF, edítala como un grafo, compruébala con sus restricciones OWL y SHACL y conviértela en un diagrama de clases con restricciones OCL.",
+        "action": "Abrir el editor Knowledge Graph"
+      }
+    }
   },
   "topbar": {
     "language": "Idioma",
@@ -2199,7 +2225,7 @@
       "settingsButton": "Configuración de privacidad",
       "banner": {
         "title": "Cookies de analíticas",
-        "subtitle": "Analíticas anónimas para mejorar BESSER.",
+        "subtitle": "Analíticas e informes de errores para mejorar BESSER.",
         "details": "Detalles",
         "hideDetails": "Ocultar detalles",
         "decline": "Rechazar",
@@ -2207,10 +2233,13 @@
         "accept": "Aceptar",
         "privacyPolicy": "Política de privacidad",
         "rows": {
-          "generators": "Generadores de código utilizados",
+          "generators": "Funciones utilizadas y si funcionan",
+          "interactions": "Posiciones de los clics (mapas de calor) y velocidad de carga de las páginas",
           "diagramComplexity": "Tipo de diagrama y complejidad del modelo",
           "assistantUsage": "Recuento de uso del asistente de IA",
-          "noContent": "Sin contenido del modelo ni datos personales"
+          "errorReports": "Informes de errores anónimos",
+          "visitStats": "Estadísticas de visitas (Google Analytics)",
+          "noContent": "Sin contenido del modelo, nombres de proyectos ni datos de identidad"
         }
       },
       "settings": {
@@ -2226,10 +2255,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) es una plataforma low-code de código abierto desarrollada por el Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Datos que recopilamos",
         "collect": {
-          "usage": "Uso de funciones (generadores y flujos de trabajo de diagramas)",
+          "usage": "Uso de funciones y resultados: qué funciones utiliza, si funcionan o fallan, cuánto tardan y el tipo de error (nunca lo que escribe o modela)",
+          "interactions": "Posiciones de los clics y del puntero en las páginas (mapas de calor) y rendimiento de carga de las páginas",
           "metrics": "Métricas del modelo (recuentos de tamaño y estructura)",
           "assistant": "Recuentos de uso del asistente de IA (no el contenido)",
-          "session": "Metadatos de sesión anónimos"
+          "session": "Metadatos de sesión anónimos",
+          "visits": "Estadísticas de visitas: páginas visitadas, ubicación aproximada derivada de tu dirección IP, tipo de dispositivo y de navegador",
+          "errors": "Informes de errores anónimos (tipo de error, traza de la pila, estado HTTP, ruta de la página y tipo de navegador)"
         },
         "noCollectTitle": "Datos que no recopilamos",
         "noCollect": {
@@ -2240,9 +2272,13 @@
         },
         "useTitle": "Cómo usamos los datos",
         "useBody": "Las analíticas se usan únicamente para mejorar la calidad del producto y priorizar el desarrollo de funciones. No se utilizan con fines de marketing ni de reventa.",
-        "providerTitle": "Proveedor",
-        "providerIntro": "Usamos PostHog (alojado en la UE). Consulta la",
-        "providerLinkText": "Política de privacidad de PostHog"
+        "providerTitle": "Proveedores",
+        "providerIntro": "Usamos PostHog (alojado en la UE) para las analíticas de uso. Consulta la",
+        "providerLinkText": "Política de privacidad de PostHog",
+        "errorProviderIntro": "Los informes de errores se envían a Sentry (alojado en la UE, de.sentry.io) solo después de que aceptes las analíticas, y nunca incluyen contenido de modelos ni nombres de proyectos. Consulta la",
+        "errorProviderLinkText": "Política de privacidad de Sentry",
+        "visitProviderIntro": "Las estadísticas de visitas se envían a Google Analytics solo después de que aceptes las analíticas. Google no almacena tu dirección IP, y las señales de Google y la personalización de anuncios están desactivadas. Consulta la",
+        "visitProviderLinkText": "Política de privacidad de Google"
       }
     },
     "errors": {
@@ -2842,8 +2878,6 @@
       "statusSaved": "Guardado",
       "statusSaving": "Guardando…",
       "statusErrorSaving": "Error al guardar",
-      "editorStillLoading": "El editor todavía se está cargando. Espera un momento e inténtalo de nuevo.",
-      "errorSavingProject": "Error al guardar el proyecto. Consulta la consola para más detalles.",
       "downloadHtml": "Descargar HTML",
       "exportTemplate": "Exportar plantilla",
       "downloadJson": "Descargar JSON",
@@ -2867,9 +2901,6 @@
       "qualityCheckFailedMessage": "Se encontraron errores en tu diagrama de clases. Resuélvelos antes de generar la interfaz.",
       "classDiagramErrors": "Errores del diagrama de clases",
       "noClassesFound": "No se encontraron clases en el diagrama de clases. Primero cree un diagrama de clases.",
-      "noPageSelected": "Ninguna página seleccionada",
-      "editRoutePrompt": "Editar la ruta de la página \"{{pageName}}\":\n\nEjemplos:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Ruta actualizada a: {{route}}",
       "sidebarBlocks": "Bloques",
       "sidebarStyles": "Estilos",
       "sidebarTraits": "Propiedades",
@@ -3671,7 +3702,6 @@
       "failed": "Error en la exportación: {{error}}",
       "validationFailed": "La validación ha fallado",
       "noDiagramToExport": "No hay ningún diagrama para exportar",
-      "couldNotParseError": "No se pudo analizar la respuesta de error",
       "bumlExportSuccess": "Exportación de B-UML completada correctamente",
       "noProjectData": "No hay datos de proyecto disponibles para exportar",
       "projectExportedAs": "Proyecto exportado como {{filename}}",
@@ -3742,8 +3772,7 @@
       "couldNotImportFromKg": "No se pudo importar el diagrama desde Knowledge Graph: {{message}}",
       "couldNotImportFromImage": "No se pudo importar el diagrama desde una imagen: {{message}}",
       "readFileFailed": "No se pudo leer el archivo",
-      "invalidFromBackend": "El backend devolvió un diagrama no válido",
-      "couldNotParseError": "No se pudo analizar la respuesta de error"
+      "invalidFromBackend": "El backend devolvió un diagrama no válido"
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",

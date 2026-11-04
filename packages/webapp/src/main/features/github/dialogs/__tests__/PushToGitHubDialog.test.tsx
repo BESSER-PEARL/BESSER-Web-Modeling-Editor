@@ -52,7 +52,10 @@ const result = (overrides: Partial<SpecDrivenPushResult>): SpecDrivenPushResult 
   status: 'pushed',
   conflict_branch: null,
   pull_request_url: null,
+  pull_request_branch: null,
   base_run_id: null,
+  warnings: [],
+  project_export: null,
   ...overrides,
 });
 

@@ -283,15 +283,26 @@ If you add a new alias, update **both** files.
 
 ### API communication
 
-All backend calls go through `shared/api/api-client.ts`:
+All backend calls live in `shared/api/` (ESLint rejects `fetch`, and importing
+`apiClient`, elsewhere):
 
-- Singleton `apiClient` with a 30 s timeout.
-- Methods: `get()`, `post()`, `upload()` (FormData), `downloadBlob()`
-  (binary).
-- Custom `ApiError` class with HTTP status.
+- `api-client.ts`: singleton `apiClient` with a 30 s default timeout (pass
+  `timeout` for slower endpoints); methods `get()`, `post()`, `upload()`
+  (FormData), `downloadBlob()` / `getBlob()` (binary); custom `ApiError` class
+  with the HTTP status and the server's `detail`. Use it for every new call:
+  raw `fetch` is kept only for streams, keepalive/beacon calls and non-BESSER
+  hosts.
+- One module per backend area (`generation.ts`, `conversion.ts`,
+  `github.ts`, ...) that components and hooks call.
+- Contract types: `generated/besser-openapi.d.ts`, generated from the
+  backend's OpenAPI schema (`packages/webapp/openapi/besser-openapi.json`).
+  Type a response body as the generated `components['schemas']['SchemaName']`.
+  Where it is looser than what the backend sends, fix the backend's response
+  model (BESSER `models/responses.py`) and regenerate.
 
 If you change a backend API contract, **update both the backend (Pydantic
-models / endpoint) and `shared/api/`** in lock-step.
+models / endpoint) and `shared/api/`** in lock-step, and regenerate the
+schema and types with `npm run api:generate --workspace=webapp`.
 
 ### Adding a new diagram element
 

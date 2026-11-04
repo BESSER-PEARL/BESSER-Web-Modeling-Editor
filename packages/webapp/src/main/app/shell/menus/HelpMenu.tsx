@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HeaderTooltip } from './HeaderTooltip';
+import { track } from '../../../shared/services/analytics/events';
 import { menuGroupLabelClass } from './FileMenu';
 
 const COMMUNITY_URLS = {
@@ -32,13 +33,15 @@ const COMMUNITY_URLS = {
   repository: 'https://github.com/BESSER-PEARL/BESSER',
 };
 
-const ExternalLinkItem: React.FC<{ href: string; icon: React.ReactNode; children: React.ReactNode }> = ({
+/** `link` names the destination for analytics; the URL itself is never sent. */
+const ExternalLinkItem: React.FC<{ href: string; link: string; icon: React.ReactNode; children: React.ReactNode }> = ({
   href,
+  link,
   icon,
   children,
 }) => (
   <DropdownMenuItem asChild>
-    <a href={href} target="_blank" rel="noopener noreferrer">
+    <a href={href} target="_blank" rel="noopener noreferrer" onClick={() => track('ui_action', { action: 'link_opened', link })}>
       {icon}
       {children}
       <ExternalLink className="ml-auto size-3.5 opacity-60" aria-hidden="true" />
@@ -104,17 +107,17 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel className={menuGroupLabelClass}>{t('menu.community.title')}</DropdownMenuLabel>
-        <ExternalLinkItem href={COMMUNITY_URLS.contribute} icon={<GitPullRequest className="mr-2 size-4" />}>
+        <ExternalLinkItem href={COMMUNITY_URLS.contribute} link="contribute" icon={<GitPullRequest className="mr-2 size-4" />}>
           {t('menu.community.contribute')}
         </ExternalLinkItem>
-        <ExternalLinkItem href={COMMUNITY_URLS.repository} icon={<FolderGit2 className="mr-2 size-4" />}>
+        <ExternalLinkItem href={COMMUNITY_URLS.repository} link="repository" icon={<FolderGit2 className="mr-2 size-4" />}>
           {t('menu.community.githubRepository')}
         </ExternalLinkItem>
         <DropdownMenuItem onClick={onOpenFeedback}>
           <MessageSquare className="mr-2 size-4" />
           {t('menu.community.sendFeedback')}
         </DropdownMenuItem>
-        <ExternalLinkItem href={bugReportURL} icon={<Bug className="mr-2 size-4" />}>
+        <ExternalLinkItem href={bugReportURL} link="report_problem" icon={<Bug className="mr-2 size-4" />}>
           {t('menu.community.reportProblem')}
         </ExternalLinkItem>
       </DropdownMenuContent>

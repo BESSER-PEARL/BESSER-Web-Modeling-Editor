@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SUPPORTED_LANGUAGES } from '../../shared/i18n/languages';
 import { HeaderTooltip } from './menus/HeaderTooltip';
+import { track } from '../../shared/services/analytics/events';
 
 interface LanguageSelectorProps {
   outlineButtonClass?: string;
@@ -31,6 +32,7 @@ export const LanguageRadioItems: React.FC = () => {
     <DropdownMenuRadioGroup
       value={active.code}
       onValueChange={(code) => {
+        track('language_changed', { from: active.code, to: code });
         void i18n.changeLanguage(code);
       }}
     >

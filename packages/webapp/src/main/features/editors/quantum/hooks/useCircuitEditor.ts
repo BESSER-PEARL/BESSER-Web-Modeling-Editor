@@ -4,6 +4,7 @@ import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
 import { useUndoRedo } from '../../../../shared/hooks/useUndoRedo';
 import { GATE_SIZE, cellAt } from '../layout-constants';
+import { track } from '../../../../shared/services/analytics/events';
 
 interface UseCircuitEditorOptions {
     initialCircuit: Circuit;
@@ -201,6 +202,7 @@ export function useCircuitEditor({
             newColumns[position.col] = { gates: newGates };
             return trimCircuit({ ...prev, columns: newColumns });
         });
+        track('editor_action', { editor: 'quantum', action: 'gate_placed', gate_type: gateType });
         return true;
     }, [setCircuit]);
 

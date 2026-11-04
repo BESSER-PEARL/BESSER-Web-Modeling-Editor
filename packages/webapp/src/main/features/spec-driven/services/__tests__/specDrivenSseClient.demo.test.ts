@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { startSpecDrivenRun } from '../specDrivenSseClient';
-import * as sse from '../../../../shared/services/sse/sseClient';
+import * as sse from '../../../../shared/api/sseClient';
 
 const DEMO_TOKEN = 'demo-token-abc123';
 

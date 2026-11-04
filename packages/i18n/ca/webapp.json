@@ -9,7 +9,33 @@
     "loading": "S'està carregant…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Torna-ho a provar"
+    "retry": "Torna-ho a provar",
+    "ok": "D'acord"
+  },
+  "whatsNew": {
+    "title": "Novetats",
+    "unread_one": "Novetats (1 nova)",
+    "unread_other": "Novetats ({{count}} noves)",
+    "new": "Nou",
+    "entries": {
+      "keepEdits": {
+        "title": "Els teus canvis sobreviuen a un canvi de model",
+        "body": "Canvia el model de classes d’una app creada pel Spec-Driven Agent: regenera els fitxers que ningú no ha editat i fusiona els teus canvis amb la resta, de manera que molts menys canvis necessiten la IA."
+      },
+      "anyStack": {
+        "title": "Aplicacions en la tecnologia que demanis",
+        "body": "Demana al Spec-Driven Agent una API REST en Go o una eina de línia d’ordres en Rust: la construeix i després comprova l’aplicació igual que comprova una aplicació web."
+      },
+      "githubRepo": {
+        "title": "Projectes vinculats a GitHub",
+        "body": "Vincula un projecte a un repositori de GitHub. El menú GitHub hi desa el teu model, obté l’última versió, mostra l’historial i et diu si estàs sincronitzat."
+      },
+      "knowledgeGraph": {
+        "title": "Diagrames Knowledge Graph",
+        "body": "Importa una ontologia OWL o RDF, edita-la com un graf, comprova-la amb les seves restriccions OWL i SHACL i converteix-la en un diagrama de classes amb restriccions OCL.",
+        "action": "Obre l’editor Knowledge Graph"
+      }
+    }
   },
   "topbar": {
     "language": "Idioma",
@@ -2199,7 +2225,7 @@
       "settingsButton": "Configuració de privadesa",
       "banner": {
         "title": "Galetes d'analítica",
-        "subtitle": "Analítica anònima per millorar BESSER.",
+        "subtitle": "Analítica i informes d'error per millorar BESSER.",
         "details": "Detalls",
         "hideDetails": "Amaga els detalls",
         "decline": "Rebutja",
@@ -2207,10 +2233,13 @@
         "accept": "Accepta",
         "privacyPolicy": "Política de privadesa",
         "rows": {
-          "generators": "Generadors de codi utilitzats",
+          "generators": "Funcions utilitzades i si funcionen",
+          "interactions": "Posicions dels clics (mapes de calor) i velocitat de càrrega de les pàgines",
           "diagramComplexity": "Tipus de diagrama i complexitat del model",
           "assistantUsage": "Recompte d'ús de l'assistent d'IA",
-          "noContent": "Sense contingut del model ni dades personals"
+          "errorReports": "Informes d'error anònims",
+          "visitStats": "Estadístiques de visites (Google Analytics)",
+          "noContent": "Sense contingut del model, noms de projectes ni dades d'identitat"
         }
       },
       "settings": {
@@ -2226,10 +2255,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) és una plataforma low-code de codi obert desenvolupada pel Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Dades que recollim",
         "collect": {
-          "usage": "Ús de funcions (generadors i fluxos de treball de diagrames)",
+          "usage": "Ús de funcions i resultats: quines funcions feu servir, si funcionen o fallen, quant triguen i el tipus d'error (mai el que escriviu o modeleu)",
+          "interactions": "Posicions dels clics i del punter a les pàgines (mapes de calor) i rendiment de càrrega de les pàgines",
           "metrics": "Mètriques del model (recomptes de mida i estructura)",
           "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
-          "session": "Metadades de sessió anònimes"
+          "session": "Metadades de sessió anònimes",
+          "visits": "Estadístiques de visites: pàgines visitades, ubicació aproximada derivada de la teva adreça IP, tipus de dispositiu i de navegador",
+          "errors": "Informes d'error anònims (tipus d'error, traça de la pila, estat HTTP, ruta de la pàgina i tipus de navegador)"
         },
         "noCollectTitle": "Dades que no recollim",
         "noCollect": {
@@ -2240,9 +2272,13 @@
         },
         "useTitle": "Com utilitzem les dades",
         "useBody": "L'analítica només s'utilitza per millorar la qualitat del producte i prioritzar el desenvolupament de funcions. No s'utilitza per a màrqueting ni revenda.",
-        "providerTitle": "Proveïdor",
-        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Veu la",
-        "providerLinkText": "Política de privadesa de PostHog"
+        "providerTitle": "Proveïdors",
+        "providerIntro": "Utilitzem PostHog (allotjat a la UE) per a l'analítica d'ús. Veu la",
+        "providerLinkText": "Política de privadesa de PostHog",
+        "errorProviderIntro": "Els informes d'error s'envien a Sentry (allotjat a la UE, de.sentry.io) només després que acceptis l'analítica, i mai no inclouen contingut de models ni noms de projectes. Veu la",
+        "errorProviderLinkText": "Política de privadesa de Sentry",
+        "visitProviderIntro": "Les estadístiques de visites s'envien a Google Analytics només després que acceptis l'analítica. Google no emmagatzema la teva adreça IP, i els senyals de Google i la personalització d'anuncis estan desactivats. Veu la",
+        "visitProviderLinkText": "Política de privadesa de Google"
       }
     },
     "errors": {
@@ -2842,8 +2878,6 @@
       "statusSaved": "Desat",
       "statusSaving": "S'està desant…",
       "statusErrorSaving": "Error en desar",
-      "editorStillLoading": "L'editor encara s'està carregant. Espera un moment i torna-ho a provar.",
-      "errorSavingProject": "Error en desar el projecte. Consulta la consola per a més detalls.",
       "downloadHtml": "Baixa HTML",
       "exportTemplate": "Exporta la plantilla",
       "downloadJson": "Baixa JSON",
@@ -2867,9 +2901,6 @@
       "qualityCheckFailedMessage": "S'han trobat errors al teu diagrama de classes. Corregeix-los abans de generar la interfície.",
       "classDiagramErrors": "Errors del diagrama de classes",
       "noClassesFound": "No s'han trobat classes al diagrama de classes. Primer crea un diagrama de classes.",
-      "noPageSelected": "No s'ha seleccionat cap pàgina",
-      "editRoutePrompt": "Edita el camí de ruta per a la pàgina \"{{pageName}}\":\n\nExemples:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Ruta actualitzada a: {{route}}",
       "sidebarBlocks": "Blocs",
       "sidebarStyles": "Estils",
       "sidebarTraits": "Propietats",
@@ -3671,7 +3702,6 @@
       "failed": "L'exportació ha fallat: {{error}}",
       "validationFailed": "La validació ha fallat",
       "noDiagramToExport": "No hi ha cap diagrama per exportar",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
       "bumlExportSuccess": "Exportació de B-UML completada correctament",
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
@@ -3742,8 +3772,7 @@
       "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de graf de coneixement: {{message}}",
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
-      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid"
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",

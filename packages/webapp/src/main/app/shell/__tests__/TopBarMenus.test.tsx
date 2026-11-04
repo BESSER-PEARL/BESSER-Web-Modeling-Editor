@@ -14,6 +14,10 @@ vi.mock('../../../features/github/components/GitHubMenu', () => ({
     <div data-testid="github-menu">{isAuthenticated ? `signed in as ${username}` : 'signed out'}</div>
   ),
 }));
+// Reads the store; covered by its own tests.
+vi.mock('../../../features/whats-new/WhatsNewMenu', () => ({
+  WhatsNewMenu: () => <div data-testid="whats-new-menu" />,
+}));
 
 const withTooltips = (ui: React.ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
 const openMenu = (name: string) => fireEvent.keyDown(screen.getByRole('button', { name }), { key: 'ArrowDown' });
@@ -150,6 +154,7 @@ describe('TopBarUtilities', () => {
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
         onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
       />,
     );
 
@@ -172,6 +177,7 @@ describe('TopBarUtilities', () => {
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
         onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
       />,
     );
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { CloudUpload, GitPullRequest, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -58,7 +59,7 @@ export const SaveToGitHubDialog: React.FC<SaveToGitHubDialogProps> = ({ open, on
       );
       result.warnings?.forEach((warning) => toast.warn(warning));
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     } finally {
       setIsSaving(false);
     }
@@ -72,7 +73,7 @@ export const SaveToGitHubDialog: React.FC<SaveToGitHubDialogProps> = ({ open, on
       setPullRequestUrl(url);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      toast.error(errorMessage(error));
+      reportError(errorMessage(error), { error });
     }
   };
 

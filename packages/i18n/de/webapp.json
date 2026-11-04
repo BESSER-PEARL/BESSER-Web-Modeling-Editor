@@ -9,7 +9,33 @@
     "loading": "Wird geladen…",
     "yes": "Ja",
     "no": "Nein",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "ok": "OK"
+  },
+  "whatsNew": {
+    "title": "Neuigkeiten",
+    "unread_one": "Neuigkeiten (1 neu)",
+    "unread_other": "Neuigkeiten ({{count}} neu)",
+    "new": "Neu",
+    "entries": {
+      "keepEdits": {
+        "title": "Deine Änderungen überstehen eine Modelländerung",
+        "body": "Ändere das Klassenmodell einer App, die der Spec-Driven Agent gebaut hat: Er erzeugt die Dateien, die niemand bearbeitet hat, neu und führt deine Änderungen in die übrigen zusammen, sodass deutlich weniger Änderungen die KI brauchen."
+      },
+      "anyStack": {
+        "title": "Apps im gewünschten Stack",
+        "body": "Bitte den Spec-Driven Agent um eine REST-API in Go oder ein Kommandozeilen-Tool in Rust: Er baut genau das und prüft die App so, wie er eine Web-App prüft."
+      },
+      "githubRepo": {
+        "title": "Projekte mit GitHub verknüpft",
+        "body": "Verknüpfe ein Projekt mit einem GitHub-Repository. Das GitHub-Menü speichert dein Modell dort, holt die neueste Version, zeigt den Verlauf und sagt dir, ob alles synchron ist."
+      },
+      "knowledgeGraph": {
+        "title": "Knowledge-Graph-Diagramme",
+        "body": "Importiere eine OWL- oder RDF-Ontologie, bearbeite sie als Graph, prüfe sie gegen ihre OWL- und SHACL-Constraints und wandle sie in ein Klassendiagramm mit OCL-Constraints um.",
+        "action": "Knowledge-Graph-Editor öffnen"
+      }
+    }
   },
   "topbar": {
     "language": "Sprache",
@@ -2199,7 +2225,7 @@
       "settingsButton": "Datenschutzeinstellungen",
       "banner": {
         "title": "Analyse-Cookies",
-        "subtitle": "Anonyme Analyse zur Verbesserung von BESSER.",
+        "subtitle": "Analysen und Fehlerberichte zur Verbesserung von BESSER.",
         "details": "Details",
         "hideDetails": "Details ausblenden",
         "decline": "Ablehnen",
@@ -2207,10 +2233,13 @@
         "accept": "Akzeptieren",
         "privacyPolicy": "Datenschutzerklärung",
         "rows": {
-          "generators": "Verwendete Code-Generatoren",
+          "generators": "Genutzte Funktionen und ob sie funktionieren",
+          "interactions": "Klickpositionen (Heatmaps) und Ladezeiten der Seiten",
           "diagramComplexity": "Diagrammtyp und Modellkomplexität",
           "assistantUsage": "Nutzungshäufigkeit des KI-Assistenten",
-          "noContent": "Keine Modellinhalte oder personenbezogenen Daten"
+          "errorReports": "Anonyme Fehlerberichte",
+          "visitStats": "Besuchsstatistiken (Google Analytics)",
+          "noContent": "Keine Modellinhalte, Projektnamen oder Identitätsdaten"
         }
       },
       "settings": {
@@ -2226,10 +2255,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ist eine quelloffene Low-Code-Plattform, die von der Software Engineering Research Group am LIST (Luxembourg Institute of Science and Technology) entwickelt wird.",
         "collectTitle": "Daten, die wir erfassen",
         "collect": {
-          "usage": "Funktionsnutzung (Generatoren und Diagramm-Workflows)",
+          "usage": "Funktionsnutzung und Ergebnisse: welche Funktionen Sie nutzen, ob sie gelingen oder fehlschlagen, wie lange sie dauern und der Fehlertyp (nie, was Sie eingeben oder modellieren)",
+          "interactions": "Klick- und Zeigerpositionen auf Seiten (Heatmaps) und Ladezeiten der Seiten",
           "metrics": "Modellmetriken (Größen- und Strukturzählungen)",
           "assistant": "Nutzungszahlen des KI-Assistenten (nicht die Inhalte)",
-          "session": "Anonyme Sitzungsmetadaten"
+          "session": "Anonyme Sitzungsmetadaten",
+          "visits": "Besuchsstatistiken: besuchte Seiten, ungefährer Standort (aus Ihrer IP-Adresse abgeleitet), Geräte- und Browsertyp",
+          "errors": "Anonyme Fehlerberichte (Fehlertyp, Stacktrace, HTTP-Status, Seitenpfad und Browsertyp)"
         },
         "noCollectTitle": "Daten, die wir nicht erfassen",
         "noCollect": {
@@ -2241,8 +2273,12 @@
         "useTitle": "Wie wir Daten verwenden",
         "useBody": "Die Analyse wird ausschließlich zur Verbesserung der Produktqualität und zur Priorisierung der Funktionsentwicklung verwendet. Sie wird nicht für Marketing oder Weiterverkauf genutzt.",
         "providerTitle": "Anbieter",
-        "providerIntro": "Wir verwenden PostHog (in der EU gehostet). Siehe",
-        "providerLinkText": "PostHog-Datenschutzerklärung"
+        "providerIntro": "Wir verwenden PostHog (in der EU gehostet) für die Nutzungsanalyse. Siehe",
+        "providerLinkText": "PostHog-Datenschutzerklärung",
+        "errorProviderIntro": "Fehlerberichte gehen an Sentry (in der EU gehostet, de.sentry.io), erst nachdem Sie der Analyse zugestimmt haben, und enthalten nie Modellinhalte oder Projektnamen. Siehe",
+        "errorProviderLinkText": "Sentry-Datenschutzerklärung",
+        "visitProviderIntro": "Besuchsstatistiken gehen an Google Analytics, erst nachdem Sie der Analyse zugestimmt haben. Google speichert Ihre IP-Adresse nicht, und Google Signals sowie personalisierte Werbung sind deaktiviert. Siehe",
+        "visitProviderLinkText": "Google-Datenschutzerklärung"
       }
     },
     "errors": {
@@ -2842,8 +2878,6 @@
       "statusSaved": "Gespeichert",
       "statusSaving": "Wird gespeichert…",
       "statusErrorSaving": "Fehler beim Speichern",
-      "editorStillLoading": "Der Editor wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
-      "errorSavingProject": "Fehler beim Speichern des Projekts. Weitere Details finden Sie in der Konsole.",
       "downloadHtml": "HTML herunterladen",
       "exportTemplate": "Vorlage exportieren",
       "downloadJson": "JSON herunterladen",
@@ -2867,9 +2901,6 @@
       "qualityCheckFailedMessage": "In Ihrem Klassendiagramm wurden Fehler gefunden. Bitte beheben Sie diese, bevor Sie die GUI generieren.",
       "classDiagramErrors": "Fehler im Klassendiagramm",
       "noClassesFound": "Keine Klassen im Klassendiagramm gefunden. Bitte erstellen Sie zuerst ein Klassendiagramm.",
-      "noPageSelected": "Keine Seite ausgewählt",
-      "editRoutePrompt": "Routenpfad für die Seite \"{{pageName}}\" bearbeiten:\n\nBeispiele:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Route aktualisiert auf: {{route}}",
       "sidebarBlocks": "Blöcke",
       "sidebarStyles": "Stile",
       "sidebarTraits": "Eigenschaften",
@@ -3671,7 +3702,6 @@
       "failed": "Export fehlgeschlagen: {{error}}",
       "validationFailed": "Validierung fehlgeschlagen",
       "noDiagramToExport": "Kein Diagramm zum Exportieren",
-      "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden",
       "bumlExportSuccess": "B-UML-Export erfolgreich abgeschlossen",
       "noProjectData": "Keine Projektdaten zum Exportieren verfügbar",
       "projectExportedAs": "Projekt exportiert als {{filename}}",
@@ -3742,8 +3772,7 @@
       "couldNotImportFromKg": "Diagramm konnte nicht aus Knowledge Graph importiert werden: {{message}}",
       "couldNotImportFromImage": "Diagramm konnte nicht aus Bild importiert werden: {{message}}",
       "readFileFailed": "Datei konnte nicht gelesen werden",
-      "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
-      "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden"
+      "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben"
     },
     "warnings": {
       "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",

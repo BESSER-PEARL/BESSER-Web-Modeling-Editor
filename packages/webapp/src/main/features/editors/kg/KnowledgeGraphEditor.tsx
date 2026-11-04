@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
+import { track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 // Toasts fired from the ref-based `useCallback([], ...)` handlers below read the
@@ -322,10 +324,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
     const notShown = newlyCreated.length - fitting.length;
 
     if (notShown > 0) {
+      track('editor_action', { editor: 'kg', action: 'node_cap_reached', nodes_count: next.nodes.length });
       if (newlyCreated.length === 1) {
-        toast.error(i18n.t('editors.kg.editor.toasts.createdButCapped', { limit: hardLimit }));
+        reportError(i18n.t('editors.kg.editor.toasts.createdButCapped', { limit: hardLimit }));
       } else {
-        toast.error(
+        reportError(
           i18n.t('editors.kg.editor.toasts.createdSomeCapped', {
             created: newlyCreated.length,
             notShown,
@@ -417,7 +420,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
         if (shouldBeVisible && hiddenMetaIdsRef.current.has(id)) return prev;
         if (shouldBeVisible && !has) {
           if (prev.length >= hardLimitRef.current) {
-            toast.error(
+            reportError(
               i18n.t('editors.kg.editor.toasts.visibleCapReached', { limit: hardLimitRef.current }),
             );
             return prev;
@@ -454,7 +457,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
           // informative kinds first (classes before literals).
           const nodesById = new Map(modelRef.current.nodes.map((n) => [n.id, n]));
           const ranked = sortIdsByPriority(toAdd, nodesById);
-          toast.error(
+          reportError(
             i18n.t('editors.kg.editor.toasts.visibleCapPartial', {
               limit: hardLimitRef.current,
               added: room,
@@ -586,10 +589,12 @@ export const KnowledgeGraphEditor: React.FC = () => {
               i18n.language,
             );
             if (!html) {
-              toast.error(t('editors.kg.editor.toasts.exportNotReady'));
+              reportError(t('editors.kg.editor.toasts.exportNotReady'));
+              track('editor_action_failed', { editor: 'kg', action: 'html_exported', reason: 'not_ready' });
               return;
             }
             downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
+            track('editor_action', { editor: 'kg', action: 'html_exported' });
           }}
         />
         <div className="relative min-h-0 flex-1 overflow-hidden">

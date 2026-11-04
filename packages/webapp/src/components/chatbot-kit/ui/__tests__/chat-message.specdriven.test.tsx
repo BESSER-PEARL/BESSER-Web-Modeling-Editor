@@ -265,7 +265,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
 });
 
 describe('SpecDrivenCard — Stop button', () => {
-  it('POSTs the cancel endpoint for the run (fire-and-forget)', async () => {
+  it('POSTs the cancel endpoint through cancelSpecDrivenRun (keepalive, fire-and-forget)', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
     globalThis.fetch = fetchMock;
 
@@ -276,11 +276,24 @@ describe('SpecDrivenCard — Stop button', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(cancelSpecDrivenUrl(RUN_ID), {
       method: 'POST',
+      keepalive: true,
     });
     // Button disables to prevent duplicate cancels while the backend
     // winds the stream down.
     await waitFor(() => {
       expect((screen.getByRole('button', { name: /stopping/i }) as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
+  it('re-enables Stop when the cancel request cannot reach the server', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+    renderCard(baseSpecDriven());
+    fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+
+    await waitFor(() => {
+      const stopButton = screen.getByRole('button', { name: /^stop$/i });
+      expect((stopButton as HTMLButtonElement).disabled).toBe(false);
     });
   });
 

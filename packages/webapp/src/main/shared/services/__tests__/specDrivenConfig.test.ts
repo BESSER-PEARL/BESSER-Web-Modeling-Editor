@@ -181,6 +181,27 @@ describe('getSpecDrivenConfig', () => {
     expect(config.free_tier.models).toEqual([]);
   });
 
+  it("keeps the free tier's pilot model, so a study session can pre-select it", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...BACKEND_CONFIG,
+          free_tier: {
+            available: true,
+            model: 'qwen3-coder:30b',
+            models: [{ id: 'qwen3-coder:30b' }, { id: 'gpt-6-luna' }],
+            pilot_model: 'gpt-6-luna',
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const config = await getSpecDrivenConfig();
+    expect(config.free_tier.pilot_model).toBe('gpt-6-luna');
+    expect(preferredFreeModelId(config.free_tier, true)).toBe('gpt-6-luna');
+  });
+
   it("normalises the catalog's providers and drops malformed entries", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(

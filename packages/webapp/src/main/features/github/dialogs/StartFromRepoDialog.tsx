@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
+import { writeContinueFromGithubIntent } from '../../../shared/services/storage/githubStorage';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../../shared/components/github/RepoBrowser';
 import { continueFromGithubRepo, describeOpenedRepo } from '../../../shared/services/github/continueFromGithub';
 import { setLastRunForProject } from '../../spec-driven';
+import { track } from '../../../shared/services/analytics/events';
 
 const GITHUB_URL_RE = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([\w./-]+))?\/?$/i;
 
@@ -52,7 +53,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
     setBusy(true);
     setError(null);
     try {
-      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession });
+      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession, source: 'start_dialog' });
       if (!result.ok || !result.projectId) {
         setError(result.error ?? t('github.startFromRepo.failed', { defaultValue: 'Could not open this repository.' }));
         return;
@@ -71,6 +72,7 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
   const openLink = () => {
     const ref = parseRepoReference(link);
     if (!ref) {
+      track('github_repo_open_failed', { source: 'start_dialog', reason: 'invalid_link' });
       setError(t('github.startFromRepo.badLink', { defaultValue: 'Paste a link like github.com/owner/repo.' }));
       return;
     }
@@ -78,13 +80,9 @@ export const StartFromRepoDialog: React.FC<StartFromRepoDialogProps> = ({ open, 
   };
 
   const connect = () => {
-    try {
-      // The Project Hub reopens on its GitHub step once the OAuth redirect returns.
-      sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
-    } catch {
-      /* sessionStorage may be unavailable — login still proceeds. */
-    }
-    login();
+    // The Project Hub reopens on its GitHub step once the OAuth redirect returns.
+    writeContinueFromGithubIntent();
+    login('start_dialog');
   };
 
   return (
