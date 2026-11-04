@@ -1,20 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GENERATE_OBJECT_DIAGRAM_ENDPOINT, SEMANTIC_CHECK_ENDPOINT } from '../../../constants/constant';
-import { SseHttpError, SseStallError, streamSse } from '../../sse/sseClient';
+import { SseHttpError, SseStallError, streamSse } from '../../../api/sseClient';
 import {
   SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
   SEMANTIC_CHECK_STALL_TIMEOUT_MS,
+  type SemanticSearchEvent,
+} from '../../../api/validation';
+import {
   SemanticSearchIncompleteError,
   checkSemanticConsistency,
   generateObjectDiagram,
   isSemanticSearchRunning,
   semanticSearchErrorMessage,
-  type SemanticSearchEvent,
 } from '../semanticCheck';
 
-vi.mock('../../sse/sseClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../sse/sseClient')>();
+vi.mock('../../../api/sseClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../api/sseClient')>();
   return {
     ...actual,
     streamSse: vi.fn(() => (async function* () {})()),

@@ -230,6 +230,8 @@ export interface AnalyticsEvents {
   diagram_created: { type: string };
   diagram_deleted: { type: string; remaining: number };
   object_diagram_generated_from_class: { created: number; skipped: number; links: number };
+  /** Semantic generation replaced an object diagram with an instance of its class diagram's constraints. */
+  object_diagram_generated_from_constraints: { elements: number; relationships: number };
   template_used: { diagram_type?: string; mode: 'project' | 'replace' | 'new_tab'; had_model: boolean };
   template_failed: { diagram_type?: string } & ErrorProperties;
   diagram_imported: { format: string; diagram_type?: string; source?: string };

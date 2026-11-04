@@ -1,46 +1,24 @@
 /**
- * Semantic check of class diagrams: the editor's client of the backend's
- * `/semantic-consistency-check` and `/generate-object-diagram` streams.
+ * Semantic check of class diagrams: runs the backend's `/semantic-consistency-check` and
+ * `/generate-object-diagram` searches (their streams are in `shared/api/validation`), one at a
+ * time, and shows their results.
  *
- * The backend searches, with the Alloy Analyzer, for an instance of a class
- * diagram and its OCL constraints within increasingly larger bounds, and
- * streams its progress as SSE events; the last one has `done: true`. The
- * search is bounded by the backend itself, so the client sets no deadline
- * for it: it only checks that the stream is alive (see
- * `SEMANTIC_CHECK_STALL_TIMEOUT_MS`).
+ * The backend searches, with the Alloy Analyzer, for an instance of a class diagram and its OCL
+ * constraints within increasingly larger bounds, and streams its progress as SSE events; the
+ * last one has `done: true`.
  */
 
 import { toast } from 'react-toastify';
 import { formatErrorDetail } from '../../api/api-client';
-import { GENERATE_OBJECT_DIAGRAM_ENDPOINT, SEMANTIC_CHECK_ENDPOINT } from '../../constants/constant';
+import { SseHttpError, SseResponseTimeoutError, SseStallError } from '../../api/sseClient';
+import {
+  streamObjectDiagramGeneration,
+  streamSemanticConsistencyCheck,
+  type SemanticSearchEvent,
+} from '../../api/validation';
 import i18n from '../../i18n';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
-import { SseHttpError, SseResponseTimeoutError, SseStallError, streamSse } from '../sse/sseClient';
-
-/** An event of the semantic check stream. */
-export interface SemanticSearchEvent {
-  /** Whether this is the last event of the stream. */
-  done: boolean;
-  /** Whether an instance was found (last event only). */
-  isValid?: boolean;
-  /** What the backend is doing or found, e.g. "No instance within 5 objects per class, …". */
-  message: string;
-  errors?: string[];
-  warnings?: string[];
-  /** The instance found, as an object diagram (`/generate-object-diagram` only). */
-  object_model?: unknown;
-}
-
-/**
- * Liveness bound for the stream. While the Alloy Analyzer runs, the backend
- * sends a heartbeat comment every 15 s (`HEARTBEAT_SECONDS` in
- * `semantic_consistency.py`), so 60 s of total silence means the transport
- * died, not that the search is slow.
- */
-export const SEMANTIC_CHECK_STALL_TIMEOUT_MS = 60_000;
-
-/** Handshake deadline: the backend answers with the stream's headers before any work. */
-export const SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS = 45_000;
+import { reportError } from '../errors/reportError';
 
 /** Thrown when the stream ends without its last (`done`) event. */
 export class SemanticSearchIncompleteError extends Error {
@@ -59,23 +37,15 @@ export function isSemanticSearchRunning(): boolean {
 }
 
 /**
- * Streams the semantic search of `endpoint` for `body`; passes each progress
- * event to `onProgress` and resolves with the last (`done`) event. Aborting
- * `signal` closes the stream, which stops the search on the server.
+ * Follows the `events` of a semantic search: passes each progress event to `onProgress` and
+ * resolves with the last (`done`) event.
  */
-export async function streamSemanticSearch(
-  endpoint: string,
-  body: { title: string; model: unknown },
+async function followSemanticSearch(
+  events: AsyncGenerator<SemanticSearchEvent, void, void>,
   onProgress: (event: SemanticSearchEvent) => void,
-  signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
   searchRunning = true;
   try {
-    const events = streamSse<SemanticSearchEvent>(endpoint, body, {
-      stallTimeoutMs: SEMANTIC_CHECK_STALL_TIMEOUT_MS,
-      responseTimeoutMs: SEMANTIC_CHECK_RESPONSE_TIMEOUT_MS,
-      signal,
-    });
     for await (const event of events) {
       if (event.done) return event;
       onProgress(event);
@@ -86,14 +56,14 @@ export async function streamSemanticSearch(
   }
 }
 
-/** Searches for an instance of the class diagram `model`. */
+/** Searches for an instance of the class diagram `model`. Aborting `signal` stops the search on the server. */
 export function checkSemanticConsistency(
   title: string,
   model: unknown,
   onProgress: (event: SemanticSearchEvent) => void,
   signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
-  return streamSemanticSearch(SEMANTIC_CHECK_ENDPOINT, { title, model }, onProgress, signal);
+  return followSemanticSearch(streamSemanticConsistencyCheck({ title, model }, signal), onProgress);
 }
 
 /** Searches for an instance of the class diagram `model`; a found one comes as an object diagram. */
@@ -103,7 +73,7 @@ export function generateObjectDiagram(
   onProgress: (event: SemanticSearchEvent) => void,
   signal?: AbortSignal,
 ): Promise<SemanticSearchEvent> {
-  return streamSemanticSearch(GENERATE_OBJECT_DIAGRAM_ENDPOINT, { title, model }, onProgress, signal);
+  return followSemanticSearch(streamObjectDiagramGeneration({ title, model }, signal), onProgress);
 }
 
 /** Long, multi-line toasts for lists of errors and warnings. */
@@ -114,10 +84,10 @@ export function showSemanticSearchResult(event: SemanticSearchEvent): void {
   if (event.isValid) {
     toast.success(event.message);
   } else {
-    toast.error(event.message);
+    reportError(event.message);
   }
   if (event.errors?.length) {
-    toast.error(`${i18n.t('validation.semantic.errorsLabel')}\n\n${event.errors.join('\n\n')}`, {
+    reportError(`${i18n.t('validation.semantic.errorsLabel')}\n\n${event.errors.join('\n\n')}`, {
       autoClose: false,
       className: LIST_TOAST_CLASS,
     });

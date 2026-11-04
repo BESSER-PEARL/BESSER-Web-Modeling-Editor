@@ -217,13 +217,13 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       return;
     }
     if (!apollonEditor || !apollonEditor.model) {
-      toast.error(t('editors.diagramTabs.editorNotReady'));
+      reportError(t('editors.diagramTabs.editorNotReady'));
       return;
     }
     const refDiagram = classDiagrams.find((d) => d.id === classRefId);
     const refModel = refDiagram?.model;
     if (!refDiagram || !isUMLModel(refModel)) {
-      toast.error(t('editors.diagramTabs.pickClassRefFirst'));
+      reportError(t('editors.diagramTabs.pickClassRefFirst'));
       return;
     }
     const currentModel = apollonEditor.model;
@@ -257,7 +257,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       }
       const nextModel = result.object_model;
       if (!isUMLModel(nextModel)) {
-        toast.error(t('editors.diagramTabs.payloadMissing'));
+        reportError(t('editors.diagramTabs.payloadMissing'));
         return;
       }
 
@@ -267,18 +267,18 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       await apollonEditor.nextRender;
 
       showSemanticSearchResult(result);
-      getPostHog()?.capture('object_diagram_generated_from_constraints', {
+      track('object_diagram_generated_from_constraints', {
         elements: Object.keys(nextModel.elements ?? {}).length,
         relationships: Object.keys(nextModel.relationships ?? {}).length,
       });
     } catch (error) {
-      toast.dismiss(toastId);
       // Leaving the diagram aborts the stream, which then ends as an error
       if (generation.signal.aborted) {
+        toast.dismiss(toastId);
         toast.info(t('editors.diagramTabs.generationDiscarded'));
         return;
       }
-      toast.error(semanticSearchErrorMessage(error));
+      reportError(semanticSearchErrorMessage(error), { error, updateToast: toastId, isLoading: false, autoClose: 5000 });
     } finally {
       if (generationRef.current === generation) generationRef.current = null;
     }

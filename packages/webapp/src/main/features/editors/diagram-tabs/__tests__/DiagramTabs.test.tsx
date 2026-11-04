@@ -6,8 +6,8 @@ import { DiagramTabs } from '../DiagramTabs';
 import { ApollonEditorContext } from '../../uml/apollon-editor-context';
 import { MAX_DIAGRAMS_PER_TYPE, ProjectDiagram, SupportedDiagramType } from '../../../../shared/types/project';
 import { createDefaultProject } from '../../../../shared/types/project';
-import { streamSse } from '../../../../shared/services/sse/sseClient';
-import type { SemanticSearchEvent } from '../../../../shared/services/validation/semanticCheck';
+import { streamSse } from '../../../../shared/api/sseClient';
+import type { SemanticSearchEvent } from '../../../../shared/api/validation';
 
 // ── Mocks ────────────────────────────────────────────────────────────────
 
@@ -60,8 +60,8 @@ vi.mock('react-toastify', () => ({
   },
 }));
 
-vi.mock('../../../../shared/services/sse/sseClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../shared/services/sse/sseClient')>();
+vi.mock('../../../../shared/api/sseClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../shared/api/sseClient')>();
   return { ...actual, streamSse: vi.fn() };
 });
 
@@ -646,6 +646,21 @@ describe('semantic generation', () => {
 
     await waitFor(() => expect(editor.model).toEqual(generatedObjectDiagram));
     expect(updateDiagramModelThunk).toHaveBeenCalledWith({ model: generatedObjectDiagram });
+  });
+
+  it('reports a generation to analytics, with counts only', async () => {
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('object_diagram_generated_from_constraints', {
+        elements: 1,
+        relationships: 0,
+      }),
+    );
   });
 
   it('discards the result when the user leaves the diagram during the search', async () => {

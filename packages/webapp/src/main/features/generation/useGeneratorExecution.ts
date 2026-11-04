@@ -1123,12 +1123,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       return;
     }
     if (!currentProject) {
-      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
       return;
     }
     const model = editor?.model ?? activeDiagram?.model;
     if (currentProject.currentDiagramType !== 'ClassDiagram' || !isUMLModel(model)) {
-      toast.error(t('generation.toasts.noDiagramToValidate'));
+      reportError(t('generation.toasts.noDiagramToValidate'));
       return;
     }
 
@@ -1140,8 +1140,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       toast.dismiss(toastId);
       showSemanticSearchResult(result);
     } catch (error) {
-      toast.dismiss(toastId);
-      toast.error(semanticSearchErrorMessage(error));
+      reportError(semanticSearchErrorMessage(error), { error, updateToast: toastId, isLoading: false, autoClose: 5000 });
     }
   }, [currentProject, editor, activeDiagram, activeDiagramTitle, t]);
 
