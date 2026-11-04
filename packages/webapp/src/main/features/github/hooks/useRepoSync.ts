@@ -179,7 +179,9 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     async (target: ProjectGitHubLink, intoProjectId: string): Promise<BesserProject> => {
       if (!githubSession) throw new Error('Connect GitHub first.');
       const imported = await pullRepoIntoProject(githubSession, target, intoProjectId);
-      dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      if (imported.has_code !== false) {
+        dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      }
       await loadProject(intoProjectId);
       return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
     },

@@ -98,25 +98,45 @@ describe('elementRecords', () => {
   });
 });
 
-describe('newElementIds: since the last sync', () => {
+describe('newElementIds: what the pull brought in', () => {
   const incoming = apollon({ c1: BOOK, c2: LOAN }, { c2: ANA });
   const local = apollon({ c1: BOOK });
 
-  it('marks an element credited after the sync', () => {
-    expect(newElementIds(incoming, local, '2026-11-01T00:00:00Z')).toEqual(['c2']);
+  it('marks an element the repo did not hold at the last sync', () => {
+    expect(newElementIds(incoming, local, ['c1'])).toEqual(['c2']);
   });
 
-  it('does not mark an old element this project just deleted', () => {
-    expect(newElementIds(incoming, local, '2026-11-05T00:00:00Z')).toEqual([]);
+  it('does not mark an element the repo held and this project deleted', () => {
+    expect(newElementIds(incoming, local, ['c1', 'c2'])).toEqual([]);
   });
 
-  it('compares nothing without a usable sync time', () => {
+  it('marks what is new when the link does not know what the repo held', () => {
     expect(newElementIds(incoming, local)).toEqual(['c2']);
-    expect(newElementIds(incoming, local, 'not a date')).toEqual(['c2']);
   });
 
   it('marks nothing for a record that is not text', () => {
     const forged = apollon({ c1: BOOK, c2: LOAN }, { c2: { addedBy: 5 } } as unknown as BesserProject['attribution']);
     expect(newElementIds(forged, local)).toEqual([]);
+  });
+});
+
+describe('classModelElements: a file edited by hand', () => {
+  it('skips rows and nodes that are not objects', () => {
+    const project = {
+      diagrams: {
+        ClassDiagram: [{
+          model: {
+            nodes: [null, 7, { id: 'n1', type: 'class', data: { name: 'Book', attributes: [null, 'x', { id: 'r1', name: 'title' }], methods: [null] } }],
+            edges: [],
+          },
+        }],
+      },
+    } as unknown as BesserProject;
+
+    expect([...classModelElements(project).keys()]).toEqual(['n1', 'r1']);
+  });
+
+  it('skips elements that are not objects', () => {
+    expect([...classModelElements(apollon({ c1: BOOK, bad: null, odd: 'x' })).keys()]).toEqual(['c1']);
   });
 });

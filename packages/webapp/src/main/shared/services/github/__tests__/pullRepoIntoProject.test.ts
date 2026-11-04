@@ -2,17 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ importRepoAsRun: vi.fn() }));
 vi.mock('../../../api/github', () => api);
-const stored = vi.hoisted(() => ({ before: null as unknown, after: null as unknown }));
+const stored = vi.hoisted(() => ({ before: null as unknown, after: null as unknown, latest: 'p1' as string | null }));
 vi.mock('../../project-import/projectImport', () => ({
   storeRepoModelAsProject: (_data: unknown, id: string) => stored.after ?? { id, name: 'OCL_Gen', diagrams: {} },
 }));
 vi.mock('../../storage/ProjectStorageRepository', () => ({
-  ProjectStorageRepository: { loadProject: () => stored.before },
+  ProjectStorageRepository: { loadProject: () => stored.before, getLatestProjectId: () => stored.latest },
 }));
-vi.mock('../../storage/specDrivenRunRecords', () => ({ writeProjectLastRun: vi.fn() }));
+const writeProjectLastRun = vi.hoisted(() => vi.fn());
+vi.mock('../../storage/specDrivenRunRecords', () => ({ writeProjectLastRun }));
 
 import { pullRepoIntoProject } from '../pullRepoIntoProject';
-import { getProjectGitHubLink } from '../../storage/projectGitHubLink';
+import { clearProjectGitHubLink, getProjectGitHubLink, setProjectGitHubLink } from '../../storage/projectGitHubLink';
 
 const imported = (modelPath: string) => ({
   run_id: 'r1', project: { id: 'x', name: 'OCL_Gen', diagrams: {} }, has_model: true,
@@ -24,6 +25,77 @@ beforeEach(() => {
   api.importRepoAsRun.mockReset();
   stored.before = null;
   stored.after = null;
+  stored.latest = 'p1';
+  writeProjectLastRun.mockClear();
+});
+
+describe('pullRepoIntoProject: what changed during the import', () => {
+  const LINK = { owner: 'ana', repo: 'ocl_gen', branch: 'main', baseCommitSha: 'a'.repeat(40) };
+
+  it('does not bring back a link removed meanwhile', async () => {
+    setProjectGitHubLink('p1', LINK);
+    api.importRepoAsRun.mockImplementation(async () => {
+      clearProjectGitHubLink('p1');
+      return imported('buml/diagrams.json');
+    });
+
+    await expect(pullRepoIntoProject('s', LINK, 'p1')).rejects.toThrow(/changed/i);
+
+    expect(getProjectGitHubLink('p1')).toBeNull();
+    expect(writeProjectLastRun).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing when another project opened meanwhile', async () => {
+    setProjectGitHubLink('p1', LINK);
+    api.importRepoAsRun.mockImplementation(async () => {
+      stored.latest = 'p2';
+      return imported('buml/diagrams.json');
+    });
+
+    await expect(pullRepoIntoProject('s', LINK, 'p1')).rejects.toThrow(/changed/i);
+
+    expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(LINK.baseCommitSha);
+    expect(writeProjectLastRun).not.toHaveBeenCalled();
+  });
+
+  it('does not rewind a save made meanwhile', async () => {
+    setProjectGitHubLink('p1', LINK);
+    api.importRepoAsRun.mockImplementation(async () => {
+      setProjectGitHubLink('p1', { ...LINK, baseCommitSha: 'e'.repeat(40) });
+      return imported('buml/diagrams.json');
+    });
+
+    await expect(pullRepoIntoProject('s', LINK, 'p1')).rejects.toThrow(/changed/i);
+
+    expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe('e'.repeat(40));
+  });
+
+  it('links a project that had no link yet', async () => {
+    api.importRepoAsRun.mockResolvedValue(imported('buml/diagrams.json'));
+
+    await pullRepoIntoProject('s', LINK, 'p1');
+
+    expect(getProjectGitHubLink('p1')?.repo).toBe('ocl_gen');
+  });
+});
+
+describe('pullRepoIntoProject: the base of the next run', () => {
+  it('is not a repo with no code, which a modify run could not edit', async () => {
+    api.importRepoAsRun.mockResolvedValue({ ...imported('buml/diagrams.json'), has_code: false });
+
+    await pullRepoIntoProject('s', { owner: 'ana', repo: 'ocl_gen', branch: 'main' }, 'p1');
+
+    expect(writeProjectLastRun).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p1')?.hasCode).toBe(false);
+  });
+
+  it('is a repo with code', async () => {
+    api.importRepoAsRun.mockResolvedValue({ ...imported('buml/diagrams.json'), has_code: true });
+
+    await pullRepoIntoProject('s', { owner: 'ana', repo: 'ocl_gen', branch: 'main' }, 'p1');
+
+    expect(writeProjectLastRun).toHaveBeenCalledWith('p1', 'r1', expect.any(Number));
+  });
 });
 
 describe('pullRepoIntoProject: a model an older editor saved', () => {
@@ -106,18 +178,25 @@ describe('pullRepoIntoProject: what the pull brought in', () => {
     stored.before = project(['book']);
     stored.after = project(['book', 'loan'], { loan: BEN });
 
-    const link = await pull({ ...IN_SYNC, lastSyncedAt: '2026-11-05T00:00:00Z' } as typeof LINK);
+    const link = await pull({ ...IN_SYNC, syncedElements: ['book', 'loan'] } as typeof LINK);
 
     expect(link?.newFromRepo).toBeUndefined();
   });
 
-  it('marks what was added after the last sync', async () => {
+  it('marks a class from a pull request merged after the sync, however old its credit', async () => {
     stored.before = project(['book']);
     stored.after = project(['book', 'loan'], { loan: BEN });
 
-    const link = await pull({ ...IN_SYNC, lastSyncedAt: '2026-11-01T00:00:00Z' } as typeof LINK);
+    const link = await pull({ ...IN_SYNC, syncedElements: ['book'], lastSyncedAt: '2030-01-01T00:00:00Z' } as typeof LINK);
 
     expect(link?.newFromRepo).toEqual(['loan']);
+  });
+
+  it('remembers what the repo held after the pull, for the next one', async () => {
+    stored.before = project(['book']);
+    stored.after = project(['book', 'loan'], { loan: BEN });
+
+    expect((await pull(IN_SYNC))?.syncedElements).toEqual(['book', 'loan']);
   });
 
   it('remembers what the repo holds, for the chat and the agent', async () => {

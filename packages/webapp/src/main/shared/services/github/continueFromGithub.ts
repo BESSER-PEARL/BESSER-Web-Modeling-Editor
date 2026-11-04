@@ -151,7 +151,12 @@ async function continueInLinkedProject(
     if (!replace) return { ...opened, branch: link.branch, keptLocalChanges: true };
   }
   const imported = await pullRepoIntoProject(args.githubSession, { ...link, branch: args.branch ?? link.branch }, project.id);
-  return { ...opened, runId: imported.run_id, branch: imported.branch, recap: imported.recap };
+  return {
+    ...opened,
+    ...(imported.has_code !== false ? { runId: imported.run_id } : {}),
+    branch: imported.branch,
+    recap: imported.recap,
+  };
 }
 
 export async function continueFromGithubRepo(args: {
@@ -333,8 +338,8 @@ export function describeRepoRecap(recap: RepoRecap | null | undefined): string {
 export function githubRepoContext(projectId: string | undefined) {
   const link = projectId ? getProjectGitHubLink(projectId) : null;
   if (!link) return undefined;
-  // Unknown counts as code, as the run decision does: only a repo known to hold just a model has none.
-  return { fullName: `${link.owner}/${link.repo}`, hasCode: link.hasCode !== false, recap: describeRepoRecap(link.recap) };
+  // Unknown is not an app: the agent would promise to update one. A run still finds out, and says so in the chat.
+  return { fullName: `${link.owner}/${link.repo}`, hasCode: link.hasCode === true, recap: describeRepoRecap(link.recap) };
 }
 
 const withRecap = (text: string, recap: RepoRecap | null | undefined): string => {

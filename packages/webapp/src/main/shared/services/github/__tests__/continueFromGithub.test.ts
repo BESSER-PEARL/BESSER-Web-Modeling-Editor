@@ -13,7 +13,7 @@ vi.mock('../../../services/project-import/projectImport', () => ({
 }));
 const localProjects: { id: string; name: string; diagrams: Record<string, unknown> }[] = [];
 vi.mock('../../../services/storage/ProjectStorageRepository', () => ({
-  ProjectStorageRepository: { getAllProjects: () => localProjects, loadProject: () => null },
+  ProjectStorageRepository: { getAllProjects: () => localProjects, loadProject: () => null, getLatestProjectId: () => null },
 }));
 const track = vi.fn();
 vi.mock('../../analytics/events', async (importOriginal) => ({
@@ -76,6 +76,21 @@ describe('continueFromGithubRepo', () => {
 
     expect(result).toMatchObject({ ok: true, recap });
     expect(getProjectGitHubLink('p-new')).toMatchObject({ hasCode: true, recap });
+  });
+
+  it('reopening a repo with no code offers no run to continue from', async () => {
+    setProjectGitHubLink('p-old', { owner: 'me', repo: 'app', branch: 'main', baseCommitSha: HEAD, baselinePending: true });
+    localProjects.push({ id: 'p-old', name: 'App', diagrams: {} });
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: null, has_model: false, has_code: false, recap: null,
+      owner: 'me', repo: 'app', branch: 'main', commit_sha: HEAD,
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, reused: true });
+    expect(result.runId).toBeUndefined();
+    expect(readProjectLastRun('p-old')).toBeNull();
   });
 
   it('links the new project to the repo at the imported commit', async () => {
@@ -423,11 +438,9 @@ describe('the recap of a repo', () => {
     expect(context?.recap).toContain('add a search bar');
   });
 
-  it('a link written before this counts as holding code, as the run decision does', () => {
+  it('does not claim an app it does not know of: the agent would promise to update it', () => {
     setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main' });
-    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: true, recap: '' });
-    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: false });
-    expect(githubRepoContext('p1')?.hasCode).toBe(false);
+    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: false, recap: '' });
   });
 
   it('counts every commit, not just the ones the recap lists', () => {

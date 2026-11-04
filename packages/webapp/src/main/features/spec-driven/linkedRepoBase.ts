@@ -14,7 +14,7 @@ import { describeContinuedRepo } from '../../shared/services/github/continueFrom
 import { reportError } from '../../shared/services/errors/reportError';
 import type { SpecRunStopReason } from '../../shared/services/analytics/events';
 import { getGitHubSession } from '../../shared/services/github/githubAuth';
-import { applyImportedRepo } from '../../shared/services/github/pullRepoIntoProject';
+import { applyImportedRepo, pullInterruption, pullStart } from '../../shared/services/github/pullRepoIntoProject';
 import {
   getProjectGitHubLink,
   hasUnsyncedModelChanges,
@@ -103,14 +103,6 @@ function adoptHead(imported: ImportedRun, link: ProjectGitHubLink, project: Bess
   return { pulled: false };
 }
 
-/** The link the import started from, as it is now; null when it changed under the import. */
-function linkAfterImport(projectId: string, before: ProjectGitHubLink): ProjectGitHubLink | null {
-  const now = getProjectGitHubLink(projectId);
-  const sameBase = !!now && now.owner === before.owner && now.repo === before.repo && now.branch === before.branch
-    && now.baseCommitSha === before.baseCommitSha;
-  return sameBase ? now : null;
-}
-
 export async function resolveLinkedRepoBase({
   project,
   lastRun,
@@ -128,6 +120,7 @@ export async function resolveLinkedRepoBase({
     return link.hasCode === false ? { outcome: 'none' } : askToRebuild(link, notConnected(), signal);
   }
 
+  const start = pullStart(project.id);
   let imported: ImportedRun;
   try {
     imported = await importRepoAsRun(session, link.owner, link.repo, link.branch, { modelPath: link.legacyFilePath, signal });
@@ -141,9 +134,10 @@ export async function resolveLinkedRepoBase({
   }
   if (signal.aborted) return { outcome: 'stopped' };
   // Everything below writes: to the project storage, which also makes it the latest one.
-  if (!isStillOpen()) return { outcome: 'stopped', reason: 'project_switched' };
-  const current = linkAfterImport(project.id, link);
-  if (!current) {
+  const interruption = isStillOpen() ? pullInterruption(start) : 'project_switched';
+  if (interruption === 'project_switched') return { outcome: 'stopped', reason: 'project_switched' };
+  const current = getProjectGitHubLink(project.id);
+  if (interruption || !current) {
     return {
       outcome: 'stopped',
       reason: 'repo_changed',

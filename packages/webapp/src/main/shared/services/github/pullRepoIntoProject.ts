@@ -3,10 +3,13 @@
  * (Get latest, link, merge after a save) and opening a repo from GitHub.
  */
 import { importRepoAsRun, type ImportedRun } from '../../api/github';
+import i18n from '../../i18n';
+import type { SpecRunStopReason } from '../analytics/events';
 import { storeRepoModelAsProject } from '../project-import/projectImport';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { writeProjectLastRun } from '../storage/specDrivenRunRecords';
 import {
+  getProjectGitHubLink,
   legacyModelPath,
   markProjectGitHubSynced,
   setProjectGitHubLink,
@@ -15,6 +18,31 @@ import {
 import { classModelElements, newElementIds } from './modelAttribution';
 import type { BesserProject } from '../../types/project';
 
+/** What a pull must find unchanged once its import returns: it can take minutes, and the app stays live. */
+export interface PullStart {
+  projectId: string;
+  openProjectId: string | null;
+  link: ProjectGitHubLink | null;
+}
+
+export const pullStart = (projectId: string): PullStart => ({
+  projectId,
+  openProjectId: ProjectStorageRepository.getLatestProjectId(),
+  link: getProjectGitHubLink(projectId),
+});
+
+/** Why the pull begun at `start` must not write anything, or null when it still may. */
+export function pullInterruption(start: PullStart): Extract<SpecRunStopReason, 'project_switched' | 'repo_changed'> | null {
+  if (ProjectStorageRepository.getLatestProjectId() !== start.openProjectId) return 'project_switched';
+  const now = getProjectGitHubLink(start.projectId);
+  const before = start.link;
+  const same = before
+    ? !!now && now.owner === before.owner && now.repo === before.repo && now.branch === before.branch
+      && now.baseCommitSha === before.baseCommitSha
+    : !now;
+  return same ? null : 'repo_changed';
+}
+
 /**
  * Make project `projectId` match the head of `target`: the repo's model when it
  * has one (a repo without one keeps the project's model), and its code as the
@@ -22,16 +50,25 @@ import type { BesserProject } from '../../types/project';
  *
  * `target.legacyFilePath` is the model file to read (an older editor's save,
  * maybe picked by the user); the link keeps it while the model is still there.
+ *
+ * Throws, having written nothing, when the project or its link changed during the import.
  */
 export async function pullRepoIntoProject(
   githubSession: string,
   target: ProjectGitHubLink,
   projectId: string,
 ): Promise<ImportedRun> {
+  const start = pullStart(projectId);
   const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch, {
     modelPath: target.legacyFilePath,
   });
-  applyImportedRepo(imported, target, projectId);
+  if (pullInterruption(start)) {
+    throw new Error(i18n.t('github.linkedRun.pullInterrupted', {
+      defaultValue: 'The GitHub version was not loaded: the project or its GitHub link changed meanwhile. Please try again.',
+    }));
+  }
+  const current = getProjectGitHubLink(projectId);
+  applyImportedRepo(imported, current ? { ...target, pendingChange: current.pendingChange } : target, projectId);
   return imported;
 }
 
@@ -42,7 +79,7 @@ export async function pullRepoIntoProject(
  */
 function marksAfterPull(target: ProjectGitHubLink, before: BesserProject | null, pulled: BesserProject): string[] {
   const inSync = !!(target.syncedModel || target.baselinePending);
-  const added = before && inSync ? newElementIds(pulled, before, target.lastSyncedAt) : [];
+  const added = before && inSync ? newElementIds(pulled, before, target.syncedElements) : [];
   const present = classModelElements(pulled);
   return [...new Set([...(target.newFromRepo ?? []).filter((id) => present.has(id)), ...added])];
 }
@@ -76,5 +113,6 @@ export function applyImportedRepo(imported: ImportedRun, target: ProjectGitHubLi
     });
   }
   // Last: a model that was refused above leaves the next modify run on the code it matches.
-  writeProjectLastRun(projectId, imported.run_id, Date.now());
+  // A repo with no code is nothing a modify run could edit.
+  if (imported.has_code !== false) writeProjectLastRun(projectId, imported.run_id, Date.now());
 }

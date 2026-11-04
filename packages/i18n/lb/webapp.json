@@ -1574,6 +1574,7 @@
       "continuingPulled": "Weider vun {{repo}} op {{branch}}. Et hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn."
     },
     "linkedRun": {
+      "pullInterrupted": "D'GitHub-Versioun gouf net gelueden: de Projet oder säi GitHub-Link huet sech an der Tëschenzäit geännert. Probéiert w.e.g. nach eng Kéier.",
       "repoChanged": "De GitHub-Link vun dësem Projet huet sech beim Start geännert. Frot w.e.g. nach eng Kéier.",
       "pulledModel": "{{repo}} hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn.",
       "unsaved": "{{repo}} huet Commiten op {{branch}}, déi dëse Projet nach net iwwerholl huet, an Äre Modell huet Ännerungen, déi do net gespäichert sinn. Féiert se am GitHub-Menü mat **Op GitHub pushen** zesummen a frot dann nach eng Kéier.",

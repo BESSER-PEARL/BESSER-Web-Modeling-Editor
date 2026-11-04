@@ -1574,6 +1574,7 @@
       "continuingPulled": "Continuant des de {{repo}} a {{branch}}. Tenia un model més recent, així que primer l'he incorporat a aquest projecte."
     },
     "linkedRun": {
+      "pullInterrupted": "No s'ha carregat la versió de GitHub: el projecte o el seu enllaç de GitHub ha canviat mentrestant. Torna-ho a provar.",
       "repoChanged": "L'enllaç de GitHub d'aquest projecte ha canviat mentre s'iniciava. Torna-ho a demanar.",
       "pulledModel": "{{repo}} tenia un model més recent, així que primer l'he incorporat a aquest projecte.",
       "unsaved": "{{repo}} té commits a {{branch}} que aquest projecte no ha incorporat, i el teu model té canvis que no hi estan desats. Combina'ls amb **Puja a GitHub** al menú de GitHub i torna-ho a demanar.",

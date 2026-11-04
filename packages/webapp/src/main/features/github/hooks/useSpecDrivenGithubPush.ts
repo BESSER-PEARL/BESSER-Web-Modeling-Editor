@@ -45,10 +45,10 @@ import {
   setPendingGitHubChange,
   setProjectGitHubLink,
   type ProjectGitHubLink,
-  hasUnsyncedModelChanges,
+  modelContentFingerprint,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
-import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
+import { readRunSeed, readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import {
   clearSpecDrivenPushIntent,
@@ -144,16 +144,26 @@ export function describePushError(error: unknown): { code: SpecDrivenPushErrorCo
 }
 
 /**
- * Whether the run's model may replace the project's: yes while the project
- * still holds the model run `runId` started from, or the model the repo holds
- * (the editor rewrites a pulled model, so the seed may differ with nothing
- * edited), else only if the user says so.
+ * Whether the run's model may replace the project's: yes while the project still
+ * holds the model run `runId` started from. The editor rewrites a pulled model,
+ * so the exact fingerprint can differ with nothing edited; that also counts when
+ * the link has settled on this model, no save moved it since the run started and
+ * its content is the same. Otherwise only if the user says so.
  */
 export async function mayReplaceWithRunModel(runId: string, project: BesserProject): Promise<boolean> {
   const seed = readRunSeedModel(runId);
   if (seed && seed === modelFingerprint(project)) return true;
   const link = getProjectGitHubLink(project.id);
-  if (link && !hasUnsyncedModelChanges(project, link)) return true;
+  const started = readRunSeed(runId);
+  if (
+    link?.syncedModel
+    && !link.baselinePending
+    && link.syncedModel === modelFingerprint(project)
+    && started.baseCommitSha === link.baseCommitSha
+    && started.content === modelContentFingerprint(project)
+  ) {
+    return true;
+  }
   return globalConfirm({
     title: i18n.t('github.push.modelChoice.title', { defaultValue: "Keep your model or take the run's?" }),
     description: i18n.t('github.push.modelChoice.description', {

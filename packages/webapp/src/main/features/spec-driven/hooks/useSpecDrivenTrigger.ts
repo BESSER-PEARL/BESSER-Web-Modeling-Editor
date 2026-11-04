@@ -66,7 +66,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
+import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
@@ -1068,6 +1068,11 @@ export function useSpecDrivenTrigger(
       // The model this run starts from: a later push of the run must not
       // silently replace edits made on the canvas after this point.
       let seedModel = modelFingerprint(project);
+      let seedProject: BesserProject = project;
+      const seedContext = () => ({
+        baseCommitSha: getProjectGitHubLink(seedProject.id)?.baseCommitSha,
+        content: modelContentFingerprint(seedProject),
+      });
 
       // Reserve the GLOBAL run slot as `preparing`. All code from the guard
       // at the top of this function down to here is synchronous, so two
@@ -1142,6 +1147,7 @@ export function useSpecDrivenTrigger(
                 if (pulled) {
                   normalisedProject = buildProjectPayloadForBackend(pulled);
                   seedModel = modelFingerprint(pulled);
+                  seedProject = pulled;
                 }
               } catch (error) {
                 reportError(
@@ -1269,7 +1275,7 @@ export function useSpecDrivenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
-          recordRunSeedModel(runId, seedModel);
+          recordRunSeedModel(runId, seedModel, seedContext());
           ownership.claim = claimSpecDrivenRunOwnership(runId);
           writeActiveSpecDrivenRun({
             runId,

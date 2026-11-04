@@ -17,7 +17,7 @@ import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseCl
 import * as confirm from '@/main/shared/services/confirm/globalConfirm';
 import { getProjectGitHubLink, markProjectGitHubSynced, modelFingerprint } from '@/main/shared/services/storage/projectGitHubLink';
 import { ProjectStorageRepository } from '@/main/shared/services/storage/ProjectStorageRepository';
-import { readRunSeedModel } from '@/main/shared/services/storage/specDrivenRunRecords';
+import { readRunSeed, readRunSeedModel } from '@/main/shared/services/storage/specDrivenRunRecords';
 import { track } from '@/main/shared/services/analytics/events';
 import { sessionStorageLlmApiKey, sessionStorageLlmProvider } from '@/main/shared/constants/constant';
 
@@ -218,6 +218,8 @@ describe('useSpecDrivenTrigger on a project linked to GitHub', () => {
       request.onRunAccepted('c'.repeat(32));
       expect(readRunSeedModel('c'.repeat(32))).toBe(modelFingerprint(ProjectStorageRepository.loadProject(PROJECT_ID)!));
       expect(readRunSeedModel('c'.repeat(32))).not.toBe(modelFingerprint(PROJECT));
+      // The base the pull moved to, so a save during the run shows at push time.
+      expect(readRunSeed('c'.repeat(32))).toMatchObject({ baseCommitSha: HEAD });
       expect(getProjectGitHubLink(PROJECT_ID)?.baseCommitSha).toBe(HEAD);
     });
 

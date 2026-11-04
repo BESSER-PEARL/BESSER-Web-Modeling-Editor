@@ -25,6 +25,7 @@
  * `buml/diagrams.json` deletes it, and then forgets it.
  */
 import { localStorageGitHubLinkPrefix, localStorageLegacyGitHubLinkedRepos } from '../../constants/constant';
+import { bareMemberName, classModelElements } from '../github/modelAttribution';
 import { LocalStorageRepository } from './local-storage-repository';
 import type { RepoRecap } from '../../api/github';
 import type { BesserProject } from '../../types/project';
@@ -78,6 +79,8 @@ export interface ProjectGitHubLink {
   /** Where the repo's app stood at the last import or push; the chat answers from it. */
   recap?: RepoRecap;
   /** Ids of the classes and members pulls brought in that the user has not cleared. */
+  /** The classes and members the repo held at the last sync: what a pull adds beyond these is new. */
+  syncedElements?: string[];
   newFromRepo?: string[];
 }
 
@@ -135,6 +138,9 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(isRepoRecap(value.recap)
           // Stored before the total existed: what it lists is all it knows.
           ? { recap: { commit_count: value.recap.commits_since_run.length, ...value.recap } as RepoRecap }
+          : {}),
+        ...(Array.isArray(value.syncedElements)
+          ? { syncedElements: value.syncedElements.filter((id: unknown) => typeof id === 'string') as string[] }
           : {}),
         ...(Array.isArray(value.newFromRepo)
           ? { newFromRepo: value.newFromRepo.filter((id: unknown) => typeof id === 'string') as string[] }
@@ -240,6 +246,32 @@ export function modelFingerprint(project: BesserProject): string {
 }
 
 /** Whether the project's model changed since the commit its link records. */
+/**
+ * What the project's models say, leaving out where things are drawn and how the
+ * editor formats them: it rewrites a model it loads (`+ title: str` becomes
+ * `title` plus a type), but keeps its elements and their names.
+ */
+export function modelContentFingerprint(project: BesserProject): string {
+  const lines: string[] = [];
+  for (const [type, diagrams] of Object.entries(project.diagrams ?? {})) {
+    for (const diagram of Array.isArray(diagrams) ? diagrams : [diagrams]) {
+      const model = (diagram as { model?: Record<string, unknown> } | undefined)?.model;
+      const parts = model ? [model.elements, model.relationships, model.nodes, model.edges] : [];
+      const items = parts.flatMap((part) => (part && typeof part === 'object' ? Object.values(part) : [])) as Array<Record<string, unknown> | null>;
+      if (items.length) {
+        for (const item of items) {
+          const data = (item?.data ?? {}) as Record<string, unknown>;
+          lines.push(`${type}|${String(item?.id)}|${String(item?.type)}|${bareMemberName(String(item?.name ?? data.name ?? ''))}`);
+        }
+      } else if (model && !parts.some(Boolean)) {
+        // Not a diagram of elements (a GUI, a circuit): nothing rewrites these on load.
+        lines.push(`${type}|${JSON.stringify(model)}`);
+      }
+    }
+  }
+  return lines.sort().join('\n');
+}
+
 export function hasUnsyncedModelChanges(project: BesserProject, link: ProjectGitHubLink): boolean {
   if (link.baselinePending) return false;
   return !link.syncedModel || modelFingerprint(project) !== link.syncedModel;
@@ -262,6 +294,7 @@ export function markProjectGitHubSynced(
   setProjectGitHubLink(project.id, {
     ...rest,
     baseCommitSha: sha,
+    syncedElements: [...classModelElements(project).keys()],
     ...(loadedFromRepo ? { baselinePending: true } : { syncedModel: modelFingerprint(project) }),
     lastSyncedAt: new Date().toISOString(),
   });

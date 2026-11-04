@@ -17,8 +17,10 @@ const APOLLON_MEMBER_TYPES = new Set(['ClassAttribute', 'ClassMethod']);
 
 type Loose = Record<string, unknown>;
 
+const isObject = (value: unknown): value is Loose => !!value && typeof value === 'object';
+
 const memberRows = (data: Loose): Loose[] =>
-  [data.attributes, data.methods].flatMap((rows) => (Array.isArray(rows) ? (rows as Loose[]) : []));
+  [data.attributes, data.methods].flatMap((rows) => (Array.isArray(rows) ? rows.filter(isObject) : []));
 
 /**
  * The well-formed records of an attribution block. The block comes from a file in a repository,
@@ -50,10 +52,10 @@ export function classModelElements(project: BesserProject): Map<string, ClassMod
       if (APOLLON_CLASS_TYPES.has(element?.type as string)) add(id, element.name);
       if (APOLLON_MEMBER_TYPES.has(element?.type as string)) add(id, element.name, element.owner as string);
     }
-    const nodes = Array.isArray(model?.nodes) ? (model?.nodes as Loose[]) : [];
+    const nodes = Array.isArray(model?.nodes) ? model.nodes.filter(isObject) : [];
     for (const node of nodes) {
-      if (node?.type !== 'class') continue;
-      const data = (node.data ?? {}) as Loose;
+      if (node.type !== 'class') continue;
+      const data = isObject(node.data) ? node.data : {};
       add(node.id, data.name);
       for (const row of memberRows(data)) add(row.id, row.name, node.id as string);
     }
@@ -64,21 +66,18 @@ export function classModelElements(project: BesserProject): Map<string, ClassMod
 /**
  * What `incoming` adds over `local`: elements `local` lacks that have a record.
  * A model nobody credited (an older editor's, a hand edit) marks nothing, and
- * nor does an element credited before `since`: `local` lost that one, by deleting it.
+ * nor does an element the repo already held at the last sync (`synced`):
+ * `local` lost that one by deleting it.
  */
-export function newElementIds(incoming: BesserProject, local: BesserProject, since?: string): string[] {
+export function newElementIds(incoming: BesserProject, local: BesserProject, synced?: readonly string[]): string[] {
   const known = classModelElements(local);
+  const held = new Set(synced);
   const records = elementRecords(incoming);
-  const sinceMs = since ? Date.parse(since) : Number.NaN;
-  return [...classModelElements(incoming).keys()].filter((id) => {
-    const record = records.get(id);
-    if (known.has(id) || !record) return false;
-    return Number.isNaN(sinceMs) || !(Date.parse(record.addedAt) <= sinceMs);
-  });
+  return [...classModelElements(incoming).keys()].filter((id) => !known.has(id) && !held.has(id) && records.has(id));
 }
 
 /** A member's bare name: `+ title: str` is `title`, `+ lend(days: int)` is `lend`. */
-const bareMemberName = (name: string): string => name.replace(/^\s*[-+#~]\s*/, '').split(/[:(]/)[0].trim();
+export const bareMemberName = (name: string): string => name.replace(/^\s*[-+#~]\s*/, '').split(/[:(]/)[0].trim();
 
 /** How an element reads in a list: `Book`, or `Book.title` for a member. */
 export function elementLabel(element: ClassModelElement, elements: Map<string, ClassModelElement>): string {

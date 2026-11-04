@@ -1574,6 +1574,7 @@
       "continuingPulled": "Weiter mit {{repo}} auf {{branch}}. Es hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe."
     },
     "linkedRun": {
+      "pullInterrupted": "Die GitHub-Version wurde nicht geladen: Das Projekt oder seine GitHub-Verknüpfung hat sich inzwischen geändert. Bitte versuche es noch einmal.",
       "repoChanged": "Die GitHub-Verknüpfung dieses Projekts hat sich beim Start geändert. Bitte frag noch einmal.",
       "pulledModel": "{{repo}} hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe.",
       "unsaved": "{{repo}} hat Commits auf {{branch}}, die dieses Projekt noch nicht übernommen hat, und dein Modell hat Änderungen, die dort nicht gespeichert sind. Führe sie im GitHub-Menü mit **Auf GitHub pushen** zusammen und frag dann noch einmal.",

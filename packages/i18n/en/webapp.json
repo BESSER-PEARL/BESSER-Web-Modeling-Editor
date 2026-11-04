@@ -1574,6 +1574,7 @@
       "continuingPulled": "Continuing from {{repo}} on {{branch}}. It had a newer model, so I brought it into this project first."
     },
     "linkedRun": {
+      "pullInterrupted": "The GitHub version was not loaded: the project or its GitHub link changed meanwhile. Please try again.",
       "repoChanged": "This project's GitHub link changed while this was starting. Please ask again.",
       "pulledModel": "{{repo}} had a newer model, so I brought it into this project first.",
       "unsaved": "{{repo}} has commits on {{branch}} this project has not brought in, and your model has changes not saved there. Use **Save to GitHub** in the GitHub menu to merge them, then ask again.",

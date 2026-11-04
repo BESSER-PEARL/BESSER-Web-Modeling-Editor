@@ -1574,6 +1574,7 @@
       "continuingPulled": "Reprise depuis {{repo}} sur {{branch}}. Il avait un modèle plus récent, que j'ai d'abord intégré à ce projet."
     },
     "linkedRun": {
+      "pullInterrupted": "La version GitHub n'a pas été chargée : le projet ou son lien GitHub a changé entre-temps. Veuillez réessayer.",
       "repoChanged": "Le lien GitHub de ce projet a changé pendant le démarrage. Veuillez redemander.",
       "pulledModel": "{{repo}} avait un modèle plus récent, que j'ai d'abord intégré à ce projet.",
       "unsaved": "{{repo}} a des commits sur {{branch}} que ce projet n'a pas récupérés, et votre modèle contient des modifications qui n'y sont pas enregistrées. Fusionnez-les avec **Pousser vers GitHub** dans le menu GitHub, puis redemandez.",
