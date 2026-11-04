@@ -28,7 +28,6 @@ export async function pullRepoIntoProject(
   const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch, {
     modelPath: target.legacyFilePath,
   });
-  writeProjectLastRun(projectId, imported.run_id, Date.now());
   const { legacyFilePath: _previous, ...rest } = target;
   const legacyFilePath = legacyModelPath(imported.model_path);
   const link = { ...rest, branch: imported.branch, ...(legacyFilePath ? { legacyFilePath } : {}) };
@@ -38,5 +37,7 @@ export async function pullRepoIntoProject(
   } else {
     setProjectGitHubLink(projectId, { ...link, baseCommitSha: imported.commit_sha });
   }
+  // Last: a model that was refused above leaves the next modify run on the code it matches.
+  writeProjectLastRun(projectId, imported.run_id, Date.now());
   return imported;
 }
