@@ -9,6 +9,7 @@ import {
   createEmptyDiagram,
   getActiveDiagram,
   toSupportedDiagramType,
+  isProject,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
@@ -310,6 +311,12 @@ interface ImportedPersonalization {
 
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
+  // Loading runs this check too: without it here, a project is stored that can never be opened,
+  // and a repo's invalid model would replace a working local project.
+  if (!isProject(project)) {
+    throw new Error('This file is not a valid BESSER project.');
+  }
+
   // Check if the imported GUI model is empty
   const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
   const importedGUIModel = importedGUIDiagram?.model;
