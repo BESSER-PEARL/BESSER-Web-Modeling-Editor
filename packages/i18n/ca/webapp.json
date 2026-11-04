@@ -1495,6 +1495,13 @@
       "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
       "keepModelAndLink": "Conserva el meu model i vincula"
     },
+    "attribution": {
+      "title": "Novetats des de l'última sincronització",
+      "added": "{{author}} ha afegit {{items}}",
+      "more": "{{items}} i {{count}} més",
+      "clear": "Esborra les marques",
+      "addedBy": "Afegit per {{author}} el {{date}}"
+    },
     "proposal": {
       "accept": "Accepta el model",
       "aiSource": "Una lectura de {{files}} feta per IA, no exacta. Revisa cada classe i després accepta.",

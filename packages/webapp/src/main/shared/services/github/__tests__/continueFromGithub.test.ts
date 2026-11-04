@@ -13,7 +13,7 @@ vi.mock('../../../services/project-import/projectImport', () => ({
 }));
 const localProjects: { id: string; name: string; diagrams: Record<string, unknown> }[] = [];
 vi.mock('../../../services/storage/ProjectStorageRepository', () => ({
-  ProjectStorageRepository: { getAllProjects: () => localProjects },
+  ProjectStorageRepository: { getAllProjects: () => localProjects, loadProject: () => null },
 }));
 const track = vi.fn();
 vi.mock('../../analytics/events', async (importOriginal) => ({

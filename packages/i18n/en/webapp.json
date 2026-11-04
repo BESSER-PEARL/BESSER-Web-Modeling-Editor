@@ -1504,6 +1504,13 @@
       "useClassic": "Use the classic deploy",
       "prepare": "Prepare {{repo}}"
     },
+    "attribution": {
+      "title": "New since your last sync",
+      "added": "{{author}} added {{items}}",
+      "more": "{{items}} and {{count}} more",
+      "clear": "Clear marks",
+      "addedBy": "Added by {{author}} on {{date}}"
+    },
     "proposal": {
       "label": "Proposed model",
       "title": "Proposed from {{repo}}: {{count}} classes",

@@ -1495,6 +1495,13 @@
       "pickModelFile": "Ce dépôt contient {{number}} modèles. Choisissez celui à utiliser :",
       "keepModelAndLink": "Garder mon modèle et lier"
     },
+    "attribution": {
+      "title": "Nouveau depuis votre dernière synchronisation",
+      "added": "{{author}} a ajouté {{items}}",
+      "more": "{{items}} et {{count}} de plus",
+      "clear": "Effacer les marques",
+      "addedBy": "Ajouté par {{author}} le {{date}}"
+    },
     "proposal": {
       "accept": "Accepter le modèle",
       "aiSource": "Une lecture par IA de {{files}}, pas une lecture exacte. Vérifiez chaque classe, puis acceptez.",

@@ -1495,6 +1495,13 @@
       "pickModelFile": "Este repositorio contiene {{number}} modelos. Elige el que quieras usar:",
       "keepModelAndLink": "Conservar mi modelo y vincular"
     },
+    "attribution": {
+      "title": "Novedades desde la última sincronización",
+      "added": "{{author}} añadió {{items}}",
+      "more": "{{items}} y {{count}} más",
+      "clear": "Borrar marcas",
+      "addedBy": "Añadido por {{author}} el {{date}}"
+    },
     "proposal": {
       "accept": "Aceptar el modelo",
       "aiSource": "Una lectura de {{files}} hecha por IA, no exacta. Revisa cada clase y luego acepta.",

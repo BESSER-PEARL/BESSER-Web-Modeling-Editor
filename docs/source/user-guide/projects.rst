@@ -308,6 +308,13 @@ so they always show the same state.
 - **Get latest** loads the repository's model, and its code as the starting
   point of the next Spec-Driven Agent run. It asks first when you have unsaved
   model changes.
+- **See who added what.** Each save records who added a class or attribute, by
+  their GitHub account. What a teammate added since your last sync is tinted on
+  the canvas in their colour, with their login beside it and a summary at the top,
+  until you choose **Clear marks**. Hover any class or attribute to read who added
+  it and when. The marks are drawn over the canvas: they are not part of the model,
+  and a colour someone chose for a class stays as it is. Classes saved before this
+  existed have no author and are never marked as new.
 
 To bring the repository's app code in line with your model, ask the Spec-Driven
 Agent in the chat; you review the run, then push it.

@@ -1495,6 +1495,13 @@
       "pickModelFile": "Dieses Repository enthält {{number}} Modelle. Wähle das zu verwendende aus:",
       "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
+    "attribution": {
+      "title": "Neu seit der letzten Synchronisierung",
+      "added": "{{author}} hat {{items}} hinzugefügt",
+      "more": "{{items}} und {{count}} weitere",
+      "clear": "Markierungen entfernen",
+      "addedBy": "Hinzugefügt von {{author}} am {{date}}"
+    },
     "proposal": {
       "accept": "Modell übernehmen",
       "aiSource": "Eine KI-Lesart von {{files}}, keine exakte. Prüfen Sie jede Klasse und übernehmen Sie dann.",

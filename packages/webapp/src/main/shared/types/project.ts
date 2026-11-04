@@ -306,6 +306,12 @@ export type ElementLineageMap = Record<string, string>;
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
 
 // New centralized project structure
+/** Who added a class or member of the model; see `BesserProject.attribution`. */
+export interface ElementAttribution {
+  addedBy: string;
+  addedAt: string;
+}
+
 export interface BesserProject {
   id: string;
   type: 'Project';
@@ -346,6 +352,9 @@ export interface BesserProject {
    *  by the inter-diagram derivation hooks after the derived diagram
    *  is added. Survives import/export. */
   elementLineage?: Record<string, ElementLineageMap>;
+  /** Element id → who added it. Sidecar; stamped by the backend on a save
+   *  to GitHub, read by no converter. */
+  attribution?: Record<string, ElementAttribution>;
 }
 
 /** The two ways into the editor, chosen on the first-run landing. */

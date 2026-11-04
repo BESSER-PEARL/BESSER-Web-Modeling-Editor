@@ -17,6 +17,9 @@
  * could not merge it, or it went to a pull request. It is kept until its
  * pull request is merged or closed, or the user dismisses it.
  *
+ * `newFromRepo` holds the elements pulls brought in, shown as new until the user
+ * clears them. It lives here, in this browser, so it never reaches the model.
+ *
  * `legacyFilePath` is the model file the old GitHub sidebar saved (e.g.
  * `models/shop.json`); the next save sends it so the commit that writes
  * `buml/diagrams.json` deletes it, and then forgets it.
@@ -74,6 +77,8 @@ export interface ProjectGitHubLink {
   hasCode?: boolean;
   /** Where the repo's app stood at the last import or push; the chat answers from it. */
   recap?: RepoRecap;
+  /** Ids of the classes and members pulls brought in that the user has not cleared. */
+  newFromRepo?: string[];
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -123,6 +128,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(isLegacyModelPath(value.legacyFilePath) ? { legacyFilePath: value.legacyFilePath } : {}),
         ...(typeof value.hasCode === 'boolean' ? { hasCode: value.hasCode } : {}),
         ...(Array.isArray(value.recap?.runs) ? { recap: value.recap as RepoRecap } : {}),
+        ...(Array.isArray(value.newFromRepo) ? { newFromRepo: value.newFromRepo as string[] } : {}),
       };
     }
   } catch {

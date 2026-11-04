@@ -1495,6 +1495,13 @@
       "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
     },
+    "attribution": {
+      "title": "Nei zënter der leschter Synchronisatioun",
+      "added": "{{author}} huet {{items}} derbäigesat",
+      "more": "{{items}} an nach {{count}}",
+      "clear": "Markéierunge läschen",
+      "addedBy": "Derbäigesat vum {{author}} den {{date}}"
+    },
     "proposal": {
       "accept": "Modell iwwerhuelen",
       "aiSource": "Eng KI-Liesung vu {{files}}, keng exakt. Préif all Klass an iwwerhuel dann.",
