@@ -310,7 +310,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
         () => ({ is_private: isRepoPrivate }),
       );
       const repo = result.repo_url.split('/').pop() || sanitizeRepoName(newRepoName);
-      sync.markSynced({ owner: result.owner, repo, branch: result.branch }, project, result.commit_sha);
+      sync.markSynced({ owner: result.owner, repo, branch: result.branch, hasCode: false }, project, result.commit_sha);
       setDialog(null);
       toast.success(t('github.panel.created', { defaultValue: 'Created {{repo}} with your model.', repo: `${result.owner}/${repo}` }));
     } catch (error) {

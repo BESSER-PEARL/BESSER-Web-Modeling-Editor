@@ -89,6 +89,9 @@ import {
   setLastRunForProject,
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
+import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
+import { loadProjectThunk } from '../../../app/store/workspaceSlice';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
@@ -1060,10 +1063,10 @@ export function useSpecDrivenTrigger(
       // otherwise mirrors the payload shape the backend already
       // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
-      const normalisedProject = buildProjectPayloadForBackend(project);
+      let normalisedProject = buildProjectPayloadForBackend(project);
       // The model this run starts from: a later push of the run must not
       // silently replace edits made on the canvas after this point.
-      const seedModel = modelFingerprint(project);
+      let seedModel = modelFingerprint(project);
 
       // Reserve the GLOBAL run slot as `preparing`. All code from the guard
       // at the top of this function down to here is synchronous, so two
@@ -1110,18 +1113,46 @@ export function useSpecDrivenTrigger(
       // baseRunId) instead of rebuilding. The decision is automatic; an
       // explicit `mode` on the trigger payload overrides it.
       let runDecision: RunModeDecision | null = null;
+      let stoppedMessage: string | undefined;
       try {
         if (!check.signal.aborted) {
-          runDecision = await resolveRunMode(
-            {
-              lastRun: readProjectLastRun(project.id),
-              nowMs: Date.now(),
-              ttlSeconds: cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS,
-              explicitMode: payload.mode,
-              explicitBaseRunId: payload.baseRunId,
-            },
-            { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
-          );
+          const ttlSeconds = cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
+          let lastRun = readProjectLastRun(project.id);
+          const repoBase: LinkedRepoBase = payload.mode === undefined
+            ? await resolveLinkedRepoBase({ project, lastRun, nowMs: Date.now(), ttlSeconds, signal: check.signal })
+            : { outcome: 'none' };
+          // Another project opened during the import: this request was about the one it left.
+          const sameProject = currentProjectRef.current?.id === project.id;
+          if (repoBase.outcome === 'continue') {
+            ({ lastRun } = repoBase);
+            dispatch(setLastRunForProject({ projectId: project.id, ...repoBase.lastRun }));
+          }
+          if (repoBase.outcome === 'continue' && sameProject) {
+            // Said now: a Stop further on still leaves the pull explained.
+            appendAssistantMessage(repoBase.message);
+            if (repoBase.pulled) {
+              await dispatch(loadProjectThunk(project.id)).unwrap();
+              const pulled = ProjectStorageRepository.loadProject(project.id);
+              if (pulled) {
+                normalisedProject = buildProjectPayloadForBackend(pulled);
+                seedModel = modelFingerprint(pulled);
+              }
+            }
+          }
+          if (repoBase.outcome === 'stopped') {
+            stoppedMessage = repoBase.message;
+          } else if (sameProject) {
+            runDecision = await resolveRunMode(
+              {
+                lastRun,
+                nowMs: Date.now(),
+                ttlSeconds,
+                explicitMode: payload.mode,
+                explicitBaseRunId: payload.baseRunId,
+              },
+              { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
+            );
+          }
         }
       } finally {
         abortRef.current = null;
@@ -1133,6 +1164,7 @@ export function useSpecDrivenTrigger(
       }
       if (!runDecision || check.signal.aborted) {
         // Nothing was started; the agent still learns the user cancelled.
+        if (stoppedMessage) appendAssistantMessage(stoppedMessage);
         runFinishedReportedRef.current = false;
         reportRunFinished({ ok: false, errorCode: 'CANCELLED' }, { stage: 'mode_check' });
         return;

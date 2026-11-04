@@ -25,7 +25,7 @@ vi.mock('../../../services/confirm/globalConfirm', () => ({
   globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
 }));
 
-import { continueFromGithubRepo, describeOpenedRepo } from '../continueFromGithub';
+import { continueFromGithubRepo, describeOpenedRepo, describeRepoRecap, githubRepoContext } from '../continueFromGithub';
 import {
   getProjectGitHubLink,
   markProjectGitHubSynced,
@@ -347,5 +347,74 @@ describe('continueFromGithubRepo — errors', () => {
     } finally {
       await i18n.changeLanguage('en');
     }
+  });
+});
+
+describe('the recap of a repo', () => {
+  const recap = {
+    runs: [
+      { request: 'build a library app', date: '2026-11-01', mode: 'create' as const, file_count: 9 },
+      { request: 'add a search bar', date: '2026-11-02', mode: 'modify' as const, file_count: 2 },
+    ],
+    open_items: [
+      { kind: 'rolled_back' as const, text: 'The repairs were rolled back' },
+      { kind: 'not_checked' as const, text: 'runtime behaviour' },
+    ],
+    open_item_count: 7,
+    commits_since_run: [{ sha: 'abc1234', message: 'Teammate adds a helper', author: 'ana' }],
+  };
+
+  it('opening a repo says what was done, what is open and what is new', () => {
+    const text = describeOpenedRepo({ ok: true, owner: 'ana', repo: 'library', recap });
+    expect(text.indexOf('add a search bar')).toBeLessThan(text.indexOf('build a library app'));
+    expect(text).toContain('Not checked: runtime behaviour');
+    expect(text).toContain('and 5 more');
+    expect(text).toContain('`abc1234`');
+    expect(text).toContain('Teammate adds a helper');
+  });
+
+  it('a repo no run was pushed to says nothing extra', () => {
+    const text = describeOpenedRepo({ ok: true, owner: 'ana', repo: 'library', recap: null });
+    expect(text).not.toContain('Recent work');
+  });
+
+  it('leaves out a date the recipe does not have', () => {
+    const text = describeRepoRecap({ ...recap, runs: [{ ...recap.runs[0], date: '' }] });
+    expect(text).toContain('- `build a library app`');
+  });
+
+  it('skips a run whose request is no longer known', () => {
+    const text = describeRepoRecap({ ...recap, runs: [{ ...recap.runs[0], request: '' }] });
+    expect(text).not.toContain('Recent work');
+  });
+
+  it('text from the repository cannot render a link in the chat', () => {
+    const planted = '[click me](https://attacker.example)';
+    const text = describeRepoRecap({
+      runs: [{ request: planted, date: '2026-11-01', mode: 'create', file_count: 0 }],
+      open_items: [{ kind: 'missing', text: planted }],
+      open_item_count: 1,
+      commits_since_run: [{ sha: 'abc1234', message: planted, author: planted }],
+    });
+    // A code span shows it as text; outside one the brackets must be escaped.
+    expect(text.replace(/`[^`]*`/g, '')).not.toContain('](https://attacker.example)');
+  });
+
+  it('tells the agent what the link knows, and nothing without a link', () => {
+    expect(githubRepoContext('none')).toBeUndefined();
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: true, recap });
+    const context = githubRepoContext('p1');
+    expect(context).toMatchObject({ fullName: 'ana/library', hasCode: true });
+    expect(context?.recap).toContain('add a search bar');
+  });
+
+  it('a link written before this keeps working and reads as unknown', () => {
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main' });
+    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: false, recap: '' });
+  });
+
+  it('the link keeps the recap across a reload', () => {
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: true, recap });
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
   });
 });

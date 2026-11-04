@@ -183,6 +183,7 @@ const mergeContexts = (
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
+    githubRepo: override?.githubRepo || base?.githubRepo,
   };
 };
 

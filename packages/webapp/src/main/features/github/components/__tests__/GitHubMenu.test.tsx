@@ -250,7 +250,7 @@ describe('GitHubMenu', () => {
     await waitFor(() => expect(createRepoForProject).toHaveBeenCalledTimes(1));
     expect(createRepoForProject.mock.calls[0][1]).toMatchObject({ repo_name: 'library', is_private: true, project_data: storedProject });
     await waitFor(() =>
-      expect(sync.markSynced).toHaveBeenCalledWith({ owner: 'ana', repo: 'library', branch: 'main' }, storedProject, 'd'.repeat(40)),
+      expect(sync.markSynced).toHaveBeenCalledWith({ owner: 'ana', repo: 'library', branch: 'main', hasCode: false }, storedProject, 'd'.repeat(40)),
     );
   });
 

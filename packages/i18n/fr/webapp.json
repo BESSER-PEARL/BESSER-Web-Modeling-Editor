@@ -1555,6 +1555,17 @@
       "accept": "Lire avec l’IA",
       "decline": "Pas maintenant"
     },
+    "linkedRun": {
+      "busy": "BESSER est occupé par d’autres exécutions. Redemandez dans un instant.",
+      "badModel": "Le modèle de ce dépôt n’a pas pu être chargé.",
+      "title": "Reconstruire l’application à partir de votre modèle ?",
+      "description": "Ce projet est lié à {{repo}}, mais BESSER ne peut pas lire son code : {{reason}}. Corrigez cela et redemandez pour continuer à partir de ce code. La reconstruction part de votre modèle et ignore ce qui se trouve sur GitHub.",
+      "rebuild": "Reconstruire à partir du modèle",
+      "cancel": "Annuler",
+      "notConnected": "GitHub n’est pas connecté dans cet onglet",
+      "notFound": "le dépôt est introuvable ou votre compte n’y a pas accès",
+      "failed": "GitHub est injoignable"
+    },
     "startFromRepo": {
       "badLink": "Collez un lien comme github.com/owner/repo.",
       "connect": "Connectez GitHub pour ouvrir l’un de vos dépôts.",

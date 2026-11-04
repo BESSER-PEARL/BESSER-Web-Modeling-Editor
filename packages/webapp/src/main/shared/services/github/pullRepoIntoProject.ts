@@ -28,15 +28,27 @@ export async function pullRepoIntoProject(
   const imported = await importRepoAsRun(githubSession, target.owner, target.repo, target.branch, {
     modelPath: target.legacyFilePath,
   });
-  writeProjectLastRun(projectId, imported.run_id, Date.now());
+  applyImportedRepo(imported, target, projectId);
+  return imported;
+}
+
+/** The second half of a pull, for a caller that already imported the repo. */
+export function applyImportedRepo(imported: ImportedRun, target: ProjectGitHubLink, projectId: string): void {
   const { legacyFilePath: _previous, ...rest } = target;
   const legacyFilePath = legacyModelPath(imported.model_path);
-  const link = { ...rest, branch: imported.branch, ...(legacyFilePath ? { legacyFilePath } : {}) };
+  const link = {
+    ...rest,
+    branch: imported.branch,
+    hasCode: imported.has_code,
+    recap: imported.recap ?? undefined,
+    ...(legacyFilePath ? { legacyFilePath } : {}),
+  };
   if (imported.has_model && imported.project) {
     const project = storeRepoModelAsProject(imported.project, projectId);
     markProjectGitHubSynced(link, project, imported.commit_sha, { loadedFromRepo: true });
   } else {
     setProjectGitHubLink(projectId, { ...link, baseCommitSha: imported.commit_sha });
   }
-  return imported;
+  // Last: a repo model that cannot be stored leaves no base pointing at its code.
+  writeProjectLastRun(projectId, imported.run_id, Date.now());
 }

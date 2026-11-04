@@ -70,6 +70,7 @@ import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,
+  githubRepoContext,
 } from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
 import { getGitHubSession } from '../../../shared/services/github/githubAuth';
@@ -728,6 +729,7 @@ export function useAssistantLogic({
       diagramSummaries,
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
+      githubRepo: githubRepoContext(project?.id),
     };
   }
 

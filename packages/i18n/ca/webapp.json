@@ -1555,6 +1555,17 @@
       "accept": "Llegeix amb IA",
       "decline": "Ara no"
     },
+    "linkedRun": {
+      "busy": "BESSER està ocupat amb altres execucions. Torna-ho a demanar d’aquí a un moment.",
+      "badModel": "No s’ha pogut carregar el model d’aquest repositori.",
+      "title": "Vols reconstruir l’aplicació a partir del teu model?",
+      "description": "Aquest projecte està vinculat a {{repo}}, però BESSER no pot llegir-ne el codi: {{reason}}. Soluciona-ho i torna-ho a demanar per continuar des d’aquest codi. La reconstrucció parteix del teu model i ignora el que hi ha a GitHub.",
+      "rebuild": "Reconstrueix des del model",
+      "cancel": "Cancel·la",
+      "notConnected": "GitHub no està connectat en aquesta pestanya",
+      "notFound": "no s’ha trobat el repositori o el teu compte no hi té accés",
+      "failed": "no s’ha pogut contactar amb GitHub"
+    },
     "startFromRepo": {
       "badLink": "Enganxa un enllaç com github.com/owner/repo.",
       "connect": "Connecta GitHub per obrir un dels teus repositoris.",

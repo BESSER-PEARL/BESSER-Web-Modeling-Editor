@@ -45,6 +45,9 @@ export type RepoAnalysis = components['schemas']['CodeAnalysisResponse'];
  */
 export type ImportedRun = components['schemas']['ImportGitHubRunResponse'];
 
+/** What was done on a repo's app and where it stands; every value is text from the repository. */
+export type RepoRecap = components['schemas']['RepoRecap'];
+
 /** The GitHub topic BESSER sets on every repo it pushes to. */
 export const BESSER_TOPIC = 'besser';
 
@@ -156,7 +159,7 @@ export const importRepoAsRun = (
   owner: string,
   repo: string,
   branch?: string,
-  { allowAiReading = false, modelPath }: { allowAiReading?: boolean; modelPath?: string } = {},
+  { allowAiReading = false, modelPath, signal }: { allowAiReading?: boolean; modelPath?: string; signal?: AbortSignal } = {},
 ) =>
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
@@ -166,7 +169,7 @@ export const importRepoAsRun = (
       allow_ai_reading: allowAiReading, model_path: modelPath,
     },
     // The AI fallback reader can take up to 90 s on top of the download.
-    { ...session(githubSession), timeout: 150_000 },
+    { ...session(githubSession), timeout: 150_000, signal },
   );
 
 /** `POST /github/deploy-webapp` takes the project with `deploy_config` and `projectExport` as an open object. */

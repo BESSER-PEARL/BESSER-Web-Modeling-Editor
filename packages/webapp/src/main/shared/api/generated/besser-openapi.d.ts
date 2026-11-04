@@ -2438,6 +2438,12 @@ export interface components {
              * @default false
              */
             ai_reading_offered: boolean;
+            /**
+             * Has Code
+             * @default false
+             */
+            has_code: boolean;
+            recap: components["schemas"]["RepoRecap"] | null;
         };
         /**
          * KGActionResponse
@@ -2965,6 +2971,49 @@ export interface components {
             project_export: {
                 [key: string]: unknown;
             } | null;
+            recap: components["schemas"]["RepoRecap"] | null;
+        };
+        /**
+         * RecapCommit
+         * @description A commit the repo gained after the last run.
+         */
+        RecapCommit: {
+            /** Sha */
+            sha: string;
+            /** Message */
+            message: string;
+            /** Author */
+            author: string;
+        };
+        /**
+         * RecapOpenItem
+         * @description Something the last run left open.
+         */
+        RecapOpenItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "rolled_back" | "missing" | "not_checked" | "left_out";
+            /** Text */
+            text: string;
+        };
+        /**
+         * RecapRun
+         * @description One earlier run on the app, as ``run_recap.build_recap`` reads it.
+         */
+        RecapRun: {
+            /** Request */
+            request: string;
+            /** Date */
+            date: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "create" | "modify";
+            /** File Count */
+            file_count: number;
         };
         /**
          * RenamedElementResponse
@@ -2975,6 +3024,22 @@ export interface components {
             from: string;
             /** To */
             to: string;
+        };
+        /**
+         * RepoRecap
+         * @description What was done on a repo's app and where it stands (``run_recap.build_recap``).
+         *
+         *     The editor's chat shows it; every value is text from the repository.
+         */
+        RepoRecap: {
+            /** Runs */
+            runs: components["schemas"]["RecapRun"][];
+            /** Open Items */
+            open_items: components["schemas"]["RecapOpenItem"][];
+            /** Open Item Count */
+            open_item_count: number;
+            /** Commits Since Run */
+            commits_since_run: components["schemas"]["RecapCommit"][];
         };
         /**
          * RepoSummaryResponse

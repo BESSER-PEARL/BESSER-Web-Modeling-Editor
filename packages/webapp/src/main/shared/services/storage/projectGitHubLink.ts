@@ -23,6 +23,7 @@
  */
 import { localStorageGitHubLinkPrefix, localStorageLegacyGitHubLinkedRepos } from '../../constants/constant';
 import { LocalStorageRepository } from './local-storage-repository';
+import type { RepoRecap } from '../../api/github';
 import type { BesserProject } from '../../types/project';
 
 /** What BESSER read in the code of a repo it did not create (backend CodeAnalysis). */
@@ -69,6 +70,10 @@ export interface ProjectGitHubLink {
   modelProposal?: ModelProposal;
   pendingChange?: PendingGitHubChange;
   legacyFilePath?: string;
+  /** The repo holds an app a run can continue from, not only a saved model. Unknown until an import or a push. */
+  hasCode?: boolean;
+  /** Where the repo's app stood at the last import or push; the chat answers from it. */
+  recap?: RepoRecap;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -116,6 +121,8 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(typeof value.lastSyncedAt === 'string' ? { lastSyncedAt: value.lastSyncedAt } : {}),
         ...(isPendingChange(value.pendingChange) ? { pendingChange: value.pendingChange } : {}),
         ...(isLegacyModelPath(value.legacyFilePath) ? { legacyFilePath: value.legacyFilePath } : {}),
+        ...(typeof value.hasCode === 'boolean' ? { hasCode: value.hasCode } : {}),
+        ...(Array.isArray(value.recap?.runs) ? { recap: value.recap as RepoRecap } : {}),
       };
     }
   } catch {

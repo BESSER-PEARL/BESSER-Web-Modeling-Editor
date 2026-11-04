@@ -5435,6 +5435,21 @@
             "type": "boolean",
             "title": "Ai Reading Offered",
             "default": false
+          },
+          "has_code": {
+            "type": "boolean",
+            "title": "Has Code",
+            "default": false
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepoRecap"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5450,7 +5465,9 @@
           "analysis",
           "proposed_diagram",
           "message",
-          "ai_reading_offered"
+          "ai_reading_offered",
+          "has_code",
+          "recap"
         ],
         "title": "ImportGitHubRunResponse",
         "description": "Response of ``POST /besser_api/spec-driven/import-github-run``."
@@ -6712,6 +6729,16 @@
               }
             ],
             "title": "Project Export"
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepoRecap"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6730,10 +6757,93 @@
           "pull_request_branch",
           "base_run_id",
           "warnings",
-          "project_export"
+          "project_export",
+          "recap"
         ],
         "title": "PushSmartToGitHubResponse",
         "description": "Response of ``POST /besser_api/spec-driven/push-to-github``."
+      },
+      "RecapCommit": {
+        "properties": {
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sha",
+          "message",
+          "author"
+        ],
+        "title": "RecapCommit",
+        "description": "A commit the repo gained after the last run."
+      },
+      "RecapOpenItem": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "rolled_back",
+              "missing",
+              "not_checked",
+              "left_out"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "RecapOpenItem",
+        "description": "Something the last run left open."
+      },
+      "RecapRun": {
+        "properties": {
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "create",
+              "modify"
+            ],
+            "title": "Mode"
+          },
+          "file_count": {
+            "type": "integer",
+            "title": "File Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request",
+          "date",
+          "mode",
+          "file_count"
+        ],
+        "title": "RecapRun",
+        "description": "One earlier run on the app, as ``run_recap.build_recap`` reads it."
       },
       "RenamedElementResponse": {
         "properties": {
@@ -6753,6 +6863,44 @@
         ],
         "title": "RenamedElementResponse",
         "description": "A class (\"Room\") or attribute (\"Room.floor\") kept under a new name."
+      },
+      "RepoRecap": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RecapRun"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "open_items": {
+            "items": {
+              "$ref": "#/components/schemas/RecapOpenItem"
+            },
+            "type": "array",
+            "title": "Open Items"
+          },
+          "open_item_count": {
+            "type": "integer",
+            "title": "Open Item Count"
+          },
+          "commits_since_run": {
+            "items": {
+              "$ref": "#/components/schemas/RecapCommit"
+            },
+            "type": "array",
+            "title": "Commits Since Run"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "open_items",
+          "open_item_count",
+          "commits_since_run"
+        ],
+        "title": "RepoRecap",
+        "description": "What was done on a repo's app and where it stands (``run_recap.build_recap``).\n\nThe editor's chat shows it; every value is text from the repository."
       },
       "RepoSummaryResponse": {
         "properties": {

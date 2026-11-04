@@ -1555,6 +1555,17 @@
       "accept": "Mit KI lesen",
       "decline": "Nicht jetzt"
     },
+    "linkedRun": {
+      "busy": "BESSER ist gerade mit anderen Läufen beschäftigt. Bitte frage gleich noch einmal.",
+      "badModel": "Das Modell in diesem Repository konnte nicht geladen werden.",
+      "title": "App aus deinem Modell neu erstellen?",
+      "description": "Dieses Projekt ist mit {{repo}} verknüpft, aber BESSER kann den Code nicht lesen: {{reason}}. Behebe das und frage erneut, um mit diesem Code weiterzumachen. Beim Neuerstellen wird von deinem Modell ausgegangen und ignoriert, was auf GitHub liegt.",
+      "rebuild": "Aus dem Modell neu erstellen",
+      "cancel": "Abbrechen",
+      "notConnected": "GitHub ist in diesem Tab nicht verbunden",
+      "notFound": "das Repository wurde nicht gefunden oder dein Konto hat keinen Zugriff darauf",
+      "failed": "GitHub konnte nicht erreicht werden"
+    },
     "startFromRepo": {
       "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",
       "connect": "Verbinden Sie GitHub, um eines Ihrer Repositorys zu öffnen.",

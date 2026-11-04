@@ -336,6 +336,10 @@ export function useSpecDrivenGithubPush(
           owner: res.owner,
           repo: res.repo_name,
           branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
+          // A pull request or a conflict leaves the branch as it was.
+          ...(res.status === 'pushed' || res.status === 'merged'
+            ? { hasCode: true, recap: res.recap ?? undefined }
+            : {}),
         };
         // The run changed the model; it replaces the canvas only if the canvas
         // still holds the model the run started from, or the user agrees.

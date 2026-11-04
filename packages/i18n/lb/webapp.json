@@ -1555,6 +1555,17 @@
       "accept": "Mat KI liesen",
       "decline": "Net elo"
     },
+    "linkedRun": {
+      "busy": "BESSER ass elo mat aneren Oflef beschäftegt. Frot w.e.g. gläich nach eng Kéier.",
+      "badModel": "D’Modell an dësem Repository konnt net geluede ginn.",
+      "title": "D’App aus Ärem Modell nei bauen?",
+      "description": "Dëse Projet ass mat {{repo}} verlinkt, mee BESSER kann säi Code net liesen: {{reason}}. Behiewt dat a frot nach eng Kéier, fir mat deem Code weiderzemaachen. Beim Neibauen gëtt vun Ärem Modell ausgaangen an ignoréiert, wat op GitHub ass.",
+      "rebuild": "Aus dem Modell nei bauen",
+      "cancel": "Ofbriechen",
+      "notConnected": "GitHub ass an dësem Tab net verbonnen",
+      "notFound": "de Repository gouf net fonnt oder Äre Kont huet keen Zougrëff",
+      "failed": "GitHub konnt net erreecht ginn"
+    },
     "startFromRepo": {
       "badLink": "Füg e Link wéi github.com/owner/repo an.",
       "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",

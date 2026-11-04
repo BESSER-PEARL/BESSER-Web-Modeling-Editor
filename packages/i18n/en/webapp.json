@@ -1555,6 +1555,17 @@
       "accept": "Read with AI",
       "decline": "Not now"
     },
+    "linkedRun": {
+      "busy": "BESSER is busy with other runs right now. Please ask again in a moment.",
+      "badModel": "The model in this repository could not be loaded.",
+      "title": "Rebuild the app from your model?",
+      "description": "This project is linked to {{repo}}, but BESSER cannot read its code: {{reason}}. Fix that and ask again to continue from that code. Rebuilding starts from your model and ignores what is on GitHub.",
+      "rebuild": "Rebuild from the model",
+      "cancel": "Cancel",
+      "notConnected": "GitHub is not connected in this tab",
+      "notFound": "the repository was not found, or your account has no access to it",
+      "failed": "GitHub could not be reached"
+    },
     "startFromRepo": {
       "failed": "Could not open this repository.",
       "badLink": "Paste a link like github.com/owner/repo.",
