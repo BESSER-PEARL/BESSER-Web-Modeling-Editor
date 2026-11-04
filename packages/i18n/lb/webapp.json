@@ -18,6 +18,10 @@
     "unread_other": "Wat ass nei ({{count}} nei)",
     "new": "Nei",
     "entries": {
+      "keepEdits": {
+        "title": "Deng Ännerunge bleiwen, wann de Modell ännert",
+        "body": "Änner de Klassemodell vun enger App, déi de Spec-Driven Agent gebaut huet: Hie generéiert d’Fichieren, déi keen geännert huet, nei a féiert deng Ännerungen an déi aner zesummen, sou datt vill manner Ännerungen d’KI brauchen."
+      },
       "anyStack": {
         "title": "Apps am Stack, deen s du wëlls",
         "body": "Fro de Spec-Driven Agent no enger REST-API a Go oder engem Kommandozeilen-Tool a Rust: Hie baut genee dat a préift d’App esou, wéi hien eng Web-App préift."

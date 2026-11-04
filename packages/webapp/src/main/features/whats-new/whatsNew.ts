@@ -14,6 +14,7 @@ export interface WhatsNewEntry {
 
 /** Newest first. Keep the last few releases; the release notes hold the full history. */
 export const WHATS_NEW: WhatsNewEntry[] = [
+  { id: 'keepEdits', version: '8.8.0', date: '2026-11-04' },
   { id: 'anyStack', version: '8.7.0', date: '2026-11-02' },
   { id: 'githubRepo', version: '8.6.0', date: '2026-10-30' },
   { id: 'knowledgeGraph', version: '8.5.0', date: '2026-10-28', diagramType: 'KnowledgeGraphDiagram' },

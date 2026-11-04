@@ -18,6 +18,10 @@
     "unread_other": "What's new ({{count}} new)",
     "new": "New",
     "entries": {
+      "keepEdits": {
+        "title": "Your edits survive a model change",
+        "body": "Change the class model of an app the Spec-Driven Agent built: it regenerates the files nobody edited and merges your edits into the others, so far fewer changes need the AI."
+      },
       "anyStack": {
         "title": "Apps in the stack you ask for",
         "body": "Ask the Spec-Driven Agent for a REST API in Go or a command-line tool in Rust and it builds that, then checks the app the same way it checks a web app."
