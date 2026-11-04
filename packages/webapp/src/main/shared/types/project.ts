@@ -305,13 +305,13 @@ export type ElementLineageMap = Record<string, string>;
 
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
 
-// New centralized project structure
 /** Who added a class or member of the model; see `BesserProject.attribution`. */
 export interface ElementAttribution {
   addedBy: string;
   addedAt: string;
 }
 
+// New centralized project structure
 export interface BesserProject {
   id: string;
   type: 'Project';

@@ -3040,6 +3040,8 @@ export interface components {
             open_item_count: number;
             /** Commits Since Run */
             commits_since_run: components["schemas"]["RecapCommit"][];
+            /** Commit Count */
+            commit_count: number;
         };
         /**
          * RepoSummaryResponse
@@ -3141,6 +3143,15 @@ export interface components {
              * @default []
              */
             warnings: string[];
+            /**
+             * Attribution
+             * @default {}
+             */
+            attribution: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
         };
         /**
          * SdmxImportRequest

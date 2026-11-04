@@ -6890,6 +6890,10 @@
             },
             "type": "array",
             "title": "Commits Since Run"
+          },
+          "commit_count": {
+            "type": "integer",
+            "title": "Commit Count"
           }
         },
         "type": "object",
@@ -6897,7 +6901,8 @@
           "runs",
           "open_items",
           "open_item_count",
-          "commits_since_run"
+          "commits_since_run",
+          "commit_count"
         ],
         "title": "RepoRecap",
         "description": "What was done on a repo's app and where it stands (``run_recap.build_recap``).\n\nThe editor's chat shows it; every value is text from the repository."
@@ -7113,6 +7118,17 @@
             "type": "array",
             "title": "Warnings",
             "default": []
+          },
+          "attribution": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Attribution",
+            "default": {}
           }
         },
         "type": "object",
@@ -7122,7 +7138,8 @@
           "message",
           "status",
           "conflict_branch",
-          "warnings"
+          "warnings",
+          "attribution"
         ],
         "title": "SaveProjectResponse",
         "description": "Response for project save."

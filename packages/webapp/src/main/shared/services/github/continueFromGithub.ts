@@ -277,12 +277,23 @@ export async function continueFromGithubRepo(args: {
 }
 
 const RECAP_LINES_SHOWN = 3;
-const OPEN_ITEM_LABELS: Record<RepoRecap['open_items'][number]['kind'], string> = {
-  rolled_back: '',
-  missing: 'Not in the code: ',
-  not_checked: 'Not checked: ',
-  left_out: 'Left out: ',
-};
+
+const andMore = (hidden: number): string =>
+  `- ${i18n.t('github.recap.more', { defaultValue: 'and {{hidden}} more', hidden })}`;
+
+function openItemLine(item: RepoRecap['open_items'][number]): string {
+  const text = escapeMarkdownText(item.text);
+  switch (item.kind) {
+    case 'missing':
+      return i18n.t('github.recap.missing', { defaultValue: 'Not in the code: {{text}}', text });
+    case 'not_checked':
+      return i18n.t('github.recap.notChecked', { defaultValue: 'Not checked: {{text}}', text });
+    case 'left_out':
+      return i18n.t('github.recap.leftOut', { defaultValue: 'Left out: {{text}}', text });
+    default:
+      return text;
+  }
+}
 
 /**
  * Where a repo's app stands, in the chat's markdown: empty without a recap. All
@@ -294,25 +305,25 @@ export function describeRepoRecap(recap: RepoRecap | null | undefined): string {
   const runs = recap.runs.filter((run) => run.request).slice(-RECAP_LINES_SHOWN).reverse();
   if (runs.length) {
     sections.push([
-      '**Recent work**',
+      `**${i18n.t('github.recap.recentWork', { defaultValue: 'Recent work' })}**`,
       ...runs.map((run) => `- ${run.date ? `${escapeMarkdownText(run.date)}: ` : ''}${markdownCode(run.request)}`),
     ].join('\n'));
   }
   if (recap.open_items.length) {
     const hidden = recap.open_item_count - Math.min(recap.open_items.length, RECAP_LINES_SHOWN);
     sections.push([
-      '**Still open when the last run ended**',
-      ...recap.open_items.slice(0, RECAP_LINES_SHOWN).map((item) => `- ${OPEN_ITEM_LABELS[item.kind]}${escapeMarkdownText(item.text)}`),
-      ...(hidden > 0 ? [`- and ${hidden} more`] : []),
+      `**${i18n.t('github.recap.stillOpen', { defaultValue: 'Still open when the last run ended' })}**`,
+      ...recap.open_items.slice(0, RECAP_LINES_SHOWN).map((item) => `- ${openItemLine(item)}`),
+      ...(hidden > 0 ? [andMore(hidden)] : []),
     ].join('\n'));
   }
   if (recap.commits_since_run.length) {
     const shown = recap.commits_since_run.slice(-RECAP_LINES_SHOWN);
-    const hidden = recap.commits_since_run.length - shown.length;
+    const hidden = recap.commit_count - shown.length;
     sections.push([
-      '**New on GitHub since then**',
+      `**${i18n.t('github.recap.newOnGitHub', { defaultValue: 'New on GitHub since then' })}**`,
       ...shown.map((commit) => `- ${markdownCode(commit.sha)} ${escapeMarkdownText(commit.message)} (${escapeMarkdownText(commit.author)})`),
-      ...(hidden > 0 ? [`- and ${hidden} more`] : []),
+      ...(hidden > 0 ? [andMore(hidden)] : []),
     ].join('\n'));
   }
   return sections.join('\n\n');
@@ -322,7 +333,8 @@ export function describeRepoRecap(recap: RepoRecap | null | undefined): string {
 export function githubRepoContext(projectId: string | undefined) {
   const link = projectId ? getProjectGitHubLink(projectId) : null;
   if (!link) return undefined;
-  return { fullName: `${link.owner}/${link.repo}`, hasCode: link.hasCode === true, recap: describeRepoRecap(link.recap) };
+  // Unknown counts as code, as the run decision does: only a repo known to hold just a model has none.
+  return { fullName: `${link.owner}/${link.repo}`, hasCode: link.hasCode !== false, recap: describeRepoRecap(link.recap) };
 }
 
 const withRecap = (text: string, recap: RepoRecap | null | undefined): string => {
@@ -336,8 +348,12 @@ export function describeContinuedRepo(link: ProjectGitHubLink, imported: Importe
   const branch = markdownCode(imported.branch);
   return withRecap(
     pulled
-      ? `Continuing from ${repo} on ${branch}. It had a newer model, so I brought it into this project first.`
-      : `Continuing from ${repo} on ${branch}.`,
+      ? i18n.t('github.recap.continuingPulled', {
+        defaultValue: 'Continuing from {{repo}} on {{branch}}. It had a newer model, so I brought it into this project first.',
+        repo,
+        branch,
+      })
+      : i18n.t('github.recap.continuing', { defaultValue: 'Continuing from {{repo}} on {{branch}}.', repo, branch }),
     imported.recap,
   );
 }

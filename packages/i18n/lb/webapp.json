@@ -1562,7 +1562,21 @@
       "accept": "Mat KI liesen",
       "decline": "Net elo"
     },
+    "recap": {
+      "recentWork": "Lescht Aarbechten",
+      "stillOpen": "Nach op um Enn vum leschte Laf",
+      "newOnGitHub": "Zënterhier nei op GitHub",
+      "more": "an {{hidden}} weider",
+      "missing": "Net am Code: {{text}}",
+      "notChecked": "Net iwwerpréift: {{text}}",
+      "leftOut": "Ausgelooss: {{text}}",
+      "continuing": "Weider vun {{repo}} op {{branch}}.",
+      "continuingPulled": "Weider vun {{repo}} op {{branch}}. Et hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn."
+    },
     "linkedRun": {
+      "repoChanged": "De GitHub-Link vun dësem Projet huet sech beim Start geännert. Frot w.e.g. nach eng Kéier.",
+      "pulledModel": "{{repo}} hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn.",
+      "unsaved": "{{repo}} huet Commiten op {{branch}}, déi dëse Projet nach net iwwerholl huet, an Äre Modell huet Ännerungen, déi do net gespäichert sinn. Féiert se am GitHub-Menü mat **Op GitHub pushen** zesummen a frot dann nach eng Kéier.",
       "busy": "BESSER ass elo mat aneren Oflef beschäftegt. Frot w.e.g. gläich nach eng Kéier.",
       "badModel": "D’Modell an dësem Repository konnt net geluede ginn.",
       "title": "D’App aus Ärem Modell nei bauen?",

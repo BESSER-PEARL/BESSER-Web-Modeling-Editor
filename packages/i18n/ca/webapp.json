@@ -1562,7 +1562,21 @@
       "accept": "Llegeix amb IA",
       "decline": "Ara no"
     },
+    "recap": {
+      "recentWork": "Feina recent",
+      "stillOpen": "Encara pendent en acabar l'última execució",
+      "newOnGitHub": "Novetats a GitHub des de llavors",
+      "more": "i {{hidden}} més",
+      "missing": "No és al codi: {{text}}",
+      "notChecked": "Sense comprovar: {{text}}",
+      "leftOut": "Omès: {{text}}",
+      "continuing": "Continuant des de {{repo}} a {{branch}}.",
+      "continuingPulled": "Continuant des de {{repo}} a {{branch}}. Tenia un model més recent, així que primer l'he incorporat a aquest projecte."
+    },
     "linkedRun": {
+      "repoChanged": "L'enllaç de GitHub d'aquest projecte ha canviat mentre s'iniciava. Torna-ho a demanar.",
+      "pulledModel": "{{repo}} tenia un model més recent, així que primer l'he incorporat a aquest projecte.",
+      "unsaved": "{{repo}} té commits a {{branch}} que aquest projecte no ha incorporat, i el teu model té canvis que no hi estan desats. Combina'ls amb **Puja a GitHub** al menú de GitHub i torna-ho a demanar.",
       "busy": "BESSER està ocupat amb altres execucions. Torna-ho a demanar d’aquí a un moment.",
       "badModel": "No s’ha pogut carregar el model d’aquest repositori.",
       "title": "Vols reconstruir l’aplicació a partir del teu model?",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BesserProject } from '../../../types/project';
-import { classModelElements, elementLabel, newElementIds } from '../modelAttribution';
+import { classModelElements, elementLabel, elementRecords, newElementIds } from '../modelAttribution';
 
 const ANA = { addedBy: 'ana', addedAt: '2026-11-04T12:00:00Z' };
 
@@ -71,5 +71,52 @@ describe('elementLabel', () => {
     expect(elementLabel(elements.get('c1')!, elements)).toBe('Book');
     expect(elementLabel(elements.get('a1')!, elements)).toBe('Book.title');
     expect(elementLabel(elements.get('m1')!, elements)).toBe('Book.lend');
+  });
+});
+
+describe('elementRecords', () => {
+  it('keeps only records whose author and date are text', () => {
+    const records = elementRecords(apollon({}, {
+      c1: ANA,
+      c2: { addedBy: 5, addedAt: ANA.addedAt },
+      c3: { addedBy: 'ana', addedAt: 7 },
+      c4: 'ana',
+      c5: null,
+      c6: { addedBy: '', addedAt: ANA.addedAt },
+    } as unknown as BesserProject['attribution']));
+
+    expect([...records.keys()]).toEqual(['c1']);
+  });
+
+  it('reads a file whose whole block is not an object', () => {
+    expect(elementRecords(apollon({}, 'x' as unknown as BesserProject['attribution'])).size).toBe(0);
+    expect(elementRecords(null).size).toBe(0);
+  });
+
+  it('does not treat a name every object has as a record', () => {
+    expect(elementRecords(apollon({}, { c1: ANA })).has('constructor')).toBe(false);
+  });
+});
+
+describe('newElementIds: since the last sync', () => {
+  const incoming = apollon({ c1: BOOK, c2: LOAN }, { c2: ANA });
+  const local = apollon({ c1: BOOK });
+
+  it('marks an element credited after the sync', () => {
+    expect(newElementIds(incoming, local, '2026-11-01T00:00:00Z')).toEqual(['c2']);
+  });
+
+  it('does not mark an old element this project just deleted', () => {
+    expect(newElementIds(incoming, local, '2026-11-05T00:00:00Z')).toEqual([]);
+  });
+
+  it('compares nothing without a usable sync time', () => {
+    expect(newElementIds(incoming, local)).toEqual(['c2']);
+    expect(newElementIds(incoming, local, 'not a date')).toEqual(['c2']);
+  });
+
+  it('marks nothing for a record that is not text', () => {
+    const forged = apollon({ c1: BOOK, c2: LOAN }, { c2: { addedBy: 5 } } as unknown as BesserProject['attribution']);
+    expect(newElementIds(forged, local)).toEqual([]);
   });
 });

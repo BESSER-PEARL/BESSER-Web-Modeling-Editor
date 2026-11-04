@@ -1562,7 +1562,21 @@
       "accept": "Mit KI lesen",
       "decline": "Nicht jetzt"
     },
+    "recap": {
+      "recentWork": "Letzte Arbeiten",
+      "stillOpen": "Beim Ende des letzten Laufs noch offen",
+      "newOnGitHub": "Seitdem neu auf GitHub",
+      "more": "und {{hidden}} weitere",
+      "missing": "Nicht im Code: {{text}}",
+      "notChecked": "Nicht geprüft: {{text}}",
+      "leftOut": "Ausgelassen: {{text}}",
+      "continuing": "Weiter mit {{repo}} auf {{branch}}.",
+      "continuingPulled": "Weiter mit {{repo}} auf {{branch}}. Es hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe."
+    },
     "linkedRun": {
+      "repoChanged": "Die GitHub-Verknüpfung dieses Projekts hat sich beim Start geändert. Bitte frag noch einmal.",
+      "pulledModel": "{{repo}} hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe.",
+      "unsaved": "{{repo}} hat Commits auf {{branch}}, die dieses Projekt noch nicht übernommen hat, und dein Modell hat Änderungen, die dort nicht gespeichert sind. Führe sie im GitHub-Menü mit **Auf GitHub pushen** zusammen und frag dann noch einmal.",
       "busy": "BESSER ist gerade mit anderen Läufen beschäftigt. Bitte frage gleich noch einmal.",
       "badModel": "Das Modell in diesem Repository konnte nicht geladen werden.",
       "title": "App aus deinem Modell neu erstellen?",

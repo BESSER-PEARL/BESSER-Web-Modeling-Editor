@@ -42,7 +42,7 @@ export async function pullRepoIntoProject(
  */
 function marksAfterPull(target: ProjectGitHubLink, before: BesserProject | null, pulled: BesserProject): string[] {
   const inSync = !!(target.syncedModel || target.baselinePending);
-  const added = before && inSync ? newElementIds(pulled, before) : [];
+  const added = before && inSync ? newElementIds(pulled, before, target.lastSyncedAt) : [];
   const present = classModelElements(pulled);
   return [...new Set([...(target.newFromRepo ?? []).filter((id) => present.has(id)), ...added])];
 }

@@ -1562,7 +1562,21 @@
       "accept": "Read with AI",
       "decline": "Not now"
     },
+    "recap": {
+      "recentWork": "Recent work",
+      "stillOpen": "Still open when the last run ended",
+      "newOnGitHub": "New on GitHub since then",
+      "more": "and {{hidden}} more",
+      "missing": "Not in the code: {{text}}",
+      "notChecked": "Not checked: {{text}}",
+      "leftOut": "Left out: {{text}}",
+      "continuing": "Continuing from {{repo}} on {{branch}}.",
+      "continuingPulled": "Continuing from {{repo}} on {{branch}}. It had a newer model, so I brought it into this project first."
+    },
     "linkedRun": {
+      "repoChanged": "This project's GitHub link changed while this was starting. Please ask again.",
+      "pulledModel": "{{repo}} had a newer model, so I brought it into this project first.",
+      "unsaved": "{{repo}} has commits on {{branch}} this project has not brought in, and your model has changes not saved there. Use **Save to GitHub** in the GitHub menu to merge them, then ask again.",
       "busy": "BESSER is busy with other runs right now. Please ask again in a moment.",
       "badModel": "The model in this repository could not be loaded.",
       "title": "Rebuild the app from your model?",

@@ -12,10 +12,19 @@ import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { writeProjectLastRun } from '@/main/features/spec-driven/storage';
 import type { TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
+import { PROJECT_SCHEMA_VERSION } from '@/main/shared/types/project';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
 import * as confirm from '@/main/shared/services/confirm/globalConfirm';
-import { markProjectGitHubSynced } from '@/main/shared/services/storage/projectGitHubLink';
+import { getProjectGitHubLink, markProjectGitHubSynced, modelFingerprint } from '@/main/shared/services/storage/projectGitHubLink';
+import { ProjectStorageRepository } from '@/main/shared/services/storage/ProjectStorageRepository';
+import { readRunSeedModel } from '@/main/shared/services/storage/specDrivenRunRecords';
+import { track } from '@/main/shared/services/analytics/events';
 import { sessionStorageLlmApiKey, sessionStorageLlmProvider } from '@/main/shared/constants/constant';
+
+vi.mock('@/main/shared/services/analytics/events', async (importOriginal) => ({
+  ...(await importOriginal<any>()),
+  track: vi.fn(),
+}));
 
 vi.mock('react-toastify', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
@@ -63,6 +72,30 @@ const PROJECT = {
   diagrams: { ClassDiagram: [{ id: 'cd1', title: 'd', model: {} }] },
   currentDiagramIndices: { ClassDiagram: 0 },
 } as any;
+const PULLED = {
+  ...PROJECT,
+  type: 'Project',
+  name: 'Pulled',
+  schemaVersion: PROJECT_SCHEMA_VERSION,
+  description: '',
+  owner: 'ana',
+  createdAt: '2026-11-04T00:00:00Z',
+  currentDiagramType: 'ClassDiagram',
+  diagrams: {
+    ClassDiagram: [{ id: 'cd1', title: 'd', model: { pulled: true } }],
+    ObjectDiagram: [],
+    StateMachineDiagram: [],
+    AgentDiagram: [],
+    GUINoCodeDiagram: [],
+    QuantumCircuitDiagram: [],
+    BPMN: [],
+  },
+};
+const storeRepoModelAsProject = vi.hoisted(() => vi.fn());
+vi.mock('@/main/shared/services/project-import/projectImport', async (importOriginal) => ({
+  ...(await importOriginal<any>()),
+  storeRepoModelAsProject: (...args: unknown[]) => storeRepoModelAsProject(...args),
+}));
 const EXPIRED = 'a'.repeat(32);
 const IMPORTED = 'b'.repeat(32);
 const SYNCED = 'c'.repeat(40);
@@ -70,9 +103,11 @@ const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 type TriggerFn = (p: TriggerSpecDrivenPayload) => Promise<void>;
 
+const openProject: { current: any } = { current: PROJECT };
+
 function Surface({ apiRef }: { apiRef: { current: TriggerFn | null } }) {
   const [, setIsGenerating] = React.useState(false);
-  const currentProjectRef = React.useRef<any>(PROJECT);
+  const currentProjectRef = openProject;
   apiRef.current = useSpecDrivenTrigger({
     currentProjectRef,
     setMessages: conversationStore.setMessages,
@@ -105,6 +140,13 @@ const chatText = () => conversationStore.getMessages().map((message: any) => Str
 
 beforeEach(() => {
   localStorage.clear();
+  openProject.current = PROJECT;
+  vi.mocked(track).mockClear();
+  storeRepoModelAsProject.mockReset();
+  storeRepoModelAsProject.mockImplementation(() => {
+    ProjectStorageRepository.saveProject(PULLED);
+    return PULLED;
+  });
   sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-test');
   sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
   writeProjectLastRun(PROJECT_ID, EXPIRED, Date.now() - THREE_DAYS_MS);
@@ -156,6 +198,74 @@ describe('useSpecDrivenTrigger on a project linked to GitHub', () => {
     await trigger();
     await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
     expect(vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0]).toMatchObject({ mode: 'generate' });
+  });
+
+  describe('with newer commits on GitHub', () => {
+    const HEAD = 'd'.repeat(40);
+    const movedHead = {
+      run_id: IMPORTED, owner: 'ana', repo: 'library', branch: 'main', commit_sha: HEAD,
+      has_model: true, has_code: true, project: {}, recap: null,
+    };
+
+    it('sends the pulled model, and remembers it as what the run started from', async () => {
+      importRepoAsRun.mockResolvedValue(movedHead);
+      await trigger();
+      await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
+
+      const request = vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0] as any;
+      expect(request).toMatchObject({ mode: 'modify', baseRunId: IMPORTED });
+      expect(request.project.name).toBe('Pulled');
+      request.onRunAccepted('c'.repeat(32));
+      expect(readRunSeedModel('c'.repeat(32))).toBe(modelFingerprint(ProjectStorageRepository.loadProject(PROJECT_ID)!));
+      expect(readRunSeedModel('c'.repeat(32))).not.toBe(modelFingerprint(PROJECT));
+      expect(getProjectGitHubLink(PROJECT_ID)?.baseCommitSha).toBe(HEAD);
+    });
+
+    it('updates the store with the run it continues from', async () => {
+      await trigger();
+      await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
+      expect(store.getState().specDriven.lastRunByProject[PROJECT_ID]?.runId).toBe(IMPORTED);
+    });
+
+    it('starts nothing and changes nothing when another project opened during the import', async () => {
+      importRepoAsRun.mockImplementation(async () => {
+        openProject.current = { ...PROJECT, id: 'another' };
+        return movedHead;
+      });
+      await trigger();
+
+      expect(sseClient.startSpecDrivenRun).not.toHaveBeenCalled();
+      expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+      expect(getProjectGitHubLink(PROJECT_ID)?.baseCommitSha).toBe(SYNCED);
+      expect(chatText()).not.toContain('Continuing from');
+      expect(vi.mocked(track).mock.calls).toContainEqual([
+        'spec_run_cancelled',
+        expect.objectContaining({ reason: 'project_switched' }),
+      ]);
+    });
+
+    it('starts no run when the pulled model cannot be opened', async () => {
+      importRepoAsRun.mockResolvedValue(movedHead);
+      // Nothing stored under this id, so opening it fails.
+      storeRepoModelAsProject.mockImplementation(() => PULLED);
+      await trigger();
+
+      expect(sseClient.startSpecDrivenRun).not.toHaveBeenCalled();
+      expect(vi.mocked(track).mock.calls).toContainEqual([
+        'spec_run_cancelled',
+        expect.objectContaining({ reason: 'bad_model' }),
+      ]);
+    });
+  });
+
+  it('counts a stop the user chose as a cancel', async () => {
+    importRepoAsRun.mockRejectedValue(new Error('network'));
+    vi.mocked(confirm.globalConfirm).mockResolvedValue(false);
+    await trigger();
+    expect(vi.mocked(track).mock.calls).toContainEqual([
+      'spec_run_cancelled',
+      expect.objectContaining({ reason: 'user' }),
+    ]);
   });
 
   it('leaves a request that names its own mode alone', async () => {

@@ -65,6 +65,19 @@ function importedEnvelope(): Promise<any> {
 }
 
 describe('continueFromGithubRepo', () => {
+  it('passes on what the repo holds, to the link and to the chat', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: { project: {} }, has_model: true, has_code: true, recap,
+      owner: 'me', repo: 'app', branch: 'main', commit_sha: HEAD,
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, recap });
+    expect(getProjectGitHubLink('p-new')).toMatchObject({ hasCode: true, recap });
+  });
+
   it('links the new project to the repo at the imported commit', async () => {
     importRepoAsRun.mockResolvedValue({
       run_id: RUN, project: { project: {} }, has_model: true,
@@ -362,6 +375,7 @@ describe('the recap of a repo', () => {
     ],
     open_item_count: 7,
     commits_since_run: [{ sha: 'abc1234', message: 'Teammate adds a helper', author: 'ana' }],
+    commit_count: 1,
   };
 
   it('opening a repo says what was done, what is open and what is new', () => {
@@ -395,6 +409,7 @@ describe('the recap of a repo', () => {
       open_items: [{ kind: 'missing', text: planted }],
       open_item_count: 1,
       commits_since_run: [{ sha: 'abc1234', message: planted, author: planted }],
+      commit_count: 1,
     });
     // A code span shows it as text; outside one the brackets must be escaped.
     expect(text.replace(/`[^`]*`/g, '')).not.toContain('](https://attacker.example)');
@@ -408,9 +423,35 @@ describe('the recap of a repo', () => {
     expect(context?.recap).toContain('add a search bar');
   });
 
-  it('a link written before this keeps working and reads as unknown', () => {
+  it('a link written before this counts as holding code, as the run decision does', () => {
     setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main' });
-    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: false, recap: '' });
+    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: true, recap: '' });
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: false });
+    expect(githubRepoContext('p1')?.hasCode).toBe(false);
+  });
+
+  it('counts every commit, not just the ones the recap lists', () => {
+    const commits = Array.from({ length: 10 }, (_, i) => ({ sha: `abc123${i}`, message: `c${i}`, author: 'ana' }));
+    const text = describeRepoRecap({ ...recap, commits_since_run: commits, commit_count: 40 });
+    expect(text).toContain('and 37 more');
+  });
+
+  it('reads a recap stored before the total existed', () => {
+    const { commit_count: _dropped, ...older } = {
+      ...recap,
+      commits_since_run: [{ sha: 'abc1234', message: 'm', author: 'ana' }],
+      commit_count: 1,
+    };
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', recap: older as never });
+    expect(getProjectGitHubLink('p1')?.recap?.commit_count).toBe(1);
+  });
+
+  it('drops a stored recap missing a list, which would throw on every message', () => {
+    localStorage.setItem(
+      'besser_github_link_p1',
+      JSON.stringify({ owner: 'ana', repo: 'library', branch: 'main', recap: { runs: [] } }),
+    );
+    expect(() => githubRepoContext('p1')).not.toThrow();
   });
 
   it('the link keeps the recap across a reload', () => {

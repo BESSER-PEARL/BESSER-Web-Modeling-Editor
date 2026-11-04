@@ -1562,7 +1562,21 @@
       "accept": "Lire avec l’IA",
       "decline": "Pas maintenant"
     },
+    "recap": {
+      "recentWork": "Travaux récents",
+      "stillOpen": "Encore ouvert à la fin de la dernière exécution",
+      "newOnGitHub": "Nouveau sur GitHub depuis",
+      "more": "et {{hidden}} de plus",
+      "missing": "Absent du code : {{text}}",
+      "notChecked": "Non vérifié : {{text}}",
+      "leftOut": "Laissé de côté : {{text}}",
+      "continuing": "Reprise depuis {{repo}} sur {{branch}}.",
+      "continuingPulled": "Reprise depuis {{repo}} sur {{branch}}. Il avait un modèle plus récent, que j'ai d'abord intégré à ce projet."
+    },
     "linkedRun": {
+      "repoChanged": "Le lien GitHub de ce projet a changé pendant le démarrage. Veuillez redemander.",
+      "pulledModel": "{{repo}} avait un modèle plus récent, que j'ai d'abord intégré à ce projet.",
+      "unsaved": "{{repo}} a des commits sur {{branch}} que ce projet n'a pas récupérés, et votre modèle contient des modifications qui n'y sont pas enregistrées. Fusionnez-les avec **Pousser vers GitHub** dans le menu GitHub, puis redemandez.",
       "busy": "BESSER est occupé par d’autres exécutions. Redemandez dans un instant.",
       "badModel": "Le modèle de ce dépôt n’a pas pu être chargé.",
       "title": "Reconstruire l’application à partir de votre modèle ?",

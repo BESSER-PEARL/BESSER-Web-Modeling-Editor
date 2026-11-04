@@ -107,6 +107,11 @@ const isPendingChange = (value: unknown): value is PendingGitHubChange => {
     && typeof pending.branch === 'string' && typeof pending.createdAt === 'string';
 };
 
+const isRepoRecap = (value: unknown): value is Omit<RepoRecap, 'commit_count'> => {
+  const recap = value as Partial<RepoRecap> | null | undefined;
+  return Array.isArray(recap?.runs) && Array.isArray(recap?.open_items) && Array.isArray(recap?.commits_since_run);
+};
+
 const parseLink = (raw: string | null): ProjectGitHubLink | null => {
   if (!raw) return null;
   try {
@@ -127,8 +132,13 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(isPendingChange(value.pendingChange) ? { pendingChange: value.pendingChange } : {}),
         ...(isLegacyModelPath(value.legacyFilePath) ? { legacyFilePath: value.legacyFilePath } : {}),
         ...(typeof value.hasCode === 'boolean' ? { hasCode: value.hasCode } : {}),
-        ...(Array.isArray(value.recap?.runs) ? { recap: value.recap as RepoRecap } : {}),
-        ...(Array.isArray(value.newFromRepo) ? { newFromRepo: value.newFromRepo as string[] } : {}),
+        ...(isRepoRecap(value.recap)
+          // Stored before the total existed: what it lists is all it knows.
+          ? { recap: { commit_count: value.recap.commits_since_run.length, ...value.recap } as RepoRecap }
+          : {}),
+        ...(Array.isArray(value.newFromRepo)
+          ? { newFromRepo: value.newFromRepo.filter((id: unknown) => typeof id === 'string') as string[] }
+          : {}),
       };
     }
   } catch {

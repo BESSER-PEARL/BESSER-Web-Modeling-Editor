@@ -3,7 +3,7 @@
  * on each save to GitHub, see its `model_attribution.py`) and what a pull
  * brought in. Reads both editor formats: Apollon `elements`, React Flow `nodes`.
  */
-import type { BesserProject } from '../../types/project';
+import type { BesserProject, ElementAttribution } from '../../types/project';
 
 export interface ClassModelElement {
   id: string;
@@ -19,6 +19,23 @@ type Loose = Record<string, unknown>;
 
 const memberRows = (data: Loose): Loose[] =>
   [data.attributes, data.methods].flatMap((rows) => (Array.isArray(rows) ? (rows as Loose[]) : []));
+
+/**
+ * The well-formed records of an attribution block. The block comes from a file in a repository,
+ * which anyone with write access can edit, so nothing about its shape is taken on trust.
+ */
+export function parseRecords(block: unknown): Map<string, ElementAttribution> {
+  const records = new Map<string, ElementAttribution>();
+  if (!block || typeof block !== 'object') return records;
+  for (const [id, value] of Object.entries(block)) {
+    const { addedBy, addedAt } = (value ?? {}) as Partial<Record<keyof ElementAttribution, unknown>>;
+    if (typeof addedBy === 'string' && addedBy && typeof addedAt === 'string') records.set(id, { addedBy, addedAt });
+  }
+  return records;
+}
+
+export const elementRecords = (project: BesserProject | null | undefined): Map<string, ElementAttribution> =>
+  parseRecords(project?.attribution);
 
 /** The classes and members of a project's class diagrams, by id. */
 export function classModelElements(project: BesserProject): Map<string, ClassModelElement> {
@@ -46,11 +63,18 @@ export function classModelElements(project: BesserProject): Map<string, ClassMod
 
 /**
  * What `incoming` adds over `local`: elements `local` lacks that have a record.
- * A model nobody credited (an older editor's, a hand edit) marks nothing.
+ * A model nobody credited (an older editor's, a hand edit) marks nothing, and
+ * nor does an element credited before `since`: `local` lost that one, by deleting it.
  */
-export function newElementIds(incoming: BesserProject, local: BesserProject): string[] {
+export function newElementIds(incoming: BesserProject, local: BesserProject, since?: string): string[] {
   const known = classModelElements(local);
-  return [...classModelElements(incoming).keys()].filter((id) => !known.has(id) && !!incoming.attribution?.[id]);
+  const records = elementRecords(incoming);
+  const sinceMs = since ? Date.parse(since) : Number.NaN;
+  return [...classModelElements(incoming).keys()].filter((id) => {
+    const record = records.get(id);
+    if (known.has(id) || !record) return false;
+    return Number.isNaN(sinceMs) || !(Date.parse(record.addedAt) <= sinceMs);
+  });
 }
 
 /** A member's bare name: `+ title: str` is `title`, `+ lend(days: int)` is `lend`. */

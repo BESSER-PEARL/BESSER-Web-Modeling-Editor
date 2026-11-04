@@ -184,8 +184,8 @@ what was done last, what was still open and which commits are new.
 - If BESSER cannot read the repository, for example because this tab is not
   connected to GitHub, it asks before rebuilding from your model.
 
-Each **Save to GitHub** also keeps a short section in the repository's
-``AGENTS.md`` with the same recap, for your team and for other coding tools. BESSER
+Each time you push a run to GitHub, BESSER also keeps a short section in the
+repository's ``AGENTS.md`` with the same recap, for your team and for other coding tools. BESSER
 rewrites only that section; anything else you write in the file stays, and the
 agent reads it as notes about the code on later runs.
 

@@ -102,6 +102,33 @@ describe('pullRepoIntoProject: what the pull brought in', () => {
     expect((await pull(IN_SYNC))?.newFromRepo).toBeUndefined();
   });
 
+  it('does not mark an old class this project deleted and the pull brought back', async () => {
+    stored.before = project(['book']);
+    stored.after = project(['book', 'loan'], { loan: BEN });
+
+    const link = await pull({ ...IN_SYNC, lastSyncedAt: '2026-11-05T00:00:00Z' } as typeof LINK);
+
+    expect(link?.newFromRepo).toBeUndefined();
+  });
+
+  it('marks what was added after the last sync', async () => {
+    stored.before = project(['book']);
+    stored.after = project(['book', 'loan'], { loan: BEN });
+
+    const link = await pull({ ...IN_SYNC, lastSyncedAt: '2026-11-01T00:00:00Z' } as typeof LINK);
+
+    expect(link?.newFromRepo).toEqual(['loan']);
+  });
+
+  it('remembers what the repo holds, for the chat and the agent', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    api.importRepoAsRun.mockResolvedValue({ ...imported('buml/diagrams.json'), has_code: true, recap });
+
+    await pullRepoIntoProject('s', LINK, 'p1');
+
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
+  });
+
   it('keeps earlier marks until cleared, and drops those of removed elements', async () => {
     stored.before = project(['book', 'loan', 'gone']);
     stored.after = project(['book', 'loan', 'member'], { loan: BEN, member: BEN });

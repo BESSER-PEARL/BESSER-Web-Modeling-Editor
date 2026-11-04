@@ -29,8 +29,10 @@ vi.mock('../../../shared/services/project-import/projectImport', async (importOr
 import { resolveLinkedRepoBase } from '../linkedRepoBase';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
+  clearProjectGitHubLink,
   getProjectGitHubLink,
   markProjectGitHubSynced,
+  setPendingGitHubChange,
   setProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { readProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
@@ -48,6 +50,7 @@ const RECAP = {
   open_items: [],
   open_item_count: 0,
   commits_since_run: [],
+  commit_count: 0,
 };
 
 const project = (name = 'Library') =>
@@ -59,7 +62,13 @@ const imported = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const params = (overrides: Record<string, unknown> = {}) => ({
-  project: project(), lastRun: OLD_RUN, nowMs: NOW, ttlSeconds: TTL, signal: new AbortController().signal, ...overrides,
+  project: project(),
+  lastRun: OLD_RUN,
+  nowMs: NOW,
+  ttlSeconds: TTL,
+  signal: new AbortController().signal,
+  isStillOpen: () => true,
+  ...overrides,
 });
 
 const linkAt = (sha: string) => markProjectGitHubSynced(LINK, project(), sha);
@@ -210,7 +219,7 @@ describe('resolveLinkedRepoBase', () => {
     storeRepoModelAsProject.mockImplementationOnce(() => {
       throw new Error('no diagrams');
     });
-    expect(await resolveLinkedRepoBase(params())).toEqual({ outcome: 'stopped' });
+    expect(await resolveLinkedRepoBase(params())).toEqual({ outcome: 'stopped', reason: 'bad_model' });
     expect(readProjectLastRun('p1')).toBeNull();
   });
 
@@ -242,5 +251,144 @@ describe('resolveLinkedRepoBase', () => {
     });
     expect(await resolveLinkedRepoBase(params({ signal: stop.signal }))).toEqual({ outcome: 'stopped' });
     expect(readProjectLastRun('p1')).toBeNull();
+  });
+});
+
+// Review 2026-11-04: the import can take minutes, and the canvas and menus stay live meanwhile.
+describe('resolveLinkedRepoBase: what changed during the import', () => {
+  it('writes nothing when another project opened meanwhile', async () => {
+    linkAt(SYNCED);
+    const before = getProjectGitHubLink('p1');
+    importRepoAsRun.mockResolvedValue(imported({ commit_sha: HEAD }));
+
+    const result = await resolveLinkedRepoBase(params({ isStillOpen: () => false }));
+
+    expect(result).toEqual({ outcome: 'stopped', reason: 'project_switched' });
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p1')).toEqual(before);
+    expect(readProjectLastRun('p1')).toBeNull();
+  });
+
+  it('asks nothing about a project the user left when the import fails', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockRejectedValue(new ApiError(500, 'boom'));
+
+    const result = await resolveLinkedRepoBase(params({ isStillOpen: () => false }));
+
+    expect(result).toEqual({ outcome: 'stopped', reason: 'project_switched' });
+    expect(globalConfirm).not.toHaveBeenCalled();
+  });
+
+  it('does not bring back a link removed during the import', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockImplementation(async () => {
+      clearProjectGitHubLink('p1');
+      return imported();
+    });
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result).toMatchObject({ outcome: 'stopped', reason: 'repo_changed' });
+    expect(getProjectGitHubLink('p1')).toBeNull();
+    expect(readProjectLastRun('p1')).toBeNull();
+  });
+
+  it('does not rewind a save made during the import', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockImplementation(async () => {
+      linkAt(HEAD);
+      return imported();
+    });
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result).toMatchObject({ outcome: 'stopped', reason: 'repo_changed' });
+    expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(HEAD);
+  });
+
+  it('keeps a pending change recorded during the import', async () => {
+    linkAt(SYNCED);
+    const pending = { kind: 'conflict' as const, branch: 'besser/merge', title: 't', createdAt: '2026-11-04T00:00:00Z' };
+    importRepoAsRun.mockImplementation(async () => {
+      setPendingGitHubChange('p1', pending);
+      return imported();
+    });
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result.outcome).toBe('continue');
+    expect(getProjectGitHubLink('p1')?.pendingChange).toEqual(pending);
+  });
+});
+
+describe('resolveLinkedRepoBase: a repo holding only a model', () => {
+  it('builds from its newer model instead of the stale local one', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockResolvedValue(imported({ commit_sha: HEAD, has_code: false }));
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result).toMatchObject({ outcome: 'none', pulled: true });
+    expect(storeRepoModelAsProject).toHaveBeenCalled();
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: false, baseCommitSha: HEAD });
+  });
+
+  it('does not overwrite local changes with that newer model', async () => {
+    markProjectGitHubSynced(LINK, project('Older'), SYNCED);
+    importRepoAsRun.mockResolvedValue(imported({ commit_sha: HEAD, has_code: false }));
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result).toMatchObject({ outcome: 'stopped', reason: 'unsaved_changes' });
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+  });
+
+  it('only records that there is no code when the head did not move', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockResolvedValue(imported({ has_code: false }));
+
+    const result = await resolveLinkedRepoBase(params());
+
+    expect(result).toEqual({ outcome: 'none' });
+    expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    expect(readProjectLastRun('p1')).toBeNull();
+    expect(getProjectGitHubLink('p1')?.hasCode).toBe(false);
+  });
+});
+
+describe('resolveLinkedRepoBase: why a run did not start', () => {
+  it('names the server\'s reason in the question when GitHub answered', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockRejectedValue(new ApiError(400, 'This repository is too large to import.'));
+
+    await resolveLinkedRepoBase(params());
+
+    expect(String(globalConfirm.mock.calls[0][0].description)).toContain('too large to import');
+  });
+
+  it('does not repeat a server error at the user', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockRejectedValue(new ApiError(500, 'Internal Server Error'));
+
+    await resolveLinkedRepoBase(params());
+
+    expect(String(globalConfirm.mock.calls[0][0].description)).toContain('could not be reached');
+  });
+
+  it('tells analytics the server was busy, not that the user cancelled', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockRejectedValue(new ApiError(429, 'busy'));
+
+    expect(await resolveLinkedRepoBase(params())).toMatchObject({ outcome: 'stopped', reason: 'repo_busy' });
+  });
+
+  it('tells analytics the model was refused', async () => {
+    linkAt(SYNCED);
+    importRepoAsRun.mockResolvedValue(imported({ commit_sha: HEAD }));
+    storeRepoModelAsProject.mockImplementationOnce(() => {
+      throw new Error('refused');
+    });
+
+    expect(await resolveLinkedRepoBase(params())).toMatchObject({ outcome: 'stopped', reason: 'bad_model' });
   });
 });

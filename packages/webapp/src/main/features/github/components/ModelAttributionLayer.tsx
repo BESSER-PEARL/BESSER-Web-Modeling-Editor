@@ -17,6 +17,7 @@ import { setProjectGitHubLink } from '../../../shared/services/storage/projectGi
 import {
   classModelElements,
   elementLabel,
+  elementRecords,
   type ClassModelElement,
 } from '../../../shared/services/github/modelAttribution';
 import type { ElementAttribution } from '../../../shared/types/project';
@@ -42,12 +43,15 @@ interface Box {
   height: number;
 }
 
-const elementNode = (id: string): Element | null =>
-  document.querySelector(`[data-id="${id.replace(/["\\]/g, '\\$&')}"]`);
+const elementNode = (id: string): Element | null => document.querySelector(`[data-id="${CSS.escape(id)}"]`);
 
-/** An element's box on screen. An SVG element's rendered bounds also cover its hover handles, so use its own size. */
+/**
+ * An element's box on screen. An SVG element's rendered bounds also cover its hover handles, so use its own size.
+ * Its position comes from its content: Firefox's getScreenCTM() on a nested <svg> ignores that svg's own x and y.
+ */
 function screenRect(node: Element): Pick<DOMRect, 'left' | 'top' | 'width' | 'height'> {
-  const matrix = node instanceof SVGSVGElement ? node.getScreenCTM?.() : null;
+  const content = node.firstElementChild as SVGGraphicsElement | null;
+  const matrix = node instanceof SVGSVGElement ? content?.getScreenCTM?.() ?? node.getScreenCTM?.() : null;
   if (!matrix) return node.getBoundingClientRect();
   const { value: width } = (node as SVGSVGElement).width.baseVal;
   const { value: height } = (node as SVGSVGElement).height.baseVal;
@@ -65,11 +69,16 @@ function useElementBoxes(ids: string[], layer: React.RefObject<HTMLDivElement | 
     }
     let frame = 0;
     let last = '';
+    const nodes = new Map<string, Element>();
     const measure = () => {
       const origin = layer.current?.getBoundingClientRect();
       const next: Record<string, Box> = {};
       for (const id of origin ? key.split('|') : []) {
-        const node = elementNode(id);
+        let node = nodes.get(id);
+        if (!node?.isConnected) {
+          node = elementNode(id) ?? undefined;
+          if (node) nodes.set(id, node);
+        }
         if (node && origin) {
           const rect = screenRect(node);
           const left = rect.left - origin.left;
@@ -90,21 +99,45 @@ function useElementBoxes(ids: string[], layer: React.RefObject<HTMLDivElement | 
 }
 
 /** The credited element under the pointer. */
-function useHoveredElement(attribution: Record<string, ElementAttribution> | undefined): string | null {
+function useHoveredElement(records: Map<string, ElementAttribution> | undefined): string | null {
   const [hovered, setHovered] = useState<string | null>(null);
   useEffect(() => {
-    if (!attribution) return undefined;
+    if (!records) return undefined;
     const onOver = (event: MouseEvent) => {
       const id = (event.target as Element | null)?.closest?.('[data-id]')?.getAttribute('data-id');
-      setHovered(id && attribution[id] ? id : null);
+      setHovered(id && records.has(id) ? id : null);
     };
     document.addEventListener('mouseover', onOver);
     return () => {
       document.removeEventListener('mouseover', onOver);
       setHovered(null);
     };
-  }, [attribution]);
+  }, [records]);
   return hovered;
+}
+
+/** The current project's credits and marks; empty on any editor but the class diagram's. */
+function useAttributionMarks() {
+  const { currentProject } = useProject();
+  const { link } = useRepoSync({ checkRemote: false });
+  const active = !!link && currentProject?.currentDiagramType === 'ClassDiagram';
+
+  const records = useMemo(() => (active ? elementRecords(currentProject) : undefined), [active, currentProject]);
+  const elements = useMemo(
+    () => (active && currentProject ? classModelElements(currentProject) : new Map<string, ClassModelElement>()),
+    [active, currentProject],
+  );
+  const marked = useMemo(
+    () => (link?.newFromRepo ?? []).filter((id) => elements.has(id) && records?.has(id)),
+    [link?.newFromRepo, elements, records],
+  );
+  // A new class's new members are part of it: one tint and one chip, on the class.
+  const drawn = useMemo(() => {
+    const markedIds = new Set(marked);
+    return marked.filter((id) => !markedIds.has(elements.get(id)?.ownerId ?? ''));
+  }, [marked, elements]);
+
+  return { projectId: currentProject?.id, link, records, elements, drawn };
 }
 
 const Chip: React.FC<{ login: string; style: React.CSSProperties }> = ({ login, style }) => (
@@ -118,51 +151,23 @@ const Chip: React.FC<{ login: string; style: React.CSSProperties }> = ({ login, 
 
 export const ModelAttributionLayer: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { currentProject } = useProject();
-  const { link } = useRepoSync({ checkRemote: false });
+  const { link, records, elements, drawn } = useAttributionMarks();
   const layer = useRef<HTMLDivElement>(null);
 
-  const attribution = currentProject?.attribution;
-  const elements = useMemo(
-    () => (currentProject ? classModelElements(currentProject) : new Map<string, ClassModelElement>()),
-    [currentProject],
-  );
-  const marked = useMemo(
-    () => (link?.newFromRepo ?? []).filter((id) => elements.has(id) && attribution?.[id]),
-    [link?.newFromRepo, elements, attribution],
-  );
-  // A new class's new members are part of it: one tint and one chip, on the class.
-  const drawn = useMemo(() => {
-    const markedIds = new Set(marked);
-    return marked.filter((id) => !markedIds.has(elements.get(id)?.ownerId ?? ''));
-  }, [marked, elements]);
-
-  const hovered = useHoveredElement(link && attribution ? attribution : undefined);
+  const hovered = useHoveredElement(records);
   const tracked = useMemo(() => (hovered && !drawn.includes(hovered) ? [...drawn, hovered] : drawn), [drawn, hovered]);
   const boxes = useElementBoxes(tracked, layer);
 
-  if (!currentProject || !link) return null;
+  if (!records || !link) return null;
 
-  const clear = () => {
-    const { newFromRepo: _cleared, ...rest } = link;
-    setProjectGitHubLink(currentProject.id, rest);
-  };
-
-  const byAuthor = new Map<string, string[]>();
-  for (const id of drawn) {
-    const author = attribution?.[id]?.addedBy ?? '';
-    const element = elements.get(id);
-    if (element) byAuthor.set(author, [...(byAuthor.get(author) ?? []), elementLabel(element, elements)]);
-  }
-
-  const hoveredRecord = hovered ? attribution?.[hovered] : undefined;
+  const hoveredRecord = hovered ? records.get(hovered) : undefined;
   const hoveredBox = hovered ? boxes[hovered] : undefined;
 
   return (
     <div ref={layer} className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {drawn.map((id) => {
         const box = boxes[id];
-        const login = attribution?.[id]?.addedBy;
+        const login = records.get(id)?.addedBy;
         if (!box || !login) return null;
         const isMember = !!elements.get(id)?.ownerId;
         return (
@@ -199,42 +204,61 @@ export const ModelAttributionLayer: React.FC = () => {
           })}
         </span>
       )}
+    </div>
+  );
+};
 
-      {byAuthor.size > 0 && !link.modelProposal && (
-        <div
-          role="region"
-          aria-label={t('github.attribution.title')}
-          className="pointer-events-auto absolute left-1/2 top-3 flex max-w-2xl -translate-x-1/2 items-start gap-3 rounded-xl border border-border bg-background/95 px-4 py-2.5 text-sm shadow-elevation-2 backdrop-blur"
-        >
-          <GitPullRequestArrow className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">{t('github.attribution.title')}</p>
-            {[...byAuthor].map(([author, names]) => {
-              const listed = names.slice(0, MAX_LISTED_NAMES).join(', ');
-              const hidden = names.length - MAX_LISTED_NAMES;
-              return (
-                <p key={author} className="flex items-center gap-1.5 text-xs text-muted-foreground" title={names.join(', ')}>
-                  <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: authorColor(author) }}
-                    aria-hidden
-                  />
-                  <span className="truncate">
-                    {t('github.attribution.added', {
-                      author: `@${author}`,
-                      items: hidden > 0 ? t('github.attribution.more', { items: listed, count: hidden }) : listed,
-                    })}
-                  </span>
-                </p>
-              );
-            })}
-          </div>
-          <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-xs" onClick={clear}>
-            <X className="size-3.5" aria-hidden />
-            {t('github.attribution.clear')}
-          </Button>
-        </div>
-      )}
+/** What the last pull brought in, by author, until the user clears the marks. */
+export const ModelAttributionBanner: React.FC = () => {
+  const { t } = useTranslation();
+  const { projectId, link, records, elements, drawn } = useAttributionMarks();
+
+  const byAuthor = new Map<string, string[]>();
+  for (const id of drawn) {
+    const author = records?.get(id)?.addedBy ?? '';
+    const element = elements.get(id);
+    if (element) byAuthor.set(author, [...(byAuthor.get(author) ?? []), elementLabel(element, elements)]);
+  }
+  if (!projectId || !link || byAuthor.size === 0 || link.modelProposal) return null;
+
+  const clear = () => {
+    const { newFromRepo: _cleared, ...rest } = link;
+    setProjectGitHubLink(projectId, rest);
+  };
+
+  return (
+    <div
+      role="region"
+      aria-label={t('github.attribution.title')}
+      className="pointer-events-auto flex max-w-2xl items-start gap-3 rounded-xl border border-border bg-background/95 px-4 py-2.5 text-sm shadow-elevation-2 backdrop-blur"
+    >
+      <GitPullRequestArrow className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{t('github.attribution.title')}</p>
+        {[...byAuthor].map(([author, names]) => {
+          const listed = names.slice(0, MAX_LISTED_NAMES).join(', ');
+          const hidden = names.length - MAX_LISTED_NAMES;
+          return (
+            <p key={author} className="flex items-center gap-1.5 text-xs text-muted-foreground" title={names.join(', ')}>
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: authorColor(author) }}
+                aria-hidden
+              />
+              <span className="truncate">
+                {t('github.attribution.added', {
+                  author: `@${author}`,
+                  items: hidden > 0 ? t('github.attribution.more', { items: listed, count: hidden }) : listed,
+                })}
+              </span>
+            </p>
+          );
+        })}
+      </div>
+      <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-xs" onClick={clear}>
+        <X className="size-3.5" aria-hidden />
+        {t('github.attribution.clear')}
+      </Button>
     </div>
   );
 };

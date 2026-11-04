@@ -133,6 +133,30 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
     expect(getProjectGitHubLink('p1')?.syncedModel).toBeTruthy();
   });
 
+  // Review 2026-11-04: the editor rewrites a pulled model into its own format, so the run's seed
+  // no longer matches though nobody edited anything.
+  it('does not ask when the project still matches the repo', async () => {
+    recordRunSeedModel(RUN_ID, modelFingerprint({ id: 'p1', diagrams: { ClassDiagram: [{ model: { v: 0 } }] } } as never));
+    setProjectGitHubLink('p1', {
+      owner: 'me', repo: 'library', branch: 'main', baseCommitSha: 'a'.repeat(40), syncedModel: modelFingerprint(project),
+    });
+    post.mockResolvedValue(response({ name: 'Library with User' }));
+
+    await push();
+
+    expect(confirm.fn).not.toHaveBeenCalled();
+    expect(storeRepoModelAsProject).toHaveBeenCalled();
+  });
+
+  it('remembers what the push left in the repo, for the chat and the agent', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    post.mockResolvedValue({ ...response(null), recap });
+
+    await push();
+
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
+  });
+
   it('keeps canvas edits made after the run started when the user keeps their model', async () => {
     // The class added on the canvas during the run must not vanish on Save to GitHub.
     recordRunSeedModel(RUN_ID, modelFingerprint({ id: 'p1', diagrams: { ClassDiagram: [{ model: { v: 0 } }] } } as never));

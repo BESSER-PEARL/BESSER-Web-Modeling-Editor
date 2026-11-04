@@ -45,6 +45,7 @@ import {
   setPendingGitHubChange,
   setProjectGitHubLink,
   type ProjectGitHubLink,
+  hasUnsyncedModelChanges,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
@@ -144,11 +145,15 @@ export function describePushError(error: unknown): { code: SpecDrivenPushErrorCo
 
 /**
  * Whether the run's model may replace the project's: yes while the project
- * still holds the model run `runId` started from, else only if the user says so.
+ * still holds the model run `runId` started from, or the model the repo holds
+ * (the editor rewrites a pulled model, so the seed may differ with nothing
+ * edited), else only if the user says so.
  */
 export async function mayReplaceWithRunModel(runId: string, project: BesserProject): Promise<boolean> {
   const seed = readRunSeedModel(runId);
   if (seed && seed === modelFingerprint(project)) return true;
+  const link = getProjectGitHubLink(project.id);
+  if (link && !hasUnsyncedModelChanges(project, link)) return true;
   return globalConfirm({
     title: i18n.t('github.push.modelChoice.title', { defaultValue: "Keep your model or take the run's?" }),
     description: i18n.t('github.push.modelChoice.description', {

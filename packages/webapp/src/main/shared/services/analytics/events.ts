@@ -63,6 +63,9 @@ export interface SpecRunProperties {
 }
 
 /** Where a Spec-Driven run ended badly. */
+/** Why a run on a linked repo did not start, when the user did not simply cancel. */
+export type SpecRunStopReason = 'repo_busy' | 'unsaved_changes' | 'bad_model' | 'project_switched' | 'repo_changed';
+
 export type SpecRunStage =
   | 'mode_check'
   | 'start'
@@ -114,7 +117,7 @@ export interface AnalyticsEvents {
   spec_run_failed: SpecRunProperties &
     SpecRunOutcome &
     Partial<ErrorProperties> & { error_code: string; stage: SpecRunStage; events_received?: number };
-  spec_run_cancelled: SpecRunProperties & SpecRunOutcome & { reason: 'user' | 'abandoned'; stage: SpecRunStage };
+  spec_run_cancelled: SpecRunProperties & SpecRunOutcome & { reason: 'user' | 'abandoned' | SpecRunStopReason; stage: SpecRunStage };
   /** A non-terminal notice: the run goes on and `done` follows. */
   spec_run_warning: { code: 'COST_CAP' | 'TIMEOUT' | 'INCOMPLETE' };
   /** The live stream dropped and the client is reconnecting (proxies cut long streams). */

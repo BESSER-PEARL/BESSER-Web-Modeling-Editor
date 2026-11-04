@@ -12,6 +12,7 @@ import i18n from '../../shared/i18n';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import { describeContinuedRepo } from '../../shared/services/github/continueFromGithub';
 import { reportError } from '../../shared/services/errors/reportError';
+import type { SpecRunStopReason } from '../../shared/services/analytics/events';
 import { getGitHubSession } from '../../shared/services/github/githubAuth';
 import { applyImportedRepo } from '../../shared/services/github/pullRepoIntoProject';
 import {
@@ -27,12 +28,15 @@ import type { BesserProject } from '../../shared/types/project';
 import { isWithinTtl } from './runModeDecision';
 
 export type LinkedRepoBase =
-  /** No repo code to continue from, or the user chose to rebuild: the usual decision applies. */
-  | { outcome: 'none' }
+  /**
+   * No repo code to continue from, or the user chose to rebuild: the usual decision applies.
+   * `pulled`: the repo holds only a model, a newer one, now in the project; reload it.
+   */
+  | { outcome: 'none'; pulled?: true; message?: string }
   /** Start from the repo's head. `pulled`: the project now holds the repo's newer model; reload it. */
   | { outcome: 'continue'; lastRun: LastRunRecord; pulled: boolean; message: string }
-  /** No run; `message` says why, when the user did not just cancel. */
-  | { outcome: 'stopped'; message?: string };
+  /** No run; `reason` and `message` say why, when the user did not just cancel. */
+  | { outcome: 'stopped'; reason?: SpecRunStopReason; message?: string };
 
 export interface LinkedRepoBaseParams {
   project: BesserProject;
@@ -40,6 +44,8 @@ export interface LinkedRepoBaseParams {
   nowMs: number;
   ttlSeconds: number;
   signal: AbortSignal;
+  /** Whether `project` is still the open one: the import takes a while and other projects can be opened meanwhile. */
+  isStillOpen: () => boolean;
 }
 
 const fullName = (link: ProjectGitHubLink): string => `${link.owner}/${link.repo}`;
@@ -53,6 +59,8 @@ function unreadableReason(error: unknown): string {
   if (error instanceof ApiError && error.status === 404) {
     return i18n.t('github.linkedRun.notFound', { defaultValue: 'the repository was not found, or your account has no access to it' });
   }
+  // The server's own words for a request it refused: too large, no permission.
+  if (error instanceof ApiError && error.status < 500 && error.message) return error.message;
   return i18n.t('github.linkedRun.failed', { defaultValue: 'GitHub could not be reached' });
 }
 
@@ -79,20 +87,28 @@ async function askToRebuild(link: ProjectGitHubLink, reason: string, signal: Abo
   return rebuild && !signal.aborted ? { outcome: 'none' } : { outcome: 'stopped' };
 }
 
-/** Make the imported head this project's next base; false when local model changes stand in the way. */
+/** Make the imported head this project's next base; null when local model changes stand in the way. */
 function adoptHead(imported: ImportedRun, link: ProjectGitHubLink, project: BesserProject): { pulled: boolean } | null {
   const moved = imported.commit_sha !== link.baseCommitSha;
   // The stored project, not the caller's copy: the canvas stayed editable during the import.
   const current = ProjectStorageRepository.loadProject(project.id) ?? project;
   if (moved && imported.has_model && hasUnsyncedModelChanges(current, link)) return null;
-  if (moved) {
+  if (moved && (imported.has_code || imported.has_model)) {
     applyImportedRepo(imported, link, project.id);
     return { pulled: imported.has_model };
   }
-  // The same commit: the project's model stays, with any changes made to it since.
-  writeProjectLastRun(project.id, imported.run_id, Date.now());
-  setProjectGitHubLink(project.id, { ...link, hasCode: true, recap: imported.recap ?? undefined });
+  // Nothing to bring in: the project's model stays, with any changes made to it since.
+  if (imported.has_code) writeProjectLastRun(project.id, imported.run_id, Date.now());
+  setProjectGitHubLink(project.id, { ...link, hasCode: imported.has_code, recap: imported.recap ?? undefined });
   return { pulled: false };
+}
+
+/** The link the import started from, as it is now; null when it changed under the import. */
+function linkAfterImport(projectId: string, before: ProjectGitHubLink): ProjectGitHubLink | null {
+  const now = getProjectGitHubLink(projectId);
+  const sameBase = !!now && now.owner === before.owner && now.repo === before.repo && now.branch === before.branch
+    && now.baseCommitSha === before.baseCommitSha;
+  return sameBase ? now : null;
 }
 
 export async function resolveLinkedRepoBase({
@@ -101,6 +117,7 @@ export async function resolveLinkedRepoBase({
   nowMs,
   ttlSeconds,
   signal,
+  isStillOpen,
 }: LinkedRepoBaseParams): Promise<LinkedRepoBase> {
   const link = getProjectGitHubLink(project.id);
   if (!link || isWithinTtl(lastRun, nowMs, ttlSeconds)) return { outcome: 'none' };
@@ -116,35 +133,62 @@ export async function resolveLinkedRepoBase({
     imported = await importRepoAsRun(session, link.owner, link.repo, link.branch, { modelPath: link.legacyFilePath, signal });
   } catch (error) {
     if (signal.aborted) return { outcome: 'stopped' };
-    if (error instanceof ApiError && error.status === 429) return { outcome: 'stopped', message: busyMessage() };
+    if (!isStillOpen()) return { outcome: 'stopped', reason: 'project_switched' };
+    if (error instanceof ApiError && error.status === 429) {
+      return { outcome: 'stopped', reason: 'repo_busy', message: busyMessage() };
+    }
     return askToRebuild(link, unreadableReason(error), signal);
   }
   if (signal.aborted) return { outcome: 'stopped' };
-  if (!imported.has_code) {
-    setProjectGitHubLink(project.id, { ...link, hasCode: false });
-    return { outcome: 'none' };
+  // Everything below writes: to the project storage, which also makes it the latest one.
+  if (!isStillOpen()) return { outcome: 'stopped', reason: 'project_switched' };
+  const current = linkAfterImport(project.id, link);
+  if (!current) {
+    return {
+      outcome: 'stopped',
+      reason: 'repo_changed',
+      message: i18n.t('github.linkedRun.repoChanged', {
+        defaultValue: "This project's GitHub link changed while this was starting. Please ask again.",
+      }),
+    };
   }
 
   let adopted: ReturnType<typeof adoptHead>;
   try {
-    adopted = adoptHead(imported, link, project);
+    adopted = adoptHead(imported, current, project);
   } catch (error) {
     reportError(i18n.t('github.linkedRun.badModel', { defaultValue: 'The model in this repository could not be loaded.' }), { error });
-    return { outcome: 'stopped' };
+    return { outcome: 'stopped', reason: 'bad_model' };
   }
+  const repo = `**${escapeMarkdownText(fullName(current))}**`;
   if (!adopted) {
     return {
       outcome: 'stopped',
-      message:
-        `**${escapeMarkdownText(fullName(link))}** has commits on ${markdownCode(imported.branch)} this project has not `
-        + 'brought in, and your model has changes not saved there. Use **Save to GitHub** in the GitHub menu to merge '
-        + 'them, then ask again.',
+      reason: 'unsaved_changes',
+      message: i18n.t('github.linkedRun.unsaved', {
+        defaultValue:
+          '{{repo}} has commits on {{branch}} this project has not brought in, and your model has changes not saved '
+          + 'there. Use **Save to GitHub** in the GitHub menu to merge them, then ask again.',
+        repo,
+        branch: markdownCode(imported.branch),
+      }),
+    };
+  }
+  if (!imported.has_code) {
+    if (!adopted.pulled) return { outcome: 'none' };
+    return {
+      outcome: 'none',
+      pulled: true,
+      message: i18n.t('github.linkedRun.pulledModel', {
+        defaultValue: '{{repo}} had a newer model, so I brought it into this project first.',
+        repo,
+      }),
     };
   }
   return {
     outcome: 'continue',
     lastRun: { runId: imported.run_id, at: Date.now() },
     pulled: adopted.pulled,
-    message: describeContinuedRepo(link, imported, adopted.pulled),
+    message: describeContinuedRepo(current, imported, adopted.pulled),
   };
 }
