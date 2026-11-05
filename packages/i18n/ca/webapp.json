@@ -18,6 +18,10 @@
     "unread_other": "Novetats ({{count}} noves)",
     "new": "Nou",
     "entries": {
+      "repoTogether": {
+        "title": "Treballeu junts en un repositori",
+        "body": "Un projecte enllaçat amb GitHub ara continua des del seu codi, fins i tot quan l’última execució ha caducat. Quan algú altre fa push, una targeta indica qui i què, i pots previsualitzar les seves classes al llenç abans d’incorporar-les."
+      },
       "keepEdits": {
         "title": "Els teus canvis sobreviuen a un canvi de model",
         "body": "Canvia el model de classes d’una app creada pel Spec-Driven Agent: regenera els fitxers que ningú no ha editat i fusiona els teus canvis amb la resta, de manera que molts menys canvis necessiten la IA."

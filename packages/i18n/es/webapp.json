@@ -18,6 +18,10 @@
     "unread_other": "Novedades ({{count}} nuevas)",
     "new": "Nuevo",
     "entries": {
+      "repoTogether": {
+        "title": "Trabaja en equipo sobre un repositorio",
+        "body": "Un proyecto vinculado a GitHub ahora continúa desde su código, incluso después de que expire la última ejecución. Cuando otra persona hace push, una tarjeta indica quién y qué, y puedes previsualizar sus clases en el lienzo antes de incorporarlas."
+      },
       "keepEdits": {
         "title": "Tus cambios sobreviven a un cambio de modelo",
         "body": "Cambia el modelo de clases de una app creada por el Spec-Driven Agent: regenera los archivos que nadie editó y fusiona tus cambios en los demás, así que muchos menos cambios necesitan la IA."

@@ -18,6 +18,10 @@
     "unread_other": "Wat ass nei ({{count}} nei)",
     "new": "Nei",
     "entries": {
+      "repoTogether": {
+        "title": "Zesummen un engem Repository schaffen",
+        "body": "E mat GitHub verlinkte Projet fiert elo vu sengem Code weider, och wann de leschte Laf ofgelaf ass. Wann een aneren pusht, weist eng Kaart wien a wat, an s du kanns seng Klassen um Canvas virukucken, ier s du se iwwerhëls."
+      },
       "keepEdits": {
         "title": "Deng Ännerunge bleiwen, wann de Modell ännert",
         "body": "Änner de Klassemodell vun enger App, déi de Spec-Driven Agent gebaut huet: Hie generéiert d’Fichieren, déi keen geännert huet, nei a féiert deng Ännerungen an déi aner zesummen, sou datt vill manner Ännerungen d’KI brauchen."

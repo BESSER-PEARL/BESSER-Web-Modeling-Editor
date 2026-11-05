@@ -18,6 +18,10 @@
     "unread_other": "Nouveautés ({{count}} nouvelles)",
     "new": "Nouveau",
     "entries": {
+      "repoTogether": {
+        "title": "Travaillez à plusieurs sur un dépôt",
+        "body": "Un projet lié à GitHub reprend désormais à partir de son code, même après l’expiration de la dernière exécution. Quand quelqu’un d’autre pousse, une carte indique qui et quoi, et vous pouvez prévisualiser ses classes sur le canevas avant de les intégrer."
+      },
       "keepEdits": {
         "title": "Vos modifications survivent à un changement de modèle",
         "body": "Modifiez le modèle de classes d’une application créée par le Spec-Driven Agent : il régénère les fichiers que personne n’a modifiés et fusionne vos modifications dans les autres, si bien que bien moins de changements passent par l’IA."
