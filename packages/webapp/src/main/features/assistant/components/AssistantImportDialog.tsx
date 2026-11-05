@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -50,9 +50,8 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="assistant-import-api-key">{t('assistant.import.apiKeyLabel')}</Label>
-            <Input
+            <SecretInput
               id="assistant-import-api-key"
-              type="password"
               value={apiKey}
               onChange={(event) => onApiKeyChange(event.target.value)}
               placeholder="sk-..."

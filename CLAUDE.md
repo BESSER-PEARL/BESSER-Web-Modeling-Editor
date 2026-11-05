@@ -131,6 +131,8 @@ each pinned to its counterpart by `llmProviderAllowlists.test.ts`.
 `provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
 assistant's dialog, and its opt-in flag is kept separate from the key so no placeholder can break the assistant.
 `'sponsored'` is the server-paid demo tier, set only by a `?demo=` link; neither is ever a stored key's provider.
+Every password field is `SecretInput` (`components/ui/secret-input.tsx`, enforced by ESLint): a controlled input copies
+its value into the `value` attribute, where injected CSS can read a key as it is typed.
 
 ### Security rules (AI features)
 - Never let an agent-controlled payload set a privilege flag. `useAssistantLogic` rebuilds the
