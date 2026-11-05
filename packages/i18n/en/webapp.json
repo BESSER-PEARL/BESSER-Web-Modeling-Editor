@@ -1504,6 +1504,16 @@
       "useClassic": "Use the classic deploy",
       "prepare": "Prepare {{repo}}"
     },
+    "teammate": {
+      "changedModel": "{{author}} changed the model",
+      "pushed": "{{author}} pushed to {{branch}}",
+      "more_one": "and {{count}} more commit",
+      "more_other": "and {{count}} more commits",
+      "mergeHint": "You have unsaved edits. Saving merges both versions.",
+      "saveAndMerge": "Save and merge",
+      "whatChanged": "What changed",
+      "dismiss": "Dismiss"
+    },
     "attribution": {
       "title": "New since your last sync",
       "added": "{{author}} added {{items}}",

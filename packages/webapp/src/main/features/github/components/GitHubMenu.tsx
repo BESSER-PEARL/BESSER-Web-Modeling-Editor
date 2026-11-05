@@ -40,6 +40,8 @@ import { useHasOpened } from '../../../app/hooks/useHasOpened';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { useTeammateChangeNotice } from '../hooks/useTeammateChangeNotice';
+import type { TeammateChangeAction } from './TeammateChangeNotice';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { sanitizeRepoName } from '../../../shared/utils/validation';
@@ -125,6 +127,8 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const sync = useRepoSync();
   const { link, state, status, hasLocalChanges, githubSession } = sync;
   const flushEditor = useFlushEditorModel();
+  const noticeActions = useRef<(action: TeammateChangeAction) => void>(() => undefined);
+  useTeammateChangeNotice({ link, status, state, username, hasLocalChanges, onAction: (action) => noticeActions.current(action) });
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
@@ -264,6 +268,11 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
     } finally {
       setBusy(false);
     }
+  };
+
+  noticeActions.current = (action) => {
+    if (action === 'getLatest') void handlePull();
+    else setDialog(action);
   };
 
   const handleUnlink = async () => {

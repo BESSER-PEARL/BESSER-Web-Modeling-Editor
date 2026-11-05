@@ -31,7 +31,12 @@ const globalConfirm = vi.fn(async () => true);
 vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
   globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
 }));
-vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('react-toastify', () => ({
+  Slide: {},
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(), warn: vi.fn(), error: vi.fn(), info: vi.fn(), dismiss: vi.fn(), update: vi.fn(), isActive: vi.fn(() => false),
+  }),
+}));
 const createRepoForProject = vi.fn();
 vi.mock('../../../../shared/api/github', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../shared/api/github')>()),

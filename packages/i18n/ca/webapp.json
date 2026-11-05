@@ -1495,6 +1495,16 @@
       "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
       "keepModelAndLink": "Conserva el meu model i vincula"
     },
+    "teammate": {
+      "changedModel": "{{author}} ha canviat el model",
+      "pushed": "{{author}} ha enviat a {{branch}}",
+      "more_one": "i {{count}} commit més",
+      "more_other": "i {{count}} commits més",
+      "mergeHint": "Tens canvis sense desar. En desar es combinen les dues versions.",
+      "saveAndMerge": "Desa i combina",
+      "whatChanged": "Què ha canviat",
+      "dismiss": "Tanca"
+    },
     "attribution": {
       "title": "Novetats des de l'última sincronització",
       "added": "{{author}} ha afegit {{items}}",

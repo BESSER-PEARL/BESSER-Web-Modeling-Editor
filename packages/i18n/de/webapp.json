@@ -1495,6 +1495,16 @@
       "pickModelFile": "Dieses Repository enthält {{number}} Modelle. Wähle das zu verwendende aus:",
       "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
+    "teammate": {
+      "changedModel": "{{author}} hat das Modell geändert",
+      "pushed": "{{author}} hat nach {{branch}} gepusht",
+      "more_one": "und {{count}} weiterer Commit",
+      "more_other": "und {{count}} weitere Commits",
+      "mergeHint": "Du hast ungespeicherte Änderungen. Beim Speichern werden beide Versionen zusammengeführt.",
+      "saveAndMerge": "Speichern und zusammenführen",
+      "whatChanged": "Was sich geändert hat",
+      "dismiss": "Schließen"
+    },
     "attribution": {
       "title": "Neu seit der letzten Synchronisierung",
       "added": "{{author}} hat {{items}} hinzugefügt",

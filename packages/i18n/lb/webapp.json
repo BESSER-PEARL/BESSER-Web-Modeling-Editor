@@ -1495,6 +1495,16 @@
       "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
     },
+    "teammate": {
+      "changedModel": "{{author}} huet de Modell geännert",
+      "pushed": "{{author}} huet op {{branch}} gepusht",
+      "more_one": "an {{count}} weidere Commit",
+      "more_other": "an {{count}} weider Commits",
+      "mergeHint": "Dir hutt net gespäichert Ännerungen. Beim Späicheren ginn déi zwou Versioune fusionéiert.",
+      "saveAndMerge": "Späicheren a fusionéieren",
+      "whatChanged": "Wat geännert huet",
+      "dismiss": "Zoumaachen"
+    },
     "attribution": {
       "title": "Nei zënter der leschter Synchronisatioun",
       "added": "{{author}} huet {{items}} derbäigesat",
