@@ -26,7 +26,7 @@ describe('migrateTraceFile', () => {
   it('turns version 1 operations into the operation classes', () => {
     const migrated = migrateTraceFile(v1Trace()) as TraceFile;
     expect(migrated.schemaVersion).toBe(TRACE_SCHEMA_VERSION);
-    expect(migrated.operations.map((o) => o.type)).toEqual(['Modeling', 'Modeling', 'CodeGeneration']);
+    expect(migrated.operations.map((o) => o.type)).toEqual(['ModelingSession', 'ModelingSession', 'CodeGeneration']);
     expect(migrated.operations[0]).toMatchObject({ changes: [{ id: 'c', kind: 'CREATED' }] });
     expect(migrated.operations[2]).not.toHaveProperty('changes');
     expect(migrated.operations[0]).not.toHaveProperty('operationType');
@@ -97,5 +97,30 @@ describe('version 2 traces', () => {
   it('brings a version 1 trace all the way to the current version', () => {
     const migrated = migrateTraceFile(v1Trace()) as TraceFile;
     expect(migrated.operations.every((o) => Array.isArray(o.toolCalls) && !('uses' in o))).toBe(true);
+  });
+});
+
+describe('version 3 traces', () => {
+  const v3Trace = () => ({
+    schemaVersion: 3, projectId: 'p1', actors: [], tools: [], artifacts: [], traceLinks: [],
+    operations: [
+      { id: 'm', type: 'Modeling', status: 'SUCCEEDED', startedAt: time, performedBy: ['ada'], toolCalls: [],
+        consumes: ['prompt'], produces: [], changes: [{ id: 'c', kind: 'CREATED', artifactId: 'a', timestamp: time }] },
+      { id: 'g', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, performedBy: ['ada'], toolCalls: [],
+        consumes: ['cd'], produces: ['f'] },
+    ],
+  });
+
+  it('names what an operation reads and writes, and a modeling session as such', () => {
+    const migrated = migrateTraceFile(v3Trace()) as TraceFile;
+    expect(migrated.schemaVersion).toBe(TRACE_SCHEMA_VERSION);
+    expect(migrated.operations.map((o) => [o.type, o.reads, o.writes])).toEqual([
+      ['ModelingSession', ['prompt'], []],
+      ['CodeGeneration', ['cd'], ['f']],
+    ]);
+    expect(migrated.operations[0]).toMatchObject({ changes: [{ id: 'c' }] });
+    expect(migrated.operations[0]).not.toHaveProperty('consumes');
+    expect(migrated.operations[1]).not.toHaveProperty('produces');
+    expect(traceFileProblem(migrated, 'p1')).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ import { emptyTraceFile } from '../../../shared/types/traceability';
 import type { TraceFile } from '../../../shared/types/traceability';
 
 const at = (minute: number) => new Date(Date.UTC(2026, 9, 30, 10, minute)).toISOString();
-const base = { status: 'SUCCEEDED' as const, toolCalls: [], consumes: [], produces: [] };
+const base = { status: 'SUCCEEDED' as const, toolCalls: [], reads: [], writes: [] };
 
 function trace(): TraceFile {
   return {
@@ -22,9 +22,9 @@ function trace(): TraceFile {
     ],
     artifacts: [{ id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', timestamp: at(0) }],
     operations: [
-      { ...base, id: 'm1', type: 'Modeling', startedAt: at(1), performedBy: ['ada'],
+      { ...base, id: 'm1', type: 'ModelingSession', startedAt: at(1), performedBy: ['ada'],
         changes: [{ id: 'c1', kind: 'CREATED', artifactId: 'book', newValue: 'Book', timestamp: at(1) }] },
-      { ...base, id: 'm2', type: 'Modeling', startedAt: at(2), performedBy: ['ada', 'bot'],
+      { ...base, id: 'm2', type: 'ModelingSession', startedAt: at(2), performedBy: ['ada', 'bot'],
         changes: [{ id: 'c2', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(2) }] },
       { ...base, id: 'g', type: 'CodeGeneration', startedAt: at(3), performedBy: ['ada'],
         toolCalls: [{ id: 'gc', toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(3), logs: [] }] },

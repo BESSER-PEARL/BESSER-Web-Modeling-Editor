@@ -3,16 +3,16 @@ import type {
   ConversationOperation,
   LogType,
   ModelArtifact,
-  ModelingOperation,
+  ModelingSessionOperation,
   PromptArtifact,
   TraceActor,
-  TraceChange,
+  TraceChangeEvent,
   TraceFile,
   TraceOperation,
   TraceTool,
   TraceToolCall,
 } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact, isModeling, toolIdsOf } from '../types/traceability';
+import { isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
 import type { ElementChange } from './classModelDiff';
 
 /**
@@ -127,26 +127,26 @@ function sameIds(a: string[], b: string[]): boolean {
 
 /** The open modeling session of these actors, or a new one (with one call to the editor, which lasts as
  *  long as the session) when the last operation is another one or idle. */
-function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], editorId: string): ModelingOperation {
+function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], editorId: string): ModelingSessionOperation {
   const last = trace.operations[trace.operations.length - 1];
   const lastActivity = last ? ms(last.endedAt ?? last.startedAt) : 0;
   if (
-    isModeling(last) &&
+    isModelingSession(last) &&
     sameIds(last.performedBy, actorIds) &&
     ms(ctx.now) - lastActivity <= SESSION_IDLE_MS
   ) {
     return last;
   }
-  const session: ModelingOperation = {
-    id: newId(), type: 'Modeling', status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
-    performedBy: actorIds, consumes: [], produces: [], changes: [],
+  const session: ModelingSessionOperation = {
+    id: newId(), type: 'ModelingSession', status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
+    performedBy: actorIds, reads: [], writes: [], changes: [],
     toolCalls: [{ id: newId(), toolId: editorId, sequenceNumber: 0, status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now, logs: [] }],
   };
   trace.operations.push(session);
   return session;
 }
 
-function lastChange(session: ModelingOperation, match: (c: TraceChange) => boolean): TraceChange | undefined {
+function lastChange(session: ModelingSessionOperation, match: (c: TraceChangeEvent) => boolean): TraceChangeEvent | undefined {
   for (let i = session.changes.length - 1; i >= 0; i -= 1) {
     if (match(session.changes[i])) return session.changes[i];
   }
@@ -154,7 +154,7 @@ function lastChange(session: ModelingOperation, match: (c: TraceChange) => boole
 }
 
 /** Fold an update into an earlier change of the session when the merging rules say so. Returns true when folded. */
-function foldUpdate(session: ModelingOperation, artifactId: string, change: ElementChange, now: string): boolean {
+function foldUpdate(session: ModelingSessionOperation, artifactId: string, change: ElementChange, now: string): boolean {
   // The element's latest creation or deletion: an update folds into a creation only while it still stands.
   const lifecycle = lastChange(session, (c) => c.artifactId === artifactId && c.kind !== 'UPDATED');
   const created = lifecycle?.kind === 'CREATED' ? lifecycle : undefined;
@@ -266,7 +266,7 @@ export function recordConversationRequest(
     const actors = [ensureActor(trace, 'Person', ctx.actorName, ctx.now), ensureActor(trace, 'Agent', ASSISTANT_AGENT_NAME, ctx.now)];
     conversation = {
       id: newId(), type: 'Conversation', status: 'RUNNING', startedAt: ctx.now,
-      performedBy: actors.map((a) => a.id), toolCalls: [], consumes: [], produces: [],
+      performedBy: actors.map((a) => a.id), toolCalls: [], reads: [], writes: [],
     };
     trace.operations.push(conversation);
   }
@@ -304,12 +304,12 @@ export function endConversation(trace: TraceFile): boolean {
 
 /**
  * Link the elements the assistant edited to the request that asked for them: the request becomes a
- * prompt artifact the conversation produced and the edits' session consumed, and each element gets a
+ * prompt artifact the conversation wrote and the edits' session read, and each element gets a
  * link from it. An LLM decided the edits, so the evidence is the request's message; no confidence is
  * claimed, since the assistant reports none.
  */
 function linkRequest(
-  trace: TraceFile, session: ModelingOperation, request: AssistantRequest, targets: ModelArtifact[], now: string,
+  trace: TraceFile, session: ModelingSessionOperation, request: AssistantRequest, targets: ModelArtifact[], now: string,
 ): void {
   const conversation = trace.operations.find(
     (operation): operation is ConversationOperation =>
@@ -325,9 +325,9 @@ function linkRequest(
       timestamp: conversation.toolCalls.find((call) => call.id === request.callId)!.startedAt,
     };
     trace.artifacts.push(prompt);
-    conversation.produces.push(promptId);
+    conversation.writes.push(promptId);
   }
-  if (!session.consumes.includes(promptId)) session.consumes.push(promptId);
+  if (!session.reads.includes(promptId)) session.reads.push(promptId);
   for (const target of new Set(targets)) {
     if (trace.traceLinks.some((link) => link.sourceId === promptId && link.targetId === target.id)) continue;
     trace.traceLinks.push({
@@ -342,7 +342,7 @@ function linkRequest(
  *
  * Actors and tools are matched by type and name, model artifacts by element id
  * (so the generated code links to the elements the editor recorded); code
- * artifacts are new, since each run produces new output.
+ * artifacts are new, since each run writes new output.
  */
 export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void {
   const idMap = new Map<string, string>();
@@ -368,10 +368,10 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
       ...op,
       performedBy: op.performedBy.map(mapped),
       toolCalls: op.toolCalls.map((call) => ({ ...call, toolId: mapped(call.toolId) })),
-      consumes: op.consumes.map(mapped),
-      produces: op.produces.map(mapped),
+      reads: op.reads.map(mapped),
+      writes: op.writes.map(mapped),
     };
-    if (merged.type === 'Modeling') merged.changes = merged.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) }));
+    if (merged.type === 'ModelingSession') merged.changes = merged.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) }));
     trace.operations.push(merged);
   }
   for (const link of fragment.traceLinks) {
@@ -406,7 +406,7 @@ export function pruneOldGenerations(trace: TraceFile, keep: number = KEPT_GENERA
   const dropped = new Set<string>();
   for (const operation of trace.operations) {
     if (!old.has(operation.id)) continue;
-    for (const id of operation.produces) {
+    for (const id of operation.writes) {
       const artifact = artifacts.get(id);
       if (!isCodeArtifact(artifact)) continue;
       if (artifact.parentId) dropped.add(id); // a line range: only its links gave it meaning
@@ -418,8 +418,8 @@ export function pruneOldGenerations(trace: TraceFile, keep: number = KEPT_GENERA
   );
   trace.artifacts = trace.artifacts.filter((a) => !dropped.has(a.id));
   for (const operation of trace.operations) {
-    operation.produces = operation.produces.filter((id) => !dropped.has(id));
-    operation.consumes = operation.consumes.filter((id) => !dropped.has(id));
+    operation.writes = operation.writes.filter((id) => !dropped.has(id));
+    operation.reads = operation.reads.filter((id) => !dropped.has(id));
   }
   return old.size;
 }

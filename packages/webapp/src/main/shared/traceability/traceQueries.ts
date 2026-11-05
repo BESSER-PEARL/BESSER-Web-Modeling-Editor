@@ -2,7 +2,7 @@ import type {
   CodeArtifact,
   ModelArtifact,
   TraceArtifact,
-  TraceChange,
+  TraceChangeEvent,
   TraceFile,
   TraceLink,
   TraceLogRecord,
@@ -19,7 +19,7 @@ import { changesOf, isCodeArtifact, isModelArtifact } from '../types/traceabilit
  */
 
 export interface LocatedChange {
-  change: TraceChange;
+  change: TraceChangeEvent;
   operation: TraceOperation;
   artifact: TraceArtifact;
 }
@@ -221,7 +221,7 @@ export function diagramOf(index: TraceIndex, artifact: TraceArtifact): ModelArti
 /** The diagrams an operation worked on: those it changed and those it read (a generator can read several). */
 export function diagramsOfOperation(index: TraceIndex, operation: TraceOperation): ModelArtifact[] {
   const diagrams = new Map<string, ModelArtifact>();
-  for (const id of [...changesOf(operation).map((c) => c.artifactId), ...operation.consumes]) {
+  for (const id of [...changesOf(operation).map((c) => c.artifactId), ...operation.reads]) {
     const artifact = index.artifacts.get(id);
     const diagram = artifact ? diagramOf(index, artifact) : undefined;
     if (diagram) diagrams.set(diagram.id, diagram);

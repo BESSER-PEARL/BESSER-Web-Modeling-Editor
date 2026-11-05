@@ -129,7 +129,7 @@ export function lineageOf(index: TraceIndex, rootId: string | null, options: Lin
   return { rootId, nodes, edges: lineageEdges };
 }
 
-/** What a row of the layout shows: an artifact, or a generation run holding the files it produced. */
+/** What a row of the layout shows: an artifact, or a generation run holding the files it wrote. */
 export type LineageSubject =
   | { kind: 'artifact'; id: string; artifact: TraceArtifact }
   | { kind: 'run'; id: string; operation: TraceOperation };
@@ -192,7 +192,7 @@ function partOrder(a: LineageSubject, b: LineageSubject): number {
 }
 
 /**
- * Who holds what: an artifact's parent holds it, and a generation run holds the files it produced
+ * Who holds what: an artifact's parent holds it, and a generation run holds the files it wrote
  * (so a run with dozens of files is one card until opened).
  */
 class LineageTree {
@@ -202,7 +202,7 @@ class LineageTree {
   constructor(private readonly index: TraceIndex) {
     for (const operation of index.trace.operations) {
       if (operation.type !== 'CodeGeneration') continue;
-      for (const id of operation.produces) {
+      for (const id of operation.writes) {
         if (!index.artifacts.get(id)?.parentId) this.runOfFile.set(id, operation);
       }
     }
@@ -229,7 +229,7 @@ class LineageTree {
   partsOf(subject: LineageSubject, involved: Map<string, LineageSubject>): LineageSubject[] {
     const ids =
       subject.kind === 'run'
-        ? subject.operation.produces.filter((id) => this.runOfFile.get(id) === subject.operation)
+        ? subject.operation.writes.filter((id) => this.runOfFile.get(id) === subject.operation)
         : (this.index.children.get(subject.id) ?? []).map((child) => child.id);
     return ids.flatMap((id) => (involved.has(id) ? [involved.get(id)!] : [])).sort(partOrder);
   }

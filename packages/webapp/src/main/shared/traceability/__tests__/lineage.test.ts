@@ -17,8 +17,8 @@ const code = (id: string, parentId?: string, lines?: [number, number]): TraceArt
 const operation = (id: string, type: TraceOperation['type'], minute: number, extra: Record<string, unknown> = {}): TraceOperation =>
   ({
     id, type, status: 'SUCCEEDED', startedAt: at(minute), endedAt: at(minute),
-    performedBy: ['ada'], toolCalls: [], consumes: [], produces: [],
-    ...(type === 'Modeling' ? { changes: [] } : {}),
+    performedBy: ['ada'], toolCalls: [], reads: [], writes: [],
+    ...(type === 'ModelingSession' ? { changes: [] } : {}),
     ...extra,
   }) as TraceOperation;
 /** A call to a generator, made at `minute`. */
@@ -45,9 +45,9 @@ function chain(): TraceFile {
       code('f1'), code('b1', 'f1', [3, 9]), code('f2'), code('b2', 'f2', [5, 11]),
     ],
     operations: [
-      operation('convert', 'Modeling', 1),
-      operation('run1', 'CodeGeneration', 2, { toolCalls: [call('gen', 2)], produces: ['f1', 'b1'] }),
-      operation('run2', 'CodeGeneration', 4, { toolCalls: [call('gen', 4)], produces: ['f2', 'b2'] }),
+      operation('convert', 'ModelingSession', 1),
+      operation('run1', 'CodeGeneration', 2, { toolCalls: [call('gen', 2)], writes: ['f1', 'b1'] }),
+      operation('run2', 'CodeGeneration', 4, { toolCalls: [call('gen', 4)], writes: ['f2', 'b2'] }),
     ],
     traceLinks: [
       link('k', 'concept', 'book', 'convert', 1, 0.8),
@@ -95,7 +95,7 @@ describe('lineageOf', () => {
   it('marks a link whose source changed out of date, and what follows it upstream changed', () => {
     const trace = chain();
     // The concept changes after the conversion: the class may be out of date, and so its code.
-    trace.operations.push(operation('edit', 'Modeling', 6, {
+    trace.operations.push(operation('edit', 'ModelingSession', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'concept', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);
@@ -122,7 +122,7 @@ describe('lineageOf', () => {
 
   it('marks code out of date when a member of its element changes, and the link that made the element too', () => {
     const trace = chain();
-    trace.operations.push(operation('edit', 'Modeling', 6, {
+    trace.operations.push(operation('edit', 'ModelingSession', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'title', feature: 'type', oldValue: 'str', newValue: 'int', timestamp: at(6) }],
     }));
     const lineage = lineageOf(indexTrace(trace), 'book', latest);
@@ -134,11 +134,11 @@ describe('lineageOf', () => {
   it('does not count the changes of the operation that made the link', () => {
     const trace = chain();
     // The conversion goes on editing the class it made (an assistant's later reply in the same turn).
-    const convert = trace.operations.find((o) => o.id === 'convert') as Extract<TraceOperation, { type: 'Modeling' }>;
+    const convert = trace.operations.find((o) => o.id === 'convert') as Extract<TraceOperation, { type: 'ModelingSession' }>;
     convert.changes.push({ id: 'c1', kind: 'CREATED', artifactId: 'title', timestamp: at(3) });
     const outOfDateOf = (t: TraceFile) => lineageOf(indexTrace(t), 'book', latest).edges.find((e) => e.link.id === 'k')!.outOfDate;
     expect(outOfDateOf(trace)).toEqual([]);
-    trace.operations.push(operation('edit', 'Modeling', 6, {
+    trace.operations.push(operation('edit', 'ModelingSession', 6, {
       changes: [{ id: 'c2', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Book', newValue: 'Volume', timestamp: at(6) }],
     }));
     expect(outOfDateOf(trace)).toEqual(['TARGET_CHANGED']);
@@ -189,7 +189,7 @@ describe('lineageLayout', () => {
 
   it('flags a collapsed artifact when a part it hides may be out of date', () => {
     const trace = chain();
-    trace.operations.push(operation('edit', 'Modeling', 6, {
+    trace.operations.push(operation('edit', 'ModelingSession', 6, {
       changes: [{ id: 'c1', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: at(6) }],
     }));
     const index = indexTrace(trace);
@@ -206,7 +206,7 @@ describe('lineageLayout', () => {
     const trace = chain();
     // A second diagram, first by name, generated into a second file.
     trace.artifacts.push(model('ad', 'A diagram', 'DomainModel'), code('f3'));
-    trace.operations.push(operation('run3', 'CodeGeneration', 5, { toolCalls: [call('other', 5)], produces: ['f3'] }));
+    trace.operations.push(operation('run3', 'CodeGeneration', 5, { toolCalls: [call('other', 5)], writes: ['f3'] }));
     trace.traceLinks.push(link('d3', 'ad', 'f3', 'run3', 5));
     const index = indexTrace(trace);
     const layout = lineageLayout(index, lineageOf(index, null, latest), new Set());

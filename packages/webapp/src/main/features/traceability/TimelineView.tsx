@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import type {
   CodeArtifact,
   ModelArtifact,
-  TraceChange,
+  TraceChangeEvent,
   TraceOperation,
 } from '../../shared/types/traceability';
 import { changesOf, isCodeArtifact, isModelArtifact, logsOf } from '../../shared/types/traceability';
@@ -84,7 +84,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
         {operations.slice(0, shown).map((op) => (
           <li key={op.id} className="relative">
             <span className="absolute -left-[29px] top-2 flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
-              {op.type === 'Modeling' && byAgent(op, index) ? <Bot className="size-4" /> : OPERATION_ICONS[operationKind(op)]}
+              {op.type === 'ModelingSession' && byAgent(op, index) ? <Bot className="size-4" /> : OPERATION_ICONS[operationKind(op)]}
             </span>
             <OperationCard
               operation={op}
@@ -127,7 +127,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
 
   // Changes grouped under the element they belong to (a class and its attributes together).
   const groups = useMemo(() => {
-    const byElement = new Map<string, TraceChange[]>();
+    const byElement = new Map<string, TraceChangeEvent[]>();
     for (const change of changesOf(operation)) {
       const artifact = index.artifacts.get(change.artifactId);
       const key = artifact ? topLevelOf(index, artifact).id : change.artifactId;
@@ -228,7 +228,7 @@ const GenerationSummary: React.FC<{ operation: TraceOperation; index: TraceIndex
       .map((id) => index.artifacts.get(id))
       .filter((a): a is ModelArtifact => isModelArtifact(a) && !isDiagram(a));
   }, [index, operation]);
-  const files = operation.produces
+  const files = operation.writes
     .map((id) => index.artifacts.get(id))
     .filter((a): a is CodeArtifact => isCodeArtifact(a) && a.startLine === undefined);
   const compacted = sources.length === 0 && files.length > 0;

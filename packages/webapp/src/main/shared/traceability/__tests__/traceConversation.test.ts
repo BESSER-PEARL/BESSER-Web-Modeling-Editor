@@ -22,7 +22,7 @@ import {
 } from '../traceStore';
 import { memoryTraceStorage } from '../traceDatabase';
 import { emptyTraceFile, logsOf } from '../../types/traceability';
-import type { ConversationOperation, ModelingOperation, TraceFile } from '../../types/traceability';
+import type { ConversationOperation, ModelingSessionOperation, TraceFile } from '../../types/traceability';
 import type { BesserProject, ProjectDiagram } from '../../types/project';
 
 const T0 = Date.parse('2026-10-29T10:00:00.000Z');
@@ -102,9 +102,9 @@ describe('conversations with the assistant', () => {
 
     const prompt = trace.artifacts.find((a) => a.type === 'PromptArtifact')!;
     expect(prompt).toMatchObject({ name: 'Add Book and Author', content: request.text, contentHash: 'h', timestamp: at(0) });
-    expect(conversations(trace)[0].produces).toEqual([prompt.id]);
-    const session = trace.operations.find((o): o is ModelingOperation => o.type === 'Modeling')!;
-    expect(session.consumes).toEqual([prompt.id]);
+    expect(conversations(trace)[0].writes).toEqual([prompt.id]);
+    const session = trace.operations.find((o): o is ModelingSessionOperation => o.type === 'ModelingSession')!;
+    expect(session.reads).toEqual([prompt.id]);
     // One link per created or changed element, made by the edits' session; the deleted class gets none.
     const targets = trace.traceLinks.map((l) => trace.artifacts.find((a) => a.id === l.targetId)!.name).sort();
     expect(targets).toEqual(['Author', 'Volume']);

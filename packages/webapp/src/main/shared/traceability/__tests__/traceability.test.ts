@@ -146,8 +146,8 @@ describe('recordElementChanges', () => {
     record(trace, model([cls('c1', 'A')]), model([cls('c1', 'A'), cls('c2', 'B')]), SESSION_IDLE_MS + 1);
     record(trace, model([cls('c1', 'A'), cls('c2', 'B')]), model([cls('c1', 'A'), cls('c2', 'B'), cls('c3', 'C')]),
       SESSION_IDLE_MS + 2, { source: 'assistant' });
-    // All three are Modeling sessions; the third is told apart by its actors, not by its type.
-    expect(trace.operations.map((o) => o.type)).toEqual(['Modeling', 'Modeling', 'Modeling']);
+    // All three are modeling sessions; the third is told apart by its actors, not by its type.
+    expect(trace.operations.map((o) => o.type)).toEqual(['ModelingSession', 'ModelingSession', 'ModelingSession']);
     expect(trace.operations[2].performedBy).toHaveLength(2); // the user and the assistant
   });
 });
@@ -167,7 +167,7 @@ function generationFragment(ms: number, content = 'line\n'.repeat(12)): TraceFil
     ],
     operations: [{ id: 'fo', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time,
       performedBy: ['fa'], toolCalls: [{ id: 'fk-call', toolId: 'ft', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [] }],
-      consumes: ['fm', 'fc'], produces: ['ff', 'fr'] }],
+      reads: ['fm', 'fc'], writes: ['ff', 'fr'] }],
     traceLinks: [{ id: 'fl', sourceId: 'fc', targetId: 'fr', operationId: 'fo', timestamp: time,
       evidence: [{ id: 'fe', type: 'RuleEvidence', rule: 'sql_alchemy_template.py.j2#class', timestamp: time }],
       confidence: { id: 'fk', value: 1, timestamp: time } }],

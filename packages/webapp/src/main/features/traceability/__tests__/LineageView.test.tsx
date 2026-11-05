@@ -24,9 +24,9 @@ function trace(): TraceFile {
     operations: [
       { id: 'run', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'],
         toolCalls: [{ id: 'rc', toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [] }],
-        consumes: ['cd', 'book'], produces: ['file', 'lines'] },
-      { id: 'edit', type: 'Modeling', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], toolCalls: [],
-        consumes: [], produces: [],
+        reads: ['cd', 'book'], writes: ['file', 'lines'] },
+      { id: 'edit', type: 'ModelingSession', status: 'SUCCEEDED', startedAt: later, endedAt: later, performedBy: ['ada'], toolCalls: [],
+        reads: [], writes: [],
         changes: [{ id: 'ch', kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: 'Libro', newValue: 'Book', timestamp: later }] },
     ],
     traceLinks: [{
@@ -107,7 +107,7 @@ describe('LineageView', () => {
     file.tools.push({ id: 'llm', type: 'LLM', name: 'gpt-6-luna', provider: 'openai', timestamp: time });
     file.operations.push({
       id: 'chat', type: 'Conversation', status: 'SUCCEEDED', startedAt: time, endedAt: time, performedBy: ['ada'],
-      consumes: [], produces: [],
+      reads: [], writes: [],
       toolCalls: [{ id: 'call', toolId: 'llm', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: time, logs: [
         { id: 'l1', content: 'Add a Book class', sequenceNumber: 0, logType: 'INPUT_REQUEST', timestamp: time },
         { id: 'l2', content: 'Added the class Book.', sequenceNumber: 1, logType: 'OUTPUT_RESPONSE', timestamp: time },

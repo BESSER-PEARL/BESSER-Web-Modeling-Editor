@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { TraceArtifact, TraceChange, TraceOperation } from '../../shared/types/traceability';
+import type { TraceArtifact, TraceChangeEvent, TraceOperation } from '../../shared/types/traceability';
 import { isModelArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { qualifiedName } from '../../shared/traceability/traceQueries';
@@ -33,7 +33,7 @@ export const actorNames = (operation: TraceOperation, index: TraceIndex): string
   operation.performedBy.map((id) => index.trace.actors.find((a) => a.id === id)?.name ?? '?').join(', ');
 
 /** "Renamed attribute Book.title to name", "Created class Book", ... */
-export function describeChange(t: TFunction, change: TraceChange, index: TraceIndex): string {
+export function describeChange(t: TFunction, change: TraceChangeEvent, index: TraceIndex): string {
   const artifact: TraceArtifact | undefined = index.artifacts.get(change.artifactId);
   const type = isModelArtifact(artifact) ? elementTypeLabel(t, artifact.elementType) : '';
   const name = artifact ? qualifiedName(index, artifact) : change.artifactId;

@@ -96,7 +96,7 @@ describe('retention of generation runs', () => {
       );
       trace.operations.push({ id: `g${run}`, type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: at(run), performedBy: ['ada'],
         toolCalls: [{ id: `c${run}`, toolId: 'gen', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(run), logs: [] }],
-        consumes: ['book'], produces: [`f${run}`, `l${run}`] } as TraceOperation);
+        reads: ['book'], writes: [`f${run}`, `l${run}`] } as TraceOperation);
       trace.traceLinks.push({ id: `k${run}`, sourceId: 'book', targetId: `l${run}`, operationId: `g${run}`, timestamp: at(run),
         evidence: [{ id: `e${run}`, type: 'RuleEvidence', rule: 'r', timestamp: at(run) }] });
     }
@@ -112,7 +112,7 @@ describe('retention of generation runs', () => {
     expect(old).toMatchObject({ contentHash: 'h0' });
     expect(old).not.toHaveProperty('content');
     expect(trace.artifacts.some((a) => a.id === 'l0')).toBe(false);
-    expect(trace.operations[0].produces).toEqual(['f0']); // no reference to the dropped fragment
+    expect(trace.operations[0].writes).toEqual(['f0']); // no reference to the dropped fragment
     expect(pruneOldGenerations(trace)).toBe(0); // compacting again changes nothing
   });
 

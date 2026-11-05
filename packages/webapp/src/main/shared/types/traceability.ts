@@ -9,7 +9,7 @@
  */
 
 /** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. */
-export const TRACE_SCHEMA_VERSION = 3;
+export const TRACE_SCHEMA_VERSION = 4;
 
 /** How an execution went: an operation, or one of its tool calls. */
 export type ExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
@@ -78,7 +78,7 @@ export interface PromptArtifact extends ArtifactBase {
 
 export type TraceArtifact = ModelArtifact | CodeArtifact | PromptArtifact;
 
-export interface TraceChange {
+export interface TraceChangeEvent {
   id: string;
   kind: ChangeKind;
   artifactId: string;
@@ -123,14 +123,16 @@ interface OperationBase {
   /** A Person, an Agent, or both: who did the work tells manual from assistant modeling. */
   performedBy: string[];
   toolCalls: TraceToolCall[];
-  consumes: string[];
-  produces: string[];
+  reads: string[];
+  writes: string[];
+  /** How sure its result is; left out when not assessed (none is computed yet). */
+  confidence?: TraceConfidence;
 }
 
 /** Edits made to models, change by change. */
-export interface ModelingOperation extends OperationBase {
-  type: 'Modeling';
-  changes: TraceChange[];
+export interface ModelingSessionOperation extends OperationBase {
+  type: 'ModelingSession';
+  changes: TraceChangeEvent[];
 }
 
 /** A generator run: code derived from models (a Transformation in the metamodel). */
@@ -139,19 +141,19 @@ export interface CodeGenerationOperation extends OperationBase {
 }
 
 /** A dialogue between a user and an agent: each turn is a call to the agent's LLM, holding the turn's
- *  messages. It may consume prompts and produce artifacts (requirements), or produce nothing. */
+ *  messages. It may read prompts and write artifacts (requirements), or write nothing. */
 export interface ConversationOperation extends OperationBase {
   type: 'Conversation';
 }
 
 /** An operation is one of these, told apart by `type` (the metamodel class name). */
-export type TraceOperation = ModelingOperation | CodeGenerationOperation | ConversationOperation;
+export type TraceOperation = ModelingSessionOperation | CodeGenerationOperation | ConversationOperation;
 
-export const isModeling = (operation: TraceOperation | undefined): operation is ModelingOperation =>
-  operation?.type === 'Modeling';
+export const isModelingSession = (operation: TraceOperation | undefined): operation is ModelingSessionOperation =>
+  operation?.type === 'ModelingSession';
 
-/** The changes of an operation: only a Modeling has any. */
-export const changesOf = (operation: TraceOperation): TraceChange[] => (isModeling(operation) ? operation.changes : []);
+/** The changes of an operation: only a ModelingSession has any. */
+export const changesOf = (operation: TraceOperation): TraceChangeEvent[] => (isModelingSession(operation) ? operation.changes : []);
 
 /** `Operation./tools`, derived: the ids of the distinct tools its calls invoked, in call order. */
 export const toolIdsOf = (operation: TraceOperation): string[] => [...new Set(operation.toolCalls.map((call) => call.toolId))];

@@ -515,9 +515,9 @@ function fragmentSource(index: TraceIndex, fragment: TraceArtifact): TraceArtifa
   return link ? index.artifacts.get(link.sourceId) : undefined;
 }
 
-/** When a generated file was produced. */
+/** When a generated file was written. */
 function codeRun(index: TraceIndex, file: TraceArtifact, locale: string): string | undefined {
-  const operation = index.trace.operations.find((o) => o.produces.includes(file.id));
+  const operation = index.trace.operations.find((o) => o.writes.includes(file.id));
   return operation ? formatTime(operation.startedAt, locale) : undefined;
 }
 
@@ -531,7 +531,7 @@ const RunDetail: React.FC<{
   const { t, i18n } = useTranslation();
   const inLineage = (file: TraceArtifact) =>
     lineage.nodes.has(file.id) || (index.children.get(file.id) ?? []).some((part) => lineage.nodes.has(part.id));
-  const files = operation.produces
+  const files = operation.writes
     .map((id) => index.artifacts.get(id))
     .filter((file): file is TraceArtifact => file !== undefined && !file.parentId && inLineage(file))
     .sort((a, b) => a.name.localeCompare(b.name));
