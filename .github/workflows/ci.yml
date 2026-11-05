@@ -48,6 +48,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Unit tests (vitest)
         run: npm test --workspace=webapp
+      - name: Server tests (vitest)
+        run: npm test --workspace=server
 
   typecheck:
     runs-on: ubuntu-latest
