@@ -5,7 +5,7 @@ import type { RepoSyncState } from '../../hooks/useRepoSync';
 
 const HEAD = 'b'.repeat(40);
 const BASE = 'a'.repeat(40);
-const commit = { sha: HEAD, message: 'Add Spa', author: 'ben', date: '', html_url: '', origin: 'editor' };
+const commit = { sha: HEAD, message: 'Add Spa', author: 'Ben Smith', author_login: 'ben', is_merge: false, date: '', html_url: '', origin: 'editor' };
 const sync = {
   link: { owner: 'ana', repo: 'grand-hotel', branch: 'main', baseCommitSha: BASE },
   state: 'behind' as RepoSyncState,
@@ -45,6 +45,7 @@ vi.mock('../../../../shared/services/errors/reportError', () => ({ reportError: 
 vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({ globalConfirm: vi.fn(async () => true) }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn() } }));
 
+import { ApiError } from '../../../../shared/api/api-client';
 import { OPEN_GITHUB_SAVE_EVENT } from '../../../../shared/api/github';
 import { closeRepoChangePreview, openRepoChangePreview } from '../../hooks/useRepoChangePreview';
 import { RepoChangePreview } from '../RepoChangePreview';
@@ -146,6 +147,87 @@ describe('RepoChangePreview', () => {
     current.currentProject = { ...project({ room }), currentDiagramType: 'GUINoCodeDiagram' };
     await showPreview();
     expect(switchDiagramType).toHaveBeenCalledWith('ClassDiagram');
+  });
+
+  it('does not read a failed older version as "no model"', async () => {
+    // Found in review: a 502 here made every class in the model look newly added by Ben.
+    loadModelAtCommit.mockImplementation(async (_session, _owner, _repo, sha) => {
+      if (sha === BASE) throw new ApiError(502, 'Bad gateway');
+      return { project: envelope({ room, spa }) };
+    });
+    render(<RepoChangePreview />);
+    act(() => openRepoChangePreview());
+
+    await waitFor(() => expect(reportError).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/added Room/)).toBeNull();
+    expect(screen.queryByRole('region')).toBeNull();
+  });
+
+  it('reads an older version with no model as empty', async () => {
+    loadModelAtCommit.mockImplementation(async (_session, _owner, _repo, sha) => {
+      if (sha === BASE) throw new ApiError(404, 'No model');
+      return { project: envelope({ room, spa }) };
+    });
+    await showPreview();
+    expect(screen.getByText('@ben added Room, Spa')).toBeInTheDocument();
+  });
+
+  it('stays open while a check is running or failed', async () => {
+    const { rerender } = render(<RepoChangePreview />);
+    act(() => openRepoChangePreview());
+    await screen.findByText(/Your model has not changed/);
+
+    for (const transient of ['checking', 'unknown'] as RepoSyncState[]) {
+      sync.state = transient;
+      rerender(<RepoChangePreview />);
+      expect(screen.getByRole('region')).toBeInTheDocument();
+    }
+  });
+
+  it('leaves Escape to a dialog open above it', async () => {
+    await showPreview();
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('data-state', 'open');
+    document.body.appendChild(dialog);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.getByRole('region')).toBeInTheDocument();
+    dialog.remove();
+  });
+
+  it('closes when the project changes', async () => {
+    const { rerender } = render(<RepoChangePreview />);
+    act(() => openRepoChangePreview());
+    await screen.findByText(/Your model has not changed/);
+
+    current.currentProject = { ...project({ room }), id: 'p2' };
+    rerender(<RepoChangePreview />);
+
+    await waitFor(() => expect(screen.queryByRole('region')).toBeNull());
+  });
+
+  it('does not name one person for changes several made', async () => {
+    sync.status = { ...sync.status, commits_since: [commit, { ...commit, author: 'Ana', author_login: 'ana' }] };
+    await showPreview();
+
+    expect(screen.getByText('Removed: Old')).toBeInTheDocument();
+    expect(screen.getByText('Added: Spa')).toBeInTheDocument();
+    sync.status = { ...sync.status, commits_since: [commit] };
+  });
+
+  it('says how many relationships changed', async () => {
+    loadModelAtCommit.mockImplementation(async (_session, _owner, _repo, sha) => ({
+      project: {
+        ...envelope({ room }),
+        project: { ...project({ room }), type: 'Project', name: 'Hotel', schemaVersion: 3, diagrams: { ClassDiagram: [{ id: 'd1', model: { elements: { room }, relationships: sha === HEAD ? { r1: {} } : {} } }] } },
+      },
+    }));
+    await showPreview();
+
+    expect(screen.getByText('1 new relationship')).toBeInTheDocument();
+    expect(screen.queryByText(/class diagrams are the same/)).toBeNull();
   });
 
   it('closes and reports when the new version cannot be read', async () => {

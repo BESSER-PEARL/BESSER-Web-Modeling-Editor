@@ -167,4 +167,104 @@ test.describe('a project linked to GitHub', () => {
     await expect(page.getByText(/Continuing from/).first()).toBeVisible();
     await expect(page.getByText('add a search bar').first()).toBeVisible();
   });
+
+  test("shows a teammate's change on the canvas without touching the model", async ({ page }) => {
+    await openLinkedProject(page, {});
+    const storedProject = () =>
+      page.evaluate(() => localStorage.getItem(`besser_project_${localStorage.getItem('besser_latest_project')}`));
+    const before = JSON.parse((await storedProject()) as string);
+    const diagram = before.diagrams.ClassDiagram[0];
+    const NEXT = 'd'.repeat(40);
+
+    // Ben adds Spa, adds an attribute to Book, and removes Loan.
+    const { 'el-2': _removed, ...kept } = diagram.model.elements;
+    const headElements = {
+      ...kept,
+      'el-1': { ...kept['el-1'], attributes: ['attr-1'], bounds: { x: 100, y: 0, width: 200, height: 140 } },
+      'attr-1': {
+        id: 'attr-1', name: '+ title: str', type: 'ClassAttribute', owner: 'el-1',
+        bounds: { x: 100, y: 40, width: 200, height: 30 },
+      },
+      'el-3': classElement('el-3', 'Spa', 700),
+    };
+    const version = (elements: unknown) => ({
+      success: true,
+      commit_sha: NEXT,
+      commit_message: '',
+      commit_date: '',
+      project: {
+        version: '2.0.0',
+        project: {
+          ...before,
+          attribution: { 'el-3': BEN },
+          diagrams: { ClassDiagram: [{ ...diagram, model: { ...diagram.model, elements } }] },
+        },
+      },
+    });
+    await page.route('**/besser_api/github/project/load-commit**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(version(route.request().url().includes(NEXT) ? headElements : diagram.model.elements)),
+      }),
+    );
+    await page.route('**/besser_api/github/sync-status**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          head_sha: NEXT,
+          in_sync: false,
+          pending: null,
+          commits_since: [{
+            sha: NEXT, message: 'Add Spa\n\nBESSER-Origin: editor', author: 'Ben Smith', author_login: 'ben',
+            is_merge: false, date: '', html_url: '', origin: 'editor',
+          }],
+        }),
+      }),
+    );
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    // The card says who, by their account, and what.
+    await expect(page.getByText('ben changed the model')).toBeVisible();
+    await expect(page.getByText('Add Spa', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
+
+    const bar = page.getByRole('region', { name: /preview of what's new/i });
+    await expect(bar).toContainText('@ben added Book.title, Spa');
+    await expect(bar).toContainText('@ben removed Loan');
+
+    // New and changed classes are ringed where they will land: Spa is 600 to the right of Book.
+    const rings = page.getByTestId('incoming-ring');
+    await expect(rings).toHaveCount(2);
+    await expect(page.getByTestId('incoming-removed')).toHaveCount(1);
+    const book = await page.locator('svg[data-id="el-1"] > g').first().boundingBox();
+    const boxes = await Promise.all((await rings.all()).map((ring) => ring.boundingBox()));
+    const spa = boxes.find((box) => Math.abs((box?.x ?? 0) - (book?.x ?? 0)) > 300);
+    expect(Math.abs((spa?.x ?? 0) - ((book?.x ?? 0) + 600))).toBeLessThan(6);
+    expect(Math.abs((spa?.y ?? 0) - (book?.y ?? 0))).toBeLessThan(6);
+
+    // The drawing must not restyle the page, and must not borrow the canvas's clip: a new row would be cut off.
+    const drawing = page.getByTestId('incoming-drawing');
+    await expect(drawing.locator('style')).toHaveCount(0);
+    await expect(drawing.locator('text', { hasText: 'title' })).toHaveCount(1);
+    const clipIds = await drawing.locator('clipPath').evaluateAll((clips) => clips.map((clip) => clip.id));
+    expect(clipIds.length).toBeGreaterThan(0);
+    expect(clipIds.every((id) => id.startsWith('repo-preview-'))).toBe(true);
+
+    // It follows the canvas when it zooms.
+    const zoomIn = await rings.first().boundingBox();
+    await page.mouse.move(900, 500);
+    await page.keyboard.down('Control');
+    await page.mouse.wheel(0, 300);
+    await page.keyboard.up('Control');
+    await expect.poll(async () => (await rings.first().boundingBox())?.width).not.toBe(zoomIn?.width);
+
+    // Nothing came in, and Escape leaves it as it was.
+    await page.keyboard.press('Escape');
+    await expect(bar).toHaveCount(0);
+    const after = JSON.parse((await storedProject()) as string).diagrams.ClassDiagram[0].model.elements;
+    expect(Object.keys(after).sort()).toEqual(['el-1', 'el-2']);
+    expect(after['el-1'].attributes).toEqual([]);
+  });
 });

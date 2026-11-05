@@ -5,101 +5,87 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApollonEditor, UMLDiagramType } from '@besser/wme';
-import DOMPurify from 'dompurify';
+import { UMLDiagramType } from '@besser/wme';
 import { Eye, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProject } from '../../../app/hooks/useProject';
-import { OPEN_GITHUB_SAVE_EVENT, loadModelAtCommit } from '../../../shared/api/github';
+import { OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { reportError } from '../../../shared/services/errors/reportError';
-import { readRepoModel } from '../../../shared/services/project-import/projectImport';
-import { bareMemberName, elementLabel, classModelElements, elementRecords, type ClassModelElement } from '../../../shared/services/github/modelAttribution';
-import { diffClassModels, idsToDraw, type ModelChanges } from '../../../shared/services/github/modelChanges';
+import { elementLabel, elementRecords } from '../../../shared/services/github/modelAttribution';
+import { hasModelChanges, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
+import {
+  loadRepoChangePreview,
+  type Bounds,
+  type RepoChangePreviewData,
+} from '../../../shared/services/github/repoChangePreview';
 import { getActiveDiagram, type BesserProject } from '../../../shared/types/project';
 import { useGetLatest } from '../hooks/useGetLatest';
 import { closeRepoChangePreview, useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
-import { useRepoSync } from '../hooks/useRepoSync';
-import { teammateChange } from '../hooks/useTeammateChangeNotice';
-import { Chip, MAX_LISTED_NAMES, authorColor, useElementBoxes } from './ModelAttributionLayer';
+import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
+import { AuthorLine, Chip, authorColor, joinNames, useElementBoxes } from './ModelAttributionLayer';
 
 const REMOVED_COLOR = '#be123c';
+const NO_AUTHOR_COLOR = 'hsl(var(--brand))';
 
-interface Bounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-type ApollonElement = { bounds?: Bounds; owner?: string | null; type?: string };
-type ApollonModel = { elements?: Record<string, ApollonElement> };
+// States in which nothing is left to preview. A check still running, or one that failed, is not one of them.
+const NOTHING_TO_PREVIEW = new Set<RepoSyncState>(['in-sync', 'local-changes', 'unlinked', 'signed-out', 'reconnect', 'missing', 'not-in-tab']);
 
-interface Preview {
-  changes: ModelChanges;
-  /** Every element of the head, for labels. */
-  elements: Map<string, ClassModelElement>;
-  removedLabels: Map<string, string>;
-  head: BesserProject;
-  /** The new and changed classes as the editor draws them, and where in model coordinates. */
-  drawing: { svg: string; clip: Bounds } | null;
-  drawnClasses: { id: string; bounds: Bounds }[];
-}
+type ToScreen = (x: number, y: number) => { left: number; top: number };
 
-const activeModel = (project: BesserProject | null | undefined): ApollonModel | undefined =>
-  (project ? getActiveDiagram(project, 'ClassDiagram')?.model : undefined) as ApollonModel | undefined;
+const activeClassDiagram = (project: BesserProject | null | undefined) =>
+  project ? getActiveDiagram(project, 'ClassDiagram') : undefined;
 
-const diagramById = (project: BesserProject, id: string | undefined) =>
-  project.diagrams?.ClassDiagram?.find((diagram) => diagram.id === id) ?? project.diagrams?.ClassDiagram?.[0];
-
-async function loadPreview(
-  session: string,
-  owner: string,
-  repo: string,
-  headSha: string,
-  baseSha: string | undefined,
-  modelPath: string | undefined,
-  activeDiagramId: string | undefined,
-): Promise<Preview> {
-  const [headVersion, baseVersion] = await Promise.all([
-    loadModelAtCommit(session, owner, repo, headSha, modelPath),
-    // A base that held no model reads as an empty one: everything counts as new.
-    baseSha ? loadModelAtCommit(session, owner, repo, baseSha, modelPath).catch(() => null) : null,
-  ]);
-  const head = readRepoModel(headVersion.project).project;
-  const base = baseVersion ? readRepoModel(baseVersion.project).project : null;
-  const changes = diffClassModels(base, head);
-  const headModel = diagramById(head, activeDiagramId)?.model as ApollonModel | undefined;
-  const baseModel = base ? diagramById(base, activeDiagramId)?.model : undefined;
-
-  const include = idsToDraw(changes, baseModel, headModel);
-  let drawing: Preview['drawing'] = null;
-  if (include.length && headModel) {
-    try {
-      const { svg, clip } = await ApollonEditor.exportModelAsSvg(headModel as never, { include, margin: 0 });
-      // Its <style> block would restyle the whole page once inlined: the wrapper below takes over from it.
-      drawing = { svg: DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true }, FORBID_TAGS: ['style'] }), clip };
-    } catch (error) {
-      // The text in the bar still says what changed.
-      console.warn('Could not draw the incoming classes', error);
-    }
-  }
-  const before = base ? classModelElements(base) : new Map<string, ClassModelElement>();
-  return {
-    changes,
-    head,
-    elements: classModelElements(head),
-    removedLabels: new Map(changes.removed.map((element) => [element.id, elementLabel(element, before)])),
-    drawing,
-    drawnClasses: include.flatMap((id) => {
-      const bounds = headModel?.elements?.[id]?.bounds;
-      return bounds ? [{ id, bounds }] : [];
-    }),
-  };
-}
-
-const listed = (names: string[]) => {
-  const hidden = names.length - MAX_LISTED_NAMES;
-  return { items: names.slice(0, MAX_LISTED_NAMES).join(', '), hidden };
-};
+/** The incoming classes over the canvas. */
+const IncomingDrawing: React.FC<{
+  drawing: NonNullable<RepoChangePreviewData['drawing']>;
+  classes: { id: string; bounds: Bounds; author: string | null }[];
+  scale: number;
+  toScreen: ToScreen;
+}> = ({ drawing, classes, scale, toScreen }) => (
+  <div className="absolute inset-0 duration-300 animate-in fade-in-0 motion-reduce:animate-none">
+    {/* The editor's classes have no fill: without this, a class underneath shows through. */}
+    {classes.map(({ id, bounds }) => (
+      <div
+        key={id}
+        className="absolute bg-background"
+        style={{ ...toScreen(bounds.x, bounds.y), width: bounds.width * scale, height: bounds.height * scale }}
+      />
+    ))}
+    <div
+      data-testid="incoming-drawing"
+      className="absolute origin-top-left [&_svg]:overflow-visible [&>svg]:block [&_text]:fill-[#212529] [&_text]:[font-family:'Helvetica_Neue',Helvetica,Arial,sans-serif] [&_text]:text-[16px] dark:[&_svg]:fill-[rgb(15,23,42)] dark:[&_text]:fill-white"
+      style={{
+        ...toScreen(drawing.clip.x, drawing.clip.y),
+        width: drawing.clip.width,
+        height: drawing.clip.height,
+        transform: `scale(${scale})`,
+      }}
+      // Sanitised in loadRepoChangePreview: the model comes from a file anyone with write access can edit.
+      dangerouslySetInnerHTML={{ __html: drawing.svg }}
+    />
+    {classes.map(({ id, bounds, author }) => {
+      const { left, top } = toScreen(bounds.x, bounds.y);
+      const color = author ? authorColor(author) : NO_AUTHOR_COLOR;
+      return (
+        <React.Fragment key={id}>
+          <div
+            data-testid="incoming-ring"
+            className="absolute rounded-[2px] border-2 border-dashed"
+            style={{
+              left,
+              top,
+              width: bounds.width * scale,
+              height: bounds.height * scale,
+              borderColor: color,
+              backgroundColor: author ? `${color}14` : undefined,
+            }}
+          />
+          {author && <Chip label={`@${author}`} color={color} style={{ left, top: top - 26 }} />}
+        </React.Fragment>
+      );
+    })}
+  </div>
+);
 
 export const RepoChangePreview: React.FC = () => {
   const { t } = useTranslation();
@@ -107,44 +93,47 @@ export const RepoChangePreview: React.FC = () => {
   const { currentProject, switchDiagramType } = useProject();
   const sync = useRepoSync();
   const { link, status, state, hasLocalChanges, githubSession } = sync;
-  const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges });
+  const [busy, setBusy] = useState(false);
+  const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges, setBusy });
   const layer = useRef<HTMLDivElement>(null);
 
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<RepoChangePreviewData | null>(null);
 
   const newCommits = state === 'behind' || state === 'diverged';
   const headSha = newCommits ? status?.head_sha : undefined;
   const projectId = currentProject?.id;
 
-  // Nothing left to preview: taken in, reconnecting, or another project.
   useEffect(() => {
-    if (open && !headSha && state !== 'checking') closeRepoChangePreview();
-  }, [open, headSha, state]);
+    if (open && NOTHING_TO_PREVIEW.has(state)) closeRepoChangePreview();
+  }, [open, state]);
   useEffect(() => closeRepoChangePreview, [projectId]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeRepoChangePreview();
+      if (event.key !== 'Escape') return;
+      // A dialog above the preview owns Escape.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      closeRepoChangePreview();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Capture: the canvas handles Escape itself, and a dialog closes before a later listener can see it open.
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [open]);
 
-  const activeDiagramId = currentProject ? getActiveDiagram(currentProject, 'ClassDiagram')?.id : undefined;
+  const activeDiagramId = activeClassDiagram(currentProject)?.id;
   useEffect(() => {
     if (!open || !headSha || !link || !githubSession) {
       setPreview(null);
       return undefined;
     }
     let stale = false;
-    loadPreview(githubSession, link.owner, link.repo, headSha, link.baseCommitSha, link.legacyFilePath, activeDiagramId)
+    const target = { owner: link.owner, repo: link.repo, headSha, baseSha: link.baseCommitSha, modelPath: link.legacyFilePath };
+    loadRepoChangePreview(githubSession, target, activeDiagramId)
       .then((loaded) => {
         if (stale) return;
         setPreview(loaded);
-        const { added, changed, removed } = loaded.changes;
-        if ((added.length || changed.length || removed.length) && currentProject?.currentDiagramType !== 'ClassDiagram') {
+        if (hasModelChanges(loaded.changes) && currentProject?.currentDiagramType !== 'ClassDiagram') {
           void switchDiagramType(UMLDiagramType.ClassDiagram);
         }
       })
@@ -157,13 +146,13 @@ export const RepoChangePreview: React.FC = () => {
       stale = true;
     };
     // The project object changes on every edit; the preview depends only on these.
-  }, [open, headSha, link?.owner, link?.repo, link?.baseCommitSha, githubSession, activeDiagramId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, headSha, link?.owner, link?.repo, link?.baseCommitSha, link?.legacyFilePath, githubSession, activeDiagramId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Any class on the canvas fixes where model coordinates fall on screen, through every pan and zoom.
-  const localModel = activeModel(currentProject);
+  const localElements = (activeClassDiagram(currentProject)?.model as { elements?: Record<string, { bounds?: Bounds; owner?: string | null }> } | undefined)?.elements;
   const referenceId = useMemo(
-    () => Object.entries(localModel?.elements ?? {}).find(([, element]) => element.bounds && !element.owner)?.[0],
-    [localModel],
+    () => Object.entries(localElements ?? {}).find(([, element]) => element.bounds && !element.owner)?.[0],
+    [localElements],
   );
   const removedIds = useMemo(() => (preview?.changes.removed ?? []).filter((element) => !element.ownerId).map((element) => element.id), [preview]);
   const tracked = useMemo(
@@ -175,61 +164,65 @@ export const RepoChangePreview: React.FC = () => {
   if (!open) return null;
 
   const referenceBox = referenceId ? boxes[referenceId] : undefined;
-  const referenceBounds = referenceId ? localModel?.elements?.[referenceId]?.bounds : undefined;
+  const referenceBounds = referenceId ? localElements?.[referenceId]?.bounds : undefined;
   const scale = referenceBox && referenceBounds?.width ? referenceBox.width / referenceBounds.width : 0;
-  const toScreen = (x: number, y: number) => ({
+  const toScreen: ToScreen = (x, y) => ({
     left: (referenceBox?.left ?? 0) + (x - (referenceBounds?.x ?? 0)) * scale,
     top: (referenceBox?.top ?? 0) + (y - (referenceBounds?.y ?? 0)) * scale,
   });
 
-  const records = preview ? elementRecords(preview.head) : new Map();
-  const commitAuthor = status ? teammateChange(status.commits_since, undefined)?.author ?? '' : '';
-  const authorOf = (id: string): string => records.get(id)?.addedBy ?? commitAuthor;
+  const records = preview ? elementRecords(preview.head) : new Map<string, { addedBy: string }>();
+  const onlyAuthor = status ? soleAuthor(status.commits_since) : null;
+  const addedIds = new Set(preview?.changes.added.map((element) => element.id));
+
+  // A new class is its adder's. On an existing class, its original adder is not who changed it.
+  const authorOfClass = (id: string): string | null => {
+    if (addedIds.has(id)) return records.get(id)?.addedBy ?? onlyAuthor;
+    const newMember = preview?.changes.added.find((element) => element.ownerId === id);
+    return (newMember && records.get(newMember.id)?.addedBy) ?? onlyAuthor;
+  };
 
   // A new class's new members are part of it, as in the marks a pull leaves.
-  const addedIds = new Set(preview?.changes.added.map((element) => element.id));
   const addedByAuthor = new Map<string, string[]>();
+  const addedByNobody: string[] = [];
   for (const element of preview?.changes.added ?? []) {
     if (element.ownerId && addedIds.has(element.ownerId)) continue;
-    const author = authorOf(element.id);
-    addedByAuthor.set(author, [...(addedByAuthor.get(author) ?? []), elementLabel(element, preview!.elements)]);
-  }
-  const changedNames = (preview?.changes.changed ?? []).map((element) => {
     const label = elementLabel(element, preview!.elements);
-    // A rename reads as one; a changed type or similar keeps the name alone.
-    const before = bareMemberName(element.previousName);
-    return before && before !== bareMemberName(element.name) ? `${before} → ${label}` : label;
-  });
+    const author = records.get(element.id)?.addedBy ?? onlyAuthor;
+    if (author) addedByAuthor.set(author, [...(addedByAuthor.get(author) ?? []), label]);
+    else addedByNobody.push(label);
+  }
+  const changedNames = (preview?.changes.changed ?? []).map((element) =>
+    renameLabel(elementLabel(element, preview!.elements), element.previousName, element.name),
+  );
   const removedNames = (preview?.changes.removed ?? [])
     .filter((element) => !element.ownerId || !removedIds.includes(element.ownerId))
     .map((element) => preview!.removedLabels.get(element.id) ?? element.name);
-  const nothingInClassDiagram = !!preview && !addedByAuthor.size && !changedNames.length && !removedNames.length;
 
-  const takeIn = async () => {
-    if (hasLocalChanges) {
-      window.dispatchEvent(new CustomEvent(OPEN_GITHUB_SAVE_EVENT));
-      return;
-    }
-    setBusy(true);
-    try {
-      await getLatest();
-    } finally {
-      setBusy(false);
-    }
+  const takeIn = () => {
+    if (hasLocalChanges) window.dispatchEvent(new CustomEvent(OPEN_GITHUB_SAVE_EVENT));
+    else void getLatest();
   };
 
-  const line = (key: string, defaultValue: string, author: string, names: string[]) => {
-    const { items, hidden } = listed(names);
+  const changeLine = (kind: 'changed' | 'removed', names: string[]) => {
+    if (!names.length) return null;
+    const items = joinNames(t, names);
+    if (onlyAuthor) {
+      return (
+        <AuthorLine
+          author={onlyAuthor}
+          title={names.join(', ')}
+          text={kind === 'changed'
+            ? t('github.preview.changed', { defaultValue: '{{author}} changed {{items}}', author: `@${onlyAuthor}`, items })
+            : t('github.preview.removedLine', { defaultValue: '{{author}} removed {{items}}', author: `@${onlyAuthor}`, items })}
+        />
+      );
+    }
     return (
-      <p key={`${key}-${author}`} className="flex items-center gap-1.5 text-xs text-muted-foreground" title={names.join(', ')}>
-        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: authorColor(author) }} aria-hidden />
-        <span className="truncate">
-          {t(key, {
-            defaultValue,
-            author: `@${author}`,
-            items: hidden > 0 ? t('github.attribution.more', { items, count: hidden }) : items,
-          })}
-        </span>
+      <p className="truncate text-xs text-muted-foreground" title={names.join(', ')}>
+        {kind === 'changed'
+          ? t('github.preview.changedSeveral', { defaultValue: 'Changed: {{items}}', items })
+          : t('github.preview.removedSeveral', { defaultValue: 'Removed: {{items}}', items })}
       </p>
     );
   };
@@ -237,48 +230,12 @@ export const RepoChangePreview: React.FC = () => {
   return (
     <div ref={layer} className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
       {preview?.drawing && scale > 0 && (
-        <div className="absolute inset-0 duration-300 animate-in fade-in-0 motion-reduce:animate-none">
-          {/* The editor's classes have no fill: without this, a class underneath shows through. */}
-          {preview.drawnClasses.map(({ id, bounds }) => (
-            <div
-              key={id}
-              className="absolute bg-background"
-              style={{ ...toScreen(bounds.x, bounds.y), width: bounds.width * scale, height: bounds.height * scale }}
-            />
-          ))}
-          <div
-            data-testid="incoming-drawing"
-            className="absolute origin-top-left [&_svg]:overflow-visible [&>svg]:block [&_text]:fill-[#212529] [&_text]:[font-family:'Helvetica_Neue',Helvetica,Arial,sans-serif] [&_text]:text-[16px] dark:[&_svg]:fill-[rgb(15,23,42)] dark:[&_text]:fill-white"
-            style={{
-              ...toScreen(preview.drawing.clip.x, preview.drawing.clip.y),
-              width: preview.drawing.clip.width,
-              height: preview.drawing.clip.height,
-              transform: `scale(${scale})`,
-            }}
-            dangerouslySetInnerHTML={{ __html: preview.drawing.svg }}
-          />
-          {preview.drawnClasses.map(({ id, bounds }) => {
-            const author = authorOf(id);
-            const { left, top } = toScreen(bounds.x, bounds.y);
-            return (
-              <React.Fragment key={id}>
-                <div
-                  data-testid="incoming-ring"
-                  className="absolute rounded-[2px] border-2 border-dashed"
-                  style={{
-                    left,
-                    top,
-                    width: bounds.width * scale,
-                    height: bounds.height * scale,
-                    borderColor: authorColor(author),
-                    backgroundColor: `${authorColor(author)}14`,
-                  }}
-                />
-                <Chip login={author} style={{ left, top: top - 26 }} />
-              </React.Fragment>
-            );
-          })}
-        </div>
+        <IncomingDrawing
+          drawing={preview.drawing}
+          scale={scale}
+          toScreen={toScreen}
+          classes={preview.drawnClasses.map((drawn) => ({ ...drawn, author: authorOfClass(drawn.id) }))}
+        />
       )}
 
       {removedIds.map((id) => {
@@ -298,12 +255,11 @@ export const RepoChangePreview: React.FC = () => {
                 backgroundColor: `${REMOVED_COLOR}1f`,
               }}
             />
-            <span
-              className="absolute whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium leading-4 text-white shadow-elevation-1"
-              style={{ left: box.left, top: box.top - 26, backgroundColor: REMOVED_COLOR }}
-            >
-              {t('github.preview.removed', { defaultValue: 'Removed' })}
-            </span>
+            <Chip
+              label={t('github.preview.removed', { defaultValue: 'Removed' })}
+              color={REMOVED_COLOR}
+              style={{ left: box.left, top: box.top - 26 }}
+            />
           </React.Fragment>
         );
       })}
@@ -324,19 +280,43 @@ export const RepoChangePreview: React.FC = () => {
             {!preview && (
               <p className="text-xs text-muted-foreground">{t('github.preview.loading', { defaultValue: 'Reading the new version…' })}</p>
             )}
-            {[...addedByAuthor].map(([author, names]) => line('github.attribution.added', '{{author}} added {{items}}', author, names))}
-            {changedNames.length > 0 && line('github.preview.changed', '{{author}} changed {{items}}', commitAuthor, changedNames)}
-            {removedNames.length > 0 && line('github.preview.removedLine', '{{author}} removed {{items}}', commitAuthor, removedNames)}
+            {[...addedByAuthor].map(([author, names]) => (
+              <AuthorLine
+                key={author}
+                author={author}
+                title={names.join(', ')}
+                text={t('github.attribution.added', { author: `@${author}`, items: joinNames(t, names) })}
+              />
+            ))}
+            {addedByNobody.length > 0 && (
+              <p className="truncate text-xs text-muted-foreground" title={addedByNobody.join(', ')}>
+                {t('github.preview.addedSeveral', { defaultValue: 'Added: {{items}}', items: joinNames(t, addedByNobody) })}
+              </p>
+            )}
+            {changeLine('changed', changedNames)}
+            {changeLine('removed', removedNames)}
+            {preview && preview.changes.relationshipsAdded > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t('github.preview.relationshipsAdded', { defaultValue: '{{count}} new relationships', count: preview.changes.relationshipsAdded })}
+              </p>
+            )}
+            {preview && preview.changes.relationshipsRemoved > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t('github.preview.relationshipsRemoved', { defaultValue: '{{count}} relationships removed', count: preview.changes.relationshipsRemoved })}
+              </p>
+            )}
             {preview && (
               <p className="mt-1 text-xs text-muted-foreground">
-                {nothingInClassDiagram
+                {!hasModelChanges(preview.changes)
                   ? t('github.preview.nothing', { defaultValue: 'The class diagrams are the same. Other diagrams or the code may have changed.' })
-                  : t('github.preview.hint', { defaultValue: 'Your model has not changed. Taking this in also brings any other diagrams and code.' })}
+                  : preview.drawing && !referenceId
+                    ? t('github.preview.notDrawn', { defaultValue: 'This diagram is empty here, so the changes are listed but not drawn.' })
+                    : t('github.preview.hint', { defaultValue: 'Your model has not changed yet. Other diagrams and the code come along with it.' })}
               </p>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" className="h-7 gap-1.5 px-2.5 text-xs" disabled={busy || !preview} onClick={() => void takeIn()}>
+            <Button size="sm" className="h-7 gap-1.5 px-2.5 text-xs" disabled={busy || !preview} onClick={takeIn}>
               {busy && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
               {hasLocalChanges
                 ? t('github.teammate.saveAndMerge', { defaultValue: 'Save and merge' })

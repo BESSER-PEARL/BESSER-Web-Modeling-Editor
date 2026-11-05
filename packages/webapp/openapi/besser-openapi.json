@@ -4893,6 +4893,22 @@
             "type": "string",
             "title": "Author"
           },
+          "author_login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Login"
+          },
+          "is_merge": {
+            "type": "boolean",
+            "title": "Is Merge",
+            "default": false
+          },
           "date": {
             "type": "string",
             "title": "Date"
@@ -4918,6 +4934,8 @@
           "sha",
           "message",
           "author",
+          "author_login",
+          "is_merge",
           "date",
           "html_url",
           "origin"
@@ -6306,6 +6324,22 @@
             "type": "string",
             "title": "Author"
           },
+          "author_login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Login"
+          },
+          "is_merge": {
+            "type": "boolean",
+            "title": "Is Merge",
+            "default": false
+          },
           "date": {
             "type": "string",
             "title": "Date"
@@ -6338,6 +6372,8 @@
           "sha",
           "message",
           "author",
+          "author_login",
+          "is_merge",
           "date",
           "html_url",
           "origin",

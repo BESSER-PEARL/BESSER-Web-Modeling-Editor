@@ -10,6 +10,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { GitPullRequestArrow, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProject } from '../../../app/hooks/useProject';
@@ -27,7 +28,7 @@ import { useRepoSync } from '../hooks/useRepoSync';
 // All readable under white text, in both themes.
 const AUTHOR_COLORS = ['#0f766e', '#b45309', '#7c3aed', '#be123c', '#1d4ed8', '#15803d'];
 // Names one author's line lists before "and N more".
-export const MAX_LISTED_NAMES = 4;
+const MAX_LISTED_NAMES = 4;
 
 /** The same login always gets the same colour. */
 export function authorColor(login: string): string {
@@ -141,13 +142,28 @@ function useAttributionMarks() {
   return { projectId: currentProject?.id, link, records, elements, drawn };
 }
 
-export const Chip: React.FC<{ login: string; style: React.CSSProperties }> = ({ login, style }) => (
+export const Chip: React.FC<{ label: string; color: string; style: React.CSSProperties }> = ({ label, color, style }) => (
   <span
     className="absolute whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium leading-4 text-white shadow-elevation-1"
-    style={{ backgroundColor: authorColor(login), ...style }}
+    style={{ backgroundColor: color, ...style }}
   >
-    @{login}
+    {label}
   </span>
+);
+
+/** Names for one line of a banner, cut short after a few. */
+export function joinNames(t: TFunction, names: string[]): string {
+  const listed = names.slice(0, MAX_LISTED_NAMES).join(', ');
+  const hidden = names.length - MAX_LISTED_NAMES;
+  return hidden > 0 ? t('github.attribution.more', { items: listed, count: hidden }) : listed;
+}
+
+/** One line of a banner: a dot in the author's colour, then what they did. */
+export const AuthorLine: React.FC<{ author: string; text: string; title: string }> = ({ author, text, title }) => (
+  <p className="flex items-center gap-1.5 text-xs text-muted-foreground" title={title}>
+    <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: authorColor(author) }} aria-hidden />
+    <span className="truncate">{text}</span>
+  </p>
 );
 
 export const ModelAttributionLayer: React.FC = () => {
@@ -186,7 +202,8 @@ export const ModelAttributionLayer: React.FC = () => {
               }}
             />
             <Chip
-              login={login}
+              label={`@${login}`}
+              color={authorColor(login)}
               style={isMember ? { left: box.right + 6, top: box.top } : { left: box.left, top: box.top - 26 }}
             />
           </React.Fragment>
@@ -237,25 +254,14 @@ export const ModelAttributionBanner: React.FC = () => {
       <GitPullRequestArrow className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{t('github.attribution.title')}</p>
-        {[...byAuthor].map(([author, names]) => {
-          const listed = names.slice(0, MAX_LISTED_NAMES).join(', ');
-          const hidden = names.length - MAX_LISTED_NAMES;
-          return (
-            <p key={author} className="flex items-center gap-1.5 text-xs text-muted-foreground" title={names.join(', ')}>
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: authorColor(author) }}
-                aria-hidden
-              />
-              <span className="truncate">
-                {t('github.attribution.added', {
-                  author: `@${author}`,
-                  items: hidden > 0 ? t('github.attribution.more', { items: listed, count: hidden }) : listed,
-                })}
-              </span>
-            </p>
-          );
-        })}
+        {[...byAuthor].map(([author, names]) => (
+          <AuthorLine
+            key={author}
+            author={author}
+            title={names.join(', ')}
+            text={t('github.attribution.added', { author: `@${author}`, items: joinNames(t, names) })}
+          />
+        ))}
       </div>
       <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-xs" onClick={clear}>
         <X className="size-3.5" aria-hidden />

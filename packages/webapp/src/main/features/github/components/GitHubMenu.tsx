@@ -130,13 +130,13 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const sync = useRepoSync();
   const { link, state, status, hasLocalChanges, githubSession } = sync;
   const flushEditor = useFlushEditorModel();
-  const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges });
+  const [busy, setBusy] = useState(false);
+  const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges, setBusy });
   const noticeActions = useRef<(action: TeammateChangeAction) => void>(() => undefined);
   useTeammateChangeNotice({ link, status, state, username, hasLocalChanges, onAction: (action) => noticeActions.current(action) });
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
-  const [busy, setBusy] = useState(false);
   const [newRepoName, setNewRepoName] = useState('');
   const [newRepoDescription, setNewRepoDescription] = useState('');
   const [isRepoPrivate, setIsRepoPrivate] = useState(true);
@@ -258,17 +258,8 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
           branch: pending.branch,
         });
 
-  const handlePull = async () => {
-    setBusy(true);
-    try {
-      await getLatest();
-    } finally {
-      setBusy(false);
-    }
-  };
-
   noticeActions.current = (action) => {
-    if (action === 'getLatest') void handlePull();
+    if (action === 'getLatest') void getLatest();
     else if (action === 'preview') openRepoChangePreview();
     else setDialog(action);
   };
@@ -425,7 +416,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
               </DropdownMenuItem>
               {(state === 'behind' || state === 'diverged') && (
                 <>
-                  <DropdownMenuItem className={itemClass} onSelect={() => void handlePull()}>
+                  <DropdownMenuItem className={itemClass} onSelect={() => void getLatest()}>
                     <CloudDownload className={iconClass} aria-hidden="true" />
                     {t('github.menu.getLatest', { defaultValue: 'Get latest' })}
                   </DropdownMenuItem>

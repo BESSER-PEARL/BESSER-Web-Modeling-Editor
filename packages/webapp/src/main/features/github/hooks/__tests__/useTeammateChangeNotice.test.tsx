@@ -10,8 +10,8 @@ vi.mock('react-toastify', () => ({ toast: toastSpy, Slide: {} }));
 import { teammateChange, useTeammateChangeNotice } from '../useTeammateChangeNotice';
 
 const link = { owner: 'ana', repo: 'grand-hotel', branch: 'main' };
-const commit = (author: string, message: string, origin: string | null = 'editor') => ({
-  sha: 'c'.repeat(40), message, author, date: '', html_url: '', origin,
+const commit = (author: string, message: string, origin: string | null = 'editor', extra: { author_login?: string | null; is_merge?: boolean } = {}) => ({
+  sha: 'c'.repeat(40), message, author, author_login: author, is_merge: false, date: '', html_url: '', origin, ...extra,
 });
 const status = (head: string, ...commits: ReturnType<typeof commit>[]) => ({
   head_sha: head.repeat(40), commits_since: commits, in_sync: false, pending: null,
@@ -47,6 +47,25 @@ describe('teammateChange', () => {
   it("says nothing about the user's own commits", () => {
     expect(teammateChange([commit('ana', 'From my other laptop')], 'ana')).toBeNull();
   });
+
+  it('knows the user by their GitHub account, whatever their git name says', () => {
+    // Live: this repository's own commits are named ArmSL by the account ArmenSl.
+    const mine = commit('ArmSL', 'From my other laptop', 'editor', { author_login: 'ArmenSl' });
+    expect(teammateChange([mine], 'ArmenSl')).toBeNull();
+  });
+
+  it('falls back to the git name for a commit GitHub matched to no account', () => {
+    const anonymous = commit('Ben Smith', 'Add Spa', 'editor', { author_login: null });
+    expect(teammateChange([anonymous], 'ana')?.author).toBe('Ben Smith');
+  });
+
+  it('shows the work behind a merge, not the merge', () => {
+    // Filmed 2026-11-05: the card read "Merge BESSER changes into main".
+    const merge = commit('ben', 'Merge BESSER changes into main', 'editor', { is_merge: true });
+    expect(teammateChange([merge, commit('ben', 'Add guest reviews'), commit('ana', 'Mine')], 'ana')).toMatchObject({
+      subject: 'Add guest reviews', moreCommits: 1,
+    });
+  });
 });
 
 describe('useTeammateChangeNotice', () => {
@@ -81,9 +100,24 @@ describe('useTeammateChangeNotice', () => {
     expect(onAction).toHaveBeenCalledWith('save');
   });
 
+  it('comes back with the project when something other than the user closed it', () => {
+    const { rerender } = mount(notice());
+    toastSpy.isActive.mockReturnValue(true);
+    rerender(notice({ state: 'checking', status: null }));
+    toastSpy.isActive.mockReturnValue(false);
+
+    rerender(notice());
+
+    expect(toastSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('does not come back for the same commit once dismissed, but does for a newer one', () => {
     const { rerender } = mount(notice());
     rerender(notice({ status: status('a', commit('ben', ADD_REVIEW)) }));
+    expect(toastSpy).toHaveBeenCalledTimes(1);
+    // The user closed it, so nothing is active when the next check comes in.
+    rerender(notice({ state: 'in-sync', status: { ...status('a'), in_sync: true } }));
+    rerender(notice());
     expect(toastSpy).toHaveBeenCalledTimes(1);
 
     rerender(notice({ status: status('b', commit('ben', 'Add Spa'), commit('ben', ADD_REVIEW)) }));

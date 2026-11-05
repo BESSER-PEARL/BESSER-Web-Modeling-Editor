@@ -5,7 +5,15 @@ import { toast } from 'react-toastify';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { reportError } from '../../../shared/services/errors/reportError';
 
-export function useGetLatest({ pull, hasLocalChanges }: { pull: () => Promise<void>; hasLocalChanges: boolean }) {
+export function useGetLatest({
+  pull,
+  hasLocalChanges,
+  setBusy,
+}: {
+  pull: () => Promise<void>;
+  hasLocalChanges: boolean;
+  setBusy: (busy: boolean) => void;
+}) {
   const { t } = useTranslation();
   return useCallback(async () => {
     if (hasLocalChanges) {
@@ -17,11 +25,14 @@ export function useGetLatest({ pull, hasLocalChanges }: { pull: () => Promise<vo
       });
       if (!confirmed) return;
     }
+    setBusy(true);
     try {
       await pull();
       toast.success(t('github.toasts.projectPulled'));
     } catch (error) {
       reportError(error instanceof Error ? error.message : String(error), { error });
+    } finally {
+      setBusy(false);
     }
-  }, [pull, hasLocalChanges, t]);
+  }, [pull, hasLocalChanges, setBusy, t]);
 }

@@ -2209,6 +2209,13 @@ export interface components {
             message: string;
             /** Author */
             author: string;
+            /** Author Login */
+            author_login: string | null;
+            /**
+             * Is Merge
+             * @default false
+             */
+            is_merge: boolean;
             /** Date */
             date: string;
             /** Html Url */
@@ -2796,6 +2803,13 @@ export interface components {
             message: string;
             /** Author */
             author: string;
+            /** Author Login */
+            author_login: string | null;
+            /**
+             * Is Merge
+             * @default false
+             */
+            is_merge: boolean;
             /** Date */
             date: string;
             /** Html Url */

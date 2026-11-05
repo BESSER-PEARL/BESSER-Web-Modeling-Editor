@@ -19,6 +19,7 @@ import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { isGoLiveAvailable } from '../../shared/api/github';
 import { ModelAttributionBanner, ModelAttributionLayer } from '../../features/github/components/ModelAttributionLayer';
 import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
+import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
 import {
@@ -859,6 +860,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const handleRequestTabSwitch = useCallback(async (): Promise<boolean> => {
     return ensureUserModelValidationBeforeNavigation();
   }, [ensureUserModelValidationBeforeNavigation]);
+
+  const previewingRepoChanges = useRepoChangePreviewOpen();
+  useEffect(() => {
+    if (previewingRepoChanges && location.pathname !== '/') navigate('/');
+  }, [previewingRepoChanges, location.pathname, navigate]);
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page

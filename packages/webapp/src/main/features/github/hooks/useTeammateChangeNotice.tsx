@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Slide, toast } from 'react-toastify';
 import type { SyncStatus } from '../../../shared/api/github';
+import { commitAuthor } from '../../../shared/services/github/modelChanges';
 import type { ProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import {
   TeammateChangeNotice,
@@ -12,16 +13,20 @@ import type { RepoSyncState } from './useRepoSync';
 
 const NOTICE_TOAST_ID = 'github-teammate-change';
 
-/** The newest commit someone else made, from `commits` (newest first); null when all are the user's own. */
+/**
+ * The newest commit someone else made, from `commits` (newest first); null when all are the user's own.
+ * A merge says little, so the work it joined speaks for it.
+ */
 export function teammateChange(commits: SyncStatus['commits_since'], username?: string): TeammateChange | null {
   const own = username?.toLowerCase();
-  const latest = commits.find((commit) => commit.author.toLowerCase() !== own);
+  const others = commits.filter((commit) => commitAuthor(commit).toLowerCase() !== own);
+  const latest = others.find((commit) => !commit.is_merge) ?? others[0];
   if (!latest) return null;
   return {
-    author: latest.author,
+    author: commitAuthor(latest),
     subject: latest.message.split('\n')[0],
     changedModel: latest.origin === 'editor',
-    moreCommits: commits.length - 1,
+    moreCommits: Math.max(commits.filter((commit) => !commit.is_merge).length - 1, 0),
   };
 }
 
@@ -50,6 +55,8 @@ export function useTeammateChangeNotice({
   useEffect(() => {
     const change = headSha && status ? teammateChange(status.commits_since, username) : null;
     if (!change || !link) {
+      // Closed by this, not by the user: it may come back when the project does.
+      if (toast.isActive(NOTICE_TOAST_ID)) announced.current = null;
       toast.dismiss(NOTICE_TOAST_ID);
       return;
     }

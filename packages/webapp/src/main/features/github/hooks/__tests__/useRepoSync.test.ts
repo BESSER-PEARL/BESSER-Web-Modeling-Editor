@@ -45,7 +45,7 @@ vi.mock('../../../../shared/services/github/pullRepoIntoProject', () => ({ pullR
 const status = (commitsSince = 0, pending: SyncStatus['pending'] = null): SyncStatus => ({
   head_sha: 'f'.repeat(40),
   commits_since: Array.from({ length: commitsSince }, (_, i) => ({
-    sha: String(i).repeat(40), message: 'theirs', author: 'ben', date: '', html_url: '', origin: null,
+    sha: String(i).repeat(40), message: 'theirs', author: 'ben', author_login: 'ben', is_merge: false, date: '', html_url: '', origin: null,
   })),
   in_sync: commitsSince === 0,
   pending,

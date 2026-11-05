@@ -423,6 +423,9 @@ export function readRepoModel(data: unknown): { project: BesserProject; personal
   throw new Error('This file is not a BESSER model.');
 }
 
+/** A repository's model as a whole project, to read without storing it. */
+export const readRepoProject = (data: unknown): BesserProject => fillMissingDiagrams(readRepoModel(data).project);
+
 /** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
 function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {
   const diagrams = Object.fromEntries(

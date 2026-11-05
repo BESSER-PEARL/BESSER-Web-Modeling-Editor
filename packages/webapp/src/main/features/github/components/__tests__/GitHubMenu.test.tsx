@@ -22,6 +22,8 @@ const sync = {
   markSynced: vi.fn(),
 };
 vi.mock('../../hooks/useRepoSync', () => ({ useRepoSync: () => sync }));
+const openRepoChangePreview = vi.hoisted(() => vi.fn());
+vi.mock('../../hooks/useRepoChangePreview', () => ({ openRepoChangePreview }));
 vi.mock('../../hooks/useFlushEditorModel', () => ({ useFlushEditorModel: () => () => undefined }));
 vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('../../../../app/hooks/useProject', () => ({
@@ -58,10 +60,10 @@ vi.mock('../../../../shared/components/github/RepoBrowser', () => ({
 }));
 
 import { GitHubMenu } from '../GitHubMenu';
-import { OPEN_GITHUB_PANEL_EVENT } from '../../../../shared/api/github';
+import { OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../../shared/api/github';
 import { resetGitHubAuthForTests } from '../../../../shared/services/github/githubAuth';
 
-const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', date: '', html_url: '', origin: null };
+const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', author_login: 'ana', is_merge: false, date: '', html_url: '', origin: null };
 const onLogin = vi.fn();
 const onLogout = vi.fn();
 
@@ -175,6 +177,27 @@ describe('GitHubMenu', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Get latest' }));
     await waitFor(() => expect(globalConfirm).toHaveBeenCalledTimes(1));
     expect(sync.pull).not.toHaveBeenCalled();
+  });
+
+  it('opens the Save dialog when something asks it to', async () => {
+    linkAs('diverged', 1, true);
+    renderMenu();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(OPEN_GITHUB_SAVE_EVENT));
+    });
+
+    expect(await screen.findByRole('dialog', { name: /save to github/i })).toBeInTheDocument();
+  });
+
+  it('offers a preview of what is new', async () => {
+    linkAs('behind', 1);
+    renderMenu();
+
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Preview the changes' }));
+
+    expect(openRepoChangePreview).toHaveBeenCalledTimes(1);
   });
 
   it('pulls straight away when behind without local changes', async () => {
