@@ -119,6 +119,17 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
   });
 
+  it('keeps the typed key out of the DOM, where injected CSS could read it', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const field = document.getElementById('llm-key-api-key') as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: 'sk-ant-test-key' } });
+
+    expect(field.value).toBe('sk-ant-test-key');
+    expect(field.hasAttribute('value')).toBe(false);
+    expect(document.querySelector('input[value^="sk-"]')).toBeNull();
+  });
+
   it('shows quality/speed/cost guidance near the model selector (#6)', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     // Helper note that explains the trade-off so users choose well.

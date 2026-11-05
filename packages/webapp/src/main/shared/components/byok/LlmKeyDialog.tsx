@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -879,9 +880,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           {!isFreeProvider && (
           <div className="space-y-1.5">
             <Label htmlFor="llm-key-api-key">API Key</Label>
-            <Input
+            <SecretInput
               id="llm-key-api-key"
-              type="password"
               value={apiKey}
               onChange={(event) => {
                 setApiKey(event.target.value);
