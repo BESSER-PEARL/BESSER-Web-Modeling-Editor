@@ -17,6 +17,9 @@ import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { isGoLiveAvailable } from '../../shared/api/github';
+import { ModelAttributionBanner, ModelAttributionLayer } from '../../features/github/components/ModelAttributionLayer';
+import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
+import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
 import {
@@ -858,6 +861,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return ensureUserModelValidationBeforeNavigation();
   }, [ensureUserModelValidationBeforeNavigation]);
 
+  const previewingRepoChanges = useRepoChangePreviewOpen();
+  useEffect(() => {
+    if (previewingRepoChanges && location.pathname !== '/') navigate('/');
+  }, [previewingRepoChanges, location.pathname, navigate]);
+
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
     if (location.pathname !== '/') {
@@ -1291,9 +1299,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           )}
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {children}
+            {location.pathname === '/' && <ModelAttributionLayer />}
+            {location.pathname === '/' && <RepoChangePreview />}
             {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
             <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
               <ModelProposalBanner />
+              {location.pathname === '/' && <ModelAttributionBanner />}
             </div>
           </div>
 

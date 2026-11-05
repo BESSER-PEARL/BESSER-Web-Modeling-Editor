@@ -1495,6 +1495,43 @@
       "pickModelFile": "Dieses Repository enthält {{number}} Modelle. Wähle das zu verwendende aus:",
       "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
+    "preview": {
+      "addedSeveral": "Hinzugefügt: {{items}}",
+      "changedSeveral": "Geändert: {{items}}",
+      "removedSeveral": "Entfernt: {{items}}",
+      "relationshipsAdded_one": "{{count}} neue Beziehung",
+      "relationshipsAdded_other": "{{count}} neue Beziehungen",
+      "relationshipsRemoved_one": "{{count}} Beziehung entfernt",
+      "relationshipsRemoved_other": "{{count}} Beziehungen entfernt",
+      "notDrawn": "Dieses Diagramm ist hier leer, daher werden die Änderungen aufgelistet, aber nicht gezeichnet.",
+      "title": "Vorschau der Neuerungen auf GitHub",
+      "loading": "Neue Version wird gelesen…",
+      "button": "Vorschau",
+      "menu": "Vorschau der Änderungen",
+      "close": "Vorschau schließen",
+      "hint": "Dein Modell hat sich noch nicht geändert. Andere Diagramme und der Code kommen mit.",
+      "nothing": "Die Klassendiagramme sind gleich. Andere Diagramme oder der Code haben sich vielleicht geändert.",
+      "changed": "{{author}} hat {{items}} geändert",
+      "removedLine": "{{author}} hat {{items}} entfernt",
+      "removed": "Entfernt",
+      "failed": "Die Vorschau konnte nicht geladen werden."
+    },
+    "teammate": {
+      "changedModel": "{{author}} hat das Modell geändert",
+      "pushed": "{{author}} hat nach {{branch}} gepusht",
+      "more_one": "und {{count}} weiterer Commit",
+      "more_other": "und {{count}} weitere Commits",
+      "mergeHint": "Du hast ungespeicherte Änderungen. Beim Speichern werden beide Versionen zusammengeführt.",
+      "saveAndMerge": "Speichern und zusammenführen",
+      "dismiss": "Schließen"
+    },
+    "attribution": {
+      "title": "Neu seit der letzten Synchronisierung",
+      "added": "{{author}} hat {{items}} hinzugefügt",
+      "more": "{{items}} und {{count}} weitere",
+      "clear": "Markierungen entfernen",
+      "addedBy": "Hinzugefügt von {{author}} am {{date}}"
+    },
     "proposal": {
       "accept": "Modell übernehmen",
       "aiSource": "Eine KI-Lesart von {{files}}, keine exakte. Prüfen Sie jede Klasse und übernehmen Sie dann.",
@@ -1554,6 +1591,32 @@
       "description": "BESSER konnte die Datenklassen von {{repo}} nicht direkt lesen. Es kann einen kurzen Auszug des Codes (bis zu etwa 40.000 Zeichen, ohne geheime Dateien und Schlüssel) an das KI-Modell senden, das der BESSER-Server verwendet und das von einem Drittanbieter betrieben werden kann. Ihr Code verlässt dann den Server von BESSER. Ohne Ihre Zustimmung wird nichts gesendet.",
       "accept": "Mit KI lesen",
       "decline": "Nicht jetzt"
+    },
+    "recap": {
+      "recentWork": "Letzte Arbeiten",
+      "stillOpen": "Beim Ende des letzten Laufs noch offen",
+      "newOnGitHub": "Seitdem neu auf GitHub",
+      "more": "und {{hidden}} weitere",
+      "missing": "Nicht im Code: {{text}}",
+      "notChecked": "Nicht geprüft: {{text}}",
+      "leftOut": "Ausgelassen: {{text}}",
+      "continuing": "Weiter mit {{repo}} auf {{branch}}.",
+      "continuingPulled": "Weiter mit {{repo}} auf {{branch}}. Es hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe."
+    },
+    "linkedRun": {
+      "pullInterrupted": "Die GitHub-Version wurde nicht geladen: Das Projekt oder seine GitHub-Verknüpfung hat sich inzwischen geändert. Bitte versuche es noch einmal.",
+      "repoChanged": "Die GitHub-Verknüpfung dieses Projekts hat sich beim Start geändert. Bitte frag noch einmal.",
+      "pulledModel": "{{repo}} hatte ein neueres Modell, das ich zuerst in dieses Projekt übernommen habe.",
+      "unsaved": "{{repo}} hat Commits auf {{branch}}, die dieses Projekt noch nicht übernommen hat, und dein Modell hat Änderungen, die dort nicht gespeichert sind. Führe sie im GitHub-Menü mit **Auf GitHub pushen** zusammen und frag dann noch einmal.",
+      "busy": "BESSER ist gerade mit anderen Läufen beschäftigt. Bitte frage gleich noch einmal.",
+      "badModel": "Das Modell in diesem Repository konnte nicht geladen werden.",
+      "title": "App aus deinem Modell neu erstellen?",
+      "description": "Dieses Projekt ist mit {{repo}} verknüpft, aber BESSER kann den Code nicht lesen: {{reason}}. Behebe das und frage erneut, um mit diesem Code weiterzumachen. Beim Neuerstellen wird von deinem Modell ausgegangen und ignoriert, was auf GitHub liegt.",
+      "rebuild": "Aus dem Modell neu erstellen",
+      "cancel": "Abbrechen",
+      "notConnected": "GitHub ist in diesem Tab nicht verbunden",
+      "notFound": "das Repository wurde nicht gefunden oder dein Konto hat keinen Zugriff darauf",
+      "failed": "GitHub konnte nicht erreicht werden"
     },
     "startFromRepo": {
       "badLink": "Fügen Sie einen Link wie github.com/owner/repo ein.",

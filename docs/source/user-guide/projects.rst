@@ -229,6 +229,7 @@ the state in words, and click it for everything you do with the repository:
 
 - **Save to GitHub…**: commit the model, with an optional message.
 - **Get latest**: appears when GitHub has commits you do not have.
+- **Preview the changes**: appears with it, and shows those commits on the canvas first.
 - **Open a pull request to merge it** / **View the pull request**: appear while
   a save or push waits on its own branch (see `Changes waiting for a pull
   request`_).
@@ -308,6 +309,23 @@ so they always show the same state.
 - **Get latest** loads the repository's model, and its code as the starting
   point of the next Spec-Driven Agent run. It asks first when you have unsaved
   model changes.
+- **Know when a teammate pushed.** While the project is open, a card appears
+  within a minute of someone else's push, or when you come back to the window. It
+  says who pushed and what they wrote, with **Get latest**, or **Save and merge** if
+  you have unsaved edits. Closing it leaves the state in the GitHub menu.
+- **Preview before taking it in.** **Preview**, on the card or in the GitHub menu,
+  draws new and changed classes and new relationships on your canvas in the
+  teammate's colour, and marks removed classes. Your model does not change. **Get
+  latest** then makes them real in the same place; Escape closes the preview. Only
+  class diagrams are drawn: other diagrams and the code come along when you take the
+  change in.
+- **See who added what.** Each save records who added a class or attribute, by
+  their GitHub account. What a teammate added since your last sync is tinted on
+  the canvas in their colour, with their login beside it and a summary at the top,
+  until you choose **Clear marks**. Hover any class or attribute to read who added
+  it and when. The marks are drawn over the canvas: they are not part of the model,
+  and a colour someone chose for a class stays as it is. Classes saved before this
+  existed have no author and are never marked as new.
 
 To bring the repository's app code in line with your model, ask the Spec-Driven
 Agent in the chat; you review the run, then push it.

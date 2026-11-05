@@ -1495,6 +1495,43 @@
       "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
       "keepModelAndLink": "Conserva el meu model i vincula"
     },
+    "preview": {
+      "addedSeveral": "Afegit: {{items}}",
+      "changedSeveral": "Canviat: {{items}}",
+      "removedSeveral": "Eliminat: {{items}}",
+      "relationshipsAdded_one": "{{count}} relació nova",
+      "relationshipsAdded_other": "{{count}} relacions noves",
+      "relationshipsRemoved_one": "{{count}} relació eliminada",
+      "relationshipsRemoved_other": "{{count}} relacions eliminades",
+      "notDrawn": "Aquest diagrama és buit aquí: els canvis es llisten però no es dibuixen.",
+      "title": "Previsualització de les novetats a GitHub",
+      "loading": "Llegint la versió nova…",
+      "button": "Previsualitza",
+      "menu": "Previsualitza els canvis",
+      "close": "Tanca la previsualització",
+      "hint": "El teu model encara no ha canviat. Els altres diagrames i el codi hi vénen inclosos.",
+      "nothing": "Els diagrames de classes són iguals. Potser han canviat altres diagrames o el codi.",
+      "changed": "{{author}} ha canviat {{items}}",
+      "removedLine": "{{author}} ha eliminat {{items}}",
+      "removed": "Eliminat",
+      "failed": "No s'ha pogut carregar la previsualització."
+    },
+    "teammate": {
+      "changedModel": "{{author}} ha canviat el model",
+      "pushed": "{{author}} ha enviat a {{branch}}",
+      "more_one": "i {{count}} commit més",
+      "more_other": "i {{count}} commits més",
+      "mergeHint": "Tens canvis sense desar. En desar es combinen les dues versions.",
+      "saveAndMerge": "Desa i combina",
+      "dismiss": "Tanca"
+    },
+    "attribution": {
+      "title": "Novetats des de l'última sincronització",
+      "added": "{{author}} ha afegit {{items}}",
+      "more": "{{items}} i {{count}} més",
+      "clear": "Esborra les marques",
+      "addedBy": "Afegit per {{author}} el {{date}}"
+    },
     "proposal": {
       "accept": "Accepta el model",
       "aiSource": "Una lectura de {{files}} feta per IA, no exacta. Revisa cada classe i després accepta.",
@@ -1554,6 +1591,32 @@
       "description": "BESSER no ha pogut llegir directament les classes de dades de {{repo}}. Pot enviar un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER, que pot estar gestionat per un proveïdor extern. Llavors el teu codi surt del servidor de BESSER. No s’envia res sense el teu consentiment.",
       "accept": "Llegeix amb IA",
       "decline": "Ara no"
+    },
+    "recap": {
+      "recentWork": "Feina recent",
+      "stillOpen": "Encara pendent en acabar l'última execució",
+      "newOnGitHub": "Novetats a GitHub des de llavors",
+      "more": "i {{hidden}} més",
+      "missing": "No és al codi: {{text}}",
+      "notChecked": "Sense comprovar: {{text}}",
+      "leftOut": "Omès: {{text}}",
+      "continuing": "Continuant des de {{repo}} a {{branch}}.",
+      "continuingPulled": "Continuant des de {{repo}} a {{branch}}. Tenia un model més recent, així que primer l'he incorporat a aquest projecte."
+    },
+    "linkedRun": {
+      "pullInterrupted": "No s'ha carregat la versió de GitHub: el projecte o el seu enllaç de GitHub ha canviat mentrestant. Torna-ho a provar.",
+      "repoChanged": "L'enllaç de GitHub d'aquest projecte ha canviat mentre s'iniciava. Torna-ho a demanar.",
+      "pulledModel": "{{repo}} tenia un model més recent, així que primer l'he incorporat a aquest projecte.",
+      "unsaved": "{{repo}} té commits a {{branch}} que aquest projecte no ha incorporat, i el teu model té canvis que no hi estan desats. Combina'ls amb **Puja a GitHub** al menú de GitHub i torna-ho a demanar.",
+      "busy": "BESSER està ocupat amb altres execucions. Torna-ho a demanar d’aquí a un moment.",
+      "badModel": "No s’ha pogut carregar el model d’aquest repositori.",
+      "title": "Vols reconstruir l’aplicació a partir del teu model?",
+      "description": "Aquest projecte està vinculat a {{repo}}, però BESSER no pot llegir-ne el codi: {{reason}}. Soluciona-ho i torna-ho a demanar per continuar des d’aquest codi. La reconstrucció parteix del teu model i ignora el que hi ha a GitHub.",
+      "rebuild": "Reconstrueix des del model",
+      "cancel": "Cancel·la",
+      "notConnected": "GitHub no està connectat en aquesta pestanya",
+      "notFound": "no s’ha trobat el repositori o el teu compte no hi té accés",
+      "failed": "no s’ha pogut contactar amb GitHub"
     },
     "startFromRepo": {
       "badLink": "Enganxa un enllaç com github.com/owner/repo.",

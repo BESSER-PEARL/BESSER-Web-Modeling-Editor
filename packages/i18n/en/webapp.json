@@ -1504,6 +1504,43 @@
       "useClassic": "Use the classic deploy",
       "prepare": "Prepare {{repo}}"
     },
+    "preview": {
+      "addedSeveral": "Added: {{items}}",
+      "changedSeveral": "Changed: {{items}}",
+      "removedSeveral": "Removed: {{items}}",
+      "relationshipsAdded_one": "{{count}} new relationship",
+      "relationshipsAdded_other": "{{count}} new relationships",
+      "relationshipsRemoved_one": "{{count}} relationship removed",
+      "relationshipsRemoved_other": "{{count}} relationships removed",
+      "notDrawn": "This diagram is empty here, so the changes are listed but not drawn.",
+      "title": "Preview of what's new on GitHub",
+      "loading": "Reading the new version…",
+      "button": "Preview",
+      "menu": "Preview the changes",
+      "close": "Close the preview",
+      "hint": "Your model has not changed yet. Other diagrams and the code come along with it.",
+      "nothing": "The class diagrams are the same. Other diagrams or the code may have changed.",
+      "changed": "{{author}} changed {{items}}",
+      "removedLine": "{{author}} removed {{items}}",
+      "removed": "Removed",
+      "failed": "Could not load the preview."
+    },
+    "teammate": {
+      "changedModel": "{{author}} changed the model",
+      "pushed": "{{author}} pushed to {{branch}}",
+      "more_one": "and {{count}} more commit",
+      "more_other": "and {{count}} more commits",
+      "mergeHint": "You have unsaved edits. Saving merges both versions.",
+      "saveAndMerge": "Save and merge",
+      "dismiss": "Dismiss"
+    },
+    "attribution": {
+      "title": "New since your last sync",
+      "added": "{{author}} added {{items}}",
+      "more": "{{items}} and {{count}} more",
+      "clear": "Clear marks",
+      "addedBy": "Added by {{author}} on {{date}}"
+    },
     "proposal": {
       "label": "Proposed model",
       "title": "Proposed from {{repo}}: {{count}} classes",
@@ -1554,6 +1591,32 @@
       "description": "BESSER could not read the data classes of {{repo}} directly. It can send a short excerpt of the code (up to about 40,000 characters, with secret files and keys removed) to the AI model the BESSER server uses, which may be run by a third-party provider. Your code then leaves BESSER's server. Nothing is sent unless you agree.",
       "accept": "Read with AI",
       "decline": "Not now"
+    },
+    "recap": {
+      "recentWork": "Recent work",
+      "stillOpen": "Still open when the last run ended",
+      "newOnGitHub": "New on GitHub since then",
+      "more": "and {{hidden}} more",
+      "missing": "Not in the code: {{text}}",
+      "notChecked": "Not checked: {{text}}",
+      "leftOut": "Left out: {{text}}",
+      "continuing": "Continuing from {{repo}} on {{branch}}.",
+      "continuingPulled": "Continuing from {{repo}} on {{branch}}. It had a newer model, so I brought it into this project first."
+    },
+    "linkedRun": {
+      "pullInterrupted": "The GitHub version was not loaded: the project or its GitHub link changed meanwhile. Please try again.",
+      "repoChanged": "This project's GitHub link changed while this was starting. Please ask again.",
+      "pulledModel": "{{repo}} had a newer model, so I brought it into this project first.",
+      "unsaved": "{{repo}} has commits on {{branch}} this project has not brought in, and your model has changes not saved there. Use **Save to GitHub** in the GitHub menu to merge them, then ask again.",
+      "busy": "BESSER is busy with other runs right now. Please ask again in a moment.",
+      "badModel": "The model in this repository could not be loaded.",
+      "title": "Rebuild the app from your model?",
+      "description": "This project is linked to {{repo}}, but BESSER cannot read its code: {{reason}}. Fix that and ask again to continue from that code. Rebuilding starts from your model and ignores what is on GitHub.",
+      "rebuild": "Rebuild from the model",
+      "cancel": "Cancel",
+      "notConnected": "GitHub is not connected in this tab",
+      "notFound": "the repository was not found, or your account has no access to it",
+      "failed": "GitHub could not be reached"
     },
     "startFromRepo": {
       "failed": "Could not open this repository.",

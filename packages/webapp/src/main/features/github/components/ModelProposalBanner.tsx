@@ -14,6 +14,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { setProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { createEmptyDiagram } from '../../../shared/types/project';
+import { useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
 import { useRepoSync } from '../hooks/useRepoSync';
 
 export const ModelProposalBanner: React.FC<{ className?: string }> = ({ className }) => {
@@ -21,7 +22,8 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
   const { currentProject, loadProject } = useProject();
   const { link } = useRepoSync({ checkRemote: false });
   const proposal = link?.modelProposal;
-  if (!link || !proposal || !currentProject) return null;
+  const previewing = useRepoChangePreviewOpen();
+  if (!link || !proposal || !currentProject || previewing) return null;
 
   const settle = () => {
     const { modelProposal: _done, ...rest } = link;

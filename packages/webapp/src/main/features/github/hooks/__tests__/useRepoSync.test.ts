@@ -7,6 +7,7 @@ import {
   setProjectGitHubLink,
 } from '../../../../shared/services/storage/projectGitHubLink';
 import type { SyncStatus } from '../../../../shared/api/github';
+import { setProjectAttribution } from '../../../../app/store/workspaceSlice';
 import { useRepoSync } from '../useRepoSync';
 
 const BASE = 'a'.repeat(40);
@@ -19,6 +20,7 @@ const stable = vi.hoisted(() => ({
   project: { currentProject: null as unknown, loadProject: vi.fn(async () => {}) },
   dispatch: vi.fn(),
 }));
+const stored = vi.hoisted(() => [] as unknown[]);
 const api = vi.hoisted(() => ({
   getSyncStatus: vi.fn(),
   saveModel: vi.fn(),
@@ -30,7 +32,11 @@ vi.mock('../../../../shared/hooks/useGitHubAuth', () => ({ useGitHubAuth: () => 
 vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => stable.project }));
 vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => stable.dispatch }));
 vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
-  ProjectStorageRepository: { loadProject: () => project },
+  ProjectStorageRepository: {
+    loadProject: () => project,
+    saveProject: (saved: unknown) => stored.push(saved),
+    withoutNotify: (write: () => void) => write(),
+  },
 }));
 vi.mock('../../../../shared/utils/projectExportUtils', () => ({ buildProjectExportEnvelope: () => ({}) }));
 const pullRepoIntoProject = vi.hoisted(() => vi.fn());
@@ -39,7 +45,7 @@ vi.mock('../../../../shared/services/github/pullRepoIntoProject', () => ({ pullR
 const status = (commitsSince = 0, pending: SyncStatus['pending'] = null): SyncStatus => ({
   head_sha: 'f'.repeat(40),
   commits_since: Array.from({ length: commitsSince }, (_, i) => ({
-    sha: String(i).repeat(40), message: 'theirs', author: 'ben', date: '', html_url: '', origin: null,
+    sha: String(i).repeat(40), message: 'theirs', author: 'ben', author_login: 'ben', is_merge: false, date: '', html_url: '', origin: null,
   })),
   in_sync: commitsSince === 0,
   pending,
@@ -160,6 +166,38 @@ describe('useRepoSync', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('credits what this save added, without waiting for a pull', async () => {
+    const attribution = { c1: { addedBy: 'me', addedAt: '2026-11-04T12:00:00Z' } };
+    stored.length = 0;
+    api.getSyncStatus.mockResolvedValue(status());
+    api.saveModel.mockResolvedValue({
+      success: true, commit_sha: SAVED, message: '', status: 'pushed', conflict_branch: null, attribution,
+    });
+    const { result } = renderHook(() => useRepoSync());
+
+    await act(async () => {
+      await result.current.save('Add Book');
+    });
+
+    expect(stored).toEqual([expect.objectContaining({ id: 'p1', attribution })]);
+    expect(stable.dispatch).toHaveBeenCalledWith(setProjectAttribution({ projectId: 'p1', attribution }));
+  });
+
+  it('leaves the project alone when the save credited nothing', async () => {
+    stored.length = 0;
+    api.getSyncStatus.mockResolvedValue(status());
+    api.saveModel.mockResolvedValue({
+      success: true, commit_sha: SAVED, message: '', status: 'pushed', conflict_branch: null, attribution: {},
+    });
+    const { result } = renderHook(() => useRepoSync());
+
+    await act(async () => {
+      await result.current.save('Rename');
+    });
+
+    expect(stored).toEqual([]);
   });
 
   it("sends the old sidebar's model file on the first save, and forgets it once saved", async () => {

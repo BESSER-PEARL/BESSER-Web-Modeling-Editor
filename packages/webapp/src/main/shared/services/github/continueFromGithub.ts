@@ -35,7 +35,7 @@ import { emitDeliveryEvent } from '../telemetry/pilotTelemetry';
 import { requestAutoLayoutOnNextSetup } from '../../utils/autoLayoutSignal';
 import { PROJECT_EXPORT_VERSION } from '../../utils/projectExportUtils';
 import { escapeMarkdownText, markdownCode } from '../../utils/markdownText';
-import { importRepoAsRun, type ImportedRun, type RepoAnalysis } from '../../api/github';
+import { importRepoAsRun, type ImportedRun, type RepoAnalysis, type RepoRecap } from '../../api/github';
 import { pullRepoIntoProject } from './pullRepoIntoProject';
 import { writeProjectLastRun } from '../storage/specDrivenRunRecords';
 import { errorProperties, track } from '../analytics/events';
@@ -60,6 +60,8 @@ export interface ContinueFromGithubResult {
   reused?: boolean;
   /** That project had unsaved model changes and the user kept them instead of pulling. */
   keptLocalChanges?: boolean;
+  /** Where the repo's app stands, when a Spec-Driven run was pushed to it. */
+  recap?: RepoRecap | null;
   error?: string;
 }
 
@@ -149,7 +151,12 @@ async function continueInLinkedProject(
     if (!replace) return { ...opened, branch: link.branch, keptLocalChanges: true };
   }
   const imported = await pullRepoIntoProject(args.githubSession, { ...link, branch: args.branch ?? link.branch }, project.id);
-  return { ...opened, runId: imported.run_id, branch: imported.branch };
+  return {
+    ...opened,
+    ...(imported.has_code !== false ? { runId: imported.run_id } : {}),
+    branch: imported.branch,
+    recap: imported.recap,
+  };
 }
 
 export async function continueFromGithubRepo(args: {
@@ -184,7 +191,13 @@ export async function continueFromGithubRepo(args: {
     const file = new File([JSON.stringify(envelope)], 'diagrams.json', { type: 'application/json' });
     const imported = await importProjectFromJson(file);
 
-    const link = { owner: response.owner, repo: response.repo, branch: response.branch };
+    const link = {
+      owner: response.owner,
+      repo: response.repo,
+      branch: response.branch,
+      hasCode: response.has_code,
+      recap: response.recap ?? undefined,
+    };
     if (isBesserRepo) {
       // Linked at the imported commit, so a later push updates the SAME repo
       // and merges any commits made after this one. An older editor's model
@@ -229,6 +242,7 @@ export async function continueFromGithubRepo(args: {
       owner: response.owner,
       repo: response.repo,
       branch: response.branch,
+      recap: response.recap,
       ...(isBesserRepo ? {} : {
         analysis: response.analysis ?? undefined,
         proposedModel: !!response.proposed_diagram,
@@ -267,6 +281,88 @@ export async function continueFromGithubRepo(args: {
   }
 }
 
+const RECAP_LINES_SHOWN = 3;
+
+const andMore = (hidden: number): string =>
+  `- ${i18n.t('github.recap.more', { defaultValue: 'and {{hidden}} more', hidden })}`;
+
+function openItemLine(item: RepoRecap['open_items'][number]): string {
+  const text = escapeMarkdownText(item.text);
+  switch (item.kind) {
+    case 'missing':
+      return i18n.t('github.recap.missing', { defaultValue: 'Not in the code: {{text}}', text });
+    case 'not_checked':
+      return i18n.t('github.recap.notChecked', { defaultValue: 'Not checked: {{text}}', text });
+    case 'left_out':
+      return i18n.t('github.recap.leftOut', { defaultValue: 'Left out: {{text}}', text });
+    default:
+      return text;
+  }
+}
+
+/**
+ * Where a repo's app stands, in the chat's markdown: empty without a recap. All
+ * of it is text from the repository, so all of it is escaped.
+ */
+export function describeRepoRecap(recap: RepoRecap | null | undefined): string {
+  if (!recap) return '';
+  const sections: string[] = [];
+  const runs = recap.runs.filter((run) => run.request).slice(-RECAP_LINES_SHOWN).reverse();
+  if (runs.length) {
+    sections.push([
+      `**${i18n.t('github.recap.recentWork', { defaultValue: 'Recent work' })}**`,
+      ...runs.map((run) => `- ${run.date ? `${escapeMarkdownText(run.date)}: ` : ''}${markdownCode(run.request)}`),
+    ].join('\n'));
+  }
+  if (recap.open_items.length) {
+    const hidden = recap.open_item_count - Math.min(recap.open_items.length, RECAP_LINES_SHOWN);
+    sections.push([
+      `**${i18n.t('github.recap.stillOpen', { defaultValue: 'Still open when the last run ended' })}**`,
+      ...recap.open_items.slice(0, RECAP_LINES_SHOWN).map((item) => `- ${openItemLine(item)}`),
+      ...(hidden > 0 ? [andMore(hidden)] : []),
+    ].join('\n'));
+  }
+  if (recap.commits_since_run.length) {
+    const shown = recap.commits_since_run.slice(-RECAP_LINES_SHOWN);
+    const hidden = recap.commit_count - shown.length;
+    sections.push([
+      `**${i18n.t('github.recap.newOnGitHub', { defaultValue: 'New on GitHub since then' })}**`,
+      ...shown.map((commit) => `- ${markdownCode(commit.sha)} ${escapeMarkdownText(commit.message)} (${escapeMarkdownText(commit.author)})`),
+      ...(hidden > 0 ? [andMore(hidden)] : []),
+    ].join('\n'));
+  }
+  return sections.join('\n\n');
+}
+
+/** What the modeling agent is told about the project's repo with every message. */
+export function githubRepoContext(projectId: string | undefined) {
+  const link = projectId ? getProjectGitHubLink(projectId) : null;
+  if (!link) return undefined;
+  // Unknown is not an app: the agent would promise to update one. A run still finds out, and says so in the chat.
+  return { fullName: `${link.owner}/${link.repo}`, hasCode: link.hasCode === true, recap: describeRepoRecap(link.recap) };
+}
+
+const withRecap = (text: string, recap: RepoRecap | null | undefined): string => {
+  const described = describeRepoRecap(recap);
+  return described ? `${text}\n\n${described}` : text;
+};
+
+/** What the assistant says when a run continues from the linked repo instead of an expired one. */
+export function describeContinuedRepo(link: ProjectGitHubLink, imported: ImportedRun, pulled: boolean): string {
+  const repo = `**${escapeMarkdownText(`${link.owner}/${link.repo}`)}**`;
+  const branch = markdownCode(imported.branch);
+  return withRecap(
+    pulled
+      ? i18n.t('github.recap.continuingPulled', {
+        defaultValue: 'Continuing from {{repo}} on {{branch}}. It had a newer model, so I brought it into this project first.',
+        repo,
+        branch,
+      })
+      : i18n.t('github.recap.continuing', { defaultValue: 'Continuing from {{repo}} on {{branch}}.', repo, branch }),
+    imported.recap,
+  );
+}
+
 /**
  * What the assistant says after a repo opened, in the chat's markdown. Every
  * value read from the repo (names, files, classes) or sent by the server is
@@ -278,13 +374,17 @@ export function describeOpenedRepo(result: ContinueFromGithubResult): string {
     return result.keptLocalChanges
       ? `Opened your project linked to ${repo}, with your unsaved changes. ` +
           'Use **Get latest** in the GitHub menu when you want the version on GitHub.'
-      : `Opened your project linked to ${repo}, updated to the latest commit on ${markdownCode(result.branch ?? '')}. ` +
-          'Ask for any change and save it back to GitHub when you are happy.';
+      : withRecap(
+          `Opened your project linked to ${repo}, updated to the latest commit on ${markdownCode(result.branch ?? '')}. ` +
+            'Ask for any change and save it back to GitHub when you are happy.',
+          result.recap,
+        );
   }
   if (!result.analysis) {
-    return (
+    return withRecap(
       `Opened ${repo}. Its model is on the canvas, and I will work on top of its code. ` +
-      'Ask for any change, for example *"add a search bar"*, and save it back to GitHub when you are happy.'
+        'Ask for any change, for example *"add a search bar"*, and save it back to GitHub when you are happy.',
+      result.recap,
     );
   }
   const { stack, model_source: source, source_files: files, entities } = result.analysis;

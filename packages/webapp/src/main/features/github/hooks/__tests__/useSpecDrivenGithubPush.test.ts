@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../../shared/api/api-client';
 import {
   getProjectGitHubLink,
+  modelContentFingerprint,
   modelFingerprint,
   setProjectGitHubLink,
 } from '../../../../shared/services/storage/projectGitHubLink';
@@ -131,6 +132,75 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
     expect(storeRepoModelAsProject).not.toHaveBeenCalled();
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe('c'.repeat(40));
     expect(getProjectGitHubLink('p1')?.syncedModel).toBeTruthy();
+  });
+
+  // Review 2026-11-04: the editor rewrites a pulled model into its own format, so the run's seed
+  // no longer matches though nobody edited anything.
+  describe('when the seed no longer matches the canvas', () => {
+    const BASE = 'a'.repeat(40);
+    const seedBefore = (base = BASE, content = modelContentFingerprint(project)) =>
+      recordRunSeedModel(RUN_ID, 'before the editor rewrote it', { baseCommitSha: base, content });
+    const linkAt = (overrides: Record<string, unknown>) =>
+      setProjectGitHubLink('p1', { owner: 'me', repo: 'library', branch: 'main', baseCommitSha: BASE, ...overrides });
+
+    beforeEach(() => post.mockResolvedValue(response({ name: 'Library with User' })));
+
+    it('does not ask when only the editor rewrote the model', async () => {
+      seedBefore();
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).not.toHaveBeenCalled();
+      expect(storeRepoModelAsProject).toHaveBeenCalled();
+    });
+
+    it('asks about an edit saved to GitHub during the run', async () => {
+      seedBefore('0'.repeat(40));
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+      expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    });
+
+    it('asks while the model has not settled', async () => {
+      seedBefore();
+      linkAt({ baselinePending: true });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks about an edit the settling took for the rewrite', async () => {
+      seedBefore(BASE, 'the content before the edit');
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+      expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    });
+
+    it('asks when the run recorded nothing to compare with', async () => {
+      recordRunSeedModel(RUN_ID, 'before the editor rewrote it');
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('remembers what the push left in the repo, for the chat and the agent', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    post.mockResolvedValue({ ...response(null), recap });
+
+    await push();
+
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
   });
 
   it('keeps canvas edits made after the run started when the user keeps their model', async () => {
