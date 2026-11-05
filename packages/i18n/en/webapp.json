@@ -18,6 +18,10 @@
     "unread_other": "What's new ({{count}} new)",
     "new": "New",
     "entries": {
+      "repoTogether": {
+        "title": "Work on a repository together",
+        "body": "A project linked to GitHub now continues from its code, even after the last run has expired. When someone else pushes, a card says who and what, and you can preview their classes on the canvas before taking them in."
+      },
       "keepEdits": {
         "title": "Your edits survive a model change",
         "body": "Change the class model of an app the Spec-Driven Agent built: it regenerates the files nobody edited and merges your edits into the others, so far fewer changes need the AI."

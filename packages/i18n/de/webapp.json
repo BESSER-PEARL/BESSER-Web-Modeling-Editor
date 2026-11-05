@@ -18,6 +18,10 @@
     "unread_other": "Neuigkeiten ({{count}} neu)",
     "new": "Neu",
     "entries": {
+      "repoTogether": {
+        "title": "Gemeinsam an einem Repository arbeiten",
+        "body": "Ein mit GitHub verknüpftes Projekt macht jetzt bei seinem Code weiter, auch wenn der letzte Lauf abgelaufen ist. Wenn jemand anderes pusht, zeigt eine Karte wer und was, und du kannst dir die neuen Klassen auf der Arbeitsfläche ansehen, bevor du sie übernimmst."
+      },
       "keepEdits": {
         "title": "Deine Änderungen überstehen eine Modelländerung",
         "body": "Ändere das Klassenmodell einer App, die der Spec-Driven Agent gebaut hat: Er erzeugt die Dateien, die niemand bearbeitet hat, neu und führt deine Änderungen in die übrigen zusammen, sodass deutlich weniger Änderungen die KI brauchen."
