@@ -13,7 +13,7 @@ export interface TeammateChange {
   moreCommits: number;
 }
 
-export type TeammateChangeAction = 'getLatest' | 'save' | 'history';
+export type TeammateChangeAction = 'getLatest' | 'save' | 'preview';
 
 interface TeammateChangeNoticeProps {
   change: TeammateChange;
@@ -89,8 +89,8 @@ export const TeammateChangeNotice: React.FC<TeammateChangeNoticeProps> = ({
               ? t('github.teammate.saveAndMerge', { defaultValue: 'Save and merge' })
               : t('github.menu.getLatest', { defaultValue: 'Get latest' })}
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={() => act('history')}>
-            {t('github.teammate.whatChanged', { defaultValue: 'What changed' })}
+          <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={() => act('preview')}>
+            {t('github.preview.button', { defaultValue: 'Preview' })}
           </Button>
         </div>
       </div>

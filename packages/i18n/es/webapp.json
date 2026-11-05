@@ -1495,6 +1495,19 @@
       "pickModelFile": "Este repositorio contiene {{number}} modelos. Elige el que quieras usar:",
       "keepModelAndLink": "Conservar mi modelo y vincular"
     },
+    "preview": {
+      "title": "Vista previa de lo nuevo en GitHub",
+      "loading": "Leyendo la nueva versión…",
+      "button": "Vista previa",
+      "menu": "Vista previa de los cambios",
+      "close": "Cerrar la vista previa",
+      "hint": "Tu modelo no ha cambiado. Al traer estos cambios también llegan los demás diagramas y el código.",
+      "nothing": "Los diagramas de clases son iguales. Puede que hayan cambiado otros diagramas o el código.",
+      "changed": "{{author}} ha cambiado {{items}}",
+      "removedLine": "{{author}} ha eliminado {{items}}",
+      "removed": "Eliminado",
+      "failed": "No se ha podido cargar la vista previa."
+    },
     "teammate": {
       "changedModel": "{{author}} ha cambiado el modelo",
       "pushed": "{{author}} ha enviado a {{branch}}",
@@ -1502,7 +1515,6 @@
       "more_other": "y {{count}} commits más",
       "mergeHint": "Tienes cambios sin guardar. Al guardar se combinan ambas versiones.",
       "saveAndMerge": "Guardar y combinar",
-      "whatChanged": "Qué ha cambiado",
       "dismiss": "Cerrar"
     },
     "attribution": {

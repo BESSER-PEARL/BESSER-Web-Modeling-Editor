@@ -405,23 +405,22 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
  * Agent credentials the repo holds as `[REDACTED]` keep their local values.
  */
 export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
-  let base: BesserProject;
-  let personalization: ImportedPersonalization | undefined;
-  if (isOldWebappFormat(data)) {
-    base = migrateOldWebappProject(data);
-  } else if (validateV2ExportData(data)) {
-    base = data.project;
-    personalization = extractPersonalization(data);
-  } else if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
-    base = data as BesserProject;
-  } else {
-    throw new Error('This file is not a BESSER model.');
-  }
+  const { project: base, personalization } = readRepoModel(data);
   const filled = fillMissingDiagrams({ ...base, id: projectId });
   const local = ProjectStorageRepository.loadProject(projectId);
   const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
   storeImportedProject(project, personalization);
   return project;
+}
+
+/** The project in a repository's model file, in whichever format an editor saved it. */
+export function readRepoModel(data: unknown): { project: BesserProject; personalization?: ImportedPersonalization } {
+  if (isOldWebappFormat(data)) return { project: migrateOldWebappProject(data) };
+  if (validateV2ExportData(data)) return { project: data.project, personalization: extractPersonalization(data) };
+  if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    return { project: data as BesserProject };
+  }
+  throw new Error('This file is not a BESSER model.');
 }
 
 /** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */

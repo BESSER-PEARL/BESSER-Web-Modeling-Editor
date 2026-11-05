@@ -1495,6 +1495,19 @@
       "pickModelFile": "Dieses Repository enthält {{number}} Modelle. Wähle das zu verwendende aus:",
       "keepModelAndLink": "Mein Modell behalten und verknüpfen"
     },
+    "preview": {
+      "title": "Vorschau der Neuerungen auf GitHub",
+      "loading": "Neue Version wird gelesen…",
+      "button": "Vorschau",
+      "menu": "Vorschau der Änderungen",
+      "close": "Vorschau schließen",
+      "hint": "Dein Modell hat sich nicht geändert. Beim Übernehmen kommen auch andere Diagramme und der Code mit.",
+      "nothing": "Die Klassendiagramme sind gleich. Andere Diagramme oder der Code haben sich vielleicht geändert.",
+      "changed": "{{author}} hat {{items}} geändert",
+      "removedLine": "{{author}} hat {{items}} entfernt",
+      "removed": "Entfernt",
+      "failed": "Die Vorschau konnte nicht geladen werden."
+    },
     "teammate": {
       "changedModel": "{{author}} hat das Modell geändert",
       "pushed": "{{author}} hat nach {{branch}} gepusht",
@@ -1502,7 +1515,6 @@
       "more_other": "und {{count}} weitere Commits",
       "mergeHint": "Du hast ungespeicherte Änderungen. Beim Speichern werden beide Versionen zusammengeführt.",
       "saveAndMerge": "Speichern und zusammenführen",
-      "whatChanged": "Was sich geändert hat",
       "dismiss": "Schließen"
     },
     "attribution": {

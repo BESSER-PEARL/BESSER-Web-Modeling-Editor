@@ -1495,6 +1495,19 @@
       "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
       "keepModelAndLink": "Conserva el meu model i vincula"
     },
+    "preview": {
+      "title": "Previsualització de les novetats a GitHub",
+      "loading": "Llegint la versió nova…",
+      "button": "Previsualitza",
+      "menu": "Previsualitza els canvis",
+      "close": "Tanca la previsualització",
+      "hint": "El teu model no ha canviat. En portar aquests canvis també arriben els altres diagrames i el codi.",
+      "nothing": "Els diagrames de classes són iguals. Potser han canviat altres diagrames o el codi.",
+      "changed": "{{author}} ha canviat {{items}}",
+      "removedLine": "{{author}} ha eliminat {{items}}",
+      "removed": "Eliminat",
+      "failed": "No s'ha pogut carregar la previsualització."
+    },
     "teammate": {
       "changedModel": "{{author}} ha canviat el model",
       "pushed": "{{author}} ha enviat a {{branch}}",
@@ -1502,7 +1515,6 @@
       "more_other": "i {{count}} commits més",
       "mergeHint": "Tens canvis sense desar. En desar es combinen les dues versions.",
       "saveAndMerge": "Desa i combina",
-      "whatChanged": "Què ha canviat",
       "dismiss": "Tanca"
     },
     "attribution": {

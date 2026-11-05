@@ -10,6 +10,8 @@ export interface ClassModelElement {
   name: string;
   /** The class a member belongs to; absent on a class. */
   ownerId?: string;
+  /** A member's type, when the editor keeps it apart from the name. */
+  type?: string;
 }
 
 const APOLLON_CLASS_TYPES = new Set(['Class', 'AbstractClass', 'Interface', 'Enumeration']);
@@ -42,22 +44,23 @@ export const elementRecords = (project: BesserProject | null | undefined): Map<s
 /** The classes and members of a project's class diagrams, by id. */
 export function classModelElements(project: BesserProject): Map<string, ClassModelElement> {
   const found = new Map<string, ClassModelElement>();
-  const add = (id: unknown, name: unknown, ownerId?: string) => {
-    if (typeof id === 'string') found.set(id, { id, name: typeof name === 'string' ? name : '', ownerId });
+  const add = (id: unknown, name: unknown, ownerId?: string, type?: unknown) => {
+    if (typeof id !== 'string') return;
+    found.set(id, { id, name: typeof name === 'string' ? name : '', ownerId, ...(typeof type === 'string' ? { type } : {}) });
   };
   for (const diagram of project.diagrams?.ClassDiagram ?? []) {
     const model = diagram?.model as unknown as Loose | null | undefined;
     const elements = (model?.elements ?? {}) as Record<string, Loose>;
     for (const [id, element] of Object.entries(elements)) {
       if (APOLLON_CLASS_TYPES.has(element?.type as string)) add(id, element.name);
-      if (APOLLON_MEMBER_TYPES.has(element?.type as string)) add(id, element.name, element.owner as string);
+      if (APOLLON_MEMBER_TYPES.has(element?.type as string)) add(id, element.name, element.owner as string, element.attributeType);
     }
     const nodes = Array.isArray(model?.nodes) ? model.nodes.filter(isObject) : [];
     for (const node of nodes) {
       if (node.type !== 'class') continue;
       const data = isObject(node.data) ? node.data : {};
       add(node.id, data.name);
-      for (const row of memberRows(data)) add(row.id, row.name, node.id as string);
+      for (const row of memberRows(data)) add(row.id, row.name, node.id as string, row.attributeType);
     }
   }
   return found;

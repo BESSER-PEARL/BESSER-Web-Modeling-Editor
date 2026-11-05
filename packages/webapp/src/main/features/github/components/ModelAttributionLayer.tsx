@@ -21,12 +21,13 @@ import {
   type ClassModelElement,
 } from '../../../shared/services/github/modelAttribution';
 import type { ElementAttribution } from '../../../shared/types/project';
+import { useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
 import { useRepoSync } from '../hooks/useRepoSync';
 
 // All readable under white text, in both themes.
 const AUTHOR_COLORS = ['#0f766e', '#b45309', '#7c3aed', '#be123c', '#1d4ed8', '#15803d'];
 // Names one author's line lists before "and N more".
-const MAX_LISTED_NAMES = 4;
+export const MAX_LISTED_NAMES = 4;
 
 /** The same login always gets the same colour. */
 export function authorColor(login: string): string {
@@ -59,7 +60,7 @@ function screenRect(node: Element): Pick<DOMRect, 'left' | 'top' | 'width' | 'he
 }
 
 /** Where the elements `ids` are, relative to `layer`, following every pan, zoom and move. */
-function useElementBoxes(ids: string[], layer: React.RefObject<HTMLDivElement | null>): Record<string, Box> {
+export function useElementBoxes(ids: string[], layer: React.RefObject<HTMLDivElement | null>): Record<string, Box> {
   const [boxes, setBoxes] = useState<Record<string, Box>>({});
   const key = ids.join('|');
   useEffect(() => {
@@ -140,7 +141,7 @@ function useAttributionMarks() {
   return { projectId: currentProject?.id, link, records, elements, drawn };
 }
 
-const Chip: React.FC<{ login: string; style: React.CSSProperties }> = ({ login, style }) => (
+export const Chip: React.FC<{ login: string; style: React.CSSProperties }> = ({ login, style }) => (
   <span
     className="absolute whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium leading-4 text-white shadow-elevation-1"
     style={{ backgroundColor: authorColor(login), ...style }}
@@ -212,6 +213,7 @@ export const ModelAttributionLayer: React.FC = () => {
 export const ModelAttributionBanner: React.FC = () => {
   const { t } = useTranslation();
   const { projectId, link, records, elements, drawn } = useAttributionMarks();
+  const previewing = useRepoChangePreviewOpen();
 
   const byAuthor = new Map<string, string[]>();
   for (const id of drawn) {
@@ -219,7 +221,7 @@ export const ModelAttributionBanner: React.FC = () => {
     const element = elements.get(id);
     if (element) byAuthor.set(author, [...(byAuthor.get(author) ?? []), elementLabel(element, elements)]);
   }
-  if (!projectId || !link || byAuthor.size === 0 || link.modelProposal) return null;
+  if (!projectId || !link || byAuthor.size === 0 || link.modelProposal || previewing) return null;
 
   const clear = () => {
     const { newFromRepo: _cleared, ...rest } = link;

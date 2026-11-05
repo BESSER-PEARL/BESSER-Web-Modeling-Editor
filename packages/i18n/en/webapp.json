@@ -1504,6 +1504,19 @@
       "useClassic": "Use the classic deploy",
       "prepare": "Prepare {{repo}}"
     },
+    "preview": {
+      "title": "Preview of what's new on GitHub",
+      "loading": "Reading the new version…",
+      "button": "Preview",
+      "menu": "Preview the changes",
+      "close": "Close the preview",
+      "hint": "Your model has not changed. Taking this in also brings any other diagrams and code.",
+      "nothing": "The class diagrams are the same. Other diagrams or the code may have changed.",
+      "changed": "{{author}} changed {{items}}",
+      "removedLine": "{{author}} removed {{items}}",
+      "removed": "Removed",
+      "failed": "Could not load the preview."
+    },
     "teammate": {
       "changedModel": "{{author}} changed the model",
       "pushed": "{{author}} pushed to {{branch}}",
@@ -1511,7 +1524,6 @@
       "more_other": "and {{count}} more commits",
       "mergeHint": "You have unsaved edits. Saving merges both versions.",
       "saveAndMerge": "Save and merge",
-      "whatChanged": "What changed",
       "dismiss": "Dismiss"
     },
     "attribution": {

@@ -221,6 +221,7 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
 
 /** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
 export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';
+export const OPEN_GITHUB_SAVE_EVENT = 'wme:open-github-save';
 
 // Raw `fetch` stays where apiClient cannot send the same request: it adds
 // `Content-Type: application/json` to every call and rejects a non-2xx answer,

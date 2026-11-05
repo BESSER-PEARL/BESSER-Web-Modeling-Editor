@@ -1495,6 +1495,19 @@
       "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
     },
+    "preview": {
+      "title": "Virschau vun den Neiegkeeten op GitHub",
+      "loading": "Nei Versioun gëtt gelies…",
+      "button": "Virschau",
+      "menu": "Virschau vun den Ännerungen",
+      "close": "Virschau zoumaachen",
+      "hint": "Äre Modell huet sech net geännert. Beim Iwwerhuele komme och aner Diagrammer an de Code mat.",
+      "nothing": "D'Klassendiagrammer sinn d'selwecht. Aner Diagrammer oder de Code hu sech vläicht geännert.",
+      "changed": "{{author}} huet {{items}} geännert",
+      "removedLine": "{{author}} huet {{items}} ewechgeholl",
+      "removed": "Ewechgeholl",
+      "failed": "D'Virschau konnt net geluede ginn."
+    },
     "teammate": {
       "changedModel": "{{author}} huet de Modell geännert",
       "pushed": "{{author}} huet op {{branch}} gepusht",
@@ -1502,7 +1515,6 @@
       "more_other": "an {{count}} weider Commits",
       "mergeHint": "Dir hutt net gespäichert Ännerungen. Beim Späicheren ginn déi zwou Versioune fusionéiert.",
       "saveAndMerge": "Späicheren a fusionéieren",
-      "whatChanged": "Wat geännert huet",
       "dismiss": "Zoumaachen"
     },
     "attribution": {

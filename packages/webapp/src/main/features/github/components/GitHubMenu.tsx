@@ -12,6 +12,7 @@ import {
   CloudDownload,
   CloudUpload,
   ExternalLink,
+  Eye,
   FolderGit2,
   GitPullRequest,
   Github,
@@ -40,6 +41,8 @@ import { useHasOpened } from '../../../app/hooks/useHasOpened';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { useGetLatest } from '../hooks/useGetLatest';
+import { openRepoChangePreview } from '../hooks/useRepoChangePreview';
 import { useTeammateChangeNotice } from '../hooks/useTeammateChangeNotice';
 import type { TeammateChangeAction } from './TeammateChangeNotice';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
@@ -47,7 +50,7 @@ import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
-import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT } from '../../../shared/api/github';
+import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { trackGitHubAction } from '../githubAnalytics';
 
 // The menu is in the top bar from the start; its dialogs load on first open.
@@ -127,6 +130,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const sync = useRepoSync();
   const { link, state, status, hasLocalChanges, githubSession } = sync;
   const flushEditor = useFlushEditorModel();
+  const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges });
   const noticeActions = useRef<(action: TeammateChangeAction) => void>(() => undefined);
   useTeammateChangeNotice({ link, status, state, username, hasLocalChanges, onAction: (action) => noticeActions.current(action) });
 
@@ -147,8 +151,13 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   openFromEventRef.current = () => (isAuthenticated || (isExpired && link) ? setMenuOpen(true) : onLogin('github_panel'));
   useEffect(() => {
     const onOpen = () => openFromEventRef.current();
+    const onSave = () => setDialog('save');
     window.addEventListener(OPEN_GITHUB_PANEL_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_GITHUB_PANEL_EVENT, onOpen);
+    window.addEventListener(OPEN_GITHUB_SAVE_EVENT, onSave);
+    return () => {
+      window.removeEventListener(OPEN_GITHUB_PANEL_EVENT, onOpen);
+      window.removeEventListener(OPEN_GITHUB_SAVE_EVENT, onSave);
+    };
   }, []);
 
   // Re-check the repo on every open, including opens from the event (Radix calls no onOpenChange for those).
@@ -250,21 +259,9 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
         });
 
   const handlePull = async () => {
-    if (hasLocalChanges) {
-      const confirmed = await globalConfirm({
-        title: t('github.linked.pullConfirmTitle'),
-        description: t('github.linked.pullConfirmDescription'),
-        confirmLabel: t('github.linked.pullConfirmAction'),
-        variant: 'danger',
-      });
-      if (!confirmed) return;
-    }
     setBusy(true);
     try {
-      await sync.pull();
-      toast.success(t('github.toasts.projectPulled'));
-    } catch (error) {
-      reportError(errorMessage(error), { error });
+      await getLatest();
     } finally {
       setBusy(false);
     }
@@ -272,6 +269,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
 
   noticeActions.current = (action) => {
     if (action === 'getLatest') void handlePull();
+    else if (action === 'preview') openRepoChangePreview();
     else setDialog(action);
   };
 
@@ -426,10 +424,16 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                 {t('github.menu.saveToGitHub', { defaultValue: 'Save to GitHub…' })}
               </DropdownMenuItem>
               {(state === 'behind' || state === 'diverged') && (
-                <DropdownMenuItem className={itemClass} onSelect={() => void handlePull()}>
-                  <CloudDownload className={iconClass} aria-hidden="true" />
-                  {t('github.menu.getLatest', { defaultValue: 'Get latest' })}
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem className={itemClass} onSelect={() => void handlePull()}>
+                    <CloudDownload className={iconClass} aria-hidden="true" />
+                    {t('github.menu.getLatest', { defaultValue: 'Get latest' })}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className={itemClass} onSelect={openRepoChangePreview}>
+                    <Eye className={iconClass} aria-hidden="true" />
+                    {t('github.preview.menu', { defaultValue: 'Preview the changes' })}
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuItem className={itemClass} onSelect={() => setDialog('history')}>
                 <History className={iconClass} aria-hidden="true" />

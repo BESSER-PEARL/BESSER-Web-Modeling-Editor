@@ -1495,6 +1495,19 @@
       "pickModelFile": "Ce dépôt contient {{number}} modèles. Choisissez celui à utiliser :",
       "keepModelAndLink": "Garder mon modèle et lier"
     },
+    "preview": {
+      "title": "Aperçu des nouveautés sur GitHub",
+      "loading": "Lecture de la nouvelle version…",
+      "button": "Aperçu",
+      "menu": "Aperçu des changements",
+      "close": "Fermer l'aperçu",
+      "hint": "Votre modèle n'a pas changé. Récupérer ces changements apporte aussi les autres diagrammes et le code.",
+      "nothing": "Les diagrammes de classes sont identiques. Les autres diagrammes ou le code ont peut-être changé.",
+      "changed": "{{author}} a modifié {{items}}",
+      "removedLine": "{{author}} a supprimé {{items}}",
+      "removed": "Supprimé",
+      "failed": "Impossible de charger l'aperçu."
+    },
     "teammate": {
       "changedModel": "{{author}} a modifié le modèle",
       "pushed": "{{author}} a poussé sur {{branch}}",
@@ -1502,7 +1515,6 @@
       "more_other": "et {{count}} autres commits",
       "mergeHint": "Vous avez des modifications non enregistrées. Enregistrer fusionne les deux versions.",
       "saveAndMerge": "Enregistrer et fusionner",
-      "whatChanged": "Ce qui a changé",
       "dismiss": "Fermer"
     },
     "attribution": {
