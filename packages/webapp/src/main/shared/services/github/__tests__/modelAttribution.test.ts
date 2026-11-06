@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BesserProject } from '../../../types/project';
-import { classModelElements, elementLabel, elementRecords, newElementIds } from '../modelAttribution';
+import { classModelElements, classModelIds, elementLabel, elementRecords, newElementIds } from '../modelAttribution';
 
 const ANA = { addedBy: 'ana', addedAt: '2026-11-04T12:00:00Z' };
 
@@ -47,6 +47,19 @@ describe('newElementIds', () => {
     const pulled = apollon({ c1: BOOK, c2: LOAN, a1: TITLE }, { c1: ANA, c2: ANA, a1: ANA });
 
     expect(newElementIds(pulled, local)).toEqual(['c2', 'a1']);
+  });
+
+  it('finds a relationship the pull added and someone is credited for', () => {
+    const relationships = { r1: { source: { element: 'c1' }, target: { element: 'c2' } } };
+    const local = apollon({ c1: BOOK, c2: LOAN });
+    const pulled = {
+      ...apollon({ c1: BOOK, c2: LOAN }, { r1: ANA }),
+      diagrams: { ClassDiagram: [{ id: 'cd1', model: { elements: { c1: BOOK, c2: LOAN }, relationships } }] },
+    } as unknown as BesserProject;
+
+    expect(newElementIds(pulled, local)).toEqual(['r1']);
+    expect(newElementIds(pulled, local, ['r1'])).toEqual([]);
+    expect(classModelIds(pulled)).toContain('r1');
   });
 
   it('marks nothing in a project saved before attribution existed', () => {

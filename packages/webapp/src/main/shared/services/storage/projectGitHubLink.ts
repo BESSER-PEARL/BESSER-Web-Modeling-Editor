@@ -25,7 +25,7 @@
  * `buml/diagrams.json` deletes it, and then forgets it.
  */
 import { localStorageGitHubLinkPrefix, localStorageLegacyGitHubLinkedRepos } from '../../constants/constant';
-import { bareMemberName, classModelElements } from '../github/modelAttribution';
+import { bareMemberName, classModelIds } from '../github/modelAttribution';
 import { LocalStorageRepository } from './local-storage-repository';
 import type { RepoRecap } from '../../api/github';
 import type { BesserProject } from '../../types/project';
@@ -294,7 +294,7 @@ export function markProjectGitHubSynced(
   setProjectGitHubLink(project.id, {
     ...rest,
     baseCommitSha: sha,
-    syncedElements: [...classModelElements(project).keys()],
+    syncedElements: classModelIds(project),
     ...(loadedFromRepo ? { baselinePending: true } : { syncedModel: modelFingerprint(project) }),
     lastSyncedAt: new Date().toISOString(),
   });

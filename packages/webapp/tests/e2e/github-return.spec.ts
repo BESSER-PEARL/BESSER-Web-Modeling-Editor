@@ -27,7 +27,7 @@ const SSE_STREAM =
   `data: ${JSON.stringify({ event: 'start', runId: RUN_ID, provider: 'anthropic', llmModel: 'm', maxCost: 1, maxRuntime: 60 })}\n\n` +
   `data: ${JSON.stringify({ event: 'done', runId: RUN_ID, downloadUrl: `/besser_api/download/${RUN_ID}`, fileName: 'app.zip', isZip: true, generatorUsed: 'x', recipe: {} })}\n\n`;
 
-async function openLinkedProject(page: Page, link: Record<string, unknown>) {
+async function openLinkedProject(page: Page, link: Record<string, unknown>, relationships: Record<string, unknown> = {}) {
   await page.route('**/besser_api/github/auth/status**', (route) =>
     route.fulfill({
       status: 200,
@@ -65,18 +65,20 @@ async function openLinkedProject(page: Page, link: Record<string, unknown>) {
   await expect(dialog).toBeHidden({ timeout: 10_000 });
 
   await page.evaluate(
-    ({ elements, attribution, stored }) => {
+    ({ elements, relationships, attribution, stored }) => {
       const id = localStorage.getItem('besser_latest_project');
       const key = `besser_project_${id}`;
       const project = JSON.parse(localStorage.getItem(key) as string);
       project.diagrams.ClassDiagram[0].model.elements = elements;
+      project.diagrams.ClassDiagram[0].model.relationships = relationships;
       project.attribution = attribution;
       localStorage.setItem(key, JSON.stringify(project));
       localStorage.setItem(`besser_github_link_${id}`, JSON.stringify(stored));
     },
     {
       elements: { 'el-1': classElement('el-1', 'Book', 100), 'el-2': classElement('el-2', 'Loan', 400) },
-      attribution: { 'el-1': ANA, 'el-2': BEN },
+      relationships,
+      attribution: { 'el-1': ANA, 'el-2': BEN, ...Object.fromEntries(Object.keys(relationships).map((id) => [id, BEN])) },
       stored: { owner: 'ana', repo: 'library', branch: 'main', baseCommitSha: HEAD, ...link },
     },
   );
@@ -106,6 +108,37 @@ test.describe('a project linked to GitHub', () => {
 
     await page.getByRole('button', { name: /clear marks/i }).click();
     await expect(tint).toHaveCount(0);
+  });
+
+  test('marks a relationship a pull brought in, along its line, with its author', async ({ page }) => {
+    await openLinkedProject(page, { newFromRepo: ['rel-1'] }, {
+      'rel-1': {
+        id: 'rel-1', name: '', type: 'ClassBidirectional', owner: null,
+        bounds: { x: 300, y: 40, width: 100, height: 10 },
+        path: [{ x: 0, y: 5 }, { x: 100, y: 5 }],
+        source: { element: 'el-1', direction: 'Right' },
+        target: { element: 'el-2', direction: 'Left' },
+      },
+    });
+
+    const mark = page.getByTestId('new-relationship-mark');
+    await expect(mark).toHaveCount(1);
+    await expect(page.getByTestId('new-element-tint')).toHaveCount(0);
+    await expect(page.getByText('@ben', { exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: /new since your last sync/i })).toContainText('Book – Loan');
+
+    // The mark runs along the line, and hovering the line says who added it.
+    const line = page.locator('svg[data-id="rel-1"] polyline').first();
+    const [markBox, lineBox] = await Promise.all([mark.boundingBox(), line.boundingBox()]);
+    // Centres: the editor's line carries a wide invisible stroke for picking it up.
+    const centre = (box: typeof markBox) => ({ x: (box?.x ?? 0) + (box?.width ?? 0) / 2, y: (box?.y ?? 0) + (box?.height ?? 0) / 2 });
+    expect(Math.abs(centre(markBox).x - centre(lineBox).x)).toBeLessThan(2);
+    expect(Math.abs(centre(markBox).y - centre(lineBox).y)).toBeLessThan(2);
+    await line.dispatchEvent('mouseover');
+    await expect(page.getByRole('tooltip')).toContainText('@ben');
+
+    await page.getByRole('button', { name: /clear marks/i }).click();
+    await expect(mark).toHaveCount(0);
   });
 
   test('a request after the last run expired continues from the code on GitHub', async ({ page }) => {

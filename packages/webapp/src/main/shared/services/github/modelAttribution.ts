@@ -120,11 +120,17 @@ export function relationshipLabel(relationship: ClassRelationship, elements: Map
  * `local` lost that one by deleting it.
  */
 export function newElementIds(incoming: BesserProject, local: BesserProject, synced?: readonly string[]): string[] {
-  const known = classModelElements(local);
+  const known = new Set(classModelIds(local));
   const held = new Set(synced);
   const records = elementRecords(incoming);
-  return [...classModelElements(incoming).keys()].filter((id) => !known.has(id) && !held.has(id) && records.has(id));
+  return classModelIds(incoming).filter((id) => !known.has(id) && !held.has(id) && records.has(id));
 }
+
+/** The ids that can be credited: classes, members and relationships. */
+export const classModelIds = (project: BesserProject): string[] => [
+  ...classModelElements(project).keys(),
+  ...classRelationships(project).keys(),
+];
 
 /** A member's bare name: `+ title: str` is `title`, `+ lend(days: int)` is `lend`. */
 export const bareMemberName = (name: string): string => name.replace(/^\s*[-+#~]\s*/, '').split(/[:(]/)[0].trim();

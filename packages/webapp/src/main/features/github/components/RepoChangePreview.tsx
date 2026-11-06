@@ -13,7 +13,7 @@ import { useProject } from '../../../app/hooks/useProject';
 import { OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { elementLabel, elementRecords, relationshipLabel } from '../../../shared/services/github/modelAttribution';
-import { hasModelChanges, pathMidpoint, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
+import { hasModelChanges, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
 import {
   loadRepoChangePreview,
   type Bounds,
@@ -23,7 +23,7 @@ import { getActiveDiagram, type BesserProject } from '../../../shared/types/proj
 import { useGetLatest } from '../hooks/useGetLatest';
 import { closeRepoChangePreview, useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
-import { AuthorLine, Chip, authorColor, joinNames, useElementBoxes } from './ModelAttributionLayer';
+import { AuthorLine, Chip, RelationshipMark, authorColor, joinNames, useElementBoxes } from './ModelAttributionLayer';
 
 const REMOVED_COLOR = '#be123c';
 const NO_AUTHOR_COLOR = 'hsl(var(--brand))';
@@ -95,32 +95,19 @@ const IncomingDrawing: React.FC<{
         </React.Fragment>
       );
     })}
-    {relationships.map(({ id, points, author }) => {
-      const color = author ? authorColor(author) : NO_AUTHOR_COLOR;
-      const onScreen = points.map(({ x, y }) => toScreen(x, y));
-      const middle = pathMidpoint(onScreen.map(({ left, top }) => ({ x: left, y: top })));
-      return (
-        <React.Fragment key={id}>
-          <svg className="absolute inset-0 size-full overflow-visible" aria-hidden>
-            <polyline
-              data-testid="incoming-relationship"
-              points={onScreen.map(({ left, top }) => `${left},${top}`).join(' ')}
-              fill="none"
-              stroke={color}
-              // Solid, over the line in the drawing: dashes would leave that line showing through.
-              strokeWidth={3}
-            />
-          </svg>
-          {author && middle && (
-            <Chip
-              label={`@${author}`}
-              color={color}
-              style={{ left: middle.x, top: middle.y, transform: 'translate(-50%, -50%)' }}
-            />
-          )}
-        </React.Fragment>
-      );
-    })}
+    {relationships.map(({ id, points, author }) => (
+      <React.Fragment key={id}>
+        <RelationshipMark
+          testId="incoming-relationship"
+          color={author ? authorColor(author) : NO_AUTHOR_COLOR}
+          label={author && `@${author}`}
+          points={points.map(({ x, y }) => {
+            const { left, top } = toScreen(x, y);
+            return { x: left, y: top };
+          })}
+        />
+      </React.Fragment>
+    ))}
   </div>
 );
 

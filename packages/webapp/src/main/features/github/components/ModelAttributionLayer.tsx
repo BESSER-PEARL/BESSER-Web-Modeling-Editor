@@ -1,8 +1,8 @@
 /**
  * Over the canvas of a linked project: who added what.
  *
- * Elements a pull brought in are tinted in their author's colour with the
- * author's login beside them, until the user clears the marks; hovering any
+ * Elements and relationships a pull brought in are marked in their author's colour with
+ * the author's login beside them, until the user clears the marks; hovering any
  * credited element says who added it. Everything here is drawn over the canvas
  * from the positions of `[data-id]` elements, so the model, and any colour
  * someone chose for an element, stay as they are. The marks live in the
@@ -17,10 +17,14 @@ import { useProject } from '../../../app/hooks/useProject';
 import { setProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import {
   classModelElements,
+  classRelationships,
   elementLabel,
   elementRecords,
+  relationshipLabel,
   type ClassModelElement,
+  type ClassRelationship,
 } from '../../../shared/services/github/modelAttribution';
+import { pathMidpoint } from '../../../shared/services/github/modelChanges';
 import type { ElementAttribution } from '../../../shared/types/project';
 import { useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
 import { useRepoSync } from '../hooks/useRepoSync';
@@ -58,6 +62,14 @@ function screenRect(node: Element): Pick<DOMRect, 'left' | 'top' | 'width' | 'he
   const { value: width } = (node as SVGSVGElement).width.baseVal;
   const { value: height } = (node as SVGSVGElement).height.baseVal;
   return { left: matrix.e, top: matrix.f, width: width * matrix.a, height: height * matrix.d };
+}
+
+/** A relationship's line within its box, read from what the editor drew: it re-routes a saved path on load. */
+function relationshipLine(id: string, box: Box): { x: number; y: number }[] | null {
+  const line = elementNode(id)?.querySelector('polyline');
+  const matrix = line?.getScreenCTM?.();
+  if (!line?.points?.length || !matrix) return null;
+  return Array.from(line.points).map((point) => ({ x: box.left + point.x * matrix.a, y: box.top + point.y * matrix.d }));
 }
 
 /** Where the elements `ids` are, relative to `layer`, following every pan, zoom and move. */
@@ -129,9 +141,13 @@ function useAttributionMarks() {
     () => (active && currentProject ? classModelElements(currentProject) : new Map<string, ClassModelElement>()),
     [active, currentProject],
   );
+  const relationships = useMemo(
+    () => (active && currentProject ? classRelationships(currentProject) : new Map<string, ClassRelationship>()),
+    [active, currentProject],
+  );
   const marked = useMemo(
-    () => (link?.newFromRepo ?? []).filter((id) => elements.has(id) && records?.has(id)),
-    [link?.newFromRepo, elements, records],
+    () => (link?.newFromRepo ?? []).filter((id) => (elements.has(id) || relationships.has(id)) && records?.has(id)),
+    [link?.newFromRepo, elements, relationships, records],
   );
   // A new class's new members are part of it: one tint and one chip, on the class.
   const drawn = useMemo(() => {
@@ -139,7 +155,7 @@ function useAttributionMarks() {
     return marked.filter((id) => !markedIds.has(elements.get(id)?.ownerId ?? ''));
   }, [marked, elements]);
 
-  return { projectId: currentProject?.id, link, records, elements, drawn };
+  return { projectId: currentProject?.id, link, records, elements, relationships, drawn };
 }
 
 export const Chip: React.FC<{ label: string; color: string; style: React.CSSProperties }> = ({ label, color, style }) => (
@@ -150,6 +166,32 @@ export const Chip: React.FC<{ label: string; color: string; style: React.CSSProp
     {label}
   </span>
 );
+
+/** A relationship in its author's colour, over the line the editor draws, with their login on it. */
+export const RelationshipMark: React.FC<{
+  points: { x: number; y: number }[];
+  color: string;
+  label: string | null;
+  testId: string;
+}> = ({ points, color, label, testId }) => {
+  const middle = pathMidpoint(points);
+  return (
+    <>
+      <svg className="absolute inset-0 size-full overflow-visible" aria-hidden>
+        <polyline
+          data-testid={testId}
+          points={points.map(({ x, y }) => `${x},${y}`).join(' ')}
+          fill="none"
+          stroke={color}
+          strokeWidth={3}
+        />
+      </svg>
+      {label && middle && (
+        <Chip label={label} color={color} style={{ left: middle.x, top: middle.y, transform: 'translate(-50%, -50%)' }} />
+      )}
+    </>
+  );
+};
 
 /** Names for one line of a banner, cut short after a few. */
 export function joinNames(t: TFunction, names: string[]): string {
@@ -168,7 +210,7 @@ export const AuthorLine: React.FC<{ author: string; text: string; title: string 
 
 export const ModelAttributionLayer: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { link, records, elements, drawn } = useAttributionMarks();
+  const { link, records, elements, relationships, drawn } = useAttributionMarks();
   const layer = useRef<HTMLDivElement>(null);
 
   const hovered = useHoveredElement(records);
@@ -186,6 +228,16 @@ export const ModelAttributionLayer: React.FC = () => {
         const box = boxes[id];
         const login = records.get(id)?.addedBy;
         if (!box || !login) return null;
+        if (relationships.has(id)) {
+          const points = relationshipLine(id, box);
+          return (
+            points && (
+              <React.Fragment key={id}>
+                <RelationshipMark testId="new-relationship-mark" color={authorColor(login)} label={`@${login}`} points={points} />
+              </React.Fragment>
+            )
+          );
+        }
         const isMember = !!elements.get(id)?.ownerId;
         return (
           <React.Fragment key={id}>
@@ -229,14 +281,16 @@ export const ModelAttributionLayer: React.FC = () => {
 /** What the last pull brought in, by author, until the user clears the marks. */
 export const ModelAttributionBanner: React.FC = () => {
   const { t } = useTranslation();
-  const { projectId, link, records, elements, drawn } = useAttributionMarks();
+  const { projectId, link, records, elements, relationships, drawn } = useAttributionMarks();
   const previewing = useRepoChangePreviewOpen();
 
   const byAuthor = new Map<string, string[]>();
   for (const id of drawn) {
     const author = records?.get(id)?.addedBy ?? '';
     const element = elements.get(id);
-    if (element) byAuthor.set(author, [...(byAuthor.get(author) ?? []), elementLabel(element, elements)]);
+    const relationship = relationships.get(id);
+    const label = element ? elementLabel(element, elements) : relationship && relationshipLabel(relationship, elements);
+    if (label) byAuthor.set(author, [...(byAuthor.get(author) ?? []), label]);
   }
   if (!projectId || !link || byAuthor.size === 0 || link.modelProposal || previewing) return null;
 

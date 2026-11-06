@@ -15,7 +15,7 @@ import {
   setProjectGitHubLink,
   type ProjectGitHubLink,
 } from '../storage/projectGitHubLink';
-import { classModelElements, newElementIds } from './modelAttribution';
+import { classModelIds, newElementIds } from './modelAttribution';
 import type { BesserProject } from '../../types/project';
 
 /** What a pull must find unchanged once its import returns: it can take minutes, and the app stays live. */
@@ -80,7 +80,7 @@ export async function pullRepoIntoProject(
 function marksAfterPull(target: ProjectGitHubLink, before: BesserProject | null, pulled: BesserProject): string[] {
   const inSync = !!(target.syncedModel || target.baselinePending);
   const added = before && inSync ? newElementIds(pulled, before, target.syncedElements) : [];
-  const present = classModelElements(pulled);
+  const present = new Set(classModelIds(pulled));
   return [...new Set([...(target.newFromRepo ?? []).filter((id) => present.has(id)), ...added])];
 }
 

@@ -134,6 +134,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
       <svg
         {...props}
         {...relationship.bounds}
+        data-id={relationship.id}
         visibility={reconnecting ? 'hidden' : undefined}
         pointerEvents={disabled ? 'none' : 'stroke'}
       >
