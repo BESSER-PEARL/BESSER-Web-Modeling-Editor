@@ -1503,8 +1503,6 @@
       "addedSeveral": "Afegit: {{items}}",
       "changedSeveral": "Canviat: {{items}}",
       "removedSeveral": "Eliminat: {{items}}",
-      "relationshipsAdded_one": "{{count}} relació nova",
-      "relationshipsAdded_other": "{{count}} relacions noves",
       "relationshipsRemoved_one": "{{count}} relació eliminada",
       "relationshipsRemoved_other": "{{count}} relacions eliminades",
       "notDrawn": "Aquest diagrama és buit aquí: els canvis es llisten però no es dibuixen.",

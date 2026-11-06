@@ -78,6 +78,41 @@ export function classModelElements(project: BesserProject): Map<string, ClassMod
   return found;
 }
 
+export interface ClassRelationship {
+  id: string;
+  sourceId?: string;
+  targetId?: string;
+}
+
+/** The relationships of a project's class diagrams, by id, in either editor format. */
+export function classRelationships(project: BesserProject | null): Map<string, ClassRelationship> {
+  const found = new Map<string, ClassRelationship>();
+  const add = (id: string, source: unknown, target: unknown) =>
+    found.set(id, {
+      id,
+      ...(typeof source === 'string' ? { sourceId: source } : {}),
+      ...(typeof target === 'string' ? { targetId: target } : {}),
+    });
+  for (const diagram of project?.diagrams?.ClassDiagram ?? []) {
+    const model = diagram?.model as unknown as Loose | null | undefined;
+    const relationships = isObject(model?.relationships) ? model.relationships : {};
+    for (const [id, relationship] of Object.entries(relationships)) {
+      const { source, target } = (isObject(relationship) ? relationship : {}) as Loose;
+      add(id, isObject(source) ? source.element : undefined, isObject(target) ? target.element : undefined);
+    }
+    for (const edge of Array.isArray(model?.edges) ? model.edges.filter(isObject) : []) {
+      if (typeof edge.id === 'string') add(edge.id, edge.source, edge.target);
+    }
+  }
+  return found;
+}
+
+/** How a relationship reads in a list: `Guest – Review`. */
+export function relationshipLabel(relationship: ClassRelationship, elements: Map<string, ClassModelElement>): string {
+  const end = (id?: string) => (id && elements.get(id)?.name) || '?';
+  return `${end(relationship.sourceId)} – ${end(relationship.targetId)}`;
+}
+
 /**
  * What `incoming` adds over `local`: elements `local` lacks that have a record.
  * A model nobody credited (an older editor's, a hand edit) marks nothing, and

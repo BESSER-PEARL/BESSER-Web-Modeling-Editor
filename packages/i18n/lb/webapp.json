@@ -1503,8 +1503,6 @@
       "addedSeveral": "Derbäigesat: {{items}}",
       "changedSeveral": "Geännert: {{items}}",
       "removedSeveral": "Ewechgeholl: {{items}}",
-      "relationshipsAdded_one": "{{count}} nei Relatioun",
-      "relationshipsAdded_other": "{{count}} nei Relatiounen",
       "relationshipsRemoved_one": "{{count}} Relatioun ewechgeholl",
       "relationshipsRemoved_other": "{{count}} Relatiounen ewechgeholl",
       "notDrawn": "Dësen Diagramm ass hei eidel, dofir sinn d'Ännerunge just opgelëscht, net gezeechent.",

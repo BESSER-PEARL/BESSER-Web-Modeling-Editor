@@ -1,7 +1,8 @@
 /**
- * What is new on GitHub, drawn on the canvas before it is taken in: new and changed classes in
- * the editor's own notation, ringed in their author's colour, with removed ones marked. It sits
- * in an overlay like the marks a pull leaves, so the model does not change until the user says so.
+ * What is new on GitHub, drawn on the canvas before it is taken in: new and changed classes in the
+ * editor's own notation, with what is new on them ringed in their author's colour and removed ones
+ * marked. It sits in an overlay like the marks a pull leaves, so the model does not change until
+ * the user says so.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +12,8 @@ import { Button } from '@/components/ui/button';
 import { useProject } from '../../../app/hooks/useProject';
 import { OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { reportError } from '../../../shared/services/errors/reportError';
-import { elementLabel, elementRecords } from '../../../shared/services/github/modelAttribution';
-import { hasModelChanges, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
+import { elementLabel, elementRecords, relationshipLabel } from '../../../shared/services/github/modelAttribution';
+import { hasModelChanges, pathMidpoint, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
 import {
   loadRepoChangePreview,
   type Bounds,
@@ -38,10 +39,12 @@ const activeClassDiagram = (project: BesserProject | null | undefined) =>
 /** The incoming classes over the canvas. */
 const IncomingDrawing: React.FC<{
   drawing: NonNullable<RepoChangePreviewData['drawing']>;
-  classes: { id: string; bounds: Bounds; author: string | null }[];
+  classes: { id: string; bounds: Bounds; whole: boolean; author: string | null }[];
+  rows: { id: string; bounds: Bounds; author: string | null }[];
+  relationships: { id: string; points: { x: number; y: number }[]; author: string | null }[];
   scale: number;
   toScreen: ToScreen;
-}> = ({ drawing, classes, scale, toScreen }) => (
+}> = ({ drawing, classes, rows, relationships, scale, toScreen }) => (
   <div className="absolute inset-0 duration-300 animate-in fade-in-0 motion-reduce:animate-none">
     {/* The editor's classes have no fill: without this, a class underneath shows through. */}
     {classes.map(({ id, bounds }) => (
@@ -63,24 +66,58 @@ const IncomingDrawing: React.FC<{
       // Sanitised in loadRepoChangePreview: the model comes from a file anyone with write access can edit.
       dangerouslySetInnerHTML={{ __html: drawing.svg }}
     />
-    {classes.map(({ id, bounds, author }) => {
+    {[...classes.filter(({ whole }) => whole), ...rows.map((row) => ({ ...row, whole: false }))].map(({ id, bounds, author, whole }) => {
       const { left, top } = toScreen(bounds.x, bounds.y);
+      const width = bounds.width * scale;
       const color = author ? authorColor(author) : NO_AUTHOR_COLOR;
       return (
         <React.Fragment key={id}>
           <div
-            data-testid="incoming-ring"
+            data-testid={whole ? 'incoming-ring' : 'incoming-row'}
             className="absolute rounded-[2px] border-2 border-dashed"
             style={{
               left,
               top,
-              width: bounds.width * scale,
+              width,
               height: bounds.height * scale,
               borderColor: color,
               backgroundColor: author ? `${color}14` : undefined,
             }}
           />
-          {author && <Chip label={`@${author}`} color={color} style={{ left, top: top - 26 }} />}
+          {author && (
+            <Chip
+              label={`@${author}`}
+              color={color}
+              // As in the marks a pull leaves: above a class, beside a row.
+              style={whole ? { left, top: top - 26 } : { left: left + width + 6, top }}
+            />
+          )}
+        </React.Fragment>
+      );
+    })}
+    {relationships.map(({ id, points, author }) => {
+      const color = author ? authorColor(author) : NO_AUTHOR_COLOR;
+      const onScreen = points.map(({ x, y }) => toScreen(x, y));
+      const middle = pathMidpoint(onScreen.map(({ left, top }) => ({ x: left, y: top })));
+      return (
+        <React.Fragment key={id}>
+          <svg className="absolute inset-0 size-full overflow-visible" aria-hidden>
+            <polyline
+              data-testid="incoming-relationship"
+              points={onScreen.map(({ left, top }) => `${left},${top}`).join(' ')}
+              fill="none"
+              stroke={color}
+              strokeWidth={2}
+              strokeDasharray="6 4"
+            />
+          </svg>
+          {author && middle && (
+            <Chip
+              label={`@${author}`}
+              color={color}
+              style={{ left: middle.x, top: middle.y, transform: 'translate(-50%, -50%)' }}
+            />
+          )}
         </React.Fragment>
       );
     })}
@@ -192,6 +229,12 @@ export const RepoChangePreview: React.FC = () => {
     if (author) addedByAuthor.set(author, [...(addedByAuthor.get(author) ?? []), label]);
     else addedByNobody.push(label);
   }
+  for (const relationship of preview?.changes.addedRelationships ?? []) {
+    const label = relationshipLabel(relationship, preview!.elements);
+    const author = records.get(relationship.id)?.addedBy ?? onlyAuthor;
+    if (author) addedByAuthor.set(author, [...(addedByAuthor.get(author) ?? []), label]);
+    else addedByNobody.push(label);
+  }
   const changedNames = (preview?.changes.changed ?? []).map((element) =>
     renameLabel(elementLabel(element, preview!.elements), element.previousName, element.name),
   );
@@ -235,6 +278,15 @@ export const RepoChangePreview: React.FC = () => {
           scale={scale}
           toScreen={toScreen}
           classes={preview.drawnClasses.map((drawn) => ({ ...drawn, author: authorOfClass(drawn.id) }))}
+          rows={preview.drawnRows.map((row) => ({
+            ...row,
+            // A changed row's record is its original adder's, who did not change it.
+            author: (addedIds.has(row.id) ? records.get(row.id)?.addedBy : undefined) ?? onlyAuthor,
+          }))}
+          relationships={preview.drawnRelationships.map((relationship) => ({
+            ...relationship,
+            author: records.get(relationship.id)?.addedBy ?? onlyAuthor,
+          }))}
         />
       )}
 
@@ -295,11 +347,6 @@ export const RepoChangePreview: React.FC = () => {
             )}
             {changeLine('changed', changedNames)}
             {changeLine('removed', removedNames)}
-            {preview && preview.changes.relationshipsAdded > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {t('github.preview.relationshipsAdded', { defaultValue: '{{count}} new relationships', count: preview.changes.relationshipsAdded })}
-              </p>
-            )}
             {preview && preview.changes.relationshipsRemoved > 0 && (
               <p className="text-xs text-muted-foreground">
                 {t('github.preview.relationshipsRemoved', { defaultValue: '{{count}} relationships removed', count: preview.changes.relationshipsRemoved })}

@@ -217,16 +217,17 @@ describe('RepoChangePreview', () => {
     sync.status = { ...sync.status, commits_since: [commit] };
   });
 
-  it('says how many relationships changed', async () => {
+  it('says who added a relationship, and between which classes', async () => {
+    const r1 = { source: { element: 'room' }, target: { element: 'spa' } };
     loadModelAtCommit.mockImplementation(async (_session, _owner, _repo, sha) => ({
       project: {
-        ...envelope({ room }),
-        project: { ...project({ room }), type: 'Project', name: 'Hotel', schemaVersion: 3, diagrams: { ClassDiagram: [{ id: 'd1', model: { elements: { room }, relationships: sha === HEAD ? { r1: {} } : {} } }] } },
+        ...envelope({ room, spa }),
+        project: { ...project({ room, spa }), type: 'Project', name: 'Hotel', schemaVersion: 3, diagrams: { ClassDiagram: [{ id: 'd1', model: { elements: { room, spa }, relationships: sha === HEAD ? { r1 } : {} } }] } },
       },
     }));
     await showPreview();
 
-    expect(screen.getByText('1 new relationship')).toBeInTheDocument();
+    expect(screen.getByText('@ben added Room – Spa')).toBeInTheDocument();
     expect(screen.queryByText(/class diagrams are the same/)).toBeNull();
   });
 

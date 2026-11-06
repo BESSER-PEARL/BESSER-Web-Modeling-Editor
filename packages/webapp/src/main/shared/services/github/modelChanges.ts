@@ -4,13 +4,19 @@
  */
 import type { RepoCommit } from '../../api/github';
 import type { BesserProject } from '../../types/project';
-import { bareMemberName, classModelElements, type ClassModelElement } from './modelAttribution';
+import {
+  bareMemberName,
+  classModelElements,
+  classRelationships,
+  type ClassModelElement,
+  type ClassRelationship,
+} from './modelAttribution';
 
 export interface ModelChanges {
   added: ClassModelElement[];
   changed: (ClassModelElement & { previousName: string })[];
   removed: ClassModelElement[];
-  relationshipsAdded: number;
+  addedRelationships: ClassRelationship[];
   relationshipsRemoved: number;
 }
 
@@ -31,24 +37,17 @@ function signature({ name, type, visibility, kind, ownerId }: ClassModelElement)
 
 type ApollonModel = { elements?: Record<string, unknown>; relationships?: Record<string, unknown> };
 
-const relationshipIds = (project: BesserProject | null): Set<string> =>
-  new Set(
-    (project?.diagrams?.ClassDiagram ?? []).flatMap((diagram) =>
-      Object.keys((diagram?.model as ApollonModel | null | undefined)?.relationships ?? {}),
-    ),
-  );
-
 export function diffClassModels(base: BesserProject | null, head: BesserProject): ModelChanges {
   const before = base ? classModelElements(base) : new Map<string, ClassModelElement>();
   const after = classModelElements(head);
-  const relationshipsBefore = relationshipIds(base);
-  const relationshipsAfter = relationshipIds(head);
+  const relationshipsBefore = classRelationships(base);
+  const relationshipsAfter = classRelationships(head);
   const changes: ModelChanges = {
     added: [],
     changed: [],
     removed: [],
-    relationshipsAdded: [...relationshipsAfter].filter((id) => !relationshipsBefore.has(id)).length,
-    relationshipsRemoved: [...relationshipsBefore].filter((id) => !relationshipsAfter.has(id)).length,
+    addedRelationships: [...relationshipsAfter.values()].filter(({ id }) => !relationshipsBefore.has(id)),
+    relationshipsRemoved: [...relationshipsBefore.keys()].filter((id) => !relationshipsAfter.has(id)).length,
   };
   for (const [id, element] of after) {
     const previous = before.get(id);
@@ -62,7 +61,35 @@ export function diffClassModels(base: BesserProject | null, head: BesserProject)
 }
 
 export const hasModelChanges = (changes: ModelChanges): boolean =>
-  changes.added.length + changes.changed.length + changes.removed.length + changes.relationshipsAdded + changes.relationshipsRemoved > 0;
+  changes.added.length + changes.changed.length + changes.removed.length + changes.addedRelationships.length + changes.relationshipsRemoved > 0;
+
+/**
+ * What of the drawing to mark: a new or renamed class whole, but on any other class only its
+ * new and changed rows, since the rest of that class is not news.
+ */
+export function incomingMarks(changes: ModelChanges) {
+  const changedElements = [...changes.added, ...changes.changed];
+  const wholeClasses = new Set(changedElements.filter((element) => !element.ownerId).map((element) => element.id));
+  const rows = changedElements.filter((element) => element.ownerId && !wholeClasses.has(element.ownerId));
+  return { wholeClasses, rows };
+}
+
+/** The point halfway along a path, for a label on a line. */
+export function pathMidpoint(points: { x: number; y: number }[]): { x: number; y: number } | null {
+  if (!points.length) return null;
+  const segments = points.slice(1).map((point, index) => Math.hypot(point.x - points[index].x, point.y - points[index].y));
+  let remaining = segments.reduce((sum, length) => sum + length, 0) / 2;
+  for (const [index, length] of segments.entries()) {
+    if (remaining <= length && length > 0) {
+      const share = remaining / length;
+      const from = points[index];
+      const to = points[index + 1];
+      return { x: from.x + (to.x - from.x) * share, y: from.y + (to.y - from.y) * share };
+    }
+    remaining -= length;
+  }
+  return points[0];
+}
 
 /**
  * The ids to draw from `headModel` (an Apollon diagram): new relationships, and the

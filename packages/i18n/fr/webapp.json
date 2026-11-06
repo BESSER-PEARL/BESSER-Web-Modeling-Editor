@@ -1503,8 +1503,6 @@
       "addedSeveral": "Ajouté : {{items}}",
       "changedSeveral": "Modifié : {{items}}",
       "removedSeveral": "Supprimé : {{items}}",
-      "relationshipsAdded_one": "{{count}} nouvelle relation",
-      "relationshipsAdded_other": "{{count}} nouvelles relations",
       "relationshipsRemoved_one": "{{count}} relation supprimée",
       "relationshipsRemoved_other": "{{count}} relations supprimées",
       "notDrawn": "Ce diagramme est vide ici : les changements sont listés mais pas dessinés.",

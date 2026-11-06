@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BesserProject } from '../../../types/project';
-import { diffClassModels, hasModelChanges, idsToDraw, soleAuthor } from '../modelChanges';
+import { classModelElements, relationshipLabel } from '../modelAttribution';
+import { diffClassModels, hasModelChanges, idsToDraw, incomingMarks, pathMidpoint, soleAuthor } from '../modelChanges';
 
 const model = (elements: Record<string, unknown>, relationships: Record<string, unknown> = {}) => ({ elements, relationships });
 const project = (classModel: unknown) => ({ diagrams: { ClassDiagram: [{ id: 'd1', model: classModel }] } }) as unknown as BesserProject;
@@ -72,7 +73,7 @@ describe('diffClassModels', () => {
     // Found in review: a new association was drawn while the bar said the diagrams were the same.
     const changes = diffClassModels(project(model({ room }, { r1: {} })), project(model({ room }, { r2: {}, r3: {} })));
 
-    expect(changes.relationshipsAdded).toBe(2);
+    expect(changes.addedRelationships.map(({ id }) => id)).toEqual(['r2', 'r3']);
     expect(changes.relationshipsRemoved).toBe(1);
     expect(hasModelChanges(changes)).toBe(true);
   });
@@ -113,7 +114,56 @@ describe('idsToDraw', () => {
   });
 
   it('skips a class of another class diagram', () => {
-    const changes = { added: [{ id: 'elsewhere', name: 'Elsewhere' }], changed: [], removed: [], relationshipsAdded: 0, relationshipsRemoved: 0 };
+    const changes = { added: [{ id: 'elsewhere', name: 'Elsewhere' }], changed: [], removed: [], addedRelationships: [], relationshipsRemoved: 0 };
     expect(idsToDraw(changes, model({}), model({ room }))).toEqual([]);
+  });
+});
+
+describe('incomingMarks', () => {
+  const guest = { type: 'Class', name: 'Guest' };
+  const guestName = { type: 'ClassAttribute', name: '+ name: str', owner: 'guest' };
+  const guestEmail = { type: 'ClassAttribute', name: '+ email: str', owner: 'guest' };
+  const review = { type: 'Class', name: 'Review' };
+  const rating = { type: 'ClassAttribute', name: '+ rating: int', owner: 'review' };
+
+  it('marks only the new row of an existing class, and a new class whole', () => {
+    // Seen in the launch film: all of Guest was ringed as Ben's, for one new attribute.
+    const changes = diffClassModels(
+      project(model({ guest, guestName })),
+      project(model({ guest, guestName, guestEmail, review, rating })),
+    );
+
+    const { wholeClasses, rows } = incomingMarks(changes);
+
+    expect([...wholeClasses]).toEqual(['review']);
+    expect(rows.map(({ id }) => id)).toEqual(['guestEmail']);
+  });
+
+  it('marks a renamed class whole, and a changed row on its own', () => {
+    const renamed = incomingMarks(diffClassModels(project(model({ guest })), project(model({ guest: { ...guest, name: 'Client' } }))));
+    expect([...renamed.wholeClasses]).toEqual(['guest']);
+
+    const retyped = incomingMarks(
+      diffClassModels(project(model({ guest, guestName })), project(model({ guest, guestName: { ...guestName, name: '+ name: int' } }))),
+    );
+    expect([...retyped.wholeClasses]).toEqual([]);
+    expect(retyped.rows.map(({ id }) => id)).toEqual(['guestName']);
+  });
+
+  it('names a new relationship by the classes it joins', () => {
+    const head = project(model({ guest, review }, { r1: { source: { element: 'guest' }, target: { element: 'review' } } }));
+    const [relationship] = diffClassModels(project(model({ guest, review })), head).addedRelationships;
+    expect(relationshipLabel(relationship, classModelElements(head))).toBe('Guest – Review');
+  });
+});
+
+describe('pathMidpoint', () => {
+  it('finds the point halfway along a bent path', () => {
+    expect(pathMidpoint([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 30 }])).toEqual({ x: 10, y: 10 });
+  });
+
+  it('copes with a single point and with no path', () => {
+    expect(pathMidpoint([{ x: 3, y: 4 }])).toEqual({ x: 3, y: 4 });
+    expect(pathMidpoint([])).toBeNull();
   });
 });

@@ -1512,8 +1512,6 @@
       "addedSeveral": "Added: {{items}}",
       "changedSeveral": "Changed: {{items}}",
       "removedSeveral": "Removed: {{items}}",
-      "relationshipsAdded_one": "{{count}} new relationship",
-      "relationshipsAdded_other": "{{count}} new relationships",
       "relationshipsRemoved_one": "{{count}} relationship removed",
       "relationshipsRemoved_other": "{{count}} relationships removed",
       "notDrawn": "This diagram is empty here, so the changes are listed but not drawn.",

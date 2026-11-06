@@ -176,7 +176,7 @@ test.describe('a project linked to GitHub', () => {
     const diagram = before.diagrams.ClassDiagram[0];
     const NEXT = 'd'.repeat(40);
 
-    // Ben adds Spa, adds an attribute to Book, and removes Loan.
+    // Ben adds Spa and a relationship to it, adds an attribute to Book, and removes Loan.
     const { 'el-2': _removed, ...kept } = diagram.model.elements;
     const headElements = {
       ...kept,
@@ -187,7 +187,17 @@ test.describe('a project linked to GitHub', () => {
       },
       'el-3': classElement('el-3', 'Spa', 700),
     };
-    const version = (elements: unknown) => ({
+    const headRelationships = {
+      ...diagram.model.relationships,
+      'rel-new': {
+        id: 'rel-new', name: '', type: 'ClassBidirectional', owner: null,
+        bounds: { x: 300, y: 40, width: 400, height: 10 },
+        path: [{ x: 0, y: 5 }, { x: 400, y: 5 }],
+        source: { element: 'el-1', direction: 'Right' },
+        target: { element: 'el-3', direction: 'Left' },
+      },
+    };
+    const version = (elements: unknown, relationships: unknown = diagram.model.relationships) => ({
       success: true,
       commit_sha: NEXT,
       commit_message: '',
@@ -197,7 +207,7 @@ test.describe('a project linked to GitHub', () => {
         project: {
           ...before,
           attribution: { 'el-3': BEN },
-          diagrams: { ClassDiagram: [{ ...diagram, model: { ...diagram.model, elements } }] },
+          diagrams: { ClassDiagram: [{ ...diagram, model: { ...diagram.model, elements, relationships } }] },
         },
       },
     });
@@ -205,7 +215,9 @@ test.describe('a project linked to GitHub', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(version(route.request().url().includes(NEXT) ? headElements : diagram.model.elements)),
+        body: JSON.stringify(
+          route.request().url().includes(NEXT) ? version(headElements, headRelationships) : version(diagram.model.elements),
+        ),
       }),
     );
     await page.route('**/besser_api/github/sync-status**', (route) =>
@@ -231,18 +243,25 @@ test.describe('a project linked to GitHub', () => {
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
 
     const bar = page.getByRole('region', { name: /preview of what's new/i });
-    await expect(bar).toContainText('@ben added Book.title, Spa');
+    await expect(bar).toContainText('@ben added Book.title, Spa, Book – Spa');
     await expect(bar).toContainText('@ben removed Loan');
 
-    // New and changed classes are ringed where they will land: Spa is 600 to the right of Book.
+    // A new class is ringed where it will land, 600 to the right of Book. On Book, only the new row is.
     const rings = page.getByTestId('incoming-ring');
-    await expect(rings).toHaveCount(2);
+    await expect(rings).toHaveCount(1);
+    await expect(page.getByTestId('incoming-row')).toHaveCount(1);
     await expect(page.getByTestId('incoming-removed')).toHaveCount(1);
     const book = await page.locator('svg[data-id="el-1"] > g').first().boundingBox();
     const boxes = await Promise.all((await rings.all()).map((ring) => ring.boundingBox()));
     const spa = boxes.find((box) => Math.abs((box?.x ?? 0) - (book?.x ?? 0)) > 300);
     expect(Math.abs((spa?.x ?? 0) - ((book?.x ?? 0) + 600))).toBeLessThan(6);
     expect(Math.abs((spa?.y ?? 0) - (book?.y ?? 0))).toBeLessThan(6);
+
+    // Book's mark is its new row alone, inside the class, and the new relationship is marked too.
+    const row = await page.getByTestId('incoming-row').boundingBox();
+    expect(row?.height ?? 0).toBeLessThan((spa?.height ?? 0) / 2);
+    await expect(page.getByTestId('incoming-relationship')).toHaveCount(1);
+    await expect(page.getByText('@ben', { exact: true })).toHaveCount(3);
 
     // The drawing must not restyle the page, and must not borrow the canvas's clip: a new row would be cut off.
     const drawing = page.getByTestId('incoming-drawing');

@@ -314,7 +314,7 @@ so they always show the same state.
   says who pushed and what they wrote, with **Get latest**, or **Save and merge** if
   you have unsaved edits. Closing it leaves the state in the GitHub menu.
 - **Preview before taking it in.** **Preview**, on the card or in the GitHub menu,
-  draws new and changed classes and new relationships on your canvas in the
+  draws new classes, new or changed rows and new relationships on your canvas in the
   teammate's colour, and marks removed classes. Your model does not change. **Get
   latest** then makes them real in the same place; Escape closes the preview. Only
   class diagrams are drawn: other diagrams and the code come along when you take the
