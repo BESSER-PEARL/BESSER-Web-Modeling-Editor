@@ -107,8 +107,8 @@ const IncomingDrawing: React.FC<{
               points={onScreen.map(({ left, top }) => `${left},${top}`).join(' ')}
               fill="none"
               stroke={color}
-              strokeWidth={2}
-              strokeDasharray="6 4"
+              // Solid, over the line in the drawing: dashes would leave that line showing through.
+              strokeWidth={3}
             />
           </svg>
           {author && middle && (
