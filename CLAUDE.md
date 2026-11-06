@@ -44,6 +44,7 @@ npm run start:server        # Express on :8080, after building
 
 # There is no `test` script at the root
 npm run test --workspace=webapp            # Vitest unit tests (also test:watch, test:coverage)
+npm run test --workspace=server            # Vitest: the security headers
 npm run test:e2e --workspace=webapp        # Playwright, tests in packages/webapp/tests/e2e/ (also test:e2e:ui)
 
 npm run lint                               # ESLint for webapp + server; NOT the editor package
@@ -130,6 +131,8 @@ each pinned to its counterpart by `llmProviderAllowlists.test.ts`.
 `provider: 'free'` is the keyless server-hosted tier, **Spec-Driven Agent only** — not offered in the
 assistant's dialog, and its opt-in flag is kept separate from the key so no placeholder can break the assistant.
 `'sponsored'` is the server-paid demo tier, set only by a `?demo=` link; neither is ever a stored key's provider.
+Every password field is `SecretInput` (`components/ui/secret-input.tsx`, enforced by ESLint): a controlled input copies
+its value into the `value` attribute, where injected CSS can read a key as it is typed.
 
 ### Security rules (AI features)
 - Never let an agent-controlled payload set a privilege flag. `useAssistantLogic` rebuilds the
@@ -137,6 +140,9 @@ assistant's dialog, and its opt-in flag is kept separate from the key so no plac
   UI paths set `planApproved`, so a crafted reply cannot start a paid run.
 - Never widen `SIDE_EFFECT_ACTIONS` handling to prose-scraped JSON.
 - Never write an API key outside `sessionStorage`, never into Redux, never log one.
+- Never add an inline `<script>` to `index.html`. Any script on the page can read `sessionStorage`, so the
+  Content-Security-Policy in `packages/server/src/main/security-headers.ts` allows none; a new external origin
+  the app loads from must be added there, or the browser blocks it in production (`npm run dev` sends no CSP).
 - Never hardcode server-owned limits (cost/runtime caps, free-model ids, download TTL). They come from
   `GET /spec-driven/config`, fetched once per page load by `shared/services/specDrivenConfig.ts`; a stale
   hardcoded copy silently becomes the binding limit. The Knowledge Graph LLM timeout and orphan batch size come
@@ -297,7 +303,9 @@ Full reference: `docs/source/reference/environment.rst`.
   added to both `vite.config.ts` and `constant.ts`.
 - **`GITHUB_CLIENT_ID` does nothing here** (declared in the Dockerfile, read by nothing). GitHub OAuth runs in the
   BESSER backend (`services/deployment/github_oauth.py`); set the OAuth variables there.
-- `packages/server` reads only `DEPLOYMENT_URL` and `SENTRY_DSN` at runtime; its port is hardcoded to 8080.
+- `packages/server` reads only `DEPLOYMENT_URL` and `SENTRY_DSN` at runtime; its port is hardcoded to 8080. Its
+  webpack bundle bakes in `BACKEND_URL`, `UML_BOT_WS_URL` and `POSTHOG_HOST` for the Content-Security-Policy
+  (from the environment, then `packages/webapp/.env`), so it allows what the webapp was built with.
 
 ## Testing and Style
 - Unit tests: Vitest + jsdom (`packages/webapp/vitest.config.ts`, setup `src/test/setup.ts`, pattern

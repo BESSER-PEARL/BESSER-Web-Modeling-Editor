@@ -46,6 +46,16 @@ const HTTP_SYNTAX = [
   "MemberExpression[object.name='fetch']",
 ].map((selector) => ({ selector, message: HTTP_MESSAGE }))
 
+const SECRET_SYNTAX = [
+  // Any spelling inside the attribute: type="password", type={'password'}, type={show ? 'text' : 'password'}.
+  "JSXAttribute[name.name='type'][value.value='password']",
+  "JSXAttribute[name.name='type'] Literal[value='password']",
+  "JSXAttribute[name.name='type'] TemplateElement[value.raw='password']",
+].map((selector) => ({
+  selector,
+  message: 'Use SecretInput from @/components/ui/secret-input: a controlled password input copies its value into the DOM.',
+}))
+
 const REPORT_ERROR_MESSAGE = 'Report a failure with reportError() from shared/services/errors/reportError.'
 const REPORT_ERROR_GLOBAL = { name: 'reportError', message: `Import it: ${REPORT_ERROR_MESSAGE}` }
 const ALERT_MESSAGE = 'Use globalAlert() from shared/services/confirm/globalConfirm instead of alert().'
@@ -169,22 +179,22 @@ module.exports = [
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX, ...STORAGE_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX, ...STORAGE_SYNTAX, ...SECRET_SYNTAX] },
   },
   {
     files: ['src/main/shared/api/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...ERROR_SYNTAX, ...STORAGE_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...ERROR_SYNTAX, ...STORAGE_SYNTAX, ...SECRET_SYNTAX] },
   },
   {
     files: ['src/main/shared/services/errors/**/*.{ts,tsx}'],
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...STORAGE_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...STORAGE_SYNTAX, ...SECRET_SYNTAX] },
   },
   {
     files: STORAGE_MODULES,
     ignores: TESTS,
-    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX] },
+    rules: { 'no-restricted-syntax': ['error', ...HTTP_SYNTAX, ...ERROR_SYNTAX, ...SECRET_SYNTAX] },
   },
   {
     files: ['src/main/shared/**/*.{ts,tsx}'],

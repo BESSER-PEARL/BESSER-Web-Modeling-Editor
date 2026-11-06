@@ -18,6 +18,10 @@
     "unread_other": "Novedades ({{count}} nuevas)",
     "new": "Nuevo",
     "entries": {
+      "repoTogether": {
+        "title": "Trabaja en equipo sobre un repositorio",
+        "body": "Un proyecto vinculado a GitHub ahora continúa desde su código, incluso después de que expire la última ejecución. Cuando otra persona hace push, una tarjeta indica quién y qué, y puedes previsualizar sus clases en el lienzo antes de incorporarlas."
+      },
       "keepEdits": {
         "title": "Tus cambios sobreviven a un cambio de modelo",
         "body": "Cambia el modelo de clases de una app creada por el Spec-Driven Agent: regenera los archivos que nadie editó y fusiona tus cambios en los demás, así que muchos menos cambios necesitan la IA."
@@ -1495,6 +1499,43 @@
       "pickModelFile": "Este repositorio contiene {{number}} modelos. Elige el que quieras usar:",
       "keepModelAndLink": "Conservar mi modelo y vincular"
     },
+    "preview": {
+      "addedSeveral": "Añadido: {{items}}",
+      "changedSeveral": "Cambiado: {{items}}",
+      "removedSeveral": "Eliminado: {{items}}",
+      "relationshipsAdded_one": "{{count}} relación nueva",
+      "relationshipsAdded_other": "{{count}} relaciones nuevas",
+      "relationshipsRemoved_one": "{{count}} relación eliminada",
+      "relationshipsRemoved_other": "{{count}} relaciones eliminadas",
+      "notDrawn": "Este diagrama está vacío aquí: los cambios se listan, pero no se dibujan.",
+      "title": "Vista previa de lo nuevo en GitHub",
+      "loading": "Leyendo la nueva versión…",
+      "button": "Vista previa",
+      "menu": "Vista previa de los cambios",
+      "close": "Cerrar la vista previa",
+      "hint": "Tu modelo aún no ha cambiado. Los demás diagramas y el código vienen con ello.",
+      "nothing": "Los diagramas de clases son iguales. Puede que hayan cambiado otros diagramas o el código.",
+      "changed": "{{author}} ha cambiado {{items}}",
+      "removedLine": "{{author}} ha eliminado {{items}}",
+      "removed": "Eliminado",
+      "failed": "No se ha podido cargar la vista previa."
+    },
+    "teammate": {
+      "changedModel": "{{author}} ha cambiado el modelo",
+      "pushed": "{{author}} ha enviado a {{branch}}",
+      "more_one": "y {{count}} commit más",
+      "more_other": "y {{count}} commits más",
+      "mergeHint": "Tienes cambios sin guardar. Al guardar se combinan ambas versiones.",
+      "saveAndMerge": "Guardar y combinar",
+      "dismiss": "Cerrar"
+    },
+    "attribution": {
+      "title": "Novedades desde la última sincronización",
+      "added": "{{author}} añadió {{items}}",
+      "more": "{{items}} y {{count}} más",
+      "clear": "Borrar marcas",
+      "addedBy": "Añadido por {{author}} el {{date}}"
+    },
     "proposal": {
       "accept": "Aceptar el modelo",
       "aiSource": "Una lectura de {{files}} hecha por IA, no exacta. Revisa cada clase y luego acepta.",
@@ -1554,6 +1595,32 @@
       "description": "BESSER no pudo leer directamente las clases de datos de {{repo}}. Puede enviar un breve extracto del código (hasta unos 40.000 caracteres, sin archivos ni claves secretos) al modelo de IA que usa el servidor de BESSER, que puede estar gestionado por un proveedor externo. Tu código sale entonces del servidor de BESSER. No se envía nada sin tu consentimiento.",
       "accept": "Leer con IA",
       "decline": "Ahora no"
+    },
+    "recap": {
+      "recentWork": "Trabajo reciente",
+      "stillOpen": "Aún pendiente al terminar la última ejecución",
+      "newOnGitHub": "Novedades en GitHub desde entonces",
+      "more": "y {{hidden}} más",
+      "missing": "No está en el código: {{text}}",
+      "notChecked": "Sin comprobar: {{text}}",
+      "leftOut": "Omitido: {{text}}",
+      "continuing": "Continuando desde {{repo}} en {{branch}}.",
+      "continuingPulled": "Continuando desde {{repo}} en {{branch}}. Tenía un modelo más reciente, así que primero lo incorporé a este proyecto."
+    },
+    "linkedRun": {
+      "pullInterrupted": "No se cargó la versión de GitHub: el proyecto o su enlace de GitHub cambió mientras tanto. Inténtalo de nuevo.",
+      "repoChanged": "El enlace de GitHub de este proyecto cambió mientras se iniciaba. Vuelve a pedirlo.",
+      "pulledModel": "{{repo}} tenía un modelo más reciente, así que primero lo incorporé a este proyecto.",
+      "unsaved": "{{repo}} tiene commits en {{branch}} que este proyecto no ha incorporado, y tu modelo tiene cambios que no están guardados allí. Combínalos con **Subir a GitHub** en el menú de GitHub y vuelve a pedirlo.",
+      "busy": "BESSER está ocupado con otras ejecuciones. Vuelve a pedirlo en un momento.",
+      "badModel": "No se pudo cargar el modelo de este repositorio.",
+      "title": "¿Reconstruir la aplicación a partir de tu modelo?",
+      "description": "Este proyecto está vinculado a {{repo}}, pero BESSER no puede leer su código: {{reason}}. Soluciónalo y vuelve a pedirlo para continuar desde ese código. La reconstrucción parte de tu modelo e ignora lo que hay en GitHub.",
+      "rebuild": "Reconstruir desde el modelo",
+      "cancel": "Cancelar",
+      "notConnected": "GitHub no está conectado en esta pestaña",
+      "notFound": "no se encontró el repositorio o tu cuenta no tiene acceso a él",
+      "failed": "no se pudo contactar con GitHub"
     },
     "startFromRepo": {
       "badLink": "Pega un enlace como github.com/owner/repo.",

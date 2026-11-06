@@ -646,6 +646,13 @@ const workspaceSlice = createSlice({
     bumpEditorRevision(state) {
       state.editorRevision += 1;
     },
+    /** Who added what, after a save: the model and the editor stay as they are. */
+    setProjectAttribution(
+      state,
+      action: PayloadAction<{ projectId: string; attribution: NonNullable<BesserProject['attribution']> }>,
+    ) {
+      if (state.project?.id === action.payload.projectId) state.project.attribution = action.payload.attribution;
+    },
     clearError(state) {
       state.error = null;
     },
@@ -934,6 +941,7 @@ const workspaceSlice = createSlice({
 
 export const {
   bumpEditorRevision,
+  setProjectAttribution,
   clearError,
   updateProjectInfo,
   changeEditorMode,

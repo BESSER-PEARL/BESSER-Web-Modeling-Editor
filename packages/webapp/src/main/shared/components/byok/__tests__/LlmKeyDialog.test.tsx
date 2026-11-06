@@ -119,6 +119,17 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
   });
 
+  it('keeps the typed key out of the DOM, where injected CSS could read it', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const field = document.getElementById('llm-key-api-key') as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: 'sk-ant-test-key' } });
+
+    expect(field.value).toBe('sk-ant-test-key');
+    expect(field.hasAttribute('value')).toBe(false);
+    expect(document.querySelector('input[value^="sk-"]')).toBeNull();
+  });
+
   it('shows quality/speed/cost guidance near the model selector (#6)', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     // Helper note that explains the trade-off so users choose well.
@@ -581,6 +592,41 @@ describe('LlmKeyDialog — model catalog', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
 
     expect(providerValues()).not.toContain('pia');
+    expect(providerValues()).not.toContain('gateway');
+  });
+
+  it('offers a second gateway with its name and models from the catalog, sent with no base URL', () => {
+    const withSecond = {
+      ...CATALOG_CONFIG,
+      providers: [
+        ...CATALOG,
+        {
+          id: 'gateway', label: 'Second gateway', hint: 'Your key for it.', key_prefix: null,
+          models: models(['vendor/model-a', 'Model A', true]),
+        },
+      ],
+    };
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(withSecond);
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue(withSecond);
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toContain('Second gateway');
+    fireEvent.change(select, { target: { value: 'gateway' } });
+    expect(screen.getByText('Your key for it.')).toBeTruthy();
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('vendor/model-a');
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'any-shape-of-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('gateway');
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'gateway', apiKey: 'any-shape-of-key', baseUrl: undefined }),
+    );
   });
 
   it('falls back to the vendors with default and custom models when the config is unreadable', async () => {

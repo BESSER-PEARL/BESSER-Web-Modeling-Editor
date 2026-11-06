@@ -9,6 +9,7 @@ import {
   createEmptyDiagram,
   getActiveDiagram,
   toSupportedDiagramType,
+  isProject,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
@@ -310,6 +311,12 @@ interface ImportedPersonalization {
 
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
+  // Loading runs this check too: without it here, a project is stored that can never be opened,
+  // and a repo's invalid model would replace a working local project.
+  if (!isProject(project)) {
+    throw new Error('This file is not a valid BESSER project.');
+  }
+
   // Check if the imported GUI model is empty
   const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
   const importedGUIModel = importedGUIDiagram?.model;
@@ -398,24 +405,26 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
  * Agent credentials the repo holds as `[REDACTED]` keep their local values.
  */
 export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
-  let base: BesserProject;
-  let personalization: ImportedPersonalization | undefined;
-  if (isOldWebappFormat(data)) {
-    base = migrateOldWebappProject(data);
-  } else if (validateV2ExportData(data)) {
-    base = data.project;
-    personalization = extractPersonalization(data);
-  } else if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
-    base = data as BesserProject;
-  } else {
-    throw new Error('This file is not a BESSER model.');
-  }
+  const { project: base, personalization } = readRepoModel(data);
   const filled = fillMissingDiagrams({ ...base, id: projectId });
   const local = ProjectStorageRepository.loadProject(projectId);
   const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
   storeImportedProject(project, personalization);
   return project;
 }
+
+/** The project in a repository's model file, in whichever format an editor saved it. */
+export function readRepoModel(data: unknown): { project: BesserProject; personalization?: ImportedPersonalization } {
+  if (isOldWebappFormat(data)) return { project: migrateOldWebappProject(data) };
+  if (validateV2ExportData(data)) return { project: data.project, personalization: extractPersonalization(data) };
+  if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    return { project: data as BesserProject };
+  }
+  throw new Error('This file is not a BESSER model.');
+}
+
+/** A repository's model as a whole project, to read without storing it. */
+export const readRepoProject = (data: unknown): BesserProject => fillMissingDiagrams(readRepoModel(data).project);
 
 /** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
 function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {

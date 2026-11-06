@@ -13,7 +13,7 @@ vi.mock('../../../services/project-import/projectImport', () => ({
 }));
 const localProjects: { id: string; name: string; diagrams: Record<string, unknown> }[] = [];
 vi.mock('../../../services/storage/ProjectStorageRepository', () => ({
-  ProjectStorageRepository: { getAllProjects: () => localProjects },
+  ProjectStorageRepository: { getAllProjects: () => localProjects, loadProject: () => null, getLatestProjectId: () => null },
 }));
 const track = vi.fn();
 vi.mock('../../analytics/events', async (importOriginal) => ({
@@ -25,7 +25,7 @@ vi.mock('../../../services/confirm/globalConfirm', () => ({
   globalConfirm: (...args: unknown[]) => globalConfirm(...(args as [])),
 }));
 
-import { continueFromGithubRepo, describeOpenedRepo } from '../continueFromGithub';
+import { continueFromGithubRepo, describeOpenedRepo, describeRepoRecap, githubRepoContext } from '../continueFromGithub';
 import {
   getProjectGitHubLink,
   markProjectGitHubSynced,
@@ -65,6 +65,34 @@ function importedEnvelope(): Promise<any> {
 }
 
 describe('continueFromGithubRepo', () => {
+  it('passes on what the repo holds, to the link and to the chat', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: { project: {} }, has_model: true, has_code: true, recap,
+      owner: 'me', repo: 'app', branch: 'main', commit_sha: HEAD,
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, recap });
+    expect(getProjectGitHubLink('p-new')).toMatchObject({ hasCode: true, recap });
+  });
+
+  it('reopening a repo with no code offers no run to continue from', async () => {
+    setProjectGitHubLink('p-old', { owner: 'me', repo: 'app', branch: 'main', baseCommitSha: HEAD, baselinePending: true });
+    localProjects.push({ id: 'p-old', name: 'App', diagrams: {} });
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: null, has_model: false, has_code: false, recap: null,
+      owner: 'me', repo: 'app', branch: 'main', commit_sha: HEAD,
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's' });
+
+    expect(result).toMatchObject({ ok: true, reused: true });
+    expect(result.runId).toBeUndefined();
+    expect(readProjectLastRun('p-old')).toBeNull();
+  });
+
   it('links the new project to the repo at the imported commit', async () => {
     importRepoAsRun.mockResolvedValue({
       run_id: RUN, project: { project: {} }, has_model: true,
@@ -347,5 +375,100 @@ describe('continueFromGithubRepo — errors', () => {
     } finally {
       await i18n.changeLanguage('en');
     }
+  });
+});
+
+describe('the recap of a repo', () => {
+  const recap = {
+    runs: [
+      { request: 'build a library app', date: '2026-11-01', mode: 'create' as const, file_count: 9 },
+      { request: 'add a search bar', date: '2026-11-02', mode: 'modify' as const, file_count: 2 },
+    ],
+    open_items: [
+      { kind: 'rolled_back' as const, text: 'The repairs were rolled back' },
+      { kind: 'not_checked' as const, text: 'runtime behaviour' },
+    ],
+    open_item_count: 7,
+    commits_since_run: [{ sha: 'abc1234', message: 'Teammate adds a helper', author: 'ana' }],
+    commit_count: 1,
+  };
+
+  it('opening a repo says what was done, what is open and what is new', () => {
+    const text = describeOpenedRepo({ ok: true, owner: 'ana', repo: 'library', recap });
+    expect(text.indexOf('add a search bar')).toBeLessThan(text.indexOf('build a library app'));
+    expect(text).toContain('Not checked: runtime behaviour');
+    expect(text).toContain('and 5 more');
+    expect(text).toContain('`abc1234`');
+    expect(text).toContain('Teammate adds a helper');
+  });
+
+  it('a repo no run was pushed to says nothing extra', () => {
+    const text = describeOpenedRepo({ ok: true, owner: 'ana', repo: 'library', recap: null });
+    expect(text).not.toContain('Recent work');
+  });
+
+  it('leaves out a date the recipe does not have', () => {
+    const text = describeRepoRecap({ ...recap, runs: [{ ...recap.runs[0], date: '' }] });
+    expect(text).toContain('- `build a library app`');
+  });
+
+  it('skips a run whose request is no longer known', () => {
+    const text = describeRepoRecap({ ...recap, runs: [{ ...recap.runs[0], request: '' }] });
+    expect(text).not.toContain('Recent work');
+  });
+
+  it('text from the repository cannot render a link in the chat', () => {
+    const planted = '[click me](https://attacker.example)';
+    const text = describeRepoRecap({
+      runs: [{ request: planted, date: '2026-11-01', mode: 'create', file_count: 0 }],
+      open_items: [{ kind: 'missing', text: planted }],
+      open_item_count: 1,
+      commits_since_run: [{ sha: 'abc1234', message: planted, author: planted }],
+      commit_count: 1,
+    });
+    // A code span shows it as text; outside one the brackets must be escaped.
+    expect(text.replace(/`[^`]*`/g, '')).not.toContain('](https://attacker.example)');
+  });
+
+  it('tells the agent what the link knows, and nothing without a link', () => {
+    expect(githubRepoContext('none')).toBeUndefined();
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: true, recap });
+    const context = githubRepoContext('p1');
+    expect(context).toMatchObject({ fullName: 'ana/library', hasCode: true });
+    expect(context?.recap).toContain('add a search bar');
+  });
+
+  it('does not claim an app it does not know of: the agent would promise to update it', () => {
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main' });
+    expect(githubRepoContext('p1')).toEqual({ fullName: 'ana/library', hasCode: false, recap: '' });
+  });
+
+  it('counts every commit, not just the ones the recap lists', () => {
+    const commits = Array.from({ length: 10 }, (_, i) => ({ sha: `abc123${i}`, message: `c${i}`, author: 'ana' }));
+    const text = describeRepoRecap({ ...recap, commits_since_run: commits, commit_count: 40 });
+    expect(text).toContain('and 37 more');
+  });
+
+  it('reads a recap stored before the total existed', () => {
+    const { commit_count: _dropped, ...older } = {
+      ...recap,
+      commits_since_run: [{ sha: 'abc1234', message: 'm', author: 'ana' }],
+      commit_count: 1,
+    };
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', recap: older as never });
+    expect(getProjectGitHubLink('p1')?.recap?.commit_count).toBe(1);
+  });
+
+  it('drops a stored recap missing a list, which would throw on every message', () => {
+    localStorage.setItem(
+      'besser_github_link_p1',
+      JSON.stringify({ owner: 'ana', repo: 'library', branch: 'main', recap: { runs: [] } }),
+    );
+    expect(() => githubRepoContext('p1')).not.toThrow();
+  });
+
+  it('the link keeps the recap across a reload', () => {
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library', branch: 'main', hasCode: true, recap });
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
   });
 });

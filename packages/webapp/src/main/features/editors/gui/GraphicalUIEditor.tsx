@@ -510,6 +510,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     height: '100%',
     width: 'auto',
     fromElement: false,
+    telemetry: false,
     components: '', // Empty initially - pages will load default content
 
     // Load the design typefaces (Inter + Fraunces, shipped same-origin in

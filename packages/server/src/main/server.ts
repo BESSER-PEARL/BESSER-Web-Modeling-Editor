@@ -5,6 +5,7 @@ import express, { RequestHandler } from 'express';
 import * as Sentry from '@sentry/node';
 import { indexHtml, webappPath } from './constants';
 import { register } from './routes';
+import { securityHeaders } from './security-headers';
 
 const port = 8080;
 
@@ -32,6 +33,15 @@ if (fs.existsSync(webappPath)) {
   });
 }
 
+app.use(
+  securityHeaders({
+    deploymentUrl: process.env.DEPLOYMENT_URL,
+    backendUrl: process.env.BACKEND_URL,
+    botWsUrl: process.env.UML_BOT_WS_URL,
+    posthogHost: process.env.POSTHOG_HOST,
+    sentryDsn: process.env.SENTRY_DSN,
+  }),
+);
 app.use('/', express.static(webappPath));
 app.use(bodyParser.json() as RequestHandler);
 app.use(

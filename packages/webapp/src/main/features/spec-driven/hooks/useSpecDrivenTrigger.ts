@@ -57,7 +57,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
-import { track, type SpecRunTier } from '../../../shared/services/analytics/events';
+import i18n from '../../../shared/i18n';
+import { track, type SpecRunStopReason, type SpecRunTier } from '../../../shared/services/analytics/events';
 import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
@@ -65,7 +66,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
+import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
@@ -89,6 +90,9 @@ import {
   setLastRunForProject,
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
+import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
+import { loadProjectThunk } from '../../../app/store/workspaceSlice';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
@@ -1060,10 +1064,15 @@ export function useSpecDrivenTrigger(
       // otherwise mirrors the payload shape the backend already
       // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
-      const normalisedProject = buildProjectPayloadForBackend(project);
+      let normalisedProject = buildProjectPayloadForBackend(project);
       // The model this run starts from: a later push of the run must not
       // silently replace edits made on the canvas after this point.
-      const seedModel = modelFingerprint(project);
+      let seedModel = modelFingerprint(project);
+      let seedProject: BesserProject = project;
+      const seedContext = () => ({
+        baseCommitSha: getProjectGitHubLink(seedProject.id)?.baseCommitSha,
+        content: modelContentFingerprint(seedProject),
+      });
 
       // Reserve the GLOBAL run slot as `preparing`. All code from the guard
       // at the top of this function down to here is synchronous, so two
@@ -1110,18 +1119,57 @@ export function useSpecDrivenTrigger(
       // baseRunId) instead of rebuilding. The decision is automatic; an
       // explicit `mode` on the trigger payload overrides it.
       let runDecision: RunModeDecision | null = null;
+      let stoppedMessage: string | undefined;
+      let stopReason: SpecRunStopReason | undefined;
       try {
         if (!check.signal.aborted) {
-          runDecision = await resolveRunMode(
-            {
-              lastRun: readProjectLastRun(project.id),
-              nowMs: Date.now(),
-              ttlSeconds: cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS,
-              explicitMode: payload.mode,
-              explicitBaseRunId: payload.baseRunId,
-            },
-            { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
-          );
+          const ttlSeconds = cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
+          let lastRun = readProjectLastRun(project.id);
+          // Another project opened during the import: this request was about the one it left.
+          const isStillOpen = () => currentProjectRef.current?.id === project.id;
+          const repoBase: LinkedRepoBase = payload.mode === undefined
+            ? await resolveLinkedRepoBase({ project, lastRun, nowMs: Date.now(), ttlSeconds, signal: check.signal, isStillOpen })
+            : { outcome: 'none' };
+          if (repoBase.outcome === 'continue') {
+            ({ lastRun } = repoBase);
+            dispatch(setLastRunForProject({ projectId: project.id, ...repoBase.lastRun }));
+          }
+          if (repoBase.outcome === 'stopped') {
+            stoppedMessage = repoBase.message;
+            stopReason = repoBase.reason;
+          } else {
+            // Said now: a Stop further on still leaves the pull explained.
+            if (repoBase.message) appendAssistantMessage(repoBase.message);
+            if (repoBase.pulled) {
+              try {
+                await dispatch(loadProjectThunk(project.id)).unwrap();
+                const pulled = ProjectStorageRepository.loadProject(project.id);
+                if (pulled) {
+                  normalisedProject = buildProjectPayloadForBackend(pulled);
+                  seedModel = modelFingerprint(pulled);
+                  seedProject = pulled;
+                }
+              } catch (error) {
+                reportError(
+                  i18n.t('github.linkedRun.badModel', { defaultValue: 'The model in this repository could not be loaded.' }),
+                  { error },
+                );
+                stopReason = 'bad_model';
+              }
+            }
+          }
+          if (repoBase.outcome !== 'stopped' && !stopReason && isStillOpen()) {
+            runDecision = await resolveRunMode(
+              {
+                lastRun,
+                nowMs: Date.now(),
+                ttlSeconds,
+                explicitMode: payload.mode,
+                explicitBaseRunId: payload.baseRunId,
+              },
+              { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
+            );
+          }
         }
       } finally {
         abortRef.current = null;
@@ -1133,8 +1181,9 @@ export function useSpecDrivenTrigger(
       }
       if (!runDecision || check.signal.aborted) {
         // Nothing was started; the agent still learns the user cancelled.
+        if (stoppedMessage) appendAssistantMessage(stoppedMessage);
         runFinishedReportedRef.current = false;
-        reportRunFinished({ ok: false, errorCode: 'CANCELLED' }, { stage: 'mode_check' });
+        reportRunFinished({ ok: false, errorCode: 'CANCELLED' }, { stage: 'mode_check', cancelReason: stopReason });
         return;
       }
       // Point of no return: the slot now holds a running run.
@@ -1226,7 +1275,7 @@ export function useSpecDrivenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
-          recordRunSeedModel(runId, seedModel);
+          recordRunSeedModel(runId, seedModel, seedContext());
           ownership.claim = claimSpecDrivenRunOwnership(runId);
           writeActiveSpecDrivenRun({
             runId,

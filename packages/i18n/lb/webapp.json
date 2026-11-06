@@ -18,6 +18,10 @@
     "unread_other": "Wat ass nei ({{count}} nei)",
     "new": "Nei",
     "entries": {
+      "repoTogether": {
+        "title": "Zesummen un engem Repository schaffen",
+        "body": "E mat GitHub verlinkte Projet fiert elo vu sengem Code weider, och wann de leschte Laf ofgelaf ass. Wann een aneren pusht, weist eng Kaart wien a wat, an s du kanns seng Klassen um Canvas virukucken, ier s du se iwwerhëls."
+      },
       "keepEdits": {
         "title": "Deng Ännerunge bleiwen, wann de Modell ännert",
         "body": "Änner de Klassemodell vun enger App, déi de Spec-Driven Agent gebaut huet: Hie generéiert d’Fichieren, déi keen geännert huet, nei a féiert deng Ännerungen an déi aner zesummen, sou datt vill manner Ännerungen d’KI brauchen."
@@ -1495,6 +1499,43 @@
       "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
     },
+    "preview": {
+      "addedSeveral": "Derbäigesat: {{items}}",
+      "changedSeveral": "Geännert: {{items}}",
+      "removedSeveral": "Ewechgeholl: {{items}}",
+      "relationshipsAdded_one": "{{count}} nei Relatioun",
+      "relationshipsAdded_other": "{{count}} nei Relatiounen",
+      "relationshipsRemoved_one": "{{count}} Relatioun ewechgeholl",
+      "relationshipsRemoved_other": "{{count}} Relatiounen ewechgeholl",
+      "notDrawn": "Dësen Diagramm ass hei eidel, dofir sinn d'Ännerunge just opgelëscht, net gezeechent.",
+      "title": "Virschau vun den Neiegkeeten op GitHub",
+      "loading": "Nei Versioun gëtt gelies…",
+      "button": "Virschau",
+      "menu": "Virschau vun den Ännerungen",
+      "close": "Virschau zoumaachen",
+      "hint": "Äre Modell huet sech nach net geännert. Aner Diagrammer an de Code komme mat.",
+      "nothing": "D'Klassendiagrammer sinn d'selwecht. Aner Diagrammer oder de Code hu sech vläicht geännert.",
+      "changed": "{{author}} huet {{items}} geännert",
+      "removedLine": "{{author}} huet {{items}} ewechgeholl",
+      "removed": "Ewechgeholl",
+      "failed": "D'Virschau konnt net geluede ginn."
+    },
+    "teammate": {
+      "changedModel": "{{author}} huet de Modell geännert",
+      "pushed": "{{author}} huet op {{branch}} gepusht",
+      "more_one": "an {{count}} weidere Commit",
+      "more_other": "an {{count}} weider Commits",
+      "mergeHint": "Dir hutt net gespäichert Ännerungen. Beim Späicheren ginn déi zwou Versioune fusionéiert.",
+      "saveAndMerge": "Späicheren a fusionéieren",
+      "dismiss": "Zoumaachen"
+    },
+    "attribution": {
+      "title": "Nei zënter der leschter Synchronisatioun",
+      "added": "{{author}} huet {{items}} derbäigesat",
+      "more": "{{items}} an nach {{count}}",
+      "clear": "Markéierunge läschen",
+      "addedBy": "Derbäigesat vum {{author}} den {{date}}"
+    },
     "proposal": {
       "accept": "Modell iwwerhuelen",
       "aiSource": "Eng KI-Liesung vu {{files}}, keng exakt. Préif all Klass an iwwerhuel dann.",
@@ -1554,6 +1595,32 @@
       "description": "BESSER konnt d’Dateklasse vu {{repo}} net direkt liesen. Et kann e kuerzen Auszuch vum Code (bis zu ronn 40.000 Zeechen, ouni geheim Fichieren a Schlësselen) un dat KI-Modell schécken, dat de BESSER-Server benotzt an dat vun engem Drëttubidder bedriwwe ka ginn. Däi Code verléisst dann de Server vu BESSER. Ouni deng Zoustëmmung gëtt näischt geschéckt.",
       "accept": "Mat KI liesen",
       "decline": "Net elo"
+    },
+    "recap": {
+      "recentWork": "Lescht Aarbechten",
+      "stillOpen": "Nach op um Enn vum leschte Laf",
+      "newOnGitHub": "Zënterhier nei op GitHub",
+      "more": "an {{hidden}} weider",
+      "missing": "Net am Code: {{text}}",
+      "notChecked": "Net iwwerpréift: {{text}}",
+      "leftOut": "Ausgelooss: {{text}}",
+      "continuing": "Weider vun {{repo}} op {{branch}}.",
+      "continuingPulled": "Weider vun {{repo}} op {{branch}}. Et hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn."
+    },
+    "linkedRun": {
+      "pullInterrupted": "D'GitHub-Versioun gouf net gelueden: de Projet oder säi GitHub-Link huet sech an der Tëschenzäit geännert. Probéiert w.e.g. nach eng Kéier.",
+      "repoChanged": "De GitHub-Link vun dësem Projet huet sech beim Start geännert. Frot w.e.g. nach eng Kéier.",
+      "pulledModel": "{{repo}} hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn.",
+      "unsaved": "{{repo}} huet Commiten op {{branch}}, déi dëse Projet nach net iwwerholl huet, an Äre Modell huet Ännerungen, déi do net gespäichert sinn. Féiert se am GitHub-Menü mat **Op GitHub pushen** zesummen a frot dann nach eng Kéier.",
+      "busy": "BESSER ass elo mat aneren Oflef beschäftegt. Frot w.e.g. gläich nach eng Kéier.",
+      "badModel": "D’Modell an dësem Repository konnt net geluede ginn.",
+      "title": "D’App aus Ärem Modell nei bauen?",
+      "description": "Dëse Projet ass mat {{repo}} verlinkt, mee BESSER kann säi Code net liesen: {{reason}}. Behiewt dat a frot nach eng Kéier, fir mat deem Code weiderzemaachen. Beim Neibauen gëtt vun Ärem Modell ausgaangen an ignoréiert, wat op GitHub ass.",
+      "rebuild": "Aus dem Modell nei bauen",
+      "cancel": "Ofbriechen",
+      "notConnected": "GitHub ass an dësem Tab net verbonnen",
+      "notFound": "de Repository gouf net fonnt oder Äre Kont huet keen Zougrëff",
+      "failed": "GitHub konnt net erreecht ginn"
     },
     "startFromRepo": {
       "badLink": "Füg e Link wéi github.com/owner/repo an.",
