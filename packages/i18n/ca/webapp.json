@@ -1263,6 +1263,30 @@
       }
     },
     "landing": {
+      "dialogTitle": "Tria com vols construir",
+      "eyebrow": "Benvingut a BESSER",
+      "heading": "Com vols <em>construir</em>?",
+      "subtitle": "Dos camins cap al mateix editor. Tria'n un per començar — pots canviar quan vulguis.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "Un diagrama de classes UML",
+        "sampleClassA": "Llibre",
+        "sampleClassB": "Préstec",
+        "title": "Modela-ho",
+        "description": "Dibuixa el teu sistema amb precisió — classes, relacions, pantalles. Resultat determinista, exacte a cada execució.",
+        "cta": "Comença a modelar"
+      },
+      "agent": {
+        "kicker": "Agèntic · Llenguatge natural",
+        "samplePrompt": "una app de reserves d'hotel",
+        "sampleResult": "app",
+        "title": "Descriu-ho",
+        "description": "Digues el que vols amb paraules senzilles. BESSER construeix el model i el codi — tu el refines conversant.",
+        "badge": "Gratuït · model allotjat",
+        "cta": "Comença a descriure"
+      },
+      "remember": "Recorda la meva elecció i omet això la propera vegada",
+      "moreOptions": "Més opcions",
       "github": {
         "pitch": "Guarda els teus projectes als teus propis repositoris de GitHub",
         "connectedAs": "Connectat com a {{username}}",
