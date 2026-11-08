@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   ChevronDown,
   Download,
-  Eye,
   FileInput,
   FileJson,
   FilePlus,
@@ -13,7 +12,6 @@ import {
   Github,
   Image,
   LayoutTemplate,
-  Link2,
   Network,
   Share2,
   Upload,
@@ -48,8 +46,6 @@ interface FileMenuProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
-  onOpenProjectPreview: () => void;
-  onShareAsGist: () => void;
 }
 
 /** Section header inside top-bar menus (File > Import, Help > Community). */
@@ -70,8 +66,6 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onImportOwl,
-  onOpenProjectPreview,
-  onShareAsGist,
 }) => {
   const { t } = useTranslation();
   const { isKgContext } = getWorkspaceContext(activeDiagramType);
@@ -144,11 +138,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <Download className="mr-2 size-4" />
           {t('menu.file.exportProject')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onShareAsGist} disabled={!hasProject}>
-          <Link2 className="mr-2 size-4" />
-          {t('menu.file.shareAsGist', { defaultValue: 'Share as Secret Gist…' })}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {(activeDiagramType === 'BPMN' || isKgContext) && <DropdownMenuSeparator />}
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
         </DropdownMenuItem> */}
@@ -164,10 +154,6 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
-          <Eye className="mr-2 size-4" />
-          {t('menu.file.previewProject')}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

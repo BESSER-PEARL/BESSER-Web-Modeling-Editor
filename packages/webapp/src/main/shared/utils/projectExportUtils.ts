@@ -166,12 +166,11 @@ export const buildProjectPayloadForBackend = (
 /**
  * Canonical V2 project-export envelope. The shape is shared by:
  *   - "Export Project" JSON download (useExportProjectJSON)
- *   - "Project preview" dialog (useProjectPreview)
  *   - Assistant-driven exports (WorkspaceShell)
  *   - GitHub deploy payload (useGitHubRepo) — backend writes it as diagrams.json
  *
  * Anything that needs the V2 envelope MUST go through buildProjectExportEnvelope
- * so the four sites stay in sync.
+ * so the three sites stay in sync.
  */
 export interface ProjectExportEnvelope {
   project: ExportableProjectPayload;

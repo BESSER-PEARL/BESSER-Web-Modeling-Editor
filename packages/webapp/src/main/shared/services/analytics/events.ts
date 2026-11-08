@@ -391,7 +391,6 @@ export type GitHubAction =
   | 'link'
   | 'unlink'
   | 'restore_version'
-  | 'create_gist'
   | 'go_live';
 
 export type AnalyticsEventName = keyof AnalyticsEvents;

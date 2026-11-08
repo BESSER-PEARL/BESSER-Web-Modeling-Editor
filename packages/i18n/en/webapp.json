@@ -125,13 +125,11 @@
       "fromGithub": "From GitHub…",
       "loadTemplate": "Load Template…",
       "exportProject": "Export Project…",
-      "previewProject": "Preview Project…",
       "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…",
       "importGroupProject": "Project",
       "importGroupClassDiagram": "Class Diagram from",
       "importImage": "Image…",
       "importKnowledgeGraph": "Knowledge Graph…",
-      "shareAsGist": "Share as Secret Gist…",
       "importKgOwl": "Import KG"
     },
     "generate": {
@@ -1250,18 +1248,6 @@
     "toasts": {
       "createOrLoadFirst": "Create or load a project first."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "Project JSON copied.",
-        "jsonCopyFailed": "Failed to copy project JSON.",
-        "bumlFailedFallback": "Failed to generate B-UML preview.",
-        "bumlFailed": "Failed to generate B-UML preview: {{message}}",
-        "noBumlToCopy": "No B-UML preview to copy.",
-        "bumlCopied": "Project B-UML copied.",
-        "bumlCopyFailed": "Failed to copy B-UML preview.",
-        "noBumlToDownload": "No B-UML preview to download."
-      }
-    },
     "landing": {
       "github": {
         "pitch": "Keep your projects in your own GitHub repositories",
@@ -1273,7 +1259,6 @@
   },
   "github": {
     "defaultRepoDescription": "BESSER project: {{name}}",
-    "defaultGistDescription": "BESSER Project: {{name}}",
     "connect": {
       "button": "Connect GitHub",
       "checking": "Checking your GitHub connection…"
@@ -1303,16 +1288,6 @@
       "title": "Save to GitHub",
       "messageLabel": "Commit Message",
       "pushing": "Pushing…"
-    },
-    "gist": {
-      "title": "Create Gist",
-      "description": "Create a GitHub Gist to quickly share your project.",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Gist description…",
-      "publicGist": "Public Gist",
-      "secretHint": "Secret gists are hidden from search engines but visible to anyone with the link.",
-      "creating": "Creating…",
-      "createGist": "Create Gist"
     },
     "createRepo": {
       "title": "Create Repository",
@@ -1346,7 +1321,6 @@
       "repoCreated": "Repository created: {{name}}",
       "deploymentFailed": "Deployment failed",
       "repoCreationFailed": "Repository creation failed",
-      "gistCreated": "Gist created successfully!",
       "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
       "fetchingFromGitHub": "Fetching {{filename}} from GitHub…",
       "fileNotFound": "File not found on GitHub. Please check the URL and try again.",
@@ -2244,7 +2218,7 @@
         },
         "publish": {
           "title": "Go Live and Share",
-          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p><strong>File → Share as Secret Gist…</strong> shares a copy of the project through a link, with agent credentials removed.</p>"
+          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p>To share the project, share its linked repository: anyone with access opens it with <strong>Continue from GitHub</strong>.</p>"
         }
       }
     }
@@ -2356,23 +2330,6 @@
       "tryAgainLabel": "Try again after error",
       "tryAgain": "Try Again"
     },
-    "jsonViewer": {
-      "jsonTitle": "Project JSON Preview",
-      "diagramBuml": "Diagram B-UML",
-      "closeLabel": "Close preview modal",
-      "expand": "Expand {{name}}",
-      "collapse": "Collapse {{name}}",
-      "root": "root",
-      "generatingBuml": "Generating B-UML preview…",
-      "noBumlPreview": "No B-UML preview is available yet.",
-      "generating": "Generating…",
-      "regenerate": "Regenerate",
-      "downloadBuml": "Download B-UML",
-      "copyBuml": "Copy B-UML",
-      "downloadJson": "Download JSON",
-      "copyJson": "Copy JSON",
-      "copyValue": "Copy value"
-    },
     "notFound": {
       "title": "Page not found",
       "description": "The page you are looking for does not exist or has been moved.",
@@ -2422,11 +2379,6 @@
       "open": "Open navigation",
       "close": "Close navigation",
       "title": "Navigation"
-    },
-    "preview": {
-      "projectLabel": "Project (V{{version}})",
-      "bumlLabelNamed": "Project B-UML Preview ({{name}})",
-      "bumlLabel": "Project B-UML Preview"
     },
     "skipToEditor": "Skip to Editor"
   },

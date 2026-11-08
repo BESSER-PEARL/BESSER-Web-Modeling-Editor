@@ -45,7 +45,7 @@ describe('GenerateMenu', () => {
 });
 
 describe('FileMenu', () => {
-  const renderOpen = (hasProject = true, onShareAsGist = vi.fn()) => {
+  const renderOpen = (hasProject = true) => {
     withTooltips(
       <FileMenu
         outlineButtonClass=""
@@ -59,8 +59,6 @@ describe('FileMenu', () => {
         onOpenAssistantImportImage={vi.fn()}
         onOpenAssistantImportKg={vi.fn()}
         onImportOwl={vi.fn()}
-        onOpenProjectPreview={vi.fn()}
-        onShareAsGist={onShareAsGist}
       />,
     );
     openMenu('File');
@@ -74,16 +72,18 @@ describe('FileMenu', () => {
     expect(screen.queryByText('Project Actions')).toBeNull();
   });
 
-  it('shares the project as a secret gist from the File menu', () => {
-    const onShareAsGist = vi.fn();
-    renderOpen(true, onShareAsGist);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' }));
-    expect(onShareAsGist).toHaveBeenCalledTimes(1);
+  // BESSER-PEARL/BESSER#749: Export covers the preview, and the GitHub menu covers sharing.
+  it.each([true, false])('offers no Preview Project or Share as Gist entry (project open: %s)', (hasProject) => {
+    renderOpen(hasProject);
+    const labels = screen.getAllByRole('menuitem').map((item) => item.textContent ?? '');
+    expect(labels).toContain('Export Project…');
+    expect(labels.some((label) => /preview|gist/i.test(label))).toBe(false);
   });
 
-  it('disables gist sharing without a project', () => {
-    renderOpen(false);
-    expect(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' })).toHaveAttribute('data-disabled');
+  it('does not end with a separator when no diagram-specific import applies', () => {
+    renderOpen();
+    const items = screen.getByRole('menu').children;
+    expect(items[items.length - 1]).not.toHaveAttribute('role', 'separator');
   });
 
   it('gives every top-level item an icon', () => {

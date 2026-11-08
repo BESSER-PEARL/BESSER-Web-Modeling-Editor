@@ -118,7 +118,6 @@
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
       "loadTemplate": "Template lueden…",
       "exportProject": "Projet exportéieren…",
-      "previewProject": "Projetvirschau…",
       "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
       "importGroupProject": "Projet",
       "importGroupClassDiagram": "Klassendiagramm aus",
@@ -131,8 +130,7 @@
       "importProjectFile": "Projetdatei (.json / .py)…",
       "fromSpreadsheet": "Aus Donnéeën…",
       "fromGithub": "Aus GitHub…",
-      "importKgOwl": "KG importéieren",
-      "shareAsGist": "Als geheime Gist deelen…"
+      "importKgOwl": "KG importéieren"
     },
     "generate": {
       "title": "Generéieren",
@@ -1250,18 +1248,6 @@
     "toasts": {
       "createOrLoadFirst": "Erstellt oder luet fir d'éischt e Projet."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "Projet-JSON kopéiert.",
-        "jsonCopyFailed": "De Projet-JSON konnt net kopéiert ginn.",
-        "bumlFailedFallback": "D'B-UML-Virschau konnt net generéiert ginn.",
-        "bumlFailed": "D'B-UML-Virschau konnt net generéiert ginn: {{message}}",
-        "noBumlToCopy": "Keng B-UML-Virschau fir ze kopéieren.",
-        "bumlCopied": "Projet-B-UML kopéiert.",
-        "bumlCopyFailed": "D'B-UML-Virschau konnt net kopéiert ginn.",
-        "noBumlToDownload": "Keng B-UML-Virschau fir erofzelueden."
-      }
-    },
     "landing": {
       "github": {
         "pitch": "Hal deng Projeten an denge eegene GitHub-Repositoryen",
@@ -1273,7 +1259,6 @@
   },
   "github": {
     "defaultRepoDescription": "BESSER-Projet: {{name}}",
-    "defaultGistDescription": "BESSER-Projet: {{name}}",
     "connect": {
       "button": "Mat GitHub verbannen",
       "checking": "GitHub-Verbindung gëtt gepréift…"
@@ -1303,16 +1288,6 @@
       "title": "Op GitHub pushen",
       "messageLabel": "Commit-Noriicht",
       "pushing": "Pusht…"
-    },
-    "gist": {
-      "title": "Gist erstellen",
-      "description": "Erstell e GitHub-Gist fir däi Projet séier ze deelen.",
-      "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Gist-Beschreiwung…",
-      "publicGist": "Ëffentleche Gist",
-      "secretHint": "Geheime Gisten si vu Sichmaschinne verstoppt, awer fir jiddereen mam Link sichtbar.",
-      "creating": "Erstellt…",
-      "createGist": "Gist erstellen"
     },
     "createRepo": {
       "title": "Repository erstellen",
@@ -1346,7 +1321,6 @@
       "repoCreated": "Repository erstallt: {{name}}",
       "deploymentFailed": "Deployment feelgeschloen",
       "repoCreationFailed": "Erstelle vum Repository feelgeschloen",
-      "gistCreated": "Gist erfollegräich erstallt!",
       "invalidGitHubUrl": "Ongülteg GitHub-URL. Gitt w.e.g. eng gülteg GitHub-Repository-URL un.",
       "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden…",
       "fileNotFound": "Datei net op GitHub fonnt. Iwwerpréift w.e.g. d'URL a probéiert et nach eng Kéier.",
@@ -2244,7 +2218,7 @@
         },
         "publish": {
           "title": "Live goen an deelen",
-          "body": "<p><strong>Deployen → Vu GitHub aus online goen</strong> stellt d’App aus dem verknäppte Repository online, genee sou wéi de Repository se huet, wann de Server et ubitt.</p><p><strong>Datei → Als geheime Gist deelen…</strong> deelt eng Kopie vum Projet iwwer e Link, ouni d’Zougangsdate vum Agent.</p>"
+          "body": "<p><strong>Deployen → Vu GitHub aus online goen</strong> stellt d’App aus dem verknäppte Repository online, genee sou wéi de Repository se huet, wann de Server et ubitt.</p><p>Fir de Projet ze deelen, deelt säi verknäppte Repository: wien Zougang huet, mécht en mat <strong>Vu GitHub weidermaachen</strong> op.</p>"
         }
       }
     }
@@ -2356,23 +2330,6 @@
       "tryAgainLabel": "Nom Feeler nach eng Kéier probéieren",
       "tryAgain": "Nach eng Kéier probéieren"
     },
-    "jsonViewer": {
-      "jsonTitle": "JSON-Virschau vum Projet",
-      "diagramBuml": "Diagramm B-UML",
-      "closeLabel": "Virschau-Fënster zoumaachen",
-      "expand": "{{name}} opklappen",
-      "collapse": "{{name}} zouklappen",
-      "root": "Wuerzel",
-      "generatingBuml": "B-UML-Virschau gëtt generéiert…",
-      "noBumlPreview": "Nach keng B-UML-Virschau verfügbar.",
-      "generating": "Generéiert…",
-      "regenerate": "Nei generéieren",
-      "downloadBuml": "B-UML eroflueden",
-      "copyBuml": "B-UML kopéieren",
-      "downloadJson": "JSON eroflueden",
-      "copyJson": "JSON kopéieren",
-      "copyValue": "Wäert kopéieren"
-    },
     "notFound": {
       "title": "Säit net fonnt",
       "description": "D'Säit, no där Dir sicht, existéiert net oder gouf verréckelt.",
@@ -2422,11 +2379,6 @@
       "open": "Navigatioun opmaachen",
       "close": "Navigatioun zoumaachen",
       "title": "Navigatioun"
-    },
-    "preview": {
-      "projectLabel": "Projet (V{{version}})",
-      "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
-      "bumlLabel": "Projet B-UML Virschau"
     },
     "skipToEditor": "Op den Editor sprangen"
   },

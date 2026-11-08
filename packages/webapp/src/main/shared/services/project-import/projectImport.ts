@@ -58,7 +58,7 @@ function validateV2ExportData(data: any): data is V2ExportData {
 }
 
 // Check if this is an old webapp export (single diagrams instead of arrays, may have UserDiagram)
-/** A project with no export envelope: how "Share as gist" and the old GitHub sidebar save it. */
+/** A project with no export envelope: how the former "Share as gist" and the old GitHub sidebar saved it. */
 function isBareProject(data: any): boolean {
   return (
     !!data &&

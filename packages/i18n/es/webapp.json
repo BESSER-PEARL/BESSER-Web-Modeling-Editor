@@ -118,7 +118,6 @@
       "newOpenImport": "Nuevo / Abrir / Importar proyecto",
       "loadTemplate": "Cargar plantilla…",
       "exportProject": "Exportar proyecto…",
-      "previewProject": "Vista previa del proyecto…",
       "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…",
       "importGroupProject": "Proyecto",
       "importGroupClassDiagram": "Diagrama de clases desde",
@@ -131,8 +130,7 @@
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
       "fromSpreadsheet": "Desde datos…",
       "fromGithub": "Desde GitHub…",
-      "importKgOwl": "Importar KG",
-      "shareAsGist": "Compartir como Gist secreto…"
+      "importKgOwl": "Importar KG"
     },
     "generate": {
       "title": "Generar",
@@ -1250,18 +1248,6 @@
     "toasts": {
       "createOrLoadFirst": "Crea o carga primero un proyecto."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "JSON del proyecto copiado.",
-        "jsonCopyFailed": "No se pudo copiar el JSON del proyecto.",
-        "bumlFailedFallback": "No se pudo generar la vista previa de B-UML.",
-        "bumlFailed": "No se pudo generar la vista previa de B-UML: {{message}}",
-        "noBumlToCopy": "No hay vista previa de B-UML para copiar.",
-        "bumlCopied": "B-UML del proyecto copiado.",
-        "bumlCopyFailed": "No se pudo copiar la vista previa de B-UML.",
-        "noBumlToDownload": "No hay vista previa de B-UML para descargar."
-      }
-    },
     "landing": {
       "github": {
         "pitch": "Guarda tus proyectos en tus propios repositorios de GitHub",
@@ -1273,7 +1259,6 @@
   },
   "github": {
     "defaultRepoDescription": "Proyecto BESSER: {{name}}",
-    "defaultGistDescription": "Proyecto BESSER: {{name}}",
     "connect": {
       "button": "Conectar con GitHub",
       "checking": "Comprobando tu conexión con GitHub…"
@@ -1303,16 +1288,6 @@
       "title": "Subir a GitHub",
       "messageLabel": "Mensaje de commit",
       "pushing": "Subiendo…"
-    },
-    "gist": {
-      "title": "Crear Gist",
-      "description": "Crea un Gist de GitHub para compartir tu proyecto rápidamente.",
-      "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "Descripción del Gist…",
-      "publicGist": "Gist público",
-      "secretHint": "Los gists secretos están ocultos para los motores de búsqueda, pero son visibles para cualquiera que tenga el enlace.",
-      "creating": "Creando…",
-      "createGist": "Crear Gist"
     },
     "createRepo": {
       "title": "Crear repositorio",
@@ -1346,7 +1321,6 @@
       "repoCreated": "Repositorio creado: {{name}}",
       "deploymentFailed": "El despliegue falló",
       "repoCreationFailed": "No se pudo crear el repositorio",
-      "gistCreated": "¡Gist creado correctamente!",
       "invalidGitHubUrl": "URL de GitHub no válida. Proporciona una URL válida de un repositorio de GitHub.",
       "fetchingFromGitHub": "Obteniendo {{filename}} de GitHub…",
       "fileNotFound": "Archivo no encontrado en GitHub. Comprueba la URL e inténtalo de nuevo.",
@@ -2244,7 +2218,7 @@
         },
         "publish": {
           "title": "Publicar y compartir",
-          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p><strong>Archivo → Compartir como Gist secreto…</strong> comparte una copia del proyecto con un enlace, sin las credenciales del agente.</p>"
+          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p>Para compartir el proyecto, comparte su repositorio vinculado: quien tenga acceso lo abre con <strong>Continuar desde GitHub</strong>.</p>"
         }
       }
     }
@@ -2356,23 +2330,6 @@
       "tryAgainLabel": "Volver a intentar tras el error",
       "tryAgain": "Volver a intentar"
     },
-    "jsonViewer": {
-      "jsonTitle": "Vista previa JSON del proyecto",
-      "diagramBuml": "Diagrama B-UML",
-      "closeLabel": "Cerrar ventana de vista previa",
-      "expand": "Expandir {{name}}",
-      "collapse": "Contraer {{name}}",
-      "root": "root",
-      "generatingBuml": "Generando vista previa de B-UML…",
-      "noBumlPreview": "Aún no hay ninguna vista previa de B-UML disponible.",
-      "generating": "Generando…",
-      "regenerate": "Regenerar",
-      "downloadBuml": "Descargar B-UML",
-      "copyBuml": "Copiar B-UML",
-      "downloadJson": "Descargar JSON",
-      "copyJson": "Copiar JSON",
-      "copyValue": "Copiar valor"
-    },
     "notFound": {
       "title": "Página no encontrada",
       "description": "La página que buscas no existe o ha sido movida.",
@@ -2422,11 +2379,6 @@
       "open": "Abrir navegación",
       "close": "Cerrar navegación",
       "title": "Navegación"
-    },
-    "preview": {
-      "projectLabel": "Proyecto (V{{version}})",
-      "bumlLabelNamed": "Vista previa B-UML del proyecto ({{name}})",
-      "bumlLabel": "Vista previa B-UML del proyecto"
     },
     "skipToEditor": "Ir al editor"
   },
