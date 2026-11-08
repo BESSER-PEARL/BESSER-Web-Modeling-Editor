@@ -42,11 +42,13 @@ import {
   fetchRawGitHubFile,
   getGitHubAuthStatus,
   getStarStatus,
+  importGeneratedCode,
   logOutOfGitHub,
   pushRunToGitHub,
   setStarred,
 } from '../github';
 import { getApiInfo } from '../apiInfo';
+import { GITHUB_SESSION_REJECTED_EVENT } from '../api-client';
 
 const fetchMock = vi.fn();
 
@@ -400,6 +402,35 @@ describe('github deploy and push', () => {
       `${BACKEND_URL}/spec-driven/push-to-github`,
       { method: 'POST', headers: SESSION_JSON, body: JSON.stringify(body), signal: SIGNAL },
     ]);
+  });
+});
+
+describe('generated code to push', () => {
+  it('uploads a generator output as file to /spec-driven/import-generated-code and returns the run id', async () => {
+    fetchMock.mockImplementation(async () => new Response('{"run_id":"r2"}'));
+    const sql = new Blob(['CREATE TABLE t (id INTEGER);'], { type: 'application/sql' });
+
+    await expect(importGeneratedCode('sess', sql, 'library.sql')).resolves.toBe('r2');
+
+    const [url, init] = lastCall();
+    expect(url).toBe(`${BACKEND_URL}/spec-driven/import-generated-code`);
+    expect(init?.method).toBe('POST');
+    expect(init?.headers).toEqual({ 'X-GitHub-Session': 'sess' });
+    const [[name, file]] = formEntries(init);
+    expect(name).toBe('file');
+    expect((file as File).name).toBe('library.sql');
+  });
+
+  it('reports a rejected GitHub session, like the JSON requests', async () => {
+    fetchMock.mockImplementation(async () => new Response('{"detail":"GitHub session expired."}', { status: 401 }));
+    const rejected = vi.fn();
+    window.addEventListener(GITHUB_SESSION_REJECTED_EVENT, rejected);
+    try {
+      await expect(importGeneratedCode('sess', new Blob(['x']), 'a.sql')).rejects.toMatchObject({ status: 401 });
+    } finally {
+      window.removeEventListener(GITHUB_SESSION_REJECTED_EVENT, rejected);
+    }
+    expect(rejected).toHaveBeenCalledTimes(1);
   });
 });
 

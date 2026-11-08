@@ -1403,13 +1403,15 @@
       "toasts": {
         "conflict": "GitHub no ha pogut combinar aquest push automàticament.",
         "connectFirst": "Connecta GitHub per fer push de la teva aplicació generada.",
+        "connectFirstGenerated": "Connecta GitHub al menú GitHub i torna a generar el codi per desar-lo-hi.",
         "created": "Push fet a {{repo}}",
         "modelUpdated": "El model inclou ara les classes que ha afegit l’agent.",
         "noProject": "Obre un projecte abans de fer push a GitHub.",
         "nothingToPush": "No hi ha res per pujar.",
         "pullRequest": "Pull request oberta a {{repo}}",
         "pullRequestFailed": "No s’ha pogut obrir la pull request.",
-        "updated": "{{repo}} actualitzat"
+        "updated": "{{repo}} actualitzat",
+        "uploadFailed": "No s'ha pogut preparar el codi generat per a GitHub: {{detail}}"
       },
       "viewPullRequest": "Mostra la pull request",
       "filesChanged_one": "{{count}} fitxer canviat.",

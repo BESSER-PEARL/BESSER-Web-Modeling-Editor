@@ -197,6 +197,23 @@ export const pushRunToGitHub = (githubSession: string, body: PushRunBody) =>
     timeout: 120_000,
   });
 
+/**
+ * `POST /spec-driven/import-generated-code`: store a deterministic generator's
+ * output (the ZIP or single file `/generate-output` returned) as a run, which
+ * `pushRunToGitHub` then pushes. Resolves to the run id.
+ */
+export const importGeneratedCode = async (githubSession: string, file: Blob, fileName: string): Promise<string> => {
+  const form = new FormData();
+  form.append('file', file, fileName);
+  const { run_id } = await apiClient.upload<components['schemas']['ImportGeneratedCodeResponse']>(
+    '/spec-driven/import-generated-code',
+    form,
+    // Up to the server's 100 MB cap.
+    { ...session(githubSession), timeout: 120_000 },
+  );
+  return run_id;
+};
+
 /** `changed` is false when the repo already held these exact deploy files. */
 export type GoLiveResult = components['schemas']['GoLiveResponse'];
 

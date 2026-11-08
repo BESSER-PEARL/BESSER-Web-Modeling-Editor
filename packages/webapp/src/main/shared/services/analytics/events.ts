@@ -263,7 +263,8 @@ export interface AnalyticsEvents {
     took_run_model: boolean;
   };
   github_push_failed: {
-    code: 'expired' | 'repo_missing' | 'auth' | 'forbidden' | 'conflict' | 'branch_moved' | 'other' | 'nothing_to_push' | 'no_session' | 'no_project';
+    /** `upload_failed`: a deterministic generator's output could not be stored as a run to push. */
+    code: 'expired' | 'repo_missing' | 'auth' | 'forbidden' | 'conflict' | 'branch_moved' | 'other' | 'nothing_to_push' | 'no_session' | 'no_project' | 'upload_failed';
     new_repo?: boolean;
   } & Partial<ErrorProperties>;
   /** "Continue from a GitHub repo": a project now tracks the repository. */

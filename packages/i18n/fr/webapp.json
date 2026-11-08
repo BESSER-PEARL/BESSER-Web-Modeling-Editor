@@ -1403,13 +1403,15 @@
       "toasts": {
         "conflict": "GitHub n’a pas pu fusionner ce push automatiquement.",
         "connectFirst": "Connectez GitHub pour pousser votre application générée.",
+        "connectFirstGenerated": "Connectez GitHub dans le menu GitHub, puis générez à nouveau le code pour l'y enregistrer.",
         "created": "Poussé vers {{repo}}",
         "modelUpdated": "Le modèle inclut maintenant les classes ajoutées par l’agent.",
         "noProject": "Ouvrez un projet avant de pousser vers GitHub.",
         "nothingToPush": "Rien à pousser.",
         "pullRequest": "Pull request ouverte sur {{repo}}",
         "pullRequestFailed": "Impossible d’ouvrir la pull request.",
-        "updated": "{{repo}} mis à jour"
+        "updated": "{{repo}} mis à jour",
+        "uploadFailed": "Impossible de préparer le code généré pour GitHub : {{detail}}"
       },
       "viewPullRequest": "Voir la pull request",
       "filesChanged_one": "{{count}} fichier modifié.",
