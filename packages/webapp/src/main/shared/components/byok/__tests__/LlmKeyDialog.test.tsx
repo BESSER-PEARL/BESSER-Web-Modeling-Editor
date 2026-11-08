@@ -465,6 +465,20 @@ describe('LlmKeyDialog — changing only the model (BESSER#743)', () => {
     );
   });
 
+  it('keeps the latest stored key when it was replaced while the dialog stayed mounted', () => {
+    seedKey();
+    const { rerender } = render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    rerender(<LlmKeyDialog open={false} onOpenChange={() => {}} />);
+    // Another surface saves a new key for the same provider.
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-newer');
+    rerender(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-newer');
+  });
+
   it('still needs a key for another provider', () => {
     seedKey();
     render(<LlmKeyDialog open onOpenChange={() => {}} />);

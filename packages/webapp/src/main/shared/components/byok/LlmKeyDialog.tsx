@@ -561,11 +561,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   // The stored key is never put back in the field, so an empty field on the
   // provider it belongs to means "keep it": changing only the model is saved
   // with the stored key. A staged removal or another provider needs a new key.
-  const storedKeyForProvider = useMemo(() => {
+  // Read on every render, not memoised: the dialog stays mounted between
+  // openings, and another save can replace the stored key meanwhile.
+  const storedKeyForProvider = (() => {
     if (!keyPresent || removePending) return '';
     const stored = readLlmKey();
     return stored?.provider === provider ? stored.apiKey : '';
-  }, [keyPresent, removePending, provider]);
+  })();
   const keepsStoredKey = typedKey.length === 0 && storedKeyForProvider.length > 0;
   const trimmedKey = keepsStoredKey ? storedKeyForProvider : typedKey;
   // The free tier needs no key, so it is always saveable when selected.
