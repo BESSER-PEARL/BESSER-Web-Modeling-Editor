@@ -4016,6 +4016,15 @@
       "diagramValid": "Diagram is valid",
       "validationErrorGeneric": "Validation error: {{error}}",
       "unknownError": "Unknown error"
+    },
+    "warningsConfirm": {
+      "title_one": "The model has a validation warning",
+      "title_other": "The model has {{count}} validation warnings",
+      "description": "Generate anyway, or fix the model first?",
+      "more_one": "…and 1 more.",
+      "more_other": "…and {{count}} more.",
+      "confirm": "Generate anyway",
+      "cancel": "Fix the model first"
     }
   },
   "quantum": {

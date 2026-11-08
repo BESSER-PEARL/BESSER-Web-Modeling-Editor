@@ -6,6 +6,7 @@ import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import { confirmValidationWarnings } from '../../../shared/services/validation/confirmValidationWarnings';
 import { generateFromDiagram, generateFromProject, type DiagramInput } from '../../../shared/api/generation';
 import { ApiError } from '../../../shared/api/api-client';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -338,6 +339,9 @@ export const useGenerateCode = () => {
               ? { reason: 'validation' as const }
               : { cause: validationResult.failure }),
           };
+        }
+        if (!(await confirmValidationWarnings(validationResult.warnings))) {
+          return { ok: false, error: 'Generation cancelled to fix the validation warnings', reason: 'warnings_declined' };
         }
       }
 

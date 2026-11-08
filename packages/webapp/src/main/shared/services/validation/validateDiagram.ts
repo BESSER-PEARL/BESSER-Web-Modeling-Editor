@@ -7,10 +7,8 @@ import { ApollonEditor } from '@besser/wme';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
+import { stripStatusEmoji } from './stripStatusEmoji';
 
-/** The toast's own icon carries the status; drop the emoji the backend prefixes ("✅ Diagram is valid"). */
-const stripStatusEmoji = (text: string): string =>
-  text.replace(/^\s*(?:✅|❌|⚠️?|ℹ️?)\s*/u, '');
 
 /**
  * Validate diagram using the unified backend validation endpoint.

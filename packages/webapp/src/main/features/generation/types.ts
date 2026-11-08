@@ -32,6 +32,8 @@ export type GenerationResult =
         | 'no_project'
         | 'invalid_input'
         | 'validation'
+        /** The user chose to fix the model's validation warnings first: not a failure. */
+        | 'warnings_declined'
         | 'wrong_context'
         | 'no_editor'
         | 'gui_empty'

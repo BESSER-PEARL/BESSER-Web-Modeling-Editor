@@ -196,7 +196,7 @@ export interface AnalyticsEvents {
     reason: 'no_project' | 'not_supported' | 'no_diagram' | 'empty_diagram' | 'exception';
   } & Partial<ErrorProperties>;
   /** Local deploy refused before it started (no diagram open, invalid names). */
-  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' | 'validation' | 'request' };
+  local_deploy_blocked: { generator_type: string; reason: 'no_diagram' | 'invalid_input' | 'validation' | 'warnings_declined' | 'request' };
   local_deploy_succeeded: { duration_ms: number };
   local_deploy_failed: { duration_ms: number } & ErrorProperties;
 

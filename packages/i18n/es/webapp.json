@@ -4016,6 +4016,15 @@
       "diagramValid": "El diagrama es válido",
       "validationErrorGeneric": "Error de validación: {{error}}",
       "unknownError": "Error desconocido"
+    },
+    "warningsConfirm": {
+      "title_one": "El modelo tiene una advertencia de validación",
+      "title_other": "El modelo tiene {{count}} advertencias de validación",
+      "description": "¿Generar de todos modos o corregir primero el modelo?",
+      "more_one": "…y 1 más.",
+      "more_other": "…y {{count}} más.",
+      "confirm": "Generar de todos modos",
+      "cancel": "Corregir primero el modelo"
     }
   },
   "quantum": {

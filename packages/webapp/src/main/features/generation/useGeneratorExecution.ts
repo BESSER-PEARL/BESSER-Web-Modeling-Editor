@@ -211,7 +211,7 @@ export function trackGeneration(
     });
     return;
   }
-  if (result.reason === 'unmounted') return;
+  if (result.reason === 'unmounted' || result.reason === 'warnings_declined') return;
   track('generator_failed', {
     ...base,
     reason: result.reason ?? 'request',
