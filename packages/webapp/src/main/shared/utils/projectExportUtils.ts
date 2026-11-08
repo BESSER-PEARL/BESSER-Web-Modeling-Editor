@@ -167,6 +167,16 @@ export const buildProjectPayloadForBackend = (
 };
 
 /**
+ * The project as shared with other people (a gist): without the assistant
+ * conversation, which holds the user's own chat and is kept only in their
+ * browser and their repository.
+ */
+export const projectForSharing = (project: BesserProject): BesserProject => {
+  const { assistantConversation: _conversation, ...shared } = project;
+  return shared;
+};
+
+/**
  * Canonical V2 project-export envelope. The shape is shared by:
  *   - "Export Project" JSON download (useExportProjectJSON)
  *   - "Project preview" dialog (useProjectPreview)
