@@ -3,7 +3,7 @@
  * restart or an idle expiry loses it. The first message on each new socket
  * carries the recent turns so the agent can rebuild its memory.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AssistantClient,
@@ -62,6 +62,76 @@ describe('AssistantClient — recentHistory after a (re)connect', () => {
     expect(clamped).toHaveLength(MAX_RECENT_HISTORY_TURNS);
     expect(clamped[0].content.startsWith('turn 5 ')).toBe(true);
     expect(clamped.every((t) => t.content.length === MAX_RECENT_HISTORY_CHARS)).toBe(true);
+  });
+});
+
+/** A WebSocket that opens when the test says so and records what is sent. */
+class FakeSocket {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
+  static last: FakeSocket | null = null;
+  readyState = FakeSocket.CONNECTING;
+  sent: string[] = [];
+  onopen: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+  onerror: ((e: unknown) => void) | null = null;
+  onmessage: ((e: unknown) => void) | null = null;
+  constructor(public url: string) {
+    FakeSocket.last = this;
+  }
+  send(data: string) {
+    this.sent.push(data);
+  }
+  close() {
+    this.readyState = FakeSocket.CLOSED;
+  }
+  open() {
+    this.readyState = FakeSocket.OPEN;
+    this.onopen?.();
+  }
+}
+
+// A user message is double-encoded (its v2 payload is a string inside the frame).
+const userFrames = (socket: FakeSocket) =>
+  socket.sent
+    .map((s) => JSON.parse(s).message)
+    .filter((m): m is string => typeof m === 'string')
+    .map((m) => JSON.parse(m))
+    .filter((m) => m.action === 'user_message');
+
+describe('AssistantClient — recentHistory on the wire', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    FakeSocket.last = null;
+  });
+
+  it('every new socket sends the history with its first message, including one queued before it opened', async () => {
+    vi.stubGlobal('WebSocket', FakeSocket);
+    const client = new AssistantClient('ws://agent.test');
+    client.setHistoryProvider(() => HISTORY);
+
+    const connected = client.connect();
+    client.sendMessage('Add a Member class'); // queued: the socket is not open yet
+    FakeSocket.last!.open();
+    await connected;
+    client.sendMessage('Rename it');
+
+    const first = userFrames(FakeSocket.last!);
+    expect(first).toHaveLength(2);
+    expect(first[0].recentHistory).toEqual(HISTORY);
+    expect(first[1]).not.toHaveProperty('recentHistory');
+
+    // A reconnect is a new socket: its first message carries the history again.
+    client.disconnect();
+    const reconnected = client.connect();
+    FakeSocket.last!.open();
+    await reconnected;
+    client.sendMessage('Add a Loan class');
+    expect(userFrames(FakeSocket.last!)[0].recentHistory).toEqual(HISTORY);
+
+    client.disconnect();
   });
 });
 
