@@ -159,6 +159,9 @@ export const buildProjectPayloadForBackend = (
     }
   }
   delete payload.elementLineage;
+  // The assistant conversation is kept for people (it goes to the repo with
+  // the project file); generation does not read it.
+  delete payload.assistantConversation;
 
   return payload;
 };
