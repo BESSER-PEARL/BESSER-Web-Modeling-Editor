@@ -6,7 +6,7 @@
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
-import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
+import { applyAssistantRelationshipType, isWholePartType } from '../shared/relationshipMapping';
 
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -1012,8 +1012,9 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
     this.recalculateClassHeight(model.elements[newClassId]);
 
-    // Create relationship from source to new class
-    this.createRelationship(model, sourceClassId, newClassId, relType);
+    // Link the source class to the new class (for a composition or aggregation,
+    // the source class is the whole and the new class the part)
+    this.linkExtractedClass(model, sourceClassId, newClassId, relType);
 
     return model;
   }
@@ -1360,8 +1361,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
     this.recalculateClassHeight(model.elements[newClassId]);
 
-    // Create composition relationship from source to new class
-    this.createRelationship(model, sourceClassId, newClassId, 'ClassComposition');
+    // The source class is the whole, the promoted class its part
+    this.linkExtractedClass(model, sourceClassId, newClassId, 'ClassComposition');
 
     return model;
   }
@@ -1487,6 +1488,35 @@ export class ClassDiagramModifier implements DiagramModifier {
       90,
       headerHeight + attrCount * rowHeight + methodGap + methodCount * rowHeight + padding
     );
+  }
+
+  /**
+   * Link a class to the class just extracted from it. For a composition or
+   * aggregation the original class is the whole and the new class the part. The
+   * editor draws the diamond at the TARGET end and the backend makes the target
+   * end the composite one, so the part is the source and the whole the target;
+   * each whole has one part (the attributes came from one instance) and each
+   * part belongs to one whole. Any other type keeps the original class as the
+   * source.
+   */
+  private linkExtractedClass(
+    model: BESSERModel,
+    originalClassId: string,
+    newClassId: string,
+    relationshipType: string
+  ): string {
+    const wholePart = isWholePartType(relationshipType);
+    const relId = wholePart
+      ? this.createRelationship(model, newClassId, originalClassId, relationshipType)
+      : this.createRelationship(model, originalClassId, newClassId, relationshipType);
+    const relationship = model.relationships[relId];
+    // "Composition" and "ClassComposition" are both accepted; store the editor type.
+    applyAssistantRelationshipType(relationship, relationshipType);
+    if (wholePart) {
+      relationship.source.multiplicity = '1';
+      relationship.target.multiplicity = '1';
+    }
+    return relId;
   }
 
   /**
