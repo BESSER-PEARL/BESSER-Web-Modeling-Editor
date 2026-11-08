@@ -1,5 +1,5 @@
 /** BESSER#745: the conversation is kept on the project, so the specification outlives the chat session. */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   MAX_PROJECT_CONVERSATION_CHARS,
@@ -65,5 +65,33 @@ describe('project conversation', () => {
       ['user', 'My specification'],
       ['assistant', 'Created it.'],
     ]);
+  });
+
+  it('restores nothing from a malformed field, and bounds what it restores', () => {
+    const make = (role: string, content: string) => msg(role, content);
+    expect(messagesFromProjectConversation({ turns: {} } as never, make)).toEqual([]);
+    expect(messagesFromProjectConversation({ turns: 'x' } as never, make)).toEqual([]);
+    expect(messagesFromProjectConversation({ turns: [null, 7, { role: 'user' }] } as never, make)).toEqual([]);
+    expect(sameTurns([{ role: 'user', content: 'Hi' }], [null] as never)).toBe(false);
+
+    const long = Array.from({ length: MAX_PROJECT_CONVERSATION_TURNS + 5 }, (_, i) => ({
+      role: 'user' as const,
+      content: `turn ${i} ${'x'.repeat(MAX_PROJECT_CONVERSATION_CHARS)}`,
+    }));
+    const restored = messagesFromProjectConversation({ turns: long, updatedAt: '' }, make);
+    expect(restored).toHaveLength(MAX_PROJECT_CONVERSATION_TURNS);
+    expect((restored[0] as { content: string }).content.startsWith('turn 5 ')).toBe(true);
+    expect(restored.every((m: { content: string }) => m.content.length === MAX_PROJECT_CONVERSATION_CHARS)).toBe(true);
+  });
+
+  describe('with a stored API key', () => {
+    afterEach(() => window.sessionStorage.clear());
+
+    it('removes the key from the stored turns if it was pasted into the chat', () => {
+      window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-secret123');
+      window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+      const turns = projectConversationTurns([msg('user', 'my key is sk-ant-secret123, use it')]);
+      expect(turns).toEqual([{ role: 'user', content: 'my key is [API key removed], use it' }]);
+    });
   });
 });
