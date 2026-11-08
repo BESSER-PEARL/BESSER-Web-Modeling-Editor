@@ -439,6 +439,50 @@ describe('LlmKeyDialog — remove key and error announcement', () => {
   });
 });
 
+describe('LlmKeyDialog — changing only the model (BESSER#743)', () => {
+  const seedKey = () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-5-5');
+  };
+  const saveButton = () => screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
+  const pickModel = (value: string) =>
+    fireEvent.change(document.getElementById('llm-key-model') as HTMLSelectElement, { target: { value } });
+
+  it('saves a new model with the stored key when the key field is left empty', () => {
+    seedKey();
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    expect(saveButton().disabled).toBe(false);
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-haiku-4-5');
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-ant-stored', provider: 'anthropic', model: 'claude-haiku-4-5' }),
+    );
+  });
+
+  it('still needs a key for another provider', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it('does not reuse the stored key once its removal is staged', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    fireEvent.click(saveButton());
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
+  });
+});
+
 describe('LlmKeyDialog — model pickers', () => {
   function modelOptions(provider: string): string[] {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
