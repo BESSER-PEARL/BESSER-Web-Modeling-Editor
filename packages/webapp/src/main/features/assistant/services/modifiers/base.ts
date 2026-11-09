@@ -68,6 +68,14 @@ export interface ModificationChanges {
   // add_class / add_object fields
   className?: string;
   classId?: string;
+  // Class flags (add_class / modify_class)
+  isAbstract?: boolean;
+  isEnumeration?: boolean;
+  isInterface?: boolean;
+  // Attribute flags (add_attribute / modify_attribute)
+  isDerived?: boolean;
+  defaultValue?: string | null;
+  isOptional?: boolean;
   // User-profile: metamodel class icon SVG for add_object (renders a UserModelIcon child)
   icon?: string;
   // User-profile criterion operator ('<' | '<=' | '==' | '>=' | '>')
@@ -80,6 +88,10 @@ export interface ModificationChanges {
     value?: string;
     attributeId?: string;
     operator?: string;
+    isDerived?: boolean;
+    defaultValue?: string | null;
+    isOptional?: boolean;
+    isExternalId?: boolean;
   }>;
   methods?: Array<{
     name: string;
@@ -193,7 +205,12 @@ export interface ModelModification {
   newClasses?: Array<{
     name: string;
     attributes: Array<{ name: string; type: string; visibility?: string }>;
-    methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }>;
+    methods?: Array<{
+      name: string;
+      returnType: string;
+      visibility?: string;
+      parameters?: Array<{ name: string; type: string }>;
+    }>;
   }>;
   inheritFrom?: string;
   classes?: string[];
