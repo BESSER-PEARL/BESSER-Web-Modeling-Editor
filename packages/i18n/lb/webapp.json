@@ -1249,10 +1249,10 @@
       "createOrLoadFirst": "Erstellt oder luet fir d'éischt e Projet."
     },
     "landing": {
-      "dialogTitle": "Wiel, wéi s du baue wëlls",
+      "dialogTitle": "Wielt, wéi Dir ufänke wëllt",
       "eyebrow": "Wëllkomm bei BESSER",
-      "heading": "Wéi wëlls du <em>bauen</em>?",
-      "subtitle": "Zwee Weeër an deeselwechten Editor. Wiel ee fir unzefänken — du kanns ëmmer wiesselen.",
+      "heading": "Wéi wëllt Dir <em>ufänken</em>?",
+      "subtitle": "Zwee Weeër an deeselwechten Editor. Wielt ee fir unzefänken — Dir kënnt ëmmer wiesselen.",
       "model": {
         "kicker": "Low-Code · Visuell",
         "illustration": "En UML-Klassendiagramm",
