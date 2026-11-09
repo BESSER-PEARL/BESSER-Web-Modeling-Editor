@@ -1393,13 +1393,15 @@
       "toasts": {
         "conflict": "GitHub could not merge this push automatically.",
         "connectFirst": "Connect GitHub to push your generated app.",
+        "connectFirstGenerated": "Connect GitHub in the GitHub menu, then generate the code again to save it there.",
         "created": "Pushed to {{repo}}",
         "modelUpdated": "The model now includes the classes the agent added.",
         "noProject": "Open a project before pushing to GitHub.",
         "nothingToPush": "Nothing to push.",
         "pullRequest": "Opened a pull request on {{repo}}",
         "pullRequestFailed": "Could not open the pull request.",
-        "updated": "Updated {{repo}}"
+        "updated": "Updated {{repo}}",
+        "uploadFailed": "Could not prepare the generated code for GitHub: {{detail}}"
       },
       "errors": {
         "failed": "Save to GitHub failed.",

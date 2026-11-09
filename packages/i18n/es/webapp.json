@@ -1401,13 +1401,15 @@
       "toasts": {
         "conflict": "GitHub no pudo combinar este push automáticamente.",
         "connectFirst": "Conecta GitHub para hacer push de tu aplicación generada.",
+        "connectFirstGenerated": "Conecta GitHub en el menú GitHub y vuelve a generar el código para guardarlo allí.",
         "created": "Push hecho a {{repo}}",
         "modelUpdated": "El modelo incluye ahora las clases que añadió el agente.",
         "noProject": "Abre un proyecto antes de hacer push a GitHub.",
         "nothingToPush": "Nada que subir.",
         "pullRequest": "Pull request abierta en {{repo}}",
         "pullRequestFailed": "No se pudo abrir la pull request.",
-        "updated": "{{repo}} actualizado"
+        "updated": "{{repo}} actualizado",
+        "uploadFailed": "No se pudo preparar el código generado para GitHub: {{detail}}"
       },
       "viewPullRequest": "Ver la pull request",
       "filesChanged_one": "{{count}} archivo cambiado.",

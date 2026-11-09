@@ -1401,13 +1401,15 @@
       "toasts": {
         "conflict": "GitHub konnt dëse Push net automatesch zesummeféieren.",
         "connectFirst": "Verbann GitHub, fir deng generéiert App ze pushen.",
+        "connectFirstGenerated": "Verbann GitHub am GitHub-Menü a generéier de Code dann nach eng Kéier, fir en do ze späicheren.",
         "created": "Op {{repo}} gepusht",
         "modelUpdated": "De Modell enthält elo d’Klassen, déi den Agent derbäigesat huet.",
         "noProject": "Maach e Projet op, ier s du op GitHub pushs.",
         "nothingToPush": "Näischt ze pushen.",
         "pullRequest": "Pull Request an {{repo}} opgemaach",
         "pullRequestFailed": "De Pull Request konnt net opgemaach ginn.",
-        "updated": "{{repo}} aktualiséiert"
+        "updated": "{{repo}} aktualiséiert",
+        "uploadFailed": "De generéierte Code konnt net fir GitHub preparéiert ginn: {{detail}}"
       },
       "viewPullRequest": "Pull Request ukucken",
       "filesChanged_one": "{{count}} Datei geännert.",
