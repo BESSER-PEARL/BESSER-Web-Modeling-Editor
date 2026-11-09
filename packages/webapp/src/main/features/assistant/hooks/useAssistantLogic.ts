@@ -27,10 +27,19 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { markMessageSent, takeReplyLatency } from './replyLatency';
+import { recentHistoryFrom } from './recentHistory';
+import {
+  messagesFromProjectConversation,
+  projectConversationTurns,
+  sameTurns,
+  toProjectConversation,
+} from './projectConversation';
+import { autoFixInProgressMessage, autoFixRemainingMessage, autoFixResolvedMessage } from './autoFixMessages';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
   conversationStore,
+  freshAutoFixState,
   setConversationHandlers,
   voicePlaceholderIdRef,
   wireConversationDispatchers,
@@ -48,6 +57,7 @@ import {
   addDiagramThunk,
   switchDiagramIndexThunk,
   bumpEditorRevision,
+  setProjectConversation,
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors';
 import {
@@ -222,6 +232,9 @@ const createMessageId = (): string => {
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+/** Wait for the conversation to settle before writing it to the project. */
+const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
 
 const toKitMessage = (
   role: 'user' | 'assistant',
@@ -426,6 +439,12 @@ export function useAssistantLogic({
     assistantClient.setContextProvider(buildWorkspaceContext);
   }, [assistantClient, buildWorkspaceContext]);
 
+  // The conversation is module-level (shared by both surfaces), so the history
+  // the client sends after a reconnect reads it straight from the store.
+  useEffect(() => {
+    assistantClient.setHistoryProvider((current) => recentHistoryFrom(conversationStore.getMessages(), current));
+  }, [assistantClient]);
+
   const [rateLimiter] = useState(
     () =>
       new RateLimiterService({
@@ -581,28 +600,20 @@ export function useAssistantLogic({
         if (errors.length === 0) {
           if (wasRepair) {
             autoFixRef.current.fixInFlight = false;
-            settleAutoFixProgress('Validation passed — the reported issues are resolved.');
+            settleAutoFixProgress(autoFixResolvedMessage(autoFixRef.current.issues));
           }
           return;
         }
         if (autoFixRef.current.attempted) {
           // This message's repair attempt is already spent — report and stop.
           autoFixRef.current.fixInFlight = false;
-          settleAutoFixProgress(
-            `The diagram still has ${errors.length} validation issue(s):\n\n${errors
-              .map((e) => `• ${e}`)
-              .join('\n')}`,
-            true,
-          );
+          settleAutoFixProgress(autoFixRemainingMessage(errors), true);
           return;
         }
         autoFixRef.current.attempted = true;
         autoFixRef.current.fixInFlight = true;
-        const progressMessage = toKitMessage(
-          'assistant',
-          `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
-          { isProgress: true },
-        );
+        autoFixRef.current.issues = errors;
+        const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
         autoFixRef.current.progressMessageId = progressMessage.id;
         setMessages((prev) => [...prev, progressMessage]);
         const context = buildWorkspaceContext();
@@ -1348,7 +1359,7 @@ export function useAssistantLogic({
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
       // Every real user message grants a fresh automatic repair attempt.
-      autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
+      autoFixRef.current = freshAutoFixState();
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
@@ -1668,19 +1679,51 @@ export function useAssistantLogic({
   // a ref so this never fires on unrelated re-renders. We seed the ref on
   // first run (prevId === undefined) so the very first project does NOT
   // clear an already-empty conversation.
+  //
+  // The conversation is also kept on the project (BESSER#745): opening a
+  // project whose chat is empty brings its saved conversation back, and every
+  // change is written to the project, which a GitHub save commits with it.
+  const restoreProjectConversation = () => {
+    if (conversationStore.getMessages().length > 0) return;
+    const saved = selectProject(store.getState())?.assistantConversation;
+    const restored = messagesFromProjectConversation(saved, (role, content) => toKitMessage(role, content));
+    if (restored.length === 0) return;
+    setMessages(restored);
+    // The agent's session for this chat is new: give it the history.
+    assistantClient.sendHistoryWithNextMessage();
+  };
+
   const prevProjectIdRef = useRef<string | undefined>(currentProjectId);
   useEffect(() => {
     const projectId = currentProjectId;
-    if (prevProjectIdRef.current === undefined) {
-      prevProjectIdRef.current = projectId;
-      return;
-    }
-    if (projectId !== prevProjectIdRef.current) {
-      prevProjectIdRef.current = projectId;
+    if (prevProjectIdRef.current !== undefined && projectId !== prevProjectIdRef.current) {
       clearConversation();
     }
+    prevProjectIdRef.current = projectId;
+    if (projectId !== undefined) restoreProjectConversation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const writeToProject = () => {
+      timer = null;
+      const project = selectProject(store.getState());
+      // Only the project this conversation belongs to (a switch clears it first).
+      if (!project || project.id !== prevProjectIdRef.current) return;
+      const turns = projectConversationTurns(conversationStore.getMessages());
+      if (sameTurns(turns, project.assistantConversation?.turns)) return;
+      dispatch(setProjectConversation({ projectId: project.id, conversation: toProjectConversation(turns) }));
+    };
+    const unsubscribe = conversationStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(writeToProject, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, [dispatch, store]);
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */

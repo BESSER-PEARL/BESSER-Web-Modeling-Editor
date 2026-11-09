@@ -557,7 +557,19 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   // more than one entry (primary + configured fallback).
   const freeModels = freeTier.models;
 
-  const trimmedKey = apiKey.trim();
+  const typedKey = apiKey.trim();
+  // The stored key is never put back in the field, so an empty field on the
+  // provider it belongs to means "keep it": changing only the model is saved
+  // with the stored key. A staged removal or another provider needs a new key.
+  // Read on every render, not memoised: the dialog stays mounted between
+  // openings, and another save can replace the stored key meanwhile.
+  const storedKeyForProvider = (() => {
+    if (!keyPresent || removePending) return '';
+    const stored = readLlmKey();
+    return stored?.provider === provider ? stored.apiKey : '';
+  })();
+  const keepsStoredKey = typedKey.length === 0 && storedKeyForProvider.length > 0;
+  const trimmedKey = keepsStoredKey ? storedKeyForProvider : typedKey;
   // The free tier needs no key, so it is always saveable when selected.
   const canSave = isFreeProvider || trimmedKey.length > 0 || removePending;
 
@@ -570,9 +582,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   );
 
   const formatLooksWrong =
-    trimmedKey.length > 0 && !trimmedKey.startsWith(selectedProvider.expectedPrefix);
+    typedKey.length > 0 && !typedKey.startsWith(selectedProvider.expectedPrefix);
 
-  const inferredProvider = _inferProviderFromKey(trimmedKey);
+  const inferredProvider = _inferProviderFromKey(typedKey);
   // Don't second-guess pia/local: a PIA key legitimately starts with sk- (which
   // would otherwise infer 'openai'), and 'local' keys are arbitrary. 'free'
   // has no key at all, so there is nothing to infer against.
@@ -812,7 +824,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             {inferredProvider !== null &&
               !providerLockedByUser &&
               inferredProvider === provider &&
-              trimmedKey.length > 0 &&
+              typedKey.length > 0 &&
               !_isCustomEndpoint(provider) && (
                 <p className="text-xs text-muted-foreground">Provider auto-selected from the key prefix.</p>
               )}
@@ -911,6 +923,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               <p id="llm-key-mismatch" role="alert" className="text-xs font-medium text-destructive">
                 This key looks like a {_providerLabel(inferredProvider, providerOptions)} key, but Provider is set to{' '}
                 {selectedProvider.label}. Change one so they match — otherwise the API will reject the key.
+              </p>
+            )}
+            {keepsStoredKey && (
+              <p className="text-xs text-muted-foreground">
+                Your saved key is kept. Leave this empty to change only the model.
               </p>
             )}
             {!providerMismatch && formatLooksWrong && (

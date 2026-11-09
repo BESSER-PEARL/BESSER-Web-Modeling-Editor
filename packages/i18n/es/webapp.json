@@ -118,7 +118,6 @@
       "newOpenImport": "Nuevo / Abrir / Importar proyecto",
       "loadTemplate": "Cargar plantilla…",
       "exportProject": "Exportar proyecto…",
-      "previewProject": "Vista previa del proyecto…",
       "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…",
       "importGroupProject": "Proyecto",
       "importGroupClassDiagram": "Diagrama de clases desde",
@@ -131,8 +130,7 @@
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
       "fromSpreadsheet": "Desde datos…",
       "fromGithub": "Desde GitHub…",
-      "importKgOwl": "Importar KG",
-      "shareAsGist": "Compartir como Gist secreto…"
+      "importKgOwl": "Importar KG"
     },
     "generate": {
       "title": "Generar",
@@ -1250,19 +1248,31 @@
     "toasts": {
       "createOrLoadFirst": "Crea o carga primero un proyecto."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "JSON del proyecto copiado.",
-        "jsonCopyFailed": "No se pudo copiar el JSON del proyecto.",
-        "bumlFailedFallback": "No se pudo generar la vista previa de B-UML.",
-        "bumlFailed": "No se pudo generar la vista previa de B-UML: {{message}}",
-        "noBumlToCopy": "No hay vista previa de B-UML para copiar.",
-        "bumlCopied": "B-UML del proyecto copiado.",
-        "bumlCopyFailed": "No se pudo copiar la vista previa de B-UML.",
-        "noBumlToDownload": "No hay vista previa de B-UML para descargar."
-      }
-    },
     "landing": {
+      "dialogTitle": "Elige cómo quieres construir",
+      "eyebrow": "Bienvenido a BESSER",
+      "heading": "¿Cómo quieres <em>construir</em>?",
+      "subtitle": "Dos caminos hacia el mismo editor. Elige uno para empezar — puedes cambiar cuando quieras.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "Un diagrama de clases UML",
+        "sampleClassA": "Libro",
+        "sampleClassB": "Préstamo",
+        "title": "Modélalo",
+        "description": "Dibuja tu sistema con precisión — clases, relaciones, pantallas. Resultado determinista, exacto en cada ejecución.",
+        "cta": "Empezar a modelar"
+      },
+      "agent": {
+        "kicker": "Agéntico · Lenguaje natural",
+        "samplePrompt": "una app de reservas de hotel",
+        "sampleResult": "app",
+        "title": "Descríbelo",
+        "description": "Di lo que quieres con palabras sencillas. BESSER crea el modelo y el código — tú lo refinas conversando.",
+        "badge": "Gratis · modelo alojado",
+        "cta": "Empezar a describir"
+      },
+      "remember": "Recordar mi elección y omitir esto la próxima vez",
+      "moreOptions": "Más opciones",
       "github": {
         "pitch": "Guarda tus proyectos en tus propios repositorios de GitHub",
         "connectedAs": "Conectado como {{username}}",
@@ -1273,7 +1283,6 @@
   },
   "github": {
     "defaultRepoDescription": "Proyecto BESSER: {{name}}",
-    "defaultGistDescription": "Proyecto BESSER: {{name}}",
     "connect": {
       "button": "Conectar con GitHub",
       "checking": "Comprobando tu conexión con GitHub…"
@@ -1303,16 +1312,6 @@
       "title": "Subir a GitHub",
       "messageLabel": "Mensaje de commit",
       "pushing": "Subiendo…"
-    },
-    "gist": {
-      "title": "Crear Gist",
-      "description": "Crea un Gist de GitHub para compartir tu proyecto rápidamente.",
-      "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "Descripción del Gist…",
-      "publicGist": "Gist público",
-      "secretHint": "Los gists secretos están ocultos para los motores de búsqueda, pero son visibles para cualquiera que tenga el enlace.",
-      "creating": "Creando…",
-      "createGist": "Crear Gist"
     },
     "createRepo": {
       "title": "Crear repositorio",
@@ -1346,7 +1345,6 @@
       "repoCreated": "Repositorio creado: {{name}}",
       "deploymentFailed": "El despliegue falló",
       "repoCreationFailed": "No se pudo crear el repositorio",
-      "gistCreated": "¡Gist creado correctamente!",
       "invalidGitHubUrl": "URL de GitHub no válida. Proporciona una URL válida de un repositorio de GitHub.",
       "fetchingFromGitHub": "Obteniendo {{filename}} de GitHub…",
       "fileNotFound": "Archivo no encontrado en GitHub. Comprueba la URL e inténtalo de nuevo.",
@@ -1403,13 +1401,15 @@
       "toasts": {
         "conflict": "GitHub no pudo combinar este push automáticamente.",
         "connectFirst": "Conecta GitHub para hacer push de tu aplicación generada.",
+        "connectFirstGenerated": "Conecta GitHub en el menú GitHub y vuelve a generar el código para guardarlo allí.",
         "created": "Push hecho a {{repo}}",
         "modelUpdated": "El modelo incluye ahora las clases que añadió el agente.",
         "noProject": "Abre un proyecto antes de hacer push a GitHub.",
         "nothingToPush": "Nada que subir.",
         "pullRequest": "Pull request abierta en {{repo}}",
         "pullRequestFailed": "No se pudo abrir la pull request.",
-        "updated": "{{repo}} actualizado"
+        "updated": "{{repo}} actualizado",
+        "uploadFailed": "No se pudo preparar el código generado para GitHub: {{detail}}"
       },
       "viewPullRequest": "Ver la pull request",
       "filesChanged_one": "{{count}} archivo cambiado.",
@@ -1674,11 +1674,11 @@
     "byBesser": "por BESSER",
     "welcome": {
       "greeting": "¡Hola! Soy tu asistente de modelado",
-      "intro": "Puedo ayudarte a crear y modificar diagramas UML, generar código y responder preguntas de modelado. Prueba algo como:",
+      "intro": "Puedo ayudarte a crear y modificar tus modelos y responder preguntas de modelado. Prueba algo como:",
       "suggestions": {
         "library": "Crear un sistema de gestión de biblioteca",
         "payment": "Añadir una clase Payment con amount y date",
-        "django": "Generar código Django"
+        "stateMachine": "Crear una máquina de estados para un pedido"
       },
       "headlinePre": "¿Qué te gustaría",
       "headlineEmphasis": "modelar",
@@ -2244,7 +2244,7 @@
         },
         "publish": {
           "title": "Publicar y compartir",
-          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p><strong>Archivo → Compartir como Gist secreto…</strong> comparte una copia del proyecto con un enlace, sin las credenciales del agente.</p>"
+          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p>Para compartir el proyecto, comparte su repositorio vinculado: quien tenga acceso lo abre con <strong>Continuar desde GitHub</strong>.</p>"
         }
       }
     }
@@ -2356,23 +2356,6 @@
       "tryAgainLabel": "Volver a intentar tras el error",
       "tryAgain": "Volver a intentar"
     },
-    "jsonViewer": {
-      "jsonTitle": "Vista previa JSON del proyecto",
-      "diagramBuml": "Diagrama B-UML",
-      "closeLabel": "Cerrar ventana de vista previa",
-      "expand": "Expandir {{name}}",
-      "collapse": "Contraer {{name}}",
-      "root": "root",
-      "generatingBuml": "Generando vista previa de B-UML…",
-      "noBumlPreview": "Aún no hay ninguna vista previa de B-UML disponible.",
-      "generating": "Generando…",
-      "regenerate": "Regenerar",
-      "downloadBuml": "Descargar B-UML",
-      "copyBuml": "Copiar B-UML",
-      "downloadJson": "Descargar JSON",
-      "copyJson": "Copiar JSON",
-      "copyValue": "Copiar valor"
-    },
     "notFound": {
       "title": "Página no encontrada",
       "description": "La página que buscas no existe o ha sido movida.",
@@ -2422,11 +2405,6 @@
       "open": "Abrir navegación",
       "close": "Cerrar navegación",
       "title": "Navegación"
-    },
-    "preview": {
-      "projectLabel": "Proyecto (V{{version}})",
-      "bumlLabelNamed": "Vista previa B-UML del proyecto ({{name}})",
-      "bumlLabel": "Vista previa B-UML del proyecto"
     },
     "skipToEditor": "Ir al editor"
   },
@@ -4016,6 +3994,15 @@
       "diagramValid": "El diagrama es válido",
       "validationErrorGeneric": "Error de validación: {{error}}",
       "unknownError": "Error desconocido"
+    },
+    "warningsConfirm": {
+      "title_one": "El modelo tiene una advertencia de validación",
+      "title_other": "El modelo tiene {{count}} advertencias de validación",
+      "description": "¿Generar de todos modos o corregir primero el modelo?",
+      "more_one": "…y 1 más.",
+      "more_other": "…y {{count}} más.",
+      "confirm": "Generar de todos modos",
+      "cancel": "Corregir primero el modelo"
     }
   },
   "quantum": {

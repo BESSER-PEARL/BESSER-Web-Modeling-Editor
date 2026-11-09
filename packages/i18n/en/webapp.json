@@ -125,13 +125,11 @@
       "fromGithub": "From GitHub…",
       "loadTemplate": "Load Template…",
       "exportProject": "Export Project…",
-      "previewProject": "Preview Project…",
       "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…",
       "importGroupProject": "Project",
       "importGroupClassDiagram": "Class Diagram from",
       "importImage": "Image…",
       "importKnowledgeGraph": "Knowledge Graph…",
-      "shareAsGist": "Share as Secret Gist…",
       "importKgOwl": "Import KG"
     },
     "generate": {
@@ -1250,19 +1248,31 @@
     "toasts": {
       "createOrLoadFirst": "Create or load a project first."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "Project JSON copied.",
-        "jsonCopyFailed": "Failed to copy project JSON.",
-        "bumlFailedFallback": "Failed to generate B-UML preview.",
-        "bumlFailed": "Failed to generate B-UML preview: {{message}}",
-        "noBumlToCopy": "No B-UML preview to copy.",
-        "bumlCopied": "Project B-UML copied.",
-        "bumlCopyFailed": "Failed to copy B-UML preview.",
-        "noBumlToDownload": "No B-UML preview to download."
-      }
-    },
     "landing": {
+      "dialogTitle": "Choose how you want to build",
+      "eyebrow": "Welcome to BESSER",
+      "heading": "How do you want to <em>build</em>?",
+      "subtitle": "Two ways into the same editor. Choose one to begin — you can switch anytime.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "A UML class diagram",
+        "sampleClassA": "Book",
+        "sampleClassB": "Loan",
+        "title": "Model it",
+        "description": "Draw your system precisely — classes, relationships, screens. Deterministic output, exact every run.",
+        "cta": "Start modelling"
+      },
+      "agent": {
+        "kicker": "Agentic · Natural language",
+        "samplePrompt": "a hotel booking app",
+        "sampleResult": "app",
+        "title": "Describe it",
+        "description": "Say what you want in plain words. BESSER builds the model and the code — you refine by chatting.",
+        "badge": "Free · hosted model",
+        "cta": "Start describing"
+      },
+      "remember": "Remember my choice and skip this next time",
+      "moreOptions": "More options",
       "github": {
         "pitch": "Keep your projects in your own GitHub repositories",
         "connectedAs": "Connected as {{username}}",
@@ -1273,7 +1283,6 @@
   },
   "github": {
     "defaultRepoDescription": "BESSER project: {{name}}",
-    "defaultGistDescription": "BESSER Project: {{name}}",
     "connect": {
       "button": "Connect GitHub",
       "checking": "Checking your GitHub connection…"
@@ -1303,16 +1312,6 @@
       "title": "Save to GitHub",
       "messageLabel": "Commit Message",
       "pushing": "Pushing…"
-    },
-    "gist": {
-      "title": "Create Gist",
-      "description": "Create a GitHub Gist to quickly share your project.",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Gist description…",
-      "publicGist": "Public Gist",
-      "secretHint": "Secret gists are hidden from search engines but visible to anyone with the link.",
-      "creating": "Creating…",
-      "createGist": "Create Gist"
     },
     "createRepo": {
       "title": "Create Repository",
@@ -1346,7 +1345,6 @@
       "repoCreated": "Repository created: {{name}}",
       "deploymentFailed": "Deployment failed",
       "repoCreationFailed": "Repository creation failed",
-      "gistCreated": "Gist created successfully!",
       "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
       "fetchingFromGitHub": "Fetching {{filename}} from GitHub…",
       "fileNotFound": "File not found on GitHub. Please check the URL and try again.",
@@ -1395,13 +1393,15 @@
       "toasts": {
         "conflict": "GitHub could not merge this push automatically.",
         "connectFirst": "Connect GitHub to push your generated app.",
+        "connectFirstGenerated": "Connect GitHub in the GitHub menu, then generate the code again to save it there.",
         "created": "Pushed to {{repo}}",
         "modelUpdated": "The model now includes the classes the agent added.",
         "noProject": "Open a project before pushing to GitHub.",
         "nothingToPush": "Nothing to push.",
         "pullRequest": "Opened a pull request on {{repo}}",
         "pullRequestFailed": "Could not open the pull request.",
-        "updated": "Updated {{repo}}"
+        "updated": "Updated {{repo}}",
+        "uploadFailed": "Could not prepare the generated code for GitHub: {{detail}}"
       },
       "errors": {
         "failed": "Save to GitHub failed.",
@@ -1661,11 +1661,11 @@
     "byBesser": "by BESSER",
     "welcome": {
       "greeting": "Hi! I'm your Modeling Assistant",
-      "intro": "I can help you create and modify UML diagrams, generate code, and answer modeling questions. Try something like:",
+      "intro": "I can help you create and modify your models and answer modeling questions. Try something like:",
       "suggestions": {
         "library": "Create a library management system",
         "payment": "Add a Payment class with amount and date",
-        "django": "Generate Django code"
+        "stateMachine": "Create a state machine for an order"
       },
       "headlinePre": "What would you like to",
       "headlineEmphasis": "create",
@@ -2244,7 +2244,7 @@
         },
         "publish": {
           "title": "Go Live and Share",
-          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p><strong>File → Share as Secret Gist…</strong> shares a copy of the project through a link, with agent credentials removed.</p>"
+          "body": "<p><strong>Deploy → Go live from GitHub</strong> puts the app in the linked repository online, exactly as the repository holds it, when the server offers it.</p><p>To share the project, share its linked repository: anyone with access opens it with <strong>Continue from GitHub</strong>.</p>"
         }
       }
     }
@@ -2356,23 +2356,6 @@
       "tryAgainLabel": "Try again after error",
       "tryAgain": "Try Again"
     },
-    "jsonViewer": {
-      "jsonTitle": "Project JSON Preview",
-      "diagramBuml": "Diagram B-UML",
-      "closeLabel": "Close preview modal",
-      "expand": "Expand {{name}}",
-      "collapse": "Collapse {{name}}",
-      "root": "root",
-      "generatingBuml": "Generating B-UML preview…",
-      "noBumlPreview": "No B-UML preview is available yet.",
-      "generating": "Generating…",
-      "regenerate": "Regenerate",
-      "downloadBuml": "Download B-UML",
-      "copyBuml": "Copy B-UML",
-      "downloadJson": "Download JSON",
-      "copyJson": "Copy JSON",
-      "copyValue": "Copy value"
-    },
     "notFound": {
       "title": "Page not found",
       "description": "The page you are looking for does not exist or has been moved.",
@@ -2422,11 +2405,6 @@
       "open": "Open navigation",
       "close": "Close navigation",
       "title": "Navigation"
-    },
-    "preview": {
-      "projectLabel": "Project (V{{version}})",
-      "bumlLabelNamed": "Project B-UML Preview ({{name}})",
-      "bumlLabel": "Project B-UML Preview"
     },
     "skipToEditor": "Skip to Editor"
   },
@@ -4016,6 +3994,15 @@
       "diagramValid": "Diagram is valid",
       "validationErrorGeneric": "Validation error: {{error}}",
       "unknownError": "Unknown error"
+    },
+    "warningsConfirm": {
+      "title_one": "The model has a validation warning",
+      "title_other": "The model has {{count}} validation warnings",
+      "description": "Generate anyway, or fix the model first?",
+      "more_one": "…and 1 more.",
+      "more_other": "…and {{count}} more.",
+      "confirm": "Generate anyway",
+      "cancel": "Fix the model first"
     }
   },
   "quantum": {

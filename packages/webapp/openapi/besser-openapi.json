@@ -3454,6 +3454,66 @@
         }
       }
     },
+    "/besser_api/spec-driven/import-generated-code": {
+      "post": {
+        "tags": [
+          "spec-driven"
+        ],
+        "summary": "Import Generated Code Run",
+        "description": "Store the output of a deterministic generator as a run, to push it to GitHub.\n\n``/generate-output`` keeps nothing on the server, so its output (a ZIP or\na single file, such as the SQL generator's ``.sql``) has no run for\n``/spec-driven/push-to-github`` to push. The editor uploads the file it\nreceived; the returned ``run_id`` is then pushed like any other run.\nOnly a session signed in to GitHub, the one thing the run is for, may\nstore one.",
+        "operationId": "import_generated_code_run_besser_api_spec_driven_import_generated_code_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportGeneratedCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/spec-driven/import-github-run": {
       "post": {
         "tags": [
@@ -4123,6 +4183,20 @@
           "buml_file"
         ],
         "title": "Body_get_svg_besser_api_get_svg_post"
+      },
+      "Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post"
       },
       "Body_import_owl_besser_api_kg_import_owl_post": {
         "properties": {
@@ -5301,6 +5375,20 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "ImportGeneratedCodeResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id"
+        ],
+        "title": "ImportGeneratedCodeResponse",
+        "description": "Response of ``POST /besser_api/spec-driven/import-generated-code``."
       },
       "ImportGitHubRunRequest": {
         "properties": {
