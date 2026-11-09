@@ -13,6 +13,7 @@ import {
   type HistoryTurn,
 } from '../AssistantClient';
 import { recentHistoryFrom } from '../../hooks/recentHistory';
+import { readAssistantSessionId } from '../../../../shared/services/storage/assistantStorage';
 
 const HISTORY: HistoryTurn[] = [
   { role: 'user', content: 'A library system with books and loans' },
@@ -49,6 +50,33 @@ describe('AssistantClient — recentHistory after a (re)connect', () => {
     const client = new AssistantClient('ws://never-connect.invalid');
     client.setHistoryProvider(() => HISTORY);
     internals(client).sendHistoryOnNextMessage = true;
+    client.resetSession();
+    expect(internals(client).buildUserPayload('Hello', 'ClassDiagram')).not.toHaveProperty('recentHistory');
+  });
+
+  it('after another tab changed the conversation, the next message starts a new session carrying the history', () => {
+    sessionStorage.clear();
+    const client = new AssistantClient('ws://never-connect.invalid');
+    client.setHistoryProvider(() => HISTORY);
+    const before = internals(client).buildUserPayload('A library system', 'ClassDiagram');
+    expect(readAssistantSessionId()).toBe(before.sessionId);
+
+    client.restartWithHistoryOnNextMessage();
+    const restarted = internals(client).buildUserPayload('Add a Member class', 'ClassDiagram');
+    expect(restarted.sessionId).not.toBe(before.sessionId);
+    // The old id is cleared from the tab, so a reload does not reuse it.
+    expect(readAssistantSessionId()).toBe(restarted.sessionId);
+    expect(restarted.recentHistory).toEqual(HISTORY);
+
+    const next = internals(client).buildUserPayload('Rename it', 'ClassDiagram');
+    expect(next.sessionId).toBe(restarted.sessionId);
+    expect(next).not.toHaveProperty('recentHistory');
+  });
+
+  it('a new chat cancels a pending restart: the new session has no history to send', () => {
+    const client = new AssistantClient('ws://never-connect.invalid');
+    client.setHistoryProvider(() => HISTORY);
+    client.restartWithHistoryOnNextMessage();
     client.resetSession();
     expect(internals(client).buildUserPayload('Hello', 'ClassDiagram')).not.toHaveProperty('recentHistory');
   });
