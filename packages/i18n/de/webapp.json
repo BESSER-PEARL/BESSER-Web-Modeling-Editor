@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Erstelle eine Startseite für meine App",
         "generateDescription_one": "1 Klasse gefunden: {{names}}.",
         "generateDescription_other": "{{count}} Klassen gefunden: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Navigationskarte anzeigen",
+        "button": "Karte",
+        "title": "Navigationskarte",
+        "description": "Wie die Seiten miteinander verlinkt sind, so wie die generierte App ihnen folgt. Diese Karte ist schreibgeschützt: Links ändern Sie auf den Seiten selbst.",
+        "navBar": "Navigationsleiste",
+        "attention": "Zu prüfen",
+        "allGood": "Jede Seite ist von der Startseite aus erreichbar, und jeder Link hat ein Ziel.",
+        "unreached": "Kein Link führt zu „{{page}}“",
+        "broken": "„{{label}}“ auf {{page}} verweist auf {{target}}, das keine Seite ist",
+        "hint": "Klicken Sie auf eine Seite, um sie zu öffnen",
+        "summary": "Seiten: {{pages}} · Links auf Seiten: {{links}}",
+        "canvasLabel": "Navigationskarte. Seiten: {{pages}}. Links auf Seiten: {{links}}."
       }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen…",
