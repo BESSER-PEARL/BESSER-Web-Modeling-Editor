@@ -25,6 +25,7 @@ import { ApollonEditorProvider } from '../../../editors';
 const _client = vi.hoisted(() => ({
   messageHandlers: [] as Array<(m: ChatMessage) => void>,
   injectionHandlers: [] as Array<(c: InjectionCommand) => void>,
+  actionHandlers: [] as Array<(a: Record<string, unknown>) => void>,
   sentMessages: [] as string[],
   historyRequests: 0,
 }));
@@ -49,7 +50,8 @@ vi.mock('../../services', async (importOriginal) => {
     onTyping() {
       return noopUnsub;
     }
-    onAction() {
+    onAction(handler: (a: Record<string, unknown>) => void) {
+      _client.actionHandlers.push(handler);
       return noopUnsub;
     }
     clearHandlers() {}
@@ -165,6 +167,12 @@ async function emitInjection() {
   });
 }
 
+async function emitAction(action: Record<string, unknown>) {
+  await act(async () => {
+    _client.actionHandlers.forEach((h) => h(action));
+  });
+}
+
 const repairRequests = () => _client.sentMessages.filter((m) => m.startsWith('[auto-fix]'));
 
 beforeEach(() => {
@@ -240,6 +248,32 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     await emitInjection();
     await waitFor(() => expect(repairRequests()).toHaveLength(2));
   });
+
+  // BESSER#744: the repair request was answered "I couldn't process that
+  // modification", with no model, and the "fixing them now…" line spun forever.
+  it.each(['assistant_message', 'agent_error'])(
+    'settles the auto-fix line when the repair is answered by %s instead of a model',
+    async (action) => {
+      const { drawer } = renderTwoSurfaces();
+      await waitFor(() => expect(drawer.current).not.toBeNull());
+
+      await act(async () => {
+        await drawer.current!.submit('create a library');
+      });
+      emit({ message: 'done', isUser: false });
+      await emitInjection();
+      await waitFor(() => expect(repairRequests()).toHaveLength(1));
+      const spinning = () => conversationStore.getMessages().filter((m) => m.isProgress && m.content.includes('fixing'));
+      expect(spinning()).toHaveLength(1);
+
+      await emitAction({ action, message: "I couldn't process that modification." });
+
+      await waitFor(() => expect(spinning()).toHaveLength(0));
+      const outcome = conversationStore.getMessages().find((m) => m.content.includes('could not fix'));
+      expect(outcome?.content).toContain('Class "Book" has no attributes');
+      expect(autoFixRef.current.fixInFlight).toBe(false);
+    },
+  );
 });
 
 describe('useAssistantLogic keeps the conversation with the project (BESSER#745)', () => {

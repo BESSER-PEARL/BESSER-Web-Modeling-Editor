@@ -34,7 +34,12 @@ import {
   sameTurns,
   toProjectConversation,
 } from './projectConversation';
-import { autoFixInProgressMessage, autoFixRemainingMessage, autoFixResolvedMessage } from './autoFixMessages';
+import {
+  autoFixFailedMessage,
+  autoFixInProgressMessage,
+  autoFixRemainingMessage,
+  autoFixResolvedMessage,
+} from './autoFixMessages';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
@@ -785,6 +790,14 @@ export function useAssistantLogic({
       return;
     }
     if (payload.action !== 'agent_error') trackReply(payload.action, payload.diagramType);
+
+    // A repair answered without a model never reaches handleModelApplied, so its
+    // "fixing…" line is settled here; a model reply comes as an injection, never
+    // as one of these two actions (BESSER#744).
+    if (autoFixRef.current.fixInFlight && (payload.action === 'assistant_message' || payload.action === 'agent_error')) {
+      autoFixRef.current.fixInFlight = false;
+      settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
+    }
 
     // Extract suggestedActions from assistant_message payloads before returning.
     if (payload.action === 'assistant_message') {

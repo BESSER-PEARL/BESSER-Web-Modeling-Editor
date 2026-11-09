@@ -17,6 +17,10 @@ export const autoFixResolvedMessage = (issues: readonly string[]): string =>
     ? 'Validation passed.'
     : `Validation found ${issues.length} issue(s) in the diagram and they are now fixed:\n\n${bulletList(issues)}`;
 
+/** The repair request was answered without a model (a refusal or an error). */
+export const autoFixFailedMessage = (issues: readonly string[]): string =>
+  `The assistant could not fix ${issues.length} validation issue(s) automatically:\n\n${bulletList(issues)}`;
+
 /** The one repair attempt is spent and issues remain. */
 export const autoFixRemainingMessage = (issues: readonly string[]): string =>
   `The diagram still has ${issues.length} validation issue(s):\n\n${bulletList(issues)}`;
