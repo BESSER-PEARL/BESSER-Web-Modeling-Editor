@@ -1674,11 +1674,11 @@
     "byBesser": "per BESSER",
     "welcome": {
       "greeting": "Hola! Soc el teu assistent de modelatge",
-      "intro": "Et puc ajudar a crear i modificar diagrames UML, generar codi i respondre preguntes de modelatge. Prova alguna cosa com ara:",
+      "intro": "Et puc ajudar a crear i modificar els teus models i respondre preguntes de modelatge. Prova alguna cosa com ara:",
       "suggestions": {
         "library": "Crea un sistema de gestió de biblioteca",
         "payment": "Afegeix una classe Payment amb amount i date",
-        "django": "Genera codi Django"
+        "stateMachine": "Crea una màquina d'estats per a una comanda"
       },
       "headlinePre": "Què t'agradaria",
       "headlineEmphasis": "modelar",

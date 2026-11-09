@@ -1674,11 +1674,11 @@
     "byBesser": "por BESSER",
     "welcome": {
       "greeting": "¡Hola! Soy tu asistente de modelado",
-      "intro": "Puedo ayudarte a crear y modificar diagramas UML, generar código y responder preguntas de modelado. Prueba algo como:",
+      "intro": "Puedo ayudarte a crear y modificar tus modelos y responder preguntas de modelado. Prueba algo como:",
       "suggestions": {
         "library": "Crear un sistema de gestión de biblioteca",
         "payment": "Añadir una clase Payment con amount y date",
-        "django": "Generar código Django"
+        "stateMachine": "Crear una máquina de estados para un pedido"
       },
       "headlinePre": "¿Qué te gustaría",
       "headlineEmphasis": "modelar",

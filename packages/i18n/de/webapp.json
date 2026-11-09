@@ -1674,11 +1674,11 @@
     "byBesser": "von BESSER",
     "welcome": {
       "greeting": "Hallo! Ich bin Ihr Modellierungsassistent",
-      "intro": "Ich kann Ihnen helfen, UML-Diagramme zu erstellen und zu ändern, Code zu generieren und Modellierungsfragen zu beantworten. Versuchen Sie zum Beispiel:",
+      "intro": "Ich kann Ihnen helfen, Ihre Modelle zu erstellen und zu ändern und Modellierungsfragen zu beantworten. Versuchen Sie zum Beispiel:",
       "suggestions": {
         "library": "Ein Bibliotheksverwaltungssystem erstellen",
         "payment": "Eine Payment-Klasse mit amount und date hinzufügen",
-        "django": "Django-Code generieren"
+        "stateMachine": "Einen Zustandsautomaten für eine Bestellung erstellen"
       },
       "headlinePre": "Was möchten Sie heute",
       "headlineEmphasis": "modellieren",

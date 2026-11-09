@@ -1674,11 +1674,11 @@
     "byBesser": "vu BESSER",
     "welcome": {
       "greeting": "Moien! Ech sinn Äre Modelléierungsassistent",
-      "intro": "Ech kann Iech hëllefen UML-Diagrammer ze erstellen an z'änneren, Code ze generéieren a Modelléierungsfroen ze beäntweren. Probéiert eppes wéi:",
+      "intro": "Ech kann Iech hëllefen Är Modeller ze erstellen an z'änneren a Modelléierungsfroen ze beäntweren. Probéiert eppes wéi:",
       "suggestions": {
         "library": "Erstellt e Bibliothéiksverwaltungssystem",
         "payment": "Füügt eng Payment-Klass mat Amount an Date bäi",
-        "django": "Generéiert Django-Code"
+        "stateMachine": "Erstellt en Zoustandsautomat fir eng Bestellung"
       },
       "headlinePre": "Wat wëllt Dir haut",
       "headlineEmphasis": "modelléieren",
