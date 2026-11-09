@@ -1050,6 +1050,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
           </div>
         )}
         <LlmKeyDialog
+          surface="kg_refine"
           open={keyDialogOpen}
           onOpenChange={setKeyDialogOpen}
           // Without a usable key (none, or a PIA/local one the KG endpoints

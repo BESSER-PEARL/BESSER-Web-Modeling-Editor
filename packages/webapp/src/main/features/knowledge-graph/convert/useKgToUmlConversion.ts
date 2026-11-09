@@ -9,6 +9,8 @@
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
+import { elapsedMs, errorProperties, track } from '../../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 
 import { checkKgConsistency, kgApiErrorMessage, kgToClassDiagram } from '../../../shared/api/knowledgeGraph';
@@ -21,7 +23,7 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { displayError } from '../../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import type { ConsistencyReport, SupportedDiagramType } from '../../../shared/types/project';
+import { isKnowledgeGraphData, type ConsistencyReport, type SupportedDiagramType } from '../../../shared/types/project';
 import { getActiveKgDiagram } from '../activeKgDiagram';
 
 export interface KgConvertOptions {
@@ -58,6 +60,10 @@ export const useKgToUmlConversion = () => {
       const active = getActiveKgDiagram();
       if (!active) return;
       const { project, diagram: kgDiagram } = active;
+      const graphSize = {
+        nodes_count: isKnowledgeGraphData(kgDiagram.model) ? kgDiagram.model.nodes.length : 0,
+        edges_count: isKnowledgeGraphData(kgDiagram.model) ? kgDiagram.model.edges.length : 0,
+      };
 
       // Pre-conversion OWL/SHACL consistency gate. Skipped on explicit
       // request (e.g. when the gate's "Proceed anyway" callback re-runs
@@ -67,16 +73,21 @@ export const useKgToUmlConversion = () => {
           const consistencyReport = await checkKgConsistency(kgDiagram);
           if (consistencyReport.issueCount > 0) {
             const decision = await options.onConsistencyIssues(consistencyReport);
-            if (decision === 'cancel') return;
+            if (decision === 'cancel') {
+              track('editor_action', { editor: 'kg', action: 'conversion_cancelled', issue_count: consistencyReport.issueCount });
+              return;
+            }
           }
         } catch (err) {
           // The check is advisory — if the endpoint fails we surface a toast
           // and continue with the conversion rather than blocking the user.
           const message = kgApiErrorMessage(err, t, t('knowledgeGraph.toUml.consistencyCheckFailed'));
           toast.warn(t('knowledgeGraph.toUml.consistencyCheckSkipped', { message }));
+          track('editor_action_failed', { editor: 'kg', action: 'consistency_check', ...errorProperties(err) });
         }
       }
 
+      const startedAt = performance.now();
       try {
         const data = await kgToClassDiagram({
           diagram: kgDiagram,
@@ -111,10 +122,23 @@ export const useKgToUmlConversion = () => {
         await dispatch(switchDiagramIndexThunk({ diagramType: TARGET_DIAGRAM_TYPE, index: addResult.index }));
 
         toast.success(t('knowledgeGraph.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY) }));
+        track('generator_used', {
+          generator_type: 'kg_to_class',
+          diagram_type: 'KnowledgeGraphDiagram',
+          duration_ms: elapsedMs(startedAt),
+          ...graphSize,
+        });
       } catch (error) {
+        track('generator_failed', {
+          generator_type: 'kg_to_class',
+          diagram_type: 'KnowledgeGraphDiagram',
+          reason: 'request',
+          duration_ms: elapsedMs(startedAt),
+          ...errorProperties(error),
+        });
         const message = kgApiErrorMessage(error, t, t('knowledgeGraph.toUml.conversionFailed'));
         dispatch(displayError(t('knowledgeGraph.toUml.failedTitle'), message));
-        toast.error(message);
+        reportError(message, { error });
       }
     },
     [dispatch, t],

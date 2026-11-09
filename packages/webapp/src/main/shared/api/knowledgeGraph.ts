@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next';
 import { apiClient } from './api-client';
+import type { components } from './generated/besser-openapi';
 import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiagramModel } from '../types/project';
+import type { KeyProvider } from '../services/llmKeyStorage';
 
 /**
  * API layer for the Knowledge Graph feature.
@@ -8,8 +10,9 @@ import type { ConsistencyReport, KnowledgeGraphData, ProjectDiagram, ProjectDiag
  * One function per endpoint (`/besser_api/kg/...`); the flows built on them
  * (batching, merging, retries) belong to the features that use them. Every KG
  * HTTP call goes through the shared `apiClient` (timeouts, `{"detail"}` error
- * parsing into `ApiError`). The response types below mirror the backend's
- * `backend/models/responses.py`; a change there is a change here.
+ * parsing into `ApiError`). Response types are the generated OpenAPI types
+ * (backend `backend/models/responses.py`); where the schema has a free dict,
+ * the type below names the shape the editor reads.
  */
 
 // ---------------------------------------------------------------------------
@@ -29,13 +32,10 @@ const HEAVY_TIMEOUT_MS = 60_000;
 
 /** Backend `GET /kg/config`: the limits the server enforces on the KG LLM
  *  endpoints. Never hardcode a copy: a stale one silently becomes the binding
- *  limit (a timeout shorter than the server's, or a batch it rejects). */
-export interface KgConfig {
-  /** Overall deadline, in seconds, the server gives one KG LLM request. */
-  llmRequestTimeoutSeconds: number;
-  /** Most node ids one `/kg/classify-orphans` request may carry. */
-  maxOrphanClassifyNodes: number;
-}
+ *  limit (a timeout shorter than the server's, or a batch it rejects).
+ *  `llmRequestTimeoutSeconds`: the deadline of one KG LLM request;
+ *  `maxOrphanClassifyNodes`: most node ids one `/kg/classify-orphans` request may carry. */
+export type KgConfig = components['schemas']['KGConfigResponse'];
 
 /** The server's KG limits could not be loaded, so no LLM call is attempted
  *  (guessing them could cut a request short or send a batch it rejects). */
@@ -44,19 +44,6 @@ export class KgConfigUnavailableError extends Error {
     super('Could not load the Knowledge Graph limits from the server.');
     this.name = 'KgConfigUnavailableError';
   }
-}
-
-const isPositiveNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0;
-
-function parseKgConfig(raw: unknown): KgConfig {
-  const data = raw as Partial<KgConfig> | null | undefined;
-  const timeout = data?.llmRequestTimeoutSeconds;
-  const maxNodes = data?.maxOrphanClassifyNodes;
-  if (!isPositiveNumber(timeout) || !isPositiveNumber(maxNodes) || maxNodes < 1) {
-    throw new Error(`Unexpected /kg/config payload: ${JSON.stringify(raw)}`);
-  }
-  return { llmRequestTimeoutSeconds: timeout, maxOrphanClassifyNodes: Math.floor(maxNodes) };
 }
 
 let kgConfigPromise: Promise<KgConfig> | null = null;
@@ -70,8 +57,7 @@ let kgConfigPromise: Promise<KgConfig> | null = null;
 export function getKgConfig(): Promise<KgConfig> {
   if (!kgConfigPromise) {
     kgConfigPromise = apiClient
-      .get<unknown>('/kg/config')
-      .then(parseKgConfig)
+      .get<KgConfig>('/kg/config')
       .catch((error: unknown) => {
         kgConfigPromise = null;
         throw new KgConfigUnavailableError(error);
@@ -92,64 +78,32 @@ const llmTimeoutMs = (config: KgConfig) => config.llmRequestTimeoutSeconds * 100
 // Types
 // ---------------------------------------------------------------------------
 
-/** Backend `KGActionResponse`: a pre-filled action attached to a preflight issue. */
-export interface KgAction {
-  key: string;
-  parameters: Record<string, unknown>;
-  label: string;
-}
+/** A pre-filled action attached to a preflight issue. */
+export type KgAction = components['schemas']['KGActionResponse'];
 
-/** Backend `KGIssueResponse`: one KG element with no clean 1-to-1 B-UML mapping. */
-export interface KgIssue {
-  id: string;
-  code: string;
-  description: string;
-  affectedNodeIds: string[];
-  affectedEdgeIds: string[];
-  recommendedAction: KgAction | null;
-  skipAction: KgAction | null;
-}
+/** One KG element with no clean 1-to-1 B-UML mapping. Its defaulted fields stay optional in
+ *  the schema: the model is also part of a request body (`llmIssues`). */
+export type KgIssue = components['schemas']['KGIssueResponse'];
 
-/** Backend `KGPreflightReportResponse`: answer of `/kg/preflight`,
- *  `/kg/llm-clean` and `/kg/classify-orphans`. */
-export interface KgPreflightReport {
-  kgSignature: string;
-  diagramType: string;
-  issueCount: number;
-  issues: KgIssue[];
-}
+/** Answer of `/kg/preflight`, `/kg/llm-clean` and `/kg/classify-orphans`. */
+export type KgPreflightReport = components['schemas']['KGPreflightReportResponse'];
 
 /** Backend `KGConsistencyReportResponse`. Declared with the project types. */
 export type KgConsistencyReport = ConsistencyReport;
 
-/** Backend `KGPendingOrphanClassification`. */
-export interface KgPendingOrphanClassification {
-  nodeIds: string[];
-  kgSignature: string;
-}
+export type KgPendingOrphanClassification = components['schemas']['KGPendingOrphanClassification'];
 
-/** Backend `KGRefinementResponse`: answer of `/kg/apply-refinement`. */
-export interface KgRefinementResponse {
-  title: string;
+/** Answer of `/kg/apply-refinement`. Narrows the schema's free dict `model` to the cleaned graph. */
+export type KgRefinementResponse = Omit<components['schemas']['KGRefinementResponse'], 'model'> & {
   model: KnowledgeGraphData;
-  diagramType: string;
-  kgSignature: string;
-  pendingOrphanClassification?: KgPendingOrphanClassification | null;
-  exportedAt?: string;
-  version?: string;
-}
+};
 
-/** Backend `DiagramExportResponse`: answer of `/kg/import-owl` (a KG model) and
- *  `/kg/to-class-diagram` (a class diagram model). `warnings` is the
- *  conversion's list of `{code, message}` anomalies. */
-export interface KgDiagramResponse<TModel> {
-  title: string;
+/** Answer of `/kg/import-owl` (a KG model) and `/kg/to-class-diagram` (a class
+ *  diagram model). Narrows the schema's free dict `model` to that model.
+ *  `warnings` is the conversion's list of `{code, message}` anomalies. */
+export type KgDiagramResponse<TModel> = Omit<components['schemas']['DiagramExportResponse'], 'model'> & {
   model: TModel;
-  diagramType: string;
-  exportedAt?: string;
-  version?: string;
-  warnings?: Array<Record<string, unknown>> | null;
-}
+};
 
 export type KgDecision = 'accept' | 'skip';
 export interface KgResolution {
@@ -214,7 +168,12 @@ export const applyKgRefinement = ({
 /** Providers the KG LLM endpoints accept a user key for (the backend's `KGLLMProvider`).
  *  A key for any other (PIA, a local endpoint) needs a custom base URL, which the
  *  server refuses to open on a user's behalf. */
-export const KG_LLM_PROVIDERS = ['anthropic', 'openai', 'mistral', 'nebius'] as const;
+export const KG_LLM_PROVIDERS = [
+  'anthropic',
+  'openai',
+  'mistral',
+  'nebius',
+] as const satisfies readonly KeyProvider[];
 export type KgLlmProvider = (typeof KG_LLM_PROVIDERS)[number];
 
 export const isKgLlmProvider = (provider: string): provider is KgLlmProvider =>

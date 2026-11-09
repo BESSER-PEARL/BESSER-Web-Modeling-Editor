@@ -1,6 +1,8 @@
 import type { MutableRefObject } from 'react';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import { useTranslation } from 'react-i18next';
 import type { AgentDiagramLinker, BesserEditor, UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
@@ -112,17 +114,20 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
     async (suggestedTitle: string, elementId: string) => {
       const sourceDiagram = activeDiagram;
       if (!sourceDiagram || activeDiagramType !== 'BPMN' || !isUMLModel(sourceDiagram.model)) {
-        toast.error(t('interDiagram.linker.bpmnNotActive'));
+        reportError(t('interDiagram.linker.bpmnNotActive'));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'not_bpmn' });
         return null;
       }
 
       const project = ProjectStorageRepository.getCurrentProject();
       if (!project) {
-        toast.error(t('interDiagram.linker.noProject'));
+        reportError(t('interDiagram.linker.noProject'));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'no_project' });
         return null;
       }
       if (project.diagrams.AgentDiagram.length >= MAX_DIAGRAMS_PER_TYPE) {
         toast.warn(t('interDiagram.linker.limitReached', { max: MAX_DIAGRAMS_PER_TYPE }));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'limit_reached' });
         return null;
       }
 
@@ -136,7 +141,8 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
           await dispatch(updateDiagramModelThunk({ model: sourceModel })).unwrap();
         } catch (err) {
           console.error('[agent-diagram-linker] saving the BPMN diagram failed:', err);
-          toast.error(t('interDiagram.linker.flushFailed'));
+          reportError(t('interDiagram.linker.flushFailed'), { error: err });
+          trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'save_source' });
           return null;
         }
       }
@@ -145,6 +151,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
       const derivation = isLaneSource ? laneToAgentModel(sourceModel, elementId) : null;
       if (derivation && !derivation.ok) {
         toast.warning(t(REFUSAL_MESSAGE_KEYS[derivation.reason]));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: derivation.reason });
       }
 
       // 2. addDiagramThunk makes the new diagram the active one but leaves the
@@ -155,7 +162,8 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
         newDiagramId = added.diagram.id;
       } catch (err) {
         console.error('[agent-diagram-linker] adding the Agent diagram failed:', err);
-        toast.error(t('interDiagram.linker.createFailed'));
+        reportError(t('interDiagram.linker.createFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'create' });
         return null;
       }
 
@@ -169,7 +177,8 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
         await dispatch(refreshProjectStateThunk()).unwrap();
       } catch (err) {
         console.error('[agent-diagram-linker] reloading the project failed:', err);
-        toast.error(t('interDiagram.linker.openFailed'));
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'reload' });
         return null;
       }
 
@@ -179,7 +188,8 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
         await dispatch(switchDiagramTypeThunk({ diagramType: 'AgentDiagram' })).unwrap();
       } catch (err) {
         console.error('[agent-diagram-linker] switching to the Agent diagram failed:', err);
-        toast.error(t('interDiagram.linker.openFailed'));
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'switch' });
         return null;
       }
 
@@ -192,9 +202,11 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
           dispatch(bumpEditorRevision());
         } catch (err) {
           console.error('[agent-diagram-linker] filling the Agent diagram failed:', err);
-          toast.error(t('interDiagram.linker.populateFailed'));
+          reportError(t('interDiagram.linker.populateFailed'), { error: err });
+          trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'populate' });
           return newDiagramId;
         }
+        track('inter_diagram_derived', { kind: 'lane_agent', warnings_count: derivation.warnings.length });
         reportDerivationWarnings(
           '[agent-diagram-linker]',
           t('interDiagram.linker.derivedWithWarnings', { count: derivation.warnings.length }),
@@ -217,7 +229,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
         .unwrap()
         .catch((err: unknown) => {
           console.error('[agent-diagram-linker] opening the Agent diagram failed:', err);
-          toast.error(t('interDiagram.linker.openExistingFailed'));
+          reportError(t('interDiagram.linker.openExistingFailed'), { error: err });
         });
     },
     [dispatch, t],

@@ -1,8 +1,10 @@
 // Import diagram from image using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
+import type { UMLDiagramType } from '@besser/wme';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromImage } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -17,10 +19,6 @@ export const useImportDiagramPictureFromImage = () => {
 
   const importDiagramFromImage = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('image_file', file);
-      formData.append('api_key', apiKey);
-
       // If the active ClassDiagram already has elements, send it so the backend
       // merges the image into it instead of replacing.
       const currentForMerge = ProjectStorageRepository.getCurrentProject();
@@ -30,27 +28,22 @@ export const useImportDiagramPictureFromImage = () => {
         Math.min(classActiveIndex, Math.max(classDiagramsForMerge.length - 1, 0))
       ];
       const activeClassNodes = (activeClassDiagram as any)?.model?.nodes;
-      if (Array.isArray(activeClassNodes) && activeClassNodes.length > 0) {
-        formData.append('existing_model', JSON.stringify({
-          title: activeClassDiagram.title,
-          model: (activeClassDiagram as any).model,
-        }));
-      }
+      const existingModel =
+        Array.isArray(activeClassNodes) && activeClassNodes.length > 0
+          ? { title: activeClassDiagram.title, model: (activeClassDiagram as any).model }
+          : undefined;
 
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-image`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+      let data;
+      try {
+        data = await getJsonModelFromImage(file, apiKey, existingModel);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
-      // Should be a diagram JSON (v3 or v4 — both carry model.type)
+      // Should be a diagram JSON (v3 or v4 — both carry model.type); the
+      // import helper lifts a v3 payload and validates the v4 shape.
       if (!data || !data.model || !data.model.type) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
@@ -71,8 +64,8 @@ export const useImportDiagramPictureFromImage = () => {
         {
           ...data,
           description:
-            data.description ||
-            t('import.descriptions.importedFromImage', { diagramType: toSupportedDiagramType(data.model.type) }),
+            (data as { description?: string }).description ||
+            t('import.descriptions.importedFromImage', { diagramType: toSupportedDiagramType(data.model.type as UMLDiagramType) }),
         },
         {
           fallbackTitle: file.name,

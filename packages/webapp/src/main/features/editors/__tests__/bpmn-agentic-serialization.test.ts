@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { convertV3ToV4 } from '@besser/wme';
 import type { UMLModel } from '@besser/wme';
-import { bpmnModelToXml } from '../../export/bpmn-xml-exporter';
-import { bpmnXmlToModel } from '../../import/bpmn-xml-importer';
+import { bpmnModelToXml } from '../../export';
+import { bpmnXmlToModel } from '../../import';
 
 // Agentic BPMN fields on the v4 model: a stored v3 diagram converts with them on
 // `node.data` (same names), and the BPMN XML round-trip keeps them.

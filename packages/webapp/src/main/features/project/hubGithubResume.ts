@@ -2,11 +2,17 @@
  * Where the Project Hub resumes after the GitHub OAuth redirect.
  *
  * Stored under `sessionStorageContinueFromGithubIntent`, the key the bootstrap
- * (useProjectBootstrap) already reads to keep the hub open on return. `'1'`,
- * written by "Continue from GitHub", resumes on the repo picker; a JSON value
+ * (useProjectBootstrap) already reads to keep the hub open on return.
+ * `CONTINUE_FROM_GITHUB_REPO_PICKER`, written by "Continue from GitHub",
+ * resumes on the repo picker; a JSON value
  * resumes on the landing or on the create form with what the user had typed.
  */
-import { sessionStorageContinueFromGithubIntent } from '../../shared/constants/constant';
+import {
+  CONTINUE_FROM_GITHUB_REPO_PICKER,
+  clearContinueFromGithubIntent,
+  readContinueFromGithubIntent,
+  writeContinueFromGithubIntent,
+} from '../../shared/services/storage/githubStorage';
 import type { InterfaceMode } from '../../shared/types/project';
 
 export interface CreateFormResume {
@@ -20,12 +26,10 @@ export interface CreateFormResume {
 
 export type HubGithubResume = { step: 'github' } | { step: 'welcome' } | CreateFormResume;
 
-const CONTINUE_FROM_GITHUB = '1';
-
 const isString = (value: unknown): value is string => typeof value === 'string';
 
 const parse = (raw: string): HubGithubResume | null => {
-  if (raw === CONTINUE_FROM_GITHUB) return { step: 'github' };
+  if (raw === CONTINUE_FROM_GITHUB_REPO_PICKER) return { step: 'github' };
   try {
     const value = JSON.parse(raw);
     if (value?.step === 'welcome') return { step: 'welcome' };
@@ -51,26 +55,11 @@ const parse = (raw: string): HubGithubResume | null => {
 };
 
 export const peekHubGithubResume = (): HubGithubResume | null => {
-  try {
-    const raw = sessionStorage.getItem(sessionStorageContinueFromGithubIntent);
-    return raw === null ? null : parse(raw);
-  } catch {
-    return null;
-  }
+  const raw = readContinueFromGithubIntent();
+  return raw === null ? null : parse(raw);
 };
 
-export const stashHubGithubResume = (resume: Exclude<HubGithubResume, { step: 'github' }>): void => {
-  try {
-    sessionStorage.setItem(sessionStorageContinueFromGithubIntent, JSON.stringify(resume));
-  } catch {
-    /* storage unavailable: sign-in still proceeds, the hub just opens at its default step */
-  }
-};
+export const stashHubGithubResume = (resume: Exclude<HubGithubResume, { step: 'github' }>): void =>
+  writeContinueFromGithubIntent(JSON.stringify(resume));
 
-export const clearHubGithubResume = (): void => {
-  try {
-    sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
-  } catch {
-    /* ignore */
-  }
-};
+export const clearHubGithubResume = clearContinueFromGithubIntent;

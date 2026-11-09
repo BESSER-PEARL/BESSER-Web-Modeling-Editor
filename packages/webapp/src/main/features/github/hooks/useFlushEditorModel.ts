@@ -1,6 +1,6 @@
 import { useCallback, useContext } from 'react';
 import { useProject } from '../../../app/hooks/useProject';
-import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
+import { BesserEditorContext } from '../../editors';
 
 /** Writes the open diagram into the stored project, so a GitHub action reads the latest model. */
 export function useFlushEditorModel() {

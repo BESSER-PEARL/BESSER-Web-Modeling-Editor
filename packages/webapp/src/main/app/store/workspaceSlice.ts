@@ -8,6 +8,7 @@ import {
   InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
+  ProjectConversation,
   ProjectDiagram,
   SupportedDiagramType,
   QuantumCircuitData,
@@ -21,7 +22,7 @@ import {
   getReferencedDiagram,
 } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { localStorageLatestProject } from '../../shared/constants/constant';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import { DeepPartial } from '../../shared/utils/types';
 import { getUserMetaModelV4 } from '@besser/wme';
 import i18n from '../../shared/i18n';
@@ -166,7 +167,7 @@ export const loadProjectThunk = createAsyncThunk(
 
     if (!project) throw new Error('Project not found');
 
-    localStorage.setItem(localStorageLatestProject, project.id);
+    ProjectStorageRepository.setLatestProjectId(project.id);
 
     // Mirror the bridge setup that `switchDiagramTypeThunk` would do, so
     // imported / template-loaded projects whose active diagram is a User
@@ -246,13 +247,22 @@ export const switchDiagramTypeThunk = createAsyncThunk(
       : toSupportedDiagramType(diagramType as UMLDiagramType);
 
     let diagram: ProjectDiagram | null = null;
-    ProjectStorageRepository.withoutNotify(() => {
-      diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
-    });
-    if (!diagram) throw new Error('Failed to switch diagram type');
+    try {
+      ProjectStorageRepository.withoutNotify(() => {
+        diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
+      });
+      if (!diagram) throw new Error('Failed to switch diagram type');
 
-    await setupBridgeForActiveDiagram(project, diagram, supportedType);
+      await setupBridgeForActiveDiagram(project, diagram, supportedType);
+    } catch (error) {
+      trackFailure('diagram_type_switch_failed', error, { to_type: supportedType });
+      throw error;
+    }
 
+    // Every switch (sidebar, palette, assistant, perspective auto-switch) passes here.
+    if (project.currentDiagramType !== supportedType) {
+      track('diagram_type_switched', { from_type: project.currentDiagramType, to_type: supportedType });
+    }
     return { diagram, diagramType: supportedType };
   },
 );
@@ -812,6 +822,26 @@ const workspaceSlice = createSlice({
     bumpEditorRevision(state) {
       state.editorRevision += 1;
     },
+    /** Who added what, after a save: the model and the editor stay as they are. */
+    setProjectAttribution(
+      state,
+      action: PayloadAction<{ projectId: string; attribution: NonNullable<BesserProject['attribution']> }>,
+    ) {
+      if (state.project?.id === action.payload.projectId) state.project.attribution = action.payload.attribution;
+    },
+    /** The assistant conversation kept with the project (BESSER#745). */
+    setProjectConversation(
+      state,
+      action: PayloadAction<{ projectId: string; conversation: ProjectConversation | undefined }>,
+    ) {
+      const { projectId, conversation } = action.payload;
+      if (state.project?.id !== projectId) return;
+      if (conversation) state.project.assistantConversation = conversation;
+      else delete state.project.assistantConversation;
+      ProjectStorageRepository.withoutNotify(() => {
+        ProjectStorageRepository.saveProject(state.project!);
+      });
+    },
     clearError(state) {
       state.error = null;
     },
@@ -1131,6 +1161,8 @@ const workspaceSlice = createSlice({
 
 export const {
   bumpEditorRevision,
+  setProjectAttribution,
+  setProjectConversation,
   clearError,
   updateProjectInfo,
   changeEditorMode,

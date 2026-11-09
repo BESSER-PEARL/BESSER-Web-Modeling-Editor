@@ -8,7 +8,10 @@ import { createDefaultProject } from '../../../../shared/types/project';
 
 // ── Mocks ────────────────────────────────────────────────────────────────
 
-const mockDispatch = vi.fn(() => Promise.resolve());
+/** A dispatched thunk's result: awaitable, with RTK's `unwrap`. */
+const thunkResult = (outcome: Promise<unknown> = Promise.resolve()) =>
+  Object.assign(Promise.resolve(), { unwrap: () => outcome });
+const mockDispatch = vi.fn((_action?: unknown) => thunkResult());
 
 const NO_DIAGRAMS: ProjectDiagram[] = [];
 
@@ -49,8 +52,9 @@ vi.mock('react-toastify', () => ({
   },
 }));
 
+const mockCaptureEvent = vi.hoisted(() => vi.fn());
 vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+  captureEvent: mockCaptureEvent,
 }));
 
 const mockGlobalConfirm = vi.fn((_options: unknown) => Promise.resolve(true));
@@ -214,6 +218,44 @@ describe('DiagramTabs', () => {
     render(<DiagramTabs />);
 
     expect(screen.queryByLabelText('Add new diagram')).not.toBeInTheDocument();
+  });
+
+  it('tracks diagram_created only once the new diagram exists', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'Diagram 1')] });
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getByLabelText('Add a new diagram tab'));
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('diagram_created', { type: 'ClassDiagram' }),
+    );
+    expect(mockCaptureEvent).not.toHaveBeenCalledWith('diagram_create_failed', expect.anything());
+  });
+
+  it('tracks diagram_create_failed, not diagram_created, when adding fails', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'Diagram 1')] });
+    mockDispatch.mockImplementationOnce(() => thunkResult(Promise.reject(new Error('storage full'))));
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getByLabelText('Add a new diagram tab'));
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith(
+        'diagram_create_failed',
+        expect.objectContaining({ type: 'ClassDiagram', reason: 'exception', error_type: 'Error' }),
+      ),
+    );
+    expect(mockCaptureEvent).not.toHaveBeenCalledWith('diagram_created', expect.anything());
+  });
+
+  it('tracks diagram_deleted with the remaining count, never the title', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Secret title')] });
+    mockGlobalConfirm.mockResolvedValueOnce(true);
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('diagram_deleted', { type: 'ClassDiagram', remaining: 1 }),
+    );
+    expect(JSON.stringify(mockCaptureEvent.mock.calls)).not.toContain('Secret title');
   });
 
   it('shows close button for diagrams when more than one exists', () => {

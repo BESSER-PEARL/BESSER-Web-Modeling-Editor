@@ -9,7 +9,37 @@
     "loading": "Cargando…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "ok": "Aceptar"
+  },
+  "whatsNew": {
+    "title": "Novedades",
+    "unread_one": "Novedades (1 nueva)",
+    "unread_other": "Novedades ({{count}} nuevas)",
+    "new": "Nuevo",
+    "entries": {
+      "repoTogether": {
+        "title": "Trabaja en equipo sobre un repositorio",
+        "body": "Un proyecto vinculado a GitHub ahora continúa desde su código, incluso después de que expire la última ejecución. Cuando otra persona hace push, una tarjeta indica quién y qué, y puedes previsualizar sus clases en el lienzo antes de incorporarlas."
+      },
+      "keepEdits": {
+        "title": "Tus cambios sobreviven a un cambio de modelo",
+        "body": "Cambia el modelo de clases de una app creada por el Spec-Driven Agent: regenera los archivos que nadie editó y fusiona tus cambios en los demás, así que muchos menos cambios necesitan la IA."
+      },
+      "anyStack": {
+        "title": "Aplicaciones en la tecnología que pidas",
+        "body": "Pide al Spec-Driven Agent una API REST en Go o una herramienta de línea de comandos en Rust: la construye y después comprueba la aplicación igual que comprueba una aplicación web."
+      },
+      "githubRepo": {
+        "title": "Proyectos vinculados a GitHub",
+        "body": "Vincula un proyecto a un repositorio de GitHub. El menú GitHub guarda allí tu modelo, obtiene la última versión, muestra el historial y te dice si estás sincronizado."
+      },
+      "knowledgeGraph": {
+        "title": "Diagramas Knowledge Graph",
+        "body": "Importa una ontología OWL o RDF, edítala como un grafo, compruébala con sus restricciones OWL y SHACL y conviértela en un diagrama de clases con restricciones OCL.",
+        "action": "Abrir el editor Knowledge Graph"
+      }
+    }
   },
   "topbar": {
     "language": "Idioma",
@@ -89,7 +119,6 @@
       "newOpenImport": "Nuevo / Abrir / Importar proyecto",
       "loadTemplate": "Cargar plantilla…",
       "exportProject": "Exportar proyecto…",
-      "previewProject": "Vista previa del proyecto…",
       "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…",
       "importGroupProject": "Proyecto",
       "importGroupClassDiagram": "Diagrama de clases desde",
@@ -102,8 +131,7 @@
       "importProjectFile": "Archivo de proyecto (.json / .py)…",
       "fromSpreadsheet": "Desde datos…",
       "fromGithub": "Desde GitHub…",
-      "importKgOwl": "Importar KG",
-      "shareAsGist": "Compartir como Gist secreto…"
+      "importKgOwl": "Importar KG"
     },
     "generate": {
       "title": "Generar",
@@ -924,7 +952,8 @@
     "field": {
       "name": "Nombre",
       "owner": "Propietario",
-      "description": "Descripción"
+      "description": "Descripción",
+      "descriptionPlaceholder": "¿De qué trata este proyecto? (opcional)"
     },
     "hub": {
       "stepBadge": "Paso {{current}} de {{total}}",
@@ -1228,19 +1257,31 @@
     "toasts": {
       "createOrLoadFirst": "Crea o carga primero un proyecto."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "JSON del proyecto copiado.",
-        "jsonCopyFailed": "No se pudo copiar el JSON del proyecto.",
-        "bumlFailedFallback": "No se pudo generar la vista previa de B-UML.",
-        "bumlFailed": "No se pudo generar la vista previa de B-UML: {{message}}",
-        "noBumlToCopy": "No hay vista previa de B-UML para copiar.",
-        "bumlCopied": "B-UML del proyecto copiado.",
-        "bumlCopyFailed": "No se pudo copiar la vista previa de B-UML.",
-        "noBumlToDownload": "No hay vista previa de B-UML para descargar."
-      }
-    },
     "landing": {
+      "dialogTitle": "Elige cómo quieres empezar",
+      "eyebrow": "Bienvenido a BESSER",
+      "heading": "¿Cómo quieres <em>empezar</em>?",
+      "subtitle": "Dos caminos hacia el mismo editor. Elige uno para empezar — puedes cambiar cuando quieras.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "Un diagrama de clases UML",
+        "sampleClassA": "Libro",
+        "sampleClassB": "Préstamo",
+        "title": "Modélalo",
+        "description": "Dibuja tu sistema con precisión — clases, relaciones, pantallas. Resultado determinista, exacto en cada ejecución.",
+        "cta": "Empezar a modelar"
+      },
+      "agent": {
+        "kicker": "Agéntico · Lenguaje natural",
+        "samplePrompt": "una app de reservas de hotel",
+        "sampleResult": "app",
+        "title": "Descríbelo",
+        "description": "Di lo que quieres con palabras sencillas. BESSER crea el modelo y el código — tú lo refinas conversando.",
+        "badge": "Gratis · modelo alojado",
+        "cta": "Empezar a describir"
+      },
+      "remember": "Recordar mi elección y omitir esto la próxima vez",
+      "moreOptions": "Más opciones",
       "github": {
         "pitch": "Guarda tus proyectos en tus propios repositorios de GitHub",
         "connectedAs": "Conectado como {{username}}",
@@ -1251,7 +1292,6 @@
   },
   "github": {
     "defaultRepoDescription": "Proyecto BESSER: {{name}}",
-    "defaultGistDescription": "Proyecto BESSER: {{name}}",
     "connect": {
       "button": "Conectar con GitHub",
       "checking": "Comprobando tu conexión con GitHub…"
@@ -1281,16 +1321,6 @@
       "title": "Subir a GitHub",
       "messageLabel": "Mensaje de commit",
       "pushing": "Subiendo…"
-    },
-    "gist": {
-      "title": "Crear Gist",
-      "description": "Crea un Gist de GitHub para compartir tu proyecto rápidamente.",
-      "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "Descripción del Gist…",
-      "publicGist": "Gist público",
-      "secretHint": "Los gists secretos están ocultos para los motores de búsqueda, pero son visibles para cualquiera que tenga el enlace.",
-      "creating": "Creando…",
-      "createGist": "Crear Gist"
     },
     "createRepo": {
       "title": "Crear repositorio",
@@ -1324,7 +1354,6 @@
       "repoCreated": "Repositorio creado: {{name}}",
       "deploymentFailed": "El despliegue falló",
       "repoCreationFailed": "No se pudo crear el repositorio",
-      "gistCreated": "¡Gist creado correctamente!",
       "invalidGitHubUrl": "URL de GitHub no válida. Proporciona una URL válida de un repositorio de GitHub.",
       "fetchingFromGitHub": "Obteniendo {{filename}} de GitHub…",
       "fileNotFound": "Archivo no encontrado en GitHub. Comprueba la URL e inténtalo de nuevo.",
@@ -1381,13 +1410,15 @@
       "toasts": {
         "conflict": "GitHub no pudo combinar este push automáticamente.",
         "connectFirst": "Conecta GitHub para hacer push de tu aplicación generada.",
+        "connectFirstGenerated": "Conecta GitHub en el menú GitHub y vuelve a generar el código para guardarlo allí.",
         "created": "Push hecho a {{repo}}",
         "modelUpdated": "El modelo incluye ahora las clases que añadió el agente.",
         "noProject": "Abre un proyecto antes de hacer push a GitHub.",
         "nothingToPush": "Nada que subir.",
         "pullRequest": "Pull request abierta en {{repo}}",
         "pullRequestFailed": "No se pudo abrir la pull request.",
-        "updated": "{{repo}} actualizado"
+        "updated": "{{repo}} actualizado",
+        "uploadFailed": "No se pudo preparar el código generado para GitHub: {{detail}}"
       },
       "viewPullRequest": "Ver la pull request",
       "filesChanged_one": "{{count}} archivo cambiado.",
@@ -1474,7 +1505,43 @@
       "saved": "Modelo guardado en GitHub.",
       "savedMerged": "Guardado y combinado con los cambios más recientes de GitHub.",
       "repoHasModelChoice": "{{repo}} contiene «{{name}}». Cárgalo en este proyecto, sustituyendo el modelo abierto, o conserva tu modelo y vincula: tu próximo guardado sustituirá entonces el modelo del repositorio.",
+      "pickModelFile": "Este repositorio contiene {{number}} modelos. Elige el que quieras usar:",
       "keepModelAndLink": "Conservar mi modelo y vincular"
+    },
+    "preview": {
+      "addedSeveral": "Añadido: {{items}}",
+      "changedSeveral": "Cambiado: {{items}}",
+      "removedSeveral": "Eliminado: {{items}}",
+      "relationshipsRemoved_one": "{{count}} relación eliminada",
+      "relationshipsRemoved_other": "{{count}} relaciones eliminadas",
+      "notDrawn": "Este diagrama está vacío aquí: los cambios se listan, pero no se dibujan.",
+      "title": "Vista previa de lo nuevo en GitHub",
+      "loading": "Leyendo la nueva versión…",
+      "button": "Vista previa",
+      "menu": "Vista previa de los cambios",
+      "close": "Cerrar la vista previa",
+      "hint": "Tu modelo aún no ha cambiado. Los demás diagramas y el código vienen con ello.",
+      "nothing": "Los diagramas de clases son iguales. Puede que hayan cambiado otros diagramas o el código.",
+      "changed": "{{author}} ha cambiado {{items}}",
+      "removedLine": "{{author}} ha eliminado {{items}}",
+      "removed": "Eliminado",
+      "failed": "No se ha podido cargar la vista previa."
+    },
+    "teammate": {
+      "changedModel": "{{author}} ha cambiado el modelo",
+      "pushed": "{{author}} ha enviado a {{branch}}",
+      "more_one": "y {{count}} commit más",
+      "more_other": "y {{count}} commits más",
+      "mergeHint": "Tienes cambios sin guardar. Al guardar se combinan ambas versiones.",
+      "saveAndMerge": "Guardar y combinar",
+      "dismiss": "Cerrar"
+    },
+    "attribution": {
+      "title": "Novedades desde la última sincronización",
+      "added": "{{author}} añadió {{items}}",
+      "more": "{{items}} y {{count}} más",
+      "clear": "Borrar marcas",
+      "addedBy": "Añadido por {{author}} el {{date}}"
     },
     "proposal": {
       "accept": "Aceptar el modelo",
@@ -1536,6 +1603,32 @@
       "accept": "Leer con IA",
       "decline": "Ahora no"
     },
+    "recap": {
+      "recentWork": "Trabajo reciente",
+      "stillOpen": "Aún pendiente al terminar la última ejecución",
+      "newOnGitHub": "Novedades en GitHub desde entonces",
+      "more": "y {{hidden}} más",
+      "missing": "No está en el código: {{text}}",
+      "notChecked": "Sin comprobar: {{text}}",
+      "leftOut": "Omitido: {{text}}",
+      "continuing": "Continuando desde {{repo}} en {{branch}}.",
+      "continuingPulled": "Continuando desde {{repo}} en {{branch}}. Tenía un modelo más reciente, así que primero lo incorporé a este proyecto."
+    },
+    "linkedRun": {
+      "pullInterrupted": "No se cargó la versión de GitHub: el proyecto o su enlace de GitHub cambió mientras tanto. Inténtalo de nuevo.",
+      "repoChanged": "El enlace de GitHub de este proyecto cambió mientras se iniciaba. Vuelve a pedirlo.",
+      "pulledModel": "{{repo}} tenía un modelo más reciente, así que primero lo incorporé a este proyecto.",
+      "unsaved": "{{repo}} tiene commits en {{branch}} que este proyecto no ha incorporado, y tu modelo tiene cambios que no están guardados allí. Combínalos con **Subir a GitHub** en el menú de GitHub y vuelve a pedirlo.",
+      "busy": "BESSER está ocupado con otras ejecuciones. Vuelve a pedirlo en un momento.",
+      "badModel": "No se pudo cargar el modelo de este repositorio.",
+      "title": "¿Reconstruir la aplicación a partir de tu modelo?",
+      "description": "Este proyecto está vinculado a {{repo}}, pero BESSER no puede leer su código: {{reason}}. Soluciónalo y vuelve a pedirlo para continuar desde ese código. La reconstrucción parte de tu modelo e ignora lo que hay en GitHub.",
+      "rebuild": "Reconstruir desde el modelo",
+      "cancel": "Cancelar",
+      "notConnected": "GitHub no está conectado en esta pestaña",
+      "notFound": "no se encontró el repositorio o tu cuenta no tiene acceso a él",
+      "failed": "no se pudo contactar con GitHub"
+    },
     "startFromRepo": {
       "badLink": "Pega un enlace como github.com/owner/repo.",
       "connect": "Conecta GitHub para abrir uno de tus repositorios.",
@@ -1590,11 +1683,11 @@
     "byBesser": "por BESSER",
     "welcome": {
       "greeting": "¡Hola! Soy tu asistente de modelado",
-      "intro": "Puedo ayudarte a crear y modificar diagramas UML, generar código y responder preguntas de modelado. Prueba algo como:",
+      "intro": "Puedo ayudarte a crear y modificar tus modelos y responder preguntas de modelado. Prueba algo como:",
       "suggestions": {
         "library": "Crear un sistema de gestión de biblioteca",
         "payment": "Añadir una clase Payment con amount y date",
-        "django": "Generar código Django"
+        "stateMachine": "Crear una máquina de estados para un pedido"
       },
       "headlinePre": "¿Qué te gustaría",
       "headlineEmphasis": "modelar",
@@ -2185,7 +2278,7 @@
         },
         "publish": {
           "title": "Publicar y compartir",
-          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p><strong>Archivo → Compartir como Gist secreto…</strong> comparte una copia del proyecto con un enlace, sin las credenciales del agente.</p>"
+          "body": "<p><strong>Desplegar → Publicar en línea desde GitHub</strong> pone en línea la aplicación del repositorio vinculado, tal como la contiene el repositorio, cuando el servidor lo ofrece.</p><p>Para compartir el proyecto, comparte su repositorio vinculado: quien tenga acceso lo abre con <strong>Continuar desde GitHub</strong>.</p>"
         }
       }
     }
@@ -2231,7 +2324,7 @@
       "settingsButton": "Configuración de privacidad",
       "banner": {
         "title": "Cookies de analíticas",
-        "subtitle": "Analíticas anónimas para mejorar BESSER.",
+        "subtitle": "Analíticas e informes de errores para mejorar BESSER.",
         "details": "Detalles",
         "hideDetails": "Ocultar detalles",
         "decline": "Rechazar",
@@ -2239,10 +2332,13 @@
         "accept": "Aceptar",
         "privacyPolicy": "Política de privacidad",
         "rows": {
-          "generators": "Generadores de código utilizados",
+          "generators": "Funciones utilizadas y si funcionan",
+          "interactions": "Posiciones de los clics (mapas de calor) y velocidad de carga de las páginas",
           "diagramComplexity": "Tipo de diagrama y complejidad del modelo",
           "assistantUsage": "Recuento de uso del asistente de IA",
-          "noContent": "Sin contenido del modelo ni datos personales"
+          "errorReports": "Informes de errores anónimos",
+          "visitStats": "Estadísticas de visitas (Google Analytics)",
+          "noContent": "Sin contenido del modelo, nombres de proyectos ni datos de identidad"
         }
       },
       "settings": {
@@ -2258,10 +2354,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) es una plataforma low-code de código abierto desarrollada por el Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Datos que recopilamos",
         "collect": {
-          "usage": "Uso de funciones (generadores y flujos de trabajo de diagramas)",
+          "usage": "Uso de funciones y resultados: qué funciones utiliza, si funcionan o fallan, cuánto tardan y el tipo de error (nunca lo que escribe o modela)",
+          "interactions": "Posiciones de los clics y del puntero en las páginas (mapas de calor) y rendimiento de carga de las páginas",
           "metrics": "Métricas del modelo (recuentos de tamaño y estructura)",
           "assistant": "Recuentos de uso del asistente de IA (no el contenido)",
-          "session": "Metadatos de sesión anónimos"
+          "session": "Metadatos de sesión anónimos",
+          "visits": "Estadísticas de visitas: páginas visitadas, ubicación aproximada derivada de tu dirección IP, tipo de dispositivo y de navegador",
+          "errors": "Informes de errores anónimos (tipo de error, traza de la pila, estado HTTP, ruta de la página y tipo de navegador)"
         },
         "noCollectTitle": "Datos que no recopilamos",
         "noCollect": {
@@ -2272,9 +2371,13 @@
         },
         "useTitle": "Cómo usamos los datos",
         "useBody": "Las analíticas se usan únicamente para mejorar la calidad del producto y priorizar el desarrollo de funciones. No se utilizan con fines de marketing ni de reventa.",
-        "providerTitle": "Proveedor",
-        "providerIntro": "Usamos PostHog (alojado en la UE). Consulta la",
-        "providerLinkText": "Política de privacidad de PostHog"
+        "providerTitle": "Proveedores",
+        "providerIntro": "Usamos PostHog (alojado en la UE) para las analíticas de uso. Consulta la",
+        "providerLinkText": "Política de privacidad de PostHog",
+        "errorProviderIntro": "Los informes de errores se envían a Sentry (alojado en la UE, de.sentry.io) solo después de que aceptes las analíticas, y nunca incluyen contenido de modelos ni nombres de proyectos. Consulta la",
+        "errorProviderLinkText": "Política de privacidad de Sentry",
+        "visitProviderIntro": "Las estadísticas de visitas se envían a Google Analytics solo después de que aceptes las analíticas. Google no almacena tu dirección IP, y las señales de Google y la personalización de anuncios están desactivadas. Consulta la",
+        "visitProviderLinkText": "Política de privacidad de Google"
       }
     },
     "errors": {
@@ -2286,23 +2389,6 @@
       "unknownError": "Error desconocido",
       "tryAgainLabel": "Volver a intentar tras el error",
       "tryAgain": "Volver a intentar"
-    },
-    "jsonViewer": {
-      "jsonTitle": "Vista previa JSON del proyecto",
-      "diagramBuml": "Diagrama B-UML",
-      "closeLabel": "Cerrar ventana de vista previa",
-      "expand": "Expandir {{name}}",
-      "collapse": "Contraer {{name}}",
-      "root": "root",
-      "generatingBuml": "Generando vista previa de B-UML…",
-      "noBumlPreview": "Aún no hay ninguna vista previa de B-UML disponible.",
-      "generating": "Generando…",
-      "regenerate": "Regenerar",
-      "downloadBuml": "Descargar B-UML",
-      "copyBuml": "Copiar B-UML",
-      "downloadJson": "Descargar JSON",
-      "copyJson": "Copiar JSON",
-      "copyValue": "Copiar valor"
     },
     "notFound": {
       "title": "Página no encontrada",
@@ -2357,11 +2443,6 @@
       "open": "Abrir navegación",
       "close": "Cerrar navegación",
       "title": "Navegación"
-    },
-    "preview": {
-      "projectLabel": "Proyecto (V{{version}})",
-      "bumlLabelNamed": "Vista previa B-UML del proyecto ({{name}})",
-      "bumlLabel": "Vista previa B-UML del proyecto"
     },
     "skipToEditor": "Ir al editor"
   },
@@ -2882,8 +2963,6 @@
       "statusSaved": "Guardado",
       "statusSaving": "Guardando…",
       "statusErrorSaving": "Error al guardar",
-      "editorStillLoading": "El editor todavía se está cargando. Espera un momento e inténtalo de nuevo.",
-      "errorSavingProject": "Error al guardar el proyecto. Consulta la consola para más detalles.",
       "downloadHtml": "Descargar HTML",
       "exportTemplate": "Exportar plantilla",
       "downloadJson": "Descargar JSON",
@@ -2907,9 +2986,6 @@
       "qualityCheckFailedMessage": "Se encontraron errores en tu diagrama de clases. Resuélvelos antes de generar la interfaz.",
       "classDiagramErrors": "Errores del diagrama de clases",
       "noClassesFound": "No se encontraron clases en el diagrama de clases. Primero cree un diagrama de clases.",
-      "noPageSelected": "Ninguna página seleccionada",
-      "editRoutePrompt": "Editar la ruta de la página \"{{pageName}}\":\n\nEjemplos:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Ruta actualizada a: {{route}}",
       "sidebarBlocks": "Bloques",
       "sidebarStyles": "Estilos",
       "sidebarTraits": "Propiedades",
@@ -2998,6 +3074,20 @@
         "starterPromptNoClasses": "Crea una página de inicio para mi aplicación",
         "generateDescription_one": "1 clase encontrada: {{names}}.",
         "generateDescription_other": "{{count}} clases encontradas: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Mostrar el mapa de navegación",
+        "button": "Mapa",
+        "title": "Mapa de navegación",
+        "description": "Cómo se enlazan las páginas entre sí, tal como las sigue la aplicación generada. Este mapa es de solo lectura: cambia los enlaces en las propias páginas.",
+        "navBar": "Barra de navegación",
+        "attention": "Requiere atención",
+        "allGood": "Todas las páginas son accesibles desde la página de inicio y todos los enlaces tienen destino.",
+        "unreached": "«{{page}}» no es accesible desde la página de inicio",
+        "broken": "«{{label}}» en {{page}} apunta a {{target}}, que no es una página",
+        "hint": "Haz clic en una página para abrirla",
+        "summary": "Páginas: {{pages}} · Enlaces en las páginas: {{links}}",
+        "canvasLabel": "Mapa de navegación. Páginas: {{pages}}. Enlaces en las páginas: {{links}}."
       }
     },
     "loadingGuiEditor": "Cargando el editor de GUI…",
@@ -3708,7 +3798,6 @@
       "failed": "Error en la exportación: {{error}}",
       "validationFailed": "La validación ha fallado",
       "noDiagramToExport": "No hay ningún diagrama para exportar",
-      "couldNotParseError": "No se pudo analizar la respuesta de error",
       "bumlExportSuccess": "Exportación de B-UML completada correctamente",
       "noProjectData": "No hay datos de proyecto disponibles para exportar",
       "projectExportedAs": "Proyecto exportado como {{filename}}",
@@ -3786,7 +3875,8 @@
       "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
       "invalidJson": "El archivo no es un JSON válido.",
       "unsupportedProjectFile": "El archivo no es una exportación de proyecto o diagrama de BESSER.",
-      "projectUnreadable": "No se pudo leer el proyecto de este archivo."
+      "projectUnreadable": "No se pudo leer el proyecto de este archivo.",
+      "projectInvalid": "El archivo no es un proyecto de BESSER válido."
     },
     "warnings": {
       "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
@@ -3975,6 +4065,15 @@
       "diagramValid": "El diagrama es válido",
       "validationErrorGeneric": "Error de validación: {{error}}",
       "unknownError": "Error desconocido"
+    },
+    "warningsConfirm": {
+      "title_one": "El modelo tiene una advertencia de validación",
+      "title_other": "El modelo tiene {{count}} advertencias de validación",
+      "description": "¿Generar de todos modos o corregir primero el modelo?",
+      "more_one": "…y 1 más.",
+      "more_other": "…y {{count}} más.",
+      "confirm": "Generar de todos modos",
+      "cancel": "Corregir primero el modelo"
     }
   },
   "quantum": {

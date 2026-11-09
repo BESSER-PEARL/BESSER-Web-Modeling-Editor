@@ -104,6 +104,39 @@ describe('createDefaultProject', () => {
   });
 });
 
+describe('ensureProjectMigrated v1 → v2', () => {
+  // A v1 project, as the editor saved it before projects held several diagrams
+  // per type: one diagram per type, no schemaVersion, no currentDiagramIndices.
+  const v1Project = (): any => {
+    const project: any = createDefaultProject('Old', 'saved by a v1 editor', 'me');
+    for (const type of ['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram',
+      'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'BPMN'] as const) {
+      project.diagrams[type] = project.diagrams[type][0];
+    }
+    project.diagrams.ClassDiagram.model = populatedClassModel();
+    for (const type of ['UserDiagram', 'NNDiagram', 'KnowledgeGraphDiagram', 'ComponentDiagram', 'DeploymentDiagram']) {
+      delete project.diagrams[type];
+    }
+    delete project.schemaVersion;
+    delete project.currentDiagramIndices;
+    delete project.settings.perspectives;
+    return project;
+  };
+
+  it('opens a v1 project, which has no currentDiagramIndices', () => {
+    const project = v1Project();
+    expect(isProject(project)).toBe(true);
+
+    const migrated = ensureProjectMigrated(project);
+
+    for (const type of ALL_DIAGRAM_TYPES) {
+      expect(Array.isArray(migrated.diagrams[type])).toBe(true);
+      expect(migrated.currentDiagramIndices[type]).toBe(0);
+    }
+    expect((migrated.diagrams.ClassDiagram[0].model as UMLModel).nodes.find((n) => n.id === 'class-1')?.data.name).toBe('Foo');
+  });
+});
+
 describe('ensureProjectMigrated → v6 (Component and Deployment perspectives)', () => {
   const v4Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
     const project = createDefaultProject('Legacy', '', 'me');

@@ -27,12 +27,20 @@ import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
-import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
+import type {
+  SpecDrivenMessageState,
+  SpecDrivenPhaseView,
+  SpecDrivenVerificationItemView,
+  SpecDrivenVerificationView,
+  SpecDrivenWarningView,
+} from "@/main/features/spec-driven/types"
+import { cancelSpecDrivenRun } from "@/main/shared/api/specDriven"
 import {
   fetchAndSaveSpecDrivenArtifact,
   fetchSpecDrivenArtifactBlob,
 } from "@/main/shared/utils/specDrivenDownload"
 import { emitDeliveryEvent } from "@/main/shared/services/telemetry/pilotTelemetry"
+import { storeGeneratedCodeForPush } from "@/main/shared/services/github/saveGeneratedCode"
 import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
@@ -49,6 +57,7 @@ import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
 import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
+import { track } from "@/main/shared/services/analytics/events"
 
 const chatBubbleVariants = cva(
   "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
@@ -157,180 +166,6 @@ type MessagePart =
   | SourcePart
   | FilePart
   | StepStartPart
-
-export interface SpecDrivenToolCallView {
-  turn: number
-  tool: string
-  summary?: string | null
-  detail?: string | null
-}
-
-export interface SpecDrivenPhaseView {
-  phase: string
-  label: string
-  message: string
-  toolCalls: SpecDrivenToolCallView[]
-  /**
-   * Long-form details attached to a phase after the fact (e.g. the gap
-   * analyser's task list). Rendered behind a chevron in
-   * SpecDrivenPhaseRow when present.
-   */
-  details?: string
-}
-
-export interface SpecDrivenWarningView {
-  code: string
-  message: string
-  /**
-   * How severely to render the notice. `error` = the run failed (red);
-   * `warning` = the run continued / finished but the output may be
-   * affected (amber); `info` = an informational note about how the run
-   * proceeded (e.g. "previous generation expired — rebuilding from
-   * scratch"), rendered in a neutral style so it does not read as a
-   * failure. Defaults to `warning` when absent (older producers).
-   */
-  severity?: "info" | "warning" | "error"
-}
-
-/**
- * One thing the run checked, could not check, or found missing from the
- * delivered code. Mirrors the backend's `VerificationItem`.
- */
-export interface SpecDrivenVerificationItemView {
-  kind: "requirement" | "ocl_constraint" | "api_workflow" | "check"
-  /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
-  id: string
-  what: string
-  /** VERIFIED items: what was actually run or re-checked. */
-  how?: string
-  /** The other two: why nothing reached it, or what is missing. */
-  why?: string
-}
-
-/**
- * The three states a blocker count collapses into one number. `counts`
- * carries the TRUE totals — the lists are capped by the backend, so the
- * panel says "showing 5 of 23" rather than quietly under-reporting.
- */
-export interface SpecDrivenVerificationView {
-  verified: SpecDrivenVerificationItemView[]
-  notVerified: SpecDrivenVerificationItemView[]
-  shippedUnenforced: SpecDrivenVerificationItemView[]
-  counts: {
-    verified: number
-    notVerified: number
-    shippedUnenforced: number
-  }
-}
-
-export interface SpecDrivenMessageState {
-  /**
-   * Live-run subscription key (client-generated, assigned before the
-   * backend run id exists). Present while a spec-driven run is streaming:
-   * the card then renders from the Redux slice entry
-   * `specDriven.runs[liveKey]` — updated on every SSE event — instead of
-   * this embedded snapshot, so live progress re-renders by construction
-   * regardless of which chat surface is mounted or remounts mid-run.
-   * The final snapshot written into the message at completion drops it.
-   */
-  liveKey?: string
-  runId?: string
-  provider?: string
-  model?: string
-  phases: SpecDrivenPhaseView[]
-  warnings: SpecDrivenWarningView[]
-  text: string
-  status: "running" | "done" | "error"
-  /** Finished transport/artifact does not imply the generated app passed validation. */
-  incomplete?: boolean
-  incompleteReason?: string
-  blockerCount?: number
-  /**
-   * What the run verified, could not verify, and shipped UNENFORCED. This is
-   * the field a human reads; `blockerCount` is the same evidence collapsed to
-   * one number. Undefined on older or interrupted runs — the card then falls
-   * back to the blocker-count summary.
-   */
-  verification?: SpecDrivenVerificationView
-  /** Live spend so far in USD (from the backend's 2s cost events). */
-  costUsd?: number
-  /** Elapsed run time in seconds (from the backend's 2s cost events). */
-  elapsedSeconds?: number
-  /** Cost budget for this run in USD (from the start event). */
-  maxCost?: number
-  /** Runtime budget for this run in seconds (from the start event). */
-  maxRuntime?: number
-  /** Backend download URL carried by the done event. */
-  downloadUrl?: string
-  /** Artifact filename carried by the done event. */
-  fileName?: string
-  /** Whether the artifact is a zip (done event). */
-  isZip?: boolean
-  /**
-   * The deterministic generator BESSER used (e.g. `fastapi`, `django`,
-   * `web_app`), read from the done event's recipe. Shown on the compact
-   * completion card as a short "what was generated" hint.
-   */
-  generatorUsed?: string
-  /** Number of user files the run produced — shown on the compact card. */
-  fileCount?: number
-  /** "modify" when the run updated an existing app rather than creating one. */
-  runMode?: "create" | "modify"
-  /** Files the agent changed this run (capped) and their total count. */
-  changedFiles?: string[]
-  changedFileCount?: number
-  /** How the model changed against the app's base model (modify runs). */
-  modelChanges?: string[]
-  /** Total LLM tokens this run consumed. NOT shown as a headline number —
-   * it is a cumulative sum that re-counts context re-sent each turn, so it
-   * overstates effort. Kept only for the deterministic-split badge's tooltip. */
-  tokensUsed?: number
-  /**
-   * Share (0–100) of output files tagged as scaffold and not edited this run
-   * (`fileSplit.generator_untouched_pct`). File provenance, not a measure of
-   * requirements covered, correctness, lines of code, or token savings.
-   */
-  detPct?: number
-  /** Share (0–100) of files outside the generator-tagged scaffold
-   * (`fileSplit.llm_authored_pct`) — shown in the badge breakdown. */
-  aiPct?: number
-  /** Share (0–100) of files the generator wrote that the LLM then edited
-   * (`fileSplit.generator_llm_modified_pct`) — the middle bucket, shown in the
-   * badge breakdown so detPct + modPct + aiPct reconcile to ~100. */
-  modPct?: number
-  /**
-   * Honest token breakdown from the run recipe's usage summary. The card leads
-   * with ACTIVE = input + output (the real cost) and shows `cacheRead` as a
-   * secondary number, instead of the misleading `total` that re-counts re-sent
-   * context. Undefined when the provider reported no split.
-   */
-  tokenUsage?: {
-    input: number
-    output: number
-    cacheRead: number
-    total: number
-  }
-  /**
-   * Generation succeeded but the browser download failed. The artifact
-   * stays on the server (~30 min TTL) so "Download again" can retry.
-   */
-  downloadFailed?: boolean
-  /**
-   * Generation succeeded and the artifact is ready, but it has NOT been
-   * saved to the user's disk yet. The run no longer auto-downloads —
-   * the user must click "Download" on the card to consent to the save.
-   */
-  needsDownload?: boolean
-  /**
-   * True when this card is a purely DETERMINISTIC generator run (no LLM) —
-   * BESSER's built-in generators. Renders "Generated deterministically" with a
-   * "0 tokens" badge instead of provider/model, and downloads the in-hand
-   * artifact blob directly (there is no server-side run id to re-fetch).
-   */
-  deterministic?: boolean
-  /** The generated artifact for a deterministic run's manual Download button. */
-  deterministicBlob?: Blob
-}
 
 export interface Message {
   id: string
@@ -1522,16 +1357,10 @@ function SpecDrivenCard({
       onStop(runId)
       return
     }
-    // Fire-and-forget — no body needed. Errors are swallowed: if the
-    // cancel request itself fails the run simply keeps streaming and
-    // the user can hit Stop again after the button re-enables.
-    void fetch(cancelSpecDrivenUrl(runId), { method: "POST" })
-      .then((response) => {
-        if (!response.ok) setStopRequested(false)
-      })
-      .catch(() => {
-        setStopRequested(false)
-      })
+    // If the cancel request fails the run keeps streaming; re-enable Stop so the user can retry.
+    void cancelSpecDrivenRun(runId).then((accepted) => {
+      if (!accepted) setStopRequested(false)
+    })
   }
 
   const handleRedownload = async () => {
@@ -1543,7 +1372,12 @@ function SpecDrivenCard({
       isZip === true
     )
     setRedownloadState(result.ok ? "idle" : "failed")
-    if (result.ok) setHasDownloaded(true)
+    if (result.ok) {
+      track("spec_result_downloaded", { is_zip: isZip === true, again: hasDownloaded, size_bytes: result.sizeBytes })
+      setHasDownloaded(true)
+    } else {
+      track("spec_result_download_failed", { is_zip: isZip === true, again: hasDownloaded })
+    }
   }
 
   // Deterministic runs hold the artifact in-hand (no server run id), so the
@@ -1556,12 +1390,27 @@ function SpecDrivenCard({
     emitDeliveryEvent("download", runId || undefined)
     try {
       downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
+      track("spec_result_downloaded", { is_zip: true, again: hasDownloaded, size_bytes: deterministicBlob.size })
       setHasDownloaded(true)
     } catch {
+      track("spec_result_download_failed", { is_zip: true, again: hasDownloaded })
       setRedownloadState("failed")
     }
   }
   const canDetDownload = status === "done" && deterministic === true && deterministicBlob instanceof Blob
+  // A deterministic run has no server run to push: store its file as one
+  // first, then open the same "Save to GitHub" dialog a Spec-Driven run gets.
+  const [preparingPush, setPreparingPush] = useState(false)
+  const handleDeterministicPush = async () => {
+    if (!deterministicBlob || !onPushToGithub || preparingPush) return
+    setPreparingPush(true)
+    try {
+      const pushRunId = await storeGeneratedCodeForPush(deterministicBlob, fileName || "generated_code.zip")
+      if (pushRunId) onPushToGithub(pushRunId)
+    } finally {
+      setPreparingPush(false)
+    }
+  }
 
   // The "generator wrote it, then the LLM refined it" middle bucket. The
   // backend done event doesn't always carry generator_llm_modified_pct, which
@@ -1754,6 +1603,17 @@ function SpecDrivenCard({
                 onClick={() => onPushToGithub(runId)}
               >
                 <Github />
+                Save to GitHub
+              </Button>
+            ) : canDetDownload && onPushToGithub ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => void handleDeterministicPush()}
+                disabled={preparingPush}
+              >
+                {preparingPush ? <Loader2 className="animate-spin" /> : <Github />}
                 Save to GitHub
               </Button>
             ) : null}

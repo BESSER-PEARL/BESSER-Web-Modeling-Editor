@@ -4,11 +4,13 @@ import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner'
 import { setTheme } from './shared/utils/theme-switcher';
 import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
-import { runStorageMigrations } from './shared/utils/storage-migration';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY, GA_MEASUREMENT_ID, EDITOR_VERSION } from './shared/constants/constant';
+import { runStorageMigrations } from './shared/services/storage/storage-migration';
+import { claimChunkReload } from './shared/services/storage/tabStorage';
 import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
 import { initDemoModeFromUrl } from './shared/services/demoMode';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
+import { trackUncaughtErrors } from './shared/services/analytics/events';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
 // Initialise i18next (language detection + resource bundles) before first render.
@@ -35,25 +37,25 @@ initDemoModeFromUrl();
 // vite:preloadError for exactly this — reload ONCE to pick up the new build
 // (guarded per-session so a genuinely broken deploy can't reload-loop).
 window.addEventListener('vite:preloadError', (event) => {
-  try {
-    if (sessionStorage.getItem('besser_chunkReloaded') === '1') return;
-    sessionStorage.setItem('besser_chunkReloaded', '1');
-  } catch {
-    /* private mode — still reload once per page lifetime */
-  }
+  if (!claimChunkReload()) return;
   event.preventDefault();
   window.location.reload();
 });
 
-// Defer Sentry + PostHog initialization until the browser is idle.
-// This removes ~40KB+ of synchronous JS from the critical render path.
+// Defer Sentry + PostHog + Google Analytics initialization until the browser is idle.
+// This removes ~40KB+ of synchronous JS from the critical render path. It runs after
+// initPilotModeFromUrl and initDemoModeFromUrl, so no analytics ever sees a `?demo=`
+// token or a `?study=`/`?pilot=` label in the address bar.
 initLazyAnalytics({
   sentryDsn: SENTRY_DSN,
   sentryEnvironment: NO_HTTP_URL,
   posthogKey: POSTHOG_KEY,
   posthogHost: POSTHOG_HOST,
+  gaMeasurementId: GA_MEASUREMENT_ID,
+  editorVersion: EDITOR_VERSION,
   hasUserConsented,
 });
+trackUncaughtErrors();
 const themePreference = LocalStorageRepository.getUserThemePreference();
 
 if (themePreference === 'dark') {

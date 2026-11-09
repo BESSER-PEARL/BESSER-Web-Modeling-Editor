@@ -1,5 +1,8 @@
-import { localStorageUserModelValidation } from '../../shared/constants/constant';
-import type { QualityCheckState } from '../../features/generation/types';
+import {
+  readUserModelValidationRecords,
+  writeUserModelValidationRecords,
+} from '../../shared/services/storage/preferencesStorage';
+import type { QualityCheckState } from '../../shared/types/quality-check';
 
 /**
  * Per-diagram record of the last User Model validation, persisted so the
@@ -48,22 +51,11 @@ export const semanticModelFingerprint = (model: unknown): string | null => {
   }
 };
 
-export const loadUserModelValidationRecords = (): UserModelValidationRecords => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(localStorageUserModelValidation) ?? '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-};
+export const loadUserModelValidationRecords = (): UserModelValidationRecords =>
+  readUserModelValidationRecords() as UserModelValidationRecords;
 
-export const saveUserModelValidationRecords = (records: UserModelValidationRecords): void => {
-  try {
-    localStorage.setItem(localStorageUserModelValidation, JSON.stringify(records));
-  } catch {
-    // Storage full or unavailable: the records stay in memory for this tab.
-  }
-};
+export const saveUserModelValidationRecords = (records: UserModelValidationRecords): void =>
+  writeUserModelValidationRecords(records);
 
 export const userModelValidationStatus = (
   record: UserModelValidationRecord | undefined,

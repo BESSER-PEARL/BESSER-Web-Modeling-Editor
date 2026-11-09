@@ -11,26 +11,8 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
     />
     <meta name="theme-color" content="#f9f9f5" />
-    <script>
-      // Apply the saved theme before first paint (index.tsx re-applies it with the full palette).
-      try {
-        var dark = localStorage.getItem('besser_userThemePreference') === 'dark';
-        var root = document.documentElement;
-        root.setAttribute('data-theme', dark ? 'dark' : 'light');
-        root.classList.toggle('dark', dark);
-        if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d1017');
-      } catch (e) {}
-    </script>
+    <script src="/theme-init.js"></script>
     <title>BESSER Web Modeling Editor</title>
-        <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WEF3W8Y17C"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    
-      gtag('config', 'G-WEF3W8Y17C');
-    </script>
   </head>
   <body>
     <div id="root"></div>

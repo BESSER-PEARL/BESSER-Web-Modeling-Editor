@@ -6,14 +6,26 @@
  * back to the server key). A tab now re-sends only a key it holds; removing a
  * key clears it explicitly from the BYOK dialog.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  sessionStorageAssistantApiKey,
-  sessionStorageAssistantProvider,
+  sessionStorageLlmApiKey,
+  sessionStorageLlmProvider,
   sessionStorageLlmBaseUrl,
 } from '../../../../shared/constants/constant';
 import { AssistantClient } from '../AssistantClient';
+
+// Every key provider is on the assistant's allowlist today; a test drops one to
+// stand in for a future Spec-Driven-only provider.
+const assistantAllowlist = vi.hoisted(() => ({ drop: null as string | null }));
+vi.mock('../../../../shared/services/llmKeyStorage', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../../shared/services/llmKeyStorage')>();
+  return {
+    ...mod,
+    isAssistantKeyProvider: (value: unknown) =>
+      value !== assistantAllowlist.drop && mod.isAssistantKeyProvider(value),
+  };
+});
 
 const connectedClient = () => {
   const client = new AssistantClient('ws://never-connect.invalid');
@@ -25,7 +37,10 @@ const connectedClient = () => {
 };
 
 describe('AssistantClient — BYOK re-arm on connect', () => {
-  afterEach(() => window.sessionStorage.clear());
+  afterEach(() => {
+    window.sessionStorage.clear();
+    assistantAllowlist.drop = null;
+  });
 
   it("sends nothing when this tab stores no key (never clears another tab's key)", () => {
     const { sent, rearm } = connectedClient();
@@ -34,16 +49,16 @@ describe('AssistantClient — BYOK re-arm on connect', () => {
   });
 
   it('re-sends a stored key', () => {
-    window.sessionStorage.setItem(sessionStorageAssistantApiKey, 'sk-test');
-    window.sessionStorage.setItem(sessionStorageAssistantProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-test');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'openai');
     const { sent, rearm } = connectedClient();
     rearm();
     expect(JSON.parse(sent[0]).message).toMatchObject({ user_api_key: 'sk-test', user_api_provider: 'openai' });
   });
 
   it('sends a gateway key as itself, without a base URL: the agent resolves it', () => {
-    window.sessionStorage.setItem(sessionStorageAssistantApiKey, 'sk-gateway');
-    window.sessionStorage.setItem(sessionStorageAssistantProvider, 'pia');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-gateway');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'pia');
     window.sessionStorage.setItem(sessionStorageLlmBaseUrl, 'https://stale-stored-url.test/v1');
     const { sent, rearm } = connectedClient();
     rearm();
@@ -51,5 +66,15 @@ describe('AssistantClient — BYOK re-arm on connect', () => {
       user_api_key: 'sk-gateway',
       user_api_provider: 'pia',
     });
+  });
+
+  it('clears instead of re-sending a stored key whose provider is off the assistant allowlist', () => {
+    assistantAllowlist.drop = 'mistral';
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'spec-driven-only-key');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'mistral');
+    const { sent, rearm } = connectedClient();
+    rearm();
+    expect(sent).toHaveLength(1);
+    expect(JSON.parse(sent[0]).message).toEqual({ user_api_key: '' });
   });
 });

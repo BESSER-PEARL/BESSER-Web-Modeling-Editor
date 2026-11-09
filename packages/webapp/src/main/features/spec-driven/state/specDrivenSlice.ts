@@ -25,12 +25,10 @@
  */
 
 import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
-// Type-only import — erased at runtime, so no runtime dependency on the
-// component module. The card state shape is defined next to the card.
-import type { SpecDrivenMessageState } from '@/components/chatbot-kit/ui/chat-message';
 import type {
   SpecDrivenErrorCode,
   SpecDrivenEvent,
+  SpecDrivenMessageState,
   SpecDrivenPhase,
   SpecDrivenProvider,
   SpecDrivenVerificationItem,

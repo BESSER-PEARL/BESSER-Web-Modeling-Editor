@@ -1,16 +1,16 @@
 import { toast } from 'react-toastify';
+import { reportError } from '../errors/reportError';
 import type { CSSProperties } from 'react';
-import { BACKEND_URL } from '../../constants/constant';
+import { postValidateDiagram, type ValidationResponse } from '../../api/validation';
+import { ApiError } from '../../api/api-client';
 import { BesserEditor } from '@besser/wme';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { withReferenceDiagramData } from './validationPayload';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
+import { stripStatusEmoji } from './stripStatusEmoji';
 
-/** The toast's own icon carries the status; drop the emoji the backend prefixes ("✅ Diagram is valid"). */
-const stripStatusEmoji = (text: string): string =>
-  text.replace(/^\s*(?:✅|❌|⚠️?|ℹ️?)\s*/u, '');
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -85,15 +85,17 @@ function showValidationResultToast(result: ValidationResultLike, style: CSSPrope
   const toastId = replaceResultToast();
   const built = buildValidationResultToast(result);
   if (!built || (onlyProblems && (built.type === 'success' || built.type === 'info'))) return;
-  toast[built.type](built.message, {
+  const options = {
     toastId,
-    position: 'top-right',
+    position: 'top-right' as const,
     autoClose: built.autoClose,
     closeOnClick: true,
     pauseOnHover: true,
     draggable: true,
     style,
-  });
+  };
+  if (built.type === 'error') reportError(built.message, options);
+  else toast[built.type](built.message, options);
 }
 
 /**
@@ -105,12 +107,21 @@ function showValidationResultToast(result: ValidationResultLike, style: CSSPrope
  * describe that failure, not the model, so a caller acting on model errors
  * must not treat them as such.
  */
+/**
+ * The backend's result, or `isValid: false` with the reason when it could not be had;
+ * then `checkFailed` is set and `failure` holds the caught error (for analytics, never
+ * shown). `empty` marks a diagram with nothing to check, which is reported valid but
+ * was never checked.
+ */
+export type ValidateDiagramResult = Pick<ValidationResponse, 'isValid' | 'errors'> &
+  Partial<ValidationResponse> & { failure?: unknown; checkFailed?: boolean; empty?: boolean };
+
 export async function validateDiagram(
   editor: BesserEditor | null | undefined,
   diagramTitle: string,
   modelData?: any,
   { onlyProblems = false }: { onlyProblems?: boolean } = {},
-) {
+): Promise<ValidateDiagramResult> {
   // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
   const suppressToasts = modelData && modelData._suppressToasts;
 
@@ -136,7 +147,7 @@ export async function validateDiagram(
     if (model && model._suppressToasts) delete model._suppressToasts;
 
     if (!model) {
-      if (!suppressToasts) toast.error(i18n.t('validation.toasts.noDiagramToValidate'));
+      if (!suppressToasts) reportError(i18n.t('validation.toasts.noDiagramToValidate'));
       return { isValid: false, errors: ['No diagram available'] };
     }
 
@@ -154,7 +165,7 @@ export async function validateDiagram(
           autoClose: 4000,
         });
       }
-      return { isValid: true, errors: [] };
+      return { isValid: true, errors: [], empty: true };
     }
 
     // Show loading state
@@ -172,43 +183,21 @@ export async function validateDiagram(
     // Agent models leave the editor through the single shared helper (components + transitions).
     const modelToSend = model?.type === 'AgentDiagram' ? prepareAgentModelForBackend(model) : model;
 
-    // Call unified validation endpoint with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
-    let response: Response;
+    // Call unified validation endpoint (the API module sets the timeout)
+    let result: ValidationResponse;
     try {
-      response = await fetch(`${BACKEND_URL}/validate-diagram`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: diagramTitle,
-          model: modelToSend
-        }),
-        signal: controller.signal,
-      });
+      result = await postValidateDiagram({ title: diagramTitle, model: modelToSend });
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+      if (fetchError instanceof DOMException && (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError')) {
         toast.dismiss(VALIDATION_TOAST_ID);
-        toast.error(i18n.t('validation.toasts.timedOut'));
-        return { isValid: false, errors: ['Validation timed out'], checkFailed: true };
+        reportError(i18n.t('validation.toasts.timedOut'), { error: fetchError });
+        return { isValid: false, errors: ['Validation timed out'], checkFailed: true, failure: fetchError };
       }
-      throw fetchError;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ 
-        errors: ['Could not parse error response'] 
-      }));
-      
+      if (!(fetchError instanceof ApiError)) throw fetchError;
+      // A failed request carries a `detail`; only a validation result has `errors`.
       if (!suppressToasts) {
         toast.dismiss(VALIDATION_TOAST_ID);
-        const errorMessage = errorData.errors?.join('\n') || i18n.t('validation.toasts.validationFailed');
-        toast.error(errorMessage, {
+        reportError(i18n.t('validation.toasts.validationFailed'), {
           toastId: replaceResultToast(),
           position: "top-right",
           autoClose: 12000,
@@ -218,10 +207,8 @@ export async function validateDiagram(
         });
       }
       // The backend reports model errors with a 200, so any non-2xx is the check failing.
-      return { isValid: false, errors: errorData.errors || ['Validation failed'], checkFailed: true };
+      return { isValid: false, errors: ['Validation failed'], checkFailed: true, failure: fetchError };
     }
-    
-    const result = await response.json();
     
     // Small delay to ensure smooth transition
     if (!suppressToasts) {
@@ -242,15 +229,17 @@ export async function validateDiagram(
       const message = isNetworkError(error)
         ? describeNetworkError(error)
         : i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') });
-      toast.error(message, {
+      reportError(message, {
         position: "top-right",
         autoClose: 5000,
+        error,
       });
     }
     return {
       isValid: false,
       errors: [error instanceof Error ? error.message : 'Unknown error'],
       checkFailed: true,
+      failure: error,
     };
   }
 }

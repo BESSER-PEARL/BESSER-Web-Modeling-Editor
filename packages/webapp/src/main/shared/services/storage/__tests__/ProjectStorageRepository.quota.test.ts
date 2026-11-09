@@ -122,7 +122,7 @@ describe('pre-migration backups and the storage quota', () => {
   it('tells the user when a save fails because storage is full', () => {
     localStorage.setItem('besser_other', 'o'.repeat(5_000_000));
     const project = createDefaultProject('P', 'p'.repeat(500_000), '');
-    expect(() => ProjectStorageRepository.saveProject(project)).toThrow('Failed to save project');
+    expect(() => ProjectStorageRepository.saveProject(project)).toThrow('storage is full');
     expect(toastMock.error).toHaveBeenCalledWith(expect.stringContaining('storage is full'), expect.anything());
   });
 });

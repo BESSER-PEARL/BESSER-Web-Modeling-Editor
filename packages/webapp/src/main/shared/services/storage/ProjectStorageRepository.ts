@@ -16,15 +16,24 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageGitHubLinkPrefix, localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
-import { toast } from 'react-toastify';
+import {
+  localStorageDeployLinkedRepoPrefix,
+  localStorageGitHubLinkPrefix,
+  localStorageLegacyGitHubAutoCommit,
+  localStorageLegacyGitHubLinkedRepos,
+  localStorageProjectPrefix,
+  localStorageLatestProject,
+  localStorageProjectsList,
+} from '../../constants/constant';
 import i18n from '../../i18n';
+import { reportError } from '../errors/reportError';
+import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
 import {
   LOCAL_STORAGE_WARNING_CHARS,
   checkLocalStorageQuota,
   getLocalStorageUsageChars,
   isQuotaExceededError,
-} from '../../utils/localStorageQuota';
+} from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 
 export class ProjectStorageRepository {
@@ -125,20 +134,30 @@ export class ProjectStorageRepository {
       try {
         write();
       } catch (error) {
-        // Rollback copies must never cost the user their current work.
-        if (!isQuotaExceededError(error) || !this.evictV3Backups()) throw error;
-        write();
+        if (!isQuotaExceededError(error)) throw error;
+        // Rollback copies must never cost the user their current work; next,
+        // the assistant conversations kept in this browser are safe to drop:
+        // each project's text copy still restores its chat.
+        if (!this.evictV3Backups()) clearStoredConversations();
+        try {
+          write();
+        } catch (retryError) {
+          if (!isQuotaExceededError(retryError)) throw retryError;
+          clearStoredConversations();
+          write();
+        }
       }
     } catch (error) {
       console.error('Error saving project:', error);
+      // Say what actually went wrong: a full browser store is the one failure
+      // the user can fix themselves, and a bare "Failed to save project" hides it.
       if (isQuotaExceededError(error)) {
-        toast.error(
-          i18n.t(
-            'shared.storage.saveFailedFull',
-            'Browser storage is full, so your changes could not be saved. Export your projects and delete the ones you no longer need.',
-          ),
-          { toastId: 'localStorage-save-failed-full' },
+        const message = i18n.t(
+          'shared.storage.saveFailedFull',
+          'Browser storage is full, so your changes could not be saved. Export your projects and delete the ones you no longer need.',
         );
+        reportError(message, { toastId: 'localStorage-save-failed-full' });
+        throw new Error(message);
       }
       throw new Error('Failed to save project');
     } finally {
@@ -228,9 +247,18 @@ export class ProjectStorageRepository {
     return keys.length > 0;
   }
 
+  /** Id of the project the user last had open, or null. */
+  static getLatestProjectId(): string | null {
+    return localStorage.getItem(localStorageLatestProject);
+  }
+
+  static setLatestProjectId(projectId: string): void {
+    localStorage.setItem(localStorageLatestProject, projectId);
+  }
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
-    const latestProjectId = localStorage.getItem(localStorageLatestProject);
+    const latestProjectId = this.getLatestProjectId();
     if (!latestProjectId) {
       return null;
     }
@@ -504,6 +532,7 @@ export class ProjectStorageRepository {
 
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
+      clearStoredConversation(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();
@@ -523,38 +552,38 @@ export class ProjectStorageRepository {
   private static cleanupGitHubMetadata(projectId: string): void {
     // Clean up linked repos entry
     try {
-      const linkedReposRaw = localStorage.getItem('besser_github_linked_repos');
+      const linkedReposRaw = localStorage.getItem(localStorageLegacyGitHubLinkedRepos);
       if (linkedReposRaw) {
         const links = JSON.parse(linkedReposRaw);
         if (links && typeof links === 'object' && projectId in links) {
           delete links[projectId];
-          localStorage.setItem('besser_github_linked_repos', JSON.stringify(links));
+          localStorage.setItem(localStorageLegacyGitHubLinkedRepos, JSON.stringify(links));
         }
       }
     } catch {
       // If data is corrupt, remove the entire key to prevent further issues
-      localStorage.removeItem('besser_github_linked_repos');
+      localStorage.removeItem(localStorageLegacyGitHubLinkedRepos);
     }
 
     // Clean up auto-commit settings entry
     try {
-      const autoCommitRaw = localStorage.getItem('besser_github_auto_commit');
+      const autoCommitRaw = localStorage.getItem(localStorageLegacyGitHubAutoCommit);
       if (autoCommitRaw) {
         const settings = JSON.parse(autoCommitRaw);
         if (settings && typeof settings === 'object' && projectId in settings) {
           delete settings[projectId];
-          localStorage.setItem('besser_github_auto_commit', JSON.stringify(settings));
+          localStorage.setItem(localStorageLegacyGitHubAutoCommit, JSON.stringify(settings));
         }
       }
     } catch {
-      localStorage.removeItem('besser_github_auto_commit');
+      localStorage.removeItem(localStorageLegacyGitHubAutoCommit);
     }
 
     // Clean up deploy linked repo entries (per-project keys). The bare key is
     // the legacy Render webapp link; ``_github`` is the Spec-Driven Agent "Push to
     // GitHub" link, kept separate so it never collides with Render targets.
-    localStorage.removeItem(`besser_deploy_linked_${projectId}`);
-    localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}`);
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}_github`);
     localStorage.removeItem(`${localStorageGitHubLinkPrefix}${projectId}`);
   }
   

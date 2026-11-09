@@ -8,13 +8,13 @@
 
 import {
   SMART_GEN_ENDPOINT,
-  specDrivenRunEventsJsonUrl,
   specDrivenRunEventsUrl,
 } from '../../../shared/constants/constant';
+import { getSpecDrivenRunEventsPage } from '../../../shared/api/specDriven';
 import {
   SseHttpError,
   streamSse,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 /**
  * Liveness bound for the run stream. The backend's cost emitter puts a
@@ -80,6 +80,7 @@ import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
 } from '../../../shared/services/telemetry/pilotTelemetry';
+import { track } from '../../../shared/services/analytics/events';
 import type {
   SpecDrivenEvent,
   SpecDrivenMode,
@@ -300,10 +301,7 @@ async function* pollSpecDrivenRun(
       status?: string;
     };
     try {
-      const response = await fetch(
-        specDrivenRunEventsJsonUrl(runId, cursor),
-        { signal: requestController.signal, headers: { Accept: 'application/json' } },
-      );
+      const response = await getSpecDrivenRunEventsPage(runId, cursor, requestController.signal);
       if (!response.ok) {
         let text = '';
         try {
@@ -461,6 +459,11 @@ async function* withDurableReconnect(
 
     const delayMs = RECONNECT_BACKOFF_MS[reconnectAttempts] ?? 60_000;
     reconnectAttempts += 1;
+    track('spec_stream_reconnecting', {
+      attempt: reconnectAttempts,
+      stream_failures: streamFailures,
+      polling: usePolling,
+    });
     // A wake signal means the network just changed under us — retry now and
     // restore the budget rather than counting this against it.
     const wokeEarly = await waitForReconnect(delayMs, signal);

@@ -29,11 +29,10 @@ import {
   openDiagramThunk,
   selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
-import { notifyError } from '../../../shared/utils/notifyError';
+import { notifyError, reportError } from '../../../shared/services/errors/reportError';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import { isAgenticModeEnabled } from '../../../shared/perspectives';
-import { useAgentDiagramLinker } from '../../inter-diagram/useAgentDiagramLinker';
-import { useElementPickerProvider } from '../../inter-diagram/useElementPickerProvider';
+import { useAgentDiagramLinker, useElementPickerProvider } from '../../inter-diagram';
 
 /**
  * Identifies the (project, diagram type, diagram index) tuple that the
@@ -133,7 +132,7 @@ export const BesserEditorComponent: React.FC = () => {
         } catch (err) {
           console.error('[lineage] opening the source diagram failed:', err);
           clearPendingLineageSelection();
-          toast.error(t('editors.diagramTabs.lineage.openFailed'));
+          reportError(t('editors.diagramTabs.lineage.openFailed'), { error: err });
         }
       },
     };
@@ -349,7 +348,7 @@ export const BesserEditorComponent: React.FC = () => {
       // so no edit can replace it (the save thunk refuses too).
       const legacyV3 = !!currentDiagram?.model && isV3UMLModel(currentDiagram.model);
       if (legacyV3) {
-        toast.error(t('editors.legacyDiagram.openedReadOnly', { title: currentDiagram?.title ?? '' }), {
+        reportError(t('editors.legacyDiagram.openedReadOnly', { title: currentDiagram?.title ?? '' }), {
           toastId: `legacy-v3-${currentDiagram?.id}`,
         });
       }

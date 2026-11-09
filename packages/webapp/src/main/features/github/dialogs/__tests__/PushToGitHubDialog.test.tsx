@@ -46,13 +46,17 @@ const result = (overrides: Partial<SpecDrivenPushResult>): SpecDrivenPushResult 
   owner: 'me',
   repo_name: 'app',
   is_first_push: false,
+  recap: null,
   files_uploaded: 12,
   branch: 'main',
   commit_sha: 'c'.repeat(40),
   status: 'pushed',
   conflict_branch: null,
   pull_request_url: null,
+  pull_request_branch: null,
   base_run_id: null,
+  warnings: [],
+  project_export: null,
   ...overrides,
 });
 

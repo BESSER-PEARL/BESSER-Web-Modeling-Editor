@@ -14,13 +14,19 @@ import { exportProjectAsSingleBUMLFile } from '../useExportProjectBUML';
 // generic "project.py".
 // The code downloads `response.blob()`. The stubbed fetch returns Node's
 // Response, whose Blob is not jsdom's global `Blob`, so `expect.any(Blob)`
-// would compare across realms. Check the payload by duck type and content.
+// would compare across realms, and jsdom's Blob has no `text()`. Check the
+// payload by reading it back with jsdom's FileReader.
 async function expectDownloaded(filename: string, body: string) {
   expect(downloadFile).toHaveBeenCalledTimes(1);
   const [blob, name] = downloadFile.mock.calls[0];
   expect(name).toBe(filename);
-  expect(typeof blob?.text).toBe('function');
-  expect(await blob.text()).toBe(body);
+  const text = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+  expect(text).toBe(body);
 }
 
 describe('project B-UML export file name', () => {
@@ -39,7 +45,10 @@ describe('project B-UML export file name', () => {
   });
 
   it('falls back to .py without a header', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('x')));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('x')),
+    );
     await exportProjectAsSingleBUMLFile({ id: 'p1', name: 'Library' } as any);
     await expectDownloaded('library.py', 'x');
   });

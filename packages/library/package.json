@@ -80,6 +80,7 @@
     "@mui/material": "6.4.2",
     "@uiw/react-codemirror": "4.23.7",
     "@xyflow/react": "12.3.6",
+    "dompurify": "^3.4.8",
     "elkjs": "^0.11.1",
     "lucide-react": "^0.542.0",
     "uuid": "11.0.3",

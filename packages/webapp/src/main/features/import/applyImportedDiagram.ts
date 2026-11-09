@@ -2,7 +2,7 @@
 // backend diagram payload and apply it to a project, preserving the
 // schemaVersion >= 2 invariant that `project.diagrams[type]` is always a
 // `ProjectDiagram[]` array.
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { uuid } from '../../shared/utils/uuid';
 import {
   BesserProject,
@@ -67,7 +67,7 @@ export function applyImportedDiagramToProject(
   }
   if (!isUMLModel(model)) {
     const msg = 'Imported model is not a valid v4 UMLModel (missing nodes/edges arrays).';
-    toast.error(msg);
+    reportError(msg);
     throw new Error(msg);
   }
 

@@ -13,6 +13,7 @@ import {
   getActiveDiagram,
   isV3UMLModel,
   toSupportedDiagramType,
+  isProject,
 } from '../../types/project';
 import { migrateUMLModelV3ToV4 } from '../storage/migrate-uml-v3-to-v4';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
@@ -22,8 +23,10 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
-import { BACKEND_URL } from '../../constants/constant';
+import { getProjectJsonModel } from '../../api/conversion';
+import { ApiError } from '../../api/api-client';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
+import { reportImportRepairs } from './reportImportRepairs';
 import { UMLDiagramType, UMLModel, convertV3HandleToV4 } from '@besser/wme';
 
 // The library's HandleId values (nodes/wrappers/DefaultNodeWrapper.tsx).
@@ -104,6 +107,19 @@ function validateV2ExportData(data: any): data is V2ExportData {
 }
 
 // Check if this is an old webapp export (single diagrams instead of arrays, may have UserDiagram)
+/** A project with no export envelope: how the former "Share as gist" and the old GitHub sidebar saved it. */
+function isBareProject(data: any): boolean {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    !data.project &&
+    typeof data.id === 'string' &&
+    typeof data.name === 'string' &&
+    typeof data.diagrams === 'object' &&
+    data.diagrams !== null
+  );
+}
+
 function isOldWebappFormat(data: any): boolean {
   if (!data?.project?.diagrams) return false;
   const diagrams = data.project.diagrams;
@@ -378,6 +394,11 @@ interface ImportedPersonalization {
  * user still has.
  */
 function storeImportedProject(imported: BesserProject, personalization?: ImportedPersonalization): BesserProject {
+  // Loading runs this check too: without it here, a project is stored that can never be opened,
+  // and a repo's invalid model would replace a working local project.
+  if (!isProject(imported)) {
+    throw new Error(INVALID_PROJECT);
+  }
   const project = ensureProjectMigrated(imported);
   // Like a local load: a v3 diagram that cannot migrate is kept and opens
   // read-only (editor and save thunk guard it); the user is told which one.
@@ -443,20 +464,14 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
-  const formData = new FormData();
-  formData.append('buml_file', file);
-
-  const response = await fetch(`${BACKEND_URL}/get-project-json-model`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Import failed with status ${response.status}`);
+  let jsonData;
+  try {
+    jsonData = await getProjectJsonModel(file);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    throw new Error(error.detail || `Import failed with status ${error.status}`);
   }
-
-  const jsonData = await response.json();
+  reportImportRepairs(jsonData.warnings);
 
   if (isOldWebappFormat(jsonData)) {
     return storeImportedProject(migrateOldWebappProject(jsonData));
@@ -476,6 +491,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
 }
 
 const UNSUPPORTED_STRUCTURE = 'Invalid project file format - unsupported structure';
+const INVALID_PROJECT = 'This file is not a valid BESSER project.';
 
 /**
  * Store a repository's model file (`buml/diagrams.json`, a V2 export envelope,
@@ -484,23 +500,25 @@ const UNSUPPORTED_STRUCTURE = 'Invalid project file format - unsupported structu
  * Agent credentials the repo holds as `[REDACTED]` keep their local values.
  */
 export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
-  let base: BesserProject;
-  let personalization: ImportedPersonalization | undefined;
-  if (isOldWebappFormat(data)) {
-    base = migrateOldWebappProject(data);
-  } else if (validateV2ExportData(data)) {
-    base = data.project;
-    personalization = extractPersonalization(data);
-  } else if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
-    base = data as BesserProject;
-  } else {
-    throw new Error('This file is not a BESSER model.');
-  }
+  const { project: base, personalization } = readRepoModel(data);
   const filled = fillMissingDiagrams({ ...base, id: projectId });
   const local = ProjectStorageRepository.loadProject(projectId);
   const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
   return storeImportedProject(project, personalization);
 }
+
+/** The project in a repository's model file, in whichever format an editor saved it. */
+export function readRepoModel(data: unknown): { project: BesserProject; personalization?: ImportedPersonalization } {
+  if (isOldWebappFormat(data)) return { project: migrateOldWebappProject(data) };
+  if (validateV2ExportData(data)) return { project: data.project, personalization: extractPersonalization(data) };
+  if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    return { project: data as BesserProject };
+  }
+  throw new Error('This file is not a BESSER model.');
+}
+
+/** A repository's model as a whole project, to read without storing it. */
+export const readRepoProject = (data: unknown): BesserProject => fillMissingDiagrams(readRepoModel(data).project);
 
 /** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
 function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {
@@ -521,7 +539,8 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
     reader.onload = (e) => {
       try {
-        const jsonData = JSON.parse(e.target?.result as string);
+        const parsed = JSON.parse(e.target?.result as string);
+        const jsonData = isBareProject(parsed) ? { project: parsed } : parsed;
 
         // Check for old webapp format (single diagrams, not arrays) before V2 check
         if (isOldWebappFormat(jsonData)) {
@@ -674,7 +693,9 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             ? 'import.errors.invalidJson'
             : error instanceof Error && error.message === UNSUPPORTED_STRUCTURE
               ? 'import.errors.unsupportedProjectFile'
-              : 'import.errors.projectUnreadable';
+              : error instanceof Error && error.message === INVALID_PROJECT
+                ? 'import.errors.projectInvalid'
+                : 'import.errors.projectUnreadable';
         reject(new Error(i18n.t(key)));
       }
     };

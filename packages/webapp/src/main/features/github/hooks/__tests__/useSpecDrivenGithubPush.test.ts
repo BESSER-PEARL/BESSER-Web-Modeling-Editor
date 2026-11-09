@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../../shared/api/api-client';
 import {
   getProjectGitHubLink,
+  modelContentFingerprint,
   modelFingerprint,
   setProjectGitHubLink,
 } from '../../../../shared/services/storage/projectGitHubLink';
@@ -16,6 +17,12 @@ vi.mock('../../../../shared/services/confirm/globalConfirm', () => {
   confirm.fn = vi.fn(async () => confirm.answer);
   return { globalConfirm: confirm.fn };
 });
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../../../shared/services/analytics/events', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/services/analytics/events')>()),
+  track,
+}));
 
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warn: vi.fn() } }));
 // Stable references, as the real hooks return: the hook's effects depend on them.
@@ -125,6 +132,75 @@ describe('useSpecDrivenGithubPush — a run that changed the model', () => {
     expect(storeRepoModelAsProject).not.toHaveBeenCalled();
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe('c'.repeat(40));
     expect(getProjectGitHubLink('p1')?.syncedModel).toBeTruthy();
+  });
+
+  // Review 2026-11-04: the editor rewrites a pulled model into its own format, so the run's seed
+  // no longer matches though nobody edited anything.
+  describe('when the seed no longer matches the canvas', () => {
+    const BASE = 'a'.repeat(40);
+    const seedBefore = (base = BASE, content = modelContentFingerprint(project)) =>
+      recordRunSeedModel(RUN_ID, 'before the editor rewrote it', { baseCommitSha: base, content });
+    const linkAt = (overrides: Record<string, unknown>) =>
+      setProjectGitHubLink('p1', { owner: 'me', repo: 'library', branch: 'main', baseCommitSha: BASE, ...overrides });
+
+    beforeEach(() => post.mockResolvedValue(response({ name: 'Library with User' })));
+
+    it('does not ask when only the editor rewrote the model', async () => {
+      seedBefore();
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).not.toHaveBeenCalled();
+      expect(storeRepoModelAsProject).toHaveBeenCalled();
+    });
+
+    it('asks about an edit saved to GitHub during the run', async () => {
+      seedBefore('0'.repeat(40));
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+      expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    });
+
+    it('asks while the model has not settled', async () => {
+      seedBefore();
+      linkAt({ baselinePending: true });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks about an edit the settling took for the rewrite', async () => {
+      seedBefore(BASE, 'the content before the edit');
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+      expect(storeRepoModelAsProject).not.toHaveBeenCalled();
+    });
+
+    it('asks when the run recorded nothing to compare with', async () => {
+      recordRunSeedModel(RUN_ID, 'before the editor rewrote it');
+      linkAt({ syncedModel: modelFingerprint(project) });
+
+      await push();
+
+      expect(confirm.fn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('remembers what the push left in the repo, for the chat and the agent', async () => {
+    const recap = { runs: [], open_items: [], open_item_count: 0, commits_since_run: [], commit_count: 0 };
+    post.mockResolvedValue({ ...response(null), recap });
+
+    await push();
+
+    expect(getProjectGitHubLink('p1')).toMatchObject({ hasCode: true, recap });
   });
 
   it('keeps canvas edits made after the run started when the user keeps their model', async () => {
@@ -258,5 +334,60 @@ describe('useSpecDrivenGithubPush — sign-in', () => {
     } finally {
       Object.assign(stable.auth, { isAuthenticated: true, isChecking: false, githubSession: 'session' });
     }
+  });
+});
+
+describe('useSpecDrivenGithubPush — analytics', () => {
+  const project = { id: 'p1', name: 'Library', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } } as never;
+  const push = async () => {
+    const { result } = renderHook(() => useSpecDrivenGithubPush({ currentProject: project }));
+    await act(async () => {
+      await result.current.dialog.push({ useExisting: false, repoName: 'library', isPrivate: true });
+    });
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    recordRunSeedModel(RUN_ID, modelFingerprint(project));
+    post.mockReset();
+    track.mockClear();
+  });
+
+  it('reports a completed push with its outcome and counts, never the repository', async () => {
+    post.mockResolvedValue({
+      success: true, repo_url: 'https://github.com/me/library', owner: 'me', repo_name: 'library',
+      is_first_push: true, files_uploaded: 12, branch: 'main', commit_sha: 'c'.repeat(40), status: 'pushed',
+      conflict_branch: null, pull_request_url: null, base_run_id: null, warnings: ['w'], project_export: null,
+    });
+
+    await push();
+
+    expect(track).toHaveBeenCalledWith('github_push_completed', {
+      status: 'pushed',
+      new_repo: true,
+      to_linked_repo: false,
+      is_private: true,
+      push_mode: 'commit',
+      is_first_push: true,
+      files_uploaded: 12,
+      warnings_count: 1,
+      took_run_model: false,
+    });
+    expect(JSON.stringify(track.mock.calls)).not.toMatch(/library|github\.com|cccc/);
+  });
+
+  it('reports a failed push with the same code the dialog shows', async () => {
+    post.mockRejectedValue(new ApiError(409, 'name already exists on this account'));
+
+    await push();
+
+    expect(track).toHaveBeenCalledWith('github_push_failed', {
+      code: 'conflict',
+      new_repo: true,
+      error_type: 'ApiError',
+      http_status: 409,
+      network_error: false,
+    });
+    expect(track).not.toHaveBeenCalledWith('github_push_completed', expect.anything());
   });
 });

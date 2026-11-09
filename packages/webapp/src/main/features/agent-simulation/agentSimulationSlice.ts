@@ -22,6 +22,7 @@ import {
   type ValidateAgentResponse,
 } from '@/main/shared/api/agentSimulation';
 import { agentSimulationCredentialStore } from './credentialStore';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 
 export type { AgentSimulationLimits } from '@/main/shared/api/agentSimulation';
 
@@ -111,6 +112,24 @@ async function startSession(
   return response;
 }
 
+/** When the running session started (`Date.now()`), for the stop event's duration. */
+let sessionStartedAt: number | null = null;
+
+/** Content-free facts about the keys a session runs on: which kinds, never their values. */
+function trackSessionStarted(): void {
+  const credentials = agentSimulationCredentialStore.get();
+  sessionStartedAt = Date.now();
+  track('agent_simulation_started', {
+    key_mode: credentials ? 'own' : 'quota',
+    has_openai_key: Boolean(credentials?.openAiApiKey),
+    has_hf_token: Boolean(credentials?.huggingFaceToken),
+    has_replicate_key: Boolean(credentials?.replicateApiKey),
+  });
+}
+
+/** Where a simulation was stopped from. */
+export type AgentSimulationStopSource = 'stop_button' | 'left_page' | 'project_switch' | 'other';
+
 /**
  * Start a session. Set the credentials with `agentSimulationCredentialStore.set()`
  * before dispatching; the thunk argument itself must stay non-secret.
@@ -121,8 +140,11 @@ export const startAgentSimulationThunk = createAsyncThunk<
   ThunkConfig
 >('agentSimulation/start', async (payload, { getState, requestId, rejectWithValue }) => {
   try {
-    return await startSession(payload, requestId, getState);
+    const response = await startSession(payload, requestId, getState);
+    trackSessionStarted();
+    return response;
   } catch (err) {
+    trackFailure('agent_simulation_start_failed', err, { reason: 'start' });
     return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.startFailed'));
   }
 });
@@ -138,12 +160,17 @@ export const validateAgentThunk = createAsyncThunk<ValidateAgentResponse, StartA
   },
 );
 
-export const stopAgentSimulationThunk = createAsyncThunk<void, void, ThunkConfig>(
+export const stopAgentSimulationThunk = createAsyncThunk<void, AgentSimulationStopSource | void, ThunkConfig>(
   'agentSimulation/stop',
-  async (_, { getState, rejectWithValue }) => {
+  async (source, { getState, rejectWithValue }) => {
     agentSimulationCredentialStore.clear();
     const { sessionId } = getState().agentSimulation;
     if (!sessionId) return;
+    track('agent_simulation_stopped', {
+      source: source || 'other',
+      duration_s: sessionStartedAt === null ? undefined : Math.round((Date.now() - sessionStartedAt) / 1000),
+    });
+    sessionStartedAt = null;
 
     try {
       await agentSimulationApi.stopSession(sessionId);
@@ -165,8 +192,11 @@ export const restartAgentSimulationThunk = createAsyncThunk<StartAgentSimulation
     }
 
     try {
-      return await startSession(startPayload, requestId, getState);
+      const response = await startSession(startPayload, requestId, getState);
+      trackSessionStarted();
+      return response;
     } catch (err) {
+      trackFailure('agent_simulation_start_failed', err, { reason: 'restart' });
       return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.restartFailed'));
     }
   },
