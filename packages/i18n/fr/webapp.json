@@ -1249,9 +1249,9 @@
       "createOrLoadFirst": "Créez ou chargez d'abord un projet."
     },
     "landing": {
-      "dialogTitle": "Choisissez comment vous voulez construire",
+      "dialogTitle": "Choisissez comment vous voulez commencer",
       "eyebrow": "Bienvenue sur BESSER",
-      "heading": "Comment voulez-vous <em>construire</em> ?",
+      "heading": "Comment voulez-vous <em>commencer</em> ?",
       "subtitle": "Deux chemins vers le même éditeur. Choisissez-en un pour commencer — vous pourrez changer à tout moment.",
       "model": {
         "kicker": "Low-code · Visuel",

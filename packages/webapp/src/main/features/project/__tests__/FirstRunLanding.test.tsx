@@ -41,7 +41,7 @@ describe('FirstRunLanding translations', () => {
   it('renders every visible string in English by default', () => {
     renderLanding({ connected: false, username: null, onConnect: vi.fn() });
 
-    expect(screen.getByRole('heading', { name: /How do you want to\s*build\s*\?/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /How do you want to\s*start\s*\?/ })).toBeTruthy();
     expect(screen.getByText('Welcome to BESSER')).toBeTruthy();
     expect(screen.getByText('Start modelling')).toBeTruthy();
     expect(screen.getByText('Start describing')).toBeTruthy();
@@ -54,7 +54,7 @@ describe('FirstRunLanding translations', () => {
     await act(() => i18n.changeLanguage('ca'));
     renderLanding({ connected: false, username: null, onConnect: vi.fn() });
 
-    expect(screen.getByRole('heading', { name: /Com vols\s*construir\s*\?/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Com vols\s*començar\s*\?/ })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Modela-ho' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Descriu-ho' })).toBeTruthy();
     expect(screen.getByText('Comença a modelar')).toBeTruthy();

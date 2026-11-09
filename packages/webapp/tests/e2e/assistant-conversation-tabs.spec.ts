@@ -16,7 +16,7 @@ interface SentTurn {
 async function createBlankProject(page: Page, name: string) {
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible({ timeout: 15_000 });
-  // First run: the "How do you want to build?" landing leads to the create form.
+  // First run: the "How do you want to start?" landing leads to the create form.
   await dialog.getByText('Start modelling').click();
   const nameInput = dialog.getByLabel(/name/i);
   await nameInput.clear();

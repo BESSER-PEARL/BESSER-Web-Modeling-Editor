@@ -1249,32 +1249,32 @@
       "createOrLoadFirst": "Erstellt oder luet fir d'éischt e Projet."
     },
     "landing": {
-      "dialogTitle": "Wiel, wéi s du baue wëlls",
+      "dialogTitle": "Wielt, wéi Dir ufänke wëllt",
       "eyebrow": "Wëllkomm bei BESSER",
-      "heading": "Wéi wëlls du <em>bauen</em>?",
-      "subtitle": "Zwee Weeër an deeselwechten Editor. Wiel ee fir unzefänken — du kanns ëmmer wiesselen.",
+      "heading": "Wéi wëllt Dir <em>ufänken</em>?",
+      "subtitle": "Zwee Weeër an deeselwechten Editor. Wielt ee fir unzefänken — Dir kënnt ëmmer wiesselen.",
       "model": {
         "kicker": "Low-Code · Visuell",
         "illustration": "En UML-Klassendiagramm",
         "sampleClassA": "Buch",
         "sampleClassB": "Ausléinung",
-        "title": "Modelléier et",
-        "description": "Zeechen däi System präzis — Klassen, Bezéiungen, Ecranen. Deterministeschen Output, bei all Laf exakt.",
+        "title": "Modelléiert et",
+        "description": "Zeechent Äre System präzis — Klassen, Bezéiungen, Ecranen. Deterministeschen Output, bei all Laf exakt.",
         "cta": "Mam Modelléieren ufänken"
       },
       "agent": {
         "kicker": "Agentesch · Natierlech Sprooch",
         "samplePrompt": "eng Hotelreservatiouns-App",
         "sampleResult": "App",
-        "title": "Beschreif et",
-        "description": "So a schlichte Wierder, wat s du wëlls. BESSER baut de Modell an de Code — du verfeiners en am Chat.",
+        "title": "Beschreift et",
+        "description": "Sot a schlichte Wierder, wat Dir wëllt. BESSER erstellt de Modell an de Code — Dir verfeinert en am Chat.",
         "badge": "Gratis · gehoste Modell",
         "cta": "Mam Beschreiwen ufänken"
       },
       "remember": "Meng Wiel verhalen an dëst déi nächste Kéier iwwersprangen",
       "moreOptions": "Méi Optiounen",
       "github": {
-        "pitch": "Hal deng Projeten an denge eegene GitHub-Repositoryen",
+        "pitch": "Haalt Är Projeten an Ären eegene GitHub-Repositoryen",
         "connectedAs": "Verbonnen als {{username}}",
         "connected": "Mat GitHub verbonnen",
         "connect": "GitHub verbannen"

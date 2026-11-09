@@ -1249,9 +1249,9 @@
       "createOrLoadFirst": "Crea o carrega primer un projecte."
     },
     "landing": {
-      "dialogTitle": "Tria com vols construir",
+      "dialogTitle": "Tria com vols començar",
       "eyebrow": "Benvingut a BESSER",
-      "heading": "Com vols <em>construir</em>?",
+      "heading": "Com vols <em>començar</em>?",
       "subtitle": "Dos camins cap al mateix editor. Tria'n un per començar — pots canviar quan vulguis.",
       "model": {
         "kicker": "Low-code · Visual",
@@ -1267,7 +1267,7 @@
         "samplePrompt": "una app de reserves d'hotel",
         "sampleResult": "app",
         "title": "Descriu-ho",
-        "description": "Digues el que vols amb paraules senzilles. BESSER construeix el model i el codi — tu el refines conversant.",
+        "description": "Digues el que vols amb paraules senzilles. BESSER crea el model i el codi — tu el refines conversant.",
         "badge": "Gratuït · model allotjat",
         "cta": "Comença a descriure"
       },
