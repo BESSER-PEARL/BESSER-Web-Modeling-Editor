@@ -7,18 +7,18 @@ import {
   findHiddenReferencedPerspectives,
   getActiveDiagram,
   type BesserProject,
-} from '../project';
-import { buildExportableProjectPayload, buildProjectPayloadForBackend } from '../../utils/projectExportUtils';
-import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { importProjectFromJson } from '../../services/project-import/projectImport';
-import { updateDiagramModelThunk, workspaceReducer, type WorkspaceState } from '../../../app/store/workspaceSlice';
-import { useModelInjection } from '../../../features/assistant/hooks/useModelInjection';
+} from '../../shared/types/project';
+import { buildExportableProjectPayload, buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
+import { updateDiagramModelThunk, workspaceReducer, type WorkspaceState } from '../store/workspaceSlice';
+import { useModelInjection } from '../../features/assistant/hooks/useModelInjection';
 
 // A v3 model marked `failMe` makes the migrator throw, standing in for any
 // v3 data the converter still cannot lift.
 const failedAttempts = vi.hoisted(() => ({ count: 0 }));
-vi.mock('../../services/storage/migrate-uml-v3-to-v4', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../services/storage/migrate-uml-v3-to-v4')>();
+vi.mock('../../shared/services/storage/migrate-uml-v3-to-v4', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../shared/services/storage/migrate-uml-v3-to-v4')>();
   return {
     ...actual,
     migrateUMLModelV3ToV4: (model: any, ...rest: any[]) => {
