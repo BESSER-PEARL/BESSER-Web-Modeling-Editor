@@ -208,7 +208,7 @@ export const importGeneratedCode = async (githubSession: string, file: Blob, fil
   const { run_id } = await apiClient.upload<components['schemas']['ImportGeneratedCodeResponse']>(
     '/spec-driven/import-generated-code',
     form,
-    // Up to the server's 100 MB cap.
+    // Up to the server's 50 MB request limit.
     { ...session(githubSession), timeout: 120_000 },
   );
   return run_id;
