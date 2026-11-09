@@ -1,0 +1,50 @@
+Version 8.9.3
+=============
+
+This release keeps the modeling assistant's conversation, keeps the assistant
+to modeling, and asks before generating a model whose validation has warnings.
+It goes with BESSER v8.9.3 and Modeling Agent v8.1.1.
+
+What's new
+----------
+
+* **Your conversation stays with the project.** The latest 50 assistant turns
+  are saved with the project, written to the repository on a GitHub save, and
+  restored when the project opens with an empty chat. After a reconnect, the
+  editor sends the latest turns with the first message, so an assistant that
+  lost its memory rebuilds it.
+* **Generate anyway, or fix the model first.** When validation passes with
+  warnings, generating code or deploying locally asks first and names the
+  warnings.
+* **Save a generator's result to GitHub.** When the assistant runs a
+  generator (for example SQL), its result card offers **Save to GitHub**, like
+  an application run.
+* **The welcome dialog is translated** into all six editor languages.
+
+Fixes
+-----
+
+* Changing only the model in the API key dialog can be saved without typing
+  the key again.
+* A long assistant request no longer says it failed while it is still
+  running. The auto-fix message lists the issues it fixed.
+* Extracting or promoting a class makes the new class the part of the
+  composition, with the diamond on the original class.
+* The assistant bubble welcomes with modeling suggestions, not code
+  generation.
+* The NexaCRM template marks each ``id`` attribute as the identifier, so its
+  Django code passes ``manage.py check`` and generation does not warn.
+
+Removed
+-------
+
+* **Preview Project** and **Share as Secret Gist** are no longer in the File
+  menu. Use **Export Project** or the linked GitHub repository instead. A
+  project file from an old gist still imports.
+
+Upgrade notes
+-------------
+
+Deploy with BESSER v8.9.3 (the **Save to GitHub** on a generator's result needs
+its new endpoint) and Modeling Agent v8.1.1. A GitHub save now commits the
+assistant conversation in ``buml/diagrams.json``; provider tokens are redacted.
