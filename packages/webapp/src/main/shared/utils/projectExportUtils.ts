@@ -159,8 +159,21 @@ export const buildProjectPayloadForBackend = (
     }
   }
   delete payload.elementLineage;
+  // The assistant conversation is kept for people (it goes to the repo with
+  // the project file); generation does not read it.
+  delete payload.assistantConversation;
 
   return payload;
+};
+
+/**
+ * The project as shared with other people (a gist): without the assistant
+ * conversation, which holds the user's own chat and is kept only in their
+ * browser and their repository.
+ */
+export const projectForSharing = (project: BesserProject): BesserProject => {
+  const { assistantConversation: _conversation, ...shared } = project;
+  return shared;
 };
 
 /**

@@ -1263,6 +1263,30 @@
       }
     },
     "landing": {
+      "dialogTitle": "Choose how you want to build",
+      "eyebrow": "Welcome to BESSER",
+      "heading": "How do you want to <em>build</em>?",
+      "subtitle": "Two ways into the same editor. Choose one to begin — you can switch anytime.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "A UML class diagram",
+        "sampleClassA": "Book",
+        "sampleClassB": "Loan",
+        "title": "Model it",
+        "description": "Draw your system precisely — classes, relationships, screens. Deterministic output, exact every run.",
+        "cta": "Start modelling"
+      },
+      "agent": {
+        "kicker": "Agentic · Natural language",
+        "samplePrompt": "a hotel booking app",
+        "sampleResult": "app",
+        "title": "Describe it",
+        "description": "Say what you want in plain words. BESSER builds the model and the code — you refine by chatting.",
+        "badge": "Free · hosted model",
+        "cta": "Start describing"
+      },
+      "remember": "Remember my choice and skip this next time",
+      "moreOptions": "More options",
       "github": {
         "pitch": "Keep your projects in your own GitHub repositories",
         "connectedAs": "Connected as {{username}}",

@@ -1263,6 +1263,30 @@
       }
     },
     "landing": {
+      "dialogTitle": "Elige cómo quieres construir",
+      "eyebrow": "Bienvenido a BESSER",
+      "heading": "¿Cómo quieres <em>construir</em>?",
+      "subtitle": "Dos caminos hacia el mismo editor. Elige uno para empezar — puedes cambiar cuando quieras.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "Un diagrama de clases UML",
+        "sampleClassA": "Libro",
+        "sampleClassB": "Préstamo",
+        "title": "Modélalo",
+        "description": "Dibuja tu sistema con precisión — clases, relaciones, pantallas. Resultado determinista, exacto en cada ejecución.",
+        "cta": "Empezar a modelar"
+      },
+      "agent": {
+        "kicker": "Agéntico · Lenguaje natural",
+        "samplePrompt": "una app de reservas de hotel",
+        "sampleResult": "app",
+        "title": "Descríbelo",
+        "description": "Di lo que quieres con palabras sencillas. BESSER crea el modelo y el código — tú lo refinas conversando.",
+        "badge": "Gratis · modelo alojado",
+        "cta": "Empezar a describir"
+      },
+      "remember": "Recordar mi elección y omitir esto la próxima vez",
+      "moreOptions": "Más opciones",
       "github": {
         "pitch": "Guarda tus proyectos en tus propios repositorios de GitHub",
         "connectedAs": "Conectado como {{username}}",

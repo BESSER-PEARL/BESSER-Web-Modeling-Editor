@@ -6,6 +6,7 @@ import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { createGist } from '../../../shared/api/github';
+import { projectForSharing } from '../../../shared/utils/projectExportUtils';
 import { CreateGistDialog } from './CreateGistDialog';
 import { trackGitHubAction } from '../githubAnalytics';
 
@@ -42,7 +43,7 @@ export const ShareGistDialog: React.FC<ShareGistDialogProps> = ({ open, onOpenCh
         'create_gist',
         () => createGist(
           githubSession,
-          project,
+          projectForSharing(project),
           description || t('github.defaultGistDescription', { name: project.name }),
           isPublic,
         ),

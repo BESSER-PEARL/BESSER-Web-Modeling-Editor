@@ -1263,6 +1263,30 @@
       }
     },
     "landing": {
+      "dialogTitle": "Wählen Sie, wie Sie bauen möchten",
+      "eyebrow": "Willkommen bei BESSER",
+      "heading": "Wie möchten Sie <em>bauen</em>?",
+      "subtitle": "Zwei Wege in denselben Editor. Wählen Sie einen für den Anfang — Sie können jederzeit wechseln.",
+      "model": {
+        "kicker": "Low-Code · Visuell",
+        "illustration": "Ein UML-Klassendiagramm",
+        "sampleClassA": "Buch",
+        "sampleClassB": "Ausleihe",
+        "title": "Modellieren Sie es",
+        "description": "Zeichnen Sie Ihr System präzise — Klassen, Beziehungen, Bildschirme. Deterministische Ausgabe, bei jedem Lauf exakt.",
+        "cta": "Mit dem Modellieren beginnen"
+      },
+      "agent": {
+        "kicker": "Agentisch · Natürliche Sprache",
+        "samplePrompt": "eine Hotelbuchungs-App",
+        "sampleResult": "App",
+        "title": "Beschreiben Sie es",
+        "description": "Sagen Sie in einfachen Worten, was Sie wollen. BESSER erstellt das Modell und den Code — Sie verfeinern es im Chat.",
+        "badge": "Kostenlos · gehostetes Modell",
+        "cta": "Mit dem Beschreiben beginnen"
+      },
+      "remember": "Meine Auswahl merken und dies beim nächsten Mal überspringen",
+      "moreOptions": "Weitere Optionen",
       "github": {
         "pitch": "Behalten Sie Ihre Projekte in Ihren eigenen GitHub-Repositorys",
         "connectedAs": "Verbunden als {{username}}",

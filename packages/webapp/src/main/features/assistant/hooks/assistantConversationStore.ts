@@ -290,10 +290,19 @@ export interface AutoFixState {
   fixInFlight: boolean;
   /** Id of the "fixing it now…" status line, replaced by the outcome. */
   progressMessageId: string | null;
+  /** The issues the repair was asked to fix, named again in its outcome. */
+  issues: string[];
 }
 
+export const freshAutoFixState = (): AutoFixState => ({
+  attempted: false,
+  fixInFlight: false,
+  progressMessageId: null,
+  issues: [],
+});
+
 export const autoFixRef: { current: AutoFixState } = {
-  current: { attempted: false, fixInFlight: false, progressMessageId: null },
+  current: freshAutoFixState(),
 };
 
 /* ------------------------------------------------------------------ */

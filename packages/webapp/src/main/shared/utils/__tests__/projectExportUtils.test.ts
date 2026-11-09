@@ -6,6 +6,7 @@ import {
   buildExportableProjectPayload,
   buildProjectPayloadForBackend,
   buildProjectExportEnvelope,
+  projectForSharing,
   ExportableProjectPayload,
 } from '../projectExportUtils';
 import {
@@ -413,6 +414,28 @@ describe('buildProjectPayloadForBackend lineage strip', () => {
   it('strips elementLineage from the backend payload', () => {
     const payload = buildProjectPayloadForBackend(projectWithLineage());
     expect(payload.elementLineage).toBeUndefined();
+  });
+
+  it('keeps the assistant conversation in the project file but not in the backend payload (BESSER#745)', () => {
+    const project = projectWithLineage();
+    project.assistantConversation = {
+      turns: [{ role: 'user', content: 'A library system' }],
+      updatedAt: '2026-11-08T00:00:00Z',
+    };
+    expect(buildProjectPayloadForBackend(project).assistantConversation).toBeUndefined();
+    expect(buildProjectExportEnvelope(project).project.assistantConversation).toEqual(project.assistantConversation);
+  });
+
+  it('leaves the assistant conversation out of a shared project (gist)', () => {
+    const project = projectWithLineage();
+    project.assistantConversation = {
+      turns: [{ role: 'user', content: 'A library system' }],
+      updatedAt: '2026-11-08T00:00:00Z',
+    };
+    const shared = projectForSharing(project);
+    expect(shared.assistantConversation).toBeUndefined();
+    expect(shared.diagrams).toBe(project.diagrams);
+    expect(project.assistantConversation).toBeDefined();
   });
 
   it('does not mutate the source project (clone-only strip)', () => {

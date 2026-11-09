@@ -24,7 +24,18 @@ Data model
    (a map of diagram type to referenced diagram ID for cross-diagram resolution).
    The initial model is a basic diagram created via ``createEmptyDiagram``.
 
-``SupportedDiagramType`` / ``toUMLDiagramType``  
+``BesserProject.assistantConversation``
+   Optional. The modeling assistant's conversation (its latest 50 user and
+   assistant turns, each cut to 4000 characters), so the user's specification
+   is kept with the project. It is saved with the project in the browser and,
+   being part of the project file, written to ``buml/diagrams.json`` on a GitHub
+   save; provider tokens are redacted from it there like from the rest of the
+   model, and the BYOK key stored in the tab is replaced before it is kept at
+   all. Opening a project whose chat is empty restores it; a field that is not
+   a list of turns restores nothing. Generation requests and gists leave it
+   out.
+
+``SupportedDiagramType`` / ``toUMLDiagramType``
    Guard the subset of diagram types available through the project UI.
 
 Persistence
