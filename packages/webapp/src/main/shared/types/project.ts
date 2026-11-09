@@ -730,16 +730,16 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // KnowledgeGraphDiagram, NNDiagram and UserDiagram are back-filled by
-  // ensureProjectMigrated when missing, so they are not required here.
+  // Every type ensureProjectMigrated back-fills when missing (QuantumCircuitDiagram,
+  // BPMN, NNDiagram, UserDiagram, KnowledgeGraphDiagram, ComponentDiagram,
+  // DeploymentDiagram) is not required here: projects saved before those types
+  // existed must still open.
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram &&
-    obj.diagrams.BPMN;
+    obj.diagrams.GUINoCodeDiagram;
 
   return !!hasRequiredDiagrams;
 };
