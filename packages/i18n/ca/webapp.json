@@ -1267,7 +1267,7 @@
         "samplePrompt": "una app de reserves d'hotel",
         "sampleResult": "app",
         "title": "Descriu-ho",
-        "description": "Digues el que vols amb paraules senzilles. BESSER construeix el model i el codi — tu el refines conversant.",
+        "description": "Digues el que vols amb paraules senzilles. BESSER crea el model i el codi — tu el refines conversant.",
         "badge": "Gratuït · model allotjat",
         "cta": "Comença a descriure"
       },
