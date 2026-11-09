@@ -2,7 +2,13 @@ import { useCallback } from 'react';
 import { getJsonModel } from '../../shared/api/conversion';
 import { ApiError } from '../../shared/api/api-client';
 import { uuid } from '../../shared/utils/uuid';
-import { ProjectDiagram, isUMLModel, toSupportedDiagramType, toUMLDiagramType } from '../../shared/types/project';
+import {
+  ProjectDiagram,
+  isUMLModel,
+  isV3UMLModel,
+  toSupportedDiagramType,
+  toUMLDiagramType,
+} from '../../shared/types/project';
 import { reportImportRepairs } from '../../shared/services/project-import/reportImportRepairs';
 
 /**
@@ -27,14 +33,15 @@ export const useBumlToDiagram = () => {
       reportImportRepairs(data.warnings);
 
       // The backend answers one diagram; for a project file, its active (or first non-empty) one.
-      if (!isUMLModel(data.model)) {
+      // It may still be a v3 model, which callers migrate (see below).
+      if (!isUMLModel(data.model) && !isV3UMLModel(data.model)) {
         throw new Error('Invalid diagram: missing model or type information');
       }
       const title = data.title || file.name.replace('.py', '');
 
       // Keep the model's own type when a project slot holds it; anything else
       // (GUI, quantum, KG...) cannot be placed as an Apollon diagram.
-      const modelType = data.model.type;
+      const modelType = (data.model as { type: string }).type;
       if (toUMLDiagramType(toSupportedDiagramType(modelType)) !== modelType) {
         throw new Error(`Unsupported diagram type for a B-UML diagram import: ${modelType}`);
       }
