@@ -7,6 +7,7 @@ import { FileMenu } from '../menus/FileMenu';
 import { MoreMenu } from '../menus/MoreMenu';
 import { TopBarUtilities } from '../menus/TopBarUtilities';
 import { LanguageSelector } from '../LanguageSelector';
+import type { SupportedDiagramType } from '../../../shared/types/project';
 
 // The GitHub control has its own tests; here it only has to be mounted once.
 vi.mock('../../../features/github/components/GitHubMenu', () => ({
@@ -45,12 +46,12 @@ describe('GenerateMenu', () => {
 });
 
 describe('FileMenu', () => {
-  const renderOpen = (hasProject = true) => {
+  const renderOpen = (hasProject = true, activeDiagramType: SupportedDiagramType = 'ClassDiagram') => {
     withTooltips(
       <FileMenu
         outlineButtonClass=""
         hasProject={hasProject}
-        activeDiagramType="ClassDiagram"
+        activeDiagramType={activeDiagramType}
         onOpenProjectHub={vi.fn()}
         onOpenTemplateDialog={vi.fn()}
         onExportProject={vi.fn()}
@@ -85,6 +86,17 @@ describe('FileMenu', () => {
     const items = screen.getByRole('menu').children;
     expect(items[items.length - 1]).not.toHaveAttribute('role', 'separator');
   });
+
+  it.each<SupportedDiagramType>(['BPMN', 'KnowledgeGraphDiagram'])(
+    'separates the %s import from Export Project',
+    (diagramType) => {
+      renderOpen(true, diagramType);
+      const items = Array.from(screen.getByRole('menu').children);
+      const exportIndex = items.findIndex((item) => item.textContent === 'Export Project…');
+      expect(items[exportIndex + 1]).toHaveAttribute('role', 'separator');
+      expect(items[exportIndex + 2]).toHaveAttribute('role', 'menuitem');
+    },
+  );
 
   it('gives every top-level item an icon', () => {
     renderOpen();
