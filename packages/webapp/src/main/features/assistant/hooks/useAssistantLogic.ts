@@ -27,10 +27,19 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { markMessageSent, takeReplyLatency } from './replyLatency';
+import { recentHistoryFrom } from './recentHistory';
+import {
+  messagesFromProjectConversation,
+  projectConversationTurns,
+  sameTurns,
+  toProjectConversation,
+} from './projectConversation';
+import { autoFixInProgressMessage, autoFixRemainingMessage, autoFixResolvedMessage } from './autoFixMessages';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
   conversationStore,
+  freshAutoFixState,
   setConversationHandlers,
   voicePlaceholderIdRef,
   wireConversationDispatchers,
@@ -48,6 +57,7 @@ import {
   addDiagramThunk,
   switchDiagramIndexThunk,
   bumpEditorRevision,
+  setProjectConversation,
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors';
 import {
@@ -222,6 +232,9 @@ const createMessageId = (): string => {
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+/** Wait for the conversation to settle before writing it to the project. */
+const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
 
 const toKitMessage = (
   role: 'user' | 'assistant',
@@ -426,6 +439,12 @@ export function useAssistantLogic({
     assistantClient.setContextProvider(buildWorkspaceContext);
   }, [assistantClient, buildWorkspaceContext]);
 
+  // The conversation is module-level (shared by both surfaces), so the history
+  // the client sends after a reconnect reads it straight from the store.
+  useEffect(() => {
+    assistantClient.setHistoryProvider((current) => recentHistoryFrom(conversationStore.getMessages(), current));
+  }, [assistantClient]);
+
   const [rateLimiter] = useState(
     () =>
       new RateLimiterService({
@@ -581,28 +600,20 @@ export function useAssistantLogic({
         if (errors.length === 0) {
           if (wasRepair) {
             autoFixRef.current.fixInFlight = false;
-            settleAutoFixProgress('Validation passed — the reported issues are resolved.');
+            settleAutoFixProgress(autoFixResolvedMessage(autoFixRef.current.issues));
           }
           return;
         }
         if (autoFixRef.current.attempted) {
           // This message's repair attempt is already spent — report and stop.
           autoFixRef.current.fixInFlight = false;
-          settleAutoFixProgress(
-            `The diagram still has ${errors.length} validation issue(s):\n\n${errors
-              .map((e) => `• ${e}`)
-              .join('\n')}`,
-            true,
-          );
+          settleAutoFixProgress(autoFixRemainingMessage(errors), true);
           return;
         }
         autoFixRef.current.attempted = true;
         autoFixRef.current.fixInFlight = true;
-        const progressMessage = toKitMessage(
-          'assistant',
-          `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
-          { isProgress: true },
-        );
+        autoFixRef.current.issues = errors;
+        const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
         autoFixRef.current.progressMessageId = progressMessage.id;
         setMessages((prev) => [...prev, progressMessage]);
         const context = buildWorkspaceContext();
@@ -1348,7 +1359,7 @@ export function useAssistantLogic({
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
       // Every real user message grants a fresh automatic repair attempt.
-      autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
+      autoFixRef.current = freshAutoFixState();
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
@@ -1508,7 +1519,8 @@ export function useAssistantLogic({
     streaming.setStreamingMessageId(null);
   };
 
-  const clearConversation = () => {
+  // Stop this tab's turn: shared by a new chat and a project switch.
+  const resetTurnState = () => {
     // Abort any in-flight spec-driven run first so the user's BYOK
     // budget stops draining. NOTE: this only aborts a run owned by THIS
     // hook instance — a run owned by the other mounted surface keeps
@@ -1520,10 +1532,8 @@ export function useAssistantLogic({
     // the rest of the list, so a late transcription echo should append fresh
     // rather than try to replace a now-gone id.
     voicePlaceholderIdRef.current = null;
-    setMessages([]);
     streaming.setIsGenerating(false);
     setInputValue('');
-    setMessageMeta({});
     streaming.setProgressMessage('');
     streaming.setStreamingMessageId(null);
     // Start a fresh backend conversation session too. The agent keys its
@@ -1531,6 +1541,11 @@ export function useAssistantLogic({
     // project switch would reuse the old memory — the agent then "remembers"
     // a previous project and hallucinates from it.
     assistantClient.resetSession();
+  };
+
+  const clearConversation = () => {
+    resetTurnState();
+    conversationStore.clear();
   };
 
   // New Chat is destructive (it discards the current conversation and, via
@@ -1659,28 +1674,77 @@ export function useAssistantLogic({
   };
 
   /* ================================================================ */
-  /*  Reset conversation when the active project changes               */
+  /*  The open project's conversation                                  */
   /* ================================================================ */
 
-  // Each project gets its own fresh conversation. When the user creates
-  // or switches to a different project, wipe the previous project's chat
-  // so it doesn't bleed across projects. Gate on an actual id change via
-  // a ref so this never fires on unrelated re-renders. We seed the ref on
-  // first run (prevId === undefined) so the very first project does NOT
-  // clear an already-empty conversation.
-  const prevProjectIdRef = useRef<string | undefined>(currentProjectId);
-  useEffect(() => {
-    const projectId = currentProjectId;
-    if (prevProjectIdRef.current === undefined) {
-      prevProjectIdRef.current = projectId;
+  // The conversation belongs to the project: opening one shows its saved
+  // conversation (another tab's included), so it never bleeds across projects.
+  // Two copies are kept: the full one in this browser (assistantConversationStore)
+  // and a text one on the project (BESSER#745), written to its GitHub repo,
+  // which restores a chat this browser has not kept.
+  const restoreProjectConversation = () => {
+    const project = selectProject(store.getState());
+    const legacy = conversationStore.takeLegacyConversation();
+    if (conversationStore.getMessages().length > 0) return;
+    // The per-tab copy kept before v8.9.3 moves to the project it was about:
+    // one whose text copy matches it, or that has none yet.
+    const saved = project?.assistantConversation;
+    if (legacy?.messages.length && (!saved || sameTurns(projectConversationTurns(legacy.messages), saved.turns))) {
+      setMessages(legacy.messages);
+      setMessageMeta(legacy.messageMeta);
+      assistantClient.sendHistoryWithNextMessage();
       return;
     }
-    if (projectId !== prevProjectIdRef.current) {
-      prevProjectIdRef.current = projectId;
-      clearConversation();
+    const restored = messagesFromProjectConversation(saved, (role, content) => toKitMessage(role, content));
+    if (restored.length === 0) return;
+    setMessages(restored);
+    // The agent's session for this chat is new: give it the history.
+    assistantClient.sendHistoryWithNextMessage();
+  };
+
+  // The widget and the drawer each stop their own turn (a Spec-Driven run, the
+  // streaming state) on a project switch, so each keeps the project it last
+  // saw; the conversation store they share is opened once.
+  const surfaceProjectIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (currentProjectId === undefined) return;
+    const previousHere = surfaceProjectIdRef.current;
+    surfaceProjectIdRef.current = currentProjectId;
+    if (previousHere !== undefined && previousHere !== currentProjectId) resetTurnState();
+    if (conversationStore.getProjectId() !== currentProjectId) {
+      conversationStore.openProject(currentProjectId);
+      if (conversationStore.getMessages().length > 0) assistantClient.sendHistoryWithNextMessage();
     }
+    restoreProjectConversation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
+
+  // Another tab added turns or started a new chat: this session's agent memory is stale.
+  useEffect(
+    () => conversationStore.onRemoteTurns(() => assistantClient.restartWithHistoryOnNextMessage()),
+    [assistantClient],
+  );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const writeToProject = () => {
+      timer = null;
+      const project = selectProject(store.getState());
+      // Only the project this conversation belongs to (a switch rebinds it first).
+      if (!project || project.id !== conversationStore.getProjectId()) return;
+      const turns = projectConversationTurns(conversationStore.getMessages());
+      if (sameTurns(turns, project.assistantConversation?.turns)) return;
+      dispatch(setProjectConversation({ projectId: project.id, conversation: toProjectConversation(turns) }));
+    };
+    const unsubscribe = conversationStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(writeToProject, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, [dispatch, store]);
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */

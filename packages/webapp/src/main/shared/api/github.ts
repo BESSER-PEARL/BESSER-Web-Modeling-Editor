@@ -142,13 +142,6 @@ export const createRepoForProject = (
     { ...session(githubSession), timeout: 60_000 },
   );
 
-export const createGist = (githubSession: string, project: BesserProject, description: string, isPublic: boolean) =>
-  apiClient.post<components['schemas']['CreateGistResponse']>(
-    '/github/gist/create',
-    { project_data: project, description, is_public: isPublic },
-    session(githubSession),
-  );
-
 /**
  * Register the repo's code as a run the next Spec-Driven modify run can start from.
  * `allowAiReading`: the user agreed that an excerpt of the code goes to the server's AI model.
@@ -196,6 +189,23 @@ export const pushRunToGitHub = (githubSession: string, body: PushRunBody) =>
     // Code generation plus several GitHub API calls, as for a deploy.
     timeout: 120_000,
   });
+
+/**
+ * `POST /spec-driven/import-generated-code`: store a deterministic generator's
+ * output (the ZIP or single file `/generate-output` returned) as a run, which
+ * `pushRunToGitHub` then pushes. Resolves to the run id.
+ */
+export const importGeneratedCode = async (githubSession: string, file: Blob, fileName: string): Promise<string> => {
+  const form = new FormData();
+  form.append('file', file, fileName);
+  const { run_id } = await apiClient.upload<components['schemas']['ImportGeneratedCodeResponse']>(
+    '/spec-driven/import-generated-code',
+    form,
+    // Up to the server's 50 MB request limit.
+    { ...session(githubSession), timeout: 120_000 },
+  );
+  return run_id;
+};
 
 /** `changed` is false when the repo already held these exact deploy files. */
 export type GoLiveResult = components['schemas']['GoLiveResponse'];

@@ -4,6 +4,7 @@ import { toast, Id } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import { confirmValidationWarnings } from '../../../shared/services/validation/confirmValidationWarnings';
 import { deployApp } from '../../../shared/api/generation';
 import { ApiError } from '../../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
@@ -34,6 +35,10 @@ export const useDeployLocally = () => {
         // `failure` is set when the validation request itself failed, not the model.
         const reason = validationResult.failure !== undefined ? 'request' : 'validation';
         track('local_deploy_blocked', { generator_type: generatorType, reason });
+        return;
+      }
+      if (!(await confirmValidationWarnings(validationResult.warnings))) {
+        track('local_deploy_blocked', { generator_type: generatorType, reason: 'warnings_declined' });
         return;
       }
 

@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import '../../../shared/styles/grapesjs-styles.css';
 import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { NavigationMapDialog } from './navigation/NavigationMapDialog';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
@@ -64,6 +65,7 @@ export const GraphicalUIEditor: React.FC = () => {
   const [isPageEmpty, setIsPageEmpty] = useState(false);
   const [isDraggingBlock, setIsDraggingBlock] = useState(false);
   const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const [isNavigationMapOpen, setIsNavigationMapOpen] = useState(false);
   const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -111,6 +113,13 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Setup all editor features
       const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
+
+      editor.Commands.add('open-navigation-map', {
+        run() {
+          setIsNavigationMapOpen(true);
+          track('editor_action', { editor: 'gui', action: 'navigation_map_opened', pages_count: editor.Pages.getAll().length });
+        },
+      });
 
       const handleAssistantAutoGenerate = async () => {
         try {
@@ -372,6 +381,8 @@ export const GraphicalUIEditor: React.FC = () => {
     // Synchronous cleanup returned to React
     return () => {
       cancelled = true;
+      // The map reads this editor instance, which is about to be destroyed.
+      setIsNavigationMapOpen(false);
       if (cleanupFn) cleanupFn();
     };
     // `lang` is a dependency so switching language remounts the editor and every
@@ -424,6 +435,11 @@ export const GraphicalUIEditor: React.FC = () => {
           />,
           canvasEl,
         )}
+      <NavigationMapDialog
+        editor={editorRef.current}
+        open={isNavigationMapOpen}
+        onOpenChange={setIsNavigationMapOpen}
+      />
       {/* Save-status badge — the only user-visible confirmation that edits
           persist. Driven by the storage listeners above; pointer-events-none
           so it never blocks canvas interaction. */}

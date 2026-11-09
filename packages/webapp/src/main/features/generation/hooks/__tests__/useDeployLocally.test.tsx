@@ -12,6 +12,7 @@ import { useDeployLocally } from '../useDeployLocally';
 import { deployApp } from '../../../../shared/api/generation';
 import { validateDiagram } from '../../../../shared/services/validation/validateDiagram';
 import { ApiError } from '../../../../shared/api/api-client';
+import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
 
 const captureException = vi.fn();
 const captureEvent = vi.hoisted(() => vi.fn());
@@ -27,6 +28,7 @@ vi.mock('../../../../shared/services/validation/validateDiagram', () => ({
   validateDiagram: vi.fn(async () => ({ isValid: true })),
 }));
 vi.mock('../../../../shared/api/generation', () => ({ deployApp: vi.fn() }));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({ globalConfirm: vi.fn() }));
 
 const editor = { model: { type: 'ClassDiagram', elements: {} } } as unknown as ApollonEditor;
 
@@ -78,6 +80,26 @@ describe('useDeployLocally analytics', () => {
     } as never);
     await deploy();
     expect(deployEvents()).toEqual([['local_deploy_blocked', { generator_type: 'django', reason: 'request' }]]);
+  });
+});
+
+describe('useDeployLocally with validation warnings', () => {
+  it('does not deploy when the user chooses to fix the warnings first', async () => {
+    vi.mocked(deployApp).mockClear();
+    vi.mocked(validateDiagram).mockResolvedValueOnce({ isValid: true, errors: [], warnings: ['A is unused'] } as never);
+    vi.mocked(globalConfirm).mockResolvedValueOnce(false);
+    await deploy();
+    expect(deployApp).not.toHaveBeenCalled();
+    expect(deployEvents()).toEqual([['local_deploy_blocked', { generator_type: 'django', reason: 'warnings_declined' }]]);
+  });
+
+  it('deploys when the user chooses to go ahead', async () => {
+    vi.mocked(deployApp).mockClear();
+    vi.mocked(validateDiagram).mockResolvedValueOnce({ isValid: true, errors: [], warnings: ['A is unused'] } as never);
+    vi.mocked(globalConfirm).mockResolvedValueOnce(true);
+    vi.mocked(deployApp).mockResolvedValueOnce(undefined as never);
+    await deploy();
+    expect(deployApp).toHaveBeenCalledTimes(1);
   });
 });
 

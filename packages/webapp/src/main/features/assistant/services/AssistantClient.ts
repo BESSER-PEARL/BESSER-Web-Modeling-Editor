@@ -106,6 +106,30 @@ const createTurnId = (): string =>
 // How many recent turns keep their applied reply seqs (older turns are superseded).
 const MAX_TRACKED_TURNS = 20;
 
+/** One earlier turn of the conversation, as sent in `recentHistory`. */
+export interface HistoryTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Caps on `recentHistory` (the agent enforces the same ones): enough recent
+ * turns to rebuild the agent's memory without sending the whole chat. */
+export const MAX_RECENT_HISTORY_TURNS = 20;
+export const MAX_RECENT_HISTORY_CHARS = 4000;
+
+/** The newest turns, oldest first, each cut to the character cap. */
+export const clampRecentHistory = (turns: readonly HistoryTurn[]): HistoryTurn[] =>
+  turns
+    .filter((t) => (t.role === 'user' || t.role === 'assistant') && t.content.trim().length > 0)
+    .slice(-MAX_RECENT_HISTORY_TURNS)
+    .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_RECENT_HISTORY_CHARS) }));
+
+/** Shown when no reply arrived within the hard timeout. The request keeps
+ * running, so this must not tell the user it failed or to try again. */
+export const RESPONSE_STILL_RUNNING_MESSAGE =
+  'This is taking much longer than usual. The request is still running: its result will appear here when it arrives, ' +
+  'so there is no need to send it again.';
+
 const isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -382,6 +406,15 @@ export class AssistantClient {
   // workspace context by whichever surface is currently mounted, instead of
   // going stale when the creating surface unmounts.
   private contextProvider?: () => AssistantWorkspaceContext | undefined;
+  // The conversation before the message being sent. The agent keeps its memory
+  // in its own process, so a restart or an idle expiry loses it; the first
+  // message on each new socket carries the recent turns so the agent can
+  // rebuild it (it ignores them when its memory is intact). BESSER#745.
+  private historyProvider?: (currentMessage: string) => HistoryTurn[];
+  private sendHistoryOnNextMessage = false;
+  // Another tab added turns this session's agent memory lacks (the agent seeds
+  // only an empty memory), so the next message starts a new session with them.
+  private restartOnNextMessage = false;
 
   // Multi-subscriber handlers so a SINGLE shared client can feed BOTH the
   // floating widget and the workspace drawer (one socket, one session id).
@@ -409,6 +442,25 @@ export class AssistantClient {
     this.clientMode = options.clientMode || 'widget';
     this.sessionId = options.sessionId || createSessionId();
     this.contextProvider = options.contextProvider;
+  }
+
+  /** Set the source of the conversation history sent after a (re)connect. */
+  setHistoryProvider(provider: (currentMessage: string) => HistoryTurn[]): void {
+    this.historyProvider = provider;
+  }
+
+  /** Send the recent history with the next message: a conversation restored
+   * from the project is unknown to the agent's new session. */
+  sendHistoryWithNextMessage(): void {
+    this.sendHistoryOnNextMessage = true;
+  }
+
+  /** Another tab changed the conversation: the next text message starts a new
+   * agent session that carries the history. A reply in flight is unaffected.
+   * A voice message leaves it pending: its wire format cannot carry the history,
+   * so a new session would start with an empty memory. */
+  restartWithHistoryOnNextMessage(): void {
+    this.restartOnNextMessage = true;
   }
 
   /** Re-point the (possibly shared) client at the live workspace-context source. */
@@ -453,6 +505,7 @@ export class AssistantClient {
           // Sent BEFORE draining the queue so any queued user message is
           // processed with the key already in place.
           this.rearmUserApiKey();
+          this.sendHistoryOnNextMessage = true;
           // If a reply was in flight when the socket dropped, ask the agent to
           // replay its last completed reply — the reconnect may have lost it.
           this.requestReplayIfPending();
@@ -755,6 +808,9 @@ export class AssistantClient {
       // sessionStorage unavailable — fall through to a fresh in-memory id
     }
     this.sessionId = createSessionId();
+    // A new conversation has no history to restore.
+    this.sendHistoryOnNextMessage = false;
+    this.restartOnNextMessage = false;
     // Replies to the old conversation's turns must not land in the new one.
     this.turns.clear();
     this.currentTurnId = null;
@@ -797,6 +853,16 @@ export class AssistantClient {
     if (pilotParticipant) {
       context.pilotParticipant = pilotParticipant;
     }
+    if (this.restartOnNextMessage) {
+      this.restartOnNextMessage = false;
+      try {
+        clearAssistantSessionId();
+      } catch {
+        // sessionStorage unavailable — fall through to a fresh in-memory id
+      }
+      this.sessionId = createSessionId();
+      this.sendHistoryOnNextMessage = true;
+    }
     const payload: Record<string, any> = {
       action: 'user_message',
       protocolVersion: '2.0',
@@ -807,6 +873,11 @@ export class AssistantClient {
     };
     if (attachments && attachments.length > 0) {
       payload.attachments = attachments;
+    }
+    if (this.sendHistoryOnNextMessage) {
+      this.sendHistoryOnNextMessage = false;
+      const history = clampRecentHistory(this.historyProvider?.(message) ?? []);
+      if (history.length > 0) payload.recentHistory = history;
     }
     return payload;
   }
@@ -1125,14 +1196,15 @@ export class AssistantClient {
   private onResponseTick(): void {
     const elapsed = Date.now() - this.responseStartedAt;
     if (elapsed >= this.responseHardTimeoutMs) {
-      // Genuinely stuck (no reply after the hard cap) — give up so the user
-      // can retry.
+      // Stop the loading indicator so the user can carry on, but don't call it
+      // a failure: the request is not cancelled (the socket has no cancel), so
+      // its reply can still arrive and be applied (BESSER#744).
       track('assistant_client_error', { kind: 'timeout' });
       this.emitTyping(false);
       this.emitMessage({
         id: createMessageId(),
         action: 'agent_error',
-        message: 'The assistant is taking too long to respond. Please try again.',
+        message: RESPONSE_STILL_RUNNING_MESSAGE,
         isUser: false,
         timestamp: new Date(),
       });

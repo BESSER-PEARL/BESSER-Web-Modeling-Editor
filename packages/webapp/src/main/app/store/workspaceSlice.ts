@@ -8,6 +8,7 @@ import {
   InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
+  ProjectConversation,
   ProjectDiagram,
   SupportedDiagramType,
   QuantumCircuitData,
@@ -653,6 +654,19 @@ const workspaceSlice = createSlice({
     ) {
       if (state.project?.id === action.payload.projectId) state.project.attribution = action.payload.attribution;
     },
+    /** The assistant conversation kept with the project (BESSER#745). */
+    setProjectConversation(
+      state,
+      action: PayloadAction<{ projectId: string; conversation: ProjectConversation | undefined }>,
+    ) {
+      const { projectId, conversation } = action.payload;
+      if (state.project?.id !== projectId) return;
+      if (conversation) state.project.assistantConversation = conversation;
+      else delete state.project.assistantConversation;
+      ProjectStorageRepository.withoutNotify(() => {
+        ProjectStorageRepository.saveProject(state.project!);
+      });
+    },
     clearError(state) {
       state.error = null;
     },
@@ -942,6 +956,7 @@ const workspaceSlice = createSlice({
 export const {
   bumpEditorRevision,
   setProjectAttribution,
+  setProjectConversation,
   clearError,
   updateProjectInfo,
   changeEditorMode,

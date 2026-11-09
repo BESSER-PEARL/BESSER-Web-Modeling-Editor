@@ -38,6 +38,7 @@ vi.mock('../../services', async (importOriginal) => {
     disconnect() {}
     resetSession() { _client.resetSessionCalls += 1; }
     setContextProvider() {}
+    setHistoryProvider() {}
     sendMessage() { return 'sent' as const; }
     sendVoiceMessage() { return 'sent' as const; }
     sendFrontendEvent() { return 'sent' as const; }

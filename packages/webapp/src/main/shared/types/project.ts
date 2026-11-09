@@ -355,6 +355,23 @@ export interface BesserProject {
   /** Element id → who added it. Sidecar; stamped by the backend on a save
    *  to GitHub, read by no converter. */
   attribution?: Record<string, ElementAttribution>;
+  /** The modeling assistant's conversation, so the user's specification is
+   *  kept with the project and saved to its GitHub repo (BESSER#745). Sidecar,
+   *  read by no converter and left out of generation requests. Optional, so no
+   *  schema bump. */
+  assistantConversation?: ProjectConversation;
+}
+
+/** One turn of the assistant conversation stored on a project. */
+export interface ProjectConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** The assistant conversation stored on a project: its latest turns. */
+export interface ProjectConversation {
+  turns: ProjectConversationTurn[];
+  updatedAt: string;
 }
 
 /** The two ways into the editor, chosen on the first-run landing. */
@@ -729,6 +746,10 @@ export const isProject = (obj: any): obj is BesserProject => {
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
+  // A v1 project has no currentDiagramIndices; the back-fills below write into it
+  // before migrateProjectToV2 runs.
+  obj.currentDiagramIndices ??= defaultDiagramIndices();
+
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];

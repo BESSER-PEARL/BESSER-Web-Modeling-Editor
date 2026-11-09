@@ -20,8 +20,8 @@ copyright = f"{datetime.now():%Y}, BESSER"
 author = "BESSER"
 
 # The editor ships with the coordinated BESSER v8 release.
-release = "8.0.2"
-version = "8.0"
+release = "8.9.3"
+version = "8.9"
 html_title = "BESSER Web Modeling Editor"
 
 # -- General configuration ---------------------------------------------------
