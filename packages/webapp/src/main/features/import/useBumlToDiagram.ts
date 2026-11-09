@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { getJsonModel } from '../../shared/api/conversion';
+import type { UMLModel } from '@besser/wme';
 import { ApiError } from '../../shared/api/api-client';
 import { uuid } from '../../shared/utils/uuid';
 import {
@@ -41,7 +42,9 @@ export const useBumlToDiagram = () => {
 
       // Keep the model's own type when a project slot holds it; anything else
       // (GUI, quantum, KG...) cannot be placed as an Apollon diagram.
-      const modelType = (data.model as { type: string }).type;
+      // A v3 model is typed as v4 here; callers migrate it.
+      const model = data.model as UMLModel;
+      const modelType = model.type;
       if (toUMLDiagramType(toSupportedDiagramType(modelType)) !== modelType) {
         throw new Error(`Unsupported diagram type for a B-UML diagram import: ${modelType}`);
       }
@@ -52,7 +55,7 @@ export const useBumlToDiagram = () => {
       const diagram: ProjectDiagram = {
         id: uuid(),
         title: title,
-        model: data.model,
+        model,
         lastUpdate: new Date().toISOString(),
         description: `Imported from ${file.name}`,
       };
