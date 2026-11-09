@@ -505,9 +505,15 @@ describe('importProjectFromJson: empty diagrams are re-created with the right mo
     // envelope, written before the Knowledge Graph slot existed.
     const project = createDefaultProject('OCL_Gen', '', 'Fitash');
     const classDiagram = project.diagrams.ClassDiagram[0];
+    // A v3 class model, as the editor saved it then (a new project here is already v4).
     classDiagram.model = {
-      ...(classDiagram.model as object),
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      size: { width: 1400, height: 740 },
       elements: { g1: { id: 'g1', name: 'Generator', type: 'Class', owner: null, attributes: [], methods: [] } },
+      relationships: {},
+      interactive: { elements: {}, relationships: {} },
+      assessments: {},
     } as unknown as typeof classDiagram.model;
     const { KnowledgeGraphDiagram: _kg, ...diagramsWithoutKg } = project.diagrams;
     const bare = { ...project, schemaVersion: 5, diagrams: diagramsWithoutKg };
