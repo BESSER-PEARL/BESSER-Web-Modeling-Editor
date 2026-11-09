@@ -9,6 +9,11 @@
  * the source class to the target class, so only the target end is navigable.
  * Composition and aggregation keep both ends navigable, which also keeps the
  * part (source) end of a composition navigable as the editor requires.
+ *
+ * Whole/part direction: for a composition or aggregation the SOURCE is the part
+ * and the TARGET is the whole. The editor draws the diamond at the target end
+ * and the backend's JSON -> BUML conversion makes the target end the composite
+ * one, so an agent relationship is passed through unchanged (BESSER-PEARL/BESSER#746).
  */
 
 export interface RelationshipMapping {
@@ -38,6 +43,12 @@ export function mapAssistantRelationshipType(type: string | undefined | null): R
       // "Association", "Bidirectional" and anything unrecognised.
       return { type: 'ClassBidirectional', navigable: { source: true, target: true } };
   }
+}
+
+/** True for a composition or aggregation, in editor or assistant spelling. */
+export function isWholePartType(type: string | undefined | null): boolean {
+  const mapped = mapAssistantRelationshipType(type).type;
+  return mapped === 'ClassComposition' || mapped === 'ClassAggregation';
 }
 
 /**
