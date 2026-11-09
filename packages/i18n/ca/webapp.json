@@ -3041,7 +3041,7 @@
         "navBar": "Barra de navegació",
         "attention": "Cal revisar",
         "allGood": "Totes les pàgines són accessibles des de la pàgina d’inici i tots els enllaços tenen destinació.",
-        "unreached": "Cap enllaç porta a «{{page}}»",
+        "unreached": "«{{page}}» no és accessible des de la pàgina d’inici",
         "broken": "«{{label}}» a {{page}} apunta a {{target}}, que no és una pàgina",
         "hint": "Fes clic en una pàgina per obrir-la",
         "summary": "Pàgines: {{pages}} · Enllaços a les pàgines: {{links}}",

@@ -3041,7 +3041,7 @@
         "navBar": "Navigation bar",
         "attention": "Needs attention",
         "allGood": "Every page can be reached from the start page, and every link has a target.",
-        "unreached": "No link leads to “{{page}}”",
+        "unreached": "“{{page}}” can't be reached from the start page",
         "broken": "“{{label}}” on {{page}} points to {{target}}, which is not a page",
         "hint": "Click a page to open it",
         "summary": "Pages: {{pages}} · In-page links: {{links}}",

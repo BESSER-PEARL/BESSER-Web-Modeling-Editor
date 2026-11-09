@@ -3041,7 +3041,7 @@
         "navBar": "Barre de navigation",
         "attention": "À vérifier",
         "allGood": "Chaque page est accessible depuis la page d’accueil et chaque lien a une cible.",
-        "unreached": "Aucun lien ne mène à « {{page}} »",
+        "unreached": "« {{page}} » n’est pas accessible depuis la page d’accueil",
         "broken": "« {{label}} » sur {{page}} pointe vers {{target}}, qui n’est pas une page",
         "hint": "Cliquez sur une page pour l’ouvrir",
         "summary": "Pages : {{pages}} · Liens dans les pages : {{links}}",

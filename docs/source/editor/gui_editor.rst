@@ -26,10 +26,10 @@ Navigation Map
 
 The **Map** button next to **Add Page** in the Pages panel opens a map of the GUI's pages and the links between them. The map is read-only: links are changed on the pages themselves.
 
-* **Links are resolved like the generated app**: a navigate button points at its target page by id, and an ``<a href>`` link points at the page whose route matches. A page's route is ``/`` followed by its lowercased name, with spaces as hyphens, and ``/`` is the first page (the start page).
-* **Navigation bar hub**: links inside a nav bar or footer appear on every page, so they are grouped into one *Navigation bar* node instead of being drawn from each page.
-* **Layout**: pages are arranged in columns by the number of clicks from the start page.
-* **Needs attention**: lists pages that no link reaches and links that point to a page that does not exist.
+* **Links are resolved like the generated app**: a navigate button points at its target page by id (or, failing that, by name), and an ``<a href>`` link points at the page whose route matches. A page's route is ``/`` followed by its lowercased name, with spaces as hyphens, and ``/`` is the first page (the start page). A custom route set with **Edit URL route** is not used by the generated app, so the map does not use it either.
+* **Navigation bar hub**: links inside a nav bar, header or footer appear on every page, so they are grouped into one *Navigation bar* node instead of being drawn from each page.
+* **Layout**: pages are arranged in columns by the number of clicks from the start page; pages that cannot be reached sit in a last column.
+* **Needs attention**: lists pages that cannot be reached from the start page and links that point to a page that does not exist.
 * **Navigation**: clicking a page opens it in the editor; clicking a broken link opens its page with the link selected.
 
 Integration

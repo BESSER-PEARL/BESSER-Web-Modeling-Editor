@@ -3041,7 +3041,7 @@
         "navBar": "Barra de navegación",
         "attention": "Requiere atención",
         "allGood": "Todas las páginas son accesibles desde la página de inicio y todos los enlaces tienen destino.",
-        "unreached": "Ningún enlace lleva a «{{page}}»",
+        "unreached": "«{{page}}» no es accesible desde la página de inicio",
         "broken": "«{{label}}» en {{page}} apunta a {{target}}, que no es una página",
         "hint": "Haz clic en una página para abrirla",
         "summary": "Páginas: {{pages}} · Enlaces en las páginas: {{links}}",
