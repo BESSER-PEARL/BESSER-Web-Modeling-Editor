@@ -1661,11 +1661,11 @@
     "byBesser": "by BESSER",
     "welcome": {
       "greeting": "Hi! I'm your Modeling Assistant",
-      "intro": "I can help you create and modify UML diagrams, generate code, and answer modeling questions. Try something like:",
+      "intro": "I can help you create and modify your models and answer modeling questions. Try something like:",
       "suggestions": {
         "library": "Create a library management system",
         "payment": "Add a Payment class with amount and date",
-        "django": "Generate Django code"
+        "stateMachine": "Create a state machine for an order"
       },
       "headlinePre": "What would you like to",
       "headlineEmphasis": "create",
