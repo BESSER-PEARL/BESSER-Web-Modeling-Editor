@@ -455,8 +455,10 @@ export class AssistantClient {
     this.sendHistoryOnNextMessage = true;
   }
 
-  /** Another tab added turns to the conversation: the next message starts a
-   * new agent session that carries the history. A reply in flight is unaffected. */
+  /** Another tab changed the conversation: the next text message starts a new
+   * agent session that carries the history. A reply in flight is unaffected.
+   * A voice message leaves it pending: its wire format cannot carry the history,
+   * so a new session would start with an empty memory. */
   restartWithHistoryOnNextMessage(): void {
     this.restartOnNextMessage = true;
   }

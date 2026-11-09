@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import {
-  MAX_PERSISTED_BYTES,
+  MAX_PERSISTED_CHARS,
   MAX_PERSISTED_MESSAGES,
   reviveStoredConversation,
   sanitizeMessageForPersist,
@@ -107,7 +107,7 @@ describe('serializeConversation + reviveStoredConversation round-trip', () => {
     const messages = Array.from({ length: 30 }, (_, i) => msg({ id: `big${i}`, content: big }));
     const payload = serializeConversation(messages, {});
     expect(payload).not.toBeNull();
-    expect(payload!.length).toBeLessThanOrEqual(MAX_PERSISTED_BYTES);
+    expect(payload!.length).toBeLessThanOrEqual(MAX_PERSISTED_CHARS);
     const revived = reviveStoredConversation(payload);
     expect(revived).not.toBeNull();
     // The newest message always survives the shedding loop.
@@ -123,7 +123,7 @@ describe('serializeConversation + reviveStoredConversation round-trip', () => {
       messages: [{ id: 'a', role: 'user', content: 'old' }],
       messageMeta: {},
     });
-    // Only a pre-v8.10 per-tab copy has a maximum age; a project's conversation has none.
+    // Only a per-tab copy from before v8.9.3 has a maximum age; a project's conversation has none.
     expect(reviveStoredConversation(expired, 48 * 60 * 60 * 1000)).toBeNull();
     expect(reviveStoredConversation(expired)?.messages).toHaveLength(1);
   });
@@ -148,5 +148,42 @@ describe('serializeConversation + reviveStoredConversation round-trip', () => {
     const revived = reviveStoredConversation(payload);
     expect(revived).not.toBeNull();
     expect(revived!.messages.map((m) => m.id)).toEqual(['ok']);
+  });
+});
+
+describe('reviveStoredConversation drops what the renderers would crash on', () => {
+  const stored = (messages: unknown[], messageMeta: unknown = {}) =>
+    JSON.stringify({ savedAt: Date.now(), conversationId: 'c', messages, messageMeta });
+
+  it('drops a run card without the lists the card reads, and the message if it was only the card', () => {
+    const revived = reviveStoredConversation(
+      stored([
+        { id: 'bad-card', role: 'assistant', content: '', specDriven: { status: 'done', text: '' } },
+        { id: 'bad-card-with-text', role: 'assistant', content: 'Here it is', specDriven: { status: 'odd' } },
+        {
+          id: 'good-card',
+          role: 'assistant',
+          content: '',
+          specDriven: { status: 'done', text: '', phases: [], warnings: [], changedFiles: 'not a list' },
+        },
+      ]),
+    );
+    expect(revived!.messages.map((m) => m.id)).toEqual(['bad-card-with-text', 'good-card']);
+    expect(revived!.messages[0].specDriven).toBeUndefined();
+    expect(revived!.messages[1].specDriven).toMatchObject({ status: 'done', phases: [] });
+    expect(revived!.messages[1].specDriven!.changedFiles).toBeUndefined();
+  });
+
+  it('keeps only message details of the right type', () => {
+    const revived = reviveStoredConversation(
+      stored([{ id: 'a', role: 'assistant', content: 'hi' }], {
+        a: { suggestedActions: [{ label: 'Go' }], badge: 'generation', badgeLabel: 7 },
+      }),
+    );
+    expect(revived!.messageMeta.a).toEqual({ badge: 'generation' });
+  });
+
+  it('reads a new chat (no messages) with its conversation id', () => {
+    expect(reviveStoredConversation(stored([]))).toMatchObject({ messages: [], conversationId: 'c' });
   });
 });

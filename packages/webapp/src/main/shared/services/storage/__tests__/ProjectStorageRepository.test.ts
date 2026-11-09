@@ -137,6 +137,24 @@ describe('ProjectStorageRepository', () => {
       expect(localStorage.getItem(localStorageLatestProject)).toBeNull();
     });
 
+    it('frees space by dropping the stored assistant conversations when storage is full', () => {
+      const other = createDefaultProject('Other', '', '');
+      writeStoredConversation(other.id, '{"savedAt":1}');
+      const project = createDefaultProject('Big', '', '');
+      const setItem = localStorage.setItem.bind(localStorage);
+      const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key: string, value: string) => {
+        if (key.startsWith('besser_project_') && readStoredConversation(other.id) !== null) {
+          throw new DOMException('full', 'QuotaExceededError');
+        }
+        setItem(key, value);
+      });
+
+      expect(() => ProjectStorageRepository.saveProject(project)).not.toThrow();
+      expect(ProjectStorageRepository.loadProject(project.id)).not.toBeNull();
+      expect(readStoredConversation(other.id)).toBeNull();
+      spy.mockRestore();
+    });
+
     it("removes the project's assistant conversation", () => {
       const project = createDefaultProject('Chatty', '', '');
       ProjectStorageRepository.saveProject(project);

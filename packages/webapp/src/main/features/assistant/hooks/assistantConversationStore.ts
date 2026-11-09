@@ -30,12 +30,12 @@ import type { ChatMessage, InjectionCommand, AssistantActionPayload } from '../s
 // Type-only import — erased at runtime, so no circular dependency with the hook.
 import type { MessageMeta } from './useAssistantLogic';
 import {
-  clearStoredConversation,
   conversationStorageKey,
   readStoredConversation,
   takeLegacyTabConversation,
   writeStoredConversation,
 } from '../../../shared/services/storage/assistantStorage';
+import { llmKeyRedactor } from '../../../shared/services/llmKeyStorage';
 
 /* ------------------------------------------------------------------ */
 /*  Persistence (localStorage per project, bounded, best-effort)      */
@@ -43,9 +43,9 @@ import {
 
 /** Newest messages kept when persisting (older ones are dropped first). */
 export const MAX_PERSISTED_MESSAGES = 100;
-/** Hard cap on the serialized payload; oldest messages are shed to fit. */
-export const MAX_PERSISTED_BYTES = 200 * 1024;
-/** A pre-v8.10 per-tab copy older than this is not moved to the project
+/** Hard cap on the serialized payload, in UTF-16 code units (`string.length`); oldest messages are shed to fit. */
+export const MAX_PERSISTED_CHARS = 200 * 1024;
+/** A per-tab copy from before v8.9.3 older than this is not moved to the project
  * (browser "restore tabs" can revive sessionStorage days later). */
 const LEGACY_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 const PERSIST_DEBOUNCE_MS = 400;
@@ -91,12 +91,15 @@ export const sanitizeMessageForPersist = (message: ChatKitMessage): Record<strin
   return out;
 };
 
-/** Build the bounded, serialized payload — or null when there is nothing to store. */
+/** Build the bounded, serialized payload — or null when it does not fit. It goes
+ * to localStorage, so the stored BYOK key is removed from every string in it. */
 export const serializeConversation = (
   allMessages: ChatKitMessage[],
   allMeta: Record<string, MessageMeta>,
   conversationId?: string,
 ): string | null => {
+  const redact = llmKeyRedactor();
+  const redactStrings = (_key: string, value: unknown) => (typeof value === 'string' ? redact(value) : value);
   let sanitized = allMessages
     .slice(-MAX_PERSISTED_MESSAGES)
     .map(sanitizeMessageForPersist)
@@ -109,16 +112,16 @@ export const serializeConversation = (
       if (keptIds.has(id)) meta[id] = value;
     }
     const stored: StoredConversation = { savedAt: Date.now(), conversationId, messages: sanitized, messageMeta: meta };
-    return JSON.stringify(stored);
+    return JSON.stringify(stored, redactStrings);
   };
 
   let payload = buildPayload();
   // Shed oldest messages until the payload fits the byte budget.
-  while (payload.length > MAX_PERSISTED_BYTES && sanitized.length > 1) {
+  while (payload.length > MAX_PERSISTED_CHARS && sanitized.length > 1) {
     sanitized = sanitized.slice(Math.ceil(sanitized.length / 4));
     payload = buildPayload();
   }
-  if (payload.length > MAX_PERSISTED_BYTES) return null;
+  if (payload.length > MAX_PERSISTED_CHARS) return null;
   return payload;
 };
 
@@ -128,8 +131,66 @@ export interface RevivedConversation {
   conversationId?: string;
 }
 
+/* A stored conversation is read back in every tab, so a value the renderers
+   would crash on is dropped here rather than trusted. */
+
+type Json = Record<string, unknown>;
+const isRecord = (value: unknown): value is Json =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isListOf = (value: unknown, item: (entry: unknown) => boolean): boolean =>
+  Array.isArray(value) && value.every(item);
+const isString = (value: unknown): boolean => typeof value === 'string';
+const CARD_STATUSES = ['running', 'done', 'error'];
+
+const isPhase = (value: unknown): boolean =>
+  isRecord(value) &&
+  isString(value.phase) &&
+  isString(value.label) &&
+  isString(value.message) &&
+  isListOf(value.toolCalls, (call) => isRecord(call) && isString(call.tool));
+const isWarning = (value: unknown): boolean => isRecord(value) && isString(value.code) && isString(value.message);
+const isVerification = (value: unknown): boolean =>
+  isRecord(value) &&
+  isListOf(value.verified, isRecord) &&
+  isListOf(value.notVerified, isRecord) &&
+  isListOf(value.shippedUnenforced, isRecord) &&
+  isRecord(value.counts);
+
+/** The run card as stored, or undefined when a field the card reads unguarded is wrong; a wrong optional list is dropped. */
+const reviveCard = (value: unknown): ChatKitMessage['specDriven'] => {
+  if (
+    !isRecord(value) ||
+    !CARD_STATUSES.includes(value.status as string) ||
+    !isString(value.text) ||
+    !isListOf(value.phases, isPhase) ||
+    !isListOf(value.warnings, isWarning)
+  ) {
+    return undefined;
+  }
+  const card: Json = { ...value };
+  if (card.verification !== undefined && !isVerification(card.verification)) delete card.verification;
+  for (const field of ['changedFiles', 'modelChanges']) {
+    if (card[field] !== undefined && !isListOf(card[field], isString)) delete card[field];
+  }
+  return card as unknown as ChatKitMessage['specDriven'];
+};
+
+/** The message details as stored, keeping only fields of the right type. */
+const reviveMeta = (value: unknown): MessageMeta | undefined => {
+  if (!isRecord(value)) return undefined;
+  const meta: MessageMeta = {};
+  if (isListOf(value.suggestedActions, (a) => isRecord(a) && isString(a.label) && isString(a.prompt))) {
+    meta.suggestedActions = value.suggestedActions as MessageMeta['suggestedActions'];
+  }
+  if (value.badge === 'injection' || value.badge === 'error' || value.badge === 'generation') meta.badge = value.badge;
+  if (isString(value.badgeLabel)) meta.badgeLabel = value.badgeLabel as string;
+  if (typeof value.needsApiKey === 'boolean') meta.needsApiKey = value.needsApiKey;
+  return Object.keys(meta).length > 0 ? meta : undefined;
+};
+
 /** Parse + revive a stored conversation. Never throws; returns null when the
- * payload is missing, malformed, empty, or older than `maxAgeMs` when given. */
+ * payload is missing, malformed, or older than `maxAgeMs` when given. A new
+ * chat is stored as no messages, so its conversation id reaches other tabs. */
 export const reviveStoredConversation = (raw: string | null, maxAgeMs?: number): RevivedConversation | null => {
   if (!raw) return null;
   try {
@@ -140,12 +201,19 @@ export const reviveStoredConversation = (raw: string | null, maxAgeMs?: number):
     }
     const revived: ChatKitMessage[] = [];
     for (const entry of parsed.messages) {
-      if (!entry || typeof entry !== 'object') continue;
-      const m = entry as Record<string, unknown>;
+      if (!isRecord(entry)) continue;
+      const m = entry;
       if (typeof m.id !== 'string' || typeof m.role !== 'string' || typeof m.content !== 'string') {
         continue;
       }
       const msg = { ...m } as unknown as ChatKitMessage;
+      if (m.specDriven !== undefined) {
+        msg.specDriven = reviveCard(m.specDriven);
+        if (!msg.specDriven) {
+          delete msg.specDriven;
+          if (m.content === '') continue; // a card and nothing else
+        }
+      }
       if (typeof m.createdAt === 'string') {
         const date = new Date(m.createdAt);
         msg.createdAt = isNaN(date.getTime()) ? undefined : date;
@@ -156,11 +224,14 @@ export const reviveStoredConversation = (raw: string | null, maxAgeMs?: number):
       msg.isStreaming = false;
       revived.push(msg);
     }
-    if (revived.length === 0) return null;
-    const meta =
-      parsed.messageMeta && typeof parsed.messageMeta === 'object' && !Array.isArray(parsed.messageMeta)
-        ? parsed.messageMeta
-        : {};
+    const keptIds = new Set(revived.map((m) => m.id));
+    const meta: Record<string, MessageMeta> = {};
+    if (isRecord(parsed.messageMeta)) {
+      for (const [id, value] of Object.entries(parsed.messageMeta)) {
+        const entry = keptIds.has(id) ? reviveMeta(value) : undefined;
+        if (entry) meta[id] = entry;
+      }
+    }
     const conversationId = typeof parsed.conversationId === 'string' ? parsed.conversationId : undefined;
     return { messages: revived, messageMeta: meta, conversationId };
   } catch {
@@ -183,7 +254,7 @@ let projectId: string | null = null;
 let conversationId = createId();
 let messages: ChatKitMessage[] = [];
 let messageMeta: Record<string, MessageMeta> = {};
-/** The per-tab copy kept before v8.10, taken on the first project open; see takeLegacyConversation. */
+/** The per-tab copy kept before v8.9.3, taken on the first project open; see takeLegacyConversation. */
 let legacyConversation: RevivedConversation | null = null;
 const listeners = new Set<() => void>();
 const remoteTurnListeners = new Set<() => void>();
@@ -198,10 +269,8 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 const persistNow = (): void => {
   if (!projectId) return;
   try {
-    if (!messages.some((m) => sanitizeMessageForPersist(m) !== null)) {
-      clearStoredConversation(projectId);
-      return;
-    }
+    // An empty conversation is written too (not removed), so a new chat's id
+    // reaches the other tabs; a removed key means a deleted or evicted one.
     const payload = serializeConversation(messages, messageMeta, conversationId);
     if (payload === null) return; // over budget even after shedding — keep last good copy
     writeStoredConversation(projectId, payload);
@@ -245,17 +314,19 @@ const sameShown = (a: ChatKitMessage[], b: ChatKitMessage[]): boolean =>
   );
 
 /**
- * Another tab saved this project's conversation (`raw`, null once removed): show
- * it here. A new chat there replaces this one; otherwise the two are merged by
- * message id, so a turn this tab has not saved yet is kept and saved back.
- * Messages still in flight here always stay.
+ * Another tab saved this project's conversation: show it here. A new chat
+ * there replaces this one; otherwise the two are merged by message id, so a
+ * turn this tab has not saved yet is kept and saved back. Messages still in
+ * flight here always stay. A removed or unreadable copy (the project was
+ * deleted, or the copy evicted) changes nothing here.
  */
 export function adoptStoredConversation(raw: string | null): void {
   const remote = reviveStoredConversation(raw);
-  const sameConversation = remote !== null && remote.conversationId === conversationId;
-  const remoteIds = new Set(remote?.messages.map((m) => m.id));
+  if (!remote) return;
+  const sameConversation = remote.conversationId === conversationId;
+  const remoteIds = new Set(remote.messages.map((m) => m.id));
   const localById = new Map(messages.map((m) => [m.id, m]));
-  const fromRemote = (remote?.messages ?? []).map((m) => {
+  const fromRemote = remote.messages.map((m) => {
     const local = localById.get(m.id);
     return local && isInFlight(local) ? local : m;
   });
@@ -265,22 +336,25 @@ export function adoptStoredConversation(raw: string | null): void {
     .sort((a, b) => a.t - b.t || a.i - b.i)
     .map((entry) => entry.m);
 
-  conversationId = remote?.conversationId ?? createId();
+  conversationId = remote.conversationId ?? createId();
   if (sameShown(merged, messages)) return;
 
   const meta: Record<string, MessageMeta> = {};
   for (const m of merged) {
     const local = localById.get(m.id);
     const value =
-      local && (isInFlight(local) || !remoteIds.has(m.id)) ? messageMeta[m.id] : remote?.messageMeta[m.id];
+      local && (isInFlight(local) || !remoteIds.has(m.id)) ? messageMeta[m.id] : remote.messageMeta[m.id];
     if (value) meta[m.id] = value;
   }
-  const addedTurns = fromRemote.some((m) => !localById.has(m.id) && (m.role === 'user' || m.role === 'assistant'));
+  // The agent's memory for this tab's session lacks the other tab's turns, or
+  // belongs to the conversation a new chat there replaced.
+  const agentMemoryStale =
+    !sameConversation || fromRemote.some((m) => !localById.has(m.id) && (m.role === 'user' || m.role === 'assistant'));
   messages = merged;
   messageMeta = meta;
   if (kept.some((m) => !isInFlight(m))) emit();
   else notify();
-  if (addedTurns) remoteTurnListeners.forEach((l) => l());
+  if (agentMemoryStale) remoteTurnListeners.forEach((l) => l());
 }
 
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
@@ -322,7 +396,7 @@ export const conversationStore = {
     if (first) legacyConversation = reviveStoredConversation(takeLegacyTabConversation(), LEGACY_MAX_AGE_MS);
     projectId = id;
     const stored = reviveStoredConversation(readStoredConversation(id));
-    if (!stored && first && messages.length > 0) {
+    if (first && messages.length > 0 && !stored?.messages.length) {
       emit();
       return;
     }
@@ -331,13 +405,13 @@ export const conversationStore = {
     conversationId = stored?.conversationId ?? createId();
     notify();
   },
-  /** The conversation this tab kept before v8.10, once; the caller checks it belongs to the project. */
+  /** The conversation this tab kept before v8.9.3, once; the caller checks it belongs to the project. */
   takeLegacyConversation(): RevivedConversation | null {
     const legacy = legacyConversation;
     legacyConversation = null;
     return legacy;
   },
-  /** Called when another tab added turns to this conversation. */
+  /** Called when another tab added turns to this conversation or started a new chat. */
   onRemoteTurns(listener: () => void): () => void {
     remoteTurnListeners.add(listener);
     return () => {

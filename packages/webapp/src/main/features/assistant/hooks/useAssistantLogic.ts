@@ -1686,10 +1686,10 @@ export function useAssistantLogic({
     const project = selectProject(store.getState());
     const legacy = conversationStore.takeLegacyConversation();
     if (conversationStore.getMessages().length > 0) return;
-    // The per-tab copy kept before v8.10 moves to the project it was about:
+    // The per-tab copy kept before v8.9.3 moves to the project it was about:
     // one whose text copy matches it, or that has none yet.
     const saved = project?.assistantConversation;
-    if (legacy && (!saved || sameTurns(projectConversationTurns(legacy.messages), saved.turns))) {
+    if (legacy?.messages.length && (!saved || sameTurns(projectConversationTurns(legacy.messages), saved.turns))) {
       setMessages(legacy.messages);
       setMessageMeta(legacy.messageMeta);
       assistantClient.sendHistoryWithNextMessage();
@@ -1702,11 +1702,16 @@ export function useAssistantLogic({
     assistantClient.sendHistoryWithNextMessage();
   };
 
+  // The widget and the drawer each stop their own turn (a Spec-Driven run, the
+  // streaming state) on a project switch, so each keeps the project it last
+  // saw; the conversation store they share is opened once.
+  const surfaceProjectIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (currentProjectId === undefined) return;
-    const previous = conversationStore.getProjectId();
-    if (previous !== currentProjectId) {
-      if (previous !== null) resetTurnState();
+    const previousHere = surfaceProjectIdRef.current;
+    surfaceProjectIdRef.current = currentProjectId;
+    if (previousHere !== undefined && previousHere !== currentProjectId) resetTurnState();
+    if (conversationStore.getProjectId() !== currentProjectId) {
       conversationStore.openProject(currentProjectId);
       if (conversationStore.getMessages().length > 0) assistantClient.sendHistoryWithNextMessage();
     }
@@ -1714,7 +1719,7 @@ export function useAssistantLogic({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
 
-  // Another tab added turns: this session's agent memory lacks them.
+  // Another tab added turns or started a new chat: this session's agent memory is stale.
   useEffect(
     () => conversationStore.onRemoteTurns(() => assistantClient.restartWithHistoryOnNextMessage()),
     [assistantClient],

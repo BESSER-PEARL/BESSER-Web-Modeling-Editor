@@ -227,7 +227,7 @@ export const legacyUnprefixedLocalStorageKeys: readonly string[] = [
   'umlAgentRateLimiterState',
 ];
 
-// Per-tab conversation copy used up to v8.9; read once to move it to the project's key below.
+// Per-tab conversation copy used before v8.9.3; read once to move it to the project's key below.
 export const sessionStorageAssistantConversation = localStoragePrefix + 'assistant_conversation_v1';
 // The assistant conversation of one project, `<prefix><projectId>`, shared by every tab.
 export const localStorageAssistantConversationPrefix = localStoragePrefix + 'assistant_conversation_v2_';

@@ -8,6 +8,7 @@ import {
   clearRateLimiterState,
   clearStoredConversation,
   conversationStorageKey,
+  MAX_STORED_CONVERSATION_CHARS,
   MAX_STORED_CONVERSATIONS,
   consumeAssistantOpenOnLoad,
   readAssistantDrawerOpen,
@@ -134,7 +135,29 @@ describe('conversation', () => {
     expect(readStoredConversation('new')).toBe('{"savedAt":600}');
   });
 
-  it("hands over the tab's pre-v8.10 copy once", () => {
+  it('drops the least recently saved conversations to stay within the size budget', () => {
+    const big = (savedAt: number) => `{"savedAt":${savedAt},"x":"${'a'.repeat(MAX_STORED_CONVERSATION_CHARS / 4)}"}`;
+    writeStoredConversation('old', big(1));
+    writeStoredConversation('middle', big(2));
+    writeStoredConversation('recent', big(3));
+    writeStoredConversation('new', big(4));
+    expect(readStoredConversation('old')).toBeNull();
+    expect(readStoredConversation('middle')).not.toBeNull();
+    expect(readStoredConversation('new')).not.toBeNull();
+  });
+
+  it('evicts by the saved time, whatever the order of the keys in the payload', () => {
+    // Written newest first, so the first one written is not the one to drop.
+    for (let i = 0; i < MAX_STORED_CONVERSATIONS; i += 1) {
+      writeStoredConversation(`p${i}`, JSON.stringify({ conversationId: 'c', savedAt: 500 - i }));
+    }
+    writeStoredConversation('new', JSON.stringify({ conversationId: 'c', savedAt: 600 }));
+    const last = `p${MAX_STORED_CONVERSATIONS - 1}`;
+    expect(readStoredConversation(last)).toBeNull();
+    expect(readStoredConversation('p0')).not.toBeNull();
+  });
+
+  it("hands over the tab's copy from before v8.9.3 once", () => {
     sessionStorage.setItem(sessionStorageAssistantConversation, '{"savedAt":1}');
     expect(takeLegacyTabConversation()).toBe('{"savedAt":1}');
     expect(takeLegacyTabConversation()).toBeNull();

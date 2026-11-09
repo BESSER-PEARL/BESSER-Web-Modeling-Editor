@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { createDefaultProject, type BesserProject } from '../../../../shared/types/project';
+import { writeLlmKey } from '../../../../shared/services/llmKeyStorage';
 
 interface FakeClient {
   messageHandlers: Array<(m: ChatMessage) => void>;
@@ -26,6 +27,10 @@ interface FakeClient {
   historyRequests: number;
   restarts: number;
 }
+
+// Each tab loads the app modules afresh and some wait out the 1.5 s project write,
+// which runs past the 5 s default when the whole suite loads the machine.
+vi.setConfig({ testTimeout: 20_000 });
 
 const _tabs = vi.hoisted(() => ({ clients: [] as FakeClient[] }));
 
@@ -298,8 +303,38 @@ describe('the assistant conversation belongs to the project', () => {
     await a.submit('A library app');
     await waitFor(() => expect(contents(b)).toEqual(['A library app']));
 
+    const restartsBefore = b.client.restarts;
+
     a.newChat();
     await waitFor(() => expect(b.messages()).toEqual([]));
+    // B's agent session held the old conversation: its next message starts a new one.
+    expect(b.client.restarts).toBeGreaterThan(restartsBefore);
+  });
+
+  it('keeps the BYOK key out of the conversation kept in localStorage', async () => {
+    const key = 'sk-test-0123456789abcdefghijklmn';
+    writeLlmKey('openai', key);
+    const projectId = saveProject('Library');
+    const tab = await openTab(projectId);
+    await tab.submit(`my key is ${key}, use it`);
+    tab.reply(`Saved ${key} for this session.`);
+    const stored = () => localStorage.getItem(`besser_assistant_conversation_v2_${projectId}`) ?? '';
+    await waitFor(() => expect(stored()).toContain('[API key removed]'));
+    expect(stored()).not.toContain(key);
+  });
+
+  it('a conversation evicted or removed elsewhere stays on screen in a tab showing it', async () => {
+    replayStorageWritesAsEvents();
+    const projectId = saveProject('Library');
+    const tab = await openTab(projectId);
+    await tab.submit('A library app');
+    tab.reply('Created Book.');
+    const key = `besser_assistant_conversation_v2_${projectId}`;
+    await waitFor(() => expect(localStorage.getItem(key)).not.toBeNull());
+
+    localStorage.removeItem(key);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(contents(tab)).toEqual(['A library app', 'Created Book.']);
   });
 
   it("a reload that opens a different project does not show the previous project's chat", async () => {
@@ -325,7 +360,7 @@ describe('the assistant conversation belongs to the project', () => {
   });
 });
 
-describe('moving the per-tab conversation kept before v8.10', () => {
+describe('moving the per-tab conversation kept before v8.9.3', () => {
   const legacyCopy = (contents: string[]) =>
     JSON.stringify({
       savedAt: Date.now(),

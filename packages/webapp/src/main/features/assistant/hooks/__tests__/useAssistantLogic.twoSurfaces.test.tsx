@@ -10,13 +10,13 @@
  */
 
 import React from 'react';
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChatMessage, InjectionCommand, SendStatus } from '../../services/assistant-types';
-import { workspaceReducer } from '../../../../app/store/workspaceSlice';
+import { syncProjectFromStorage, workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { createDefaultProject, type BesserProject } from '../../../../shared/types/project';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven';
@@ -117,6 +117,8 @@ import { autoFixRef, conversationStore, voicePlaceholderIdRef } from '../assista
 interface SurfaceAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
   submit: (text: string) => Promise<void>;
+  input: string;
+  setInput: (text: string) => void;
 }
 
 function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
@@ -124,6 +126,8 @@ function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
   apiRef.current = {
     sendVoiceMessage: hook.sendVoiceMessage,
     submit: (text) => hook.handleSubmit(undefined, { overrideText: text }),
+    input: hook.inputValue,
+    setInput: hook.setInputValue,
   };
   return null;
 }
@@ -292,5 +296,39 @@ describe('useAssistantLogic keeps the conversation with the project (BESSER#745)
         ]),
       { timeout: 4000 },
     );
+  });
+});
+
+describe('a project switch with the widget and the drawer both mounted', () => {
+  it('stops the turn in both surfaces, not only in the one whose effect runs first', async () => {
+    const library = createDefaultProject('Library', '', '');
+    const shop = createDefaultProject('Shop', '', '');
+    const reducer = combineReducers({ workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer });
+    const store = configureStore({
+      reducer,
+      preloadedState: { workspace: { ...workspaceReducer(undefined, { type: 'init' }), project: library } },
+    });
+    const drawer: { current: SurfaceAPI | null } = { current: null };
+    const widget: { current: SurfaceAPI | null } = { current: null };
+    render(
+      <Provider store={store}>
+        <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+          <Surface apiRef={drawer} />
+          <Surface apiRef={widget} />
+        </ApollonEditorProvider>
+      </Provider>,
+    );
+    act(() => {
+      drawer.current!.setInput('a half-typed request');
+      widget.current!.setInput('a half-typed request');
+    });
+
+    act(() => {
+      store.dispatch(syncProjectFromStorage(shop));
+    });
+    await waitFor(() => {
+      expect(drawer.current!.input).toBe('');
+      expect(widget.current!.input).toBe('');
+    });
   });
 });

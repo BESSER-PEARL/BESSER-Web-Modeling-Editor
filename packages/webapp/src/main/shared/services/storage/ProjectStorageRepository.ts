@@ -24,7 +24,7 @@ import {
   localStorageLatestProject,
   localStorageProjectsList,
 } from '../../constants/constant';
-import { clearStoredConversation } from './assistantStorage';
+import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
 import { checkLocalStorageQuota } from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 
@@ -112,7 +112,7 @@ export class ProjectStorageRepository {
     }
 
     ProjectStorageRepository.isWriting = true;
-    try {
+    const write = () => {
       const projectKey = `${localStorageProjectPrefix}${project.id}`;
       localStorage.setItem(projectKey, JSON.stringify(project));
 
@@ -121,11 +121,23 @@ export class ProjectStorageRepository {
 
       // Update projects list
       this.updateProjectsList(project.id);
+    };
+    const isQuotaError = (error: unknown) => error instanceof DOMException && error.name === 'QuotaExceededError';
+    try {
+      try {
+        write();
+      } catch (error) {
+        if (!isQuotaError(error)) throw error;
+        // The assistant conversations kept in this browser are the one thing
+        // safe to drop: each project's text copy still restores its chat.
+        clearStoredConversations();
+        write();
+      }
     } catch (error) {
       console.error('Error saving project:', error);
       // Say what actually went wrong: a full browser store is the one failure
       // the user can fix themselves, and a bare "Failed to save project" hides it.
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      if (isQuotaError(error)) {
         throw new Error(
           'Browser storage is full, so the project could not be saved. ' +
           'Export it and delete unused projects to free space.',
