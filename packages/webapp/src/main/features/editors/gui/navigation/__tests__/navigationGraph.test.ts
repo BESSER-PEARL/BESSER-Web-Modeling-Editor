@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import grapesjs from 'grapesjs';
 import { buildNavigationGraph, routeKey } from '../navigationGraph';
+import { toElements } from '../navigationLayout';
 
 const navButton = (target: string, label: string, action = 'navigate') => ({
   type: 'action-button',
@@ -10,9 +11,9 @@ const navButton = (target: string, label: string, action = 'navigate') => ({
   components: [{ type: 'textnode', content: label }],
 });
 
-const graphOf = (pages: { id: string; name: string; component: any }[]) => {
+const graphOf = (pages: { id: string; name: string; component: any; route_path?: string }[]) => {
   const editor = grapesjs.init({ headless: true, storageManager: false, pageManager: { pages } });
-  return buildNavigationGraph(editor.Pages.getAll() as any);
+  return buildNavigationGraph(editor.Pages.getAll());
 };
 
 describe('buildNavigationGraph', () => {
@@ -91,8 +92,7 @@ describe('toElements', () => {
     { id: 'lost', name: 'Lost', component: '' },
   ]);
 
-  it('lays pages out by clicks from the start, with unreached pages last and the nav bar as one hub', async () => {
-    const { toElements } = await import('../NavigationMapDialog');
+  it('lays pages out by clicks from the start, with unreached pages last and the nav bar as one hub', () => {
     const els = toElements(graph, 'Navigation bar', 'list');
     const node = (id: string) => els.find((e) => e.data.id === id)!;
 
@@ -109,5 +109,47 @@ describe('toElements', () => {
       ['home', 'list', 'All, See list'],
       ['list', 'home', 'Back'],
     ]);
+  });
+});
+
+describe('buildNavigationGraph link encodings', () => {
+  const graph = graphOf([
+    {
+      id: 'start',
+      name: 'Start',
+      component: [
+        '<div class="assistant-nav-header"><a href="/shop">Shop link</a></div>',
+        { tagName: 'button', attributes: { 'data-action-type': 'navigate', 'data-target-screen': 'page:shop' }, components: 'Shop' },
+        { type: 'action-button', 'target-screen': 'My Shop', components: 'By name' },
+        { type: 'link', attributes: { href: '/my-shop' }, components: 'Go shopping' },
+        { tagName: 'a', 'target-screen': 'page:shop', attributes: { href: '/about' }, components: 'Anchor' },
+        '<a href="/about-us">Custom route</a>',
+      ],
+    },
+    { id: 'shop', name: 'My Shop', component: '' },
+    // Pages-panel routes: a custom one and one left stale by a rename. The generated app serves neither.
+    { id: 'about', name: 'About', route_path: '/about-us', component: '' },
+    { id: 'renamed', name: 'Renamed', route_path: '/shop', component: '' },
+  ]);
+  const byLabel = (label: string) => graph.links.find((l) => l.label === label)!;
+
+  it('treats an app-shell class on any tag as the nav bar', () => {
+    expect(byLabel('Shop link')).toMatchObject({ inShell: true });
+  });
+
+  it('reads navigate buttons from data- attributes, by page id or else by page name', () => {
+    expect(byLabel('Shop')).toMatchObject({ toPageId: 'shop', kind: 'button' });
+    expect(byLabel('By name')).toMatchObject({ toPageId: 'shop', kind: 'button' });
+  });
+
+  it('reads links from the link component type and an anchor by its href, not a target-screen', () => {
+    expect(byLabel('Go shopping')).toMatchObject({ toPageId: 'shop', kind: 'link' });
+    expect(byLabel('Anchor')).toMatchObject({ toPageId: 'about', kind: 'link' });
+  });
+
+  it('resolves routes by page name only, like the generated app', () => {
+    expect(byLabel('Custom route').toPageId).toBeNull();
+    expect(byLabel('Shop link').toPageId).toBeNull();
+    expect(graph.pages.find((p) => p.id === 'about')!.route).toBe('/about');
   });
 });

@@ -1,57 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import cytoscape, { type ElementDefinition, type StylesheetJson } from 'cytoscape';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import cytoscape, { type Core, type StylesheetJson } from 'cytoscape';
 import type { Editor } from 'grapesjs';
 import { AlertTriangle, ArrowRight, Unlink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useIsDarkTheme } from '../../../../shared/hooks/useIsDarkTheme';
-import { buildNavigationGraph, type NavigationGraph } from './navigationGraph';
+import { buildNavigationGraph, shellTargets } from './navigationGraph';
+import { SHELL_NODE, toElements } from './navigationLayout';
 
-const SHELL_NODE = '__shell__';
-const COL = 250;
-const ROW = 96;
-
-const shorten = (text: string, max = 26) => (text.length > max ? text.slice(0, max - 1) + '…' : text);
-
-/** Page cards in columns by clicks from the start page; unreached pages in a last column. */
-export function toElements(graph: NavigationGraph, shellLabel: string, currentPageId?: string): ElementDefinition[] {
-  const maxDepth = Math.max(0, ...graph.pages.map((p) => p.depth ?? 0));
-  const columns = new Map<number, string[]>();
-  const shellTargets = [...new Set(graph.links.filter((l) => l.inShell && l.toPageId).map((l) => l.toPageId!))];
-  if (shellTargets.length) columns.set(0, [SHELL_NODE]);
-  graph.pages.forEach((p) => {
-    const col = p.depth ?? maxDepth + 1;
-    columns.set(col, [...(columns.get(col) ?? []), p.id]);
-  });
-  const position = new Map<string, { x: number; y: number }>();
-  columns.forEach((ids, col) =>
-    ids.forEach((id, row) => position.set(id, { x: col * COL, y: (row - (ids.length - 1) / 2) * ROW })),
-  );
-
-  const elements: ElementDefinition[] = graph.pages.map((p) => ({
-    data: { id: p.id, label: `${shorten(p.name, 22)}\n${shorten(p.route, 24)}` },
-    position: position.get(p.id),
-    classes: [p.isStart && 'start', p.depth === null && 'unreached', p.id === currentPageId && 'current']
-      .filter(Boolean)
-      .join(' '),
-  }));
-  if (shellTargets.length) {
-    elements.push({ data: { id: SHELL_NODE, label: shellLabel }, position: position.get(SHELL_NODE), classes: 'shell' });
-    shellTargets.forEach((to) => elements.push({ data: { id: `${SHELL_NODE}->${to}`, source: SHELL_NODE, target: to }, classes: 'shell' }));
-  }
-
-  const byPair = new Map<string, Set<string>>();
-  graph.links.forEach((l) => {
-    if (l.inShell || !l.toPageId || l.toPageId === l.fromPageId) return;
-    const key = `${l.fromPageId}->${l.toPageId}`;
-    byPair.set(key, (byPair.get(key) ?? new Set()).add(l.label || l.target));
-  });
-  byPair.forEach((labels, key) => {
-    const [source, target] = key.split('->');
-    elements.push({ data: { id: key, source, target, label: shorten([...labels].join(', ')) } });
-  });
-  return elements;
-}
+/** Padding around the map when it is fitted to the canvas, as in the Knowledge Graph canvas. */
+const FIT_PADDING = 40;
+/** A small map is not blown up past this zoom when fitted. */
+const MAX_FIT_ZOOM = 1.2;
 
 /** A theme colour token as a colour Cytoscape can parse (it ignores alpha in colours; use its *-opacity styles). */
 const hsl = (name: string): string => {
@@ -77,7 +37,7 @@ function stylesheet(): StylesheetJson {
         'text-halign': 'center',
         'font-size': 12,
         'line-height': 1.35,
-        'font-family': 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+        'font-family': 'system-ui, -apple-system, Segoe UI, sans-serif',
         color: fg,
         'background-color': hsl('--card'),
         'border-width': 1.5,
@@ -127,13 +87,14 @@ export const NavigationMapDialog: React.FC<NavigationMapDialogProps> = ({ editor
   const dark = useIsDarkTheme();
   // State, not a ref: the dialog content mounts after this component's effects run.
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const cyRef = useRef<Core | null>(null);
 
   const graph = useMemo(
-    () => (open && editor ? buildNavigationGraph(editor.Pages.getAll() as any) : null),
+    () => (open && editor ? buildNavigationGraph(editor.Pages.getAll()) : null),
     [open, editor],
   );
   const pageName = (id: string) => graph?.pages.find((p) => p.id === id)?.name ?? id;
-  const shellTargets = graph ? [...new Set(graph.links.filter((l) => l.inShell && l.toPageId).map((l) => l.toPageId!))] : [];
+  const shell = graph ? shellTargets(graph) : [];
   const unreached = graph?.pages.filter((p) => p.depth === null) ?? [];
   const broken = graph?.links.filter((l) => !l.toPageId) ?? [];
   const pageLinks = graph?.links.filter((l) => !l.inShell && l.toPageId && l.toPageId !== l.fromPageId) ?? [];
@@ -164,9 +125,10 @@ export const NavigationMapDialog: React.FC<NavigationMapDialogProps> = ({ editor
     });
     const fit = () => {
       cy.resize();
-      cy.fit(undefined, 40);
-      if (cy.zoom() > 1.2) cy.zoom(1.2).center();
+      cy.fit(undefined, FIT_PADDING);
+      if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM).center();
     };
+    cyRef.current = cy;
     const frame = requestAnimationFrame(fit);
     cy.on('tap', 'node', (e) => {
       if (e.target.id() !== SHELL_NODE) openPage(e.target.id());
@@ -174,19 +136,25 @@ export const NavigationMapDialog: React.FC<NavigationMapDialogProps> = ({ editor
     cy.on('mouseover', 'node', (e) => {
       if (e.target.id() === SHELL_NODE) return;
       e.target.addClass('hover');
-      container.style.cursor = 'pointer';
+      container.classList.add('cursor-pointer');
     });
     cy.on('mouseout', 'node', (e) => {
       e.target.removeClass('hover');
-      container.style.cursor = '';
+      container.classList.remove('cursor-pointer');
     });
     return () => {
       cancelAnimationFrame(frame);
       cy.destroy();
+      cyRef.current = null;
     };
-    // openPage only closes over editor/onOpenChange, which the graph already depends on.
+    // The canvas is built once per opening: editor and onOpenChange (a state setter) do not change
+    // while it is open, and a language switch remounts the editor. The theme is handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, dark, container]);
+  }, [graph, container]);
+
+  useEffect(() => {
+    cyRef.current?.style(stylesheet());
+  }, [dark]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,13 +176,13 @@ export const NavigationMapDialog: React.FC<NavigationMapDialogProps> = ({ editor
                 {t('editors.gui.navigationMap.summary', { pages: graph.pages.length, links: pageLinks.length })}
               </p>
 
-              {shellTargets.length > 0 && (
+              {shell.length > 0 && (
                 <section>
                   <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('editors.gui.navigationMap.navBar')}
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
-                    {shellTargets.map((id) => (
+                    {shell.map((id) => (
                       <button
                         key={id}
                         type="button"
