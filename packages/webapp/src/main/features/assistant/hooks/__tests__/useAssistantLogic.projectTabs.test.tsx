@@ -259,6 +259,8 @@ describe('the assistant conversation belongs to the project', () => {
     const first = await openTab(projectId);
     await first.submit('A library app with books and loans');
     first.reply('Created Book and Loan.');
+    // An agent reply is queued behind injections, so it shows up asynchronously.
+    await waitFor(() => expect(contents(first)).toContain('Created Book and Loan.'));
     first.setMessages((prev) => [...prev, runCard()]);
     // The text copy on the project is written too (it travels with GitHub).
     await waitFor(() => expect(first.project()?.assistantConversation?.turns).toHaveLength(2), { timeout: 4000 });
