@@ -1,12 +1,13 @@
 /**
  * What the browser keeps for the modeling assistant: drawer UI state and
- * one-shot hand-off flags (tab-scoped), the persisted conversation, the
+ * one-shot hand-off flags (tab-scoped), each project's conversation, the
  * per-tab session id, the per-browser user id and the rate limiter's history.
  *
  * Functions that end in a "best effort" comment never throw; the identity and
  * rate-limiter ones throw like `Storage` does, because their callers decide.
  */
 import {
+  localStorageAssistantConversationPrefix,
   localStorageAssistantRateLimiterProbe,
   localStorageAssistantRateLimiterState,
   localStorageAssistantUserId,
@@ -93,30 +94,67 @@ export function clearPendingAssistantPrompt(): void {
   }
 }
 
-/* ---- Conversation (sessionStorage, best effort) ---- */
+/* ---- Conversation per project (localStorage, best effort) ---- */
 
-/** The serialized conversation, or null when none or storage is unavailable. */
-export function readStoredConversation(): string | null {
+/** Conversations kept; writing one more drops the least recently saved. */
+export const MAX_STORED_CONVERSATIONS = 20;
+
+/** The key of a project's conversation; a `storage` event with it means another tab changed it. */
+export const conversationStorageKey = (projectId: string): string =>
+  `${localStorageAssistantConversationPrefix}${projectId}`;
+
+/** The project's serialized conversation, or null when none or storage is unavailable. */
+export function readStoredConversation(projectId: string): string | null {
   try {
-    return sessionStorage.getItem(sessionStorageAssistantConversation);
+    return localStorage.getItem(conversationStorageKey(projectId));
   } catch {
     return null;
   }
 }
 
-export function writeStoredConversation(payload: string): void {
+// The payload starts with `{"savedAt":<ms>` (assistantConversationStore writes it first).
+const savedAtOf = (raw: string | null): number => Number(/^\{"savedAt":(\d+)/.exec(raw ?? '')?.[1] ?? 0);
+
+function evictOldConversations(keep: string): void {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(localStorageAssistantConversationPrefix) && key !== keep) keys.push(key);
+  }
+  const excess = keys.length + 1 - MAX_STORED_CONVERSATIONS;
+  if (excess <= 0) return;
+  keys
+    .sort((a, b) => savedAtOf(localStorage.getItem(a)) - savedAtOf(localStorage.getItem(b)))
+    .slice(0, excess)
+    .forEach((key) => localStorage.removeItem(key));
+}
+
+export function writeStoredConversation(projectId: string, payload: string): void {
   try {
-    sessionStorage.setItem(sessionStorageAssistantConversation, payload);
+    const key = conversationStorageKey(projectId);
+    localStorage.setItem(key, payload);
+    evictOldConversations(key);
   } catch {
     // quota exceeded or unavailable: keep the last good copy
   }
 }
 
-export function clearStoredConversation(): void {
+export function clearStoredConversation(projectId: string): void {
   try {
-    sessionStorage.removeItem(sessionStorageAssistantConversation);
+    localStorage.removeItem(conversationStorageKey(projectId));
   } catch {
     // best effort
+  }
+}
+
+/** The conversation this tab kept before conversations moved to the project (v8.9), once: reading removes it. */
+export function takeLegacyTabConversation(): string | null {
+  try {
+    const raw = sessionStorage.getItem(sessionStorageAssistantConversation);
+    if (raw !== null) sessionStorage.removeItem(sessionStorageAssistantConversation);
+    return raw;
+  } catch {
+    return null;
   }
 }
 

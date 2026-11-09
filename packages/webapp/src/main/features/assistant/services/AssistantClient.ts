@@ -412,6 +412,9 @@ export class AssistantClient {
   // rebuild it (it ignores them when its memory is intact). BESSER#745.
   private historyProvider?: (currentMessage: string) => HistoryTurn[];
   private sendHistoryOnNextMessage = false;
+  // Another tab added turns this session's agent memory lacks (the agent seeds
+  // only an empty memory), so the next message starts a new session with them.
+  private restartOnNextMessage = false;
 
   // Multi-subscriber handlers so a SINGLE shared client can feed BOTH the
   // floating widget and the workspace drawer (one socket, one session id).
@@ -450,6 +453,12 @@ export class AssistantClient {
    * from the project is unknown to the agent's new session. */
   sendHistoryWithNextMessage(): void {
     this.sendHistoryOnNextMessage = true;
+  }
+
+  /** Another tab added turns to the conversation: the next message starts a
+   * new agent session that carries the history. A reply in flight is unaffected. */
+  restartWithHistoryOnNextMessage(): void {
+    this.restartOnNextMessage = true;
   }
 
   /** Re-point the (possibly shared) client at the live workspace-context source. */
@@ -799,6 +808,7 @@ export class AssistantClient {
     this.sessionId = createSessionId();
     // A new conversation has no history to restore.
     this.sendHistoryOnNextMessage = false;
+    this.restartOnNextMessage = false;
     // Replies to the old conversation's turns must not land in the new one.
     this.turns.clear();
     this.currentTurnId = null;
@@ -840,6 +850,16 @@ export class AssistantClient {
     const pilotParticipant = getPilotParticipant();
     if (pilotParticipant) {
       context.pilotParticipant = pilotParticipant;
+    }
+    if (this.restartOnNextMessage) {
+      this.restartOnNextMessage = false;
+      try {
+        clearAssistantSessionId();
+      } catch {
+        // sessionStorage unavailable — fall through to a fresh in-memory id
+      }
+      this.sessionId = createSessionId();
+      this.sendHistoryOnNextMessage = true;
     }
     const payload: Record<string, any> = {
       action: 'user_message',

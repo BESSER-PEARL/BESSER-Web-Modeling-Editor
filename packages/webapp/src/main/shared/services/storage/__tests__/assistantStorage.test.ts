@@ -7,6 +7,8 @@ import {
   clearPendingAssistantPrompt,
   clearRateLimiterState,
   clearStoredConversation,
+  conversationStorageKey,
+  MAX_STORED_CONVERSATIONS,
   consumeAssistantOpenOnLoad,
   readAssistantDrawerOpen,
   readAssistantSessionId,
@@ -15,6 +17,7 @@ import {
   readRateLimiterState,
   readStoredConversation,
   requestAssistantOpenOnLoad,
+  takeLegacyTabConversation,
   cancelAssistantOpenOnLoad,
   writeAssistantDrawerOpen,
   writeAssistantSessionId,
@@ -97,20 +100,44 @@ describe('drawer and hand-off flags', () => {
     expect(claimAssistantHandleHint()).toBe(false);
     expect(readPendingAssistantPrompt()).toBe('');
     expect(() => clearPendingAssistantPrompt()).not.toThrow();
-    expect(readStoredConversation()).toBeNull();
-    expect(() => writeStoredConversation('{}')).not.toThrow();
-    expect(() => clearStoredConversation()).not.toThrow();
+    expect(takeLegacyTabConversation()).toBeNull();
+  });
+
+  it('never throws when localStorage does', () => {
+    failingStorage(localStorage);
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(() => writeStoredConversation('p1', '{}')).not.toThrow();
+    expect(() => clearStoredConversation('p1')).not.toThrow();
   });
 });
 
 describe('conversation', () => {
-  it('round-trips the serialized payload', () => {
-    expect(readStoredConversation()).toBeNull();
-    writeStoredConversation('{"savedAt":1}');
-    expect(sessionStorage.getItem(sessionStorageAssistantConversation)).toBe('{"savedAt":1}');
-    expect(readStoredConversation()).toBe('{"savedAt":1}');
-    clearStoredConversation();
-    expect(readStoredConversation()).toBeNull();
+  it('keeps one conversation per project in localStorage, which every tab shares', () => {
+    expect(readStoredConversation('p1')).toBeNull();
+    writeStoredConversation('p1', '{"savedAt":1}');
+    writeStoredConversation('p2', '{"savedAt":2}');
+    expect(localStorage.getItem(conversationStorageKey('p1'))).toBe('{"savedAt":1}');
+    expect(readStoredConversation('p2')).toBe('{"savedAt":2}');
+    clearStoredConversation('p1');
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(readStoredConversation('p2')).toBe('{"savedAt":2}');
+  });
+
+  it('drops the least recently saved conversations beyond the limit', () => {
+    for (let i = 0; i < MAX_STORED_CONVERSATIONS; i += 1) writeStoredConversation(`p${i}`, `{"savedAt":${100 + i}}`);
+    // p0 was saved again last, so p1 is now the oldest.
+    writeStoredConversation('p0', '{"savedAt":500}');
+    writeStoredConversation('new', '{"savedAt":600}');
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(readStoredConversation('p0')).toBe('{"savedAt":500}');
+    expect(readStoredConversation('p2')).not.toBeNull();
+    expect(readStoredConversation('new')).toBe('{"savedAt":600}');
+  });
+
+  it("hands over the tab's pre-v8.10 copy once", () => {
+    sessionStorage.setItem(sessionStorageAssistantConversation, '{"savedAt":1}');
+    expect(takeLegacyTabConversation()).toBe('{"savedAt":1}');
+    expect(takeLegacyTabConversation()).toBeNull();
   });
 });
 

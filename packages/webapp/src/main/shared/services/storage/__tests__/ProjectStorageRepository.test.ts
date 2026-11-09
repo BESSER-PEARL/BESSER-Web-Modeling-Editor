@@ -1,3 +1,4 @@
+import { readStoredConversation, writeStoredConversation } from '../assistantStorage';
 import { ProjectStorageRepository } from '../ProjectStorageRepository';
 import { createDefaultProject, ALL_DIAGRAM_TYPES, BesserProject } from '../../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constants/constant';
@@ -134,6 +135,15 @@ describe('ProjectStorageRepository', () => {
 
       ProjectStorageRepository.deleteProject(project.id);
       expect(localStorage.getItem(localStorageLatestProject)).toBeNull();
+    });
+
+    it("removes the project's assistant conversation", () => {
+      const project = createDefaultProject('Chatty', '', '');
+      ProjectStorageRepository.saveProject(project);
+      writeStoredConversation(project.id, '{"savedAt":1}');
+
+      ProjectStorageRepository.deleteProject(project.id);
+      expect(readStoredConversation(project.id)).toBeNull();
     });
   });
 

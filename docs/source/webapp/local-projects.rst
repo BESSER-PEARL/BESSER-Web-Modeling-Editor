@@ -31,7 +31,8 @@ Data model
    being part of the project file, written to ``buml/diagrams.json`` on a GitHub
    save; provider tokens are redacted from it there like from the rest of the
    model, and the BYOK key stored in the tab is replaced before it is kept at
-   all. Opening a project whose chat is empty restores it; a field that is not
+   all. Opening a project that has no conversation in this browser (below)
+   restores it; a field that is not
    a list of turns restores nothing. Generation requests and gists leave it
    out.
 
@@ -54,6 +55,19 @@ handles read/write operations:
   that commit, a model BESSER proposed from the repo's code until it is
   accepted, and ``pendingChange``, a save or push waiting on its own branch for
   a pull request. Every GitHub path reads and writes this one record.
+* ``besser_assistant_conversation_v2_<projectId>`` is the project's full
+  assistant conversation in this browser (``shared/services/storage/assistantStorage.ts``):
+  the latest 100 messages within 200 KB, run cards and message details included.
+  Every tab that opens the project shows it and continues it; a tab already
+  open on the project picks up another tab's turns through the ``storage``
+  event, and its next message starts a new agent session that carries the
+  history. A new chat in one tab clears the others. The 20 most recently saved
+  conversations are kept, and deleting a project deletes its conversation.
+  When a project has none here, the text copy in ``assistantConversation``
+  is restored. Up to v8.9 the conversation lived in ``sessionStorage`` (one per
+  tab, ``besser_assistant_conversation_v1``); on the first project a tab opens,
+  that copy moves to the project if the project's text copy matches it or is
+  absent, and is dropped otherwise.
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
 

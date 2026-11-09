@@ -123,7 +123,15 @@ describe('serializeConversation + reviveStoredConversation round-trip', () => {
       messages: [{ id: 'a', role: 'user', content: 'old' }],
       messageMeta: {},
     });
-    expect(reviveStoredConversation(expired)).toBeNull();
+    // Only a pre-v8.10 per-tab copy has a maximum age; a project's conversation has none.
+    expect(reviveStoredConversation(expired, 48 * 60 * 60 * 1000)).toBeNull();
+    expect(reviveStoredConversation(expired)?.messages).toHaveLength(1);
+  });
+
+  it('round-trips the conversation id another tab compares against', () => {
+    const payload = serializeConversation([msg({ id: 'a' })], {}, 'conv-1');
+    expect(payload!.startsWith('{"savedAt":')).toBe(true); // assistantStorage reads it to evict
+    expect(reviveStoredConversation(payload)!.conversationId).toBe('conv-1');
   });
 
   it('skips entries that lost their required shape', () => {
