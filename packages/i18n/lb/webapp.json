@@ -3992,6 +3992,15 @@
       "diagramValid": "Den Diagramm ass gülteg",
       "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
       "unknownError": "Onbekannte Feeler"
+    },
+    "warningsConfirm": {
+      "title_one": "De Modell huet eng Validatiounswarnung",
+      "title_other": "De Modell huet {{count}} Validatiounswarnungen",
+      "description": "Trotzdeem generéieren oder fir d'éischt de Modell verbesseren?",
+      "more_one": "…an 1 weider.",
+      "more_other": "…an {{count}} weider.",
+      "confirm": "Trotzdeem generéieren",
+      "cancel": "Fir d'éischt de Modell verbesseren"
     }
   },
   "quantum": {

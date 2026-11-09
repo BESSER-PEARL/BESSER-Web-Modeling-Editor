@@ -191,7 +191,10 @@ interface ExecuteGeneratorOptions {
 const trackInvalidGeneratorInput = (generatorType: string): void =>
   track('generator_failed', { generator_type: generatorType, source: 'menu', reason: 'invalid_input' });
 
-/** Sends generator_used or generator_failed for one run; an unmounted surface is not a failure. */
+/**
+ * Sends generator_used or generator_failed for one run; an unmounted surface is not a failure,
+ * and a run the user declined over validation warnings is generator_blocked.
+ */
 export function trackGeneration(
   generatorType: string,
   result: GenerationResult,
@@ -212,6 +215,11 @@ export function trackGeneration(
     return;
   }
   if (result.reason === 'unmounted') return;
+  if (result.reason === 'warnings_declined') {
+    const { duration_ms: _durationMs, ...blocked } = base;
+    track('generator_blocked', { ...blocked, reason: 'warnings_declined' });
+    return;
+  }
   track('generator_failed', {
     ...base,
     reason: result.reason ?? 'request',

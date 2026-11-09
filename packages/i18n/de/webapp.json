@@ -3992,6 +3992,15 @@
       "diagramValid": "Diagramm ist gültig",
       "validationErrorGeneric": "Validierungsfehler: {{error}}",
       "unknownError": "Unbekannter Fehler"
+    },
+    "warningsConfirm": {
+      "title_one": "Das Modell hat eine Validierungswarnung",
+      "title_other": "Das Modell hat {{count}} Validierungswarnungen",
+      "description": "Trotzdem generieren oder zuerst das Modell korrigieren?",
+      "more_one": "…und 1 weitere.",
+      "more_other": "…und {{count}} weitere.",
+      "confirm": "Trotzdem generieren",
+      "cancel": "Zuerst das Modell korrigieren"
     }
   },
   "quantum": {

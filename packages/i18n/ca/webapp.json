@@ -3992,6 +3992,15 @@
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
       "unknownError": "Error desconegut"
+    },
+    "warningsConfirm": {
+      "title_one": "El model té un avís de validació",
+      "title_other": "El model té {{count}} avisos de validació",
+      "description": "Voleu generar igualment o corregir primer el model?",
+      "more_one": "…i 1 més.",
+      "more_other": "…i {{count}} més.",
+      "confirm": "Genera igualment",
+      "cancel": "Corregeix primer el model"
     }
   },
   "quantum": {
