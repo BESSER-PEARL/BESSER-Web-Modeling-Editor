@@ -7,6 +7,9 @@ import {
   clearPendingAssistantPrompt,
   clearRateLimiterState,
   clearStoredConversation,
+  conversationStorageKey,
+  MAX_STORED_CONVERSATION_CHARS,
+  MAX_STORED_CONVERSATIONS,
   consumeAssistantOpenOnLoad,
   readAssistantDrawerOpen,
   readAssistantSessionId,
@@ -15,6 +18,7 @@ import {
   readRateLimiterState,
   readStoredConversation,
   requestAssistantOpenOnLoad,
+  takeLegacyTabConversation,
   cancelAssistantOpenOnLoad,
   writeAssistantDrawerOpen,
   writeAssistantSessionId,
@@ -97,20 +101,66 @@ describe('drawer and hand-off flags', () => {
     expect(claimAssistantHandleHint()).toBe(false);
     expect(readPendingAssistantPrompt()).toBe('');
     expect(() => clearPendingAssistantPrompt()).not.toThrow();
-    expect(readStoredConversation()).toBeNull();
-    expect(() => writeStoredConversation('{}')).not.toThrow();
-    expect(() => clearStoredConversation()).not.toThrow();
+    expect(takeLegacyTabConversation()).toBeNull();
+  });
+
+  it('never throws when localStorage does', () => {
+    failingStorage(localStorage);
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(() => writeStoredConversation('p1', '{}')).not.toThrow();
+    expect(() => clearStoredConversation('p1')).not.toThrow();
   });
 });
 
 describe('conversation', () => {
-  it('round-trips the serialized payload', () => {
-    expect(readStoredConversation()).toBeNull();
-    writeStoredConversation('{"savedAt":1}');
-    expect(sessionStorage.getItem(sessionStorageAssistantConversation)).toBe('{"savedAt":1}');
-    expect(readStoredConversation()).toBe('{"savedAt":1}');
-    clearStoredConversation();
-    expect(readStoredConversation()).toBeNull();
+  it('keeps one conversation per project in localStorage, which every tab shares', () => {
+    expect(readStoredConversation('p1')).toBeNull();
+    writeStoredConversation('p1', '{"savedAt":1}');
+    writeStoredConversation('p2', '{"savedAt":2}');
+    expect(localStorage.getItem(conversationStorageKey('p1'))).toBe('{"savedAt":1}');
+    expect(readStoredConversation('p2')).toBe('{"savedAt":2}');
+    clearStoredConversation('p1');
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(readStoredConversation('p2')).toBe('{"savedAt":2}');
+  });
+
+  it('drops the least recently saved conversations beyond the limit', () => {
+    for (let i = 0; i < MAX_STORED_CONVERSATIONS; i += 1) writeStoredConversation(`p${i}`, `{"savedAt":${100 + i}}`);
+    // p0 was saved again last, so p1 is now the oldest.
+    writeStoredConversation('p0', '{"savedAt":500}');
+    writeStoredConversation('new', '{"savedAt":600}');
+    expect(readStoredConversation('p1')).toBeNull();
+    expect(readStoredConversation('p0')).toBe('{"savedAt":500}');
+    expect(readStoredConversation('p2')).not.toBeNull();
+    expect(readStoredConversation('new')).toBe('{"savedAt":600}');
+  });
+
+  it('drops the least recently saved conversations to stay within the size budget', () => {
+    const big = (savedAt: number) => `{"savedAt":${savedAt},"x":"${'a'.repeat(MAX_STORED_CONVERSATION_CHARS / 4)}"}`;
+    writeStoredConversation('old', big(1));
+    writeStoredConversation('middle', big(2));
+    writeStoredConversation('recent', big(3));
+    writeStoredConversation('new', big(4));
+    expect(readStoredConversation('old')).toBeNull();
+    expect(readStoredConversation('middle')).not.toBeNull();
+    expect(readStoredConversation('new')).not.toBeNull();
+  });
+
+  it('evicts by the saved time, whatever the order of the keys in the payload', () => {
+    // Written newest first, so the first one written is not the one to drop.
+    for (let i = 0; i < MAX_STORED_CONVERSATIONS; i += 1) {
+      writeStoredConversation(`p${i}`, JSON.stringify({ conversationId: 'c', savedAt: 500 - i }));
+    }
+    writeStoredConversation('new', JSON.stringify({ conversationId: 'c', savedAt: 600 }));
+    const last = `p${MAX_STORED_CONVERSATIONS - 1}`;
+    expect(readStoredConversation(last)).toBeNull();
+    expect(readStoredConversation('p0')).not.toBeNull();
+  });
+
+  it("hands over the tab's copy from before v8.9.3 once", () => {
+    sessionStorage.setItem(sessionStorageAssistantConversation, '{"savedAt":1}');
+    expect(takeLegacyTabConversation()).toBe('{"savedAt":1}');
+    expect(takeLegacyTabConversation()).toBeNull();
   });
 });
 

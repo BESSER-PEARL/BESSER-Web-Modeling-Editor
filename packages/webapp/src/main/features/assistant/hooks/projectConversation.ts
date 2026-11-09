@@ -1,5 +1,5 @@
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
-import { readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { llmKeyRedactor } from '../../../shared/services/llmKeyStorage';
 import type { ProjectConversation, ProjectConversationTurn } from '../../../shared/types/project';
 import { recentHistoryFrom } from './recentHistory';
 
@@ -10,7 +10,6 @@ import { recentHistoryFrom } from './recentHistory';
  */
 export const MAX_PROJECT_CONVERSATION_TURNS = 50;
 export const MAX_PROJECT_CONVERSATION_CHARS = 4000;
-const REDACTED_KEY = '[API key removed]';
 
 /** Newest turns kept, long ones cut: applied on write and again on read. */
 const boundTurns = (turns: readonly ProjectConversationTurn[]): ProjectConversationTurn[] =>
@@ -24,9 +23,9 @@ const boundTurns = (turns: readonly ProjectConversationTurn[]): ProjectConversat
  * must never go, so the stored key is removed if the user pasted it into the chat.
  */
 export const projectConversationTurns = (messages: readonly ChatKitMessage[]): ProjectConversationTurn[] => {
-  const key = readLlmKey()?.apiKey ?? '';
+  const redact = llmKeyRedactor();
   const turns = recentHistoryFrom(messages, '')
-    .map((t) => (key ? { ...t, content: t.content.split(key).join(REDACTED_KEY) } : t))
+    .map((t) => ({ ...t, content: redact(t.content) }))
     .filter((t) => t.content.trim().length > 0);
   return boundTurns(turns);
 };

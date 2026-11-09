@@ -177,6 +177,20 @@ export function hasLlmKey(): boolean {
   return readLlmKey() !== null;
 }
 
+/** What replaces the stored key in text kept outside sessionStorage. */
+export const REDACTED_LLM_KEY = '[API key removed]';
+
+/**
+ * A function that replaces the stored key in a text, for anything written
+ * outside sessionStorage (the project, its repository, the conversation kept
+ * in localStorage): the user may have pasted the key into the chat. The key is
+ * read once, so one redactor can serve a whole payload.
+ */
+export function llmKeyRedactor(): (text: string) => string {
+  const key = readLlmKey()?.apiKey;
+  return key ? (text) => text.split(key).join(REDACTED_LLM_KEY) : (text) => text;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Spec-Driven Agent run budget (max cost / max runtime)              */
 /*  Not a secret, but session-scoped so it travels with the key.       */

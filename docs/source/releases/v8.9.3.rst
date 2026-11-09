@@ -9,11 +9,16 @@ It goes with BESSER v8.9.3 and Modeling Agent v8.1.1.
 What's new
 ----------
 
-* **Your conversation stays with the project.** The latest 50 assistant turns
-  are saved with the project, written to the repository on a GitHub save, and
-  restored when the project opens with an empty chat. After a reconnect, the
-  editor sends the latest turns with the first message, so an assistant that
-  lost its memory rebuilds it.
+* **Your conversation stays with the project.** Every tab or window that
+  opens a project shows its assistant conversation, run cards included, and
+  continues it, also after the tab is closed; tabs open on the same project
+  show each other's turns as they happen, and a new chat in one clears the
+  others. The browser keeps the conversations of the 20 most recently used
+  projects. The latest 50 turns are also saved with the project and written to
+  the repository on a GitHub save; they are restored when this browser has no
+  conversation for the project. After a reconnect, or when another tab added
+  turns, the editor sends the latest turns with the next message, so the
+  assistant's memory includes them.
 * **Generate anyway, or fix the model first.** When validation passes with
   warnings, generating code or deploying locally asks first and names the
   warnings.
@@ -55,3 +60,7 @@ Upgrade notes
 Deploy with BESSER v8.9.3 (the **Save to GitHub** on a generator's result needs
 its new endpoint) and Modeling Agent v8.1.1. A GitHub save now commits the
 assistant conversation in ``buml/diagrams.json``; provider tokens are redacted.
+The assistant conversation moves from per-tab storage to per-project storage
+in the browser: the first project each open tab shows after the upgrade takes
+that tab's conversation once, if it belongs to that project; a tab closed
+before the upgrade has no conversation left to move.
