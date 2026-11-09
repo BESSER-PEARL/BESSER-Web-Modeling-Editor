@@ -43,7 +43,7 @@ import {
 import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
-import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
+import { buildProjectExportEnvelope, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
@@ -58,7 +58,6 @@ import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
-import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
 // Direct imports: the feature barrel re-exports BafChatWrapper and its heavy deps.
 import { CredentialsDialog } from '../../features/agent-simulation/CredentialsDialog';
 import {
@@ -79,7 +78,7 @@ import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/worksp
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
 import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
-import { useProjectPreview } from './hooks/useProjectPreview';
+import { useProjectBumlPreview } from '../../features/export/useProjectBumlPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
@@ -103,9 +102,6 @@ const HelpGuideDialog = React.lazy(() =>
 );
 const GoLiveDialog = React.lazy(() =>
   import('../../features/github/dialogs/GoLiveDialog').then((m) => ({ default: m.GoLiveDialog })),
-);
-const ShareGistDialog = React.lazy(() =>
-  import('../../features/github/dialogs/ShareGistDialog').then((m) => ({ default: m.ShareGistDialog })),
 );
 const KgImportTargetModal = React.lazy(() =>
   import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
@@ -242,7 +238,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
-  const [isGistDialogOpen, setIsGistDialogOpen] = useState(false);
   // Restore the drawer to wherever the user left it this tab (sessionStorage).
   // Defaults to closed when nothing is stored or storage is unavailable.
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(readAssistantDrawerOpen);
@@ -310,21 +305,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     importTargetModalProps: kgImportTargetModalProps,
   } = useImportOwlToKg();
 
-  const {
-    isProjectPreviewOpen,
-    projectPreviewJson,
-    projectBumlPreview,
-    projectBumlPreviewError,
-    isProjectBumlPreviewLoading,
-    handleOpenProjectPreview,
-    handleCopyProjectPreview,
-    handleDownloadProjectPreview,
-    handleRequestProjectBumlPreview,
-    handleCloseProjectPreview,
-    handleCopyProjectBumlPreview,
-    handleDownloadProjectBumlPreview,
-    generateProjectBumlPreview,
-  } = useProjectPreview({ currentProject });
+  const generateProjectBumlPreview = useProjectBumlPreview();
 
   const {
     isHelpDialogOpen,
@@ -1106,16 +1087,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       cancelled = true;
     };
   }, []);
-  const openProjectPreview = useStableCallback(handleOpenProjectPreview);
   // The top bar's GitHub menu checks the repo's sync status; the shell needs only the link.
   const repoSync = useRepoSync({ checkRemote: false });
   const canGoLive = goLiveAvailable && !!repoSync.link && !!repoSync.githubSession && !!currentProject;
   // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
   const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
-  const openGistDialog = useCallback(
-    () => (isAuthenticated ? setIsGistDialogOpen(true) : githubLogin()),
-    [isAuthenticated, githubLogin],
-  );
   const [helpSection, setHelpSection] = useState<HelpGuideSectionId | undefined>();
   // A repository opened from the GitHub menu: its summary goes to the chat, and the chat opens.
   const showOpenedRepoInAssistant = useCallback((summary: string) => {
@@ -1152,7 +1128,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   // Lazy panels mount on first open so their chunks are not fetched at startup.
   const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
   const helpDialogMounted = useHasOpened(isHelpDialogOpen);
-  const gistDialogMounted = useHasOpened(isGistDialogOpen);
   const goLiveDialogMounted = useHasOpened(isGoLiveOpen);
 
   return (
@@ -1186,8 +1161,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportImage={openAssistantImportImage}
         onOpenAssistantImportKg={openAssistantImportKg}
         onImportOwl={openImportOwlPicker}
-        onOpenProjectPreview={openProjectPreview}
-        onShareAsGist={openGistDialog}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
@@ -1376,25 +1349,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         <KgImportTargetModal {...kgImportTargetModalProps} />
       </Suspense>
 
-      <JsonViewerModal
-        isVisible={isProjectPreviewOpen}
-        jsonData={projectPreviewJson}
-        diagramType={t('shell.preview.projectLabel', { version: PROJECT_EXPORT_VERSION })}
-        onClose={handleCloseProjectPreview}
-        onCopy={handleCopyProjectPreview}
-        onDownload={handleDownloadProjectPreview}
-        enableBumlView
-        bumlData={projectBumlPreview}
-        bumlLabel={currentProject?.name ? t('shell.preview.bumlLabelNamed', { name: currentProject.name }) : t('shell.preview.bumlLabel')}
-        isBumlLoading={isProjectBumlPreviewLoading}
-        bumlError={projectBumlPreviewError}
-        onRequestBuml={() => {
-          handleRequestProjectBumlPreview().catch(console.error);
-        }}
-        onCopyBuml={handleCopyProjectBumlPreview}
-        onDownloadBuml={handleDownloadProjectBumlPreview}
-      />
-
       {feedbackDialogMounted && (
         <Suspense fallback={null}>
           <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
@@ -1410,10 +1364,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
 
       <Suspense fallback={null}>
-        {gistDialogMounted && (
-          <ShareGistDialog open={isGistDialogOpen} onOpenChange={setIsGistDialogOpen} githubSession={githubSession} />
-        )}
-
         {goLiveDialogMounted && canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
           <GoLiveDialog
             open={isGoLiveOpen}

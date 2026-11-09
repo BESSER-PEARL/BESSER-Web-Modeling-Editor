@@ -33,9 +33,6 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
-  onOpenProjectPreview: () => void;
-  /** Shares the project as a secret GitHub gist (signs in first when needed). */
-  onShareAsGist: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;

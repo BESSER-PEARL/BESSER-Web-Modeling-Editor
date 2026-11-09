@@ -142,13 +142,6 @@ export const createRepoForProject = (
     { ...session(githubSession), timeout: 60_000 },
   );
 
-export const createGist = (githubSession: string, project: BesserProject, description: string, isPublic: boolean) =>
-  apiClient.post<components['schemas']['CreateGistResponse']>(
-    '/github/gist/create',
-    { project_data: project, description, is_public: isPublic },
-    session(githubSession),
-  );
-
 /**
  * Register the repo's code as a run the next Spec-Driven modify run can start from.
  * `allowAiReading`: the user agreed that an excerpt of the code goes to the server's AI model.

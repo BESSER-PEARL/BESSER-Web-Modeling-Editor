@@ -377,13 +377,6 @@ it (the Spec-Driven Agent, the editor, or a person on GitHub), when, and what
 it changed in the class diagram, for example ``class Loan added``. Restore any
 earlier version into the editor; it then counts as an unsaved change.
 
-Sharing as a gist
-~~~~~~~~~~~~~~~~~
-
-**File > Share as Secret Gist…** publishes the project JSON as a GitHub gist,
-secret by default, and opens it in a new tab. It asks you to connect GitHub
-first when you are signed out.
-
 Continuing from a GitHub repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

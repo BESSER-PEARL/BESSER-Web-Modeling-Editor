@@ -118,7 +118,6 @@
       "newOpenImport": "Neu / Öffnen / Projekt importieren",
       "loadTemplate": "Vorlage laden…",
       "exportProject": "Projekt exportieren…",
-      "previewProject": "Projektvorschau…",
       "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…",
       "importGroupProject": "Projekt",
       "importGroupClassDiagram": "Klassendiagramm aus",
@@ -131,8 +130,7 @@
       "importProjectFile": "Projektdatei (.json / .py)…",
       "fromSpreadsheet": "Aus Daten…",
       "fromGithub": "Aus GitHub…",
-      "importKgOwl": "KG importieren",
-      "shareAsGist": "Als geheimen Gist teilen…"
+      "importKgOwl": "KG importieren"
     },
     "generate": {
       "title": "Generieren",
@@ -1250,18 +1248,6 @@
     "toasts": {
       "createOrLoadFirst": "Erstellen oder laden Sie zuerst ein Projekt."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "Projekt-JSON kopiert.",
-        "jsonCopyFailed": "Projekt-JSON konnte nicht kopiert werden.",
-        "bumlFailedFallback": "B-UML-Vorschau konnte nicht generiert werden.",
-        "bumlFailed": "B-UML-Vorschau konnte nicht generiert werden: {{message}}",
-        "noBumlToCopy": "Keine B-UML-Vorschau zum Kopieren.",
-        "bumlCopied": "Projekt-B-UML kopiert.",
-        "bumlCopyFailed": "B-UML-Vorschau konnte nicht kopiert werden.",
-        "noBumlToDownload": "Keine B-UML-Vorschau zum Herunterladen."
-      }
-    },
     "landing": {
       "dialogTitle": "Wählen Sie, wie Sie bauen möchten",
       "eyebrow": "Willkommen bei BESSER",
@@ -1297,7 +1283,6 @@
   },
   "github": {
     "defaultRepoDescription": "BESSER-Projekt: {{name}}",
-    "defaultGistDescription": "BESSER-Projekt: {{name}}",
     "connect": {
       "button": "Mit GitHub verbinden",
       "checking": "GitHub-Verbindung wird geprüft…"
@@ -1327,16 +1312,6 @@
       "title": "Auf GitHub pushen",
       "messageLabel": "Commit-Nachricht",
       "pushing": "Wird gepusht…"
-    },
-    "gist": {
-      "title": "Gist erstellen",
-      "description": "Erstellen Sie einen GitHub-Gist, um Ihr Projekt schnell zu teilen.",
-      "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Gist-Beschreibung…",
-      "publicGist": "Öffentlicher Gist",
-      "secretHint": "Geheime Gists sind für Suchmaschinen verborgen, aber für jeden mit dem Link sichtbar.",
-      "creating": "Wird erstellt…",
-      "createGist": "Gist erstellen"
     },
     "createRepo": {
       "title": "Repository erstellen",
@@ -1370,7 +1345,6 @@
       "repoCreated": "Repository erstellt: {{name}}",
       "deploymentFailed": "Bereitstellung fehlgeschlagen",
       "repoCreationFailed": "Erstellen des Repositorys fehlgeschlagen",
-      "gistCreated": "Gist erfolgreich erstellt!",
       "invalidGitHubUrl": "Ungültige GitHub-URL. Bitte geben Sie eine gültige GitHub-Repository-URL an.",
       "fetchingFromGitHub": "{{filename}} wird von GitHub abgerufen…",
       "fileNotFound": "Datei auf GitHub nicht gefunden. Bitte überprüfen Sie die URL und versuchen Sie es erneut.",
@@ -2268,7 +2242,7 @@
         },
         "publish": {
           "title": "Live schalten und teilen",
-          "body": "<p><strong>Bereitstellen → Von GitHub aus online gehen</strong> stellt die App aus dem verknüpften Repository online, genau so, wie das Repository sie enthält, sofern der Server es anbietet.</p><p><strong>Datei → Als geheimen Gist teilen…</strong> teilt eine Kopie des Projekts über einen Link, ohne Zugangsdaten des Agenten.</p>"
+          "body": "<p><strong>Bereitstellen → Von GitHub aus online gehen</strong> stellt die App aus dem verknüpften Repository online, genau so, wie das Repository sie enthält, sofern der Server es anbietet.</p><p>Um das Projekt zu teilen, teile sein verknüpftes Repository: Wer Zugriff hat, öffnet es mit <strong>Aus GitHub fortsetzen</strong>.</p>"
         }
       }
     }
@@ -2380,23 +2354,6 @@
       "tryAgainLabel": "Nach dem Fehler erneut versuchen",
       "tryAgain": "Erneut versuchen"
     },
-    "jsonViewer": {
-      "jsonTitle": "JSON-Vorschau des Projekts",
-      "diagramBuml": "Diagramm-B-UML",
-      "closeLabel": "Vorschaufenster schließen",
-      "expand": "{{name}} aufklappen",
-      "collapse": "{{name}} zuklappen",
-      "root": "Stammelement",
-      "generatingBuml": "B-UML-Vorschau wird generiert…",
-      "noBumlPreview": "Es ist noch keine B-UML-Vorschau verfügbar.",
-      "generating": "Wird generiert…",
-      "regenerate": "Neu generieren",
-      "downloadBuml": "B-UML herunterladen",
-      "copyBuml": "B-UML kopieren",
-      "downloadJson": "JSON herunterladen",
-      "copyJson": "JSON kopieren",
-      "copyValue": "Wert kopieren"
-    },
     "notFound": {
       "title": "Seite nicht gefunden",
       "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
@@ -2446,11 +2403,6 @@
       "open": "Navigation öffnen",
       "close": "Navigation schließen",
       "title": "Navigation"
-    },
-    "preview": {
-      "projectLabel": "Projekt (V{{version}})",
-      "bumlLabelNamed": "Projekt-B-UML-Vorschau ({{name}})",
-      "bumlLabel": "Projekt-B-UML-Vorschau"
     },
     "skipToEditor": "Zum Editor springen"
   },
