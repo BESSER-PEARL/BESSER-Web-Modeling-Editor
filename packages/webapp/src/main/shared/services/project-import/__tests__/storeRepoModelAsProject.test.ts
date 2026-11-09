@@ -26,6 +26,17 @@ const project = (key: string, language: string) => ({
   settings: {},
 });
 
+// The model file of a real repo (written by a test script, not the editor): the import
+// accepted it, and opening the project then failed with "Project not found".
+const invalidProject = {
+  id: 'live659',
+  type: 'BesserProject',
+  name: 'Live659',
+  createdAt: '2026-11-02T00:00:00Z',
+  diagrams: { ClassDiagram: [{ id: 'c1', title: 'Class Diagram', model: { elements: {}, relationships: {} } }] },
+  currentDiagramIndices: { ClassDiagram: 0 },
+};
+
 describe('storeRepoModelAsProject', () => {
   beforeEach(() => localStorage.clear());
 
@@ -53,5 +64,14 @@ describe('storeRepoModelAsProject', () => {
     const model = stored.diagrams.AgentDiagram[0].model as { version?: string; nodes?: unknown[] };
     expect(model.version).toMatch(/^4\./);
     expect(Array.isArray(model.nodes)).toBe(true);
+  });
+
+  it('leaves the local project openable when the repo holds an invalid model', () => {
+    ProjectStorageRepository.saveProject(project('sk-local-key', 'en') as never);
+
+    expect(() => storeRepoModelAsProject(invalidProject, 'p1')).toThrow('not a valid BESSER project');
+
+    const local = ProjectStorageRepository.loadProject('p1');
+    expect(local?.name).toBe('Library');
   });
 });

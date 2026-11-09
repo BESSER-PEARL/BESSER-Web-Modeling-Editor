@@ -22,11 +22,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
-import type { GeneratorType } from '../../../app/shell/workspace-types';
-import type { GenerationResult } from '../../generation/types';
+import type { GeneratorType } from '../../../shared/types/workspace-types';
+import type { GenerationResult } from '../../generation';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
 import { isAssistantApplicableTo } from '../services/assistantSupport';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
@@ -34,7 +34,7 @@ import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { rateLimitToneClass } from './rateLimitTone';
 import { Z_INDEX } from '../../../shared/constants/z-index';
-import { sessionStorageAssistantDrawerOpen } from '../../../shared/constants/constant';
+import { readAssistantDrawerOpen } from '../../../shared/services/storage/assistantStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
@@ -70,6 +70,14 @@ const getConnectionLabelKey = (status: ConnectionStatus): string => {
       return 'assistant.connection.unknown';
   }
 };
+
+/** The chips of the empty bubble: modeling requests only, since the bubble is the
+ * in-editor modeling assistant (BESSER-PEARL/BESSER#747). */
+export const WELCOME_SUGGESTION_KEYS = [
+  'assistant.welcome.suggestions.library',
+  'assistant.welcome.suggestions.payment',
+  'assistant.welcome.suggestions.stateMachine',
+] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -248,13 +256,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   // Initialize from the persisted drawer state so a restored-open drawer hides
   // the FAB on first paint (no reliance on the sync event racing our mount).
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(readAssistantDrawerOpen);
 
   useEffect(() => {
     const onDrawer = (e: Event) => {
@@ -363,11 +365,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 </div>
                 {/* Same chip style as the drawer's starter prompts. */}
                 <div className="flex max-w-sm flex-wrap justify-center gap-2">
-                  {[
-                    t('assistant.welcome.suggestions.library'),
-                    t('assistant.welcome.suggestions.payment'),
-                    t('assistant.welcome.suggestions.django'),
-                  ].map((suggestion) => (
+                  {WELCOME_SUGGESTION_KEYS.map((key) => t(key)).map((suggestion) => (
                     <button
                       key={suggestion}
                       type="button"

@@ -47,6 +47,11 @@ export interface DecideRunModeParams {
   modelChange?: ModelChange | null;
 }
 
+/** True while the backend still holds `lastRun`, so a run can edit it in place. */
+export function isWithinTtl(lastRun: LastRunRecord | null | undefined, nowMs: number, ttlSeconds: number): boolean {
+  return !!lastRun && Number.isFinite(lastRun.at) && Number.isFinite(ttlSeconds) && nowMs - lastRun.at < ttlSeconds * 1000;
+}
+
 /**
  * Decide modify-vs-fresh.
  *
@@ -83,13 +88,7 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
   }
 
   // 2. Automatic heuristic — modify only within a fresh, valid window.
-  const withinTtl =
-    !!lastRun &&
-    Number.isFinite(lastRun.at) &&
-    Number.isFinite(ttlSeconds) &&
-    nowMs - lastRun.at < ttlSeconds * 1000;
-
-  if (storedRunId && withinTtl) {
+  if (storedRunId && isWithinTtl(lastRun, nowMs, ttlSeconds)) {
     // Never start fresh on our own: the base app may carry custom work.
     const verdict = modelChange?.verdict;
     if (verdict === 'large' || verdict === 'unrelated') {

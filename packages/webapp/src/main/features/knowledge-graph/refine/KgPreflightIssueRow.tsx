@@ -95,7 +95,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
           <div className="mt-1 break-words text-sm text-gray-900 dark:text-gray-100">
             {issue.description}
           </div>
-          {issue.affectedNodeIds.length > 0 && (
+          {!!issue.affectedNodeIds?.length && (
             <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
               {t('knowledgeGraph.preflight.affects', { ids: issue.affectedNodeIds.join(', ') })}
             </div>

@@ -1,19 +1,16 @@
 /**
- * Unified LLM BYOK (bring-your-own-key) session-storage helpers.
+ * The one LLM key module: BYOK (bring-your-own-key) storage and the provider list.
  *
- * ONE key for the whole app: the user's Anthropic / OpenAI / Mistral / Nebius
- * key is
- * entered once (via the shared LlmKeyDialog, reachable from the assistant
- * drawer, the assistant popup, and the Settings page) and read by BOTH the
- * assistant/modeling-agent AND the Spec-Driven Agent.
+ * ONE key for the whole app: the user's key is entered once (via the shared
+ * LlmKeyDialog, reachable from the assistant drawer, the assistant popup, and
+ * the Settings page) and read by the modeling assistant, the Spec-Driven Agent
+ * and the Knowledge Graph AI tabs. Nothing else reads or writes these keys.
  *
  * The raw key lives ONLY in sessionStorage (tab-lifetime, cleared on tab
  * close) — never in localStorage, never in Redux, and it is NEVER logged.
  *
- * This lives in `shared/` (not a feature) so the shared dialog can use it
- * without violating feature isolation. The per-feature helpers
- * (`features/assistant/services/byokStorage`, `features/spec-driven/
- * storage`) now target the same underlying keys.
+ * It lives in `shared/` (not a feature) so the shared dialog and every feature
+ * can use it without violating feature isolation.
  */
 
 import {
@@ -27,31 +24,69 @@ import {
   sessionStorageSpecDrivenMaxRuntimeSeconds,
 } from '../constants/constant';
 
-// 'local' is the user's OpenAI-compatible server, sent on the wire as
-// provider='openai' + a base_url (see the SSE client / AssistantClient); it only
-// works when the WME backend runs locally. 'pia' is a gateway whose endpoint the
-// server resolves from its model catalog; the dialog offers it only where the
-// server lists it.
-// 'free' is the keyless server-hosted tier (Spec-Driven Agent only — NOT offered in the
-// assistant key dialog). It carries no key; the model list is a single pinned
-// entry.
-// 'nebius' is Nebius Token Factory — an OpenAI-compatible cloud endpoint the
-// BACKEND pins server-side (no base_url travels with the request, so it is not
-// subject to the custom-endpoint gate that local is). Spec-Driven Agent
-// only: the modeling assistant's own BYOK layer does not support it, so a
-// Nebius key leaves the assistant on the server's default model (see
-// features/assistant/services/byokStorage.ts).
-export type LlmProvider =
-  | 'anthropic'
-  | 'openai'
-  | 'mistral'
-  | 'nebius'
-  | 'pia'
-  | 'local'
-  | 'free';
+/**
+ * Every LLM provider id the app knows. The app's own provider lists derive from
+ * this one; what another service accepts is an explicit allowlist (below).
+ * - 'local': the user's OpenAI-compatible server, sent on the wire as
+ *   provider='openai' + a base_url; works only when the WME backend runs locally.
+ * - 'pia', 'gateway': gateways whose endpoints the server resolves from its model
+ *   catalog; the dialog offers each only where the server lists it.
+ * - 'nebius': Nebius Token Factory, an OpenAI-compatible endpoint the backend
+ *   pins server-side (no base_url travels with the request).
+ * - 'free': the keyless server-hosted tier (Spec-Driven Agent only). Never a
+ *   stored key's provider: its opt-in has its own flag (below).
+ * - 'sponsored': the server-paid demo tier, chosen only by a `?demo=` link;
+ *   never offered in the dialog or stored.
+ */
+export const LLM_PROVIDERS = [
+  'anthropic',
+  'openai',
+  'mistral',
+  'nebius',
+  'pia',
+  'gateway',
+  'local',
+  'free',
+  'sponsored',
+] as const;
+export type LlmProviderId = (typeof LLM_PROVIDERS)[number];
+
+/** The providers the key dialog offers (all but the demo-link tier). */
+export type LlmProvider = Exclude<LlmProviderId, 'sponsored'>;
+
+/** Providers a stored key can carry: the server-paid tiers take no key. */
+export type KeyProvider = Exclude<LlmProviderId, 'free' | 'sponsored'>;
+export const KEY_PROVIDERS: readonly KeyProvider[] = LLM_PROVIDERS.filter(
+  (p): p is KeyProvider => p !== 'free' && p !== 'sponsored',
+);
+
+export const isLlmProviderId = (value: unknown): value is LlmProviderId =>
+  typeof value === 'string' && (LLM_PROVIDERS as readonly string[]).includes(value);
+
+export const isKeyProvider = (value: unknown): value is KeyProvider =>
+  typeof value === 'string' && (KEY_PROVIDERS as readonly string[]).includes(value);
+
+/**
+ * Providers whose key the modeling assistant may receive: the agent's
+ * SUPPORTED_PROVIDERS (modeling-agent `src/llm/byok.py`), plus 'pia' and 'gateway'
+ * (gateways of its model catalog) and 'local' (sent as 'openai' + a base URL). An explicit
+ * allowlist: a new key provider reaches the agent only once listed here.
+ */
+export const ASSISTANT_KEY_PROVIDERS: readonly KeyProvider[] = [
+  'anthropic',
+  'openai',
+  'mistral',
+  'nebius',
+  'pia',
+  'gateway',
+  'local',
+];
+
+export const isAssistantKeyProvider = (value: unknown): value is KeyProvider =>
+  typeof value === 'string' && (ASSISTANT_KEY_PROVIDERS as readonly string[]).includes(value);
 
 export interface LlmKey {
-  provider: LlmProvider;
+  provider: KeyProvider;
   apiKey: string;
   /** Explicit model override; undefined = use the backend default for the provider. */
   model?: string;
@@ -68,24 +103,13 @@ function _hasSessionStorage(): boolean {
   }
 }
 
-function _isProvider(value: string | null): value is LlmProvider {
-  return (
-    value === 'anthropic' ||
-    value === 'openai' ||
-    value === 'mistral' ||
-    value === 'nebius' ||
-    value === 'pia' ||
-    value === 'local'
-  );
-}
-
 /** Read the currently stored unified BYOK key, or `null` if none / unavailable. */
 export function readLlmKey(): LlmKey | null {
   if (!_hasSessionStorage()) return null;
   try {
     const apiKey = window.sessionStorage.getItem(sessionStorageLlmApiKey);
     const provider = window.sessionStorage.getItem(sessionStorageLlmProvider);
-    if (!apiKey || !_isProvider(provider)) return null;
+    if (!apiKey || !isKeyProvider(provider)) return null;
     const rawModel = window.sessionStorage.getItem(sessionStorageLlmModel);
     const model = rawModel && rawModel.trim() ? rawModel.trim() : undefined;
     const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
@@ -99,10 +123,10 @@ export function readLlmKey(): LlmKey | null {
 /**
  * Store the unified BYOK key in sessionStorage. Returns true on success.
  * Pass `model=undefined`/empty to clear a previously saved model preference.
- * `baseUrl` is the OpenAI-compatible endpoint for the 'local'/'pia' providers.
+ * `baseUrl` is the OpenAI-compatible endpoint for the 'local' provider and the gateways.
  */
 export function writeLlmKey(
-  provider: LlmProvider,
+  provider: KeyProvider,
   apiKey: string,
   model?: string,
   baseUrl?: string,
@@ -135,7 +159,7 @@ export function writeLlmKey(
   }
 }
 
-/** Remove the stored unified BYOK key. No-op if sessionStorage is unavailable. */
+/** Remove the stored key, provider, model and base URL. No-op if sessionStorage is unavailable. */
 export function clearLlmKey(): void {
   if (!_hasSessionStorage()) return;
   try {
@@ -153,11 +177,25 @@ export function hasLlmKey(): boolean {
   return readLlmKey() !== null;
 }
 
+/** What replaces the stored key in text kept outside sessionStorage. */
+export const REDACTED_LLM_KEY = '[API key removed]';
+
+/**
+ * A function that replaces the stored key in a text, for anything written
+ * outside sessionStorage (the project, its repository, the conversation kept
+ * in localStorage): the user may have pasted the key into the chat. The key is
+ * read once, so one redactor can serve a whole payload.
+ */
+export function llmKeyRedactor(): (text: string) => string {
+  const key = readLlmKey()?.apiKey;
+  return key ? (text) => text.split(key).join(REDACTED_LLM_KEY) : (text) => text;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Spec-Driven Agent run budget (max cost / max runtime)              */
-/*  Not a secret, but session-scoped so it travels with the key. Reads */
-/*  the same keys the spec-driven feature uses, so the two stay   */
-/*  consistent no matter which surface sets them.                       */
+/*  Not a secret, but session-scoped so it travels with the key.       */
+/*  Not cleared with the key: an INVALID_KEY error wipes the key, but  */
+/*  the budget should survive the re-entry of a corrected key.         */
 /* ------------------------------------------------------------------ */
 
 export interface LlmRunBudget {
@@ -212,8 +250,7 @@ export function writeLlmBudget(budget: { maxCostUsd: number; maxRuntimeSeconds: 
 /*  free tier authorises a spec-driven run WITHOUT a key, and writing  */
 /*  a placeholder into the shared key would break the assistant's own  */
 /*  calls. Lives here (shared/) so the unified LlmKeyDialog can offer  */
-/*  the free tier without importing from the spec-driven feature; the  */
-/*  feature re-exports these from `features/spec-driven/storage`.      */
+/*  the free tier without importing from the spec-driven feature.      */
 /* ------------------------------------------------------------------ */
 
 /** True when the user has opted into the keyless free tier for the Spec-Driven Agent. */

@@ -18,6 +18,13 @@ import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { useBumlToDiagram, isBumlFile, isJsonFile, isBpmnXmlFile } from './useBumlToDiagram';
 import { useImportBpmnXml } from './useImportBpmnXml';
+import { errorProperties, track } from '../../shared/services/analytics/events';
+
+/** The file kind an import was given, for analytics. */
+const importFormat = (file: File): string =>
+  isBumlFile(file) ? 'buml' : isBpmnXmlFile(file) ? 'bpmn_xml' : isJsonFile(file) ? 'json' : 'unsupported';
+
+type ImportFailureReason = 'unsupported' | 'limit_reached' | 'invalid' | 'request' | 'no_project' | 'exception';
 
 /**
  * Detect v3-shape `{elements, relationships}` UMLModels
@@ -123,100 +130,117 @@ export const useImportDiagramToProject = () => {
 
   const importDiagramToProject = useCallback(
     async (file: File) => {
-      // Errors are NOT dispatched to errorManagementSlice here — the callers
-      // (WorkspaceShell handlers, ProjectHubDialog) surface them via
-      // react-toastify, and a duplicate persistent banner would be noise.
-      let diagram: ProjectDiagram;
+      const format = importFormat(file);
+      // Set before each step that can throw, so the failure event says which one did.
+      let failureReason: ImportFailureReason = 'exception';
+      try {
+        let diagram: ProjectDiagram;
 
-      if (isBumlFile(file)) {
-        // Handle Python/BUML file - convert to diagram
-        diagram = await convertBumlToDiagram(file);
-      } else if (isBpmnXmlFile(file)) {
-        // Handle BPMN 2.0 XML file - parse to a v4 diagram (already v4-shape)
-        diagram = await convertBpmnXmlToDiagram(file);
-      } else if (isJsonFile(file)) {
-        // Handle JSON file - parse directly
-        const fileContent = await readFileAsText(file, t('import.errors.readFileFailed'));
+        if (isBumlFile(file)) {
+          // Handle Python/BUML file - convert to diagram
+          failureReason = 'request';
+          diagram = await convertBumlToDiagram(file);
+        } else if (isBpmnXmlFile(file)) {
+          // Handle BPMN 2.0 XML file - parse to a v4 diagram (already v4-shape)
+          failureReason = 'invalid';
+          diagram = await convertBpmnXmlToDiagram(file);
+        } else if (isJsonFile(file)) {
+          failureReason = 'invalid';
+          // Handle JSON file - parse directly
+          const fileContent = await readFileAsText(file, t('import.errors.readFileFailed'));
 
-        diagram = JSON.parse(fileContent);
-      } else {
-        throw new Error(t('import.errors.unsupportedFileTypeBpmn'));
-      }
-
-      // Migrate v3-shape uploads before validation.
-      diagram = maybeMigrateImportedDiagram(diagram);
-
-      // Validate that it's a valid diagram
-      if (!isUMLModel(diagram.model)) {
-        throw new Error(t('import.errors.invalidFormat'));
-      }
-
-      // Get the current project
-      const currentProject = ProjectStorageRepository.getCurrentProject();
-      if (!currentProject) {
-        throw new Error(t('import.errors.noProjectOpen'));
-      }
-
-      // Convert UMLDiagramType to SupportedDiagramType
-      const diagramType = toSupportedDiagramType(diagram.model.type);
-
-      // Generate new ID for the imported diagram to avoid conflicts
-      const newId = uuid();
-      const importedDiagram: ProjectDiagram = {
-        ...diagram,
-        id: newId,
-        title: `${diagram.title}`,
-        lastUpdate: new Date().toISOString(),
-      };
-
-      // Add the imported diagram as a new entry (never overwrite existing diagrams)
-      const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
-      if (existingDiagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
-        throw new Error(t('import.errors.maxDiagramsReached', { max: MAX_DIAGRAMS_PER_TYPE, diagramType }));
-      }
-      const newDiagram = {
-        id: newId,
-        title: importedDiagram.title,
-        model: importedDiagram.model,
-        lastUpdate: importedDiagram.lastUpdate,
-        description: importedDiagram.description || t('import.descriptions.imported', { diagramType }),
-      };
-
-      const updatedDiagrams = [...existingDiagrams, newDiagram];
-      const newIndex = updatedDiagrams.length - 1;
-
-      const updatedProject = {
-        ...currentProject,
-        diagrams: {
-          ...currentProject.diagrams,
-          [diagramType]: updatedDiagrams,
-        },
-        currentDiagramIndices: {
-          ...currentProject.currentDiagramIndices,
-          [diagramType]: newIndex,
-        },
-      };
-
-      // Save to localStorage and reload the project into Redux to keep them in sync
-      ProjectStorageRepository.saveProject(updatedProject);
-      await dispatch(loadProjectThunk(currentProject.id));
-
-      // If importing a Class Diagram, update the diagram bridge for Object Diagram compatibility
-      if (diagramType === 'ClassDiagram' && isUMLModel(importedDiagram.model)) {
-        try {
-          const { diagramBridge } = await import('@besser/wme');
-          diagramBridge.setClassDiagramData(importedDiagram.model);
-        } catch {
-          /* bridge not available */
+          diagram = JSON.parse(fileContent);
+        } else {
+          failureReason = 'unsupported';
+          throw new Error(t('import.errors.unsupportedFileTypeBpmn'));
         }
-      }
 
-      return {
-        success: true,
-        diagramType,
-        diagramTitle: importedDiagram.title,
-        message: t('import.success.diagramImported', { diagramType, projectName: currentProject.name }),
-      };
+        // Migrate v3-shape uploads before validation.
+        diagram = maybeMigrateImportedDiagram(diagram);
+
+        // Validate that it's a valid diagram
+        if (!isUMLModel(diagram.model)) {
+          failureReason = 'invalid';
+          throw new Error(t('import.errors.invalidFormat'));
+        }
+        failureReason = 'exception';
+
+        // Get the current project
+        const currentProject = ProjectStorageRepository.getCurrentProject();
+        if (!currentProject) {
+          failureReason = 'no_project';
+          throw new Error(t('import.errors.noProjectOpen'));
+        }
+
+        // Convert UMLDiagramType to SupportedDiagramType
+        const diagramType = toSupportedDiagramType(diagram.model.type);
+
+        // Generate new ID for the imported diagram to avoid conflicts
+        const newId = uuid();
+        const importedDiagram: ProjectDiagram = {
+          ...diagram,
+          id: newId,
+          title: `${diagram.title}`,
+          lastUpdate: new Date().toISOString(),
+        };
+
+        // Add the imported diagram as a new entry (never overwrite existing diagrams)
+        const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
+        if (existingDiagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
+          failureReason = 'limit_reached';
+          throw new Error(t('import.errors.maxDiagramsReached', { max: MAX_DIAGRAMS_PER_TYPE, diagramType }));
+        }
+        const newDiagram = {
+          id: newId,
+          title: importedDiagram.title,
+          model: importedDiagram.model,
+          lastUpdate: importedDiagram.lastUpdate,
+          description: importedDiagram.description || t('import.descriptions.imported', { diagramType }),
+        };
+
+        const updatedDiagrams = [...existingDiagrams, newDiagram];
+        const newIndex = updatedDiagrams.length - 1;
+
+        const updatedProject = {
+          ...currentProject,
+          diagrams: {
+            ...currentProject.diagrams,
+            [diagramType]: updatedDiagrams,
+          },
+          currentDiagramIndices: {
+            ...currentProject.currentDiagramIndices,
+            [diagramType]: newIndex,
+          },
+        };
+
+        // Save to localStorage and reload the project into Redux to keep them in sync
+        ProjectStorageRepository.saveProject(updatedProject);
+        await dispatch(loadProjectThunk(currentProject.id));
+
+        // If importing a Class Diagram, update the diagram bridge for Object Diagram compatibility
+        if (diagramType === 'ClassDiagram' && isUMLModel(importedDiagram.model)) {
+          try {
+            const { diagramBridge } = await import('@besser/wme');
+            diagramBridge.setClassDiagramData(importedDiagram.model);
+          } catch {
+            /* bridge not available */
+          }
+        }
+
+        track('diagram_imported', { format, diagram_type: diagramType, source: 'file' });
+        return {
+          success: true,
+          diagramType,
+          diagramTitle: importedDiagram.title,
+          message: t('import.success.diagramImported', { diagramType, projectName: currentProject.name }),
+        };
+      } catch (error) {
+        track('diagram_import_failed', { format, source: 'file', reason: failureReason, ...errorProperties(error) });
+        // Errors are NOT dispatched to errorManagementSlice here — the callers
+        // (WorkspaceShell handlers, ProjectHubDialog) surface them via
+        // react-toastify, and a duplicate persistent banner would be noise.
+        throw error;
+      }
     },
     [dispatch, convertBumlToDiagram, convertBpmnXmlToDiagram, t],
   );

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GENERATOR_MENU_CONFIG } from '../menus/generator-menu-config';
 import type { GeneratorMenuAction, GeneratorMenuEntry } from '../menus/generator-menu-config';
-import type { GeneratorMenuMode } from '../workspace-types';
+import type { GeneratorMenuMode } from '../../../shared/types/workspace-types';
 
 /** Flatten groups/actions of a menu mode into a single action list. */
 const flattenActions = (entries: GeneratorMenuEntry[]): GeneratorMenuAction[] =>

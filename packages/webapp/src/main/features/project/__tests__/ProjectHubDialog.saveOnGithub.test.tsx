@@ -36,6 +36,11 @@ vi.mock('../saveProjectOnGithub', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../saveProjectOnGithub')>()),
   saveProjectOnGithub: vi.fn(),
 }));
+const captureException = vi.fn();
+vi.mock('../../../shared/services/analytics/lazy-analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../shared/services/analytics/lazy-analytics')>()),
+  getSentry: () => ({ captureException }),
+}));
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn(), loading: vi.fn(() => 'toast-id'), update: vi.fn() },
 }));
@@ -119,14 +124,18 @@ describe('Save it on GitHub', () => {
     mockGithubAuthenticated = true;
     const project = createdProject();
     mockCreateProject.mockResolvedValue(project);
-    vi.mocked(saveProjectOnGithub).mockRejectedValue(new Error('An internal error occurred while creating the repository.'));
+    const error = new Error('An internal error occurred while creating the repository.');
+    vi.mocked(saveProjectOnGithub).mockRejectedValue(error);
     openCreateForm();
     submit();
 
-    await waitFor(() => expect(toast.update).toHaveBeenCalledWith('toast-id', expect.objectContaining({
-      type: 'error',
+    await waitFor(() => expect(toast.update).toHaveBeenCalledWith('toast-id', {
       render: 'Your project was created, but saving it on GitHub failed: An internal error occurred while creating the repository.',
-    })));
+      type: 'error',
+      isLoading: false,
+      autoClose: 8000,
+    }));
+    expect(captureException).toHaveBeenCalledWith(error, { tags: { handled: 'reportError' } });
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shop'), expect.anything());
     expect(ProjectStorageRepository.loadProject(project.id)).not.toBeNull();
     expect(getProjectGitHubLink(project.id)).toBeNull();

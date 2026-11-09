@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
 import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import type { BesserProject } from '../../../shared/types/project';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { elapsedMs, errorProperties, track } from '../../../shared/services/analytics/events';
 import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
@@ -127,19 +128,23 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
   const handleOpenDeployDialog = useCallback(() => {
     if (!isDeploymentAvailable) {
       toast.info(t('deploy.toasts.availableFor'));
+      track('render_deploy_blocked', { reason: 'unavailable' });
       return;
     }
     if (!isAuthenticated) {
       toast.info(t('deploy.toasts.connectGitHubFirst'));
+      track('render_deploy_blocked', { reason: 'not_signed_in' });
       return;
     }
     if (!currentProject) {
-      toast.error(t('project.toasts.createOrLoadFirst'));
+      reportError(t('project.toasts.createOrLoadFirst'));
+      track('render_deploy_blocked', { reason: 'no_project' });
       return;
     }
 
     if (availableDeployTargets.length === 0) {
       toast.info(t('deploy.toasts.requiresDiagrams'));
+      track('render_deploy_blocked', { reason: 'missing_diagrams' });
       return;
     }
 
@@ -203,15 +208,18 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handlePublishToRender = useCallback(async () => {
     if (!currentProject) {
-      toast.error(t('deploy.toasts.noProjectAvailable'));
+      reportError(t('deploy.toasts.noProjectAvailable'));
+      track('render_deploy_blocked', { reason: 'no_project' });
       return;
     }
     if (!githubSession) {
-      toast.error(t('deploy.toasts.githubSessionNotFound'));
+      reportError(t('deploy.toasts.githubSessionNotFound'));
+      track('render_deploy_blocked', { reason: 'not_signed_in' });
       return;
     }
     if (!githubRepoName.trim()) {
-      toast.error(t('deploy.toasts.repoNameRequired'));
+      reportError(t('deploy.toasts.repoNameRequired'));
+      track('render_deploy_blocked', { reason: 'invalid_input' });
       return;
     }
 
@@ -221,7 +229,8 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     if (deploymentTarget === 'agent' && includePersonalization) {
       const mapping = buildPersonalizationMapping(projectForDeploy);
       if (mapping.length === 0) {
-        toast.error(t('deploy.toasts.noPersonalizationMappings'));
+        reportError(t('deploy.toasts.noPersonalizationMappings'));
+        track('render_deploy_blocked', { reason: 'invalid_input' });
         return;
       }
       personalizationMapping = mapping;
@@ -236,6 +245,13 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       ? stripAgentConfigToSystem(restoreBaseAgentModels(projectForDeploy))
       : projectForDeploy;
 
+    track('render_deploy_started', {
+      deployment_target: deploymentTarget,
+      is_private: githubRepoPrivate,
+      is_redeployment: useExistingRepo,
+      personalization: personalizationMapping !== null,
+    });
+    const startedAt = performance.now();
     const result = await deployToRender(projectForPayload, {
       repoName: sanitizeRepoName(githubRepoName),
       description: githubRepoDescription.trim() || defaultDescriptionForTarget(deploymentTarget),
@@ -247,7 +263,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       personalizationMapping,
     });
 
-    if (result?.success) {
+    if (result.success) {
       LocalStorageRepository.setDeployLinkedRepo(currentProject.id, deploymentTarget, {
         owner: result.owner,
         repo: result.repo_name,
@@ -255,24 +271,25 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       setIsDeployDialogOpen(false);
       setIsDeployResultOpen(true);
 
-      getPostHog()?.capture('render_deploy_success', {
+      // No repo name, owner or URL: the privacy policy promises no project names or identity.
+      track('render_deploy_success', {
         deployment_status: 'success',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
-        repo_url: result.repo_url,
-        owner: result.owner,
         files_uploaded: result.files_uploaded,
         is_redeployment: useExistingRepo,
         diagram_type: currentProject.currentDiagramType,
         deployment_target: deploymentTarget,
+        duration_ms: elapsedMs(startedAt),
       });
     } else {
-      getPostHog()?.capture('render_deploy_failure', {
+      track('render_deploy_failure', {
         deployment_status: 'failed',
         is_private: githubRepoPrivate,
-        repo_name: githubRepoName,
         diagram_type: currentProject.currentDiagramType,
         deployment_target: deploymentTarget,
+        stage: result.stage,
+        duration_ms: elapsedMs(startedAt),
+        ...(result.error !== undefined ? errorProperties(result.error) : {}),
       });
     }
   }, [currentProject, githubSession, githubRepoName, githubRepoDescription, githubRepoPrivate, useExistingRepo, commitMessage, deployToRender, deploymentTarget, includePersonalization]);

@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import i18n from '@/main/shared/i18n';
+import { errorProperties, track } from '../../services/analytics/events';
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,7 @@ export class EditorErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Editor error:', error, errorInfo);
+    track('app_crashed', { boundary: 'editor', ...errorProperties(error) });
     this.props.onError?.(error, errorInfo);
   }
 

@@ -2,15 +2,16 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { diagramBridge } from '@besser/wme';
 import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { track, trackFailure } from '../../../shared/services/analytics/events';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import type { QualityCheckState } from '../../generation/types';
+import type { QualityCheckState } from '../../../shared/types/quality-check';
 import {
   addDiagramThunk,
   removeDiagramThunk,
@@ -154,13 +155,13 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const handleGenerateObjectsFromClasses = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
     if (!besserEditor || !besserEditor.model) {
-      toast.error(t('editors.diagramTabs.editorNotReady'));
+      reportError(t('editors.diagramTabs.editorNotReady'));
       return;
     }
     const refDiagram = classDiagrams.find((d) => d.id === classRefId);
     const refModel = refDiagram?.model;
     if (!isUMLModel(refModel)) {
-      toast.error(t('editors.diagramTabs.pickClassRefFirst'));
+      reportError(t('editors.diagramTabs.pickClassRefFirst'));
       return;
     }
     const classCount = (refModel.nodes ?? []).filter(
@@ -178,13 +179,19 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
     // Push to redux first so a refresh / undo stack snapshot reflects the
     // generated objects, then propagate to the BESSER WME editor canvas.
-    await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
-    await besserEditor.nextRender;
-    // One undoable step (the `model` setter is a load that wipes undo history).
-    const generated = { ...nextModel } as any;
-    if (typeof besserEditor.applyModel === 'function') besserEditor.applyModel(generated);
-    else besserEditor.model = generated;
-    await besserEditor.nextRender;
+    try {
+      await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
+      await besserEditor.nextRender;
+      // One undoable step (the `model` setter is a load that wipes undo history).
+      const generated = { ...nextModel } as any;
+      if (typeof besserEditor.applyModel === 'function') besserEditor.applyModel(generated);
+      else besserEditor.model = generated;
+      await besserEditor.nextRender;
+    } catch (error) {
+      console.error('[DiagramTabs] generating objects from classes failed', error);
+      trackFailure('editor_action_failed', error, { editor: 'uml', action: 'objects_from_classes', reason: 'exception' });
+      return;
+    }
 
     const linksFragment = links > 0 ? t('editors.diagramTabs.linksFragment', { count: links }) : '';
     if (created === 0 && links === 0 && skipped > 0) {
@@ -194,7 +201,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     } else {
       toast.success(t('editors.diagramTabs.generatedFromClassDiagram', { count: created, links: linksFragment }));
     }
-    getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
+    track('object_diagram_generated_from_class', { created, skipped, links });
   }, [besserEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);
 
   const showTabs = diagrams.length > 0;
@@ -233,13 +240,18 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     [dispatch, currentDiagramType, safeIndex, onRequestTabSwitch],
   );
 
-  const handleAddDiagram = useCallback(() => {
+  const handleAddDiagram = useCallback(async () => {
     if (diagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
       toast.warning(t('editors.diagramTabs.maxDiagrams', { count: MAX_DIAGRAMS_PER_TYPE }));
+      track('diagram_create_failed', { type: currentDiagramType, reason: 'limit_reached' });
       return;
     }
-    dispatch(addDiagramThunk({ diagramType: currentDiagramType }));
-    getPostHog()?.capture('diagram_created', { type: currentDiagramType });
+    try {
+      await dispatch(addDiagramThunk({ diagramType: currentDiagramType })).unwrap();
+      track('diagram_created', { type: currentDiagramType });
+    } catch (error) {
+      trackFailure('diagram_create_failed', error, { type: currentDiagramType, reason: 'exception' });
+    }
   }, [dispatch, currentDiagramType, diagrams.length]);
 
   // Removing a tab deletes the diagram from the project, so confirm first.
@@ -258,7 +270,12 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       if (!confirmed) {
         return;
       }
-      dispatch(removeDiagramThunk({ diagramType: currentDiagramType, index }));
+      try {
+        await dispatch(removeDiagramThunk({ diagramType: currentDiagramType, index })).unwrap();
+        track('diagram_deleted', { type: currentDiagramType, remaining: diagrams.length - 1 });
+      } catch (error) {
+        trackFailure('editor_action_failed', error, { editor: 'uml', action: 'diagram_deleted', reason: 'exception' });
+      }
     },
     [dispatch, currentDiagramType, diagrams, t],
   );
@@ -275,7 +292,12 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     if (renamingIndex === null) return;
     const trimmed = renameValue.trim();
     if (trimmed && trimmed !== diagrams[renamingIndex]?.title) {
-      dispatch(renameDiagramThunk({ diagramType: currentDiagramType, index: renamingIndex, newTitle: trimmed }));
+      dispatch(renameDiagramThunk({ diagramType: currentDiagramType, index: renamingIndex, newTitle: trimmed }))
+        .unwrap()
+        .then(
+          () => track('diagram_renamed', { type: currentDiagramType }),
+          (error: unknown) => trackFailure('diagram_rename_failed', error, { type: currentDiagramType }),
+        );
     }
     setRenamingIndex(null);
   }, [dispatch, currentDiagramType, renamingIndex, renameValue, diagrams]);

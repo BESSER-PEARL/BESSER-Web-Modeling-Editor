@@ -1,8 +1,10 @@
 ﻿import type { Editor } from 'grapesjs';
-import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import { globalAlert, globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
-import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import { ApiError } from '../../../../shared/api/api-client';
+import { personalizeGuiPage } from '../../../../shared/api/generation';
 import i18n from '@/main/shared/i18n';
+import { track, trackFailure } from '../../../../shared/services/analytics/events';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -296,16 +298,11 @@ const personalizeSnapshotWithAI = async (
   profile: ProfileOption,
 ): Promise<PageSnapshot> => {
   const baseline = captureSnapshot(editor, page);
-  const response = await apiClient.post<{ guiPage?: PageSnapshot }>(
-    '/personalize-gui-page',
-    {
-      guiPage: baseline,
-      pageName: page?.getName?.() || 'page',
-      userProfileModel: profile.model,
-    },
-    // LLM calls are slow; mirror the long timeout used by other transforms.
-    { timeout: 600_000 },
-  );
+  const response = await personalizeGuiPage<PageSnapshot>({
+    guiPage: baseline,
+    pageName: page?.getName?.() || 'page',
+    userProfileModel: profile.model,
+  });
 
   const result = response?.guiPage;
   if (!result || !Array.isArray(result.components)) {
@@ -337,11 +334,10 @@ const openProfilePickerModal = async (
 ) => {
   const profiles = getAvailableProfiles();
   if (profiles.length === 0) {
-    await globalConfirm({
+    await globalAlert({
       title: options.title,
       description: i18n.t('editors.gui.pages.noProfiles'),
       confirmLabel: i18n.t('editors.gui.pages.ok'),
-      cancelLabel: i18n.t('editors.gui.pages.ok'),
     });
     return;
   }
@@ -618,6 +614,12 @@ function createAndAppendPagesPanel(editor: Editor) {
         </svg>
         <span>${i18n.t('editors.gui.pages.addPage')}</span>
       </button>
+      <button id="gjs-pages-map-btn" class="gjs-pages-map-btn" title="${i18n.t('editors.gui.navigationMap.open')}" aria-label="${i18n.t('editors.gui.navigationMap.open')}">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;">
+          <rect x="3" y="3" width="6" height="6" rx="1" /><rect x="15" y="3" width="6" height="6" rx="1" /><rect x="9" y="15" width="6" height="6" rx="1" /><path d="M9 6h6M6 9v3a3 3 0 0 0 3 3M18 9v3a3 3 0 0 1-3 3" />
+        </svg>
+        <span>${i18n.t('editors.gui.navigationMap.button')}</span>
+      </button>
     </div>
     <div id="gjs-pages-list" class="gjs-pages-list"></div>
   `;
@@ -627,6 +629,10 @@ function createAndAppendPagesPanel(editor: Editor) {
   // Setup event listeners
   document.getElementById('gjs-add-page-btn')?.addEventListener('click', () => {
     editor.runCommand('add-page');
+  });
+
+  document.getElementById('gjs-pages-map-btn')?.addEventListener('click', () => {
+    editor.runCommand('open-navigation-map');
   });
   
   document.getElementById('gjs-page-search')?.addEventListener('input', (e) => {
@@ -842,6 +848,7 @@ function updatePagesList(editor: Editor) {
               try {
                 snap = await personalizeSnapshotWithAI(editor, page, profile);
               } catch (err) {
+                trackFailure('editor_action_failed', err, { editor: 'gui', action: 'personalize_variant', reason: 'request' });
                 failure =
                   err instanceof ApiError
                     ? err.message
@@ -855,6 +862,7 @@ function updatePagesList(editor: Editor) {
               }
 
               if (snap) {
+                track('editor_action', { editor: 'gui', action: 'personalize_variant' });
                 notify(editor, 'success', i18n.t('editors.gui.pages.personalized', { pageName: page.getName(), profileName: profile.name }));
                 return snap;
               }
@@ -935,11 +943,10 @@ function updatePagesList(editor: Editor) {
         const removePageEntirely = async () => {
           // Prevent deleting the last page
           if (editor.Pages.getAll().length <= 1) {
-            await globalConfirm({
+            await globalAlert({
               title: i18n.t('editors.gui.pages.cannotDeleteTitle'),
               description: i18n.t('editors.gui.pages.cannotDeleteDescription'),
               confirmLabel: i18n.t('editors.gui.pages.ok'),
-              cancelLabel: i18n.t('editors.gui.pages.ok'),
             });
             return;
           }
@@ -956,6 +963,7 @@ function updatePagesList(editor: Editor) {
 
           editor.Pages.remove(page);
           updatePagesList(editor);
+          track('editor_action', { editor: 'gui', action: 'page_deleted', pages_count: editor.Pages.getAll().length });
         };
 
         const variants = getPageVariants(page);
@@ -1087,6 +1095,7 @@ function setupPageCommands(editor: Editor) {
 
       editor.Pages.select(page);
       updatePagesList(editor);
+      track('editor_action', { editor: 'gui', action: 'page_added', pages_count: editor.Pages.getAll().length });
     }
   });
 
@@ -1161,8 +1170,31 @@ function addPagesPanelCSS() {
     }
     
     .gjs-pages-actions {
+      display: flex;
+      gap: 6px;
       padding: 8px 12px;
       border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .gjs-pages-map-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 10px;
+      background: transparent;
+      border: 1px solid hsl(var(--border));
+      border-radius: 4px;
+      color: hsl(var(--foreground));
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .gjs-pages-map-btn:hover {
+      border-color: hsl(var(--brand));
+      color: hsl(var(--brand));
     }
     
     .gjs-pages-add-btn {

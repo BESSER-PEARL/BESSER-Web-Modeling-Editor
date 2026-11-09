@@ -46,7 +46,7 @@ type ClassifierMember = {
   isExternalId?: boolean;
   [k: string]: unknown;
 };
-import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
+import { applyAssistantRelationshipType, isWholePartType } from '../shared/relationshipMapping';
 
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -858,7 +858,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     this.recalculateClassHeight(newNode);
     ModifierHelpers.addNode(model, newNode);
 
-    this.createRelationshipEdge(model, sourceNode.id, newClassId, relType);
+    // For a composition or aggregation, the original class is the whole and the new class the part.
+    this.linkExtractedClass(model, sourceNode.id, newClassId, relType);
     return model;
   }
 
@@ -1053,7 +1054,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     this.recalculateClassHeight(newClassNode);
     ModifierHelpers.addNode(model, newClassNode);
 
-    this.createRelationshipEdge(model, sourceNode.id, newClassId, 'ClassComposition');
+    // The original class is the whole, the promoted class its part.
+    this.linkExtractedClass(model, sourceNode.id, newClassId, 'ClassComposition');
     return model;
   }
 
@@ -1113,6 +1115,35 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   // ─── Shared helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Link a class to the class just extracted from it. For a composition or
+   * aggregation the original class is the whole and the new class the part. The
+   * editor draws the diamond at the TARGET end and the backend makes the target
+   * end the composite one, so the part is the source and the whole the target;
+   * each whole has one part (the attributes came from one instance) and each
+   * part belongs to one whole. Any other type keeps the original class as the
+   * source.
+   */
+  private linkExtractedClass(
+    model: BESSERModel,
+    originalClassId: string,
+    newClassId: string,
+    relationshipType: string,
+  ): string {
+    const wholePart = isWholePartType(relationshipType);
+    const edgeId = wholePart
+      ? this.createRelationshipEdge(model, newClassId, originalClassId, relationshipType)
+      : this.createRelationshipEdge(model, originalClassId, newClassId, relationshipType);
+    if (wholePart) {
+      const edge = model.edges.find((e) => e.id === edgeId);
+      if (edge?.data) {
+        (edge.data as any).sourceMultiplicity = '1';
+        (edge.data as any).targetMultiplicity = '1';
+      }
+    }
+    return edgeId;
+  }
 
   private createMinimalClassNode(
     model: BESSERModel,

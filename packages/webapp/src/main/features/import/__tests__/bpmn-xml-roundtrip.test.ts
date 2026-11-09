@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
-import { bpmnModelToXmlDetailed } from '../../export/bpmn-xml-exporter';
+import { bpmnModelToXmlDetailed } from '../../export';
 import { bpmnXmlToModel } from '../bpmn-xml-importer';
 
 // Round-trip test for the v4 .bpmn XML exporter ↔ importer pair.

@@ -8,7 +8,7 @@ import deEditor from '../../../../../../i18n/de/editor.json';
 import { translate } from '../../../../../../library/lib/i18n';
 
 import i18n from '../index';
-import { LANGUAGE_STORAGE_KEY } from '../languages';
+import { localStorageLanguage as LANGUAGE_STORAGE_KEY } from '../../constants/constant';
 
 const SHELL_KEY = 'menu.file.importProject';
 

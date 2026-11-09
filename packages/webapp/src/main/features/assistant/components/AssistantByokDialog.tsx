@@ -17,7 +17,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 
 import { LlmKeyDialog } from '../../../shared/components/byok/LlmKeyDialog';
-import { setApiKeyPresent } from '../../spec-driven/state/specDrivenSlice';
+import { setApiKeyPresent } from '../../spec-driven';
 import type { AssistantClient } from '../services';
 
 export interface AssistantByokDialogProps {
@@ -38,6 +38,7 @@ export const AssistantByokDialog: React.FC<AssistantByokDialogProps> = ({
   const dispatch = useDispatch();
   return (
     <LlmKeyDialog
+      surface="assistant"
       open={open}
       onOpenChange={onOpenChange}
       client={client}

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import type { AssistantClient } from '../services';
 
 /* ------------------------------------------------------------------ */
@@ -90,7 +90,7 @@ export function useWebSocketConnection({
     assistantClient.connect().catch(() => {
       setConnectionStatus('disconnected');
       // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
-      toast.error(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
+      reportError(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
     });
 
     // The client is SHARED between the widget and the drawer, so a single

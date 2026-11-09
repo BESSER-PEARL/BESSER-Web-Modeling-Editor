@@ -11,7 +11,7 @@ import {
   selectStdoutLines,
   stopAgentSimulationThunk,
   restartAgentSimulationThunk,
-} from '@/main/features/agent-simulation';
+} from './agentSimulationSlice';
 import { BafChatWrapper } from './BafChatWrapper';
 import { TerminalPane } from './TerminalPane';
 import { AgentFileExplorer } from './AgentFileExplorer';
@@ -68,7 +68,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
 
   if (!open) return null;
 
-  const handleStop = () => dispatch(stopAgentSimulationThunk());
+  const handleStop = () => dispatch(stopAgentSimulationThunk('stop_button'));
   const handleReset = () => dispatch(restartAgentSimulationThunk());
 
   const handleTabKeyDown = (e: React.KeyboardEvent) => {

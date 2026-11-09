@@ -7,12 +7,17 @@ import { FileMenu } from '../menus/FileMenu';
 import { MoreMenu } from '../menus/MoreMenu';
 import { TopBarUtilities } from '../menus/TopBarUtilities';
 import { LanguageSelector } from '../LanguageSelector';
+import type { SupportedDiagramType } from '../../../shared/types/project';
 
 // The GitHub control has its own tests; here it only has to be mounted once.
 vi.mock('../../../features/github/components/GitHubMenu', () => ({
   GitHubMenu: ({ isAuthenticated, username }: { isAuthenticated: boolean; username?: string }) => (
     <div data-testid="github-menu">{isAuthenticated ? `signed in as ${username}` : 'signed out'}</div>
   ),
+}));
+// Reads the store; covered by its own tests.
+vi.mock('../../../features/whats-new/WhatsNewMenu', () => ({
+  WhatsNewMenu: () => <div data-testid="whats-new-menu" />,
 }));
 
 const withTooltips = (ui: React.ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
@@ -41,12 +46,12 @@ describe('GenerateMenu', () => {
 });
 
 describe('FileMenu', () => {
-  const renderOpen = (hasProject = true, onShareAsGist = vi.fn()) => {
+  const renderOpen = (hasProject = true, activeDiagramType: SupportedDiagramType = 'ClassDiagram') => {
     withTooltips(
       <FileMenu
         outlineButtonClass=""
         hasProject={hasProject}
-        activeDiagramType="ClassDiagram"
+        activeDiagramType={activeDiagramType}
         onOpenProjectHub={vi.fn()}
         onOpenTemplateDialog={vi.fn()}
         onExportProject={vi.fn()}
@@ -55,8 +60,6 @@ describe('FileMenu', () => {
         onOpenAssistantImportImage={vi.fn()}
         onOpenAssistantImportKg={vi.fn()}
         onImportOwl={vi.fn()}
-        onOpenProjectPreview={vi.fn()}
-        onShareAsGist={onShareAsGist}
       />,
     );
     openMenu('File');
@@ -70,17 +73,30 @@ describe('FileMenu', () => {
     expect(screen.queryByText('Project Actions')).toBeNull();
   });
 
-  it('shares the project as a secret gist from the File menu', () => {
-    const onShareAsGist = vi.fn();
-    renderOpen(true, onShareAsGist);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' }));
-    expect(onShareAsGist).toHaveBeenCalledTimes(1);
+  // BESSER-PEARL/BESSER#749: Export covers the preview, and the GitHub menu covers sharing.
+  it.each([true, false])('offers no Preview Project or Share as Gist entry (project open: %s)', (hasProject) => {
+    renderOpen(hasProject);
+    const labels = screen.getAllByRole('menuitem').map((item) => item.textContent ?? '');
+    expect(labels).toContain('Export Project…');
+    expect(labels.some((label) => /preview|gist/i.test(label))).toBe(false);
   });
 
-  it('disables gist sharing without a project', () => {
-    renderOpen(false);
-    expect(screen.getByRole('menuitem', { name: 'Share as Secret Gist…' })).toHaveAttribute('data-disabled');
+  it('does not end with a separator when no diagram-specific import applies', () => {
+    renderOpen();
+    const items = screen.getByRole('menu').children;
+    expect(items[items.length - 1]).not.toHaveAttribute('role', 'separator');
   });
+
+  it.each<SupportedDiagramType>(['BPMN', 'KnowledgeGraphDiagram'])(
+    'separates the %s import from Export Project',
+    (diagramType) => {
+      renderOpen(true, diagramType);
+      const items = Array.from(screen.getByRole('menu').children);
+      const exportIndex = items.findIndex((item) => item.textContent === 'Export Project…');
+      expect(items[exportIndex + 1]).toHaveAttribute('role', 'separator');
+      expect(items[exportIndex + 2]).toHaveAttribute('role', 'menuitem');
+    },
+  );
 
   it('gives every top-level item an icon', () => {
     renderOpen();
@@ -150,6 +166,7 @@ describe('TopBarUtilities', () => {
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
         onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
       />,
     );
 
@@ -172,6 +189,7 @@ describe('TopBarUtilities', () => {
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
         onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
       />,
     );
 

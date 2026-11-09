@@ -56,21 +56,22 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
+import i18n from '../../../shared/i18n';
+import { track, type SpecRunStopReason, type SpecRunTier } from '../../../shared/services/analytics/events';
+import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
 
-import type {
-  Message as ChatKitMessage,
-  SpecDrivenMessageState,
-} from '@/components/chatbot-kit/ui/chat-message';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
+import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
+import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
   SseStallError,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 import {
   claimRunSlot,
@@ -89,20 +90,26 @@ import {
   setLastRunForProject,
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
+import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
+import { loadProjectThunk } from '../../../app/store/workspaceSlice';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
-  clearSessionKey,
   readActiveSpecDrivenRun,
-  readFreeTierModel,
-  readFreeTierSelected,
   readProjectLastRun,
-  readSessionBudget,
-  readSessionKey,
-  writeFreeTierSelected,
   writeActiveSpecDrivenRun,
   writeProjectLastRun,
 } from '../storage';
+import {
+  clearLlmKey,
+  isLlmProviderId,
+  readFreeTierModel,
+  readFreeTierSelected,
+  readLlmBudget,
+  readLlmKey,
+  writeFreeTierSelected,
+} from '../../../shared/services/llmKeyStorage';
 import {
   followSpecDrivenRun,
   startSpecDrivenRun,
@@ -111,13 +118,14 @@ import {
 import {
   getSpecDrivenConfig,
   resolveFreeRunModel,
-} from '../services/specDrivenConfig';
+} from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
 import type { RunModeDecision } from '../runModeDecision';
 import { getDemoToken } from '@/main/shared/services/demoMode';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
+  SpecDrivenMessageState,
   SpecDrivenProvider,
   TriggerSpecDrivenPayload,
 } from '../types';
@@ -160,19 +168,12 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   status: 'running',
 });
 
-const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvider>([
-  'anthropic',
-  'openai',
-  'mistral',
-  'nebius',
-  'pia',
-  'local',
-  'free',
-  'sponsored',
-]);
-
-const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
-  typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
+/** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
+function currentRunTier(): { tier: SpecRunTier; provider: string } {
+  if (getDemoToken()) return { tier: 'sponsored', provider: 'sponsored' };
+  if (readFreeTierSelected()) return { tier: 'free', provider: 'free' };
+  return { tier: 'own_key', provider: readLlmKey()?.provider ?? 'unknown' };
+}
 
 /**
  * Terminal outcome of a spec-driven run, reported exactly once per run
@@ -268,9 +269,14 @@ export function useSpecDrivenTrigger(
     null,
   );
 
-  const reportRunFinished = useCallback((result: SpecDrivenRunResult) => {
+  // The run's analytics set-up, for its one terminal event.
+  const runAnalyticsRef = useRef<RunAnalytics | null>(null);
+
+  const reportRunFinished = useCallback((result: SpecDrivenRunResult, details?: RunFinishDetails) => {
     if (runFinishedReportedRef.current) return;
     runFinishedReportedRef.current = true;
+    trackRunFinished(runAnalyticsRef.current, result, details);
+    runAnalyticsRef.current = null;
     try {
       onRunFinishedRef.current?.(result);
     } catch (err) {
@@ -409,20 +415,7 @@ export function useSpecDrivenTrigger(
   const cancelRunOnServer = useCallback(
     (runId: string | undefined, opts: { beacon?: boolean } = {}) => {
       if (!runId) return;
-      const url = cancelSpecDrivenUrl(runId);
-      try {
-        if (
-          opts.beacon &&
-          typeof navigator !== 'undefined' &&
-          typeof navigator.sendBeacon === 'function'
-        ) {
-          navigator.sendBeacon(url);
-          return;
-        }
-        void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
-      } catch {
-        /* best-effort */
-      }
+      cancelSpecDrivenRun(runId, opts);
     },
     [],
   );
@@ -560,7 +553,7 @@ export function useSpecDrivenTrigger(
 
       switch (event.event) {
         case 'start': {
-          if (!isValidProvider(event.provider)) {
+          if (!isLlmProviderId(event.provider)) {
             console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
@@ -733,6 +726,13 @@ export function useSpecDrivenTrigger(
             incompleteReason: event.incompleteReason,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
             verificationCounts,
+          }, {
+            stats: {
+              fileCount,
+              changedFileCount: event.changedFileCount,
+              tokensUsed: event.tokensUsed,
+              isZip: event.isZip,
+            },
           });
           return;
         }
@@ -742,6 +742,7 @@ export function useSpecDrivenTrigger(
             event.code === 'TIMEOUT' ||
             event.code === 'INCOMPLETE'
           ) {
+            track('spec_run_warning', { code: event.code });
             // Non-terminal — the stream continues; the `done` event will
             // follow. The slice reducer already recorded the notice on
             // the card (COST_CAP deliberately silently: its message
@@ -773,20 +774,20 @@ export function useSpecDrivenTrigger(
                     `You can retry the run; if this keeps happening, the ` +
                     `model provider may be temporarily unavailable.`,
                 );
-                toast.error('Spec-Driven Agent run ended without a result');
+                reportError('Spec-Driven Agent run ended without a result');
                 reportRunFinished({
                   ok: false,
                   runId: currentRunIdRef.current,
                   errorCode: warningCode,
                   costUsd: lastCostRef.current,
-                });
+                }, { stage: 'no_result' });
                 abortActiveInternal();
               }, COST_TIMEOUT_FAILSAFE_MS);
             }
             return;
           }
           if (event.code === 'INVALID_KEY') {
-            clearSessionKey();
+            clearLlmKey();
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
@@ -802,14 +803,14 @@ export function useSpecDrivenTrigger(
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
             );
-            toast.error(`Spec-Driven Agent: ${event.code}`);
+            reportError(`Spec-Driven Agent: ${event.code}`);
           }
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
             errorCode: event.code,
             costUsd: lastCostRef.current,
-          });
+          }, { stage: 'server', cancelReason: event.reason === 'abandoned' ? 'abandoned' : 'user' });
           return;
         }
         default: {
@@ -883,6 +884,13 @@ export function useSpecDrivenTrigger(
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = saved.runId;
       activeRunStartedAtRef.current = saved.startedAt;
+      // After a reload only the tab's current tier choice is known, not the run's own set-up.
+      const tier = currentRunTier();
+      runAnalyticsRef.current = {
+        properties: runProperties({ ...tier, explicitMode: false, reattached: true }),
+        startedAt: saved.startedAt,
+      };
+      track('spec_run_reattached', { ...runAnalyticsRef.current.properties, age_ms: Date.now() - saved.startedAt });
       // The running card itself is intentionally not persisted. Replay from the
       // beginning so the new card reconstructs every phase and tool entry.
       lastSequenceRef.current = 0;
@@ -922,7 +930,7 @@ export function useSpecDrivenTrigger(
             runId: saved.runId,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
-          });
+          }, { stage: 'stream_ended_early' });
         }
       } catch (error) {
         const isAbort = error instanceof DOMException && error.name === 'AbortError';
@@ -942,13 +950,13 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
-          toast.error('Could not reconnect to the active generation');
+          reportError('Could not reconnect to the active generation', { error });
           reportRunFinished({
             ok: false,
             runId: saved.runId,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
-          });
+          }, { stage: 'reattach', error });
         }
       } finally {
         abortRef.current = null;
@@ -990,6 +998,7 @@ export function useSpecDrivenTrigger(
       // instance (global runStatus, read synchronously from the live
       // store — a useAppSelector value could be stale in this commit).
       if (isRunningRef.current || dispatch(isSpecDrivenRunActive())) {
+        track('spec_run_blocked', { reason: 'already_running' });
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -1004,16 +1013,18 @@ export function useSpecDrivenTrigger(
       // spend is ours. Checked first so it wins over a stale stored key.
       const demoToken = getDemoToken();
       const freeSelected = readFreeTierSelected();
-      const key = readSessionKey();
+      const key = readLlmKey();
       if (!demoToken && !freeSelected && !key) {
+        track('spec_run_blocked', { reason: 'needs_key' });
         dispatch(openByokDialog(payload));
         return;
       }
 
       const project = currentProjectRef.current;
       if (!project) {
+        track('spec_run_blocked', { reason: 'no_project' });
         appendErrorToChat('Spec-Driven Agent needs an open project.');
-        toast.error('Spec-Driven Agent needs an open project');
+        reportError('Spec-Driven Agent needs an open project');
         return;
       }
       const runProject = {
@@ -1037,11 +1048,12 @@ export function useSpecDrivenTrigger(
         : freeSelected
           ? 'free'
           : (key?.provider ?? payload.provider);
-      if (!isValidProvider(rawProvider)) {
+      if (!isLlmProviderId(rawProvider)) {
+        track('spec_run_blocked', { reason: 'invalid_provider' });
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
-        toast.error('Spec-Driven Agent: invalid provider');
+        reportError('Spec-Driven Agent: invalid provider');
         return;
       }
       const provider: SpecDrivenProvider = rawProvider;
@@ -1052,16 +1064,22 @@ export function useSpecDrivenTrigger(
       // otherwise mirrors the payload shape the backend already
       // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
-      const normalisedProject = buildProjectPayloadForBackend(project);
+      let normalisedProject = buildProjectPayloadForBackend(project);
       // The model this run starts from: a later push of the run must not
       // silently replace edits made on the canvas after this point.
-      const seedModel = modelFingerprint(project);
+      let seedModel = modelFingerprint(project);
+      let seedProject: BesserProject = project;
+      const seedContext = () => ({
+        baseCommitSha: getProjectGitHubLink(seedProject.id)?.baseCommitSha,
+        content: modelContentFingerprint(seedProject),
+      });
 
       // Reserve the GLOBAL run slot as `preparing`. All code from the guard
       // at the top of this function down to here is synchronous, so two
       // instances racing in the same commit resolve deterministically — the
       // first dispatch claims, the second sees it taken and backs off.
       if (!dispatch(tryClaimRunSlot('preparing'))) {
+        track('spec_run_blocked', { reason: 'already_running' });
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -1071,6 +1089,23 @@ export function useSpecDrivenTrigger(
       // Settle the run mode before any run card, so the model-change question
       // never sits under "Starting…". The typing indicator and its Stop
       // button cover this step; Stop aborts the check and closes the question.
+      const runTier: SpecRunTier = demoToken ? 'sponsored' : freeSelected ? 'free' : 'own_key';
+      // User-chosen run budget from the BYOK dialog (sessionStorage).
+      // When absent the fields stay undefined and the backend applies
+      // its own defaults — the SSE client only serialises set values.
+      const budget = readLlmBudget();
+      const runSetup = {
+        tier: runTier,
+        provider,
+        explicitMode: payload.mode !== undefined,
+        maxCostUsd: budget?.maxCostUsd,
+        maxRuntimeSeconds: budget?.maxRuntimeSeconds,
+        targetGenerator: payload.targetGeneratorOverride,
+        primaryKind: payload.primaryKindOverride,
+        skipDeterministic: payload.skipDeterministicGenerator,
+      };
+      runAnalyticsRef.current = { properties: runProperties(runSetup), startedAt: Date.now() };
+
       abortRequestedRef.current = false;
       const check = new AbortController();
       abortRef.current = () => check.abort();
@@ -1084,18 +1119,57 @@ export function useSpecDrivenTrigger(
       // baseRunId) instead of rebuilding. The decision is automatic; an
       // explicit `mode` on the trigger payload overrides it.
       let runDecision: RunModeDecision | null = null;
+      let stoppedMessage: string | undefined;
+      let stopReason: SpecRunStopReason | undefined;
       try {
         if (!check.signal.aborted) {
-          runDecision = await resolveRunMode(
-            {
-              lastRun: readProjectLastRun(project.id),
-              nowMs: Date.now(),
-              ttlSeconds: cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS,
-              explicitMode: payload.mode,
-              explicitBaseRunId: payload.baseRunId,
-            },
-            { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
-          );
+          const ttlSeconds = cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
+          let lastRun = readProjectLastRun(project.id);
+          // Another project opened during the import: this request was about the one it left.
+          const isStillOpen = () => currentProjectRef.current?.id === project.id;
+          const repoBase: LinkedRepoBase = payload.mode === undefined
+            ? await resolveLinkedRepoBase({ project, lastRun, nowMs: Date.now(), ttlSeconds, signal: check.signal, isStillOpen })
+            : { outcome: 'none' };
+          if (repoBase.outcome === 'continue') {
+            ({ lastRun } = repoBase);
+            dispatch(setLastRunForProject({ projectId: project.id, ...repoBase.lastRun }));
+          }
+          if (repoBase.outcome === 'stopped') {
+            stoppedMessage = repoBase.message;
+            stopReason = repoBase.reason;
+          } else {
+            // Said now: a Stop further on still leaves the pull explained.
+            if (repoBase.message) appendAssistantMessage(repoBase.message);
+            if (repoBase.pulled) {
+              try {
+                await dispatch(loadProjectThunk(project.id)).unwrap();
+                const pulled = ProjectStorageRepository.loadProject(project.id);
+                if (pulled) {
+                  normalisedProject = buildProjectPayloadForBackend(pulled);
+                  seedModel = modelFingerprint(pulled);
+                  seedProject = pulled;
+                }
+              } catch (error) {
+                reportError(
+                  i18n.t('github.linkedRun.badModel', { defaultValue: 'The model in this repository could not be loaded.' }),
+                  { error },
+                );
+                stopReason = 'bad_model';
+              }
+            }
+          }
+          if (repoBase.outcome !== 'stopped' && !stopReason && isStillOpen()) {
+            runDecision = await resolveRunMode(
+              {
+                lastRun,
+                nowMs: Date.now(),
+                ttlSeconds,
+                explicitMode: payload.mode,
+                explicitBaseRunId: payload.baseRunId,
+              },
+              { project: normalisedProject, instructions: payload.instructions, signal: check.signal },
+            );
+          }
         }
       } finally {
         abortRef.current = null;
@@ -1107,8 +1181,9 @@ export function useSpecDrivenTrigger(
       }
       if (!runDecision || check.signal.aborted) {
         // Nothing was started; the agent still learns the user cancelled.
+        if (stoppedMessage) appendAssistantMessage(stoppedMessage);
         runFinishedReportedRef.current = false;
-        reportRunFinished({ ok: false, errorCode: 'CANCELLED' });
+        reportRunFinished({ ok: false, errorCode: 'CANCELLED' }, { stage: 'mode_check', cancelReason: stopReason });
         return;
       }
       // Point of no return: the slot now holds a running run.
@@ -1162,18 +1237,13 @@ export function useSpecDrivenTrigger(
       // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, so swapping
       // the model is an env edit, not a frontend release.
       let llmModel: string | undefined =
-        demoToken || freeSelected ? undefined : key?.llmModel;
+        demoToken || freeSelected ? undefined : key?.model;
       if (!demoToken && !freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
             ? undefined
             : payload.llmModel;
       }
-
-      // User-chosen run budget from the BYOK dialog (sessionStorage).
-      // When absent the fields stay undefined and the backend applies
-      // its own defaults — the SSE client only serialises set values.
-      const budget = readSessionBudget();
 
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The
@@ -1205,7 +1275,7 @@ export function useSpecDrivenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
-          recordRunSeedModel(runId, seedModel);
+          recordRunSeedModel(runId, seedModel, seedContext());
           ownership.claim = claimSpecDrivenRunOwnership(runId);
           writeActiveSpecDrivenRun({
             runId,
@@ -1215,6 +1285,12 @@ export function useSpecDrivenTrigger(
           });
         },
       };
+
+      runAnalyticsRef.current = {
+        properties: runProperties({ ...runSetup, llmModel, catalogModels: catalogModelIds(cfg), runMode: runDecision.mode }),
+        startedAt: activeRunStartedAtRef.current,
+      };
+      track('spec_run_started', runAnalyticsRef.current.properties);
 
       let handle;
       try {
@@ -1229,12 +1305,12 @@ export function useSpecDrivenTrigger(
         );
         finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
         appendErrorToChat(message);
-        toast.error('Spec-Driven Agent failed to start');
+        reportError('Spec-Driven Agent failed to start', { error: err });
         isRunningRef.current = false;
         activeCardRef.current = null;
         setIsGenerating(false);
         dispatch(releaseRunSlot());
-        reportRunFinished({ ok: false, errorCode: 'INTERNAL' });
+        reportRunFinished({ ok: false, errorCode: 'INTERNAL' }, { stage: 'start', error: err });
         return;
       }
 
@@ -1270,13 +1346,13 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
-          toast.error('Spec-Driven Agent stream ended early');
+          reportError('Spec-Driven Agent stream ended early');
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
-          });
+          }, { stage: 'stream_ended_early', eventsReceived });
         }
       } catch (err) {
         // Expected: user-triggered abort surfaces as an AbortError.
@@ -1292,7 +1368,7 @@ export function useSpecDrivenTrigger(
             runId: currentRunIdRef.current,
             errorCode: 'CANCELLED',
             costUsd: lastCostRef.current,
-          });
+          }, { stage: 'stream' });
         } else {
           // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
           // failed run: the backend may well still be generating. Name
@@ -1325,17 +1401,17 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
-          toast.error(
+          reportError(
             isStall
               ? 'Spec-Driven Agent: live progress stream went quiet'
-              : 'Spec-Driven Agent stream error',
+              : 'Spec-Driven Agent stream error', { error: err },
           );
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
-          });
+          }, { stage: isStall ? 'stall' : 'stream', error: err, eventsReceived });
         }
       } finally {
         // Reader-exit trace: names HOW the event loop ended and how many
@@ -1387,6 +1463,7 @@ export function useSpecDrivenTrigger(
       // Check the per-instance ref AND the global run flag (fresh from
       // the store) — the run may be owned by the other mounted instance.
       if (isRunningRef.current || dispatch(isSpecDrivenRunActive())) {
+        track('spec_run_blocked', { reason: 'already_running' });
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -1395,7 +1472,7 @@ export function useSpecDrivenTrigger(
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
       // here because there is no separate plan-review step.
-      if (readSessionKey() || readFreeTierSelected()) {
+      if (readLlmKey() || readFreeTierSelected()) {
         await startRun({ ...payload, planApproved: true });
         return;
       }
@@ -1411,6 +1488,7 @@ export function useSpecDrivenTrigger(
         await startRun({ ...payload, planApproved: true });
         return;
       }
+      track('spec_run_blocked', { reason: 'needs_key' });
       dispatch(openByokDialog(payload));
     },
     [appendErrorToChat, dispatch, startRun],
@@ -1485,7 +1563,7 @@ export function useSpecDrivenTrigger(
         runId: currentRunIdRef.current,
         errorCode: 'CANCELLED',
         costUsd: lastCostRef.current,
-      });
+      }, { stage: 'stream' });
     }
   }, [cancelRunOnServer, clearFailsafeTimer, dispatch, finalizeLiveRun, reportRunFinished, setIsGenerating]);
 

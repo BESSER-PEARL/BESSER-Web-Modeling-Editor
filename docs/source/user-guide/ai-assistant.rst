@@ -184,7 +184,9 @@ For facilitated research studies the editor has an opt-in study mode. It is
 off unless you open the editor through a study link, one ending in
 ``?study=<label>`` (links of the older form ``?pilot=<label>`` work the same
 way). The label is a short code such as ``P3`` that identifies a study
-session, never your name or email. Links without it record nothing.
+session, never your name or email. Links without it record nothing. The
+editor removes the label from the address bar once it has read it; study mode
+then lasts until you close the tab.
 
 While study mode is on, a notice under the chat says so, and the following
 is recorded against the label and a random per-tab session id:

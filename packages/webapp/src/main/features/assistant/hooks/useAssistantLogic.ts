@@ -22,12 +22,24 @@ import { useTranslation } from 'react-i18next';
 
 import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { markMessageSent, takeReplyLatency } from './replyLatency';
+import { recentHistoryFrom } from './recentHistory';
+import {
+  messagesFromProjectConversation,
+  projectConversationTurns,
+  sameTurns,
+  toProjectConversation,
+} from './projectConversation';
+import { autoFixInProgressMessage, autoFixRemainingMessage, autoFixResolvedMessage } from './autoFixMessages';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
   conversationStore,
+  freshAutoFixState,
   setConversationHandlers,
   voicePlaceholderIdRef,
   wireConversationDispatchers,
@@ -44,8 +56,9 @@ import {
   loadProjectThunk,
   addAndSwitchDiagramThunk,
   bumpEditorRevision,
+  setProjectConversation,
 } from '../../../app/store/workspaceSlice';
-import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
+import { BesserEditorContext } from '../../editors';
 import {
   UMLModelingService,
   RateLimiterService,
@@ -55,18 +68,18 @@ import {
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
-import type { GeneratorType } from '../../../app/shell/workspace-types';
-import type { GenerationResult } from '../../generation/types';
+import type { GeneratorType } from '../../../shared/types/workspace-types';
+import type { GenerationResult } from '../../generation';
 
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
-import { useSpecDrivenTrigger } from '../../spec-driven/hooks/useSpecDrivenTrigger';
-import { openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
-import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
+import { useSpecDrivenTrigger, openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven';
+import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,
+  githubRepoContext,
 } from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
 import { getGitHubSession } from '../../../shared/services/github/githubAuth';
@@ -83,6 +96,22 @@ import {
 /* ------------------------------------------------------------------ */
 
 export type { ConnectionStatus } from './useWebSocketConnection';
+
+/** The key the assistant would send, by provider only (analytics). */
+function keyProperties(): { uses_own_key: boolean; provider?: string } {
+  const key = readLlmKey();
+  return key && isAssistantKeyProvider(key.provider)
+    ? { uses_own_key: true, provider: key.provider }
+    : { uses_own_key: false };
+}
+
+function trackReply(action: string, diagramType?: unknown): void {
+  track('assistant_reply', {
+    action,
+    latency_ms: takeReplyLatency(),
+    diagram_type: typeof diagramType === 'string' ? diagramType : undefined,
+  });
+}
 
 export interface SuggestedAction {
   label: string;
@@ -202,6 +231,9 @@ const createMessageId = (): string => {
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+/** Wait for the conversation to settle before writing it to the project. */
+export const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
 
 const toKitMessage = (
   role: 'user' | 'assistant',
@@ -406,6 +438,12 @@ export function useAssistantLogic({
     assistantClient.setContextProvider(buildWorkspaceContext);
   }, [assistantClient, buildWorkspaceContext]);
 
+  // The conversation is module-level (shared by both surfaces), so the history
+  // the client sends after a reconnect reads it straight from the store.
+  useEffect(() => {
+    assistantClient.setHistoryProvider((current) => recentHistoryFrom(conversationStore.getMessages(), current));
+  }, [assistantClient]);
+
   const [rateLimiter] = useState(
     () =>
       new RateLimiterService({
@@ -572,28 +610,20 @@ export function useAssistantLogic({
         if (errors.length === 0) {
           if (wasRepair) {
             autoFixRef.current.fixInFlight = false;
-            settleAutoFixProgress('Validation passed — the reported issues are resolved.');
+            settleAutoFixProgress(autoFixResolvedMessage(autoFixRef.current.issues));
           }
           return;
         }
         if (autoFixRef.current.attempted) {
           // This message's repair attempt is already spent — report and stop.
           autoFixRef.current.fixInFlight = false;
-          settleAutoFixProgress(
-            `The diagram still has ${errors.length} validation issue(s):\n\n${errors
-              .map((e) => `• ${e}`)
-              .join('\n')}`,
-            true,
-          );
+          settleAutoFixProgress(autoFixRemainingMessage(errors), true);
           return;
         }
         autoFixRef.current.attempted = true;
         autoFixRef.current.fixInFlight = true;
-        const progressMessage = toKitMessage(
-          'assistant',
-          `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
-          { isProgress: true },
-        );
+        autoFixRef.current.issues = errors;
+        const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
         autoFixRef.current.progressMessageId = progressMessage.id;
         setMessages((prev) => [...prev, progressMessage]);
         const context = buildWorkspaceContext();
@@ -720,6 +750,7 @@ export function useAssistantLogic({
       diagramSummaries,
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
+      githubRepo: githubRepoContext(project?.id),
     };
   }
 
@@ -732,7 +763,7 @@ export function useAssistantLogic({
         console.error('[useAssistantLogic] task queue error:', error);
         streaming.setIsGenerating(false);
         streaming.setProgressMessage('');
-        toast.error(formatErrorForUser(error));
+        reportError(formatErrorForUser(error), { error });
       });
   };
 
@@ -760,8 +791,10 @@ export function useAssistantLogic({
   const handleAction = async (payload: AssistantActionPayload) => {
     // Let the streaming sub-hook handle streaming/progress actions first
     if (streaming.handleStreamingAction(payload, setMessages)) {
+      if (payload.action === 'stream_done') trackReply('stream', payload.diagramType);
       return;
     }
+    if (payload.action !== 'agent_error') trackReply(payload.action, payload.diagramType);
 
     // assistant_message is rendered by onMessage, which also attaches its
     // suggestedActions (carried on the ChatMessage) to that very message.
@@ -796,7 +829,7 @@ export function useAssistantLogic({
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
         const errorMsg = error instanceof Error ? error.message : t('assistant.errors.unknownError');
-        toast.error(t('assistant.errors.createTabFailed', { error: errorMsg }));
+        reportError(t('assistant.errors.createTabFailed', { error: errorMsg }), { error });
       }
       return;
     }
@@ -859,7 +892,11 @@ export function useAssistantLogic({
         // completion). Let the agent send a generator-specific "done" line; on
         // failure, pass the real error through.
         message: result.ok ? undefined : result.error,
-        metadata: result.ok && result.filename ? { filename: result.filename, generatorType } : undefined,
+        // On failure, why (e.g. `warnings_declined`: the user chose to fix the
+        // validation warnings first), so the agent need not read the English text.
+        metadata: result.ok
+          ? result.filename ? { filename: result.filename, generatorType } : undefined
+          : result.reason ? { generatorType, reason: result.reason } : undefined,
       });
       return;
     }
@@ -888,10 +925,12 @@ export function useAssistantLogic({
             { isError: true },
           ),
         ]);
+        track('github_repo_open_failed', { source: 'assistant', reason: 'invalid_link' });
         return;
       }
       const ghSession = getGitHubSession();
       if (!ghSession) {
+        track('github_repo_open_failed', { source: 'assistant', reason: 'not_signed_in' });
         setMessages((prev) => [
           ...prev,
           toKitMessage(
@@ -909,6 +948,7 @@ export function useAssistantLogic({
           repo: ghRepo,
           branch: ghBranch,
           githubSession: ghSession,
+          source: 'assistant',
         });
         if (result.ok && result.projectId) {
           await dispatch(loadProjectThunk(result.projectId)).unwrap();
@@ -1050,6 +1090,12 @@ export function useAssistantLogic({
       if (retryable && suggestedRecovery) {
         meta.suggestedActions = [{ label: t('assistant.tryAgain'), prompt: suggestedRecovery }];
       }
+      takeReplyLatency();
+      track('assistant_error', {
+        error_code: errorCode ?? 'unknown',
+        retryable,
+        needs_api_key: meta.needsApiKey === true,
+      });
       setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
 
       streaming.setIsGenerating(false);
@@ -1176,6 +1222,11 @@ export function useAssistantLogic({
 
       const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
+      // `assistant_message` replies are counted in handleAction, `agent_error` as errors.
+      const replyAction = (message as unknown as { action?: string }).action;
+      if (!message.isUser && replyAction !== 'assistant_message' && replyAction !== 'agent_error') {
+        trackReply('text', message.diagramType);
+      }
 
       if (responseTiming || totalTiming) {
         const timingText = [responseTiming, totalTiming].filter(Boolean).join(' \u00b7 ');
@@ -1208,6 +1259,7 @@ export function useAssistantLogic({
     };
 
     const onInjection = (command: InjectionCommand) => {
+      trackReply(command.action, command.diagramType);
       enqueueAssistantTask(() => injection.handleInjection(command));
     };
     const onAction = (payload: AssistantActionPayload) => {
@@ -1281,7 +1333,8 @@ export function useAssistantLogic({
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
           if (file.size > MAX_FILE_SIZE) {
-            toast.error(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
+            track('assistant_message_blocked', { reason: 'file_too_large' });
+            reportError(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
             return;
           }
         }
@@ -1292,7 +1345,8 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        track('assistant_message_blocked', { reason: 'rate_limited' });
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -1324,7 +1378,7 @@ export function useAssistantLogic({
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
       // Every real user message grants a fresh automatic repair attempt.
-      autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
+      autoFixRef.current = freshAutoFixState();
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
@@ -1349,7 +1403,8 @@ export function useAssistantLogic({
           );
         } catch (error) {
           console.error('Failed to read attached files:', error);
-          toast.error(t('assistant.errors.readFileFailed'));
+          track('assistant_message_blocked', { reason: 'attachment_read_failed', ...errorProperties(error) });
+          reportError(t('assistant.errors.readFileFailed'), { error });
           return;
         }
       }
@@ -1359,8 +1414,8 @@ export function useAssistantLogic({
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
+      if (sendResult !== 'error') markMessageSent();
 
-      // Analytics
       const activeModel = modelSnapshot as any;
       // Accept either v4 (nodes/edges) or legacy v3 (elements/relationships)
       // shape — everything is v4-native now, but stale stored models may
@@ -1375,12 +1430,17 @@ export function useAssistantLogic({
         : activeModel?.relationships
         ? Object.keys(activeModel.relationships).length
         : 0;
-      getPostHog()?.capture('assistant_message', {
+      track('assistant_message', {
+        input: 'text',
+        send_result: sendResult,
         diagram_type: context.activeDiagramType,
         message_length: messageText.length,
         elements_count: elementsCount,
         relationships_count: relationshipsCount,
         total_size: elementsCount + relationshipsCount,
+        attachment_count: attachments?.length ?? 0,
+        attachment_types: attachments?.map((file) => file.mimeType),
+        ...keyProperties(),
       });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
@@ -1390,8 +1450,11 @@ export function useAssistantLogic({
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error(t('assistant.errors.sendFailed'));
+        reportError(t('assistant.errors.sendFailed'));
       }
+    } catch (error) {
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
+      throw error;
     } finally {
       isSendingRef.current = false;
     }
@@ -1413,7 +1476,8 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        track('assistant_message_blocked', { reason: 'rate_limited' });
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -1436,6 +1500,15 @@ export function useAssistantLogic({
         context.activeDiagramType,
         context,
       );
+      if (sendResult !== 'error') markMessageSent();
+      track('assistant_message', {
+        input: 'voice',
+        send_result: sendResult,
+        diagram_type: context.activeDiagramType,
+        audio_bytes: audioBlob.size,
+        attachment_types: [mimeType],
+        ...keyProperties(),
+      });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
@@ -1448,12 +1521,13 @@ export function useAssistantLogic({
       } else if (sendResult === 'error') {
         // Send failed outright - no echo is coming, so drop the placeholder.
         removeVoicePlaceholder();
-        toast.error(t('assistant.errors.sendVoiceFailed'));
+        reportError(t('assistant.errors.sendVoiceFailed'));
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
       removeVoicePlaceholder();
-      toast.error(t('assistant.errors.voiceProcessFailed'));
+      reportError(t('assistant.errors.voiceProcessFailed'), { error });
     } finally {
       isSendingRef.current = false;
     }
@@ -1475,7 +1549,8 @@ export function useAssistantLogic({
     streaming.setStreamingMessageId(null);
   };
 
-  const clearConversation = () => {
+  // Stop this tab's turn: shared by a new chat and a project switch.
+  const resetTurnState = () => {
     // Abort any in-flight spec-driven run first so the user's BYOK
     // budget stops draining. NOTE: this only aborts a run owned by THIS
     // hook instance — a run owned by the other mounted surface keeps
@@ -1487,10 +1562,8 @@ export function useAssistantLogic({
     // the rest of the list, so a late transcription echo should append fresh
     // rather than try to replace a now-gone id.
     voicePlaceholderIdRef.current = null;
-    setMessages([]);
     streaming.setIsGenerating(false);
     setInputValue('');
-    setMessageMeta({});
     streaming.setProgressMessage('');
     streaming.setStreamingMessageId(null);
     // Start a fresh backend conversation session too. The agent keys its
@@ -1498,6 +1571,11 @@ export function useAssistantLogic({
     // project switch would reuse the old memory — the agent then "remembers"
     // a previous project and hallucinates from it.
     assistantClient.resetSession();
+  };
+
+  const clearConversation = () => {
+    resetTurnState();
+    conversationStore.clear();
   };
 
   // New Chat is destructive (it discards the current conversation and, via
@@ -1522,6 +1600,7 @@ export function useAssistantLogic({
           );
       if (!confirmFn(message)) return;
     }
+    track('assistant_new_chat', { had_spec_run: hasActiveSpecRun, message_count: messages.length });
     clearConversation();
   };
 
@@ -1604,8 +1683,10 @@ export function useAssistantLogic({
         } catch {
           // Some browsers restrict this on cross-origin windows; the tab is open either way.
         }
+        track('assistant_issue_reported', { logs_truncated: logsTruncated });
         toast.success('Opened a pre-filled GitHub issue in a new tab. Review it there and submit.');
       } else {
+        track('assistant_issue_report_failed', { reason: 'popup_blocked' });
         // Popup blocked — surface the link in the conversation so the report is never lost.
         setMessages((prev) => [
           ...prev,
@@ -1617,33 +1698,83 @@ export function useAssistantLogic({
       }
     } catch (error) {
       console.error('[useAssistantLogic] failed to build issue report', error);
-      toast.error('Could not prepare the issue report. Please try again.');
+      track('assistant_issue_report_failed', { reason: 'exception', ...errorProperties(error) });
+      reportError('Could not prepare the issue report. Please try again.', { error });
     }
   };
 
   /* ================================================================ */
-  /*  Reset conversation when the active project changes               */
+  /*  The open project's conversation                                  */
   /* ================================================================ */
 
-  // Each project gets its own fresh conversation. When the user creates
-  // or switches to a different project, wipe the previous project's chat
-  // so it doesn't bleed across projects. Gate on an actual id change via
-  // a ref so this never fires on unrelated re-renders. We seed the ref on
-  // first run (prevId === undefined) so the very first project does NOT
-  // clear an already-empty conversation.
-  const prevProjectIdRef = useRef<string | undefined>(currentProjectId);
-  useEffect(() => {
-    const projectId = currentProjectId;
-    if (prevProjectIdRef.current === undefined) {
-      prevProjectIdRef.current = projectId;
+  // The conversation belongs to the project: opening one shows its saved
+  // conversation (another tab's included), so it never bleeds across projects.
+  // Two copies are kept: the full one in this browser (assistantConversationStore)
+  // and a text one on the project (BESSER#745), written to its GitHub repo,
+  // which restores a chat this browser has not kept.
+  const restoreProjectConversation = () => {
+    const project = selectProject(store.getState());
+    const legacy = conversationStore.takeLegacyConversation();
+    if (conversationStore.getMessages().length > 0) return;
+    // The per-tab copy kept before v8.9.3 moves to the project it was about:
+    // one whose text copy matches it, or that has none yet.
+    const saved = project?.assistantConversation;
+    if (legacy?.messages.length && (!saved || sameTurns(projectConversationTurns(legacy.messages), saved.turns))) {
+      setMessages(legacy.messages);
+      setMessageMeta(legacy.messageMeta);
+      assistantClient.sendHistoryWithNextMessage();
       return;
     }
-    if (projectId !== prevProjectIdRef.current) {
-      prevProjectIdRef.current = projectId;
-      clearConversation();
+    const restored = messagesFromProjectConversation(saved, (role, content) => toKitMessage(role, content));
+    if (restored.length === 0) return;
+    setMessages(restored);
+    // The agent's session for this chat is new: give it the history.
+    assistantClient.sendHistoryWithNextMessage();
+  };
+
+  // The widget and the drawer each stop their own turn (a Spec-Driven run, the
+  // streaming state) on a project switch, so each keeps the project it last
+  // saw; the conversation store they share is opened once.
+  const surfaceProjectIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (currentProjectId === undefined) return;
+    const previousHere = surfaceProjectIdRef.current;
+    surfaceProjectIdRef.current = currentProjectId;
+    if (previousHere !== undefined && previousHere !== currentProjectId) resetTurnState();
+    if (conversationStore.getProjectId() !== currentProjectId) {
+      conversationStore.openProject(currentProjectId);
+      if (conversationStore.getMessages().length > 0) assistantClient.sendHistoryWithNextMessage();
     }
+    restoreProjectConversation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
+
+  // Another tab added turns or started a new chat: this session's agent memory is stale.
+  useEffect(
+    () => conversationStore.onRemoteTurns(() => assistantClient.restartWithHistoryOnNextMessage()),
+    [assistantClient],
+  );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const writeToProject = () => {
+      timer = null;
+      const project = selectProject(store.getState());
+      // Only the project this conversation belongs to (a switch rebinds it first).
+      if (!project || project.id !== conversationStore.getProjectId()) return;
+      const turns = projectConversationTurns(conversationStore.getMessages());
+      if (sameTurns(turns, project.assistantConversation?.turns)) return;
+      dispatch(setProjectConversation({ projectId: project.id, conversation: toProjectConversation(turns) }));
+    };
+    const unsubscribe = conversationStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(writeToProject, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, [dispatch, store]);
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */

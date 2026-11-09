@@ -9,7 +9,37 @@
     "loading": "Lueden…",
     "yes": "Jo",
     "no": "Nee",
-    "retry": "Nach eng Kéier probéieren"
+    "retry": "Nach eng Kéier probéieren",
+    "ok": "OK"
+  },
+  "whatsNew": {
+    "title": "Wat ass nei",
+    "unread_one": "Wat ass nei (1 nei)",
+    "unread_other": "Wat ass nei ({{count}} nei)",
+    "new": "Nei",
+    "entries": {
+      "repoTogether": {
+        "title": "Zesummen un engem Repository schaffen",
+        "body": "E mat GitHub verlinkte Projet fiert elo vu sengem Code weider, och wann de leschte Laf ofgelaf ass. Wann een aneren pusht, weist eng Kaart wien a wat, an s du kanns seng Klassen um Canvas virukucken, ier s du se iwwerhëls."
+      },
+      "keepEdits": {
+        "title": "Deng Ännerunge bleiwen, wann de Modell ännert",
+        "body": "Änner de Klassemodell vun enger App, déi de Spec-Driven Agent gebaut huet: Hie generéiert d’Fichieren, déi keen geännert huet, nei a féiert deng Ännerungen an déi aner zesummen, sou datt vill manner Ännerungen d’KI brauchen."
+      },
+      "anyStack": {
+        "title": "Apps am Stack, deen s du wëlls",
+        "body": "Fro de Spec-Driven Agent no enger REST-API a Go oder engem Kommandozeilen-Tool a Rust: Hie baut genee dat a préift d’App esou, wéi hien eng Web-App préift."
+      },
+      "githubRepo": {
+        "title": "Projeten mat GitHub verbonnen",
+        "body": "Verbann e Projet mat engem GitHub-Repository. De GitHub-Menü späichert däi Modell do, hëlt déi neist Versioun, weist d’Geschicht a seet dir, ob alles synchron ass."
+      },
+      "knowledgeGraph": {
+        "title": "Knowledge-Graph-Diagrammer",
+        "body": "Importéier eng OWL- oder RDF-Ontologie, beaarbecht se als Graph, préif se géint hir OWL- a SHACL-Constrainten a maach doraus e Klassendiagramm mat OCL-Constrainten.",
+        "action": "Knowledge-Graph-Editor opmaachen"
+      }
+    }
   },
   "topbar": {
     "language": "Sprooch",
@@ -89,7 +119,6 @@
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
       "loadTemplate": "Template lueden…",
       "exportProject": "Projet exportéieren…",
-      "previewProject": "Projetvirschau…",
       "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
       "importGroupProject": "Projet",
       "importGroupClassDiagram": "Klassendiagramm aus",
@@ -102,8 +131,7 @@
       "importProjectFile": "Projetdatei (.json / .py)…",
       "fromSpreadsheet": "Aus Donnéeën…",
       "fromGithub": "Aus GitHub…",
-      "importKgOwl": "KG importéieren",
-      "shareAsGist": "Als geheime Gist deelen…"
+      "importKgOwl": "KG importéieren"
     },
     "generate": {
       "title": "Generéieren",
@@ -924,7 +952,8 @@
     "field": {
       "name": "Numm",
       "owner": "Besëtzer",
-      "description": "Beschreiwung"
+      "description": "Beschreiwung",
+      "descriptionPlaceholder": "Ëm wat geet et an dësem Projet? (fakultativ)"
     },
     "hub": {
       "stepBadge": "Schrëtt {{current}} vun {{total}}",
@@ -1228,21 +1257,33 @@
     "toasts": {
       "createOrLoadFirst": "Erstellt oder luet fir d'éischt e Projet."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "Projet-JSON kopéiert.",
-        "jsonCopyFailed": "De Projet-JSON konnt net kopéiert ginn.",
-        "bumlFailedFallback": "D'B-UML-Virschau konnt net generéiert ginn.",
-        "bumlFailed": "D'B-UML-Virschau konnt net generéiert ginn: {{message}}",
-        "noBumlToCopy": "Keng B-UML-Virschau fir ze kopéieren.",
-        "bumlCopied": "Projet-B-UML kopéiert.",
-        "bumlCopyFailed": "D'B-UML-Virschau konnt net kopéiert ginn.",
-        "noBumlToDownload": "Keng B-UML-Virschau fir erofzelueden."
-      }
-    },
     "landing": {
+      "dialogTitle": "Wielt, wéi Dir ufänke wëllt",
+      "eyebrow": "Wëllkomm bei BESSER",
+      "heading": "Wéi wëllt Dir <em>ufänken</em>?",
+      "subtitle": "Zwee Weeër an deeselwechten Editor. Wielt ee fir unzefänken — Dir kënnt ëmmer wiesselen.",
+      "model": {
+        "kicker": "Low-Code · Visuell",
+        "illustration": "En UML-Klassendiagramm",
+        "sampleClassA": "Buch",
+        "sampleClassB": "Ausléinung",
+        "title": "Modelléiert et",
+        "description": "Zeechent Äre System präzis — Klassen, Bezéiungen, Ecranen. Deterministeschen Output, bei all Laf exakt.",
+        "cta": "Mam Modelléieren ufänken"
+      },
+      "agent": {
+        "kicker": "Agentesch · Natierlech Sprooch",
+        "samplePrompt": "eng Hotelreservatiouns-App",
+        "sampleResult": "App",
+        "title": "Beschreift et",
+        "description": "Sot a schlichte Wierder, wat Dir wëllt. BESSER erstellt de Modell an de Code — Dir verfeinert en am Chat.",
+        "badge": "Gratis · gehoste Modell",
+        "cta": "Mam Beschreiwen ufänken"
+      },
+      "remember": "Meng Wiel verhalen an dëst déi nächste Kéier iwwersprangen",
+      "moreOptions": "Méi Optiounen",
       "github": {
-        "pitch": "Hal deng Projeten an denge eegene GitHub-Repositoryen",
+        "pitch": "Haalt Är Projeten an Ären eegene GitHub-Repositoryen",
         "connectedAs": "Verbonnen als {{username}}",
         "connected": "Mat GitHub verbonnen",
         "connect": "GitHub verbannen"
@@ -1251,7 +1292,6 @@
   },
   "github": {
     "defaultRepoDescription": "BESSER-Projet: {{name}}",
-    "defaultGistDescription": "BESSER-Projet: {{name}}",
     "connect": {
       "button": "Mat GitHub verbannen",
       "checking": "GitHub-Verbindung gëtt gepréift…"
@@ -1281,16 +1321,6 @@
       "title": "Op GitHub pushen",
       "messageLabel": "Commit-Noriicht",
       "pushing": "Pusht…"
-    },
-    "gist": {
-      "title": "Gist erstellen",
-      "description": "Erstell e GitHub-Gist fir däi Projet séier ze deelen.",
-      "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Gist-Beschreiwung…",
-      "publicGist": "Ëffentleche Gist",
-      "secretHint": "Geheime Gisten si vu Sichmaschinne verstoppt, awer fir jiddereen mam Link sichtbar.",
-      "creating": "Erstellt…",
-      "createGist": "Gist erstellen"
     },
     "createRepo": {
       "title": "Repository erstellen",
@@ -1324,7 +1354,6 @@
       "repoCreated": "Repository erstallt: {{name}}",
       "deploymentFailed": "Deployment feelgeschloen",
       "repoCreationFailed": "Erstelle vum Repository feelgeschloen",
-      "gistCreated": "Gist erfollegräich erstallt!",
       "invalidGitHubUrl": "Ongülteg GitHub-URL. Gitt w.e.g. eng gülteg GitHub-Repository-URL un.",
       "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden…",
       "fileNotFound": "Datei net op GitHub fonnt. Iwwerpréift w.e.g. d'URL a probéiert et nach eng Kéier.",
@@ -1381,13 +1410,15 @@
       "toasts": {
         "conflict": "GitHub konnt dëse Push net automatesch zesummeféieren.",
         "connectFirst": "Verbann GitHub, fir deng generéiert App ze pushen.",
+        "connectFirstGenerated": "Verbann GitHub am GitHub-Menü a generéier de Code dann nach eng Kéier, fir en do ze späicheren.",
         "created": "Op {{repo}} gepusht",
         "modelUpdated": "De Modell enthält elo d’Klassen, déi den Agent derbäigesat huet.",
         "noProject": "Maach e Projet op, ier s du op GitHub pushs.",
         "nothingToPush": "Näischt ze pushen.",
         "pullRequest": "Pull Request an {{repo}} opgemaach",
         "pullRequestFailed": "De Pull Request konnt net opgemaach ginn.",
-        "updated": "{{repo}} aktualiséiert"
+        "updated": "{{repo}} aktualiséiert",
+        "uploadFailed": "De generéierte Code konnt net fir GitHub preparéiert ginn: {{detail}}"
       },
       "viewPullRequest": "Pull Request ukucken",
       "filesChanged_one": "{{count}} Datei geännert.",
@@ -1474,7 +1505,43 @@
       "saved": "Modell op GitHub gespäichert.",
       "savedMerged": "Gespäichert a mat de méi neien Ännerungen op GitHub zesummegefouert.",
       "repoHasModelChoice": "{{repo}} enthält „{{name}}“. Luet et an dëse Projet a ersetz dat opgemaacht Modell, oder behal däi Modell a verlinkt: däi nächst Späicheren ersetzt dann d’Modell vum Repository.",
+      "pickModelFile": "Dëse Repository huet {{number}} Modeller. Wiel deen aus, deen s du benotze wëlls:",
       "keepModelAndLink": "Mäi Modell behalen a verlinken"
+    },
+    "preview": {
+      "addedSeveral": "Derbäigesat: {{items}}",
+      "changedSeveral": "Geännert: {{items}}",
+      "removedSeveral": "Ewechgeholl: {{items}}",
+      "relationshipsRemoved_one": "{{count}} Relatioun ewechgeholl",
+      "relationshipsRemoved_other": "{{count}} Relatiounen ewechgeholl",
+      "notDrawn": "Dësen Diagramm ass hei eidel, dofir sinn d'Ännerunge just opgelëscht, net gezeechent.",
+      "title": "Virschau vun den Neiegkeeten op GitHub",
+      "loading": "Nei Versioun gëtt gelies…",
+      "button": "Virschau",
+      "menu": "Virschau vun den Ännerungen",
+      "close": "Virschau zoumaachen",
+      "hint": "Äre Modell huet sech nach net geännert. Aner Diagrammer an de Code komme mat.",
+      "nothing": "D'Klassendiagrammer sinn d'selwecht. Aner Diagrammer oder de Code hu sech vläicht geännert.",
+      "changed": "{{author}} huet {{items}} geännert",
+      "removedLine": "{{author}} huet {{items}} ewechgeholl",
+      "removed": "Ewechgeholl",
+      "failed": "D'Virschau konnt net geluede ginn."
+    },
+    "teammate": {
+      "changedModel": "{{author}} huet de Modell geännert",
+      "pushed": "{{author}} huet op {{branch}} gepusht",
+      "more_one": "an {{count}} weidere Commit",
+      "more_other": "an {{count}} weider Commits",
+      "mergeHint": "Dir hutt net gespäichert Ännerungen. Beim Späicheren ginn déi zwou Versioune fusionéiert.",
+      "saveAndMerge": "Späicheren a fusionéieren",
+      "dismiss": "Zoumaachen"
+    },
+    "attribution": {
+      "title": "Nei zënter der leschter Synchronisatioun",
+      "added": "{{author}} huet {{items}} derbäigesat",
+      "more": "{{items}} an nach {{count}}",
+      "clear": "Markéierunge läschen",
+      "addedBy": "Derbäigesat vum {{author}} den {{date}}"
     },
     "proposal": {
       "accept": "Modell iwwerhuelen",
@@ -1536,6 +1603,32 @@
       "accept": "Mat KI liesen",
       "decline": "Net elo"
     },
+    "recap": {
+      "recentWork": "Lescht Aarbechten",
+      "stillOpen": "Nach op um Enn vum leschte Laf",
+      "newOnGitHub": "Zënterhier nei op GitHub",
+      "more": "an {{hidden}} weider",
+      "missing": "Net am Code: {{text}}",
+      "notChecked": "Net iwwerpréift: {{text}}",
+      "leftOut": "Ausgelooss: {{text}}",
+      "continuing": "Weider vun {{repo}} op {{branch}}.",
+      "continuingPulled": "Weider vun {{repo}} op {{branch}}. Et hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn."
+    },
+    "linkedRun": {
+      "pullInterrupted": "D'GitHub-Versioun gouf net gelueden: de Projet oder säi GitHub-Link huet sech an der Tëschenzäit geännert. Probéiert w.e.g. nach eng Kéier.",
+      "repoChanged": "De GitHub-Link vun dësem Projet huet sech beim Start geännert. Frot w.e.g. nach eng Kéier.",
+      "pulledModel": "{{repo}} hat e méi neie Modell, deen ech fir d'éischt an dëse Projet iwwerholl hunn.",
+      "unsaved": "{{repo}} huet Commiten op {{branch}}, déi dëse Projet nach net iwwerholl huet, an Äre Modell huet Ännerungen, déi do net gespäichert sinn. Féiert se am GitHub-Menü mat **Op GitHub pushen** zesummen a frot dann nach eng Kéier.",
+      "busy": "BESSER ass elo mat aneren Oflef beschäftegt. Frot w.e.g. gläich nach eng Kéier.",
+      "badModel": "D’Modell an dësem Repository konnt net geluede ginn.",
+      "title": "D’App aus Ärem Modell nei bauen?",
+      "description": "Dëse Projet ass mat {{repo}} verlinkt, mee BESSER kann säi Code net liesen: {{reason}}. Behiewt dat a frot nach eng Kéier, fir mat deem Code weiderzemaachen. Beim Neibauen gëtt vun Ärem Modell ausgaangen an ignoréiert, wat op GitHub ass.",
+      "rebuild": "Aus dem Modell nei bauen",
+      "cancel": "Ofbriechen",
+      "notConnected": "GitHub ass an dësem Tab net verbonnen",
+      "notFound": "de Repository gouf net fonnt oder Äre Kont huet keen Zougrëff",
+      "failed": "GitHub konnt net erreecht ginn"
+    },
     "startFromRepo": {
       "badLink": "Füg e Link wéi github.com/owner/repo an.",
       "connect": "Verbann GitHub, fir eng vun denge Repositoryen opzemaachen.",
@@ -1590,11 +1683,11 @@
     "byBesser": "vu BESSER",
     "welcome": {
       "greeting": "Moien! Ech sinn Äre Modelléierungsassistent",
-      "intro": "Ech kann Iech hëllefen UML-Diagrammer ze erstellen an z'änneren, Code ze generéieren a Modelléierungsfroen ze beäntweren. Probéiert eppes wéi:",
+      "intro": "Ech kann Iech hëllefen Är Modeller ze erstellen an z'änneren a Modelléierungsfroen ze beäntweren. Probéiert eppes wéi:",
       "suggestions": {
         "library": "Erstellt e Bibliothéiksverwaltungssystem",
         "payment": "Füügt eng Payment-Klass mat Amount an Date bäi",
-        "django": "Generéiert Django-Code"
+        "stateMachine": "Erstellt en Zoustandsautomat fir eng Bestellung"
       },
       "headlinePre": "Wat wëllt Dir haut",
       "headlineEmphasis": "modelléieren",
@@ -2185,7 +2278,7 @@
         },
         "publish": {
           "title": "Live goen an deelen",
-          "body": "<p><strong>Deployen → Vu GitHub aus online goen</strong> stellt d’App aus dem verknäppte Repository online, genee sou wéi de Repository se huet, wann de Server et ubitt.</p><p><strong>Datei → Als geheime Gist deelen…</strong> deelt eng Kopie vum Projet iwwer e Link, ouni d’Zougangsdate vum Agent.</p>"
+          "body": "<p><strong>Deployen → Vu GitHub aus online goen</strong> stellt d’App aus dem verknäppte Repository online, genee sou wéi de Repository se huet, wann de Server et ubitt.</p><p>Fir de Projet ze deelen, deelt säi verknäppte Repository: wien Zougang huet, mécht en mat <strong>Vu GitHub weidermaachen</strong> op.</p>"
         }
       }
     }
@@ -2231,7 +2324,7 @@
       "settingsButton": "Privatsphär-Astellungen",
       "banner": {
         "title": "Analyse-Cookien",
-        "subtitle": "Anonym Analyse fir BESSER ze verbesseren.",
+        "subtitle": "Analysen a Feelerberichter fir BESSER ze verbesseren.",
         "details": "Detailer",
         "hideDetails": "Detailer verstoppen",
         "decline": "Ofleenen",
@@ -2239,10 +2332,13 @@
         "accept": "Akzeptéieren",
         "privacyPolicy": "Dateschutzerklärung",
         "rows": {
-          "generators": "Benotzte Code-Generatoren",
+          "generators": "Benotzte Funktiounen an ob se funktionéieren",
+          "interactions": "Klickpositiounen (Heatmaps) an d’Ladezäit vun de Säiten",
           "diagramComplexity": "Diagrammtyp a Modellkomplexitéit",
           "assistantUsage": "Notzungszuel vum KI-Assistent",
-          "noContent": "Keng Modellinhalter oder perséinlech Donnéeën"
+          "errorReports": "Anonym Feelerberichter",
+          "visitStats": "Statistiken iwwer d'Visitten (Google Analytics)",
+          "noContent": "Keng Modellinhalter, Projetsnimm oder Identitéitsdonnéeën"
         }
       },
       "settings": {
@@ -2258,10 +2354,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) ass eng Open-Source Low-Code-Plattform, déi vun der Software Engineering Research Group beim LIST (Luxembourg Institute of Science and Technology) entwéckelt gëtt.",
         "collectTitle": "Donnéeën, déi mir sammelen",
         "collect": {
-          "usage": "Funktiounsnotzung (Generatoren an Diagramm-Workflows)",
+          "usage": "Funktiounsnotzung a Resultater: wéi eng Funktiounen Dir benotzt, ob se klappen oder net, wéi laang se daueren an de Feelertyp (ni dat, wat Dir aginn oder modelléiert)",
+          "interactions": "Klick- a Pointerpositiounen op de Säiten (Heatmaps) an d’Ladezäit vun de Säiten",
           "metrics": "Modellmetriken (Gréisst- a Strukturzuelen)",
           "assistant": "Notzungszuele vum KI-Assistent (net den Inhalt)",
-          "session": "Anonym Sessiounsmetadaten"
+          "session": "Anonym Sessiounsmetadaten",
+          "visits": "Statistiken iwwer d'Visitten: besicht Säiten, ongeféier Standuert (vun Ärer IP-Adress ofgeleet), Apparat- a Browsertyp",
+          "errors": "Anonym Feelerberichter (Feelertyp, Stacktrace, HTTP-Status, Säitepfad a Browsertyp)"
         },
         "noCollectTitle": "Donnéeën, déi mir net sammelen",
         "noCollect": {
@@ -2273,8 +2372,12 @@
         "useTitle": "Wéi mir Donnéeën benotzen",
         "useBody": "D'Analyse gëtt nëmme benotzt fir d'Produktqualitéit ze verbesseren an d'Funktiounsentwécklung ze prioriséieren. Si gëtt net fir Marketing oder Verkaf benotzt.",
         "providerTitle": "Ubidder",
-        "providerIntro": "Mir benotzen PostHog (an der EU gehost). Kuckt d'",
-        "providerLinkText": "PostHog Dateschutzerklärung"
+        "providerIntro": "Mir benotzen PostHog (an der EU gehost) fir d'Notzungsanalyse. Kuckt d'",
+        "providerLinkText": "PostHog Dateschutzerklärung",
+        "errorProviderIntro": "Feelerberichter ginn un Sentry (an der EU gehost, de.sentry.io), eréischt nodeems Dir d'Analyse akzeptéiert hutt, an enthalen ni Modellinhalter oder Projetsnimm. Kuckt d'",
+        "errorProviderLinkText": "Sentry Dateschutzerklärung",
+        "visitProviderIntro": "Statistiken iwwer d'Visitte ginn un Google Analytics, eréischt nodeems Dir d'Analyse akzeptéiert hutt. Google späichert Är IP-Adress net, a Google Signals a personaliséiert Reklamm sinn ausgeschalt. Kuckt d'",
+        "visitProviderLinkText": "Google Dateschutzerklärung"
       }
     },
     "errors": {
@@ -2286,23 +2389,6 @@
       "unknownError": "Onbekannte Feeler",
       "tryAgainLabel": "Nom Feeler nach eng Kéier probéieren",
       "tryAgain": "Nach eng Kéier probéieren"
-    },
-    "jsonViewer": {
-      "jsonTitle": "JSON-Virschau vum Projet",
-      "diagramBuml": "Diagramm B-UML",
-      "closeLabel": "Virschau-Fënster zoumaachen",
-      "expand": "{{name}} opklappen",
-      "collapse": "{{name}} zouklappen",
-      "root": "Wuerzel",
-      "generatingBuml": "B-UML-Virschau gëtt generéiert…",
-      "noBumlPreview": "Nach keng B-UML-Virschau verfügbar.",
-      "generating": "Generéiert…",
-      "regenerate": "Nei generéieren",
-      "downloadBuml": "B-UML eroflueden",
-      "copyBuml": "B-UML kopéieren",
-      "downloadJson": "JSON eroflueden",
-      "copyJson": "JSON kopéieren",
-      "copyValue": "Wäert kopéieren"
     },
     "notFound": {
       "title": "Säit net fonnt",
@@ -2357,11 +2443,6 @@
       "open": "Navigatioun opmaachen",
       "close": "Navigatioun zoumaachen",
       "title": "Navigatioun"
-    },
-    "preview": {
-      "projectLabel": "Projet (V{{version}})",
-      "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
-      "bumlLabel": "Projet B-UML Virschau"
     },
     "skipToEditor": "Op den Editor sprangen"
   },
@@ -2882,8 +2963,6 @@
       "statusSaved": "Gespäichert",
       "statusSaving": "Späicheren…",
       "statusErrorSaving": "Feeler beim Späicheren",
-      "editorStillLoading": "Den Editor lued nach. Waart wannechgelift e Moment a probéiert nach eng Kéier.",
-      "errorSavingProject": "Feeler beim Späichere vum Projet. Kuckt wannechgelift d'Konsol fir Detailer.",
       "downloadHtml": "HTML eroflueden",
       "exportTemplate": "Template exportéieren",
       "downloadJson": "JSON eroflueden",
@@ -2907,9 +2986,6 @@
       "qualityCheckFailedMessage": "Et goufe Feeler an ärem Klassendiagramm fonnt. Léist se wannechgelift, ier Dir de GUI generéiert.",
       "classDiagramErrors": "Klassendiagramm-Feeler",
       "noClassesFound": "Keng Klassen am Klassendiagramm fonnt. Erstellt wannechgelift fir d'éischt ee Klassendiagramm.",
-      "noPageSelected": "Keng Säit ausgewielt",
-      "editRoutePrompt": "Route fir d'Säit \"{{pageName}}\" änneren:\n\nBeispiller:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Route aktualiséiert op: {{route}}",
       "sidebarBlocks": "Bléck",
       "sidebarStyles": "Stiler",
       "sidebarTraits": "Eegeschaften",
@@ -2998,6 +3074,20 @@
         "starterPromptNoClasses": "Maach eng Startsäit fir meng App",
         "generateDescription_one": "1 Klass fonnt: {{names}}.",
         "generateDescription_other": "{{count}} Klassen fonnt: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Navigatiounskaart weisen",
+        "button": "Kaart",
+        "title": "Navigatiounskaart",
+        "description": "Wéi d’Säite mateneen verlinkt sinn, esou wéi déi generéiert App hinnen nogeet. Dës Kaart ass nëmme fir ze liesen: Links änners de op de Säite selwer.",
+        "navBar": "Navigatiounsleescht",
+        "attention": "Ze iwwerpréiwen",
+        "allGood": "All Säit ass vun der Startsäit aus ze erreechen, an all Link huet en Zil.",
+        "unreached": "„{{page}}“ ass vun der Startsäit aus net ze erreechen",
+        "broken": "„{{label}}“ op {{page}} weist op {{target}}, dat keng Säit ass",
+        "hint": "Klick op eng Säit fir se opzemaachen",
+        "summary": "Säiten: {{pages}} · Links op de Säiten: {{links}}",
+        "canvasLabel": "Navigatiounskaart. Säiten: {{pages}}. Links op de Säiten: {{links}}."
       }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden…",
@@ -3708,7 +3798,6 @@
       "failed": "Export feelgeschloen: {{error}}",
       "validationFailed": "Validéierung feelgeschloen",
       "noDiagramToExport": "Keen Diagramm fir z'exportéieren",
-      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
       "bumlExportSuccess": "B-UML-Export erfollegräich ofgeschloss",
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
@@ -3786,7 +3875,8 @@
       "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
       "invalidJson": "D'Datei ass kee gültege JSON.",
       "unsupportedProjectFile": "D'Datei ass keen Export vun engem BESSER-Projet oder -Diagramm.",
-      "projectUnreadable": "De Projet an dëser Datei konnt net gelies ginn."
+      "projectUnreadable": "De Projet an dëser Datei konnt net gelies ginn.",
+      "projectInvalid": "D'Datei ass kee gültege BESSER-Projet."
     },
     "warnings": {
       "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
@@ -3975,6 +4065,15 @@
       "diagramValid": "Den Diagramm ass gülteg",
       "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
       "unknownError": "Onbekannte Feeler"
+    },
+    "warningsConfirm": {
+      "title_one": "De Modell huet eng Validatiounswarnung",
+      "title_other": "De Modell huet {{count}} Validatiounswarnungen",
+      "description": "Trotzdeem generéieren oder fir d'éischt de Modell verbesseren?",
+      "more_one": "…an 1 weider.",
+      "more_other": "…an {{count}} weider.",
+      "confirm": "Trotzdeem generéieren",
+      "cancel": "Fir d'éischt de Modell verbesseren"
     }
   },
   "quantum": {

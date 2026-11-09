@@ -12,9 +12,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   clearLlmKey,
+  isKeyProvider,
+  isLlmProviderId,
+  KEY_PROVIDERS,
+  LLM_PROVIDERS,
   readFreeTierSelected,
+  readLlmBudget,
   readLlmKey,
   writeFreeTierSelected,
+  writeLlmBudget,
   writeLlmKey,
 } from '../llmKeyStorage';
 import { sessionStorageSpecDrivenFreeTier } from '../../constants/constant';
@@ -42,7 +48,7 @@ describe('writeLlmKey ↔ free-tier flag', () => {
     expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier)).toBeNull();
   });
 
-  it('persists the key/provider so the spec-driven readSessionKey() sees it', () => {
+  it('persists the key/provider so readLlmKey() sees it', () => {
     writeLlmKey('openai', 'sk-test-123', 'gpt-4o');
     const key = readLlmKey();
     expect(key).not.toBeNull();
@@ -58,5 +64,64 @@ describe('writeLlmKey ↔ free-tier flag', () => {
     expect(readFreeTierSelected()).toBe(false);
     clearLlmKey();
     expect(readFreeTierSelected()).toBe(false);
+  });
+});
+
+describe('provider lists', () => {
+  it('knows every provider once, and a key carries all but the server-paid tiers', () => {
+    expect(LLM_PROVIDERS).toEqual([
+      'anthropic', 'openai', 'mistral', 'nebius', 'pia', 'gateway', 'local', 'free', 'sponsored',
+    ]);
+    expect(KEY_PROVIDERS).toEqual(['anthropic', 'openai', 'mistral', 'nebius', 'pia', 'gateway', 'local']);
+    expect(isLlmProviderId('sponsored')).toBe(true);
+    expect(isLlmProviderId('gemini')).toBe(false);
+    expect(isKeyProvider('free')).toBe(false);
+    expect(isKeyProvider('sponsored')).toBe(false);
+    expect(isKeyProvider(null)).toBe(false);
+  });
+});
+
+describe('storage on disk', () => {
+  // Users' saved keys live under these names; renaming one silently drops their key.
+  it('writes the four besser_llm_* sessionStorage keys', () => {
+    writeLlmKey('local', 'ollama', 'qwen2.5-coder:7b', 'http://localhost:11434/v1');
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('ollama');
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('local');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('qwen2.5-coder:7b');
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBe('http://localhost:11434/v1');
+    expect(window.localStorage.getItem('besser_llm_api_key')).toBeNull();
+  });
+
+  it('reads a key written by an earlier release under the same names', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-test-000');
+    window.sessionStorage.setItem('besser_llm_provider', 'openai');
+    window.sessionStorage.setItem('besser_llm_model', ' gpt-4o ');
+    expect(readLlmKey()).toEqual({ apiKey: 'sk-test-000', provider: 'openai', model: 'gpt-4o', baseUrl: undefined });
+  });
+
+  it('ignores a key whose provider takes no key or is unknown', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-test-000');
+    for (const provider of ['free', 'sponsored', 'gemini']) {
+      window.sessionStorage.setItem('besser_llm_provider', provider);
+      expect(readLlmKey()).toBeNull();
+    }
+  });
+});
+
+describe('clearLlmKey', () => {
+  it('removes the key, provider, model and base URL', () => {
+    writeLlmKey('local', 'ollama', 'qwen2.5-coder:7b', 'http://localhost:11434/v1');
+    clearLlmKey();
+    for (const name of ['api_key', 'provider', 'model', 'base_url']) {
+      expect(window.sessionStorage.getItem(`besser_llm_${name}`)).toBeNull();
+    }
+    expect(readLlmKey()).toBeNull();
+  });
+
+  it('keeps the run budget for the corrected key', () => {
+    writeLlmKey('anthropic', 'sk-ant-test-000');
+    writeLlmBudget({ maxCostUsd: 2, maxRuntimeSeconds: 600 });
+    clearLlmKey();
+    expect(readLlmBudget()).toEqual({ maxCostUsd: 2, maxRuntimeSeconds: 600 });
   });
 });

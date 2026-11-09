@@ -1,4 +1,4 @@
-import type { GeneratorMenuMode, GeneratorType } from '../workspace-types';
+import type { GeneratorMenuMode, GeneratorType } from '../../../shared/types/workspace-types';
 
 export interface GeneratorMenuAction {
   kind: 'action';

@@ -4,27 +4,19 @@
  * run starts. See `resolveRunMode`.
  */
 
-import { SMART_GEN_PREVIEW_ENDPOINT } from '../../../shared/constants/constant';
+import { previewSpecDrivenRun } from '../../../shared/api/specDriven';
+import { ApiError } from '../../../shared/api/api-client';
 import type { GlobalConfirmOptions } from '../../../shared/services/confirm/globalConfirm';
+import type { components } from '../../../shared/api/generated/besser-openapi';
 
 /**
- * `model_change` in the preview response; the backend side is
- * `ModelChange.to_dict` in `besser/spec_driven_agent/planning/model_change.py`.
+ * `model_change` in the preview response (backend `ModelChange.to_dict`), less
+ * the `changes` lines the question does not show. `gone` is the share of the
+ * base model's classes and attributes removed, or attributes renamed (a class
+ * rename or a case-only rename does not count); renames are not in
+ * `removed`/`added`.
  */
-export interface ModelChange {
-  verdict: 'small' | 'large' | 'unrelated';
-  /** `classes` when the base run recorded class names only. */
-  basis: 'attributes' | 'classes';
-  /**
-   * Share of the base model's classes and attributes removed, or attributes
-   * renamed (a class rename or a case-only rename does not count).
-   */
-  gone: number;
-  /** "Class" / "Class.attribute" names gone from, and new in, the model; renames excluded. */
-  removed: string[];
-  added: string[];
-  renamed: { from: string; to: string }[];
-}
+export type ModelChange = Omit<components['schemas']['ModelChangeResponse'], 'changes'>;
 
 /** Short: the run is waiting on this answer. */
 export const MODEL_CHANGE_TIMEOUT_MS = 8_000;
@@ -50,27 +42,12 @@ export async function fetchModelChange(
   baseRunId: string,
   signal?: AbortSignal,
 ): Promise<ModelChange | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MODEL_CHANGE_TIMEOUT_MS);
-  const stop = () => controller.abort();
-  signal?.addEventListener('abort', stop);
   try {
-    const response = await fetch(SMART_GEN_PREVIEW_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project,
-        instructions,
-        mode: 'modify',
-        base_run_id: baseRunId,
-      }),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      console.warn(`[modelChange] preview returned ${response.status}; modifying without the check`);
-      return null;
-    }
-    const change = (await response.json())?.model_change;
+    const response = await previewSpecDrivenRun(
+      { project, instructions, mode: 'modify', base_run_id: baseRunId },
+      { signal, timeout: MODEL_CHANGE_TIMEOUT_MS },
+    );
+    const change = response?.model_change;
     if (!change || !VERDICTS.has(change.verdict) || typeof change.gone !== 'number') {
       return null;
     }
@@ -83,13 +60,12 @@ export async function fetchModelChange(
       renamed: renames(change.renamed),
     };
   } catch (err) {
-    if (!signal?.aborted) {
+    if (err instanceof ApiError) {
+      console.warn(`[modelChange] preview returned ${err.status}; modifying without the check`);
+    } else if (!signal?.aborted) {
       console.warn('[modelChange] preview failed; modifying without the check', err);
     }
     return null;
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener('abort', stop);
   }
 }
 

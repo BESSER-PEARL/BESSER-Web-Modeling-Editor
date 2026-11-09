@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAppDispatch } from '../../../app/store/hooks';
+import { setProjectAttribution } from '../../../app/store/workspaceSlice';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -18,12 +19,14 @@ import {
   markProjectGitHubSynced,
   modelFingerprint,
   setPendingGitHubChange,
+  legacyModelPath,
   setProjectGitHubLink,
   type ProjectGitHubLink,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
+import { parseRecords } from '../../../shared/services/github/modelAttribution';
 import { pullRepoIntoProject } from '../../../shared/services/github/pullRepoIntoProject';
 import {
   getRepoSyncSnapshot,
@@ -32,8 +35,9 @@ import {
   subscribeRepoSync,
   type SyncCheckError,
 } from '../../../shared/services/github/repoSyncStatus';
-import { setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
+import { setLastRunForProject } from '../../spec-driven';
 import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
+import { trackGitHubAction } from '../githubAnalytics';
 import {
   createPullRequest,
   loadModelAtCommit,
@@ -175,7 +179,9 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     async (target: ProjectGitHubLink, intoProjectId: string): Promise<BesserProject> => {
       if (!githubSession) throw new Error('Connect GitHub first.');
       const imported = await pullRepoIntoProject(githubSession, target, intoProjectId);
-      dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      if (imported.has_code !== false) {
+        dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      }
       await loadProject(intoProjectId);
       return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
     },
@@ -184,13 +190,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
 
   const pull = useCallback(async () => {
     if (!link || !projectId) return;
-    await pullInto(link, projectId);
+    await trackGitHubAction('pull', () => pullInto(link, projectId));
     await refresh();
   }, [link, projectId, pullInto, refresh]);
 
   /** Commit the project's model to the linked repo; newer commits are merged, never reverted. */
   const save = useCallback(
-    async (commitMessage: string): Promise<SaveModelResult> => {
+    async (commitMessage: string): Promise<SaveModelResult> => trackGitHubAction('save_model', async () => {
       if (!link || !projectId || !githubSession) throw new Error('No linked repository.');
       const project = ProjectStorageRepository.loadProject(projectId);
       if (!project) throw new Error('Could not read the project.');
@@ -212,6 +218,15 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       } else if (result.status === 'pushed') {
         markSynced(link, project, result.commit_sha);
         forgetLegacyFile(projectId);
+        const attribution = Object.fromEntries(parseRecords(result.attribution));
+        if (Object.keys(attribution).length) {
+          // What this save credited, so hovering what was just saved says who added it.
+          ProjectStorageRepository.withoutNotify(() => {
+            const latest = ProjectStorageRepository.loadProject(projectId);
+            if (latest) ProjectStorageRepository.saveProject({ ...latest, attribution });
+          });
+          dispatch(setProjectAttribution({ projectId, attribution }));
+        }
       } else if (result.status === 'conflict' && result.conflict_branch) {
         setPendingGitHubChange(projectId, {
           kind: 'conflict', branch: result.conflict_branch, title: commitMessage, createdAt: new Date().toISOString(),
@@ -219,13 +234,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       }
       await refresh();
       return result;
-    },
-    [link, projectId, githubSession, pullInto, markSynced, refresh],
+    }, (result) => ({ status: result.status, warnings_count: result.warnings?.length ?? 0 })),
+    [link, projectId, githubSession, pullInto, markSynced, refresh, dispatch],
   );
 
   /** Open (or find) the pull request of the pending change; returns its URL. `title` when the change has none. */
   const openPullRequest = useCallback(
-    async (title: string): Promise<string> => {
+    async (title: string): Promise<string> => trackGitHubAction('open_pull_request', async () => {
       const pending = link?.pendingChange;
       if (!link || !pending || !projectId || !githubSession) throw new Error('Nothing waits for a pull request.');
       const pr = await createPullRequest(githubSession, {
@@ -233,22 +248,27 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       });
       setPendingGitHubChange(projectId, { ...pending, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number });
       return pr.html_url;
-    },
+    }, () => ({ kind: link?.pendingChange?.kind })),
     [link, projectId, githubSession],
   );
 
   /** Stop tracking the pending change; its branch stays on GitHub. */
   const dismissPending = useCallback(() => {
-    if (projectId) setPendingGitHubChange(projectId, null);
-  }, [projectId]);
+    if (!projectId) return;
+    const kind = link?.pendingChange?.kind;
+    setPendingGitHubChange(projectId, null);
+    void trackGitHubAction('dismiss_pending', () => undefined, () => ({ kind }));
+  }, [projectId, link]);
 
   /** Replace the project's model with the one at `commitSha`. The change is then unsaved. */
   const restore = useCallback(
     async (commitSha: string) => {
       if (!link || !projectId || !githubSession) return;
-      const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha);
-      storeRepoModelAsProject(version.project, projectId);
-      await loadProject(projectId);
+      await trackGitHubAction('restore_version', async () => {
+        const version = await loadModelAtCommit(githubSession, link.owner, link.repo, commitSha, link.legacyFilePath);
+        storeRepoModelAsProject(version.project, projectId);
+        await loadProject(projectId);
+      });
     },
     [link, projectId, githubSession, loadProject],
   );
@@ -256,18 +276,26 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
   /**
    * Link the project to a repo without changing its model. `headSha` is the
    * branch head now, so the next save commits on top of it; the project counts
-   * as unsaved until then.
+   * as unsaved until then. `modelPath` is the repo's model file; an older
+   * editor's save is remembered so that save replaces it.
    */
   const linkTo = useCallback(
-    (owner: string, repo: string, branch: string, headSha?: string) => {
+    (owner: string, repo: string, branch: string, headSha?: string, modelPath?: string | null) => {
       if (!projectId) return;
-      setProjectGitHubLink(projectId, { owner, repo, branch, ...(headSha ? { baseCommitSha: headSha } : {}) });
+      const legacyFilePath = legacyModelPath(modelPath);
+      setProjectGitHubLink(projectId, {
+        owner, repo, branch,
+        ...(headSha ? { baseCommitSha: headSha } : {}),
+        ...(legacyFilePath ? { legacyFilePath } : {}),
+      });
     },
     [projectId],
   );
 
   const unlink = useCallback(() => {
-    if (projectId) clearProjectGitHubLink(projectId);
+    if (!projectId) return;
+    clearProjectGitHubLink(projectId);
+    void trackGitHubAction('unlink', () => undefined);
   }, [projectId]);
 
   return {

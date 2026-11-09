@@ -19,6 +19,7 @@ import i18n from '@/main/shared/i18n';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import { Kbd } from '@/components/ui/kbd';
 import { Z_INDEX } from '../../constants/z-index';
+import { track } from '../../services/analytics/events';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -142,6 +143,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
 
   const handleSelect = useCallback(
     (action: CommandAction) => {
+      track('ui_action', { action: 'command_palette_action', action_id: action.id });
       close();
       // Run callback after closing so dialogs opened by the action don't collide
       requestAnimationFrame(() => action.onSelect());

@@ -31,8 +31,8 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
 import type { TriggerSpecDrivenPayload } from '../../types';
 import {
-  sessionStorageSpecDrivenApiKey,
-  sessionStorageSpecDrivenProvider,
+  sessionStorageLlmApiKey,
+  sessionStorageLlmProvider,
 } from '../../../../shared/constants/constant';
 
 vi.mock('react-toastify', () => ({
@@ -41,8 +41,8 @@ vi.mock('react-toastify', () => ({
 
 // Resolve the config synchronously so `startRun` never touches fetch for it —
 // the ONLY fetch in this test is the SSE request itself.
-vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('../../services/specDrivenConfig')>();
+vi.mock('../../../../shared/services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../../shared/services/specDrivenConfig')>();
   return {
     ...mod,
     getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
@@ -130,8 +130,8 @@ describe('useSpecDrivenTrigger — dead mid-run transport (frozen card regressio
   beforeEach(() => {
     window.sessionStorage.clear();
   window.localStorage?.clear();
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-test');
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+    window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-test');
+    window.sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
   });
 
   afterEach(() => {

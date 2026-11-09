@@ -4,11 +4,12 @@ import { ApiError } from '../../../../shared/api/api-client';
 import { deriveRepoSyncState, syncCheckError } from '../useRepoSync';
 
 const link = { owner: 'me', repo: 'app', branch: 'main', baseCommitSha: 'a'.repeat(40) };
-const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', date: '', html_url: '', origin: null };
+const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', author_login: 'ana', is_merge: false, date: '', html_url: '', origin: null };
 const status = (behind: number) => ({
   head_sha: 'b'.repeat(40),
   commits_since: Array.from({ length: behind }, () => commit),
   in_sync: behind === 0,
+  pending: null,
 });
 
 const state = (over: Partial<Parameters<typeof deriveRepoSyncState>[0]>) =>

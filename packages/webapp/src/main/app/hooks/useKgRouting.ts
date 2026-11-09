@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
-import type { QualityCheckResult } from '../../features/generation/types';
-import type { GeneratorType } from '../shell/workspace-types';
+import type { QualityCheckResult } from '../../shared/types/quality-check';
+import type { GeneratorType } from '../../shared/types/workspace-types';
 
 interface KgActions {
   convertToClassDiagram: () => Promise<void>;

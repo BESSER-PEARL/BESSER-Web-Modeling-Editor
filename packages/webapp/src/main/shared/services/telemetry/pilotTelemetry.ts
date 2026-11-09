@@ -19,33 +19,38 @@
  * to it — one id per tab, never two.
  */
 
-import { BACKEND_URL, sessionStoragePilotParticipant } from '../../constants/constant';
-
-/**
- * Per-tab assistant session id key. Predates telemetry (hence the
- * non-`besser_` spelling) — kept stable so existing tabs keep their id.
- */
-export const assistantSessionStorageKey = 'besser-assistant-session-id';
+import { BACKEND_URL } from '../../constants/constant';
+import { postTelemetryEvent, type TelemetryEventRequest } from '../../api/telemetry';
+import { readPilotParticipant, writePilotParticipant } from '../storage/tabStorage';
+import { readAssistantSessionId, writeAssistantSessionId } from '../storage/assistantStorage';
 
 /** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
 const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 
-export type TelemetryEventKind = 'prompt' | 'agent_action' | 'delivery' | 'friction';
+export type TelemetryEventKind = TelemetryEventRequest['kind'];
 
 export type DeliveryAction = 'download' | 'push_github' | 'continue_from_repo';
 
 /**
  * Read the `study` (or legacy `pilot`) URL query parameter on app load and,
- * when it carries a valid participant label, store it for the tab.
+ * when it carries a valid participant label, store it for the tab; both
+ * parameters are then removed from the URL (as `initDemoModeFromUrl` does).
  * Idempotent and safe to call in any environment (SSR, sandboxed iframe, tests).
  */
 export const initPilotModeFromUrl = (): void => {
   try {
     if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const label = params.get('study') ?? params.get('pilot');
+    const url = new URL(window.location.href);
+    const label = url.searchParams.get('study') ?? url.searchParams.get('pilot');
     if (label && PILOT_PARTICIPANT_PATTERN.test(label)) {
-      window.sessionStorage.setItem(sessionStoragePilotParticipant, label);
+      writePilotParticipant(label);
+    }
+    // Drop the label from the address bar so analytics page locations never
+    // carry it; the tab keeps it in sessionStorage.
+    if (url.searchParams.has('study') || url.searchParams.has('pilot')) {
+      url.searchParams.delete('study');
+      url.searchParams.delete('pilot');
+      window.history.replaceState(window.history.state, '', url.toString());
     }
   } catch {
     // Storage or URL unavailable — study mode simply stays off.
@@ -60,7 +65,7 @@ export const initPilotModeFromUrl = (): void => {
 export const getPilotParticipant = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    const stored = window.sessionStorage.getItem(sessionStoragePilotParticipant);
+    const stored = readPilotParticipant();
     return stored && PILOT_PARTICIPANT_PATTERN.test(stored) ? stored : null;
   } catch {
     return null;
@@ -77,7 +82,7 @@ export const isPilotSession = (): boolean => getPilotParticipant() !== null;
  */
 export const getOrCreateAssistantSessionId = (): string => {
   try {
-    const existing = sessionStorage.getItem(assistantSessionStorageKey);
+    const existing = readAssistantSessionId();
     if (existing) return existing;
   } catch {
     // sessionStorage unavailable (e.g. iframe sandbox) — fall through
@@ -89,7 +94,7 @@ export const getOrCreateAssistantSessionId = (): string => {
       : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    sessionStorage.setItem(assistantSessionStorageKey, id);
+    writeAssistantSessionId(id);
   } catch {
     // best-effort
   }
@@ -106,16 +111,11 @@ export const sendTelemetryEvent = (kind: TelemetryEventKind, payload: Record<str
   try {
     const participant = getPilotParticipant();
     if (!participant || !BACKEND_URL) return;
-    void fetch(`${BACKEND_URL}/telemetry/event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session: getOrCreateAssistantSessionId(),
-        participant,
-        kind,
-        payload,
-      }),
-      keepalive: true,
+    void postTelemetryEvent({
+      session: getOrCreateAssistantSessionId(),
+      participant,
+      kind,
+      payload,
     }).catch(() => {
       // Swallowed by design — telemetry can never surface an error.
     });

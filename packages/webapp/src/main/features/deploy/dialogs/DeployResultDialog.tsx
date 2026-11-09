@@ -2,11 +2,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { DeployToGitHubResult } from '../../github/hooks/useGitHubDeploy';
+import type { DeployToRenderResult } from '../hooks/useRenderDeploy';
 
 interface DeployResultDialogProps {
   open: boolean;
-  deploymentResult: DeployToGitHubResult | null;
+  deploymentResult: DeployToRenderResult | null;
   onOpenChange: (open: boolean) => void;
   /** Unused: the actions are now real links. Kept so existing callers compile. */
   onOpenExternal?: (url: string) => void;

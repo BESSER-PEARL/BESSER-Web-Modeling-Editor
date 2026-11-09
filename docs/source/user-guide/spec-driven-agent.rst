@@ -170,6 +170,25 @@ When a run updates an existing application, its card shows **What changed**:
 how the model differs from the one the app was built from, and the code files
 the agent wrote, edited or deleted.
 
+Coming back later
+~~~~~~~~~~~~~~~~~
+
+A finished run stays on the server for a limited time, but a project linked to a
+repository can always continue. Ask for a change, even days later, and the agent
+works on the code on GitHub rather than rebuilding the app. The chat first says
+what was done last, what was still open and which commits are new.
+
+- If GitHub has newer commits, they come into your project first.
+- If GitHub has newer commits and your model has changes not saved there, nothing
+  runs: use **Save to GitHub** in the GitHub menu to merge them, then ask again.
+- If BESSER cannot read the repository, for example because this tab is not
+  connected to GitHub, it asks before rebuilding from your model.
+
+Each time you push a run to GitHub, BESSER also keeps a short section in the
+repository's ``AGENTS.md`` with the same recap, for your team and for other coding tools. BESSER
+rewrites only that section; anything else you write in the file stays, and the
+agent reads it as notes about the code on later runs.
+
 .. _github-ai-reading:
 
 Reading a repository with AI

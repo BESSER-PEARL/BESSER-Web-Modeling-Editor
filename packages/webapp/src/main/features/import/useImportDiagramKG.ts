@@ -1,8 +1,10 @@
 // Import diagram from KG using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
+import type { UMLDiagramType } from '@besser/wme';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromKg } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
@@ -17,25 +19,17 @@ export const useImportDiagramFromKG = () => {
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('kg_file', file);
-      formData.append('api_key', apiKey);
-
-      // Call backend endpoint
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-kg`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+      let data;
+      try {
+        data = await getJsonModelFromKg(file, apiKey);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
-      // Should be a diagram JSON (v3 or v4 — both carry model.type)
+      // Should be a diagram JSON (v3 or v4 — both carry model.type); the
+      // import helper lifts a v3 payload and validates the v4 shape.
       if (!data || !data.model || !data.model.type) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
@@ -55,8 +49,8 @@ export const useImportDiagramFromKG = () => {
         {
           ...data,
           description:
-            data.description ||
-            t('import.descriptions.importedFromKg', { diagramType: toSupportedDiagramType(data.model.type) }),
+            (data as { description?: string }).description ||
+            t('import.descriptions.importedFromKg', { diagramType: toSupportedDiagramType(data.model.type as UMLDiagramType) }),
         },
         {
           fallbackTitle: file.name,

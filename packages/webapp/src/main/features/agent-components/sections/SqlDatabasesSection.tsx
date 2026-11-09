@@ -92,6 +92,7 @@ export function SqlDatabasesSection({ store, expandedId, toggle, expand }: Secti
                   />
                   <TextField
                     id={`sql-pass-${index}`}
+                    secret
                     label={t('agentComponents.sql.password')}
                     value={db.password}
                     onChange={v => updateSqlDatabase(index, { password: v })}

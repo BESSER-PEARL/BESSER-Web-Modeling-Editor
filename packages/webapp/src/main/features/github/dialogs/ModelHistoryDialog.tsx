@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { Loader2, RefreshCw, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ const HISTORY_CHANGE_LINES = 4;
 /** The linked repository's model history, by who changed what, with a restore per version. */
 export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, onOpenChange, sync }) => {
   const { t } = useTranslation();
-  const { link, githubSession, status } = sync;
+  const { link, githubSession, status, hasLocalChanges } = sync;
   const [history, setHistory] = useState<ModelHistoryEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<ModelHistoryEntry | null>(null);
@@ -33,7 +34,7 @@ export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, on
     setHistory(null);
     setFailed(false);
     try {
-      setHistory(await getModelHistory(githubSession, link.owner, link.repo, link.branch));
+      setHistory(await getModelHistory(githubSession, link.owner, link.repo, link.branch, link.legacyFilePath));
     } catch {
       setFailed(true);
       setHistory([]);
@@ -54,7 +55,7 @@ export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, on
       onOpenChange(false);
       toast.success(t('github.toasts.projectRestored'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      reportError(error instanceof Error ? error.message : String(error), { error });
     } finally {
       setIsRestoring(false);
     }
@@ -110,7 +111,8 @@ export const ModelHistoryDialog: React.FC<ModelHistoryDialogProps> = ({ open, on
                         )}
                         {entry.message.split('\n')[0]}
                       </p>
-                      {index > 0 && (
+                      {/* The latest version is the repo's own: restoring it only undoes unsaved changes. */}
+                      {(index > 0 || hasLocalChanges) && (
                         <Button size="xs" variant="outline" className="shrink-0" onClick={() => setRestoreTarget(entry)}>
                           <RotateCcw aria-hidden="true" />
                           {t('github.menu.restore', { defaultValue: 'Restore' })}

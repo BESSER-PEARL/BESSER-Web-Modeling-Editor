@@ -4,7 +4,8 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import resourcesToBackend from 'i18next-resources-to-backend';
 import { loadLocale } from '@besser/wme';
 
-import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, SUPPORTED_LANGUAGE_CODES, toEditorLocale } from './languages';
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGE_CODES, toEditorLocale } from './languages';
+import { localStorageLanguage } from '../constants/constant';
 
 import en from '../../../../../i18n/en/webapp.json';
 
@@ -46,7 +47,7 @@ export const i18nReady = i18n
     },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
-      lookupLocalStorage: LANGUAGE_STORAGE_KEY,
+      lookupLocalStorage: localStorageLanguage,
       caches: ['localStorage'],
     },
   });

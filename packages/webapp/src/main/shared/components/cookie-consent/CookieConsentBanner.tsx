@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronRight, Shield } from 'lucide-react';
-import { applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
+import { applyAnalyticsConsent } from '../../services/analytics/lazy-analytics';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '../../constants/z-index';
 import { Badge } from '@/components/ui/badge';
@@ -16,56 +16,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  readAnalyticsConsent,
+  writeAnalyticsConsent,
+  type StoredAnalyticsConsent,
+} from '../../services/storage/preferencesStorage';
 
-const CONSENT_KEY = 'besser_analytics_consent';
-const CONSENT_VERSION = '1.2';
+/** Raise it when the banner names a new provider or use: everyone is asked again. */
+const CONSENT_VERSION = '1.3';
 
-export type ConsentStatus = 'pending' | 'accepted' | 'declined';
+export type ConsentStatus = StoredAnalyticsConsent['status'];
 
-interface ConsentData {
-  status: ConsentStatus;
-  timestamp: string;
-  version: string;
-}
-
-export const getConsentStatus = (): ConsentData | null => {
-  try {
-    const stored = localStorage.getItem(CONSENT_KEY);
-    if (!stored) {
-      return null;
-    }
-
-    const data = JSON.parse(stored) as ConsentData;
-    if (data.version !== CONSENT_VERSION) {
-      return null;
-    }
-
-    return data;
-  } catch {
-    return null;
-  }
+export const getConsentStatus = (): StoredAnalyticsConsent | null => {
+  const data = readAnalyticsConsent();
+  return data?.version === CONSENT_VERSION ? data : null;
 };
 
-export const setConsentStatus = (status: ConsentStatus): boolean => {
-  try {
-    const data: ConsentData = {
-      status,
-      timestamp: new Date().toISOString(),
-      version: CONSENT_VERSION,
-    };
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(data));
-    return true;
-  } catch {
-    return false;
-  }
-};
+export const setConsentStatus = (status: ConsentStatus): boolean =>
+  writeAnalyticsConsent({ status, timestamp: new Date().toISOString(), version: CONSENT_VERSION });
 
 export const hasUserConsented = (): boolean => {
   return getConsentStatus()?.status === 'accepted';
-};
-
-export const initializePostHogWithConsent = (): void => {
-  applyConsentToPostHog(hasUserConsented() ? 'accepted' : 'declined');
 };
 
 const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => void }> = ({
@@ -110,9 +81,12 @@ const PrivacyPolicyContent: React.FC = () => {
         <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.collectTitle')}</h4>
         <ul className="list-disc flex flex-col gap-1 pl-5">
           <li>{t('shared.cookie.privacy.collect.usage')}</li>
+          <li>{t('shared.cookie.privacy.collect.interactions')}</li>
           <li>{t('shared.cookie.privacy.collect.metrics')}</li>
           <li>{t('shared.cookie.privacy.collect.assistant')}</li>
           <li>{t('shared.cookie.privacy.collect.session')}</li>
+          <li>{t('shared.cookie.privacy.collect.visits')}</li>
+          <li>{t('shared.cookie.privacy.collect.errors')}</li>
         </ul>
       </section>
 
@@ -142,6 +116,30 @@ const PrivacyPolicyContent: React.FC = () => {
             className="text-primary underline-offset-4 hover:underline"
           >
             {t('shared.cookie.privacy.providerLinkText')}
+          </a>
+          .
+        </p>
+        <p>
+          {t('shared.cookie.privacy.errorProviderIntro')}{' '}
+          <a
+            href="https://sentry.io/privacy/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            {t('shared.cookie.privacy.errorProviderLinkText')}
+          </a>
+          .
+        </p>
+        <p>
+          {t('shared.cookie.privacy.visitProviderIntro')}{' '}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            {t('shared.cookie.privacy.visitProviderLinkText')}
           </a>
           .
         </p>
@@ -224,7 +222,7 @@ export const CookieConsentBanner: React.FC = () => {
     if (forceBanner) {
       setAnalyticsEnabled(false);
       setIsVisible(true);
-      applyConsentToPostHog('declined');
+      applyAnalyticsConsent('declined');
       return;
     }
 
@@ -233,20 +231,23 @@ export const CookieConsentBanner: React.FC = () => {
       setConsentStatus('pending');
       setAnalyticsEnabled(false);
       setIsVisible(true);
-      applyConsentToPostHog('declined');
+      applyAnalyticsConsent('declined');
       return;
     }
 
     setAnalyticsEnabled(consent.status === 'accepted');
     setIsVisible(consent.status === 'pending');
-    applyConsentToPostHog(consent.status);
+    applyAnalyticsConsent(consent.status);
   }, []);
 
   const detailRows = useMemo(
     () => [
       t('shared.cookie.banner.rows.generators'),
+      t('shared.cookie.banner.rows.interactions'),
       t('shared.cookie.banner.rows.diagramComplexity'),
       t('shared.cookie.banner.rows.assistantUsage'),
+      t('shared.cookie.banner.rows.errorReports'),
+      t('shared.cookie.banner.rows.visitStats'),
       t('shared.cookie.banner.rows.noContent'),
     ],
     [t],
@@ -254,14 +255,14 @@ export const CookieConsentBanner: React.FC = () => {
 
   const handleAccept = () => {
     setConsentStatus('accepted');
-    applyConsentToPostHog('accepted');
+    applyAnalyticsConsent('accepted');
     setAnalyticsEnabled(true);
     setIsVisible(false);
   };
 
   const handleDecline = () => {
     setConsentStatus('declined');
-    applyConsentToPostHog('declined');
+    applyAnalyticsConsent('declined');
     setAnalyticsEnabled(false);
     setIsVisible(false);
   };
@@ -269,7 +270,7 @@ export const CookieConsentBanner: React.FC = () => {
   const handleSaveSettings = () => {
     const nextStatus: ConsentStatus = analyticsEnabled ? 'accepted' : 'declined';
     setConsentStatus(nextStatus);
-    applyConsentToPostHog(nextStatus);
+    applyAnalyticsConsent(nextStatus);
     setIsVisible(false);
     setShowSettings(false);
   };
@@ -412,7 +413,7 @@ export const PrivacySettingsButton: React.FC = () => {
   const handleSave = () => {
     const nextStatus: ConsentStatus = analyticsEnabled ? 'accepted' : 'declined';
     setConsentStatus(nextStatus);
-    applyConsentToPostHog(nextStatus);
+    applyAnalyticsConsent(nextStatus);
     setShowSettings(false);
   };
 

@@ -178,3 +178,7 @@ export {
   getUserMetaModelV4,
 } from "./services/userMetaModel"
 export type { UserMetaModelClass } from "./services/userMetaModel"
+
+// Sanitisers for model content that may come from a repository anyone with write access can edit.
+export { sanitizeSvg } from "./utils/sanitizeSvg"
+export { safeColor } from "./utils/safeColor"

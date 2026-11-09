@@ -9,7 +9,7 @@ import {
   generateGovernanceDsl,
 } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
-import { bpmnModelToXml } from '../export/bpmn-xml-exporter';
+import { bpmnModelToXml } from '../export';
 import { bpmnXmlToModel } from './bpmn-xml-importer';
 
 // ─── v4 fixture helpers ─────────────────────────────────────────────────────

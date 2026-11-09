@@ -34,8 +34,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onImportOwl,
-  onOpenProjectPreview,
-  onShareAsGist,
   onGenerate,
   onQualityCheck,
   qualityCheckState,
@@ -132,8 +130,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onImportOwl={onImportOwl}
-            onOpenProjectPreview={onOpenProjectPreview}
-            onShareAsGist={onShareAsGist}
           />
           <GenerateMenu
             mode={generatorMode}
@@ -187,6 +183,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogout={onGitHubLogout}
             onToggleStar={onToggleStar}
             onRepoOpened={onRepoOpened}
+            onSwitchDiagramType={onSwitchDiagramType}
           />
           <div className="hidden sm:contents">
             <LanguageSelector outlineButtonClass={outlineButtonClass} />

@@ -83,6 +83,6 @@ describe('useGenerateCode — forecaster', () => {
 
     const result = await generate({ ...DEFAULT_FORECASTER_CONFIG, horizon: 6 });
 
-    expect(result).toEqual({ ok: false, error: detail });
+    expect(result).toEqual({ ok: false, error: detail, cause: expect.anything() });
   });
 });

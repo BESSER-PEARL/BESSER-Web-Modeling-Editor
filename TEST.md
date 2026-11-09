@@ -16,7 +16,8 @@ The webapp tests live in the **`packages/webapp`** workspace. There are two laye
 The diagramming library `packages/library` (`@besser/wme`) has its own Vitest
 suite in `packages/library/tests/unit/` (run it with
 `npm run test --workspace=@besser/wme`); it is not inventoried here.
-`packages/server` has no tests today.
+`packages/server` has a small Vitest suite for its security headers
+(`npm run test --workspace=server`).
 
 ---
 

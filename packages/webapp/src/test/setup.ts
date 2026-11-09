@@ -83,3 +83,12 @@ if (globalThis.localStorage === undefined) {
     writable: true,
   });
 }
+
+// jsdom has no CSS.escape; browsers do.
+if (!globalThis.CSS?.escape) {
+  (globalThis as unknown as { CSS: unknown }).CSS = {
+    ...globalThis.CSS,
+    escape: (value: string) =>
+      value.replace(/[\n\r\f]/g, (char) => `\${char.charCodeAt(0).toString(16)} `).replace(/["\'\]]/g, '\$&'),
+  };
+}
