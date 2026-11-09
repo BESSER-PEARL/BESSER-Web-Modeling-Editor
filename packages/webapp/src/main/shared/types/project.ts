@@ -746,6 +746,10 @@ export const isProject = (obj: any): obj is BesserProject => {
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
+  // A v1 project has no currentDiagramIndices; the back-fills below write into it
+  // before migrateProjectToV2 runs.
+  obj.currentDiagramIndices ??= defaultDiagramIndices();
+
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];

@@ -65,6 +65,17 @@ describe('storeGeneratedCodeForPush', () => {
     expect(track).toHaveBeenCalledWith('github_push_failed', expect.objectContaining({ code: 'upload_failed' }));
   });
 
+  it('reports a backend without the import endpoint instead of failing silently', async () => {
+    // A backend older than BESSER#748 has no /spec-driven/import-generated-code.
+    signInToGitHubForTests(SESSION);
+    upload.mockRejectedValue(new ApiError(404, 'Not Found'));
+
+    await expect(storeGeneratedCodeForPush(SQL, 'library.sql')).resolves.toBeNull();
+
+    expect(reportError).toHaveBeenCalledWith(expect.stringContaining('Not Found'), expect.anything());
+    expect(track).toHaveBeenCalledWith('github_push_failed', expect.objectContaining({ code: 'upload_failed' }));
+  });
+
   it('reports an expired session as one', async () => {
     signInToGitHubForTests(SESSION);
     upload.mockRejectedValue(new ApiError(401, 'GitHub session expired. Please sign in again.'));
