@@ -67,6 +67,14 @@ describe('project conversation', () => {
     ]);
   });
 
+  it('restores nothing for a project saved before the conversation was kept', () => {
+    // Older editors wrote no field at all; a hand-edited or exported file can carry null.
+    const make = (role: string, content: string) => msg(role, content);
+    expect(messagesFromProjectConversation(undefined, make)).toEqual([]);
+    expect(messagesFromProjectConversation(null as never, make)).toEqual([]);
+    expect(messagesFromProjectConversation({} as never, make)).toEqual([]);
+  });
+
   it('restores nothing from a malformed field, and bounds what it restores', () => {
     const make = (role: string, content: string) => msg(role, content);
     expect(messagesFromProjectConversation({ turns: {} } as never, make)).toEqual([]);
