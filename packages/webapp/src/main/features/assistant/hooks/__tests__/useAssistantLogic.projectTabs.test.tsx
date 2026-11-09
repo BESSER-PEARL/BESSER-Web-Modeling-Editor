@@ -20,6 +20,7 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { createDefaultProject, type BesserProject } from '../../../../shared/types/project';
 import { writeLlmKey } from '../../../../shared/services/llmKeyStorage';
+import { PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS } from '../useAssistantLogic';
 
 interface FakeClient {
   messageHandlers: Array<(m: ChatMessage) => void>;
@@ -31,6 +32,9 @@ interface FakeClient {
 // Each tab loads the app modules afresh and some wait out the 1.5 s project write,
 // which runs past the 5 s default when the whole suite loads the machine.
 vi.setConfig({ testTimeout: 20_000 });
+
+/** The assistant's rate limiter refuses a second message within 1 s. */
+const RATE_LIMIT_COOLDOWN_MS = 1_700;
 
 const _tabs = vi.hoisted(() => ({ clients: [] as FakeClient[] }));
 
@@ -219,7 +223,7 @@ function replayStorageWritesAsEvents() {
   const setItem = storage.setItem;
   const removeItem = storage.removeItem;
   const fire = (key: string, oldValue: string | null, newValue: string | null) =>
-    setTimeout(() => window.dispatchEvent(new StorageEvent('storage', { key, oldValue, newValue })), 0);
+    setTimeout(() => act(() => void window.dispatchEvent(new StorageEvent('storage', { key, oldValue, newValue }))), 0);
   storage.setItem = (key: string, value: string) => {
     const old = storage.getItem(key);
     setItem.call(storage, key, value);
@@ -278,7 +282,7 @@ describe('the assistant conversation belongs to the project', () => {
     await a.submit('A library app with books and loans');
     a.reply('Created Book and Loan.');
     await waitFor(() => expect(contents(b)).toEqual(['A library app with books and loans', 'Created Book and Loan.']));
-    expect(b.client.restarts).toBeGreaterThan(0);
+    expect(b.client.restarts).toBe(1);
 
     await b.submit('Add a Member class');
     await waitFor(() =>
@@ -309,6 +313,23 @@ describe('the assistant conversation belongs to the project', () => {
     await waitFor(() => expect(b.messages()).toEqual([]));
     // B's agent session held the old conversation: its next message starts a new one.
     expect(b.client.restarts).toBeGreaterThan(restartsBefore);
+  });
+
+  it("a new chat and its first message, saved together, replace the other tab's conversation", async () => {
+    replayStorageWritesAsEvents();
+    const projectId = saveProject('Library');
+    const a = await openTab(projectId);
+    const b = await openTab(projectId);
+    await a.submit('A library app');
+    a.reply('Created Book.');
+    await waitFor(() => expect(contents(b)).toEqual(['A library app', 'Created Book.']));
+    await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_COOLDOWN_MS));
+
+    // Both land in one write (within the 400 ms debounce): only the new
+    // conversation id tells B that the old turns are gone.
+    a.newChat();
+    await a.submit('A shop app');
+    await waitFor(() => expect(contents(b)).toEqual(['A shop app']));
   });
 
   it('keeps the BYOK key out of the conversation kept in localStorage', async () => {
@@ -347,7 +368,8 @@ describe('the assistant conversation belongs to the project', () => {
     leaveTab({ keepSessionStorage: true });
 
     const reloaded = await openTab(shop);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Past the debounced write to the project's text copy.
+    await new Promise((resolve) => setTimeout(resolve, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS + 500));
     expect(reloaded.messages()).toEqual([]);
     expect(reloaded.project()?.assistantConversation).toBeUndefined();
 
@@ -361,9 +383,9 @@ describe('the assistant conversation belongs to the project', () => {
 });
 
 describe('moving the per-tab conversation kept before v8.9.3', () => {
-  const legacyCopy = (contents: string[]) =>
+  const legacyCopy = (contents: string[], savedAt = Date.now()) =>
     JSON.stringify({
-      savedAt: Date.now(),
+      savedAt,
       messages: contents.map((content, i) => ({
         id: `legacy-${i}`,
         role: i % 2 === 0 ? 'user' : 'assistant',
@@ -383,6 +405,18 @@ describe('moving the per-tab conversation kept before v8.9.3', () => {
     await waitFor(() =>
       expect(localStorage.getItem(`besser_assistant_conversation_v2_${projectId}`)).toContain('Created Book.'),
     );
+  });
+
+  it('leaves a copy older than 48 hours where it is, so nothing moves', async () => {
+    const projectId = saveProject('Library');
+    const hours49 = 49 * 60 * 60 * 1000;
+    sessionStorage.setItem('besser_assistant_conversation_v1', legacyCopy(['A library app'], Date.now() - hours49));
+
+    const tab = await openTab(projectId);
+    await new Promise((resolve) => setTimeout(resolve, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS + 500));
+    expect(tab.messages()).toEqual([]);
+    expect(localStorage.getItem(`besser_assistant_conversation_v2_${projectId}`)).toBeNull();
+    expect(sessionStorage.getItem('besser_assistant_conversation_v1')).toBeNull();
   });
 
   it("drops it when the project's own conversation is a different one", async () => {

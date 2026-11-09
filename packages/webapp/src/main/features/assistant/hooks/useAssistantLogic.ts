@@ -234,7 +234,7 @@ const createMessageId = (): string => {
 };
 
 /** Wait for the conversation to settle before writing it to the project. */
-const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
+export const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
 
 const toKitMessage = (
   role: 'user' | 'assistant',

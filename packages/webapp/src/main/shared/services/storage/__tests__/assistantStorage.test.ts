@@ -146,6 +146,31 @@ describe('conversation', () => {
     expect(readStoredConversation('new')).not.toBeNull();
   });
 
+  it('when storage is full, drops the other conversations, never other data, and saves the new copy', () => {
+    writeStoredConversation('other', '{"savedAt":1}');
+    writeStoredConversation('p1', '{"savedAt":2}');
+    localStorage.setItem('besser_project_p1', '{"id":"p1"}');
+    const setItem = localStorage.setItem.bind(localStorage);
+    vi.spyOn(localStorage, 'setItem').mockImplementation((key: string, value: string) => {
+      if (readStoredConversation('other') !== null) throw new DOMException('full', 'QuotaExceededError');
+      setItem(key, value);
+    });
+
+    writeStoredConversation('p1', '{"savedAt":3}');
+    expect(readStoredConversation('p1')).toBe('{"savedAt":3}');
+    expect(readStoredConversation('other')).toBeNull();
+    expect(localStorage.getItem('besser_project_p1')).toBe('{"id":"p1"}');
+  });
+
+  it('keeps the previous copy when even that does not make room', () => {
+    writeStoredConversation('p1', '{"savedAt":2}');
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    expect(() => writeStoredConversation('p1', '{"savedAt":3}')).not.toThrow();
+    expect(readStoredConversation('p1')).toBe('{"savedAt":2}');
+  });
+
   it('evicts by the saved time, whatever the order of the keys in the payload', () => {
     // Written newest first, so the first one written is not the one to drop.
     for (let i = 0; i < MAX_STORED_CONVERSATIONS; i += 1) {
