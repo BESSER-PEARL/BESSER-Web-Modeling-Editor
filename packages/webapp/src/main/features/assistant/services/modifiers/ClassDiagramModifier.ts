@@ -1012,8 +1012,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
     this.recalculateClassHeight(model.elements[newClassId]);
 
-    // Link the source class to the new class (for a composition or aggregation,
-    // the source class is the whole and the new class the part)
+    // Link the original class to the new class (for a composition or aggregation,
+    // the original class is the whole and the new class the part)
     this.linkExtractedClass(model, sourceClassId, newClassId, relType);
 
     return model;
@@ -1361,7 +1361,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
     this.recalculateClassHeight(model.elements[newClassId]);
 
-    // The source class is the whole, the promoted class its part
+    // The original class is the whole, the promoted class its part
     this.linkExtractedClass(model, sourceClassId, newClassId, 'ClassComposition');
 
     return model;
