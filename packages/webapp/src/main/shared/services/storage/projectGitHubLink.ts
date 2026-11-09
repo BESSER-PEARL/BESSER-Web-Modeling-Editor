@@ -237,7 +237,14 @@ export function modelFingerprint(project: BesserProject): string {
   const models: Record<string, unknown[]> = {};
   for (const [type, diagrams] of Object.entries(project.diagrams ?? {})) {
     const list = Array.isArray(diagrams) ? diagrams : [diagrams];
-    models[type] = list.map((d) => (d as { model?: unknown } | undefined)?.model ?? null);
+    // A v4 model's own `id` is left out: an empty diagram back-filled on load gets a
+    // fresh one every time, so the same stored project would fingerprint differently.
+    models[type] = list.map((d) => {
+      const model = (d as { model?: unknown } | undefined)?.model ?? null;
+      if (!model || typeof model !== 'object' || Array.isArray(model)) return model;
+      const { id: _id, ...rest } = model as Record<string, unknown>;
+      return rest;
+    });
   }
   const text = JSON.stringify(models);
   let hash = 5381;

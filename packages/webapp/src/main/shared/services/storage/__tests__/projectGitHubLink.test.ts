@@ -123,4 +123,10 @@ describe('sync base', () => {
     expect(modelFingerprint({ ...base, name: 'Renamed' })).toBe(modelFingerprint(base));
     expect(modelFingerprint(project(['Book', 'Loan']))).not.toBe(modelFingerprint(base));
   });
+
+  it('ignores a model id, which an empty diagram back-filled on load gets anew each time', () => {
+    const withId = (id: string) =>
+      ({ ...project(['Book']), diagrams: { ClassDiagram: [{ id: 'd1', title: 'L', model: { id, nodes: [] } }] } }) as unknown as BesserProject;
+    expect(modelFingerprint(withId('a'))).toBe(modelFingerprint(withId('b')));
+  });
 });
