@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Crea una pàgina d’inici per a la meva aplicació",
         "generateDescription_one": "1 classe trobada: {{names}}.",
         "generateDescription_other": "{{count}} classes trobades: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Mostra el mapa de navegació",
+        "button": "Mapa",
+        "title": "Mapa de navegació",
+        "description": "Com s’enllacen les pàgines entre si, tal com les segueix l’aplicació generada. Aquest mapa és només de lectura: canvia els enllaços a les mateixes pàgines.",
+        "navBar": "Barra de navegació",
+        "attention": "Cal revisar",
+        "allGood": "Totes les pàgines són accessibles des de la pàgina d’inici i tots els enllaços tenen destinació.",
+        "unreached": "«{{page}}» no és accessible des de la pàgina d’inici",
+        "broken": "«{{label}}» a {{page}} apunta a {{target}}, que no és una pàgina",
+        "hint": "Fes clic en una pàgina per obrir-la",
+        "summary": "Pàgines: {{pages}} · Enllaços a les pàgines: {{links}}",
+        "canvasLabel": "Mapa de navegació. Pàgines: {{pages}}. Enllaços a les pàgines: {{links}}."
       }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI…",

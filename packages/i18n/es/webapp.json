@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Crea una página de inicio para mi aplicación",
         "generateDescription_one": "1 clase encontrada: {{names}}.",
         "generateDescription_other": "{{count}} clases encontradas: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Mostrar el mapa de navegación",
+        "button": "Mapa",
+        "title": "Mapa de navegación",
+        "description": "Cómo se enlazan las páginas entre sí, tal como las sigue la aplicación generada. Este mapa es de solo lectura: cambia los enlaces en las propias páginas.",
+        "navBar": "Barra de navegación",
+        "attention": "Requiere atención",
+        "allGood": "Todas las páginas son accesibles desde la página de inicio y todos los enlaces tienen destino.",
+        "unreached": "«{{page}}» no es accesible desde la página de inicio",
+        "broken": "«{{label}}» en {{page}} apunta a {{target}}, que no es una página",
+        "hint": "Haz clic en una página para abrirla",
+        "summary": "Páginas: {{pages}} · Enlaces en las páginas: {{links}}",
+        "canvasLabel": "Mapa de navegación. Páginas: {{pages}}. Enlaces en las páginas: {{links}}."
       }
     },
     "loadingGuiEditor": "Cargando el editor de GUI…",

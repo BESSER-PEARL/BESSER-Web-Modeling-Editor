@@ -31,6 +31,8 @@ Provides quick access to actions like Undo/Redo, Full Screen, and **Manage Pages
   :alt: Manage Pages
   :align: center
 
+The **Map** button next to **Add Page** opens a read-only map of the pages and the links between them, and lists pages that cannot be reached from the start page and links to pages that do not exist (see :doc:`../../editor/gui_editor`).
+
 4. Editing Panels
 ~~~~~~~~~~~~~~~~~
 
