@@ -190,6 +190,13 @@ export interface AnalyticsEvents {
     reason: 'no_project' | 'wrong_context' | 'no_editor' | 'gui_empty' | 'auto_gui' | 'invalid_input' | 'validation' | 'request' | 'exception';
     duration_ms?: number;
   } & Partial<ErrorProperties>;
+  /** The user chose not to run a generator: fix the validation warnings first. Not a failure. */
+  generator_blocked: {
+    generator_type: string;
+    diagram_type?: string;
+    source?: 'menu' | 'assistant';
+    reason: 'warnings_declined';
+  };
   quality_check_run: { diagram_type?: string; passed: boolean; error_count: number; warning_count: number };
   quality_check_failed: {
     diagram_type?: string;
