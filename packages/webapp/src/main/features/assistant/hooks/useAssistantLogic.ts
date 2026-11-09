@@ -893,7 +893,11 @@ export function useAssistantLogic({
         // completion). Let the agent send a generator-specific "done" line; on
         // failure, pass the real error through.
         message: result.ok ? undefined : result.error,
-        metadata: result.ok && result.filename ? { filename: result.filename, generatorType } : undefined,
+        // On failure, why (e.g. `warnings_declined`: the user chose to fix the
+        // validation warnings first), so the agent need not read the English text.
+        metadata: result.ok
+          ? result.filename ? { filename: result.filename, generatorType } : undefined
+          : result.reason ? { generatorType, reason: result.reason } : undefined,
       });
       return;
     }

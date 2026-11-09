@@ -947,7 +947,8 @@
     "field": {
       "name": "Nom",
       "owner": "Propriétaire",
-      "description": "Description"
+      "description": "Description",
+      "descriptionPlaceholder": "De quoi parle ce projet ? (facultatif)"
     },
     "hub": {
       "stepBadge": "Étape {{current}} sur {{total}}",

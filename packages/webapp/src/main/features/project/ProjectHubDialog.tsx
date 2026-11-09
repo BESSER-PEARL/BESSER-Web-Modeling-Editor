@@ -111,7 +111,7 @@ const readUrlInterfaceOverride = (): InterfaceMode | null => {
 
 const defaultForm = {
   name: 'New_Project',
-  description: 'Modern workspace project for UML, GUI and quantum modeling.',
+  description: '',
   owner: 'BESSER User',
 };
 
@@ -475,7 +475,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       }
       const created = await createProject(
         name,
-        description || defaultForm.description,
+        description,
         owner || defaultForm.owner,
         resolvePerspectives(createPerspectiveKey),
         pendingPreferredInterface ?? undefined,
@@ -620,7 +620,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
       await createProject(
         name,
-        description || defaultForm.description,
+        description,
         owner || defaultForm.owner,
         resolvePerspectives(spreadsheetPerspectiveKey),
       );
@@ -1223,6 +1223,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         id="project-description"
                         value={form.description}
                         onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                        placeholder={t('project.field.descriptionPlaceholder')}
                         className="min-h-16"
                       />
                     </FormField>
@@ -1318,6 +1319,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, description: event.target.value }))
                         }
+                        placeholder={t('project.field.descriptionPlaceholder')}
                         className="min-h-24"
                       />
                     </FormField>
