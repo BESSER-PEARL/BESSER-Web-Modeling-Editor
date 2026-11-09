@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Maach eng Startsäit fir meng App",
         "generateDescription_one": "1 Klass fonnt: {{names}}.",
         "generateDescription_other": "{{count}} Klassen fonnt: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Navigatiounskaart weisen",
+        "button": "Kaart",
+        "title": "Navigatiounskaart",
+        "description": "Wéi d’Säite mateneen verlinkt sinn, esou wéi déi generéiert App hinnen nogeet. Dës Kaart ass nëmme fir ze liesen: Links änners de op de Säite selwer.",
+        "navBar": "Navigatiounsleescht",
+        "attention": "Ze iwwerpréiwen",
+        "allGood": "All Säit ass vun der Startsäit aus ze erreechen, an all Link huet en Zil.",
+        "unreached": "„{{page}}“ ass vun der Startsäit aus net ze erreechen",
+        "broken": "„{{label}}“ op {{page}} weist op {{target}}, dat keng Säit ass",
+        "hint": "Klick op eng Säit fir se opzemaachen",
+        "summary": "Säiten: {{pages}} · Links op de Säiten: {{links}}",
+        "canvasLabel": "Navigatiounskaart. Säiten: {{pages}}. Links op de Säiten: {{links}}."
       }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden…",

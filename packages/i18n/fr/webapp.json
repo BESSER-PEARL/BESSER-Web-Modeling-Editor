@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Crée une page d’accueil pour mon application",
         "generateDescription_one": "1 classe trouvée : {{names}}.",
         "generateDescription_other": "{{count}} classes trouvées : {{names}}."
+      },
+      "navigationMap": {
+        "open": "Afficher la carte de navigation",
+        "button": "Carte",
+        "title": "Carte de navigation",
+        "description": "Comment les pages sont reliées entre elles, telles que l’application générée les suit. Cette carte est en lecture seule : modifiez les liens sur les pages elles-mêmes.",
+        "navBar": "Barre de navigation",
+        "attention": "À vérifier",
+        "allGood": "Chaque page est accessible depuis la page d’accueil et chaque lien a une cible.",
+        "unreached": "« {{page}} » n’est pas accessible depuis la page d’accueil",
+        "broken": "« {{label}} » sur {{page}} pointe vers {{target}}, qui n’est pas une page",
+        "hint": "Cliquez sur une page pour l’ouvrir",
+        "summary": "Pages : {{pages}} · Liens dans les pages : {{links}}",
+        "canvasLabel": "Carte de navigation. Pages : {{pages}}. Liens dans les pages : {{links}}."
       }
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI…",

@@ -3032,6 +3032,20 @@
         "starterPromptNoClasses": "Create a home page for my app",
         "generateDescription_one": "1 class found: {{names}}.",
         "generateDescription_other": "{{count}} classes found: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Show the navigation map",
+        "button": "Map",
+        "title": "Navigation map",
+        "description": "How the pages link to each other, the way the generated app follows them. This map is read-only: change links on the pages themselves.",
+        "navBar": "Navigation bar",
+        "attention": "Needs attention",
+        "allGood": "Every page can be reached from the start page, and every link has a target.",
+        "unreached": "“{{page}}” can't be reached from the start page",
+        "broken": "“{{label}}” on {{page}} points to {{target}}, which is not a page",
+        "hint": "Click a page to open it",
+        "summary": "Pages: {{pages}} · In-page links: {{links}}",
+        "canvasLabel": "Navigation map. Pages: {{pages}}. In-page links: {{links}}."
       }
     },
     "loadingGuiEditor": "Loading GUI editor…",

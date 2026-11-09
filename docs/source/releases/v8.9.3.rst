@@ -2,7 +2,8 @@ Version 8.9.3
 =============
 
 This release keeps the modeling assistant's conversation, keeps the assistant
-to modeling, and asks before generating a model whose validation has warnings.
+to modeling, asks before generating a model whose validation has warnings, and
+maps how a GUI's pages link to each other.
 It goes with BESSER v8.9.3 and Modeling Agent v8.1.1.
 
 What's new
@@ -16,6 +17,12 @@ What's new
 * **Generate anyway, or fix the model first.** When validation passes with
   warnings, generating code or deploying locally asks first and names the
   warnings.
+* **See how your GUI's pages connect.** **Map** in the GUI editor's Pages
+  panel shows the pages and the links and navigate buttons between them, the
+  way the generated app follows them, with the navigation bar as one entry.
+  It lists the pages no link reaches and the links to a page that does not
+  exist. The map is read-only: clicking a page opens it, and clicking a
+  broken link selects it.
 * **Save a generator's result to GitHub.** When the assistant runs a
   generator (for example SQL), its result card offers **Save to GitHub**, like
   an application run.
