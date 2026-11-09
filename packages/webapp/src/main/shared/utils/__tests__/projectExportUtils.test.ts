@@ -168,6 +168,15 @@ describe.each([
 });
 
 describe('buildExportableProjectPayload', () => {
+  it('drops the description the create form used to pre-fill, and keeps a real one', () => {
+    const legacy = createDefaultProject('Shop', 'Modern workspace project for UML, GUI and quantum modeling.', 'owner');
+    expect(buildExportableProjectPayload(legacy).description).toBe('');
+    expect(legacy.description).toBe('Modern workspace project for UML, GUI and quantum modeling.');
+
+    const own = createDefaultProject('Shop', 'An online shop', 'owner');
+    expect(buildExportableProjectPayload(own).description).toBe('An online shop');
+  });
+
   it('filters out diagram types where ALL diagrams are empty', () => {
     const project = createDefaultProject('Test Project', 'desc', 'owner');
     // Default project has all empty diagrams

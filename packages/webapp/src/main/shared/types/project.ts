@@ -676,6 +676,22 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 };
 
 // Default project factory
+/**
+ * The text the create-project form used to pre-fill as the description. It was a value, not a
+ * hint, so many saved projects still carry it; it must not reach a repository or a README.
+ */
+export const LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION = 'Modern workspace project for UML, GUI and quantum modeling.';
+
+/** `description` as the user wrote it: '' when it is missing or the legacy pre-filled text. */
+export const userProjectDescription = (description: string | null | undefined): string =>
+  !description || description.trim() === LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION ? '' : description;
+
+/** `project` itself, or a shallow copy with an empty description when it holds the legacy pre-filled text. */
+export const withoutPlaceholderDescription = <T extends { description?: unknown }>(project: T): T =>
+  typeof project.description === 'string' && userProjectDescription(project.description) !== project.description
+    ? { ...project, description: '' }
+    : project;
+
 export const createDefaultProject = (
   name: string,
   description: string,

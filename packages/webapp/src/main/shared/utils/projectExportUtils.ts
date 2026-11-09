@@ -1,5 +1,13 @@
 import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent, isUMLModel } from '../types/project';
+import {
+  BesserProject,
+  ProjectDiagram,
+  SupportedDiagramType,
+  getActiveDiagram,
+  diagramHasContent,
+  isUMLModel,
+  userProjectDescription,
+} from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
 import {
@@ -126,6 +134,7 @@ export const buildExportableProjectPayload = (
 ): ExportableProjectPayload => {
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
+  projectClone.description = userProjectDescription(projectClone.description);
 
   return filterProjectDiagrams(projectClone, selectedDiagramTypes);
 };

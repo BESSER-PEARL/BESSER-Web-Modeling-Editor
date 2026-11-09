@@ -7,6 +7,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { userProjectDescription } from '../../../shared/types/project';
 import {
   ChevronDown,
   CloudDownload,
@@ -281,7 +282,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const openCreateRepo = () => {
     if (currentProject) {
       setNewRepoName(sanitizeRepoName(currentProject.name) || 'project');
-      setNewRepoDescription(currentProject.description);
+      setNewRepoDescription(userProjectDescription(currentProject.description));
     }
     setDialog('create');
   };

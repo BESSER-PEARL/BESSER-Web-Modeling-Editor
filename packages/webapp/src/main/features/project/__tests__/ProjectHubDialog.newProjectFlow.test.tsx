@@ -82,6 +82,19 @@ describe('New project flow', () => {
     expect(screen.getByTestId('create-interface-agent').getAttribute('type')).toBe('button');
   });
 
+  it('shows the description as a hint and creates the project with an empty description', async () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
+    fireEvent.click(screen.getByText('Model it'));
+    const description = document.getElementById('project-description') as HTMLTextAreaElement;
+    expect(description.value).toBe('');
+    expect(description.placeholder).toBe('What is this project about? (optional)');
+    const name = document.getElementById('project-name') as HTMLInputElement;
+    fireEvent.change(name, { target: { value: 'Shop' } });
+    fireEvent.submit(name.form as HTMLFormElement);
+    await waitFor(() => expect(mockCreateProject).toHaveBeenCalledTimes(1));
+    expect(mockCreateProject.mock.calls[0][1]).toBe('');
+  });
+
   it('does not submit on Enter while the project name is invalid', () => {
     render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
     fireEvent.click(screen.getByText('Model it'));

@@ -38,6 +38,7 @@ import {
 } from '../specDriven';
 import { checkRateLimit, resetRateLimit } from '../rateLimit';
 import {
+  createRepoForProject,
   deployToGitHub,
   fetchRawGitHubFile,
   getGitHubAuthStatus,
@@ -45,8 +46,10 @@ import {
   importGeneratedCode,
   logOutOfGitHub,
   pushRunToGitHub,
+  saveModel,
   setStarred,
 } from '../github';
+import { createDefaultProject } from '../../types/project';
 import { getApiInfo } from '../apiInfo';
 import { GITHUB_SESSION_REJECTED_EVENT } from '../api-client';
 
@@ -389,6 +392,32 @@ describe('github deploy and push', () => {
       `${BACKEND_URL}/github/deploy-webapp`,
       { method: 'POST', headers: SESSION_JSON, body: JSON.stringify(body), signal: SIGNAL },
     ]);
+  });
+
+  it('never sends the description the create form used to pre-fill', async () => {
+    const legacy = 'Modern workspace project for UML, GUI and quantum modeling.';
+    const project = { ...createDefaultProject('Shop', legacy, 'me') };
+    const projectExport = {} as Parameters<typeof createRepoForProject>[1]['project_export'];
+
+    await createRepoForProject('sess', {
+      repo_name: 'shop', description: legacy, is_private: true, project_data: project, project_export: projectExport,
+    });
+    const created = JSON.parse(lastCall()[1]?.body as string);
+    expect(created.description).toBe('');
+    expect(created.project_data.description).toBe('');
+
+    await saveModel('sess', {
+      owner: 'me', repo: 'shop', branch: 'main', commit_message: 'm', project_data: project, project_export: projectExport,
+    });
+    expect(JSON.parse(lastCall()[1]?.body as string).project_data.description).toBe('');
+
+    await deployToGitHub('sess', { name: 'shop', description: ` ${legacy} ` });
+    expect(JSON.parse(lastCall()[1]?.body as string).description).toBe('');
+
+    // The caller's project is not changed, and a description the user wrote is sent as is.
+    expect(project.description).toBe(legacy);
+    await deployToGitHub('sess', { name: 'shop', description: 'An online shop' });
+    expect(JSON.parse(lastCall()[1]?.body as string).description).toBe('An online shop');
   });
 
   it('posts a finished run to /spec-driven/push-to-github', async () => {

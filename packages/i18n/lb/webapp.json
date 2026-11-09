@@ -947,7 +947,8 @@
     "field": {
       "name": "Numm",
       "owner": "Besëtzer",
-      "description": "Beschreiwung"
+      "description": "Beschreiwung",
+      "descriptionPlaceholder": "Ëm wat geet et an dësem Projet? (fakultativ)"
     },
     "hub": {
       "stepBadge": "Schrëtt {{current}} vun {{total}}",
