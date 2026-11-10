@@ -580,6 +580,7 @@ export function useAssistantLogic({
     setMessageMeta,
     setProgressMessage: streaming.setProgressMessage,
     onModelApplied: handleModelApplied,
+    onModelApplyFailed: handleModelApplyFailed,
   });
 
   /* ---- post-injection validate-and-repair loop ---- */
@@ -634,11 +635,32 @@ export function useAssistantLogic({
           activeDiagramType: 'ClassDiagram',
           activeModel: info.model,
         });
+        if (sent === 'error') {
+          autoFixRef.current.fixInFlight = false;
+          settleAutoFixProgress(autoFixFailedMessage(errors), true);
+          return;
+        }
         autoFixRef.current.turnId = sent === 'sent' ? assistantClient.turnId : null;
       } catch (loopError) {
         console.warn('[auto-fix] validation loop skipped:', loopError);
       }
     })();
+  }
+
+  // A frame answers the repair when it carries the repair's turnId, or no
+  // turnId at all (an agent that stamps none).
+  function isRepairTurn(turnId: unknown): boolean {
+    const repairTurn = autoFixRef.current.turnId;
+    return !repairTurn || typeof turnId !== 'string' || turnId === repairTurn;
+  }
+
+  // A repair whose model the editor could not apply never reaches
+  // handleModelApplied; it is reported here, not as "try rephrasing".
+  function handleModelApplyFailed(info: { action: string; diagramType?: string; turnId?: string }): boolean {
+    if (!autoFixRef.current.fixInFlight || !isRepairTurn(info.turnId)) return false;
+    autoFixRef.current.fixInFlight = false;
+    settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
+    return true;
   }
 
   /* ---- Spec-Driven Agent trigger handler ---- */
@@ -796,13 +818,10 @@ export function useAssistantLogic({
     // A repair answered without a model never reaches handleModelApplied, so its
     // "fixing…" line is settled here; a model reply comes as an injection, never
     // as one of these two actions (BESSER#744). A late reply to an earlier turn
-    // (another diagram of a multi-diagram plan) is not the repair's answer;
-    // replies from an agent that stamps no turnId are taken as it.
-    const repairTurn = autoFixRef.current.turnId;
-    const isRepairReply = !repairTurn || typeof payload.turnId !== 'string' || payload.turnId === repairTurn;
+    // (another diagram of a multi-diagram plan) is not the repair's answer.
     if (
       autoFixRef.current.fixInFlight &&
-      isRepairReply &&
+      isRepairTurn(payload.turnId) &&
       (payload.action === 'assistant_message' || payload.action === 'agent_error')
     ) {
       autoFixRef.current.fixInFlight = false;

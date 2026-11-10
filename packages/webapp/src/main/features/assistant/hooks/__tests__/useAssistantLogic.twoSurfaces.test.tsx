@@ -92,10 +92,18 @@ vi.mock('../../services', async (importOriginal) => {
 });
 
 // The real injection path needs a live editor; the auto-fix loop only cares
-// that an applied ClassDiagram model is reported back through onModelApplied.
+// that a ClassDiagram model is reported back as applied (onModelApplied) or
+// as not applicable (onModelApplyFailed, for a command marked `unappliable`).
 vi.mock('../useModelInjection', () => ({
-  useModelInjection: (options: { onModelApplied?: (info: any) => void }) => ({
-    handleInjection: async (command: InjectionCommand) => {
+  useModelInjection: (options: {
+    onModelApplied?: (info: any) => void;
+    onModelApplyFailed?: (info: any) => boolean;
+  }) => ({
+    handleInjection: async (command: InjectionCommand & { unappliable?: boolean }) => {
+      if (command.unappliable) {
+        options.onModelApplyFailed?.({ action: command.action, diagramType: 'ClassDiagram', turnId: command.turnId });
+        return;
+      }
       options.onModelApplied?.({ action: command.action, diagramType: 'ClassDiagram', model: {} });
     },
     ensureTargetDiagramReady: async () => true,
@@ -120,6 +128,7 @@ vi.mock('../../../../shared/services/analytics/events', () => ({
 
 import { useAssistantLogic } from '../useAssistantLogic';
 import { autoFixRef, conversationStore, freshAutoFixState, voicePlaceholderIdRef } from '../assistantConversationStore';
+import { autoFixInterruptedMessage } from '../autoFixMessages';
 
 interface SurfaceAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
@@ -166,9 +175,9 @@ function emit(message: Partial<ChatMessage>) {
   });
 }
 
-async function emitInjection() {
+async function emitInjection(fields: Record<string, unknown> = {}) {
   await act(async () => {
-    _client.injectionHandlers.forEach((h) => h({ action: 'modify_model' } as InjectionCommand));
+    _client.injectionHandlers.forEach((h) => h({ action: 'modify_model', ...fields } as InjectionCommand));
   });
 }
 
@@ -255,32 +264,8 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     await waitFor(() => expect(repairRequests()).toHaveLength(2));
   });
 
-  // BESSER#744: the repair request was answered "I couldn't process that
-  // modification", with no model, and the "fixing them now…" line spun forever.
-  it.each(['assistant_message', 'agent_error'])(
-    'settles the auto-fix line when the repair is answered by %s instead of a model',
-    async (action) => {
-      const { drawer } = renderTwoSurfaces();
-      await waitFor(() => expect(drawer.current).not.toBeNull());
-
-      await act(async () => {
-        await drawer.current!.submit('create a library');
-      });
-      emit({ message: 'done', isUser: false });
-      await emitInjection();
-      await waitFor(() => expect(repairRequests()).toHaveLength(1));
-      expect(spinning()).toHaveLength(1);
-
-      await emitAction({ action, message: "I couldn't process that modification." });
-
-      await waitFor(() => expect(spinning()).toHaveLength(0));
-      const outcome = conversationStore.getMessages().find((m) => m.content.includes('could not fix'));
-      expect(outcome?.content).toContain('Class "Book" has no attributes');
-      expect(autoFixRef.current.fixInFlight).toBe(false);
-    },
-  );
-
   const spinning = () => conversationStore.getMessages().filter((m) => m.isProgress && m.content.includes('fixing'));
+  const failedOutcome = () => conversationStore.getMessages().find((m) => m.content.includes('could not fix'));
 
   async function startRepair(drawer: { current: SurfaceAPI | null }) {
     await act(async () => {
@@ -291,6 +276,41 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     await waitFor(() => expect(repairRequests()).toHaveLength(1));
     expect(spinning()).toHaveLength(1);
   }
+
+  async function expectRepairFailed() {
+    await waitFor(() => expect(failedOutcome()).toBeDefined());
+    const outcome = failedOutcome()!;
+    expect(outcome.content).toContain('Class "Book" has no attributes');
+    expect(outcome.isProgress).toBeFalsy();
+    expect(outcome.isError).toBe(true);
+    expect(spinning()).toHaveLength(0);
+    expect(autoFixRef.current.fixInFlight).toBe(false);
+  }
+
+  // BESSER#744: the repair request was answered "I couldn't process that
+  // modification", with no model, and the "fixing them now…" line spun forever.
+  it.each(['assistant_message', 'agent_error'])(
+    'settles the auto-fix line when the repair is answered by %s instead of a model',
+    async (action) => {
+      const { drawer } = renderTwoSurfaces();
+      await waitFor(() => expect(drawer.current).not.toBeNull());
+      await startRepair(drawer);
+
+      await emitAction({ action, message: "I couldn't process that modification." });
+
+      await expectRepairFailed();
+    },
+  );
+
+  it('settles the auto-fix line when the repair model cannot be applied', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+
+    await emitInjection({ unappliable: true, turnId: _client.turnId });
+
+    await expectRepairFailed();
+  });
 
   it('settles the auto-fix line only on a reply to the repair turn, not a late one to an earlier turn', async () => {
     const { drawer } = renderTwoSurfaces();
@@ -305,8 +325,7 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     expect(autoFixRef.current.fixInFlight).toBe(true);
 
     await emitAction({ action: 'assistant_message', message: 'The diagram is unchanged.', turnId: repairTurn });
-    await waitFor(() => expect(spinning()).toHaveLength(0));
-    expect(conversationStore.getMessages().some((m) => m.content.includes('could not fix'))).toBe(true);
+    await expectRepairFailed();
   });
 
   it('stops the auto-fix spinner when the user sends a new message before the repair answers', async () => {
@@ -320,8 +339,10 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     });
 
     await waitFor(() => expect(spinning()).toHaveLength(0));
-    const settled = conversationStore.getMessages().find((m) => m.content.startsWith('Validation found 1 issue(s)'));
-    expect(settled?.content).toContain('Class "Book" has no attributes');
+    const settled = conversationStore
+      .getMessages()
+      .find((m) => m.content === autoFixInterruptedMessage(['Class "Book" has no attributes']));
+    expect(settled).toBeDefined();
     expect(settled?.isProgress).toBeFalsy();
     expect(autoFixRef.current.fixInFlight).toBe(false);
   });
