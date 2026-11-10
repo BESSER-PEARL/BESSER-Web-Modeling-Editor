@@ -28,6 +28,7 @@ const _client = vi.hoisted(() => ({
   actionHandlers: [] as Array<(a: Record<string, unknown>) => void>,
   sentMessages: [] as string[],
   historyRequests: 0,
+  turnId: null as string | null,
 }));
 
 vi.mock('../../services', async (importOriginal) => {
@@ -67,7 +68,11 @@ vi.mock('../../services', async (importOriginal) => {
     }
     sendMessage(text: string): SendStatus {
       _client.sentMessages.push(text);
+      _client.turnId = `turn_${_client.sentMessages.length}`;
       return 'sent';
+    }
+    get turnId() {
+      return _client.turnId;
     }
     sendVoiceMessage(): SendStatus {
       return 'sent';
@@ -114,7 +119,7 @@ vi.mock('../../../../shared/services/analytics/events', () => ({
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';
-import { autoFixRef, conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
+import { autoFixRef, conversationStore, freshAutoFixState, voicePlaceholderIdRef } from '../assistantConversationStore';
 
 interface SurfaceAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
@@ -178,9 +183,10 @@ const repairRequests = () => _client.sentMessages.filter((m) => m.startsWith('[a
 beforeEach(() => {
   _client.sentMessages = [];
   _client.historyRequests = 0;
+  _client.turnId = null;
   conversationStore.clear();
   voicePlaceholderIdRef.current = null;
-  autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null, issues: [] };
+  autoFixRef.current = freshAutoFixState();
   validateDiagramMock.mockResolvedValue({ errors: ['Class "Book" has no attributes'] });
 });
 
@@ -263,7 +269,6 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
       emit({ message: 'done', isUser: false });
       await emitInjection();
       await waitFor(() => expect(repairRequests()).toHaveLength(1));
-      const spinning = () => conversationStore.getMessages().filter((m) => m.isProgress && m.content.includes('fixing'));
       expect(spinning()).toHaveLength(1);
 
       await emitAction({ action, message: "I couldn't process that modification." });
@@ -274,6 +279,52 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
       expect(autoFixRef.current.fixInFlight).toBe(false);
     },
   );
+
+  const spinning = () => conversationStore.getMessages().filter((m) => m.isProgress && m.content.includes('fixing'));
+
+  async function startRepair(drawer: { current: SurfaceAPI | null }) {
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+    emit({ message: 'done', isUser: false });
+    await emitInjection();
+    await waitFor(() => expect(repairRequests()).toHaveLength(1));
+    expect(spinning()).toHaveLength(1);
+  }
+
+  it('settles the auto-fix line only on a reply to the repair turn, not a late one to an earlier turn', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+    const repairTurn = _client.turnId;
+    expect(repairTurn).toBe('turn_2');
+
+    // A multi-diagram plan's second reply, stamped with the user's own turn.
+    await emitAction({ action: 'assistant_message', message: 'Created the state machine.', turnId: 'turn_1' });
+    expect(spinning()).toHaveLength(1);
+    expect(autoFixRef.current.fixInFlight).toBe(true);
+
+    await emitAction({ action: 'assistant_message', message: 'The diagram is unchanged.', turnId: repairTurn });
+    await waitFor(() => expect(spinning()).toHaveLength(0));
+    expect(conversationStore.getMessages().some((m) => m.content.includes('could not fix'))).toBe(true);
+  });
+
+  it('stops the auto-fix spinner when the user sends a new message before the repair answers', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+
+    vi.setSystemTime(Date.now() + 5000);
+    await act(async () => {
+      await drawer.current!.submit('add a Member class');
+    });
+
+    await waitFor(() => expect(spinning()).toHaveLength(0));
+    const settled = conversationStore.getMessages().find((m) => m.content.startsWith('Validation found 1 issue(s)'));
+    expect(settled?.content).toContain('Class "Book" has no attributes');
+    expect(settled?.isProgress).toBeFalsy();
+    expect(autoFixRef.current.fixInFlight).toBe(false);
+  });
 });
 
 describe('useAssistantLogic keeps the conversation with the project (BESSER#745)', () => {

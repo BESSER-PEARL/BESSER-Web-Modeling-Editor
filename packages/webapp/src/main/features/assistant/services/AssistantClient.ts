@@ -817,6 +817,11 @@ export class AssistantClient {
     this.awaitingResponse = false;
   }
 
+  /** The turnId of the last user_message sent, which the agent echoes on its replies. */
+  get turnId(): string | null {
+    return this.currentTurnId;
+  }
+
   get connected(): boolean {
     return this.isConnected;
   }

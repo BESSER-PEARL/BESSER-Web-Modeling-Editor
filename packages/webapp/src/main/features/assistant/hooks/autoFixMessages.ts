@@ -21,6 +21,10 @@ export const autoFixResolvedMessage = (issues: readonly string[]): string =>
 export const autoFixFailedMessage = (issues: readonly string[]): string =>
   `The assistant could not fix ${issues.length} validation issue(s) automatically:\n\n${bulletList(issues)}`;
 
+/** The user sent a new message before the repair answered; its outcome is no longer tracked. */
+export const autoFixInterruptedMessage = (issues: readonly string[]): string =>
+  `Validation found ${issues.length} issue(s) in the diagram:\n\n${bulletList(issues)}`;
+
 /** The one repair attempt is spent and issues remain. */
 export const autoFixRemainingMessage = (issues: readonly string[]): string =>
   `The diagram still has ${issues.length} validation issue(s):\n\n${bulletList(issues)}`;

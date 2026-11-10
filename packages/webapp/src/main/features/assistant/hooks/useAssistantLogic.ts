@@ -37,6 +37,7 @@ import {
 import {
   autoFixFailedMessage,
   autoFixInProgressMessage,
+  autoFixInterruptedMessage,
   autoFixRemainingMessage,
   autoFixResolvedMessage,
 } from './autoFixMessages';
@@ -628,11 +629,12 @@ export function useAssistantLogic({
           errors.map((e) => `- ${e}`).join('\n');
         // Pass the just-applied model explicitly — the store refs can lag one
         // render behind right after an injection.
-        assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
+        const sent = assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
           ...context,
           activeDiagramType: 'ClassDiagram',
           activeModel: info.model,
         });
+        autoFixRef.current.turnId = sent === 'sent' ? assistantClient.turnId : null;
       } catch (loopError) {
         console.warn('[auto-fix] validation loop skipped:', loopError);
       }
@@ -793,8 +795,16 @@ export function useAssistantLogic({
 
     // A repair answered without a model never reaches handleModelApplied, so its
     // "fixing…" line is settled here; a model reply comes as an injection, never
-    // as one of these two actions (BESSER#744).
-    if (autoFixRef.current.fixInFlight && (payload.action === 'assistant_message' || payload.action === 'agent_error')) {
+    // as one of these two actions (BESSER#744). A late reply to an earlier turn
+    // (another diagram of a multi-diagram plan) is not the repair's answer;
+    // replies from an agent that stamps no turnId are taken as it.
+    const repairTurn = autoFixRef.current.turnId;
+    const isRepairReply = !repairTurn || typeof payload.turnId !== 'string' || payload.turnId === repairTurn;
+    if (
+      autoFixRef.current.fixInFlight &&
+      isRepairReply &&
+      (payload.action === 'assistant_message' || payload.action === 'agent_error')
+    ) {
       autoFixRef.current.fixInFlight = false;
       settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
     }
@@ -1371,7 +1381,11 @@ export function useAssistantLogic({
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
-      // Every real user message grants a fresh automatic repair attempt.
+      // Every real user message grants a fresh automatic repair attempt. A
+      // repair still in flight is no longer tracked, so its spinner stops here.
+      if (autoFixRef.current.progressMessageId) {
+        settleAutoFixProgress(autoFixInterruptedMessage(autoFixRef.current.issues));
+      }
       autoFixRef.current = freshAutoFixState();
 
       // Clear any displayed quick-action buttons
