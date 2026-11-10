@@ -480,6 +480,8 @@ export interface AutoFixState {
   progressMessageId: string | null;
   /** The issues the repair was asked to fix, named again in its outcome. */
   issues: string[];
+  /** The repair request's turnId: only its replies settle the status line. */
+  turnId: string | null;
 }
 
 export const freshAutoFixState = (): AutoFixState => ({
@@ -487,6 +489,7 @@ export const freshAutoFixState = (): AutoFixState => ({
   fixInFlight: false,
   progressMessageId: null,
   issues: [],
+  turnId: null,
 });
 
 export const autoFixRef: { current: AutoFixState } = {
