@@ -809,20 +809,6 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj.currentDiagramIndices.BPMN = 0;
   }
 
-  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
-  // Normalize to the new wire value so the diagram round-trips against the
-  // BESSER backend's `"<Name>Diagram"` convention. This is load-bearing even
-  // with the versionConverter.ts fix: it also catches diagrams already in v4
-  // shape (created by an earlier migration build before DiagramType.ts was
-  // fixed) whose `isV3UMLModel` check is false and thus never pass through
-  // `convertV3ToV4`.
-  for (const diagram of obj.diagrams.BPMN ?? []) {
-    const model = diagram.model as { type?: string } | undefined;
-    if (model && model.type === 'BPMN') {
-      model.type = UMLDiagramType.BPMN;
-    }
-  }
-
   // Add KnowledgeGraphDiagram if missing
   if (!obj.diagrams.KnowledgeGraphDiagram) {
     obj.diagrams.KnowledgeGraphDiagram = [createEmptyDiagram('Knowledge Graph', null, 'kg')];
@@ -864,6 +850,21 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Migrate v2 → v3: convert index-based references to ID-based and populate defaults
   if (!obj.schemaVersion || obj.schemaVersion < 3) {
     obj = migrateReferencesToIds(obj);
+  }
+
+  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
+  // Normalize to the new wire value so the diagram round-trips against the
+  // BESSER backend's `"<Name>Diagram"` convention. This is load-bearing even
+  // with the versionConverter.ts fix: it also catches diagrams already in v4
+  // shape (created by an earlier migration build before DiagramType.ts was
+  // fixed) whose `isV3UMLModel` check is false and thus never pass through
+  // `convertV3ToV4`.
+  // Runs after migrateProjectToV2: a v1 project's BPMN entry is a single diagram.
+  for (const diagram of obj.diagrams.BPMN ?? []) {
+    const model = diagram.model as { type?: string } | undefined;
+    if (model && model.type === 'BPMN') {
+      model.type = UMLDiagramType.BPMN;
+    }
   }
 
   // Migrate v3 → v4: ensure settings.perspectives exists (all enabled by default)
