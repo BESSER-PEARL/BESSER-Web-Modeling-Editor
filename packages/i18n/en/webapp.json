@@ -4132,6 +4132,7 @@
         "all": "All",
         "modeling": "Modeling",
         "generation": "Code generation",
+        "extraction": "Requirements",
         "conversation": "Conversations"
       },
       "search": "Search changes…",
@@ -4140,6 +4141,8 @@
       "changeCount_other": "{{count}} changes",
       "linkCount_one": "{{count}} trace link",
       "linkCount_other": "{{count}} trace links",
+      "requirementCount_one": "{{count}} requirement",
+      "requirementCount_other": "{{count}} requirements",
       "showMore": "Show {{count}} more ({{total}} older)",
       "messageCount_one": "{{count}} message",
       "messageCount_other": "{{count}} messages",
@@ -4181,10 +4184,12 @@
       "show": "Show lineage",
       "startFrom": "Lineage of",
       "wholeProject": "Whole project",
+      "untraced": "No links: in the model, but nothing is traced to or from it",
       "picker": {
         "selected": "Selected",
         "models": "Models",
         "prompts": "Prompts",
+        "requirements": "Requirements",
         "code": "Generated code"
       },
       "empty": "No trace links yet. Generate code from a diagram, or derive one diagram from another, to see its lineage.",
@@ -4192,6 +4197,7 @@
       "file": "Generated file",
       "code": "code",
       "prompt": "prompt",
+      "requirement": "{{kind}} requirement",
       "lines": "Lines {{start}}–{{end}}",
       "fragmentOf": "{{name}} · lines {{start}}–{{end}}",
       "focus": "Show its lineage",
@@ -4265,6 +4271,7 @@
       "modeling": "Modeling session",
       "assistant": "Modeling session with the assistant",
       "generation": "Generated {{generator}}",
+      "extraction": "Requirements extracted by the assistant",
       "conversation": "Conversation with the assistant"
     },
     "changes": {

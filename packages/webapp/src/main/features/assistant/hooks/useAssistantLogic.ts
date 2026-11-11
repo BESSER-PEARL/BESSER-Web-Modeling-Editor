@@ -58,6 +58,7 @@ import {
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
 import {
   endAssistantConversation,
+  expectAssistantRequirements,
   recordAssistantReply,
   recordAssistantRequest,
 } from '../../../shared/traceability/traceStore';
@@ -1231,6 +1232,8 @@ export function useAssistantLogic({
       if (typeof command.message === 'string' && command.message !== INJECTION_FALLBACK_MESSAGE) {
         recordAssistantReply(currentProjectRef.current, 'answer', command.message);
       }
+      // Before the edits apply: they are recorded with the requirements they realize.
+      if (command.action === 'inject_complete_system') expectAssistantRequirements(currentProjectRef.current, command);
       enqueueAssistantTask(() => injection.handleInjection(command));
     };
     const onAction = (payload: AssistantActionPayload) => {

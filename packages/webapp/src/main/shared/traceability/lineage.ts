@@ -1,8 +1,10 @@
-import type { CodeArtifact, ModelArtifact, PromptArtifact, TraceArtifact, TraceLink, TraceOperation } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../types/traceability';
+import type {
+  CodeArtifact, ModelArtifact, PromptArtifact, RequirementArtifact, TraceArtifact, TraceLink, TraceOperation,
+} from '../types/traceability';
+import { isCodeArtifact, isModelArtifact, isPromptArtifact, isRequirementArtifact, toolIdsOf } from '../types/traceability';
 import type { TraceIndex } from './traceQueries';
 import type { OutOfDateReason } from './traceQueries';
-import { outOfDate, withDescendants } from './traceQueries';
+import { isDeleted, outOfDate, withDescendants } from './traceQueries';
 
 /**
  * The lineage of an artifact: everything it was derived from and everything derived from it,
@@ -12,6 +14,8 @@ import { outOfDate, withDescendants } from './traceQueries';
  * It is shown overview first: one card per top-level artifact (a diagram, a generated file, a
  * prompt), with the links between them bundled. Expanding a card shows its parts that take part
  * in links (a diagram's elements, a class's members, a file's fragments), and the links reach them.
+ * A model shows its other elements too, untraced, as the editor has them: every element of a
+ * diagram in the whole project's lineage, and every member of an element in another's.
  */
 
 export interface LineageEdge {
@@ -150,6 +154,8 @@ export interface LineageRow {
   expanded: boolean;
   /** Out of date itself or, while collapsed, in a part it hides. */
   outOfDate: boolean;
+  /** It takes part in the lineage; false for a model element shown only because its model has it. */
+  traced: boolean;
 }
 
 /** A top-level subject of the lineage (a diagram, a generation run, a prompt) and its visible rows. */
@@ -174,10 +180,12 @@ export interface LineageLayout {
   bundles: LineageBundle[];
 }
 
-/** Diagrams first, then prompts, then generated code: the order a lineage usually reads in. */
+/** Diagrams first, then prompts and the requirements stated in them, then generated code: the order a
+ *  lineage usually reads in. */
 function cardKind(subject: LineageSubject): number {
   if (subject.kind === 'run') return 2;
-  return isModelArtifact(subject.artifact) ? 0 : isPromptArtifact(subject.artifact) ? 1 : 3;
+  const { artifact } = subject;
+  return isModelArtifact(artifact) ? 0 : isPromptArtifact(artifact) || isRequirementArtifact(artifact) ? 1 : 3;
 }
 const subjectName = (subject: LineageSubject) => (subject.kind === 'run' ? subject.operation.startedAt : subject.artifact.name);
 /** Elements before their members, attributes before methods and constraints. */
@@ -225,14 +233,44 @@ class LineageTree {
     return chain;
   }
 
-  /** The subject's direct parts, among `involved`. */
-  partsOf(subject: LineageSubject, involved: Map<string, LineageSubject>): LineageSubject[] {
-    const ids =
-      subject.kind === 'run'
-        ? subject.operation.writes.filter((id) => this.runOfFile.get(id) === subject.operation)
-        : (this.index.children.get(subject.id) ?? []).map((child) => child.id);
-    return ids.flatMap((id) => (involved.has(id) ? [involved.get(id)!] : [])).sort(partOrder);
+  /** The subject's direct parts among `involved`, and with `complete` its other model elements that are
+   *  not deleted (untraced ones: the editor has them). */
+  partsOf(subject: LineageSubject, involved: Map<string, LineageSubject>, complete = false): LineageSubject[] {
+    if (subject.kind === 'run') {
+      const files = subject.operation.writes.filter((id) => this.runOfFile.get(id) === subject.operation);
+      return files.flatMap((id) => (involved.has(id) ? [involved.get(id)!] : [])).sort(partOrder);
+    }
+    return (this.index.children.get(subject.id) ?? [])
+      .flatMap((child): LineageSubject[] => {
+        if (involved.has(child.id)) return [involved.get(child.id)!];
+        const untraced = complete && isModelArtifact(child) && !isDeleted(this.index, child.id);
+        return untraced ? [{ kind: 'artifact', id: child.id, artifact: child }] : [];
+      })
+      .sort(partOrder);
   }
+}
+
+/** What a lineage involves: its nodes and every subject holding one, the top-level ones (its cards), and
+ *  which subjects show all their model elements (the whole project's models, a node's members). */
+function involvementOf(index: TraceIndex, lineage: Lineage) {
+  const tree = new LineageTree(index);
+  const involved = new Map<string, LineageSubject>();
+  const outOfDateBelow = new Set<string>();
+  const tops = new Set<string>();
+  for (const node of lineage.nodes.values()) {
+    const chain = tree.chainOf(node.artifact.id);
+    tops.add(chain[0].id);
+    for (const subject of chain) {
+      involved.set(subject.id, subject);
+      if (node.outOfDate) outOfDateBelow.add(subject.id);
+    }
+  }
+  const complete = (subject: LineageSubject) =>
+    subject.kind === 'artifact' &&
+    isModelArtifact(subject.artifact) &&
+    (lineage.rootId === null || lineage.nodes.has(subject.id) || !involved.has(subject.id));
+  const partsOf = (subject: LineageSubject) => tree.partsOf(subject, involved, complete(subject));
+  return { tree, involved, outOfDateBelow, tops, partsOf };
 }
 
 /** The ids of the subjects holding the artifact, without the artifact: what to expand to show it. */
@@ -246,21 +284,8 @@ export function pathTo(index: TraceIndex, artifactId: string): string[] {
  * are bundled; cards keep their columns whatever is expanded.
  */
 export function lineageLayout(index: TraceIndex, lineage: Lineage, expanded: ReadonlySet<string>): LineageLayout {
-  const tree = new LineageTree(index);
+  const { tree, involved, outOfDateBelow, tops, partsOf } = involvementOf(index, lineage);
   const topOf = (id: string) => tree.chainOf(id)[0].id;
-
-  // What the lineage involves: its nodes and every subject holding one.
-  const involved = new Map<string, LineageSubject>();
-  const outOfDateBelow = new Set<string>();
-  const tops = new Set<string>();
-  for (const node of lineage.nodes.values()) {
-    const chain = tree.chainOf(node.artifact.id);
-    tops.add(chain[0].id);
-    for (const subject of chain) {
-      involved.set(subject.id, subject);
-      if (node.outOfDate) outOfDateBelow.add(subject.id);
-    }
-  }
 
   // A link end is drawn at its deepest visible holder: below a collapsed one, its parts are hidden.
   const anchorOf = (id: string) => {
@@ -282,10 +307,10 @@ export function lineageLayout(index: TraceIndex, lineage: Lineage, expanded: Rea
   }
 
   const rowsOf = (subject: LineageSubject, depth: number, rows: LineageRow[]) => {
-    const parts = tree.partsOf(subject, involved);
+    const parts = partsOf(subject);
     const open = expanded.has(subject.id) && parts.length > 0;
     const stale = open ? lineage.nodes.get(subject.id)?.outOfDate === true : outOfDateBelow.has(subject.id);
-    rows.push({ subject, depth, parts: parts.length, expanded: open, outOfDate: stale });
+    rows.push({ subject, depth, parts: parts.length, expanded: open, outOfDate: stale, traced: involved.has(subject.id) });
     if (open) for (const part of parts) rowsOf(part, depth + 1, rows);
     return rows;
   };
@@ -332,11 +357,15 @@ function orderColumns(columns: LineageSubject[][], pairs: [string, string][]): v
 
 /** Every subject of the lineage that has parts to show: what "expand all" opens. */
 export function expandableIds(index: TraceIndex, lineage: Lineage): Set<string> {
-  const tree = new LineageTree(index);
+  const { involved, tops, partsOf } = involvementOf(index, lineage);
   const result = new Set<string>();
-  for (const node of lineage.nodes.values()) {
-    for (const subject of tree.chainOf(node.artifact.id).slice(0, -1)) result.add(subject.id);
-  }
+  const visit = (subject: LineageSubject) => {
+    const parts = partsOf(subject);
+    if (parts.length === 0) return;
+    result.add(subject.id);
+    parts.forEach(visit);
+  };
+  for (const top of tops) visit(involved.get(top)!);
   return result;
 }
 
@@ -345,6 +374,8 @@ export interface LineageStartingPoints {
   /** Each model (diagram) with its elements, both taking part in links. */
   models: { model: ModelArtifact; elements: ModelArtifact[] }[];
   prompts: PromptArtifact[];
+  /** The requirements extracted from those prompts, newest extraction first, each in the order stated. */
+  requirements: RequirementArtifact[];
   /** Each generation run with its files, newest run first. */
   runs: { operation: TraceOperation; files: CodeArtifact[] }[];
 }
@@ -374,6 +405,10 @@ export function lineageStartingPoints(index: TraceIndex, lineage: Lineage): Line
       elements: artifacts.filter((a): a is ModelArtifact => isModelArtifact(a) && a.parentId === model.id).sort(elementOrder),
     }));
   const prompts = artifacts.filter((a): a is PromptArtifact => isPromptArtifact(a)).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const recorded = new Map([...index.artifacts.keys()].map((id, position) => [id, position]));
+  const requirements = artifacts
+    .filter((a): a is RequirementArtifact => isRequirementArtifact(a))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp) || recorded.get(a.id)! - recorded.get(b.id)!);
   const runs = [...involved.values()]
     .flatMap((s) => (s.kind === 'run' ? [s] : []))
     .map((run) => ({
@@ -381,5 +416,5 @@ export function lineageStartingPoints(index: TraceIndex, lineage: Lineage): Line
       files: tree.partsOf(run, involved).flatMap((part) => (part.kind === 'artifact' && isCodeArtifact(part.artifact) ? [part.artifact] : [])),
     }))
     .sort((a, b) => b.operation.startedAt.localeCompare(a.operation.startedAt));
-  return { models, prompts, runs };
+  return { models, prompts, requirements, runs };
 }

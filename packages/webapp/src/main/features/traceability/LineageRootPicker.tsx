@@ -49,6 +49,7 @@ export const LineageRootPicker: React.FC<{ index: TraceIndex; rootId: string | n
     () => new Set([
       ...points.models.flatMap(({ model, elements }) => [model.id, ...elements.map((e) => e.id)]),
       ...points.prompts.map((p) => p.id),
+      ...points.requirements.map((r) => r.id),
       ...points.runs.flatMap((run) => run.files.map((f) => f.id)),
     ]),
     [points],
@@ -91,6 +92,15 @@ export const LineageRootPicker: React.FC<{ index: TraceIndex; rootId: string | n
               <SelectLabel className={SECTION}>{t('traceability.lineage.picker.prompts')}</SelectLabel>
               {points.prompts.map((prompt) => (
                 <Choice key={prompt.id} value={prompt.id} label={prompt.name} kind={formatTime(prompt.timestamp, i18n.language)} />
+              ))}
+            </SelectGroup>
+          )}
+
+          {points.requirements.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className={SECTION}>{t('traceability.lineage.picker.requirements')}</SelectLabel>
+              {points.requirements.map((requirement) => (
+                <Choice key={requirement.id} value={requirement.id} label={requirement.name} kind={requirement.kind} />
               ))}
             </SelectGroup>
           )}

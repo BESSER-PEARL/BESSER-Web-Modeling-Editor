@@ -95,6 +95,12 @@ export interface InjectionCommand {
   diagramType?: string;
   diagramId?: string;
   replaceExisting?: boolean;
+  /** `inject_complete_system` of a class diagram: the requirements the assistant extracted, what realizes
+   *  them and the LLM that extracted them. Untrusted; read by `readAssistantRequirements`
+   *  (`shared/traceability/assistantRequirements.ts`). */
+  requirements?: unknown;
+  realizations?: unknown;
+  requirementsModel?: unknown;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

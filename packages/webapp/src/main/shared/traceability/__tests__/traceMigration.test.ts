@@ -124,3 +124,12 @@ describe('version 3 traces', () => {
     expect(traceFileProblem(migrated, 'p1')).toBeNull();
   });
 });
+
+describe('version 4 traces', () => {
+  it('are version 5 traces without requirements', () => {
+    const v4 = { schemaVersion: 4, projectId: 'p1', actors: [], tools: [], artifacts: [], traceLinks: [], operations: [] };
+    const migrated = migrateTraceFile(v4) as TraceFile;
+    expect(migrated).toEqual({ ...v4, schemaVersion: TRACE_SCHEMA_VERSION });
+    expect(traceFileProblem(migrated, 'p1')).toBeNull();
+  });
+});

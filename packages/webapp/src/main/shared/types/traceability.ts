@@ -9,7 +9,7 @@
  */
 
 /** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. */
-export const TRACE_SCHEMA_VERSION = 4;
+export const TRACE_SCHEMA_VERSION = 5;
 
 /** How an execution went: an operation, or one of its tool calls. */
 export type ExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
@@ -76,7 +76,32 @@ export interface PromptArtifact extends ArtifactBase {
   contentHash: string;
 }
 
-export type TraceArtifact = ModelArtifact | CodeArtifact | PromptArtifact;
+/** What a requirement asks for. Mirrors `RequirementKind` in the backend's traceability metamodel. */
+export type RequirementKind =
+  | 'data'
+  | 'uniqueness'
+  | 'validation'
+  | 'rule'
+  | 'computed'
+  | 'transition'
+  | 'action'
+  | 'ui'
+  | 'integration'
+  | 'quality'
+  | 'technical';
+
+export const REQUIREMENT_KINDS: readonly RequirementKind[] = [
+  'data', 'uniqueness', 'validation', 'rule', 'computed', 'transition', 'action', 'ui', 'integration', 'quality', 'technical',
+];
+
+/** One atomic requirement stated in a prompt: the statement is its `name`; `quote` is the prompt's words that state it. */
+export interface RequirementArtifact extends ArtifactBase {
+  type: 'RequirementArtifact';
+  quote: string;
+  kind: RequirementKind;
+}
+
+export type TraceArtifact = ModelArtifact | CodeArtifact | PromptArtifact | RequirementArtifact;
 
 export interface TraceChangeEvent {
   id: string;
@@ -140,14 +165,25 @@ export interface CodeGenerationOperation extends OperationBase {
   type: 'CodeGeneration';
 }
 
+/** The requirements a prompt states, derived by an LLM (a text-to-model Transformation in the metamodel):
+ *  it reads the prompt, calls the LLM and writes only requirement artifacts. */
+export interface RequirementExtractionOperation extends OperationBase {
+  type: 'RequirementExtraction';
+}
+
 /** A dialogue between a user and an agent: each turn is a call to the agent's LLM, holding the turn's
- *  messages. It may read prompts and write artifacts (requirements), or write nothing. */
+ *  messages. It writes the prompts something was derived from, or nothing; what a turn leads to (an
+ *  extraction, an edit, a generation) is a separate operation. */
 export interface ConversationOperation extends OperationBase {
   type: 'Conversation';
 }
 
 /** An operation is one of these, told apart by `type` (the metamodel class name). */
-export type TraceOperation = ModelingSessionOperation | CodeGenerationOperation | ConversationOperation;
+export type TraceOperation =
+  | ModelingSessionOperation
+  | CodeGenerationOperation
+  | RequirementExtractionOperation
+  | ConversationOperation;
 
 export const isModelingSession = (operation: TraceOperation | undefined): operation is ModelingSessionOperation =>
   operation?.type === 'ModelingSession';
@@ -211,3 +247,5 @@ export const emptyTraceFile = (projectId: string): TraceFile => ({
 export const isModelArtifact = (a: TraceArtifact | undefined): a is ModelArtifact => a?.type === 'ModelArtifact';
 export const isCodeArtifact = (a: TraceArtifact | undefined): a is CodeArtifact => a?.type === 'CodeArtifact';
 export const isPromptArtifact = (a: TraceArtifact | undefined): a is PromptArtifact => a?.type === 'PromptArtifact';
+export const isRequirementArtifact = (a: TraceArtifact | undefined): a is RequirementArtifact =>
+  a?.type === 'RequirementArtifact';

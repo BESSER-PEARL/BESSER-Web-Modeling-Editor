@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import i18n from '../i18n';
 import type { BesserProject, ProjectDiagram } from '../types/project';
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
-import type { TraceFile } from '../types/traceability';
+import type { RequirementArtifact, TraceFile } from '../types/traceability';
 import { diffClassModel } from './classModelDiff';
 import type { ClassModelLike, ElementChange } from './classModelDiff';
 import { indexedDbTraceStorage, memoryTraceStorage } from './traceDatabase';
@@ -18,6 +18,9 @@ import {
   recordElementChanges,
 } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
+import { latestRequirements } from './traceQueries';
+import { readAssistantRequirements, requestStating } from './assistantRequirements';
+import type { AssistantRequirements } from './assistantRequirements';
 import type { AssistantReplyKind, AssistantRequest, ModelingSource } from './traceRecorder';
 
 /**
@@ -30,7 +33,7 @@ import type { AssistantReplyKind, AssistantRequest, ModelingSource } from './tra
  * apply to it at once (or, before it has loaded, in order once it has), and it is saved in the
  * background, a short while after the last update and when the page is hidden.
  *
- * Recording is opt-in per project (`settings.traceabilityEnabled`).
+ * Recording is per project (`settings.traceabilityEnabled`): on for a new project, off when unset.
  */
 
 /** Where traces were kept before IndexedDB: a trace still there is moved over when first read. */
@@ -256,22 +259,68 @@ export function recordClassDiagramUpdate(
   const changes = diffClassModel(previousModel as ClassModelLike, nextModel as ClassModelLike);
   if (changes.length === 0) return;
   const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
-  void updateProjectTrace(project.id, (trace) =>
+  void updateProjectTrace(project.id, (trace) => {
+    // Read when the update applies, after the request it answers has been recorded.
+    const pending = source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest : undefined;
+    const requirements = pending?.requirements;
+    if (pending && requirements) {
+      pending.requirements = undefined; // recorded with the first edits that answer the request
+      // Every edit of the turn was built from the request stating them, the later ones too.
+      pending.requirementsRequest = requestStating(requirements, recentRequestsOf(project.id));
+    }
     recordElementChanges(trace, changes, {
       diagramId: diagram.id,
       diagramTitle: diagram.title,
       actorName: traceActorName(project),
       source,
       now,
-      // Read when the update applies, after the request it answers has been recorded.
-      request: source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest.request : undefined,
-    }),
-  );
+      request: pending?.request,
+      requirements,
+      requirementsRequest: pending?.requirementsRequest,
+      model: nextModel as ClassModelLike,
+    });
+  });
 }
 
-/** The last request to the assistant: the edits it leads to are linked from it. One at a time, as the
- *  assistant answers one request at a time. */
-let pendingRequest: { projectId: string; request: AssistantRequest } | null = null;
+/** The last request to the assistant: the edits it leads to are linked from it, and from the
+ *  requirements the assistant extracted from it. One at a time, as the assistant answers one request
+ *  at a time. */
+let pendingRequest: {
+  projectId: string;
+  request: AssistantRequest;
+  requirements?: AssistantRequirements;
+  /** The request stating the turn's requirements, once they are recorded. */
+  requirementsRequest?: AssistantRequest;
+} | null = null;
+
+/** Requests to the assistant kept to find the one a reply's requirements were extracted from: on a confirmed
+ *  replace or an "Update model + generate", the assistant rebuilds the model from the application request of
+ *  an earlier turn. */
+const KEPT_RECENT_REQUESTS = 20;
+let recentRequests: Array<{ projectId: string; request: AssistantRequest }> = [];
+
+/** The project's recent requests, newest (the one under way) first. */
+const recentRequestsOf = (projectId: string): AssistantRequest[] =>
+  recentRequests.filter((r) => r.projectId === projectId).map((r) => r.request).reverse();
+
+/**
+ * Keep the requirements an assistant reply carries (`requirements`, `realizations` of an
+ * `inject_complete_system`) for the request it answers: they are recorded with the edits the reply
+ * makes. Call it before applying the reply.
+ */
+export function expectAssistantRequirements(
+  project: BesserProject | null | undefined,
+  reply: { requirements?: unknown; realizations?: unknown },
+): void {
+  if (!project || !isTraceabilityEnabled(project)) return;
+  const requirements = readAssistantRequirements(reply);
+  if (!requirements) return;
+  // Queued like every update, so it applies after the request it answers has been recorded.
+  void updateProjectTrace(project.id, () => {
+    if (pendingRequest?.projectId === project.id) pendingRequest.requirements = requirements;
+    return false;
+  });
+}
 
 async function sha256Hex(text: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -289,7 +338,15 @@ export async function recordAssistantRequest(project: BesserProject | null | und
   await updateProjectTrace(project.id, (trace) => {
     const { callId, logId } = recordConversationRequest(trace, text, { actorName: traceActorName(project), now });
     pendingRequest = { projectId: project.id, request: { callId, logId, text, contentHash } };
+    recentRequests = [...recentRequests.slice(1 - KEPT_RECENT_REQUESTS), pendingRequest];
   });
+}
+
+/** The requirements the assistant extracted from the project's latest application request; none when
+ *  the project does not record traces. */
+export async function projectRequirements(project: BesserProject): Promise<RequirementArtifact[]> {
+  if (!isTraceabilityEnabled(project)) return [];
+  return latestRequirements(await loadProjectTrace(project.id));
 }
 
 /** Record what the assistant sent back: progress, its answer, or an error. */

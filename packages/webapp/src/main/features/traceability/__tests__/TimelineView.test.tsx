@@ -58,4 +58,37 @@ describe('TimelineView filters', () => {
     expect(screen.getByText('What does Book hold?')).toBeTruthy();
     expect(screen.getByText('A title.')).toBeTruthy();
   });
+
+  it('shows the newest operation first, and of two that start together the one recorded later', () => {
+    const extracted = trace();
+    // The extraction of the conversation's first request starts with the conversation.
+    extracted.operations.push({ ...base, id: 'x', type: 'RequirementExtraction', startedAt: at(4), performedBy: ['bot'] });
+    render(<TimelineView index={indexTrace(extracted)} onOpenElement={() => {}} />);
+    expect(screen.queryAllByText(/session|Generated|Conversation with|Requirements extracted/).map((e) => e.textContent)).toEqual([
+      'Requirements extracted by the assistant',
+      'Conversation with the assistant',
+      'Generated sqlalchemy',
+      'Modeling session with the assistant',
+      'Modeling session',
+    ]);
+  });
+
+  it('shows an extraction with the requirements it wrote', () => {
+    const extracted = trace();
+    extracted.artifacts.push(
+      { id: 'r1', type: 'RequirementArtifact', name: 'A book has a title', quote: 'Books have a title', kind: 'data', timestamp: at(5) },
+      { id: 'r2', type: 'RequirementArtifact', name: 'An ISBN is unique', quote: 'unique ISBN', kind: 'uniqueness', timestamp: at(5) },
+    );
+    extracted.operations.push({
+      ...base, id: 'x', type: 'RequirementExtraction', startedAt: at(5), performedBy: ['bot'], writes: ['r1', 'r2'],
+      toolCalls: [{ id: 'xc', toolId: 'llm', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(5), logs: [] }],
+    });
+    render(<TimelineView index={indexTrace(extracted)} onOpenElement={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
+    expect(screen.getByText('2 requirements')).toBeTruthy();
+    fireEvent.click(screen.getByText('Requirements extracted by the assistant'));
+    expect(screen.getByText('An ISBN is unique')).toBeTruthy();
+    expect(screen.getByText('uniqueness requirement')).toBeTruthy();
+    expect(screen.queryByText('Conversation with the assistant')).toBeNull();
+  });
 });

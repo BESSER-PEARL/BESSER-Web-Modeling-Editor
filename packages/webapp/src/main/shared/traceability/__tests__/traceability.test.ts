@@ -93,6 +93,16 @@ describe('diffClassModel', () => {
     const types = Object.fromEntries(diffClassModel(model([]), next).map((c) => [c.elementId, c.elementType]));
     expect(types).toEqual({ c1: 'Class', c2: 'Class', e1: 'Enumeration', l1: 'EnumerationLiteral', g1: 'Generalization' });
   });
+
+  it('names a constraint box after the invariants it holds, else the start of its OCL', () => {
+    const box = (id: string, constraint: string) => ({ id, type: 'ClassOCLConstraint', name: '', owner: null, constraint });
+    const changes = diffClassModel(model([]), model([
+      box('o1', 'context Room inv positivePrice: self.price > 0\n\ncontext Room inv hasNumber: self.number <> \'\''),
+      box('o2', 'context Room inv: self.capacity > 0'),
+      box('o3', ''),
+    ]));
+    expect(changes.map((c) => c.name)).toEqual(['positivePrice, hasNumber', 'context Room inv: self.capacity > 0', 'constraint']);
+  });
 });
 
 describe('recordElementChanges', () => {

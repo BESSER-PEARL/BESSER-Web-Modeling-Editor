@@ -11,16 +11,18 @@ import { ASSISTANT_LLM_NAME, ASSISTANT_LLM_PROVIDER } from './traceRecorder';
  * Version 3 reaches tools only through tool calls: an operation's `uses` became one call per tool,
  * and its `logs` moved into the calls of the tools they named. Version 4 renamed what an operation
  * `consumes` and `produces` to what it `reads` and `writes`, and the `Modeling` operation to `ModelingSession`.
+ * Version 5 added requirement artifacts: a version 4 trace has none, so it is already a valid version 5 one.
  */
 export function migrateTraceFile(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   let trace = value as { schemaVersion?: unknown; operations?: unknown };
-  if (!Array.isArray(trace.operations) || ![1, 2, 3].includes(trace.schemaVersion as number)) return value;
+  if (!Array.isArray(trace.operations) || ![1, 2, 3, 4].includes(trace.schemaVersion as number)) return value;
   if (trace.schemaVersion === 1) {
     trace = { ...(trace as object), schemaVersion: 2, operations: (trace.operations as Record<string, unknown>[]).map(operationV1toV2) };
   }
   if (trace.schemaVersion === 2) trace = traceV2toV3(trace as unknown as V2Trace);
-  return traceV3toV4(trace as unknown as V3Trace);
+  if (trace.schemaVersion === 3) trace = traceV3toV4(trace as unknown as V3Trace);
+  return { ...(trace as TraceFile), schemaVersion: TRACE_SCHEMA_VERSION };
 }
 
 function operationV1toV2(raw: Record<string, unknown>): Record<string, unknown> {
@@ -75,5 +77,5 @@ function traceV2toV3(trace: V2Trace): V3Trace {
 function traceV3toV4(trace: V3Trace): TraceFile {
   const operations = trace.operations.map(({ type, consumes = [], produces = [], ...rest }) =>
     ({ ...rest, type: type === 'Modeling' ? 'ModelingSession' : type, reads: consumes, writes: produces }) as TraceOperation);
-  return { ...trace, schemaVersion: TRACE_SCHEMA_VERSION, operations };
+  return { ...trace, schemaVersion: 4, operations };
 }

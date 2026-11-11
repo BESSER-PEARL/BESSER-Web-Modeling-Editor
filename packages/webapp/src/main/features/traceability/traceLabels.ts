@@ -11,10 +11,16 @@ export const elementTypeLabel = (t: TFunction, elementType: string): string =>
   t(`traceability.elementTypes.${elementType}`, { defaultValue: elementType });
 
 /** The Timeline's filter of an operation: its class, for display. */
-export type OperationKind = 'modeling' | 'generation' | 'conversation';
+export type OperationKind = 'modeling' | 'generation' | 'extraction' | 'conversation';
 
-export const operationKind = (operation: TraceOperation): OperationKind =>
-  operation.type === 'CodeGeneration' ? 'generation' : operation.type === 'Conversation' ? 'conversation' : 'modeling';
+const OPERATION_KINDS: Record<TraceOperation['type'], OperationKind> = {
+  ModelingSession: 'modeling',
+  CodeGeneration: 'generation',
+  RequirementExtraction: 'extraction',
+  Conversation: 'conversation',
+};
+
+export const operationKind = (operation: TraceOperation): OperationKind => OPERATION_KINDS[operation.type];
 
 /** Whether an agent (the assistant) is among the operation's actors. */
 export const byAgent = (operation: TraceOperation, index: TraceIndex): boolean =>
@@ -25,6 +31,7 @@ export const operationLabel = (t: TFunction, operation: TraceOperation, index: T
     const generator = toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)?.name).find(Boolean);
     return t('traceability.operations.generation', { generator: generator ?? '?' });
   }
+  if (operation.type === 'RequirementExtraction') return t('traceability.operations.extraction');
   if (operation.type === 'Conversation') return t('traceability.operations.conversation');
   return t(byAgent(operation, index) ? 'traceability.operations.assistant' : 'traceability.operations.modeling');
 };

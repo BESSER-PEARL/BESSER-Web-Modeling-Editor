@@ -5,6 +5,8 @@ import type {
   ModelArtifact,
   ModelingSessionOperation,
   PromptArtifact,
+  RequirementArtifact,
+  RequirementExtractionOperation,
   TraceActor,
   TraceChangeEvent,
   TraceFile,
@@ -13,7 +15,10 @@ import type {
   TraceToolCall,
 } from '../types/traceability';
 import { isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
-import type { ElementChange } from './classModelDiff';
+import type { AssistantRequirements } from './assistantRequirements';
+import { findNamedElement } from './classModelDiff';
+import { turnExtractionId, turnPromptId } from './traceQueries';
+import type { ClassModelLike, ElementChange } from './classModelDiff';
 
 /**
  * Writes what happened into a project trace. Every function here updates the
@@ -47,6 +52,8 @@ export const ASSISTANT_LLM_PROVIDER = 'openai';
 export const MAX_LOGGED_MESSAGE_CHARS = 10_000;
 /** How much of a request names its prompt artifact. */
 const PROMPT_NAME_CHARS = 60;
+/** Why a requirement comes from a prompt, when its quote is found in the prompt's text. */
+export const REQUIREMENT_QUOTE_RULE = 'requirement quote found in the prompt';
 
 /** Who made an edit: the user alone, or the assistant for the user (both are recorded as actors). */
 export type ModelingSource = 'user' | 'assistant';
@@ -60,6 +67,15 @@ export interface RecordContext {
   now: string;
   /** The assistant request these edits answer: what the edited elements are linked from. */
   request?: AssistantRequest;
+  /** The requirements the assistant extracted while answering `request`, with the elements realizing each one. */
+  requirements?: AssistantRequirements;
+  /** The request whose text states the requirements of `request`'s turn (every quote is in it): `request`
+   *  itself, or an earlier one the assistant rebuilt the model from (a confirmed replace, an "Update model +
+   *  generate"), which the turn's edits are then linked from too; undefined when no request this tab recorded
+   *  states them, or the turn extracted none. */
+  requirementsRequest?: AssistantRequest;
+  /** The model after these edits, where the elements realizing `requirements` are looked up. */
+  model?: ClassModelLike;
 }
 
 /** A request to the assistant: the turn (tool call) it opened, its message and the hash of its full text. */
@@ -210,7 +226,13 @@ export function recordElementChanges(trace: TraceFile, changes: ElementChange[],
   }
   if (ctx.source === 'assistant' && ctx.request) {
     const touched = changes.filter((c) => c.kind !== 'DELETED').map((c) => findModelArtifact(trace, c.elementId)!);
-    linkRequest(trace, session, ctx.request, touched, ctx.now);
+    if (ctx.requirements) linkRequirements(trace, session, ctx, ctx.request, ctx.requirements);
+    // An element a requirement of this turn realizes comes from the prompt through that requirement; the
+    // others come from the prompt directly: the request the model was built from, else the turn's own.
+    const realized = realizedInTurn(trace, ctx.request);
+    const builtFrom =
+      ctx.requirementsRequest && conversationOf(trace, ctx.requirementsRequest) ? ctx.requirementsRequest : ctx.request;
+    linkRequest(trace, session, builtFrom, touched.filter((a) => !realized.has(a.id)), ctx.now);
   }
 }
 
@@ -302,21 +324,22 @@ export function endConversation(trace: TraceFile): boolean {
   return conversation !== undefined;
 }
 
-/**
- * Link the elements the assistant edited to the request that asked for them: the request becomes a
- * prompt artifact the conversation wrote and the edits' session read, and each element gets a
- * link from it. An LLM decided the edits, so the evidence is the request's message; no confidence is
- * claimed, since the assistant reports none.
- */
-function linkRequest(
-  trace: TraceFile, session: ModelingSessionOperation, request: AssistantRequest, targets: ModelArtifact[], now: string,
-): void {
-  const conversation = trace.operations.find(
+/** The conversation holding `request`'s turn, or undefined when the turn is not in this trace. */
+function conversationOf(trace: TraceFile, request: AssistantRequest): ConversationOperation | undefined {
+  return trace.operations.find(
     (operation): operation is ConversationOperation =>
       operation.type === 'Conversation' && operation.toolCalls.some((call) => call.id === request.callId),
   );
-  if (!conversation) return; // the turn is not in this project's trace
-  const promptId = `${request.callId}:prompt`;
+}
+
+const promptIdOf = (request: AssistantRequest): string => turnPromptId(request.callId);
+
+/** The id of `request`'s prompt artifact, written by the conversation holding its turn; made on first use.
+ *  Undefined when the turn is not in this project's trace. */
+function ensurePrompt(trace: TraceFile, request: AssistantRequest): string | undefined {
+  const conversation = conversationOf(trace, request);
+  if (!conversation) return undefined;
+  const promptId = promptIdOf(request);
   if (!trace.artifacts.some((a) => a.id === promptId)) {
     const firstLine = request.text.trim().split('\n')[0];
     const prompt: PromptArtifact = {
@@ -327,6 +350,31 @@ function linkRequest(
     trace.artifacts.push(prompt);
     conversation.writes.push(promptId);
   }
+  return promptId;
+}
+
+/**
+ * The elements a requirement extracted in `request`'s turn is linked to, when those requirements are linked
+ * from a prompt (their extraction read one): such an element comes from the prompt through them.
+ */
+function realizedInTurn(trace: TraceFile, request: AssistantRequest): Set<string> {
+  const extraction = trace.operations.find((o) => o.id === turnExtractionId(request.callId));
+  if (!extraction || extraction.reads.length === 0) return new Set();
+  const requirements = new Set(extraction.writes);
+  return new Set(trace.traceLinks.filter((link) => requirements.has(link.sourceId)).map((link) => link.targetId));
+}
+
+/**
+ * Link the elements the assistant edited to the request they were built from: the request becomes a
+ * prompt artifact the conversation wrote and the edits' session read, and each element gets a
+ * link from it. An LLM decided the edits, so the evidence is the request's message; no confidence is
+ * claimed, since the assistant reports none.
+ */
+function linkRequest(
+  trace: TraceFile, session: ModelingSessionOperation, request: AssistantRequest, targets: ModelArtifact[], now: string,
+): void {
+  const promptId = ensurePrompt(trace, request);
+  if (!promptId) return; // the turn is not in this project's trace
   if (!session.reads.includes(promptId)) session.reads.push(promptId);
   for (const target of new Set(targets)) {
     if (trace.traceLinks.some((link) => link.sourceId === promptId && link.targetId === target.id)) continue;
@@ -334,6 +382,92 @@ function linkRequest(
       id: newId(), sourceId: promptId, targetId: target.id, operationId: session.id, timestamp: now,
       evidence: [{ id: newId(), type: 'AIEvidence', algorithm: ASSISTANT_LLM_NAME, logIds: [request.logId], timestamp: now }],
     });
+  }
+}
+
+/**
+ * The extraction made while answering `request`: the assistant's call to the LLM that extracted the
+ * requirements, between the request and the reply, reading the prompt that states them (`promptId`; none
+ * when no recorded request does). Made on the first reply that carries them; a replayed reply finds it by id.
+ */
+function ensureExtraction(
+  trace: TraceFile, conversation: ConversationOperation, request: AssistantRequest, stated: AssistantRequirements,
+  promptId: string | undefined, now: string,
+): RequirementExtractionOperation {
+  const id = turnExtractionId(request.callId);
+  const existing = trace.operations.find((o): o is RequirementExtractionOperation => o.id === id && o.type === 'RequirementExtraction');
+  if (existing) return existing;
+  // An agent that does not name the model ran the one the whole conversation is assumed to run.
+  const model = stated.model ?? { name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER };
+  const llm = ensureTool(trace, 'LLM', model.name, now, undefined, model.provider);
+  const startedAt = conversation.toolCalls.find((call) => call.id === request.callId)!.startedAt;
+  const extraction: RequirementExtractionOperation = {
+    id, type: 'RequirementExtraction', status: 'SUCCEEDED', startedAt, endedAt: now,
+    performedBy: [ensureActor(trace, 'Agent', ASSISTANT_AGENT_NAME, now).id],
+    toolCalls: [{ id: newId(), toolId: llm.id, sequenceNumber: 0, status: 'SUCCEEDED', startedAt, endedAt: now, logs: [] }],
+    reads: promptId ? [promptId] : [], writes: [],
+  };
+  trace.operations.push(extraction);
+  return extraction;
+}
+
+/**
+ * Record the requirements the assistant extracted while answering a request, and what realizes them. The
+ * extraction is an operation of its own ({@link ensureExtraction}) that writes each requirement. It reads the
+ * prompt of the request whose text states them (`ctx.requirementsRequest`: on a resumed turn, the earlier
+ * application request the assistant rebuilt from), and each requirement is linked from that prompt, the
+ * evidence being its quote found there. When no recorded request states them, they are recorded without a
+ * prompt, with a warning, rather than linked to a request that does not state them. Each element the
+ * assistant says realizes a requirement gets a link from it, made by the edits' session, which reads it; an
+ * element the model does not have is left out with a warning, so the requirement reads as not modeled.
+ */
+function linkRequirements(
+  trace: TraceFile, session: ModelingSessionOperation, ctx: RecordContext, request: AssistantRequest,
+  stated: AssistantRequirements,
+): void {
+  const conversation = conversationOf(trace, request);
+  if (!conversation) return;
+  const { now } = ctx;
+  const promptId = ctx.requirementsRequest && ensurePrompt(trace, ctx.requirementsRequest);
+  if (!promptId) {
+    console.warn('No recorded request to the assistant states the requirements it extracted; they are recorded without their prompt.');
+  }
+  const extraction = ensureExtraction(trace, conversation, request, stated, promptId, now);
+  const artifactIds = new Map(stated.requirements.map((r) => [r.id, `${request.callId}:${r.id}`]));
+
+  for (const requirement of stated.requirements) {
+    const id = artifactIds.get(requirement.id)!;
+    if (trace.artifacts.some((a) => a.id === id)) continue; // a replayed reply
+    const artifact: RequirementArtifact = {
+      id, type: 'RequirementArtifact', name: requirement.text, quote: requirement.quote, kind: requirement.kind, timestamp: now,
+    };
+    trace.artifacts.push(artifact);
+    extraction.writes.push(id);
+    if (!promptId) continue;
+    const evidence = [{ id: newId(), type: 'RuleEvidence' as const, rule: REQUIREMENT_QUOTE_RULE, timestamp: now }];
+    trace.traceLinks.push({ id: newId(), sourceId: promptId, targetId: id, operationId: extraction.id, evidence, timestamp: now });
+  }
+  const aiEvidence = (algorithm: string) =>
+    [{ id: newId(), type: 'AIEvidence' as const, algorithm, logIds: [request.logId], timestamp: now }];
+
+  const diagram = findModelArtifact(trace, ctx.diagramId);
+  for (const realization of stated.realizations) {
+    const sourceId = artifactIds.get(realization.requirement);
+    if (!sourceId) continue;
+    for (const ref of realization.elements) {
+      const elementId = findNamedElement(ctx.model, ref);
+      if (!elementId) {
+        console.warn(`Requirement ${realization.requirement} names ${ref.type} ${ref.name}, which the model does not have; it is not linked.`);
+        continue;
+      }
+      // An element the edits did not touch (a merge into an existing model) enters the trace here.
+      const target = ensureModelArtifact(trace, elementId, ref.type, ref.name, diagram?.id, now);
+      if (trace.traceLinks.some((link) => link.sourceId === sourceId && link.targetId === target.id)) continue;
+      if (!session.reads.includes(sourceId)) session.reads.push(sourceId);
+      trace.traceLinks.push({
+        id: newId(), sourceId, targetId: target.id, operationId: session.id, evidence: aiEvidence(ASSISTANT_LLM_NAME), timestamp: now,
+      });
+    }
   }
 }
 

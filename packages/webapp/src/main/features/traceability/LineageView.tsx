@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { TraceArtifact, TraceEvidence, TraceLogRecord, TraceOperation } from '../../shared/types/traceability';
-import { isCodeArtifact, isModelArtifact, isPromptArtifact, toolIdsOf } from '../../shared/types/traceability';
+import { isCodeArtifact, isModelArtifact, isPromptArtifact, isRequirementArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import {
   changedSince,
@@ -57,7 +57,8 @@ interface LineageViewProps {
 
 /**
  * What was derived from what: diagrams, prompts and generated files as cards linked left to right.
- * Overview first; a card or row expands to show its parts that take part in links.
+ * Overview first; a card or row expands to show its parts that take part in links, and the model elements
+ * the trace links nothing to, muted (see `lineage.ts`).
  */
 export const LineageView: React.FC<LineageViewProps> = ({ index, rootId, onRootChange, onOpenElement }) => {
   const root = rootId && index.artifacts.has(rootId) ? rootId : null;
@@ -451,6 +452,7 @@ function describeRow(t: T, index: TraceIndex, row: LineageRow, locale: string): 
       : nodeLabel(t, index, artifact, depth > 0);
   if (isModelArtifact(artifact)) return { label, subtitle: elementTypeLabel(t, artifact.elementType) };
   if (isPromptArtifact(artifact)) return { label, subtitle: t('traceability.lineage.prompt') };
+  if (isRequirementArtifact(artifact)) return { label, subtitle: t('traceability.lineage.requirement', { kind: artifact.kind }) };
   // A file outside a run card says when it was generated; inside one, the run says it.
   if (depth === 0) return { label, subtitle: [t('traceability.lineage.file'), codeRun(index, artifact, locale)].filter(Boolean).join(' · ') };
   return { label };
@@ -498,7 +500,12 @@ const RowView: React.FC<{
           selected ? 'text-brand-dark dark:text-brand-light' : ''
         }`}
       >
-        <span className={`block truncate ${deleted ? 'text-muted-foreground line-through' : ''}`}>{label}</span>
+        <span
+          className={`block truncate ${deleted ? 'text-muted-foreground line-through' : row.traced ? '' : 'italic text-muted-foreground'}`}
+          title={row.traced ? undefined : t('traceability.lineage.untraced')}
+        >
+          {label}
+        </span>
         {subtitle && <span className="block truncate text-[10px] font-normal uppercase text-muted-foreground">{subtitle}</span>}
       </button>
       {row.parts > 0 && !row.expanded && (
@@ -602,13 +609,18 @@ const NodeDetail: React.FC<{
         <Badge variant="soft" size="sm">
           {isModelArtifact(artifact)
             ? elementTypeLabel(t, artifact.elementType)
-            : t(isPromptArtifact(artifact) ? 'traceability.lineage.prompt' : 'traceability.lineage.code')}
+            : isRequirementArtifact(artifact)
+              ? t('traceability.lineage.requirement', { kind: artifact.kind })
+              : t(isPromptArtifact(artifact) ? 'traceability.lineage.prompt' : 'traceability.lineage.code')}
         </Badge>
         {outdated && <Badge variant="destructive" size="sm">{t('traceability.status.outOfDate')}</Badge>}
       </div>
       {isCodeArtifact(artifact) && <code className="block truncate text-xs text-muted-foreground">{artifact.path}</code>}
       {isPromptArtifact(artifact) && (
         <blockquote className="max-h-48 overflow-auto whitespace-pre-wrap border-l-2 border-border pl-2 text-xs">{artifact.content}</blockquote>
+      )}
+      {isRequirementArtifact(artifact) && (
+        <blockquote className="whitespace-pre-wrap border-l-2 border-border pl-2 text-xs">{artifact.quote}</blockquote>
       )}
       <div className="flex flex-wrap gap-2">
         {!isRoot && (

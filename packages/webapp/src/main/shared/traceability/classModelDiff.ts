@@ -92,6 +92,22 @@ const value = (raw: unknown, absent: unknown = ''): FeatureValue => {
   return { key: text, display: text };
 };
 
+/** A constraint name made from the start of its OCL is cut at this length. */
+const CONSTRAINT_NAME_CHARS = 60;
+
+/** What a constraint box is called in the trace: the names of the invariants it holds (`context Room inv
+ *  positivePrice: ...` gives `positivePrice`), else its own name, else the first line of its OCL; the editor
+ *  gives the box no name of its own. */
+function constraintName(name: string, ocl: unknown): string {
+  const text = typeof ocl === 'string' ? ocl : '';
+  const invariants = [...text.matchAll(/\binv\s+(\w+)\s*:/g)].map((match) => match[1]);
+  if (invariants.length > 0) return invariants.join(', ');
+  if (name.trim()) return name;
+  const firstLine = text.trim().split('\n')[0].trim();
+  if (!firstLine) return 'constraint';
+  return firstLine.length > CONSTRAINT_NAME_CHARS ? `${firstLine.slice(0, CONSTRAINT_NAME_CHARS)}…` : firstLine;
+}
+
 const reference = (id: string | null | undefined, names: Map<string, string>): FeatureValue => ({
   key: id ?? '',
   display: (id && names.get(id)) || '',
@@ -133,7 +149,7 @@ function snapshot(model: ClassModelLike | null | undefined): Map<string, Snapsho
       });
     } else if (element.type === 'ClassOCLConstraint') {
       result.set(element.id, {
-        elementType: 'Constraint', name: name || 'constraint', parentElementId: null, rank: 1,
+        elementType: 'Constraint', name: constraintName(name, element.constraint), parentElementId: null, rank: 1,
         features: { name: value(name), constraint: value(element.constraint) },
       });
     }
@@ -215,4 +231,41 @@ export function diffClassModel(
     changes.sort((a, b) => (snapshots.get(a.elementId)?.rank ?? 0) - (snapshots.get(b.elementId)?.rank ?? 0));
   // Owners are created before their members and deleted after them.
   return [...rank(created, after), ...updated, ...rank(deleted, before).reverse()];
+}
+
+/** An element named the way the modeling assistant names it: its B-UML metaclass, its name, and the
+ *  class holding it (an attribute's or method's class, an invariant's context, an association's source). */
+export interface NamedElementRef {
+  type: string;
+  name: string;
+  owner?: string;
+}
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function namesElement(found: Snapshot, ref: NamedElementRef, snapshots: Map<string, Snapshot>): boolean {
+  switch (found.elementType) {
+    case 'Method': // the editor names a method by its signature, `checkOut(day: int)`
+      return found.name.replace(/\(.*$/, '').trim() === ref.name && ownerMatches(found, ref, snapshots);
+    case 'Constraint': // one box holds every invariant of a context: find it by the invariant's name
+      return new RegExp(`\\binv\\s+${escapeRegExp(ref.name)}\\s*:`).test(found.features.constraint?.key ?? '');
+    case 'BinaryAssociation':
+      return found.features.name?.key === ref.name && (!ref.owner || found.features.source?.display === ref.owner);
+    default:
+      return found.name === ref.name && ownerMatches(found, ref, snapshots);
+  }
+}
+
+function ownerMatches(found: Snapshot, ref: NamedElementRef, snapshots: Map<string, Snapshot>): boolean {
+  if (!ref.owner) return found.parentElementId === null;
+  return found.parentElementId !== null && snapshots.get(found.parentElementId)?.name === ref.owner;
+}
+
+/** The id of the element of `model` that `ref` names, or undefined when it names none. */
+export function findNamedElement(model: ClassModelLike | null | undefined, ref: NamedElementRef): string | undefined {
+  const snapshots = snapshot(model);
+  for (const [id, found] of snapshots) {
+    if (found.elementType === ref.type && namesElement(found, ref, snapshots)) return id;
+  }
+  return undefined;
 }

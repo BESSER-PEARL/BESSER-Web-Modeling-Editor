@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, ChevronDown, ChevronRight, Code2, MessagesSquare, Pencil } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, Code2, ListChecks, MessagesSquare, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type {
   CodeArtifact,
   ModelArtifact,
+  RequirementArtifact,
   TraceChangeEvent,
   TraceOperation,
 } from '../../shared/types/traceability';
-import { changesOf, isCodeArtifact, isModelArtifact, logsOf } from '../../shared/types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact, logsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { diagramsOfOperation, isDiagram, topLevelOf } from '../../shared/traceability/traceQueries';
 import type { OperationKind } from './traceLabels';
@@ -18,10 +19,11 @@ import { actorNames, byAgent, describeChange, elementTypeLabel, formatTime, oper
 const OPERATION_ICONS: Record<OperationKind, React.ReactNode> = {
   modeling: <Pencil className="size-4" />,
   generation: <Code2 className="size-4" />,
+  extraction: <ListChecks className="size-4" />,
   conversation: <MessagesSquare className="size-4" />,
 };
 
-const FILTERS: Array<OperationKind | 'all'> = ['all', 'modeling', 'generation', 'conversation'];
+const FILTERS: Array<OperationKind | 'all'> = ['all', 'modeling', 'generation', 'extraction', 'conversation'];
 /** Operations shown at first, and added by each "Show more": a long history renders a page at a time. */
 export const TIMELINE_PAGE_SIZE = 50;
 
@@ -39,12 +41,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
   const [shown, setShown] = useState(TIMELINE_PAGE_SIZE);
   useEffect(() => setShown(TIMELINE_PAGE_SIZE), [filter, query]);
 
+  // Newest first. Operations that start together (a conversation and the extraction of its first
+  // request) are shown in reverse order of recording: the later one is the more recent step.
   const operations = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return [...index.trace.operations]
+    const recorded = new Map(index.trace.operations.map((op, position) => [op.id, position]));
+    return index.trace.operations
       .filter((op) => filter === 'all' || operationKind(op) === filter)
       .filter((op) => !needle || changesOf(op).some((c) => describeChange(t, c, index).toLowerCase().includes(needle)))
-      .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt) || recorded.get(b.id)! - recorded.get(a.id)!);
   }, [index, filter, query, t]);
 
   const toggle = (id: string) =>
@@ -123,6 +128,10 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
   const { t } = useTranslation();
   const isGeneration = operation.type === 'CodeGeneration';
   const linkCount = isGeneration ? index.trace.traceLinks.filter((l) => l.operationId === operation.id).length : 0;
+  const requirements = useMemo(
+    () => operation.writes.map((id) => index.artifacts.get(id)).filter(isRequirementArtifact),
+    [index, operation],
+  );
   const diagrams = useMemo(() => diagramsOfOperation(index, operation), [index, operation]);
 
   // Changes grouped under the element they belong to (a class and its attributes together).
@@ -153,6 +162,8 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
         <Badge variant="secondary" size="sm">
           {isGeneration
             ? t('traceability.timeline.linkCount', { count: linkCount })
+            : operation.type === 'RequirementExtraction'
+              ? t('traceability.timeline.requirementCount', { count: requirements.length })
             : operation.type === 'Conversation'
               ? t('traceability.timeline.messageCount', { count: logsOf(operation).length })
               : t('traceability.timeline.changeCount', { count: changesOf(operation).length })}
@@ -178,6 +189,8 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
         <div className="space-y-2 border-t border-border px-4 py-3 text-sm">
           {isGeneration ? (
             <GenerationSummary operation={operation} index={index} onOpenElement={onOpenElement} />
+          ) : operation.type === 'RequirementExtraction' ? (
+            <RequirementList requirements={requirements} />
           ) : operation.type === 'Conversation' ? (
             <ol className="space-y-1">
               {logsOf(operation).map((log) => (
@@ -213,6 +226,23 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
         </div>
       )}
     </div>
+  );
+};
+
+/** The requirements an extraction wrote, each with its kind. */
+const RequirementList: React.FC<{ requirements: RequirementArtifact[] }> = ({ requirements }) => {
+  const { t } = useTranslation();
+  return (
+    <ol className="space-y-1">
+      {requirements.map((requirement) => (
+        <li key={requirement.id} className="text-sm">
+          <Badge variant="outline" size="sm" className="mr-2">
+            {t('traceability.lineage.requirement', { kind: requirement.kind })}
+          </Badge>
+          {requirement.name}
+        </li>
+      ))}
+    </ol>
   );
 };
 

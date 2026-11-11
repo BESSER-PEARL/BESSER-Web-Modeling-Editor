@@ -65,6 +65,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { projectRequirements } from '../../../shared/traceability/traceStore';
 import {
   SseHttpError,
   SseStallError,
@@ -1183,9 +1184,13 @@ export function useSpecDrivenTrigger(
       // This tab's claim on the run (see claimSpecDrivenRunOwnership). An
       // object, so TS does not narrow away the assignment made in the callback.
       const ownership: { claim?: Promise<(() => void) | null> } = {};
+      // The requirements the assistant extracted (recorded in the project trace): the run judges these,
+      // so its verdicts name the same requirements the trace links to the model.
+      const requirements = (await projectRequirements(project)).map((r) => ({ id: r.id, text: r.name, kind: r.kind }));
       const runParams: StartSpecDrivenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,
+        requirements,
         provider,
         apiKey: demoToken || freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,

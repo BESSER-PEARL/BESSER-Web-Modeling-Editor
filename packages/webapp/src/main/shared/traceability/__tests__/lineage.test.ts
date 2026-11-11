@@ -169,8 +169,8 @@ describe('lineageLayout', () => {
   it('shows the parts of an expanded subject, and the links reach them', () => {
     const { index, lineage } = project();
     const layout = lineageLayout(index, lineage, new Set(['cd', 'run:run2', 'f2']));
-    // The class shows no members: none of them takes part in a link.
-    expect(drawn(layout)).toEqual([[['kg+']], [['cd', '  book']], [['run:run2', '  f2', '    b2']]]);
+    // The class holds a member the trace links nothing to: it is shown, untraced, as the model has it.
+    expect(drawn(layout)).toEqual([[['kg+']], [['cd', '  book+']], [['run:run2', '  f2', '    b2']]]);
     expect(bundles(layout)).toEqual({ 'kg->book': ['k'], 'book->b2': ['g2'], 'cd->f2': ['d2'] });
   });
 
@@ -216,7 +216,30 @@ describe('lineageLayout', () => {
 
   it('expands everything that has parts', () => {
     const { index, lineage } = project();
-    expect([...expandableIds(index, lineage)].sort()).toEqual(['cd', 'f2', 'kg', 'run:run2']);
+    expect([...expandableIds(index, lineage)].sort()).toEqual(['book', 'cd', 'f2', 'kg', 'run:run2']);
+  });
+
+  it('shows the model elements the trace links nothing to, untraced, but not deleted ones', () => {
+    const trace = chain();
+    // Added by hand after the diagram was generated: no link reaches them.
+    trace.artifacts.push(model('isbn', 'isbn', 'Property', 'book'), model('author', 'Author', 'Class', 'cd'),
+      model('gone', 'gone', 'Property', 'book'));
+    trace.operations.push(operation('edit', 'ModelingSession', 6, {
+      changes: [{ id: 'c1', kind: 'DELETED', artifactId: 'gone', oldValue: 'gone', timestamp: at(6) }],
+    }));
+    const index = indexTrace(trace);
+    const rows = lineageLayout(index, lineageOf(index, null, latest), new Set(['cd', 'book'])).columns[1][0].rows;
+    expect(rows.map((r) => [r.subject.id, r.traced])).toEqual([
+      ['cd', true], ['author', false], ['book', true], ['isbn', false], ['title', false],
+    ]);
+  });
+
+  it("shows every member of an element in an artifact's lineage, but not the model's other elements", () => {
+    const trace = chain();
+    trace.artifacts.push(model('isbn', 'isbn', 'Property', 'book'), model('author', 'Author', 'Class', 'cd'));
+    const index = indexTrace(trace);
+    const layout = lineageLayout(index, lineageOf(index, 'b2', latest), new Set(['cd', 'book']));
+    expect(drawn(layout).flat().find((card) => card[0] === 'cd')).toEqual(['cd', '  book', '    isbn', '    title']);
   });
 });
 

@@ -1,6 +1,7 @@
 import type {
   CodeArtifact,
   ModelArtifact,
+  RequirementArtifact,
   TraceArtifact,
   TraceChangeEvent,
   TraceFile,
@@ -8,7 +9,7 @@ import type {
   TraceLogRecord,
   TraceOperation,
 } from '../types/traceability';
-import { changesOf, isCodeArtifact, isModelArtifact } from '../types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact } from '../types/traceability';
 
 /** Read-only views over a trace, for the traceability page. Pure functions of the trace. */
 
@@ -307,4 +308,39 @@ export function coverageMatrix(index: TraceIndex, maxGenerations: number): Cover
     elements: modelChildren(index, diagram.id).map(row),
   }));
   return { generations, groups };
+}
+
+/** The id of the prompt artifact of an assistant turn (the conversation's tool call `callId`). */
+export const turnPromptId = (callId: string): string => `${callId}:prompt`;
+/** The id of the requirement extraction the assistant made in a turn. */
+export const turnExtractionId = (callId: string): string => `${callId}:extraction`;
+
+/**
+ * The requirements of the newest extraction whose model still stands, in order; none when there is no such
+ * extraction. Its model is the elements linked from its requirements, from the prompt it read (the request
+ * the model was built from) or from the prompt of its turn; it stands while one of them is not deleted.
+ * Whether a requirement is realized does not matter: a list of screens and technologies describes the
+ * application as much as one of entities. A newer application request supersedes an earlier one's
+ * requirements, and a model rebuilt since without an extraction (from a short request, from a file, by hand)
+ * deleted those elements: a generation run must not be judged against requirements of another application.
+ */
+export function latestRequirements(trace: TraceFile): RequirementArtifact[] {
+  const index = indexTrace(trace);
+  const turnPrompts = new Map<string, string>();
+  for (const operation of trace.operations) {
+    if (operation.type !== 'Conversation') continue;
+    for (const call of operation.toolCalls) turnPrompts.set(turnExtractionId(call.id), turnPromptId(call.id));
+  }
+  const buildsLiveElement = (sourceId: string) =>
+    (index.linksBySource.get(sourceId) ?? []).some(
+      (link) => isModelArtifact(index.artifacts.get(link.targetId)) && !isDeleted(index, link.targetId),
+    );
+  for (let i = trace.operations.length - 1; i >= 0; i -= 1) {
+    const operation = trace.operations[i];
+    if (operation.type !== 'RequirementExtraction') continue;
+    const sources = [...operation.writes, ...operation.reads, turnPrompts.get(operation.id) ?? ''];
+    if (!sources.some(buildsLiveElement)) continue;
+    return operation.writes.map((id) => index.artifacts.get(id)).filter(isRequirementArtifact);
+  }
+  return [];
 }

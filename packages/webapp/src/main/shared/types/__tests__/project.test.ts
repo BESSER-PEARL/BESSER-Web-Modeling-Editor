@@ -85,6 +85,10 @@ describe('createDefaultProject', () => {
       expect(project.settings.perspectives[type]).toBe(true);
     }
   });
+
+  it('records traces from the start', () => {
+    expect(createDefaultProject('Demo', 'desc', 'me').settings.traceabilityEnabled).toBe(true);
+  });
 });
 
 describe('ensureProjectMigrated v4 → v5', () => {
