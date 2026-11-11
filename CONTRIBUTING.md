@@ -246,8 +246,8 @@ and the [WME architecture page](https://besser.readthedocs.io/projects/besser-we
 - **TypeScript strict mode** — keep types honest. `any` and `@ts-ignore`
   are warnings, not errors, but minimize their use.
 - **Tailwind CSS** for styling in `webapp`. No inline styles or CSS
-  modules in webapp. The editor package still uses styled-components
-  (legacy).
+  modules in webapp. The library package (`packages/library`) styles its
+  components with MUI and Emotion.
 - **Radix UI** for accessible primitives (Dialog, DropdownMenu, Tooltip,
   …). Prefer these over hand-rolled equivalents.
 - **`_` prefix** for intentionally unused variables.

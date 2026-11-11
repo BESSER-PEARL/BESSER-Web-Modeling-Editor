@@ -46,8 +46,8 @@ Cosmetic convention breaks, naming, and style are Nit at most.
   other two.
 - **User-facing strings**: go through `react-i18next`, with the key added to `packages/i18n/en/webapp.json`.
 - **Tests**: user-visible behavior changes come with a Vitest test next to the code (`__tests__/`) or a
-  Playwright test in `packages/webapp/tests/e2e/`. `packages/editor` has no runnable tests, so editor changes
-  need webapp coverage.
+  Playwright test in `packages/webapp/tests/e2e/`. Changes to the diagram engine (`packages/library`) come with a Vitest
+  test there (`npm test --workspace=@besser/wme`).
 - **Assistant wire protocol** (`features/assistant/`): action names and payload fields match what the
   modeling-agent emits; new actions are added to both `KNOWN_ACTIONS` and the `AssistantActionName` union.
 
