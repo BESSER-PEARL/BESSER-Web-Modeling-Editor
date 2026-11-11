@@ -115,6 +115,8 @@ export interface InjectionCommand {
   diagramType?: string;
   diagramId?: string;
   replaceExisting?: boolean;
+  /** Echo of the user_message's turnId (agents that support turn-scoped replay). */
+  turnId?: string;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

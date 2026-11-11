@@ -263,6 +263,9 @@ export interface UseModelInjectionOptions {
    *  the model as it now stands. Used by the orchestrator's post-injection
    *  validate-and-repair loop. Must never throw into the injection path. */
   onModelApplied?: (info: { action: string; diagramType: string; model: any }) => void;
+  /** Called when an assistant model update could not be applied. Returns true
+   *  when it reported the failure itself, which skips the generic error reply. */
+  onModelApplyFailed?: (info: { action: string; diagramType?: string; turnId?: string }) => boolean;
 }
 
 export interface UseModelInjectionReturn {
@@ -289,6 +292,7 @@ export function useModelInjection({
   setMessageMeta,
   setProgressMessage,
   onModelApplied,
+  onModelApplyFailed,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
   const editorRef = useRef(editor);
@@ -850,6 +854,15 @@ export function useModelInjection({
       });
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       reportError(`Could not apply assistant update: ${errorMessage}`, { error });
+      let reported = false;
+      try {
+        reported =
+          onModelApplyFailed?.({ action: command.action, diagramType: command.diagramType, turnId: command.turnId }) ===
+          true;
+      } catch (hookError) {
+        console.warn('[useModelInjection] onModelApplyFailed hook failed:', hookError);
+      }
+      if (reported) return;
       // Rephrasing cannot help with a read-only diagram.
       const advice = error instanceof ReadOnlyDiagramError ? '' : ' Try rephrasing your request.';
       const errMsg = toKitMessage(
