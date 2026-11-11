@@ -59,8 +59,9 @@ npm run i18n:check                         # translation coverage (warnings only
 npm run i18n:validate                      # strict translation check
 ```
 
-**CI** (`.github/workflows/`) runs only the i18n checks. Lint, tests and build are not gated by CI — neither
-here nor in the parent BESSER repo, whose `ci.yml` does not build the frontend. Run them locally.
+**CI** (`.github/workflows/ci.yml`) runs lint, the OpenAPI types check, the unit tests, the type check and the
+build for the webapp, the server and the library on every PR and push to `develop`/`main`; `i18n.yml` runs the
+translation checks. The parent BESSER repo's `ci.yml` does not build the frontend. Playwright is not run in CI.
 
 ## Where Things Live
 
