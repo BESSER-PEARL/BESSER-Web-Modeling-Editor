@@ -6,7 +6,7 @@ import { ApiError } from '../../../shared/api/api-client';
 import { deployToGitHub } from '../../../shared/api/github';
 import type { components } from '../../../shared/api/generated/besser-openapi';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
+import { buildProjectExportEnvelope, buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
 import { isGrapesJSProjectData } from '../../../shared/types/project';
 import { buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
@@ -225,8 +225,11 @@ export const useGitHubRepo = () => {
           ? forceBaseWebAppGuiModel(projectForBackend)
           : projectForBackend;
 
+        // The backend reads v4 only (a v3 model is a 400): generate from the
+        // same payload as every other backend call, which leaves an
+        // unmigrated diagram out. `projectExport` still carries it.
         const requestBody = {
-          ...projectForGeneration,
+          ...buildProjectPayloadForBackend(projectForGeneration),
           name: normalizeProjectName(projectData?.name || 'project'),
           settings: {
             ...((projectData as { settings?: Record<string, unknown> }).settings ?? {}),

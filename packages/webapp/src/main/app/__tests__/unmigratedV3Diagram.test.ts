@@ -13,6 +13,31 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { updateDiagramModelThunk, workspaceReducer, type WorkspaceState } from '../store/workspaceSlice';
 import { useModelInjection } from '../../features/assistant/hooks/useModelInjection';
+import { useGitHubRepo } from '../../features/github/hooks/useGitHubRepo';
+
+const deployToGitHub = vi.hoisted(() => vi.fn());
+vi.mock('../../shared/api/github', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  deployToGitHub,
+}));
+
+// A v3 model marked `failMe` makes the migrator throw, standing in for any
+// v3 data the converter still cannot lift.
+const failedAttempts = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../../shared/services/storage/migrate-uml-v3-to-v4', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../shared/services/storage/migrate-uml-v3-to-v4')>();
+  return {
+    ...actual,
+    migrateUMLModelV3ToV4: (model: any, ...rest: any[]) => {
+      if (model?.failMe) {
+        failedAttempts.count += 1;
+        throw new Error('cannot migrate');
+      }
+      return (actual.migrateUMLModelV3ToV4 as any)(model, ...rest);
+    },
+  };
+});
+
 const toastError = vi.fn();
 const toastWarning = vi.fn();
 vi.mock('react-toastify', () => ({
@@ -183,6 +208,37 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
     toastWarning.mockClear();
     buildProjectPayloadForBackend(createDefaultProject('P', '', ''));
     expect(toastWarning).not.toHaveBeenCalled();
+  });
+
+  // Deploy posted the raw project and the backend answered 400 on the v3 model.
+  it('is left out of the deploy request but kept in the project file pushed to the repository', async () => {
+    deployToGitHub.mockResolvedValue({
+      success: true,
+      repo_url: 'https://github.com/o/r',
+      repo_name: 'r',
+      owner: 'o',
+      files_uploaded: 1,
+      message: '',
+      deployment_urls: {},
+      is_first_deploy: true,
+      deployment_type: 'webapp',
+    });
+    const { result } = renderHook(() => useGitHubRepo());
+    await act(async () => {
+      await result.current.createRepo(projectWithV3Class(), {
+        repoName: 'r',
+        description: '',
+        isPrivate: true,
+        githubSession: 'session',
+      });
+    });
+
+    const body = deployToGitHub.mock.calls[0][1] as {
+      diagrams: Record<string, unknown[]>;
+      projectExport: { project: { diagrams: Record<string, { model: unknown }[]> } };
+    };
+    expect(body.diagrams.ClassDiagram).toBeUndefined();
+    expect(body.projectExport.project.diagrams.ClassDiagram.map((d) => d.model)).toEqual([v3ClassModel()]);
   });
 
   it('an empty v3 model is still empty', () => {
