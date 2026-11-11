@@ -4,6 +4,9 @@ import {
   applyBpmnCollapseVisibility,
   type MinimalNodeForCollapse,
 } from "@/utils/bpmnConstraints"
+import { isParentNodeType } from "@/utils/nodeUtils"
+import { convertV3ToV4 } from "@/utils/versionConverter"
+import type { V3UMLModel } from "@/utils/v3Typings"
 
 // ---------------------------------------------------------------------------
 // bpmnPool
@@ -144,6 +147,43 @@ describe("canDropIntoParent – useCaseSystem", () => {
   it("rejects other types", () => {
     expect(canDropIntoParent("class", "useCaseSystem")).toBe(false)
     expect(canDropIntoParent("useCaseSystem", "useCaseSystem")).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// component (a container on develop: UMLComponent extends UMLPackage)
+// ---------------------------------------------------------------------------
+
+describe("component as a container", () => {
+  it("is a parent node type", () => {
+    expect(isParentNodeType("component")).toBe(true)
+  })
+
+  it("accepts components, interfaces and subsystems only", () => {
+    expect(canDropIntoParent("component", "component")).toBe(true)
+    expect(canDropIntoParent("componentInterface", "component")).toBe(true)
+    expect(canDropIntoParent("componentSubsystem", "component")).toBe(true)
+    expect(canDropIntoParent("class", "component")).toBe(false)
+  })
+
+  it("a migrated child keeps its component as parent", () => {
+    const element = (id: string, owner: string | null) => ({
+      id,
+      name: id,
+      type: "Component",
+      owner,
+      bounds: { x: 0, y: 0, width: 200, height: 100 },
+    })
+    const v4 = convertV3ToV4({
+      version: "3.0.0",
+      type: "ComponentDiagram",
+      size: { width: 800, height: 600 },
+      elements: { outer: element("outer", null), inner: element("inner", "outer") },
+      relationships: {},
+      interactive: { elements: {}, relationships: {} },
+      assessments: {},
+    } as unknown as V3UMLModel)
+    expect(v4.nodes.find((n) => n.id === "inner")?.parentId).toBe("outer")
   })
 })
 

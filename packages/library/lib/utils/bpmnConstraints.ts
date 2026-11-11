@@ -275,8 +275,8 @@ export const canDropIntoParent = (
     return childType === "useCase" || childType === "useCaseActor"
   }
 
-  // Component Subsystem can contain components and interfaces
-  if (parentType === "componentSubsystem") {
+  // A Component and a Subsystem can contain components and interfaces
+  if (parentType === "component" || parentType === "componentSubsystem") {
     return (
       childType === "component" ||
       childType === "componentInterface" ||
