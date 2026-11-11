@@ -285,6 +285,23 @@ export function hasUnsyncedModelChanges(project: BesserProject, link: ProjectGit
 }
 
 /**
+ * Keep a linked project in sync across a format migration. `syncedModel` was
+ * taken over the stored models; when it equals `storedFingerprint` (the
+ * project as stored, before the load migrated it), the migration is the only
+ * difference, so the fingerprint of the migrated project replaces it. A
+ * project with real local changes does not match and stays "changed".
+ */
+export function restampMigratedGitHubLink(project: BesserProject, storedFingerprint: string): void {
+  const link = getProjectGitHubLink(project.id);
+  if (!link?.syncedModel || link.syncedModel !== storedFingerprint) return;
+  const migrated = modelFingerprint(project);
+  if (migrated === storedFingerprint) return;
+  writeLink(project.id, { ...link, syncedModel: migrated });
+  // Projects are loaded while components render, so listeners hear of it afterwards.
+  queueMicrotask(() => notify(project.id));
+}
+
+/**
  * Record that `project` now matches commit `sha` of its linked repo.
  *
  * `loadedFromRepo`: the project was just replaced by the repo's model, which

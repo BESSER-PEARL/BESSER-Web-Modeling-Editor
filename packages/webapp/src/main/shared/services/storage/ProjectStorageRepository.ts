@@ -13,6 +13,7 @@ import {
   isProject,
   isV3UMLModel,
   MAX_DIAGRAMS_PER_TYPE,
+  PROJECT_SCHEMA_VERSION,
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
@@ -28,6 +29,7 @@ import {
 import i18n from '../../i18n';
 import { reportError } from '../errors/reportError';
 import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
+import { modelFingerprint, restampMigratedGitHubLink } from './projectGitHubLink';
 import {
   LOCAL_STORAGE_WARNING_CHARS,
   checkLocalStorageQuota,
@@ -197,13 +199,25 @@ export class ProjectStorageRepository {
       }
 
       this.backupPreMigrationProject(projectId, projectData, project);
-      return ensureProjectMigrated(project);
+      // Taken before the migration, which rewrites the project in place.
+      const storedFingerprint = this.needsMigration(project) ? modelFingerprint(project) : null;
+      const migrated = ensureProjectMigrated(project);
+      if (storedFingerprint !== null) restampMigratedGitHubLink(migrated, storedFingerprint);
+      return migrated;
     } catch (error) {
       console.error('Error loading project:', error);
       return null;
     }
   }
   
+  /** Whether loading this stored project changes its models or diagram set. */
+  private static needsMigration(project: BesserProject): boolean {
+    if (!(project.schemaVersion >= PROJECT_SCHEMA_VERSION)) return true;
+    return Object.values(project.diagrams).some((entry) =>
+      (Array.isArray(entry) ? entry : [entry]).some((d) => !!d && isV3UMLModel(d.model)),
+    );
+  }
+
   /**
    * Key of a project's pre-migration copy: the exact JSON the old (v3) editor
    * stored, kept so a rollback to that editor can restore it. Restore
