@@ -1,6 +1,8 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { toast } from 'react-toastify';
 import i18n from '../i18n';
+import { reportError } from '../services/errors/reportError';
+import { readLegacyTrace, removeLegacyTrace } from '../services/storage/legacyTraceStorage';
 import type { BesserProject, ProjectDiagram } from '../types/project';
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { RequirementArtifact, TraceFile } from '../types/traceability';
@@ -36,8 +38,6 @@ import type { AssistantReplyKind, AssistantRequest, ModelingSource } from './tra
  * Recording is per project (`settings.traceabilityEnabled`): on for a new project, off when unset.
  */
 
-/** Where traces were kept before IndexedDB: a trace still there is moved over when first read. */
-export const LEGACY_TRACE_STORAGE_PREFIX = 'besser_traces_';
 /** Recorded when the project has no owner. Mirrors `TRACE_ANONYMOUS_ACTOR` in the backend. */
 export const ANONYMOUS_ACTOR = 'anonymous';
 /** Updates this close together are saved in one write (typing a name updates the trace on every key). */
@@ -94,8 +94,8 @@ async function readStored(projectId: string): Promise<TraceFile> {
     toast.warn(i18n.t('traceability.toasts.storageUnavailable'));
     return emptyTraceFile(projectId);
   }
-  const legacyKey = `${LEGACY_TRACE_STORAGE_PREFIX}${projectId}`;
-  const legacy = stored === undefined ? localStorage.getItem(legacyKey) : null;
+  // A trace kept in `localStorage` before IndexedDB is moved over.
+  const legacy = stored === undefined ? readLegacyTrace(projectId) : null;
   if (stored === undefined && legacy === null) return emptyTraceFile(projectId);
   try {
     const parsed = migrateTraceFile(legacy !== null ? JSON.parse(legacy) : stored);
@@ -103,7 +103,7 @@ async function readStored(projectId: string): Promise<TraceFile> {
     if (!problem) {
       if (legacy !== null) {
         await storage.write(projectId, parsed as TraceFile);
-        localStorage.removeItem(legacyKey);
+        removeLegacyTrace(projectId);
       }
       return parsed as TraceFile;
     }
@@ -155,7 +155,7 @@ async function save(projectId: string): Promise<void> {
       }
     } catch (retryError) {
       console.warn('Trace storage is full; the latest changes were not saved.', retryError);
-      toast.error(i18n.t('traceability.toasts.storageFull'));
+      reportError(i18n.t('traceability.toasts.storageFull'), { error: retryError });
     }
   }
 }
@@ -228,7 +228,7 @@ export function deleteProjectTrace(projectId: string): void {
   clearTimeout(unsaved.get(projectId));
   unsaved.delete(projectId);
   cache.delete(projectId);
-  localStorage.removeItem(`${LEGACY_TRACE_STORAGE_PREFIX}${projectId}`);
+  removeLegacyTrace(projectId);
   storage.remove(projectId).catch((error) => console.warn(`The trace of project ${projectId} could not be deleted.`, error));
   notify();
 }

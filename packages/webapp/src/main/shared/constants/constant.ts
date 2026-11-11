@@ -212,6 +212,8 @@ export const localStorageLegacyGitHubLinkedRepos = localStoragePrefix + 'github_
 export const localStorageLegacyGitHubAutoCommit = localStoragePrefix + 'github_auto_commit';
 // Pre-projects agent config; migrated once into per-project storage.
 export const localStorageLegacyAgentConfig = 'agentConfig';
+// Project traces before IndexedDB, one per project id; moved over when first read, removed with the project.
+export const localStorageLegacyTracePrefix = localStoragePrefix + 'traces_';
 // Unprefixed keys of the pre-v7 webapp, removed by the v2 storage migration and by "Reset and reload".
 // Literals on purpose: the keys of a past version must not follow a rename of a live constant.
 // 'github_username' and 'umlAgentRateLimiterState' are still live: clearing them is intended (Reset

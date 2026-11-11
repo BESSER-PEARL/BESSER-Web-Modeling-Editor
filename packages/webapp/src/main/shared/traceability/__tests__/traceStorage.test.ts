@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  LEGACY_TRACE_STORAGE_PREFIX,
   flushTraceSaves,
   loadProjectTrace,
   setTraceStorage,
   updateProjectTrace,
 } from '../traceStore';
 import { memoryTraceStorage } from '../traceDatabase';
+import { localStorageLegacyTracePrefix } from '../../constants/constant';
 import type { TraceStorage } from '../traceDatabase';
 import { KEPT_GENERATIONS_PER_GENERATOR, pruneOldGenerations } from '../traceRecorder';
 import { coverageMatrix, indexTrace } from '../traceQueries';
@@ -73,9 +73,9 @@ describe('trace storage', () => {
   it('moves a trace kept in localStorage by an earlier version into the storage', async () => {
     const { storage } = spyStorage();
     setTraceStorage(storage);
-    localStorage.setItem(`${LEGACY_TRACE_STORAGE_PREFIX}p1`, JSON.stringify({ ...emptyTraceFile('p1'), actors: [ada] }));
+    localStorage.setItem(`${localStorageLegacyTracePrefix}p1`, JSON.stringify({ ...emptyTraceFile('p1'), actors: [ada] }));
     expect((await loadProjectTrace('p1')).actors).toEqual([ada]);
-    expect(localStorage.getItem(`${LEGACY_TRACE_STORAGE_PREFIX}p1`)).toBeNull();
+    expect(localStorage.getItem(`${localStorageLegacyTracePrefix}p1`)).toBeNull();
     expect(await storage.read('p1')).toMatchObject({ actors: [ada] });
   });
 });
