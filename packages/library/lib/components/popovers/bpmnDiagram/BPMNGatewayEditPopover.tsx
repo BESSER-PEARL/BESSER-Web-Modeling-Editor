@@ -19,11 +19,12 @@ import {
   displayTrustScore,
   parseTrustScore,
 } from "@/types/bpmnAgentic"
-import { DividerLine, TextField } from "@/components/ui"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { InspectorSectionHeader } from "@/components/inspectors/_shared"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useTranslation } from "@/i18n"
 import { clearIneligibleBpmnDefaults } from "@/utils/bpmnDefaultFlow"
+import { supportsMultilineName } from "@/utils/nodeUtils"
 import {
   AGENTIC_ELIGIBLE_GATEWAY_TYPES,
   findDownstreamAgenticConstructs,
@@ -144,11 +145,11 @@ export const BPMNGatewayEditPopover: React.FC<PopoverProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <TextField
-        size="small"
-        label={t("popup.name", "Name")}
-        value={data.name ?? ""}
-        onChange={(e) => setField({ name: e.target.value })}
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={(key, value) => setField({ [key]: value })}
+        inputPlaceholder={t("popup.name", "Name")}
+        isMultilineName={supportsMultilineName(node.type)}
       />
       <FormControl fullWidth size="small">
         <InputLabel id="bpmn-gateway-type-label">

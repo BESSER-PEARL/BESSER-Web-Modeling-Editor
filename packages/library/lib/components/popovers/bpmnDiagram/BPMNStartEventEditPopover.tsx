@@ -2,9 +2,10 @@ import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material"
 import { useReactiveNode } from "@/hooks/useReactiveElement"
 import { useReactFlow } from "@xyflow/react"
 import { PopoverProps } from "../types"
-import { BPMNStartEventType } from "@/types"
-import { TextField } from "@/components/ui"
+import { DefaultNodeProps, BPMNStartEventType } from "@/types"
+import { NodeStyleEditor } from "@/components/ui"
 import { useTranslation } from "@/i18n"
+import { supportsMultilineName } from "@/utils/nodeUtils"
 
 export const BPMNStartEventEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -14,27 +15,24 @@ export const BPMNStartEventEditPopover: React.FC<PopoverProps> = ({
   const node = useReactiveNode(elementId)
   if (!node) return null
 
-  const data = node.data as { name?: string; eventType?: BPMNStartEventType }
+  const data = node.data as DefaultNodeProps & { eventType?: BPMNStartEventType }
 
-  const handleNameChange = (value: string) =>
-    updateNodeData(elementId, { name: value })
   const handleTypeChange = (value: BPMNStartEventType) =>
     updateNodeData(elementId, { eventType: value })
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <TextField
-        size="small"
-        label={t("popup.name", "Name")}
-        value={data.name ?? ""}
-        onChange={(e) => handleNameChange(e.target.value)}
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={(key, value) => updateNodeData(elementId, { [key]: value })}
+        inputPlaceholder={t("popup.name", "Name")}
+        isMultilineName={supportsMultilineName(node.type)}
       />
       <FormControl fullWidth size="small">
-        <InputLabel sx={{ color: "red" }} id="bpmn-start-type-label">
+        <InputLabel id="bpmn-start-type-label">
           {t("popup.bpmn.startType", "Start Type")}
         </InputLabel>
         <Select
-          sx={{ color: "red" }}
           labelId="bpmn-start-type-label"
           id="bpmn-start-type-select"
           value={data.eventType ?? "default"}

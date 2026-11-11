@@ -2,9 +2,10 @@ import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material"
 import { useReactiveNode } from "@/hooks/useReactiveElement"
 import { useReactFlow } from "@xyflow/react"
 import { PopoverProps } from "../types"
-import { BPMNIntermediateEventType } from "@/types"
-import { TextField } from "@/components/ui"
+import { DefaultNodeProps, BPMNIntermediateEventType } from "@/types"
+import { NodeStyleEditor } from "@/components/ui"
 import { useTranslation } from "@/i18n"
+import { supportsMultilineName } from "@/utils/nodeUtils"
 
 export const BPMNIntermediateEventEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -14,23 +15,18 @@ export const BPMNIntermediateEventEditPopover: React.FC<PopoverProps> = ({
   const node = useReactiveNode(elementId)
   if (!node) return null
 
-  const data = node.data as {
-    name?: string
-    eventType?: BPMNIntermediateEventType
-  }
+  const data = node.data as DefaultNodeProps & { eventType?: BPMNIntermediateEventType }
 
-  const handleNameChange = (value: string) =>
-    updateNodeData(elementId, { name: value })
   const handleTypeChange = (value: BPMNIntermediateEventType) =>
     updateNodeData(elementId, { eventType: value })
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <TextField
-        size="small"
-        label={t("popup.name", "Name")}
-        value={data.name ?? ""}
-        onChange={(e) => handleNameChange(e.target.value)}
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={(key, value) => updateNodeData(elementId, { [key]: value })}
+        inputPlaceholder={t("popup.name", "Name")}
+        isMultilineName={supportsMultilineName(node.type)}
       />
       <FormControl fullWidth size="small">
         <InputLabel id="bpmn-intermediate-type-label">
