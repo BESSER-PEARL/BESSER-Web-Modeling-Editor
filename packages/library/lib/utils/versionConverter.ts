@@ -2738,8 +2738,8 @@ const CHILD_ID_LISTS = ["attributes", "methods", "bodies", "fallbackBodies"] as 
 /**
  * Drop the entries a v3 table can hold that no converter step can read
  * (null rows, rows without a `type`, relationships without both ends, null
- * path points) and settle the model type, so one bad row does not fail the
- * whole diagram.
+ * path points), turn non-string names into strings and settle the model
+ * type, so one bad row does not fail the whole diagram.
  */
 function sanitizeV3Model(
   raw: V3UMLModel,
@@ -2766,6 +2766,12 @@ function sanitizeV3Model(
         warn(`Dropped the invalid ${field} list of element "${key}".`)
         fixed = { ...fixed, [field]: undefined }
       }
+    }
+    // A number or boolean name (an attribute called 42) breaks the string parsing.
+    const name: unknown = fixed.name
+    if (name != null && typeof name !== "string") {
+      warn(`Converted the non-text name of element "${key}" to text.`)
+      fixed = { ...fixed, name: isObject(name) ? "" : String(name) }
     }
     elements[key] = fixed
   }

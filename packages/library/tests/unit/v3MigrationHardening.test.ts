@@ -166,3 +166,46 @@ describe("non-array child-id lists", () => {
     }
   )
 })
+
+// One non-string name threw "name.trim is not a function" and left the whole
+// diagram read-only.
+describe("convertV3ToV4 turns non-string names into text", () => {
+  it("converts a class whose attribute and method names are not strings", () => {
+    const m = classModel()
+    el(m, "a1").name = 42
+    m.elements.m1 = {
+      id: "m1", name: true, type: "ClassMethod", owner: "c1",
+      bounds: { x: 0, y: 60, width: 100, height: 30 },
+    }
+    el(m, "c1").methods = ["m1"]
+    const warnings: string[] = []
+    const v4 = convertV3ToV4(toV3(m), { warnings })
+    const data = v4.nodes.find((n) => n.id === "c1")!.data as {
+      attributes: { name: string }[]
+      methods: { name: string }[]
+    }
+    expect(data.attributes[0].name).toBe("42")
+    expect(data.methods[0].name).toBe("true")
+    expect(warnings.filter((w) => w.includes("non-text name"))).toHaveLength(2)
+  })
+
+  it("converts an NN configuration whose name is a number", () => {
+    const m: Fixture = {
+      version: "3.0.0",
+      type: "NNDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        cfg: {
+          id: "cfg", name: 7, type: "Configuration", owner: null,
+          bounds: { x: 0, y: 0, width: 200, height: 100 },
+        },
+      },
+      relationships: {},
+      assessments: {},
+    }
+    const v4 = convertV3ToV4(toV3(m), { warnings: [] })
+    expect(v4.nodes).toHaveLength(1)
+    expect(v4.nodes[0].data.name).toBe("7")
+  })
+})
