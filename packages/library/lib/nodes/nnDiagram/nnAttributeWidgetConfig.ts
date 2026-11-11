@@ -799,7 +799,8 @@ const DATASET_FIELDS: AttributeWidgetConfig[] = [
     defaultValue: "images",
     label: "input_format",
   },
-  { slug: "shape", widget: "text", label: "shape" },
+  // V3 default = '[32, 32, 3]', attributeType 'List'.
+  textField("shape", "List", { defaultValue: "[32, 32, 3]" }),
   boolField("normalize", "false"),
 ]
 
