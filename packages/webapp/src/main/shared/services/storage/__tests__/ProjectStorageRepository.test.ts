@@ -2,6 +2,7 @@ import { readStoredConversation, writeStoredConversation } from '../assistantSto
 import { ProjectStorageRepository } from '../ProjectStorageRepository';
 import { createDefaultProject, ALL_DIAGRAM_TYPES, BesserProject } from '../../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constants/constant';
+import projectBeforeQuantumAndBpmn from './fixtures/project-before-quantum-bpmn.json';
 
 // Mock react-toastify (imported transitively by localStorageQuota)
 vi.mock('react-toastify', () => ({
@@ -54,6 +55,38 @@ describe('ProjectStorageRepository', () => {
     it('returns null for corrupted JSON data', () => {
       localStorage.setItem(`${localStorageProjectPrefix}broken`, '{bad json');
       expect(ProjectStorageRepository.loadProject('broken')).toBeNull();
+    });
+
+    it('opens a project saved before the quantum and BPMN diagram types existed', () => {
+      localStorage.setItem(
+        `${localStorageProjectPrefix}old-project-1`,
+        JSON.stringify(projectBeforeQuantumAndBpmn),
+      );
+
+      const loaded = ProjectStorageRepository.loadProject('old-project-1');
+
+      expect(loaded).not.toBeNull();
+      expect(loaded!.name).toBe('Library');
+      for (const type of ALL_DIAGRAM_TYPES) {
+        expect(Array.isArray(loaded!.diagrams[type])).toBe(true);
+        expect(loaded!.diagrams[type].length).toBeGreaterThan(0);
+      }
+      const classModel = loaded!.diagrams.ClassDiagram[0].model as { elements: Record<string, { name: string }> };
+      expect(classModel.elements['c-book'].name).toBe('Book');
+    });
+
+    it.each([
+      ['not a project', { type: 'Diagram', diagrams: {}, currentDiagramType: 'ClassDiagram' }],
+      ['no diagrams', { ...projectBeforeQuantumAndBpmn, diagrams: undefined }],
+      ['no current diagram type', { ...projectBeforeQuantumAndBpmn, currentDiagramType: undefined }],
+      [
+        'no class diagram',
+        { ...projectBeforeQuantumAndBpmn, diagrams: { ...projectBeforeQuantumAndBpmn.diagrams, ClassDiagram: undefined } },
+      ],
+      ['an array', [projectBeforeQuantumAndBpmn]],
+    ])('still refuses stored data with %s', (_label, data) => {
+      localStorage.setItem(`${localStorageProjectPrefix}garbage`, JSON.stringify(data));
+      expect(ProjectStorageRepository.loadProject('garbage')).toBeNull();
     });
   });
 

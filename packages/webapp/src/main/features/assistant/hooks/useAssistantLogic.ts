@@ -34,7 +34,13 @@ import {
   sameTurns,
   toProjectConversation,
 } from './projectConversation';
-import { autoFixInProgressMessage, autoFixRemainingMessage, autoFixResolvedMessage } from './autoFixMessages';
+import {
+  autoFixFailedMessage,
+  autoFixInProgressMessage,
+  autoFixInterruptedMessage,
+  autoFixRemainingMessage,
+  autoFixResolvedMessage,
+} from './autoFixMessages';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
@@ -574,6 +580,7 @@ export function useAssistantLogic({
     setMessageMeta,
     setProgressMessage: streaming.setProgressMessage,
     onModelApplied: handleModelApplied,
+    onModelApplyFailed: handleModelApplyFailed,
   });
 
   /* ---- post-injection validate-and-repair loop ---- */
@@ -623,15 +630,37 @@ export function useAssistantLogic({
           errors.map((e) => `- ${e}`).join('\n');
         // Pass the just-applied model explicitly — the store refs can lag one
         // render behind right after an injection.
-        assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
+        const sent = assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
           ...context,
           activeDiagramType: 'ClassDiagram',
           activeModel: info.model,
         });
+        if (sent === 'error') {
+          autoFixRef.current.fixInFlight = false;
+          settleAutoFixProgress(autoFixFailedMessage(errors), true);
+          return;
+        }
+        autoFixRef.current.turnId = sent === 'sent' ? assistantClient.turnId : null;
       } catch (loopError) {
         console.warn('[auto-fix] validation loop skipped:', loopError);
       }
     })();
+  }
+
+  // A frame answers the repair when it carries the repair's turnId, or no
+  // turnId at all (an agent that stamps none).
+  function isRepairTurn(turnId: unknown): boolean {
+    const repairTurn = autoFixRef.current.turnId;
+    return !repairTurn || typeof turnId !== 'string' || turnId === repairTurn;
+  }
+
+  // A repair whose model the editor could not apply never reaches
+  // handleModelApplied; it is reported here, not as "try rephrasing".
+  function handleModelApplyFailed(info: { action: string; diagramType?: string; turnId?: string }): boolean {
+    if (!autoFixRef.current.fixInFlight || !isRepairTurn(info.turnId)) return false;
+    autoFixRef.current.fixInFlight = false;
+    settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
+    return true;
   }
 
   /* ---- Spec-Driven Agent trigger handler ---- */
@@ -786,6 +815,19 @@ export function useAssistantLogic({
     }
     if (payload.action !== 'agent_error') trackReply(payload.action, payload.diagramType);
 
+    // A repair answered without a model never reaches handleModelApplied, so its
+    // "fixing…" line is settled here; a model reply comes as an injection, never
+    // as one of these two actions (BESSER#744). A late reply to an earlier turn
+    // (another diagram of a multi-diagram plan) is not the repair's answer.
+    if (
+      autoFixRef.current.fixInFlight &&
+      isRepairTurn(payload.turnId) &&
+      (payload.action === 'assistant_message' || payload.action === 'agent_error')
+    ) {
+      autoFixRef.current.fixInFlight = false;
+      settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
+    }
+
     // Extract suggestedActions from assistant_message payloads before returning.
     if (payload.action === 'assistant_message') {
       if (Array.isArray(payload.suggestedActions) && (payload.suggestedActions as unknown[]).length > 0) {
@@ -893,7 +935,11 @@ export function useAssistantLogic({
         // completion). Let the agent send a generator-specific "done" line; on
         // failure, pass the real error through.
         message: result.ok ? undefined : result.error,
-        metadata: result.ok && result.filename ? { filename: result.filename, generatorType } : undefined,
+        // On failure, why (e.g. `warnings_declined`: the user chose to fix the
+        // validation warnings first), so the agent need not read the English text.
+        metadata: result.ok
+          ? result.filename ? { filename: result.filename, generatorType } : undefined
+          : result.reason ? { generatorType, reason: result.reason } : undefined,
       });
       return;
     }
@@ -1358,7 +1404,11 @@ export function useAssistantLogic({
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
-      // Every real user message grants a fresh automatic repair attempt.
+      // Every real user message grants a fresh automatic repair attempt. A
+      // repair still in flight is no longer tracked, so its spinner stops here.
+      if (autoFixRef.current.progressMessageId) {
+        settleAutoFixProgress(autoFixInterruptedMessage(autoFixRef.current.issues));
+      }
       autoFixRef.current = freshAutoFixState();
 
       // Clear any displayed quick-action buttons

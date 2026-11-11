@@ -6,7 +6,7 @@
 import { apiClient } from './api-client';
 import type { components, operations } from './generated/besser-openapi';
 import { BACKEND_URL } from '../constants/constant';
-import type { BesserProject } from '../types/project';
+import { type BesserProject, userProjectDescription, withoutPlaceholderDescription } from '../types/project';
 import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
 import { getDemoToken } from '../services/demoMode';
 
@@ -109,7 +109,12 @@ export const saveModel = (
     /** A model file the old GitHub sidebar saved (e.g. `models/shop.json`); the save commit deletes it. */
     legacy_file_path?: string;
   },
-) => apiClient.post<SaveModelResult>('/github/project/save', body, { ...session(githubSession), timeout: 60_000 });
+) =>
+  apiClient.post<SaveModelResult>(
+    '/github/project/save',
+    { ...body, project_data: withoutPlaceholderDescription(body.project_data) },
+    { ...session(githubSession), timeout: 60_000 },
+  );
 
 /** The repo's model file as stored (a V2 envelope or a legacy project) and the head it was read at. */
 export const loadModel = (githubSession: string, owner: string, repo: string, branch: string) =>
@@ -138,7 +143,11 @@ export const createRepoForProject = (
 ) =>
   apiClient.post<components['schemas']['CreateRepoForProjectResponse']>(
     '/github/project/create-repo',
-    body,
+    {
+      ...body,
+      description: userProjectDescription(body.description),
+      project_data: withoutPlaceholderDescription(body.project_data),
+    },
     { ...session(githubSession), timeout: 60_000 },
   );
 
@@ -171,7 +180,7 @@ export type DeployToGitHubBody =
 
 /** Generate the project's web app (or agent) and commit it to a new or existing repo. */
 export const deployToGitHub = (githubSession: string, body: DeployToGitHubBody) =>
-  apiClient.post<components['schemas']['DeployToGitHubResponse']>('/github/deploy-webapp', body, {
+  apiClient.post<components['schemas']['DeployToGitHubResponse']>('/github/deploy-webapp', withoutPlaceholderDescription(body), {
     ...session(githubSession),
     // Several GitHub API calls plus code generation, observed up to ~37 s.
     timeout: 120_000,

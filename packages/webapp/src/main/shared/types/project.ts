@@ -676,6 +676,22 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 };
 
 // Default project factory
+/**
+ * The text the create-project form used to pre-fill as the description. It was a value, not a
+ * hint, so many saved projects still carry it; it must not reach a repository or a README.
+ */
+export const LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION = 'Modern workspace project for UML, GUI and quantum modeling.';
+
+/** `description` as the user wrote it: '' when it is missing or the legacy pre-filled text. */
+export const userProjectDescription = (description: string | null | undefined): string =>
+  !description || description.trim() === LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION ? '' : description;
+
+/** `project` itself, or a shallow copy with an empty description when it holds the legacy pre-filled text. */
+export const withoutPlaceholderDescription = <T extends { description?: unknown }>(project: T): T =>
+  typeof project.description === 'string' && userProjectDescription(project.description) !== project.description
+    ? { ...project, description: '' }
+    : project;
+
 export const createDefaultProject = (
   name: string,
   description: string,
@@ -730,16 +746,16 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // KnowledgeGraphDiagram, NNDiagram and UserDiagram are back-filled by
-  // ensureProjectMigrated when missing, so they are not required here.
+  // Every type ensureProjectMigrated back-fills when missing (QuantumCircuitDiagram,
+  // BPMN, NNDiagram, UserDiagram, KnowledgeGraphDiagram, ComponentDiagram,
+  // DeploymentDiagram) is not required here: projects saved before those types
+  // existed must still open.
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram &&
-    obj.diagrams.BPMN;
+    obj.diagrams.GUINoCodeDiagram;
 
   return !!hasRequiredDiagrams;
 };
