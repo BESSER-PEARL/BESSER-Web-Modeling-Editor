@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Diagramm ouni Titel",
       "exportPngWhite": "PNG exportéieren (wäiss)",
       "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller.",
-      "diagramCount": "{{count}} Diagrammer: {{titles}}"
+      "diagramCount": "{{count}} Diagrammer: {{titles}}",
+      "unmigratedDiagram": "Dëst Diagramm ass an engem alen Format, dat net konvertéiert konnt ginn. Nëmmen dat gespäichert JSON kann exportéiert ginn."
     },
     "toasts": {
       "unknownError": "Onbekannte Feeler",

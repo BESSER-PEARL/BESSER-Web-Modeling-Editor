@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { BesserEditor } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
-import { ProjectDiagram } from '../../shared/types/project';
+import { isV3UMLModel, ProjectDiagram } from '../../shared/types/project';
 import { prepareAgentModelForBackend, versionMetadata } from '../../shared/utils/projectExportUtils';
 import { loadBesserVersion } from '../../shared/services/besserVersion';
 
@@ -12,10 +12,14 @@ export const useExportJSON = () => {
     async (editor: BesserEditor, diagram: ProjectDiagram) => {
       const fileName = `${diagram.title}.json`;
       await loadBesserVersion();
-      // An agent canvas snapshot carries no off-canvas components; re-attach them.
       const diagramData = {
         ...diagram,
-        model: prepareAgentModelForBackend(editor.model, diagram),
+        // The editor cannot load an unmigrated v3 model, so its canvas is empty:
+        // export the stored model. An agent canvas snapshot carries no off-canvas
+        // components; re-attach them.
+        model: isV3UMLModel(diagram.model)
+          ? diagram.model
+          : prepareAgentModelForBackend(editor.model, diagram),
         ...versionMetadata(),
       };
 

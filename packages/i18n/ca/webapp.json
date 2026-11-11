@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Diagrama sense títol",
       "exportPngWhite": "Exporta PNG (blanc)",
       "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge.",
-      "diagramCount": "{{count}} diagrames: {{titles}}"
+      "diagramCount": "{{count}} diagrames: {{titles}}",
+      "unmigratedDiagram": "Aquest diagrama és en un format antic que no s'ha pogut convertir. Només se'n pot exportar el JSON desat."
     },
     "toasts": {
       "unknownError": "Error desconegut",

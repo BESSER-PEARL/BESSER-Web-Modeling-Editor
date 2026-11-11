@@ -15,6 +15,7 @@ import {
   SupportedDiagramType,
   getReferencedDiagram,
   isUMLModel,
+  isV3UMLModel,
   isKnowledgeGraphData,
   diagramHasContent,
 } from '../../shared/types/project';
@@ -176,6 +177,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   // A Knowledge Graph has no SVG/PNG/UML-JSON form; what you export from it is RDF.
   const { isKgContext: isKgDiagram } = getWorkspaceContext(currentProject?.currentDiagramType);
   const kgNodes = isKnowledgeGraphData(diagram?.model) ? diagram.model.nodes : [];
+  // A v3 diagram that could not be migrated is not drawn, so it has no image or B-UML.
+  const isUnmigrated = isV3UMLModel(diagram?.model);
 
   const handleKgExport = async (format: KgRdfFormat, vocab: KgRdfVocab) => {
     if (pendingRef.current) return;
@@ -292,7 +295,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <Button
                   variant="outline"
                   onClick={() => handleExport('SVG')}
-                  disabled={pendingFormat !== null}
+                  disabled={pendingFormat !== null || isUnmigrated}
                   aria-busy={pendingFormat === 'SVG'}
                   className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
                 >
@@ -302,7 +305,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <Button
                   variant="outline"
                   onClick={() => handleExport('PNG_WHITE')}
-                  disabled={pendingFormat !== null}
+                  disabled={pendingFormat !== null || isUnmigrated}
                   aria-busy={pendingFormat === 'PNG_WHITE'}
                   className="justify-start gap-2 border-border/50"
                 >
@@ -312,7 +315,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <Button
                   variant="outline"
                   onClick={() => handleExport('PNG')}
-                  disabled={pendingFormat !== null}
+                  disabled={pendingFormat !== null || isUnmigrated}
                   aria-busy={pendingFormat === 'PNG'}
                   className="justify-start gap-2 border-border/50"
                 >
@@ -332,7 +335,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <Button
                   variant="outline"
                   onClick={() => handleExport('SINGLE_BUML')}
-                  disabled={pendingFormat !== null}
+                  disabled={pendingFormat !== null || isUnmigrated}
                   aria-busy={pendingFormat === 'SINGLE_BUML'}
                   className="justify-start gap-2 border-border/50"
                 >
@@ -341,6 +344,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 </Button>
               </div>
 
+              {isUnmigrated && (
+                <p
+                  data-testid="export-unmigrated-notice"
+                  className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200"
+                >
+                  {t('export.dialog.unmigratedDiagram')}
+                </p>
+              )}
               {!editor && (
                 <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
                   {t('export.dialog.requiresUmlView')}

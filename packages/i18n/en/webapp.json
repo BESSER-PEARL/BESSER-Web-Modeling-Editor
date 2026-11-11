@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Untitled diagram",
       "exportPngWhite": "Export PNG (White)",
       "currentDescription": "Export the current UML diagram as image assets.",
-      "diagramCount": "{{count}} diagrams: {{titles}}"
+      "diagramCount": "{{count}} diagrams: {{titles}}",
+      "unmigratedDiagram": "This diagram is in an old format that could not be converted. Only its saved JSON can be exported."
     },
     "toasts": {
       "unknownError": "Unknown error",

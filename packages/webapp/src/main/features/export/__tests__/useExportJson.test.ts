@@ -52,6 +52,24 @@ describe('useExportJSON', () => {
     expect(exported.model.components).toEqual({ [LLM.id]: LLM });
   });
 
+  // The editor cannot load a v3 model that failed to migrate, so its canvas
+  // model is empty: the file must carry the stored model instead.
+  it('exports the stored model of a diagram that could not be migrated', async () => {
+    const stored = {
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      elements: { c1: { id: 'c1', name: 'Ship', type: 'Class', owner: null } },
+      relationships: {},
+    };
+    const diagram = { ...createEmptyDiagram('Library', UMLDiagramType.ClassDiagram), model: stored as unknown as UMLModel };
+    const editor = { model: createEmptyDiagram('Library', UMLDiagramType.ClassDiagram).model } as unknown as BesserEditor;
+
+    const { result } = renderHook(() => useExportJSON());
+    await result.current(editor, diagram);
+
+    expect((await readExported()).model).toEqual(stored);
+  });
+
   it('records the BESSER and editor versions in a single-diagram export', async () => {
     const diagram = createEmptyDiagram('Library', UMLDiagramType.ClassDiagram);
     const editor = { model: diagram.model } as unknown as BesserEditor;
