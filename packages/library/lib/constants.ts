@@ -1424,6 +1424,9 @@ const getUserDiagramMetaClassEntries = (): ReadonlyArray<DropElementConfig> =>
           id: a.id,
           name: a.name,
           attributeType: a.attributeType,
+          // Links the row to its meta-class attribute; without it the
+          // inspector treats the row as ad hoc (free name, primitive types).
+          attributeId: a.id,
           attributeOperator: "==",
         })),
         // Dropped nodes default to icon view (matches the v3 fork's
