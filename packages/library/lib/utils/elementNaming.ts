@@ -110,9 +110,11 @@ const NN_NAMED_TYPES: ReadonlySet<string> = new Set([
 ])
 
 /**
- * First free NN name among the same-kind siblings (same `parentId`) of a
- * node: `Conv2D` -> `Conv2D2` -> `Conv2D3` (v3 `createMandatoryAttributes`).
- * `parentId` defaults to that of the `selfId` node.
+ * First free NN name for a node: `Conv2D` -> `Conv2D2` -> `Conv2D3`.
+ * A container is compared with the other containers. Any other node is
+ * compared with every named node of its NN (same `parentId`), whatever
+ * its kind: the backend resolves `name_module_input` by name among all
+ * modules of one NN. `parentId` defaults to that of the `selfId` node.
  */
 export function nextUniqueNNLayerName(
   baseName: string,
@@ -128,10 +130,15 @@ export function nextUniqueNNLayerName(
 ): string {
   const taken = new Set(
     nodes
-      .filter(
-        (n) =>
-          n.id !== selfId && n.type === nodeType && n.parentId === parentId
-      )
+      .filter((n) => {
+        if (n.id === selfId || !n.type) return false
+        if (nodeType === "NNContainer") return n.type === "NNContainer"
+        return (
+          n.type !== "NNContainer" &&
+          NN_NAMED_TYPES.has(n.type) &&
+          n.parentId === parentId
+        )
+      })
       .map((n) => (n.data && typeof n.data.name === "string" ? n.data.name : ""))
       .filter((s) => s !== "")
   )
