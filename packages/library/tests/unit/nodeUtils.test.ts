@@ -401,7 +401,7 @@ describe("isParentNodeType", () => {
     expect(isParentNodeType("class")).toBe(false)
     expect(isParentNodeType("bpmnTask")).toBe(false)
     expect(isParentNodeType("useCase")).toBe(false)
-    expect(isParentNodeType("component")).toBe(false)
+    expect(isParentNodeType("componentInterface")).toBe(false)
   })
 
   it("returns false for random string", () => {

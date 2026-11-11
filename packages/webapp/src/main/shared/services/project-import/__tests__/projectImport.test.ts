@@ -324,11 +324,10 @@ describe('importProjectFromJson legacy format migration', () => {
   });
 
   it('imports an old-webapp project whose v3 model fails migration, keeping that diagram v3 (read-only)', async () => {
-    // An attribute row with a non-string name still throws in the converter
-    // (malformed rows it can recognise are skipped instead).
+    // A model of another diagram kind still throws in the converter
+    // (malformed rows it can recognise are skipped or repaired instead).
     const corrupt = v3ClassModel();
-    corrupt.elements['el-1'].attributes = ['a-1'];
-    corrupt.elements['a-1'] = { id: 'a-1', type: 'ClassAttribute', name: 5, owner: 'el-1' };
+    corrupt.type = 'StateMachineDiagram';
 
     const project = await importProjectFromJson(envelopeFile(oldWebappEnvelope(corrupt)));
 

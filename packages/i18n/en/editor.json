@@ -74,6 +74,11 @@
         "typeIntegers": "integers",
         "typeString": "string",
         "typeStrings": "strings"
+      },
+      "reference": {
+        "references": "references",
+        "noContainer": "— no container —",
+        "noOtherContainer": "No other NN container in this diagram yet."
       }
     },
     "attributes": "Attributes",

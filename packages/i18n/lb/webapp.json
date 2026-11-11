@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Diagramm ouni Titel",
       "exportPngWhite": "PNG exportéieren (wäiss)",
       "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller.",
-      "diagramCount": "{{count}} Diagrammer: {{titles}}"
+      "diagramCount": "{{count}} Diagrammer: {{titles}}",
+      "unmigratedDiagram": "Dëst Diagramm ass an engem alen Format, dat net konvertéiert konnt ginn. Nëmmen dat gespäichert JSON kann exportéiert ginn."
     },
     "toasts": {
       "unknownError": "Onbekannte Feeler",
@@ -3801,7 +3802,8 @@
       "bumlExportSuccess": "B-UML-Export erfollegräich ofgeschloss",
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
-      "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
+      "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}",
+      "unmigratedLeftOut": "Net dobäi, well se an engem alen Format sinn, dat net konvertéiert konnt ginn: {{titles}}"
     },
     "diagramLabels": {
       "ClassDiagram": "Klassendiagramm",

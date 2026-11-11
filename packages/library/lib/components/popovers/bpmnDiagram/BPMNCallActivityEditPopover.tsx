@@ -2,8 +2,10 @@ import { Box } from "@mui/material"
 import { useReactiveNode } from "@/hooks/useReactiveElement"
 import { useReactFlow } from "@xyflow/react"
 import { PopoverProps } from "../types"
-import { TextField } from "@/components/ui"
+import { NodeStyleEditor, TextField } from "@/components/ui"
+import { DefaultNodeProps } from "@/types"
 import { useTranslation } from "@/i18n"
+import { supportsMultilineName } from "@/utils/nodeUtils"
 
 /**
  * Call Activity editor: name + the referenced `calledElement` id. Mirrors
@@ -17,15 +19,15 @@ export const BPMNCallActivityEditPopover: React.FC<PopoverProps> = ({
   const { t } = useTranslation()
   const node = useReactiveNode(elementId)
   if (!node) return null
-  const data = node.data as { name?: string; calledElement?: string }
+  const data = node.data as DefaultNodeProps & { calledElement?: string }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <TextField
-        size="small"
-        label={t("popup.name", "Name")}
-        value={data.name ?? ""}
-        onChange={(e) => updateNodeData(elementId, { name: e.target.value })}
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={(key, value) => updateNodeData(elementId, { [key]: value })}
+        inputPlaceholder={t("popup.name", "Name")}
+        isMultilineName={supportsMultilineName(node.type)}
       />
       <TextField
         size="small"

@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNReferenceNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector for `NNReference`. Shows:
@@ -16,6 +17,7 @@ import { PopoverProps } from "@/components/popovers/types"
  *    in sync with the container's current name.
  */
 export const NNReferenceEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -68,7 +70,7 @@ export const NNReferenceEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          references
+          {t("popup.nn.reference.references", "references")}
         </Typography>
         <Select
           size="small"
@@ -90,7 +92,9 @@ export const NNReferenceEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           }}
           sx={{ flex: 1 }}
         >
-          <MenuItem value="">— no container —</MenuItem>
+          <MenuItem value="">
+            {t("popup.nn.reference.noContainer", "— no container —")}
+          </MenuItem>
           {containers.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}
@@ -100,7 +104,10 @@ export const NNReferenceEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       </Stack>
       {containers.length === 0 && (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          no other NNContainer in this diagram yet
+          {t(
+            "popup.nn.reference.noOtherContainer",
+            "No other NN container in this diagram yet."
+          )}
         </Typography>
       )}
     </Box>

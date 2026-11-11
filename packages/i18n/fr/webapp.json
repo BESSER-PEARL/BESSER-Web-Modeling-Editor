@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Diagramme sans titre",
       "exportPngWhite": "Exporter PNG (blanc)",
       "currentDescription": "Exportez le diagramme UML actuel sous forme d'images.",
-      "diagramCount": "{{count}} diagrammes : {{titles}}"
+      "diagramCount": "{{count}} diagrammes : {{titles}}",
+      "unmigratedDiagram": "Ce diagramme est dans un ancien format qui n'a pas pu être converti. Seul son JSON enregistré peut être exporté."
     },
     "toasts": {
       "unknownError": "Erreur inconnue",
@@ -3801,7 +3802,8 @@
       "bumlExportSuccess": "Export B-UML terminé avec succès",
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
-      "projectExportFailed": "Échec de l'export du projet : {{error}}"
+      "projectExportFailed": "Échec de l'export du projet : {{error}}",
+      "unmigratedLeftOut": "Non inclus, car ils sont dans un ancien format qui n'a pas pu être converti : {{titles}}"
     },
     "diagramLabels": {
       "ClassDiagram": "Diagramme de classes",

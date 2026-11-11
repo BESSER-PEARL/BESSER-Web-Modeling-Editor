@@ -938,8 +938,14 @@ function convertV3NodeDataToV4(
   element: V3UMLElement,
   allElements: Record<string, V3UMLElement>
 ): BesserNode["data"] {
+  const metadata = element as { description?: unknown; uri?: unknown }
   const baseData = {
     name: element.name,
+    // Every v3 element could carry a description and a URI.
+    ...(typeof metadata.description === "string" &&
+      metadata.description && { description: metadata.description }),
+    ...(typeof metadata.uri === "string" &&
+      metadata.uri && { uri: metadata.uri }),
     ...(element.fillColor && { fillColor: element.fillColor }),
     ...(element.strokeColor && { strokeColor: element.strokeColor }),
     ...(element.textColor && { textColor: element.textColor }),
@@ -2732,8 +2738,8 @@ const CHILD_ID_LISTS = ["attributes", "methods", "bodies", "fallbackBodies"] as 
 /**
  * Drop the entries a v3 table can hold that no converter step can read
  * (null rows, rows without a `type`, relationships without both ends, null
- * path points) and settle the model type, so one bad row does not fail the
- * whole diagram.
+ * path points), turn non-string names into strings and settle the model
+ * type, so one bad row does not fail the whole diagram.
  */
 function sanitizeV3Model(
   raw: V3UMLModel,
@@ -2760,6 +2766,12 @@ function sanitizeV3Model(
         warn(`Dropped the invalid ${field} list of element "${key}".`)
         fixed = { ...fixed, [field]: undefined }
       }
+    }
+    // A number or boolean name (an attribute called 42) breaks the string parsing.
+    const name: unknown = fixed.name
+    if (name != null && typeof name !== "string") {
+      warn(`Converted the non-text name of element "${key}" to text.`)
+      fixed = { ...fixed, name: isObject(name) ? "" : String(name) }
     }
     elements[key] = fixed
   }

@@ -252,13 +252,13 @@ describe("NNDiagram auto-name uniqueness on layer drop", () => {
     ).toBe("Conv2D2")
   })
 
-  it("only collides with same-kind siblings", () => {
-    // Same name, different layer kind — no collision.
+  it("collides with a layer of another kind in the same NN", () => {
+    // The backend resolves module names across all kinds of one NN.
     expect(
       nextUniqueNNLayerName("Pooling", "PoolingLayer", [
         { id: "x1", type: "Conv2DLayer", data: { name: "Pooling" } },
       ])
-    ).toBe("Pooling")
+    ).toBe("Pooling2")
   })
 
   it("ignores the calling node when re-rendering an existing layer", () => {

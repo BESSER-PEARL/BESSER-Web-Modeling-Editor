@@ -3788,7 +3788,8 @@
       "untitledDiagram": "Diagrama sense títol",
       "exportPngWhite": "Exporta PNG (blanc)",
       "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge.",
-      "diagramCount": "{{count}} diagrames: {{titles}}"
+      "diagramCount": "{{count}} diagrames: {{titles}}",
+      "unmigratedDiagram": "Aquest diagrama és en un format antic que no s'ha pogut convertir. Només se'n pot exportar el JSON desat."
     },
     "toasts": {
       "unknownError": "Error desconegut",
@@ -3801,7 +3802,8 @@
       "bumlExportSuccess": "Exportació de B-UML completada correctament",
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
-      "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+      "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}",
+      "unmigratedLeftOut": "No inclosos, perquè són en un format antic que no s'ha pogut convertir: {{titles}}"
     },
     "diagramLabels": {
       "ClassDiagram": "Diagrama de classes",

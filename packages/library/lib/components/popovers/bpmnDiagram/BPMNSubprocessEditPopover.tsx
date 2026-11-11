@@ -4,8 +4,10 @@ import { useShallow } from "zustand/shallow"
 import { useReactiveNode } from "@/hooks/useReactiveElement"
 import { useDiagramStore } from "@/store/context"
 import { PopoverProps } from "../types"
-import { TextField } from "@/components/ui"
+import { NodeStyleEditor } from "@/components/ui"
+import { DefaultNodeProps } from "@/types"
 import { useTranslation } from "@/i18n"
+import { supportsMultilineName } from "@/utils/nodeUtils"
 
 /** Collapsed size of a subprocess / transaction (the palette default). */
 export const COLLAPSED_ACTIVITY_SIZE = { width: 160, height: 60 }
@@ -83,15 +85,15 @@ export const BPMNExpandableEditPopover: React.FC<
   const translatedLabel = labelKey ? t(labelKey, label) : label
   const node = useReactiveNode(elementId)
   if (!node) return null
-  const data = node.data as { name?: string; isExpanded?: boolean }
+  const data = node.data as DefaultNodeProps & { isExpanded?: boolean }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <TextField
-        size="small"
-        label={t("popup.name", "Name")}
-        value={data.name ?? ""}
-        onChange={(e) => updateNodeData(elementId, { name: e.target.value })}
+      <NodeStyleEditor
+        nodeData={data}
+        handleDataFieldUpdate={(key, value) => updateNodeData(elementId, { [key]: value })}
+        inputPlaceholder={t("popup.name", "Name")}
+        isMultilineName={supportsMultilineName(node.type)}
       />
       <Button
         fullWidth
