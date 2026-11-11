@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   ChevronDown,
   Download,
-  Eye,
   FileInput,
   FileJson,
   FilePlus,
@@ -47,7 +46,6 @@ interface FileMenuProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
-  onOpenProjectPreview: () => void;
 }
 
 /** Section header inside top-bar menus (File > Import, Help > Community). */
@@ -68,10 +66,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onImportOwl,
-  onOpenProjectPreview,
 }) => {
   const { t } = useTranslation();
   const { isKgContext } = getWorkspaceContext(activeDiagramType);
+  // The diagram-specific imports below get a separator; without one the menu ends on Export.
+  const hasDiagramImport = activeDiagramType === 'BPMN' || isKgContext;
   const title = t('menu.file.title');
   return (
     <DropdownMenu>
@@ -141,7 +140,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <Download className="mr-2 size-4" />
           {t('menu.file.exportProject')}
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {hasDiagramImport && <DropdownMenuSeparator />}
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
         </DropdownMenuItem> */}
@@ -157,10 +156,6 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
-          <Eye className="mr-2 size-4" />
-          {t('menu.file.previewProject')}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -2,6 +2,12 @@ import { BACKEND_URL } from '../constants/constant';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
+/** Fired on `window` when a request carrying the GitHub session gets a 401 (see shared/services/github/githubAuth.ts). */
+export const GITHUB_SESSION_REJECTED_EVENT = 'besser:github-session-rejected';
+
+const carriesGitHubSession = (headers: HeadersInit | undefined): boolean =>
+  !!headers && new Headers(headers).has('X-GitHub-Session');
+
 /**
  * Per-request options. Extends `RequestInit` with an optional `timeout`
  * (milliseconds) that overrides the client's default for slow endpoints
@@ -74,9 +80,10 @@ export function formatErrorDetail(detail: unknown, fallback: string): string {
 /** The `ApiError` for a failed response, from its `{"detail": ...}` body when
  *  there is one, else from its status text, else `fallback`. */
 async function errorFromResponse(response: Response, fallback: string): Promise<ApiError> {
-  const body = await response.json().catch(() => ({ detail: response.statusText }));
+  const body: unknown = await response.json().catch(() => undefined);
   const detail = body && typeof body === 'object' ? (body as { detail?: unknown }).detail : undefined;
-  return new ApiError(response.status, formatErrorDetail(detail, fallback));
+  const message = formatErrorDetail(body === undefined ? response.statusText : detail, fallback);
+  return new ApiError(response.status, message, (detail != null && formatErrorDetail(detail, '')) || undefined);
 }
 
 /**
@@ -121,6 +128,10 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && carriesGitHubSession(fetchOptions.headers)) {
+          // The GitHub session is gone (expired, signed out elsewhere, token revoked).
+          window.dispatchEvent(new Event(GITHUB_SESSION_REJECTED_EVENT));
+        }
         throw await errorFromResponse(response, 'Request failed');
       }
 
@@ -164,6 +175,9 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && carriesGitHubSession(fetchOptions.headers)) {
+          window.dispatchEvent(new Event(GITHUB_SESSION_REJECTED_EVENT));
+        }
         throw await errorFromResponse(response, 'Upload failed');
       }
 
@@ -184,20 +198,28 @@ class ApiClient {
     data: unknown,
     options?: ApiRequestOptions,
   ): Promise<{ blob: Blob; headers: Headers }> {
-    const { timeout: timeoutOverride, signal: callerSignal, ...fetchOptions } = options ?? {};
+    return this.blobRequest(endpoint, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: {
+        ...options?.headers,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  /** GET a file together with its response headers; a failure raises an {@link ApiError}. */
+  async getBlob(endpoint: string, options?: ApiRequestOptions): Promise<{ blob: Blob; headers: Headers }> {
+    return this.blobRequest(endpoint, { ...options, method: 'GET' });
+  }
+
+  private async blobRequest(endpoint: string, options: ApiRequestOptions): Promise<{ blob: Blob; headers: Headers }> {
+    const { timeout: timeoutOverride, signal: callerSignal, ...fetchOptions } = options;
     const { signal, dispose } = requestSignal(timeoutOverride ?? this.timeout, callerSignal);
 
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...fetchOptions,
-        method: 'POST',
-        body: JSON.stringify(data),
-        signal,
-        headers: {
-          ...fetchOptions.headers,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`${this.baseUrl}${endpoint}`, { ...fetchOptions, signal });
 
       if (!response.ok) {
         throw await errorFromResponse(response, 'Download failed');
@@ -210,9 +232,13 @@ class ApiClient {
   }
 }
 
-/** Typed error class carrying the HTTP status code. */
+/**
+ * Typed error class carrying the HTTP status code. `detail` is the server's
+ * own `{"detail": ...}` explanation (readable), absent when the response had
+ * none; `message` falls back to the status text or a generic text.
+ */
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public detail?: string) {
     super(message);
     this.name = 'ApiError';
   }

@@ -10,56 +10,43 @@
  *
  * Lives in `shared/` (not the spec-driven feature) because the unified
  * key dialog (`shared/components/byok/LlmKeyDialog`) needs the free-tier
- * advertisement too, and shared code must not import from features. The
- * spec-driven feature re-exports this module from its old path
- * (`features/spec-driven/services/specDrivenConfig`) so feature imports
- * and test mocks keep working unchanged.
+ * advertisement too, and shared code must not import from features.
  */
 
-import { SMART_GEN_CONFIG_ENDPOINT } from '../constants/constant';
+import { fetchSpecDrivenConfig } from '../api/specDriven';
+import type { components } from '../api/generated/besser-openapi';
 
-export interface SpecDrivenConfigCaps {
-  /** Server-enforced ceiling for the per-run cost budget (USD). */
-  max_cost_usd_hard_cap: number;
-  /** Server-enforced ceiling for the per-run runtime budget (seconds). */
-  max_runtime_seconds_hard_cap: number;
-  /** Default cost budget applied when the request omits one (USD). */
-  default_max_cost_usd: number;
-  /** Default runtime budget applied when the request omits one (seconds). */
-  default_max_runtime_seconds: number;
-}
+type Schemas = components['schemas'];
 
-/** One model a free-tier request may explicitly choose. */
-export interface SpecDrivenFreeModel {
-  /** The model id, exactly as the server honors it in `llm_model`. */
-  id: string;
-  /** True for the server's default (primary) free model. */
-  default: boolean;
-}
+/** The caps the budget inputs use: ceilings and defaults for cost (USD) and runtime (seconds). */
+export type SpecDrivenConfigCaps = Pick<
+  Schemas['SpecDrivenCapsResponse'],
+  'max_cost_usd_hard_cap' | 'max_runtime_seconds_hard_cap' | 'default_max_cost_usd' | 'default_max_runtime_seconds'
+>;
 
-/** Keyless server-hosted "Free" tier advertisement. */
-export interface SpecDrivenFreeTier {
-  /** True when the server has a hosted open-weight endpoint configured. */
-  available: boolean;
-  /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
-  model: string | null;
-  /**
-   * The model a research-telemetry (`?pilot=`) session should pre-select, or
-   * null/absent when the server has none configured; everyone else keeps the
-   * ordinary default. Server-owned so it can be swapped without a release.
-   */
-  pilot_model?: string | null;
-  /**
-   * The choosable free models — exactly the server's allowlist, in the
-   * server's preference order (the primary, then any extra models the server
-   * offers on the same endpoint, then a self-hosted fallback if configured).
-   * Rendered verbatim, so the set of free models is a server-config change
-   * with no frontend deploy. A single entry (or an old backend that doesn't
-   * advertise the list) means there is no choice to offer.
-   */
-  models: SpecDrivenFreeModel[];
-}
+/** One model a free-tier request may explicitly choose (`id` exactly as `llm_model` takes it). */
+export type SpecDrivenFreeModel = Schemas['FreeTierModelResponse'];
 
+/**
+ * Keyless server-hosted "Free" tier advertisement. `models` is the server's
+ * allowlist in its preference order, rendered verbatim; a single entry (or an
+ * old backend without the list) means there is no choice to offer.
+ * `pilot_model` is what a research-telemetry (`?pilot=`) session pre-selects.
+ */
+export type SpecDrivenFreeTier = Omit<Schemas['FreeTierResponse'], 'pilot_model'> &
+  Partial<Pick<Schemas['FreeTierResponse'], 'pilot_model'>>;
+
+/** One model a provider offers in the key dialog. */
+export type SpecDrivenCatalogModel = Schemas['CatalogModelResponse'];
+
+/**
+ * One provider of the server's model catalog (BESSER_MODEL_CATALOG). The
+ * server keeps gateway endpoints and rates to itself; the dialog gets only
+ * what it renders.
+ */
+export type SpecDrivenCatalogProvider = Schemas['CatalogProviderResponse'];
+
+/** `SpecDrivenConfigResponse` as the dialogs read it: checked, with the fallback filling what is missing. */
 export interface SpecDrivenConfig {
   caps: SpecDrivenConfigCaps;
   /**
@@ -74,6 +61,12 @@ export interface SpecDrivenConfig {
   supported_providers: string[];
   /** Whether the keyless free tier is offered (and its pinned model). */
   free_tier: SpecDrivenFreeTier;
+  /**
+   * The key dialog's providers and models, in display order. Empty when the
+   * server is too old to send them or unreachable: the dialog then falls back
+   * to its built-in minimal lists.
+   */
+  providers: SpecDrivenCatalogProvider[];
 }
 
 /**
@@ -93,9 +86,11 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,
   features: {},
+  // The shipped model catalog's defaults. Display data only: a run without a
+  // chosen model omits llm_model and the server's catalog default decides.
   default_models: {
-    anthropic: 'claude-sonnet-5',
-    openai: 'gpt-4o',
+    anthropic: 'claude-sonnet-5-5',
+    openai: 'gpt-6-sol',
     mistral: 'mistral-large-latest',
     nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
   },
@@ -103,6 +98,7 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   // Off by default — an old backend that doesn't advertise it must not
   // surface a free option that would 500.
   free_tier: { available: false, model: null, models: [] },
+  providers: [],
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
@@ -154,9 +150,46 @@ function _normalize(raw: unknown): SpecDrivenConfig {
                 ? data.free_tier.model
                 : null,
             models: _normalizeFreeModels(data.free_tier.models),
+            pilot_model:
+              typeof data.free_tier.pilot_model === 'string' && data.free_tier.pilot_model
+                ? data.free_tier.pilot_model
+                : null,
           }
         : FALLBACK_SMART_GEN_CONFIG.free_tier,
+    providers: _normalizeProviders(data.providers),
   };
+}
+
+const _optionalString = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() ? value : null;
+
+/** Keep only well-formed providers and models; malformed entries are dropped. */
+function _normalizeProviders(raw: unknown): SpecDrivenCatalogProvider[] {
+  if (!Array.isArray(raw)) return [];
+  const providers: SpecDrivenCatalogProvider[] = [];
+  for (const entry of raw) {
+    const id = _optionalString(entry?.id);
+    const label = _optionalString(entry?.label);
+    if (!id || !label) continue;
+    const models: SpecDrivenCatalogModel[] = [];
+    for (const model of Array.isArray(entry.models) ? entry.models : []) {
+      const modelId = _optionalString(model?.id)?.trim();
+      if (!modelId) continue;
+      models.push({
+        id: modelId,
+        label: _optionalString(model.label) ?? modelId,
+        default: model.default === true,
+      });
+    }
+    providers.push({
+      id,
+      label,
+      hint: _optionalString(entry.hint),
+      key_prefix: typeof entry.key_prefix === 'string' ? entry.key_prefix : null,
+      models,
+    });
+  }
+  return providers;
 }
 
 /**
@@ -243,6 +276,15 @@ export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): stri
 }
 
 let _configPromise: Promise<SpecDrivenConfig> | null = null;
+let _loadedConfig: SpecDrivenConfig | null = null;
+
+/**
+ * The config from the last successful load, or null before one. Lets a dialog
+ * render the server's lists on its first frame instead of the fallback.
+ */
+export function peekSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig;
+}
 
 /**
  * Resolve the Spec-Driven Agent config. Never rejects — failures resolve to
@@ -253,11 +295,8 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
   if (!_configPromise) {
     _configPromise = (async (): Promise<SpecDrivenConfig> => {
       try {
-        const response = await fetch(SMART_GEN_CONFIG_ENDPOINT);
-        if (!response.ok) {
-          throw new Error(`config endpoint returned ${response.status}`);
-        }
-        return _normalize(await response.json());
+        _loadedConfig = _normalize(await fetchSpecDrivenConfig());
+        return _loadedConfig;
       } catch (err) {
         console.warn('[specDrivenConfig] falling back to defaults:', err);
         // Allow a retry on the next call — the backend may just be
@@ -273,4 +312,5 @@ export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
 /** Test-only: reset the module-level promise cache. */
 export function _resetSpecDrivenConfigCacheForTests(): void {
   _configPromise = null;
+  _loadedConfig = null;
 }

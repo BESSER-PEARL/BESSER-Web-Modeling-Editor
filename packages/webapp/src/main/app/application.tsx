@@ -1,19 +1,14 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogProvider';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { ApollonEditor } from '@besser/wme';
-import {
-  POSTHOG_HOST,
-  POSTHOG_KEY,
-} from '../shared/constants/constant';
 import { getActiveDiagram } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
-import { ErrorPanel } from '../shared/components/error-handling/error-panel';
-import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
+import { ErrorPanel } from './shell/error-handling/error-panel';
+import { CookieConsentBanner } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
 import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
@@ -32,6 +27,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { loadProjectThunk, selectProject } from './store/workspaceSlice';
 import type { RootState } from './store/store';
 import { useHasOpened } from './hooks/useHasOpened';
+import { trackPageview } from '../shared/services/analytics/events';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -60,6 +56,10 @@ const AgentSimulationPage = React.lazy(() =>
 const ProjectHubDialog = React.lazy(() =>
   import('../features/project/ProjectHubDialog').then((m) => ({ default: m.ProjectHubDialog })),
 );
+// The assistant store stays out of the entry chunk: it is loaded when a repo is opened.
+const postRepoSummaryToAssistant = (summary: string) => {
+  void import('../features/assistant/hooks/assistantConversationStore').then((m) => m.postAssistantMessage(summary));
+};
 const TemplateLibraryDialog = React.lazy(() =>
   import('../features/project/TemplateLibraryDialog').then((m) => ({ default: m.TemplateLibraryDialog })),
 );
@@ -97,22 +97,15 @@ const selectActiveDiagramTitle = (state: RootState) => {
   return getActiveDiagram(project, project.currentDiagramType)?.title || project.name || 'Diagram';
 };
 
-const postHogOptions = {
-  api_host: POSTHOG_HOST,
-  autocapture: false,
-  disable_session_recording: true,
-  respect_dnt: true,
-  opt_out_capturing_by_default: !hasUserConsented(),
-  persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',
-  ip: false,
-};
-
 function AppContentInner() {
   const [editor, setEditor] = useState<ApollonEditor>();
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
 
   const location = useLocation();
+  useEffect(() => {
+    trackPageview();
+  }, [location.pathname]);
 
   // Keep Redux in sync with direct localStorage writes from editors
   useStorageSync();
@@ -217,7 +210,12 @@ function AppContentInner() {
 
       {projectHubMounted && (
         <Suspense fallback={null}>
-          <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
+          <ProjectHubDialog
+            open={showProjectHub}
+            onOpenChange={handleProjectHubOpenChange}
+            initialStep={hubInitialStep}
+            onRepoOpened={postRepoSummaryToAssistant}
+          />
         </Suspense>
       )}
       {templateDialogMounted && (
@@ -383,12 +381,10 @@ function AppContent() {
 export function RoutedApplication() {
   return (
     <ErrorBoundary>
-      <LazyPostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
-        <ApplicationStore>
-          <AppContent />
-          <CookieConsentBanner />
-        </ApplicationStore>
-      </LazyPostHogProvider>
+      <ApplicationStore>
+        <AppContent />
+        <CookieConsentBanner />
+      </ApplicationStore>
     </ErrorBoundary>
   );
 }

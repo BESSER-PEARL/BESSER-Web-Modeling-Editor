@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApollonEditor } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../shared/services/analytics/events';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, dialogDisplayTitleClass } from '@/components/ui/dialog';
@@ -26,6 +27,7 @@ import { KgRdfExportSection } from './KgRdfExportSection';
 import type { KgRdfFormat, KgRdfVocab } from '../../shared/api/knowledgeGraph';
 import { exportProjectById } from './useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from './useExportProjectBUML';
+import type { ExportOutcome } from './exportOutcome';
 import { useAppSelector } from '../../app/store/hooks';
 import { selectActiveDiagram } from '../../app/store/workspaceSlice';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
@@ -102,17 +104,20 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
     if ((isImageExport || isSingleDiagramExport) && !editor) {
-      toast.error(t('export.toasts.openUmlFirst'));
+      reportError(t('export.toasts.openUmlFirst'));
+      track('diagram_export_failed', { format, reason: 'no_model', source: 'dialog' });
       return;
     }
 
     if (!currentProject) {
-      toast.error(t('export.toasts.noProject'));
+      reportError(t('export.toasts.noProject'));
+      track('diagram_export_failed', { format, reason: 'no_model', source: 'dialog' });
       return;
     }
 
     if (formatsRequiringSelection.has(format) && selectedDiagrams.length === 0) {
-      toast.error(t('export.toasts.selectAtLeastOne'));
+      reportError(t('export.toasts.selectAtLeastOne'));
+      track('diagram_export_failed', { format, reason: 'validation', source: 'dialog' });
       return;
     }
 
@@ -120,6 +125,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     pendingRef.current = format;
     setPendingFormat(format);
 
+    // The B-UML exporters toast their own errors and resolve, so they report how they ended.
+    let outcome: ExportOutcome = { ok: true };
     try {
       if (format === 'SVG') {
         await exportAsSVG(editor!, normalizedTitle);
@@ -130,7 +137,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       } else if (format === 'JSON') {
         await exportProjectById(currentProject, selectedDiagrams, includeTrace && traceOperationCount > 0);
       } else if (format === 'BUML') {
-        await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams, includeTrace && traceOperationCount > 0);
+        outcome = await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams, includeTrace && traceOperationCount > 0);
       } else if (format === 'SINGLE_BUML') {
         // Include the referenced ClassDiagram data for diagram types that depend on it
         let refData: UMLModel | undefined;
@@ -141,14 +148,30 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
             refData = classDiagram.model;
           }
         }
-        await exportAsBUML(editor!, normalizedTitle, refData);
+        outcome = await exportAsBUML(editor!, normalizedTitle, refData);
       } else if (format === 'SINGLE_JSON') {
         if (diagram) await exportAsJSON(editor!, diagram as any);
       }
 
+      if (outcome.ok) {
+        track('diagram_exported', {
+          format,
+          diagram_count: formatsRequiringSelection.has(format) ? selectedDiagrams.length : 1,
+          diagram_type: formatsRequiringSelection.has(format) ? undefined : currentProject.currentDiagramType,
+          source: 'dialog',
+        });
+      } else {
+        track('diagram_export_failed', {
+          format,
+          reason: outcome.reason,
+          source: 'dialog',
+          ...(outcome.error !== undefined ? errorProperties(outcome.error) : {}),
+        });
+      }
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }));
+      reportError(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }), { error });
+      track('diagram_export_failed', { format, reason: 'exception', source: 'dialog', ...errorProperties(error) });
     } finally {
       pendingRef.current = null;
       setPendingFormat(null);

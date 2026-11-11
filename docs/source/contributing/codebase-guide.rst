@@ -104,8 +104,10 @@ deployment.
    │   ├── constants/constant.ts   #   Environment variables, URLs, storage keys
    │   ├── perspectives.ts         #   Diagram-visibility presets
    │   ├── services/               #   Storage, validation, analytics, SSE,
-   │   │   │                       #   telemetry, llmKeyStorage
-   │   │   └── storage/ProjectStorageRepository.ts
+   │   │   │                       #   telemetry, llmKeyStorage, confirm
+   │   │   ├── errors/             #   reportError: error toast + Sentry
+   │   │   └── storage/            #   The only Web Storage access: projects,
+   │   │                           #   GitHub, assistant, preferences
    │   ├── components/             #   Reusable UI, incl. byok/LlmKeyDialog
    │   ├── hooks/                  #   Shared React hooks
    │   ├── dialogs/                #   Shared dialog components
@@ -118,9 +120,27 @@ deployment.
 
 - ``app/`` contains the shell (layout, menus, store). This is the entry point.
 - ``features/`` follows the feature-folder pattern — each feature owns its
-  components, hooks, and logic. Features should not import from other features.
+  components, hooks, and logic. Each feature's ``index.ts`` is its public API:
+  other features import it only through that index, never its internals.
 - ``shared/`` contains code used by multiple features. If you need something
-  in two features, move it here.
+  in two features, move it here. ``shared/`` never imports from ``app/`` or
+  ``features/``.
+- ESLint (``no-restricted-imports`` in ``packages/webapp/.eslintrc.js``)
+  enforces both rules as errors.
+- Browser storage is read and written only through the typed modules in
+  ``shared/services/storage/``, ``shared/services/llmKeyStorage.ts`` and
+  ``features/spec-driven/storage.ts``; every key is a constant in
+  ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
+  (including ``window.localStorage``, casts and aliases) anywhere else in
+  ``src/`` outside tests.
+- A failure the user should see is reported with ``reportError()`` from
+  ``shared/services/errors/reportError.ts``: the error toast, plus the caught
+  error to Sentry when ``SENTRY_DSN`` is set and the user accepted analytics.
+  Offline, aborted and 4xx failures are not sent, and every Sentry event is
+  reduced to the error type, HTTP status and stack (no messages). A notice uses
+  ``globalAlert()`` (the confirm dialog with one button). ESLint rejects
+  ``toast.error(``, an error ``toast.update(`` (use the ``updateToast``
+  option) and ``alert(`` anywhere else in ``src/`` outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.
@@ -181,7 +201,10 @@ Where Code Lives: Quick Lookup
    * - Code generation dialogs
      - ``webapp/src/main/features/generation/``
    * - GitHub deploy / OAuth
-     - ``webapp/src/main/features/github/``
+     - ``webapp/src/main/features/github/``; the tab's sign-in is one store,
+       ``shared/services/github/githubAuth.ts``, read through
+       ``shared/hooks/useGitHubAuth`` (a 401 on any request carrying
+       ``X-GitHub-Session`` marks it expired everywhere)
    * - The AI assistant (chat, WebSocket client, diagram converters)
      - ``webapp/src/main/features/assistant/``
    * - The Spec-Driven Agent (full-app generation runs)

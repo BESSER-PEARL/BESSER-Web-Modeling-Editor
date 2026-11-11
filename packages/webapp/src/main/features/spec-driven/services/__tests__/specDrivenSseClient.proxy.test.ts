@@ -25,7 +25,7 @@ import {
   startSpecDrivenRun,
   followSpecDrivenRun,
 } from '../specDrivenSseClient';
-import * as sse from '../../../../shared/services/sse/sseClient';
+import * as sse from '../../../../shared/api/sseClient';
 
 const RUN_ID = 'b'.repeat(32);
 

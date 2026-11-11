@@ -29,7 +29,8 @@ Highlights
   (``BACKEND_URL``) to produce Django, SQL, SQLAlchemy, JSON Schema, agent and
   other artefacts.
 * **Observability and analytics** – optional PostHog and Sentry integration via
-  env-configured keys.
+  env-configured keys, plus Google Analytics; all three start only after the
+  user accepts analytics in the cookie banner.
 
 Directory tour
 --------------
@@ -62,8 +63,12 @@ Integration points
 
 * **Editor API** – the webapp treats the editor as a controlled component. All
   meaningful edits flow through Redux slices (see :doc:`../editor/api`).
-* **Server communication** – most HTTP requests go to ``BACKEND_URL`` (the
-  BESSER Python backend) through ``shared/api/api-client.ts``. Only the
+* **Server communication** – every HTTP request is made in ``shared/api/``
+  (ESLint rejects ``fetch``, and importing ``apiClient``, elsewhere); most go to ``BACKEND_URL`` (the BESSER
+  Python backend) through the shared ``apiClient``, with contract types
+  generated from the backend's OpenAPI schema
+  (``npm run api:generate --workspace=webapp``) where the editor's own data
+  fits them; project payloads stay untyped. Only the
   assistant rate limiter and SVG conversion use the Express app's ``/api``
   routes. The assistant's WebSocket URL comes from ``UML_BOT_WS_URL``, falling
   back to a ``WS_PROTOCOL`` derived from ``DEPLOYMENT_URL``.

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { startSpecDrivenRun } from '../specDrivenSseClient';
 import type { RequirementInput } from '../specDrivenSseClient';
-import * as sse from '../../../../shared/services/sse/sseClient';
+import * as sse from '../../../../shared/api/sseClient';
 
 async function bodyOf(requirements: RequirementInput[] | undefined) {
   const spy = vi.spyOn(sse, 'streamSse');

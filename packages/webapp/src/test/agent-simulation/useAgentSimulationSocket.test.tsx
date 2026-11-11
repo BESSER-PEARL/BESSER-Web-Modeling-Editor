@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetGitHubAuthForTests, signInToGitHubForTests } from '@/main/shared/services/github/githubAuth';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import {
@@ -71,6 +72,7 @@ async function setupRunningSession() {
 }
 
 beforeEach(() => {
+  resetGitHubAuthForTests();
   MockWebSocket.instances = [];
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -84,7 +86,7 @@ afterEach(() => {
 
 describe('useAgentSimulationSocket', () => {
   it('opens the session socket without credentials in the URL and sends the auth frame first', async () => {
-    sessionStorage.setItem('github_session', 'gh-secret');
+    signInToGitHubForTests('gh-secret');
     const { hook, ws } = await setupRunningSession();
 
     expect(ws.url).toMatch(/^wss?:\/\/.+\/simulation\/sess-1\/ws$/);

@@ -32,6 +32,16 @@ export interface AssistantWorkspaceContext {
    * attaches it to its research-telemetry events; it is never a name/email.
    */
   pilotParticipant?: string;
+  /** The GitHub repo the project is linked to, so the agent can tell an app is already there. */
+  githubRepo?: AssistantGitHubRepo;
+}
+
+export interface AssistantGitHubRepo {
+  fullName: string;
+  /** The repo holds an app a run continues from, not only a saved model. */
+  hasCode: boolean;
+  /** Where that app stands, in the chat's markdown, already escaped. Empty when unknown. */
+  recap: string;
 }
 
 export interface AssistantClientOptions {
@@ -101,6 +111,8 @@ export interface InjectionCommand {
   requirements?: unknown;
   realizations?: unknown;
   requirementsModel?: unknown;
+  /** Echo of the user_message's turnId (agents that support turn-scoped replay). */
+  turnId?: string;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

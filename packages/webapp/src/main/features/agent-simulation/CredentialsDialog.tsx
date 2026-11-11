@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronRight, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SecretInput } from '@/components/ui/secret-input';
 import {
   Dialog,
   DialogContent,
@@ -139,14 +140,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                   <label htmlFor="sim-cred-openai" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.openAiLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-openai"
                     name="sim-cred-openai"
-                    type="password"
                     value={openAiKey}
                     onChange={(e) => setOpenAiKey(e.target.value)}
                     placeholder={t('agentSimulation.credentials.openAiPlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>
@@ -156,14 +156,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                     {t('agentSimulation.credentials.huggingFaceLabel')}{' '}
                     <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-huggingface"
                     name="sim-cred-huggingface"
-                    type="password"
                     value={huggingFaceToken}
                     onChange={(e) => setHuggingFaceToken(e.target.value)}
                     placeholder={t('agentSimulation.credentials.huggingFacePlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>
@@ -172,14 +171,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                   <label htmlFor="sim-cred-replicate" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.replicateLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-replicate"
                     name="sim-cred-replicate"
-                    type="password"
                     value={replicateKey}
                     onChange={(e) => setReplicateKey(e.target.value)}
                     placeholder={t('agentSimulation.credentials.replicatePlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>
@@ -206,25 +204,25 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
 
               {limitsExpanded && (
                 <dl className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs">
-                  {limits.memoryMb !== undefined && (
+                  {limits.memoryMb != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.memory')}</dt>
                       <dd className="font-medium">{limits.memoryMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
-                  {limits.cpuCores !== undefined && (
+                  {limits.cpuCores != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.cpu')}</dt>
                       <dd className="font-medium">{limits.cpuCores}{t('agentSimulation.credentials.unitCores')}</dd>
                     </div>
                   )}
-                  {limits.diskMb !== undefined && (
+                  {limits.diskMb != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.disk')}</dt>
                       <dd className="font-medium">{limits.diskMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
-                  {limits.sessionLifetimeSeconds !== undefined && (
+                  {limits.sessionLifetimeSeconds != null && (
                     <div className="flex justify-between py-0.5">
                       <dt className="text-muted-foreground">{t('agentSimulation.credentials.lifetime')}</dt>
                       <dd className="font-medium">{Math.round(limits.sessionLifetimeSeconds / 60)}{t('agentSimulation.credentials.unitMin')}</dd>

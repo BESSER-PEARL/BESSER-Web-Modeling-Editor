@@ -2,9 +2,10 @@
 import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
-import './grapesjs-styles.css';
+import '../../../shared/styles/grapesjs-styles.css';
 import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { NavigationMapDialog } from './navigation/NavigationMapDialog';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
@@ -17,6 +18,7 @@ import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import i18n from '@/main/shared/i18n';
+import { track, trackFailure } from '../../../shared/services/analytics/events';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 
 // Personalization variant data lives on live GrapesJS page objects (set via
@@ -63,6 +65,7 @@ export const GraphicalUIEditor: React.FC = () => {
   const [isPageEmpty, setIsPageEmpty] = useState(false);
   const [isDraggingBlock, setIsDraggingBlock] = useState(false);
   const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const [isNavigationMapOpen, setIsNavigationMapOpen] = useState(false);
   const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -111,9 +114,17 @@ export const GraphicalUIEditor: React.FC = () => {
       // Setup all editor features
       const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
 
+      editor.Commands.add('open-navigation-map', {
+        run() {
+          setIsNavigationMapOpen(true);
+          track('editor_action', { editor: 'gui', action: 'navigation_map_opened', pages_count: editor.Pages.getAll().length });
+        },
+      });
+
       const handleAssistantAutoGenerate = async () => {
         try {
-          await autoGenerateGUIFromClassDiagram(editor);
+          const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+          track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'assistant' });
           editor.runCommand('notifications:add', {
             type: 'success',
             message: `✓ ${i18n.t('editors.gui.guiGeneratedFromClass')}`,
@@ -127,6 +138,11 @@ export const GraphicalUIEditor: React.FC = () => {
         } catch (error) {
           const message = error instanceof Error ? error.message : i18n.t('editors.gui.unknownError');
           console.error('[Assistant Auto-Generate] Error:', error);
+          trackFailure('editor_action_failed', error, {
+            editor: 'gui',
+            action: 'generate_from_classes',
+            reason: generationFailureReason(error),
+          });
           editor.runCommand('notifications:add', {
             type: 'error',
             message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message })}`,
@@ -266,9 +282,11 @@ export const GraphicalUIEditor: React.FC = () => {
       };
       const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
       const onBlockDragStart = () => setIsDraggingBlock(true);
-      const onBlockDragStop = () => {
+      // GrapesJS passes the dropped component (undefined when the drop was cancelled) and the palette block.
+      const onBlockDragStop = (component?: unknown, block?: { getId?: () => string }) => {
         setIsDraggingBlock(false);
         deferEmptyCheck();
+        if (component) track('editor_action', { editor: 'gui', action: 'block_added', block_id: block?.getId?.() });
       };
       editor.on('load page:select component:add component:remove', deferEmptyCheck);
       editor.on('block:drag:start', onBlockDragStart);
@@ -363,6 +381,8 @@ export const GraphicalUIEditor: React.FC = () => {
     // Synchronous cleanup returned to React
     return () => {
       cancelled = true;
+      // The map reads this editor instance, which is about to be destroyed.
+      setIsNavigationMapOpen(false);
       if (cleanupFn) cleanupFn();
     };
     // `lang` is a dependency so switching language remounts the editor and every
@@ -415,6 +435,11 @@ export const GraphicalUIEditor: React.FC = () => {
           />,
           canvasEl,
         )}
+      <NavigationMapDialog
+        editor={editorRef.current}
+        open={isNavigationMapOpen}
+        onOpenChange={setIsNavigationMapOpen}
+      />
       {/* Save-status badge — the only user-visible confirmation that edits
           persist. Driven by the storage listeners above; pointer-events-none
           so it never blocks canvas interaction. */}
@@ -501,6 +526,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     height: '100%',
     width: 'auto',
     fromElement: false,
+    telemetry: false,
     components: '', // Empty initially - pages will load default content
 
     // Load the design typefaces (Inter + Fraunces, shipped same-origin in
@@ -617,7 +643,6 @@ function setupEditorFeatures(
   // Page system (consolidated)
   if (editor.Pages) {
     setupPageSystem(editor);
-    setupPageRouting(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
@@ -792,10 +817,12 @@ export function setupProjectStorageIntegration(
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
+          track('editor_action_failed', { editor: 'gui', action: 'save', reason: 'storage' });
         }
       } catch (error) {
         console.error('[Storage] Error saving:', error);
         setSaveStatus('error');
+        trackFailure('editor_action_failed', error, { editor: 'gui', action: 'save', reason: 'exception' });
       }
     },
   });
@@ -924,29 +951,6 @@ export function setupProjectStorageIntegration(
  * Setup custom commands for export, JSON, etc.
  */
 function setupCommands(editor: Editor) {
-  // Save project command
-  editor.Commands.add('save-project', {
-    run(editor: Editor) {
-      try {
-        console.log('[Save] Manual save triggered');
-        
-        // Check if editor has storables before trying to save
-        const editorModel = (editor as any).em;
-        if (!editorModel || !editorModel.storables) {
-          console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          alert(i18n.t('editors.gui.editorStillLoading'));
-          return;
-        }
-        
-        editor.store();
-        console.log('[Save] Manual save completed');
-      } catch (error) {
-        console.error('[Save] Manual save error:', error);
-        alert(i18n.t('editors.gui.errorSavingProject'));
-      }
-    }
-  });
-  
   // Export template command
   editor.Commands.add('export-template', {
     run(editor: Editor) {
@@ -1223,7 +1227,8 @@ function addAutoGenerateGUIButton(editor: Editor) {
         confirmBtn.onclick = async () => {
           modal.close();
           try {
-            await autoGenerateGUIFromClassDiagram(editor);
+            const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+            track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'manual' });
             // Show success notification using GrapesJS notification system
             editor.runCommand('notifications:add', {
               type: 'success',
@@ -1232,6 +1237,11 @@ function addAutoGenerateGUIButton(editor: Editor) {
             });
           } catch (error) {
             console.error('[Auto-Generate] Error:', error);
+            trackFailure('editor_action_failed', error, {
+              editor: 'gui',
+              action: 'generate_from_classes',
+              reason: generationFailureReason(error),
+            });
             editor.runCommand('notifications:add', {
               type: 'error',
               message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message: (error as Error).message })}`,
@@ -1256,10 +1266,22 @@ function addAutoGenerateGUIButton(editor: Editor) {
   });
 }
 
+/** Thrown once the class diagram failed validation; its errors are already shown in a modal. */
+class ClassDiagramInvalidError extends Error {
+  constructor() {
+    super(i18n.t('editors.gui.qualityCheckFailed'));
+    this.name = 'ClassDiagramInvalidError';
+  }
+}
+
+const generationFailureReason = (error: unknown): string =>
+  error instanceof ClassDiagramInvalidError ? 'validation' : 'exception';
+
 /**
- * Auto-generate GUI pages and components from the class diagram
+ * Auto-generate GUI pages and components from the class diagram.
+ * Resolves to the number of pages created.
  */
-async function autoGenerateGUIFromClassDiagram(editor: Editor) {
+async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> {
   // Get class diagram model for validation
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
@@ -1304,7 +1326,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
         closeBtn.onclick = () => modal.close();
       }
     }, 100);
-    return; // Abort GUI generation
+    throw new ClassDiagramInvalidError();
   }
 
   // Get all classes from the class diagram
@@ -1384,8 +1406,9 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
   };
 
   // Execute the async page processing
-  return processPages();
-  
+  await processPages();
+  return createdPages.length;
+
 }
 
 /**
@@ -1702,59 +1725,6 @@ function buildPageComponents(
     }
   }, 300);
   
-}
-
-/**
- * Setup page routing system
- */
-/**
- * Setup page routing system
- */
-function setupPageRouting(editor: Editor) {
-  if (!editor.Pages) return;
-  
-  editor.on('page:select', (page: any) => {
-    if (!page) return;
-    // Use route_path as primary, fallback to attributes.route or auto-generated
-    const currentRoute = page.get('route_path') || 
-      page.get('attributes')?.route || 
-      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
-  });
-  
-  // Add command to edit page route (legacy - now handled in Pages panel)
-  editor.Commands.add('edit-page-route', {
-    run(editor: Editor) {
-      const currentPage = editor.Pages.getSelected();
-      if (!currentPage) {
-        alert(i18n.t('editors.gui.noPageSelected'));
-        return;
-      }
-      
-      const pageName = currentPage.getName();
-      const storedRoute = currentPage.get('route_path');
-      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
-        ? storedRoute 
-        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
-      
-      const newRoute = prompt(
-        i18n.t('editors.gui.editRoutePrompt', { pageName }),
-        currentRoute
-      );
-      
-      if (newRoute !== null && newRoute.trim()) {
-        let route = newRoute.trim();
-        if (!route.startsWith('/')) route = '/' + route;
-        // Clean the route
-        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
-        
-        currentPage.set('route_path', route);
-        
-        // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        alert(i18n.t('editors.gui.routeUpdated', { route }));
-      }
-    }
-  });
 }
 
 // ============================================

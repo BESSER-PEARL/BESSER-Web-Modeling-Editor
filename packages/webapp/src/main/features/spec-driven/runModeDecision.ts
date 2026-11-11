@@ -17,21 +17,9 @@ import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import { fetchModelChange, modelChangeQuestion } from './services/modelChange';
 import type { ModelChange } from './services/modelChange';
 import type { SpecDrivenMode } from './types';
+import { isValidRunId, type LastRunRecord } from '../../shared/services/storage/specDrivenRunRecords';
 
-/** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
-const RUN_ID_RE = /^[a-f0-9]{32}$/i;
-
-/** Narrow an arbitrary value to a valid 32-hex run id. */
-export function isValidRunId(value: unknown): value is string {
-  return typeof value === 'string' && RUN_ID_RE.test(value);
-}
-
-/** A previously recorded successful run for a project. */
-export interface LastRunRecord {
-  runId: string;
-  /** Epoch ms at which the run completed. */
-  at: number;
-}
+export { isValidRunId, type LastRunRecord };
 
 export interface RunModeDecision {
   mode: SpecDrivenMode;
@@ -57,6 +45,11 @@ export interface DecideRunModeParams {
   explicitBaseRunId?: string;
   /** The base run's model vs the current one; absent when unknown. */
   modelChange?: ModelChange | null;
+}
+
+/** True while the backend still holds `lastRun`, so a run can edit it in place. */
+export function isWithinTtl(lastRun: LastRunRecord | null | undefined, nowMs: number, ttlSeconds: number): boolean {
+  return !!lastRun && Number.isFinite(lastRun.at) && Number.isFinite(ttlSeconds) && nowMs - lastRun.at < ttlSeconds * 1000;
 }
 
 /**
@@ -95,13 +88,7 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
   }
 
   // 2. Automatic heuristic — modify only within a fresh, valid window.
-  const withinTtl =
-    !!lastRun &&
-    Number.isFinite(lastRun.at) &&
-    Number.isFinite(ttlSeconds) &&
-    nowMs - lastRun.at < ttlSeconds * 1000;
-
-  if (storedRunId && withinTtl) {
+  if (storedRunId && isWithinTtl(lastRun, nowMs, ttlSeconds)) {
     // Never start fresh on our own: the base app may carry custom work.
     const verdict = modelChange?.verdict;
     if (verdict === 'large' || verdict === 'unrelated') {

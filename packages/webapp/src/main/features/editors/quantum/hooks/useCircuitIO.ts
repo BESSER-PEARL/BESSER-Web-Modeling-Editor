@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Circuit, Gate, GateType } from '../types';
 import { GATES } from '../constants';
 import { downloadCircuitAsJSON, deserializeCircuit, trimCircuit } from '../utils';
+import { reportError } from '../../../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../../../shared/services/analytics/events';
 
 interface UseCircuitIOOptions {
     setCircuit: (updater: Circuit | ((prev: Circuit) => Circuit)) => void;
@@ -25,6 +27,7 @@ export function useCircuitIO(
 
     const handleExportJSON = () => {
         downloadCircuitAsJSON(circuit);
+        track('editor_action', { editor: 'quantum', action: 'circuit_exported', qubit_count: circuit.qubitCount });
     };
 
     const handleImportJSON = () => {
@@ -45,9 +48,11 @@ export function useCircuitIO(
 
                 const newCircuit = deserializeCircuit(importedData);
                 setCircuit(trimCircuit(newCircuit));
+                track('editor_action', { editor: 'quantum', action: 'circuit_imported', qubit_count: newCircuit.qubitCount });
             } catch (error) {
                 console.error('Error parsing JSON:', error);
-                alert('Failed to parse JSON file or invalid format.');
+                trackFailure('editor_action_failed', error, { editor: 'quantum', action: 'circuit_imported', reason: 'invalid' });
+                reportError('Failed to parse JSON file or invalid format.', { error });
             }
         };
         reader.readAsText(file);

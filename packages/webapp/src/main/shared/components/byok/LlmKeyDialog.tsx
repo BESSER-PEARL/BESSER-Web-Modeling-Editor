@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -27,6 +28,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   clearLlmKey,
+  isAssistantKeyProvider,
+  KEY_PROVIDERS,
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
@@ -35,18 +38,21 @@ import {
   writeFreeTierSelected,
   writeLlmBudget,
   writeLlmKey,
+  type KeyProvider,
   type LlmProvider,
 } from '../../services/llmKeyStorage';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
+import { track } from '@/main/shared/services/analytics/events';
 import {
   defaultFreeModelId,
   preferredFreeModelId,
   FALLBACK_SMART_GEN_CONFIG,
   freeModelLabel,
   getSpecDrivenConfig,
+  peekSpecDrivenConfig,
+  type SpecDrivenCatalogProvider,
   type SpecDrivenFreeTier,
 } from '../../services/specDrivenConfig';
-import { PIA_GATEWAY_BASE_URL } from '../../constants/constant';
 
 const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
@@ -76,7 +82,7 @@ export interface LlmKeySavedDetail {
   apiKey: string;
   /** Effective model override, or empty string for "use backend default". */
   model: string;
-  /** OpenAI-compatible base URL for pia/local, or undefined. */
+  /** The user's OpenAI-compatible base URL for 'local', or undefined. */
   baseUrl?: string;
 }
 
@@ -114,6 +120,8 @@ export interface LlmKeyDialogProps {
    * can still pick another; saving replaces the single shared key either way.
    */
   preferProvider?: LlmProvider;
+  /** Which surface opened the dialog, for analytics. */
+  surface?: LlmKeyDialogSurface;
 }
 
 interface ProviderOption {
@@ -124,30 +132,28 @@ interface ProviderOption {
   expectedPrefix: string;
 }
 
-export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
-  {
-    value: 'anthropic',
+type ProviderCopy = Omit<ProviderOption, 'value'>;
+
+const PROVIDER_COPY: Record<KeyProvider, ProviderCopy> = {
+  anthropic: {
     label: 'Anthropic (Claude)',
     placeholder: 'sk-ant-...',
     hint: 'Keys typically start with sk-ant-',
     expectedPrefix: 'sk-ant-',
   },
-  {
-    value: 'openai',
+  openai: {
     label: 'OpenAI (GPT)',
     placeholder: 'sk-...',
     hint: 'Keys typically start with sk-',
     expectedPrefix: 'sk-',
   },
-  {
-    value: 'mistral',
+  mistral: {
     label: 'Mistral',
     placeholder: 'Your Mistral API key',
     hint: 'Paste your Mistral API key (no fixed prefix)',
     expectedPrefix: '',
   },
-  {
-    value: 'nebius',
+  nebius: {
     label: 'Nebius Token Factory',
     placeholder: 'Your Nebius Token Factory API key',
     hint:
@@ -155,21 +161,33 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
       'modeling assistant keeps using its default model. No fixed key prefix.',
     expectedPrefix: '',
   },
-  {
-    value: 'pia',
+  // Gateways whose endpoint, models and wording come from the server's model
+  // catalog; offered only where the server lists them.
+  pia: {
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
-    hint: "Your personal LIST PIA Gateway key (starts with sk-). Goes through LIST's governed AI gateway.",
-    expectedPrefix: 'sk-',
+    hint: 'Your personal gateway key.',
+    expectedPrefix: '',
   },
-  {
-    value: 'local',
+  gateway: {
+    label: 'Gateway',
+    placeholder: 'Your API key',
+    hint: 'Your personal gateway key.',
+    expectedPrefix: '',
+  },
+  local: {
     label: 'Local (self-hosted)',
     placeholder: 'ollama (any value)',
     hint: 'A local OpenAI-compatible server (Ollama, llama.cpp, vLLM, LM Studio…). Most need no key — leave it as "ollama".',
     expectedPrefix: '',
   },
-] as const;
+};
+
+/** The key providers, in LLM_PROVIDERS order; 'free' has its own option below. */
+export const PROVIDER_OPTIONS: readonly ProviderOption[] = KEY_PROVIDERS.map((value) => ({
+  value,
+  ...PROVIDER_COPY[value],
+}));
 
 /**
  * The keyless free tier. Offered in the dropdown only when the backend
@@ -188,42 +206,27 @@ const FREE_PROVIDER_OPTION: ProviderOption = {
 };
 
 /**
- * Providers whose model server the BACKEND must reach — so they only work when
- * the WME backend runs locally (pia additionally needs the LIST VPN). A short
- * note is shown under the dropdown. On the hosted deploy the backend rejects
- * these (see BESSER_LLM_ALLOW_CUSTOM_BASE_URL) — they degrade to a clear error.
+ * 'local' sends the user's own base URL, which the BACKEND must reach — so it
+ * only works when the WME backend runs locally. A short note is shown under
+ * the dropdown. On the hosted deploy the backend rejects it (see
+ * BESSER_LLM_ALLOW_CUSTOM_BASE_URL) — it degrades to a clear error.
  */
 const LOCAL_BACKEND_NOTE: Partial<Record<LlmProvider, string>> = {
-  pia: 'Uses the LIST PIA gateway. The backend must be on the LIST VPN — in practice, run the full WME locally.',
   local: 'The BESSER backend opens this URL, not your browser — so run the full WME locally, on the same machine/network as your model server.',
 };
 
-/** pia/local route over the OpenAI-compatible protocol with a base_url. */
-function _needsBaseUrl(provider: LlmProvider): boolean {
-  return provider === 'pia' || provider === 'local';
-}
-
 /**
- * Whether the modeling assistant can actually use a key for this provider.
- * Mirrors the agent's own allowlist (modeling-agent `src/byok.py`
- * SUPPORTED_PROVIDERS) plus the two gateway labels it accepts as 'openai'.
- * A provider outside it is Spec-Driven-only.
+ * pia/gateway/local are OpenAI-compatible endpoints with no server-side default
+ * model and keys of any shape. A gateway's endpoint is resolved by the server
+ * from its model catalog; local's is the user's.
  */
-function _assistantSupportsProvider(provider: LlmProvider): boolean {
-  return (
-    provider === 'anthropic' ||
-    provider === 'openai' ||
-    provider === 'mistral' ||
-    provider === 'nebius' ||
-    provider === 'pia' ||
-    provider === 'local'
-  );
+function _isCustomEndpoint(provider: LlmProvider): boolean {
+  return provider === 'pia' || provider === 'gateway' || provider === 'local';
 }
 
 /**
- * pia/local only work when the WME BACKEND runs locally (it opens the URL, not
- * the browser), so they're offered only on a localhost deployment and hidden
- * on a hosted deployment.
+ * 'local' only works when the WME BACKEND runs locally (it opens the URL, not
+ * the browser), so it is offered only on a localhost deployment.
  */
 function _isLocalDeployment(): boolean {
   try {
@@ -245,81 +248,62 @@ export const CUSTOM_MODEL_VALUE = '__custom__';
 // provider. This is the DEFAULT selection so nothing specific is pre-chosen.
 export const DEFAULT_MODEL_VALUE = '';
 
-export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
-  anthropic: [
-    { value: 'claude-fable-5-1', label: 'Claude Fable 5.1 — most capable' },
-    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — top tier, lower cost than Opus 5' },
-    { value: 'claude-opus-5', label: 'Claude Opus 5 — top tier' },
-    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 — balanced' },
-    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — previous generation' },
-    { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 — previous generation' },
-    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 — fast & cheap' },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  // All of these work with the Spec-Driven Agent's tool-driven loop. The
-  // gpt-5.6 *reasoning* trio (sol/terra/luna) can't combine tools + reasoning on
-  // /chat/completions, so the backend sends reasoning_effort='none' for them
-  // (see _needs_reasoning_none_for_tools in llm_client.py) — i.e. gpt-5.6 runs
-  // with reasoning OFF here, the only way to use tools. Verified empirically
-  // (probe_tools): gpt-5.5/5.4-mini/4o support tools natively; gpt-5.6-* need
-  // the flag. gpt-5/gpt-4o REJECT the param, so it's applied ONLY to gpt-5.6-*.
-  // GPT-6 (astra/sol/luna) is newer; whether it needs the same flag is decided
-  // backend-side.
-  openai: [
-    // gpt-6-astra is left out: it rejects function tools with reasoning off,
-    // which the Spec-Driven Agent needs.
-    { value: 'gpt-6-sol', label: 'GPT-6 Sol — balanced' },
-    { value: 'gpt-6-luna', label: 'GPT-6 Luna — fast & cheap' },
-    { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },
-    { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
-    { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna — fast & cheap' },
-    { value: 'gpt-5.5', label: 'GPT-5.5 — previous flagship' },
-    { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
-    { value: 'gpt-4o', label: 'GPT-4o — reliable' },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  mistral: [
-    { value: 'mistral-large-latest', label: 'Mistral Large — most capable' },
-    { value: 'mistral-small-latest', label: 'Mistral Small — fast & cheap' },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  // Nebius Token Factory serves open-weight models under vendor-namespaced
-  // ids. Qwen3-30B-A3B-Instruct-2507 is a small-activation MoE with native
-  // OpenAI-style function calling, which the tool-driven customization loop
-  // requires. A Custom id is billed at the protective fallback rate unless it
-  // has its own row in llm_client._MODEL_PRICING.
-  nebius: [
-    {
-      value: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
-      label: 'Qwen3 30B A3B Instruct — fast MoE (default)',
-    },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  // PIA's recommended models, one Claude and one GPT per tier. The gateway lists
-  // more (older Claude/GPT-5.6); those stay reachable as a custom model ID.
-  pia: [
-    { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — writing, analysis, coding (default)' },
-    { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol — writing, analysis, coding' },
-    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — demanding planning or coding' },
-    { value: 'gpt-6-astra', label: 'GPT-6 Astra — demanding planning or coding' },
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — routine work, fast & cheap' },
-    { value: 'gpt-6-luna', label: 'GPT-6 Luna — routine work, fast & cheap' },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  // Local model names are whatever the user has pulled (common Ollama tags).
-  local: [
-    { value: 'qwen2.5-coder:7b', label: 'qwen2.5-coder:7b — code (default)' },
-    { value: 'llama3.1:8b', label: 'llama3.1:8b — general' },
-    { value: 'qwen2.5-coder:32b', label: 'qwen2.5-coder:32b — stronger code' },
-    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
-  ],
-  // Free tier: the real choices are DYNAMIC — served by GET /spec-driven/config
-  // (free_tier.models) and rendered by the dedicated free-model block in this
-  // dialog, not by the generic preset dropdown. This single typed placeholder
-  // exists so MODEL_PRESETS[provider] stays total over LlmProvider; value=''
-  // means "server default".
+const CUSTOM_MODEL_PRESET: ModelPreset = { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' };
+
+// The model lists come from the server's model catalog (GET /spec-driven/config
+// → providers). These are the last resort when it cannot be read: vendors keep
+// "Recommended default" and Custom, local keeps one real model to preselect.
+// 'free' renders its own block from free_tier.models; its entry only keeps the
+// record total over LlmProvider.
+const FALLBACK_MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
+  anthropic: [],
+  openai: [],
+  mistral: [],
+  nebius: [],
+  pia: [],
+  gateway: [],
+  local: [{ value: 'qwen2.5-coder:7b', label: 'qwen2.5-coder:7b' }],
   free: [{ value: DEFAULT_MODEL_VALUE, label: 'Server default (no key required)' }],
-} as const;
+};
+
+type ModelPresets = Record<LlmProvider, readonly ModelPreset[]>;
+
+/** Each provider's model choices: the catalog's when it lists the provider. */
+function _modelPresets(catalog: readonly SpecDrivenCatalogProvider[]): ModelPresets {
+  const presets: ModelPresets = { ...FALLBACK_MODEL_PRESETS };
+  for (const entry of catalog) {
+    if (entry.id in presets && entry.id !== 'free') {
+      // The default-flagged model first, so pia/local preselect it.
+      const models = [...entry.models].sort((a, b) => Number(b.default) - Number(a.default));
+      presets[entry.id as LlmProvider] = models.map((m) => ({ value: m.id, label: m.label }));
+    }
+  }
+  for (const provider of Object.keys(presets) as LlmProvider[]) {
+    if (provider !== 'free') presets[provider] = [...presets[provider], CUSTOM_MODEL_PRESET];
+  }
+  return presets;
+}
+
+/**
+ * The providers to offer: the catalog's, in its order and with its wording;
+ * the built-in vendors when there is no catalog. 'local' needs a local backend.
+ */
+function _providerOptions(catalog: readonly SpecDrivenCatalogProvider[]): ProviderOption[] {
+  const builtIn = new Map(PROVIDER_OPTIONS.map((p) => [p.value, p]));
+  const options: ProviderOption[] = catalog.length
+    ? catalog.flatMap((entry) => {
+        const known = builtIn.get(entry.id as LlmProvider);
+        if (!known) return [];
+        return [{
+          ...known,
+          label: entry.label,
+          hint: entry.hint ?? known.hint,
+          expectedPrefix: entry.key_prefix ?? known.expectedPrefix,
+        }];
+      })
+    : PROVIDER_OPTIONS.filter((p) => p.value !== 'pia' && p.value !== 'gateway');
+  return _isLocalDeployment() ? options : options.filter((p) => p.value !== 'local');
+}
 
 const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   anthropic: 'e.g. claude-opus-4-8',
@@ -327,6 +311,7 @@ const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   mistral: 'e.g. mistral-medium-latest',
   nebius: 'e.g. Qwen/Qwen3-235B-A22B-Instruct-2507',
   pia: 'e.g. claude-opus-4-8',
+  gateway: 'e.g. vendor/model-name',
   local: 'e.g. qwen2.5-coder:14b',
   free: '',
 } as const;
@@ -340,19 +325,20 @@ const LEGACY_MODEL_ALIASES: Partial<Record<LlmProvider, Record<string, string>>>
 function _classifyStoredModel(
   provider: LlmProvider,
   storedRaw: string | undefined,
+  presets: ModelPresets,
 ): { choice: string; custom: string } {
   const stored = (storedRaw && LEGACY_MODEL_ALIASES[provider]?.[storedRaw]) || storedRaw;
   if (!stored) {
     // pia/local have no server-side "default" that maps to a real model, so
     // pre-select their first preset. anthropic/openai/mistral use the "Recommended default"
     // sentinel (the backend picks a sensible default for those).
-    if (_needsBaseUrl(provider)) {
-      return { choice: MODEL_PRESETS[provider][0].value, custom: '' };
+    if (_isCustomEndpoint(provider)) {
+      return { choice: presets[provider][0].value, custom: '' };
     }
     // No stored model → the "Recommended default" option (backend picks the default).
     return { choice: DEFAULT_MODEL_VALUE, custom: '' };
   }
-  const matchesPreset = MODEL_PRESETS[provider].some(
+  const matchesPreset = presets[provider].some(
     (p) => p.value !== CUSTOM_MODEL_VALUE && p.value === stored,
   );
   if (matchesPreset) {
@@ -374,10 +360,16 @@ function _inferProviderFromKey(trimmedKey: string): LlmProvider | null {
   return null;
 }
 
-function _providerLabel(provider: LlmProvider | null): string {
-  const found = PROVIDER_OPTIONS.find((p) => p.value === provider);
+function _providerLabel(
+  provider: LlmProvider | null,
+  options: readonly ProviderOption[],
+): string {
+  const found = options.find((p) => p.value === provider);
   return found ? found.label : 'the other provider';
 }
+
+/** The places that open the key dialog. */
+export type LlmKeyDialogSurface = 'assistant' | 'spec_driven' | 'kg_refine' | 'project_settings';
 
 export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   open,
@@ -391,6 +383,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   showRunBudget = true,
   preferKeyEntry = false,
   preferProvider,
+  surface,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -432,16 +425,51 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   // a manual provider pick made while the config is still loading must not be
   // overridden by the free-tier preselect.
   const providerLockedRef = useRef(false);
+  // The same for a model pick: the catalog arriving late must not undo it.
+  const modelTouchedRef = useRef(false);
+  // The server's model catalog. Starts from the last loaded config, so a
+  // dialog opened after the first load renders the server's lists at once.
+  const [catalog, setCatalog] = useState<readonly SpecDrivenCatalogProvider[]>(
+    () => peekSpecDrivenConfig()?.providers ?? [],
+  );
+  const modelPresets = useMemo(() => _modelPresets(catalog), [catalog]);
+  const providerOptions = useMemo(() => _providerOptions(catalog), [catalog]);
 
-  // Hide pia/local on hosted deployments (they only work when the WME runs
-  // locally). The keyless Free tier is offered first whenever the backend
-  // advertises it.
-  const visibleProviderOptions = useMemo(() => {
-    const base = _isLocalDeployment()
-      ? PROVIDER_OPTIONS
-      : PROVIDER_OPTIONS.filter((p) => !_needsBaseUrl(p.value));
-    return freeTier.available ? [FREE_PROVIDER_OPTION, ...base] : base;
-  }, [freeTier.available]);
+  // The keyless Free tier is offered first whenever the backend advertises it.
+  const visibleProviderOptions = useMemo(
+    () => (freeTier.available ? [FREE_PROVIDER_OPTION, ...providerOptions] : providerOptions),
+    [freeTier.available, providerOptions],
+  );
+
+  // Provider, model and base URL from the stored key, for the providers this
+  // catalog offers.
+  const applyStoredSelection = (providers: readonly SpecDrivenCatalogProvider[]) => {
+    const offered = _providerOptions(providers);
+    const presets = _modelPresets(providers);
+    const stored = readLlmKey();
+    let nextProvider = preferProvider ?? stored?.provider ?? 'anthropic';
+    // A stored provider this server does not offer (a pia key on a server
+    // without the gateway, a local key on the hosted editor) would otherwise
+    // render a provider that isn't in the list.
+    if (nextProvider !== 'free' && !offered.some((p) => p.value === nextProvider)) {
+      nextProvider = 'anthropic';
+    }
+    setProvider(nextProvider);
+    // A saved model belongs to the saved provider: when another provider is
+    // preselected (preferProvider, or an unoffered one), its id would land in
+    // the custom-model box of the wrong provider.
+    const classified = _classifyStoredModel(
+      nextProvider,
+      stored?.provider === nextProvider ? stored?.model : undefined,
+      presets,
+    );
+    setModelChoice(classified.choice);
+    setCustomModel(classified.custom);
+    // Only 'local' has a base URL field (default Ollama); pia's endpoint is the
+    // server's.
+    const storedBase = stored?.provider === 'local' ? stored.baseUrl ?? '' : '';
+    setBaseUrl(nextProvider === 'local' ? storedBase || DEFAULT_LOCAL_BASE_URL : '');
+  };
 
   // Fetch the free-tier advertisement when the dialog opens; hydrate the
   // free-model choice (stored id wins only while the server still advertises
@@ -450,10 +478,18 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    const openedWithCatalog = peekSpecDrivenConfig() !== null;
     void getSpecDrivenConfig().then((cfg) => {
       if (cancelled) return;
       setFreeTier(cfg.free_tier);
       setCaps(cfg.caps);
+      setCatalog(cfg.providers);
+      // Opened before any config had loaded: the form was filled from the
+      // fallback lists. Fill it again from the catalog unless the user has
+      // already picked something.
+      if (!openedWithCatalog && !providerLockedRef.current && !modelTouchedRef.current) {
+        applyStoredSelection(cfg.providers);
+      }
       const storedFreeModel = readFreeTierModel();
       const freeModels = cfg.free_tier.models;
       // An explicit stored choice always wins. Otherwise a telemetry session
@@ -491,29 +527,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     setRemovePending(false);
     setProviderLockedByUser(false);
     providerLockedRef.current = false;
-    const stored = readLlmKey();
-    let nextProvider = preferProvider ?? stored?.provider ?? 'anthropic';
-    // A pia/local selection stored on a machine that later opens the hosted
-    // editor would otherwise render a provider that isn't in the list.
-    if (_needsBaseUrl(nextProvider) && !_isLocalDeployment()) {
-      nextProvider = 'anthropic';
-    }
-    setProvider(nextProvider);
-    setKeyPresent(stored !== null);
-    // A saved model belongs to the saved provider: when another provider is
-    // preselected (preferProvider, or a pia/local key on the hosted editor),
-    // its id would land in the custom-model box of the wrong provider.
-    const classified = _classifyStoredModel(
-      nextProvider,
-      stored?.provider === nextProvider ? stored?.model : undefined,
-    );
-    setModelChoice(classified.choice);
-    setCustomModel(classified.custom);
-    // Prefill the base URL: 'local' uses the stored/user value (default Ollama);
-    // 'pia' is fixed, so no field. Ignore a stored PIA URL for the 'local' box.
-    const storedBase =
-      stored?.baseUrl && stored.baseUrl !== PIA_GATEWAY_BASE_URL ? stored.baseUrl : '';
-    setBaseUrl(nextProvider === 'local' ? storedBase || DEFAULT_LOCAL_BASE_URL : storedBase);
+    modelTouchedRef.current = false;
+    setKeyPresent(readLlmKey() !== null);
+    applyStoredSelection(catalog);
     const budget = readLlmBudget();
     setMaxCostInput(String(budget?.maxCostUsd ?? budgetBounds.defaultCostUsd));
     setMaxRuntimeMinInput(
@@ -525,7 +541,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   }, [open, preferProvider]);
 
   useEffect(() => {
-    const presetValues = new Set(MODEL_PRESETS[provider].map((p) => p.value));
+    const presetValues = new Set(modelPresets[provider].map((p) => p.value));
     if (
       modelChoice !== DEFAULT_MODEL_VALUE &&
       modelChoice !== CUSTOM_MODEL_VALUE &&
@@ -534,39 +550,54 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       setModelChoice(DEFAULT_MODEL_VALUE); // fall back to the default when switching providers
       setCustomModel('');
     }
-  }, [provider, modelChoice]);
+  }, [provider, modelChoice, modelPresets]);
 
   const isFreeProvider = provider === 'free';
   // The server's free-model allowlist. A choice is offered only when it holds
   // more than one entry (primary + configured fallback).
   const freeModels = freeTier.models;
 
-  const trimmedKey = apiKey.trim();
+  const typedKey = apiKey.trim();
+  // The stored key is never put back in the field, so an empty field on the
+  // provider it belongs to means "keep it": changing only the model is saved
+  // with the stored key. A staged removal or another provider needs a new key.
+  // Read on every render, not memoised: the dialog stays mounted between
+  // openings, and another save can replace the stored key meanwhile.
+  const storedKeyForProvider = (() => {
+    if (!keyPresent || removePending) return '';
+    const stored = readLlmKey();
+    return stored?.provider === provider ? stored.apiKey : '';
+  })();
+  const keepsStoredKey = typedKey.length === 0 && storedKeyForProvider.length > 0;
+  const trimmedKey = keepsStoredKey ? storedKeyForProvider : typedKey;
   // The free tier needs no key, so it is always saveable when selected.
   const canSave = isFreeProvider || trimmedKey.length > 0 || removePending;
 
   const selectedProvider = useMemo(
-    () => PROVIDER_OPTIONS.find((p) => p.value === provider) ?? PROVIDER_OPTIONS[0],
-    [provider],
+    () =>
+      providerOptions.find((p) => p.value === provider) ??
+      PROVIDER_OPTIONS.find((p) => p.value === provider) ??
+      PROVIDER_OPTIONS[0],
+    [provider, providerOptions],
   );
 
   const formatLooksWrong =
-    trimmedKey.length > 0 && !trimmedKey.startsWith(selectedProvider.expectedPrefix);
+    typedKey.length > 0 && !typedKey.startsWith(selectedProvider.expectedPrefix);
 
-  const inferredProvider = _inferProviderFromKey(trimmedKey);
+  const inferredProvider = _inferProviderFromKey(typedKey);
   // Don't second-guess pia/local: a PIA key legitimately starts with sk- (which
   // would otherwise infer 'openai'), and 'local' keys are arbitrary. 'free'
   // has no key at all, so there is nothing to infer against.
   const providerMismatch =
     !isFreeProvider &&
-    !_needsBaseUrl(provider) &&
+    !_isCustomEndpoint(provider) &&
     inferredProvider !== null &&
     inferredProvider !== provider;
 
   useEffect(() => {
     if (providerLockedByUser) return;
     if (isFreeProvider) return; // never auto-switch away from the free tier
-    if (_needsBaseUrl(provider)) return; // never auto-switch away from pia/local
+    if (_isCustomEndpoint(provider)) return; // never auto-switch away from pia/local
     if (inferredProvider === null) return;
     if (inferredProvider === provider) return;
     setProvider(inferredProvider);
@@ -582,11 +613,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // pia/local have no server-side default model (see _classifyStoredModel),
     // so preselect their first preset instead of "Recommended default".
     if (
-      _needsBaseUrl(next) &&
+      _isCustomEndpoint(next) &&
       modelChoice !== CUSTOM_MODEL_VALUE &&
-      !MODEL_PRESETS[next].some((p) => p.value === modelChoice)
+      !modelPresets[next].some((p) => p.value === modelChoice)
     ) {
-      setModelChoice(MODEL_PRESETS[next][0].value);
+      setModelChoice(modelPresets[next][0].value);
     }
   };
 
@@ -625,6 +656,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   };
 
   const commitRemoval = () => {
+    track('llm_key_removed', { provider: readLlmKey()?.provider });
     clearLlmKey();
     if (client) {
       client.setUserApiKey({ apiKey: '' });
@@ -661,6 +693,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       );
       persistRunBudget();
       setSaveError(null);
+      track('free_tier_selected', { model: readFreeTierModel() ?? undefined, surface });
       onSaved?.({
         provider: 'free',
         apiKey: '',
@@ -670,41 +703,45 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       return;
     }
     if (providerMismatch) {
+      track('llm_key_save_failed', { reason: 'provider_mismatch', provider });
       setSaveError(
-        `This key looks like ${_providerLabel(inferredProvider)} but the ` +
+        `This key looks like ${_providerLabel(inferredProvider, providerOptions)} but the ` +
           `Provider is set to ${selectedProvider.label}. Change one so they ` +
           `match, or paste a different key.`,
       );
       return;
     }
     if (modelMissing) {
+      track('llm_key_save_failed', { reason: 'custom_model_empty', provider });
       setSaveError('Custom model ID is empty — pick a preset or type a model name.');
       return;
     }
     if (modelFormatInvalid) {
+      track('llm_key_save_failed', { reason: 'custom_model_invalid', provider });
       setSaveError(
         'Model ID may only contain letters, digits, dashes, dots, underscores, or slashes.',
       );
       return;
     }
-    // Resolve the base URL: 'pia' → fixed gateway; 'local' → the user's server;
-    // everyone else → none. Validate the local URL shape.
+    // Only 'local' carries a base URL (the user's server); the server resolves
+    // pia's from its model catalog. Validate the local URL shape.
     let effectiveBaseUrl: string | undefined;
-    if (provider === 'pia') {
-      effectiveBaseUrl = PIA_GATEWAY_BASE_URL;
-    } else if (provider === 'local') {
+    if (provider === 'local') {
       effectiveBaseUrl = baseUrl.trim();
       if (!effectiveBaseUrl) {
+        track('llm_key_save_failed', { reason: 'local_url_invalid', provider });
         setSaveError('Enter your local server URL, e.g. http://localhost:11434/v1');
         return;
       }
       if (!/^https?:\/\//i.test(effectiveBaseUrl)) {
+        track('llm_key_save_failed', { reason: 'local_url_invalid', provider });
         setSaveError('Local server URL must start with http:// or https://');
         return;
       }
     }
     const saved = writeLlmKey(provider, trimmedKey, effectiveModel, effectiveBaseUrl);
     if (!saved) {
+      track('llm_key_save_failed', { reason: 'storage', provider });
       setSaveError(
         'Could not store the key in this browser tab (sessionStorage is unavailable). ' +
           'Try enabling site storage or use a different browser.',
@@ -713,15 +750,10 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     // Arm the live agent socket immediately when a client is provided. If the
     // socket is momentarily down this is a no-op — the key is in sessionStorage
-    // so the next (re)connect re-arms it automatically.
-    //
-    // Skipped for providers the modeling agent's own BYOK layer does not
-    // support (it allowlists anthropic/openai/mistral/nebius and discards the rest).
-    // Sending the key anyway would hand a secret to a service that will only
-    // log "unsupported provider" and drop it. The assistant then runs on the
-    // server's default model — which is exactly what its own re-arm path does,
-    // since readAssistantApiKey() rejects the stored provider too.
-    if (client && _assistantSupportsProvider(provider)) {
+    // so the next (re)connect re-arms it automatically. Only a provider on the
+    // assistant's allowlist reaches the agent (a Spec-Driven-only key never
+    // does); the re-arm path applies the same list.
+    if (client && isAssistantKeyProvider(provider)) {
       client.setUserApiKey({
         apiKey: trimmedKey,
         provider,
@@ -734,6 +766,17 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     persistRunBudget();
     setSaveError(null);
     setKeyPresent(true);
+    const modelSource =
+      modelChoice === DEFAULT_MODEL_VALUE ? 'default' : modelChoice === CUSTOM_MODEL_VALUE ? 'custom' : 'preset';
+    track('llm_key_saved', {
+      provider,
+      model_source: modelSource,
+      // A typed custom id is never sent; a preset is a catalog id.
+      model: modelSource === 'preset' ? modelChoice : undefined,
+      surface,
+      armed_assistant: Boolean(client) && isAssistantKeyProvider(provider),
+      budget_set: showRunBudget,
+    });
     onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel, baseUrl: effectiveBaseUrl });
     onOpenChange(false);
   };
@@ -781,8 +824,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             {inferredProvider !== null &&
               !providerLockedByUser &&
               inferredProvider === provider &&
-              trimmedKey.length > 0 &&
-              !_needsBaseUrl(provider) && (
+              typedKey.length > 0 &&
+              !_isCustomEndpoint(provider) && (
                 <p className="text-xs text-muted-foreground">Provider auto-selected from the key prefix.</p>
               )}
             {isFreeProvider && (
@@ -857,9 +900,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           {!isFreeProvider && (
           <div className="space-y-1.5">
             <Label htmlFor="llm-key-api-key">API Key</Label>
-            <Input
+            <SecretInput
               id="llm-key-api-key"
-              type="password"
               value={apiKey}
               onChange={(event) => {
                 setApiKey(event.target.value);
@@ -879,8 +921,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             <p className="text-xs text-muted-foreground">{selectedProvider.hint}</p>
             {providerMismatch && (
               <p id="llm-key-mismatch" role="alert" className="text-xs font-medium text-destructive">
-                This key looks like a {_providerLabel(inferredProvider)} key, but Provider is set to{' '}
+                This key looks like a {_providerLabel(inferredProvider, providerOptions)} key, but Provider is set to{' '}
                 {selectedProvider.label}. Change one so they match — otherwise the API will reject the key.
+              </p>
+            )}
+            {keepsStoredKey && (
+              <p className="text-xs text-muted-foreground">
+                Your saved key is kept. Leave this empty to change only the model.
               </p>
             )}
             {!providerMismatch && formatLooksWrong && (
@@ -905,6 +952,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               value={modelChoice}
               onChange={(e) => {
                 const next = e.target.value;
+                modelTouchedRef.current = true;
                 setModelChoice(next);
                 if (next !== CUSTOM_MODEL_VALUE) {
                   setCustomModel('');
@@ -914,7 +962,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               <option value={DEFAULT_MODEL_VALUE}>Recommended default</option>
-              {MODEL_PRESETS[provider].map((p) => (
+              {modelPresets[provider].map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>

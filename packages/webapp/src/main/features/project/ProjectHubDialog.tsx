@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
+import { reportError } from '../../shared/services/errors/reportError';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,12 +25,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField } from '@/components/ui/form-field';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BesserProject, InterfaceMode, PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
 import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
+import { track, trackFailure, type ProjectCreationSource } from '../../shared/services/analytics/events';
 import { FirstRunLanding } from './FirstRunLanding';
+import { repoSlug, saveProjectOnGithub } from './saveProjectOnGithub';
+import { clearHubGithubResume, peekHubGithubResume, stashHubGithubResume } from './hubGithubResume';
 import {
   DEFAULT_SDMX_SOURCE,
   SdmxSourceFields,
@@ -44,24 +48,24 @@ import { LanguageSelector } from '../../app/shell/LanguageSelector';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { importProject, importProjectFromJson } from '../../shared/services/project-import/projectImport';
+import { importProject } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
+import { csvToDomainModel } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
+import { readPreferredInterface, writePreferredInterface } from '../../shared/services/storage/preferencesStorage';
+import { cancelAssistantOpenOnLoad, requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
 import {
-  BACKEND_URL,
-  localStoragePreferredInterface,
-  sessionStorageContinueFromGithubIntent,
-  sessionStorageOpenAssistantOnLoad,
-} from '../../shared/constants/constant';
-import { useImportDiagramToProject } from '../import/useImportDiagram';
-import { apiClient, ApiError } from '../../shared/api/api-client';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
-import { emitDeliveryEvent } from '../../shared/services/telemetry/pilotTelemetry';
+  clearContinueFromGithubIntent,
+  readContinueFromGithubIntent,
+  writeContinueFromGithubIntent,
+} from '../../shared/services/storage/githubStorage';
+import { useImportDiagramToProject } from '../import';
 import { useAppDispatch } from '../../app/store/hooks';
-import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
-import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitHubStorage';
-import { writeProjectLastRun } from '../spec-driven/storage';
-import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
+import { RepoBrowser, type RepoChoice } from '../../shared/components/github/RepoBrowser';
+import { continueFromGithubRepo, describeOpenedRepo } from '../../shared/services/github/continueFromGithub';
+import { setLastRunForProject } from '../spec-driven';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
 export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';
@@ -75,19 +79,11 @@ interface ProjectHubDialogProps {
    * auto-open first-run path (which shows the 'welcome' chooser).
    */
   initialStep?: ProjectHubOpenStep;
+  /** Called with a summary of the repository "Continue from GitHub" opened, for the assistant chat. */
+  onRepoOpened?: (summary: string) => void;
 }
 
 type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
-
-/** Read the per-user default interface saved via "Remember my choice". */
-const readPreferredInterface = (): InterfaceMode | null => {
-  try {
-    const v = localStorage.getItem(localStoragePreferredInterface);
-    return v === 'model' || v === 'agent' ? v : null;
-  } catch {
-    return null;
-  }
-};
 
 /**
  * Per-link interface override read from the URL for this load only (never
@@ -113,27 +109,9 @@ const readUrlInterfaceOverride = (): InterfaceMode | null => {
   }
 };
 
-/** Deploy-link target token for the GitHub push (shared with the spec-driven push flow). */
-const GITHUB_TARGET = 'github';
-const GITHUB_DEFAULT_BRANCH = 'main';
-
-/**
- * Response of ``POST /spec-driven/import-github-run``. ``project`` is a re-importable V2
- * project export envelope (same shape as ``buml/diagrams.json``); ``has_model``
- * is false when the repo carries no BESSER model.
- */
-interface ImportGitHubRunResponse {
-  run_id: string;
-  project: unknown;
-  has_model: boolean;
-  owner: string;
-  repo: string;
-  branch: string;
-}
-
 const defaultForm = {
   name: 'New_Project',
-  description: 'Modern workspace project for UML, GUI and quantum modeling.',
+  description: '',
   owner: 'BESSER User',
 };
 
@@ -170,7 +148,7 @@ const readableFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep }) => {
+export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep, onRepoOpened }) => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
@@ -184,6 +162,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
+  // "Save it on GitHub" on the create form; takes effect only while signed in.
+  const [saveOnGithub, setSaveOnGithub] = useState(true);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
   const [spreadsheetPerspectiveKey, setSpreadsheetPerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetFiles, setSpreadsheetFiles] = useState<File[]>([]);
@@ -197,20 +177,16 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const spreadsheetFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── "Continue from GitHub" picker state ──────────────────────────────
-  const [githubRepoFullName, setGithubRepoFullName] = useState('');
-  const [githubBranches, setGithubBranches] = useState<string[]>([]);
-  const [githubBranch, setGithubBranch] = useState('');
-  const [githubLoadingBranches, setGithubLoadingBranches] = useState(false);
   const [githubError, setGithubError] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
-  const { isAuthenticated: isGithubAuthenticated, githubSession, login: githubLogin } = useGitHubAuth();
   const {
-    repositories: githubRepositories,
-    isLoading: githubReposLoading,
-    fetchRepositories: fetchGithubRepositories,
-    fetchBranches: fetchGithubBranches,
-  } = useGitHubStorage();
+    isAuthenticated: isGithubAuthenticated,
+    isChecking: isGithubChecking,
+    username: githubUsername,
+    githubSession,
+    login: githubLogin,
+  } = useGitHubAuth();
 
   const { currentProject, createProject, loadProject, deleteProject } = useProject();
   const importDiagramToProject = useImportDiagramToProject();
@@ -278,20 +254,42 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
+    setSaveOnGithub(true);
     setSpreadsheetForm(defaultForm);
     setSpreadsheetPerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetFiles([]);
     setDataSource('files');
     setSdmxSource(DEFAULT_SDMX_SOURCE);
-    setGithubRepoFullName('');
-    setGithubBranches([]);
-    setGithubBranch('');
-    setGithubLoadingBranches(false);
     setGithubError(null);
     createValidation.resetTouched();
     spreadsheetValidation.resetTouched();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, refreshProjects]);
+
+  // Back from a GitHub sign-in started on the landing or the create form:
+  // reopen that step with what the user had entered. Declared after the reset
+  // above so its writes win; the repo-picker intent is left to the next effect.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const resume = peekHubGithubResume();
+    if (resume?.step === 'github') {
+      return;
+    }
+    clearHubGithubResume();
+    if (resume?.step === 'welcome') {
+      setStep('welcome');
+      setEntryStep('welcome');
+    } else if (resume?.step === 'create') {
+      setForm(resume.form);
+      setPendingPreferredInterface(resume.mode);
+      setCreatePerspectiveKey(resume.perspectiveKey);
+      setSaveOnGithub(true);
+      setStep('create');
+      setEntryStep(resume.entryStep);
+    }
+  }, [open]);
 
   // Resume "Continue from GitHub" after the OAuth redirect: once the hub is
   // open AND we're authenticated, consume-and-clear the stashed intent and jump
@@ -302,40 +300,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     if (!open || !isGithubAuthenticated) {
       return;
     }
-    let hasIntent = false;
-    try {
-      hasIntent = sessionStorage.getItem(sessionStorageContinueFromGithubIntent) !== null;
-    } catch {
-      hasIntent = false;
-    }
-    if (!hasIntent) {
+    if (readContinueFromGithubIntent() === null) {
       return;
     }
-    try {
-      sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
-    } catch {
-      /* ignore */
-    }
+    clearContinueFromGithubIntent();
     setStep('github');
   }, [open, isGithubAuthenticated]);
-
-  // Lazy-load the user's repositories when the GitHub step opens. Once per
-  // visit: an empty or failed result must not re-trigger the fetch.
-  const githubReposRequestedRef = useRef(false);
-  useEffect(() => {
-    if (!open || step !== 'github') {
-      githubReposRequestedRef.current = false;
-      return;
-    }
-    if (!isGithubAuthenticated || !githubSession) {
-      return;
-    }
-    if (githubRepositories.length > 0 || githubReposLoading || githubReposRequestedRef.current) {
-      return;
-    }
-    githubReposRequestedRef.current = true;
-    void fetchGithubRepositories(githubSession);
-  }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
 
   // The two-step "Step n of 2" framing belongs to the first-run / new-project
   // flow (entered through the welcome chooser). A hub opened at the start screen
@@ -375,7 +345,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return {
         title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
         description: t('project.hub.github.description', {
-          defaultValue: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
+          defaultValue: 'Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
         }),
         badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
@@ -403,21 +373,18 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     onOpenChange(nextOpen);
   };
 
+  // Close once a project is open. Not via handleDialogOpenChange: its canClose is
+  // stale (no project yet) in these async handlers, and after a GitHub sign-in the
+  // bootstrap no longer closes the hub when a project appears.
+  const closeWithProject = () => onOpenChange(false);
+
   // First-run landing: a portal was chosen. Persist the per-user default when
   // "Remember my choice" is ticked, then advance into the shared project-
   // creation form. BOTH modes create a project the same way; the only
   // difference is post-create — 'agent' opens the assistant drawer once the
   // editor loads (handleCreateProject sets the flag), 'model' stays on canvas.
   const handleChooseInterface = (mode: InterfaceMode, remember: boolean) => {
-    try {
-      if (remember) {
-        localStorage.setItem(localStoragePreferredInterface, mode);
-      } else {
-        localStorage.removeItem(localStoragePreferredInterface);
-      }
-    } catch {
-      /* storage may be unavailable (private mode / quota) — non-fatal */
-    }
+    writePreferredInterface(remember ? mode : null);
     setPendingPreferredInterface(mode);
     const firstRun = ProjectStorageRepository.getAllProjects().length === 0;
     trackInterfaceChoice(mode, firstRun ? 'first_run' : 'new_project', { remembered: remember });
@@ -436,15 +403,66 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     setStep(entryStep === 'welcome' ? 'welcome' : 'start');
   };
 
+  // GitHub sign-in from the landing or the create form: the hub reopens on the
+  // same step after the OAuth redirect (see the resume effect above).
+  const handleConnectGithubFromLanding = () => {
+    stashHubGithubResume({ step: 'welcome' });
+    githubLogin('project_hub');
+  };
+
+  const handleConnectGithubFromCreate = () => {
+    stashHubGithubResume({
+      step: 'create',
+      entryStep: entryStep === 'start' ? 'start' : 'welcome',
+      form,
+      mode: pendingPreferredInterface,
+      perspectiveKey: createPerspectiveKey,
+    });
+    githubLogin('project_hub');
+  };
+
+  // Runs after the hub has closed: a failure leaves the project created and unlinked.
+  const saveCreatedProjectOnGithub = async (session: string, created: BesserProject) => {
+    const project = ProjectStorageRepository.loadProject(created.id) ?? created;
+    const toastId = toast.loading(t('project.hub.create.github.toasts.saving', {
+      defaultValue: 'Saving {{name}} on GitHub…',
+      name: project.name,
+    }));
+    try {
+      const link = await saveProjectOnGithub(session, project);
+      toast.update(toastId, {
+        render: t('project.hub.create.github.toasts.saved', {
+          defaultValue: 'Saved on GitHub as {{repo}}.',
+          repo: `${link.owner}/${link.repo}`,
+        }),
+        type: 'success',
+        isLoading: false,
+        autoClose: 5000,
+      });
+      track('project_saved_on_github', {});
+    } catch (error) {
+      trackFailure('project_save_on_github_failed', error, {});
+      reportError(
+        t('project.hub.create.github.toasts.failed', {
+          defaultValue: 'Your project was created, but saving it on GitHub failed: {{error}}',
+          error: error instanceof Error ? error.message : t('project.hub.unknownError'),
+        }),
+        { updateToast: toastId, isLoading: false, autoClose: 8000, error },
+      );
+    }
+  };
+
   const handleCreateProject = async () => {
     const errors = createValidation.touchAll();
     if (Object.keys(errors).length > 0) {
+      track('project_creation_failed', { via: 'form', reason: 'invalid_input' });
       return;
     }
 
     const name = normalizeProjectName(form.name);
     const description = form.description.trim();
     const owner = form.owner.trim();
+    const githubTarget = saveOnGithub && isGithubAuthenticated ? githubSession : null;
 
     try {
       setIsBusy(true);
@@ -453,15 +471,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       // effect — if we set the flag AFTER the await, that effect has already run
       // and missed it (the race that left the agentic drawer closed on create).
       if (pendingPreferredInterface === 'agent') {
-        try {
-          sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
-        } catch {
-          /* storage unavailable — the drawer just won't auto-open, non-fatal */
-        }
+        requestAssistantOpenOnLoad();
       }
-      await createProject(
+      const created = await createProject(
         name,
-        description || defaultForm.description,
+        description,
         owner || defaultForm.owner,
         resolvePerspectives(createPerspectiveKey),
         pendingPreferredInterface ?? undefined,
@@ -469,17 +483,17 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       );
       trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.created', { name }));
+      if (githubTarget && created) {
+        void saveCreatedProjectOnGithub(githubTarget, created);
+      }
     } catch (error) {
       // Creation failed — disarm the flag so it can't spuriously open the drawer
       // on some later, unrelated project load.
-      try {
-        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
-      } catch {
-        /* non-fatal */
-      }
-      toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      cancelAssistantOpenOnLoad();
+      trackFailure('project_creation_failed', error, { via: 'form', reason: 'exception' });
+      reportError(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -489,10 +503,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     try {
       setIsBusy(true);
       await loadProject(projectId);
-      handleDialogOpenChange(false);
+      track('project_opened', { source: 'hub' });
+      closeWithProject();
       toast.success(t('project.hub.toasts.loaded'));
     } catch (error) {
-      toast.error(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      trackFailure('project_open_failed', error, { source: 'hub' });
+      reportError(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -512,10 +528,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     try {
       setIsBusy(true);
       await deleteProject(projectId);
+      track('project_deleted', { remaining_projects: ProjectStorageRepository.getAllProjects().length });
       refreshProjects();
       toast.success(t('project.hub.toasts.deleted', { name: projectName }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      trackFailure('project_delete_failed', error, {});
+      reportError(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -531,11 +549,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(true);
       const importedProject = await importProject(file);
       await loadProject(importedProject.id);
+      trackProjectCreated(importedProject.settings?.preferredInterface ?? 'model', 'file_import');
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      trackFailure('project_creation_failed', error, { via: 'file_import', reason: 'exception' });
+      reportError(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
       event.target.value = '';
@@ -552,18 +572,21 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'json' && ext !== 'py') {
-      toast.error(t('project.hub.toasts.unsupportedFileType'));
+      track('project_creation_failed', { via: 'file_import', reason: 'invalid_input' });
+      reportError(t('project.hub.toasts.unsupportedFileType'));
       return;
     }
     try {
       setIsBusy(true);
       const importedProject = await importProject(file);
       await loadProject(importedProject.id);
+      trackProjectCreated(importedProject.settings?.preferredInterface ?? 'model', 'file_import');
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      trackFailure('project_creation_failed', error, { via: 'file_import', reason: 'exception' });
+      reportError(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -580,20 +603,24 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
    * dataflow id, a provider that is down) leaves no empty project behind.
    */
   const createProjectFromGeneratedDiagram = async (
+    via: Extract<ProjectCreationSource, 'spreadsheet' | 'sdmx'>,
     requestDiagram: () => Promise<unknown>,
     messages: { importFailed: string },
   ) => {
     const name = normalizeProjectName(spreadsheetForm.name);
     const description = spreadsheetForm.description.trim();
     const owner = spreadsheetForm.owner.trim();
+    // Which half failed: the backend request, or creating the project from its diagram.
+    let stage: 'request' | 'import' = 'request';
 
     try {
       setIsBusy(true);
       const diagramJson = await requestDiagram();
+      stage = 'import';
 
       await createProject(
         name,
-        description || defaultForm.description,
+        description,
         owner || defaultForm.owner,
         resolvePerspectives(spreadsheetPerspectiveKey),
       );
@@ -602,12 +629,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       });
 
       await importDiagramToProject(generatedDiagramFile);
+      trackProjectCreated('model', via);
       refreshProjects();
-      handleDialogOpenChange(false);
+      closeWithProject();
       toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
-      toast.error(
-        t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }),
+      trackFailure('project_creation_failed', error, { via, reason: stage });
+      reportError(
+        t(messages.importFailed, { error: error instanceof Error ? error.message : t('project.hub.unknownError') }), { error },
       );
     } finally {
       setIsBusy(false);
@@ -617,35 +646,25 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const handleStartFromSpreadsheet = async () => {
     const errors = spreadsheetValidation.touchAll();
     if (Object.keys(errors).length > 0) {
+      track('project_creation_failed', { via: 'spreadsheet', reason: 'invalid_input' });
       return;
     }
 
     if (spreadsheetFiles.length === 0) {
-      toast.error(t('project.hub.toasts.noSpreadsheetFile'));
+      track('project_creation_failed', { via: 'spreadsheet', reason: 'invalid_input' });
+      reportError(t('project.hub.toasts.noSpreadsheetFile'));
       return;
     }
 
     await createProjectFromGeneratedDiagram(
+      'spreadsheet',
       async () => {
-        const requestData = new FormData();
-        spreadsheetFiles.forEach((file) => requestData.append('files', file));
-        const response = await fetch(`${BACKEND_URL}/csv-to-domain-model`, {
-          method: 'POST',
-          body: requestData,
-        });
-        if (!response.ok) {
-          let message = t('project.hub.toasts.spreadsheetGenerateFailed');
-          try {
-            const errorData = await response.json();
-            if (typeof errorData?.detail === 'string') {
-              message = errorData.detail;
-            }
-          } catch {
-            // Keep fallback message.
-          }
-          throw new Error(message);
+        try {
+          return await csvToDomainModel(spreadsheetFiles);
+        } catch (error) {
+          if (!(error instanceof ApiError)) throw error;
+          throw new Error(error.detail ?? t('project.hub.toasts.spreadsheetGenerateFailed'));
         }
-        return response.json();
       },
       { importFailed: 'project.hub.toasts.spreadsheetImportFailed' },
     );
@@ -654,15 +673,18 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const handleStartFromSdmx = async () => {
     const errors = spreadsheetValidation.touchAll();
     if (Object.keys(errors).length > 0) {
+      track('project_creation_failed', { via: 'sdmx', reason: 'invalid_input' });
       return;
     }
 
     if (!isSdmxSourceComplete(sdmxSource)) {
-      toast.error(t('project.hub.toasts.noSdmxDataflow'));
+      track('project_creation_failed', { via: 'sdmx', reason: 'invalid_input' });
+      reportError(t('project.hub.toasts.noSdmxDataflow'));
       return;
     }
 
     await createProjectFromGeneratedDiagram(
+      'sdmx',
       () => requestSdmxDiagram(sdmxSource, t('project.hub.toasts.sdmxGenerateFailed')),
       { importFailed: 'project.hub.toasts.sdmxImportFailed' },
     );
@@ -673,121 +695,59 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // off OAuth, and let the hub reopen on the repo picker once we're back.
   const handleOpenGithubStep = () => {
     setGithubError(null);
-    if (!isGithubAuthenticated) {
-      try {
-        sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
-      } catch {
-        /* sessionStorage may be unavailable — login still proceeds. */
-      }
+    // While a stored session is being verified, the step waits for it rather than signing in again.
+    if (!isGithubAuthenticated && !isGithubChecking) {
+      writeContinueFromGithubIntent();
       toast.info(t('project.hub.github.toasts.connectToContinue', {
         defaultValue: 'Connect GitHub to continue from one of your repositories.',
       }));
-      githubLogin();
+      githubLogin('project_hub');
       return;
     }
     setStep('github');
   };
 
-  const handleSelectGithubRepo = async (fullName: string) => {
-    setGithubRepoFullName(fullName);
-    setGithubBranches([]);
-    setGithubBranch('');
+  // Open a BESSER-created repo: its model becomes a project linked to the repo,
+  // and the next Spec-Driven Agent run edits that repo's code and pushes back.
+  // A repo a local project already links to is pulled into that project.
+  const handleContinueGithubRepo = async ({ owner, repo, branch }: RepoChoice) => {
     setGithubError(null);
-    const repo = githubRepositories.find((r) => r.full_name === fullName);
-    if (!repo || !githubSession) {
-      return;
-    }
-    const [owner] = repo.full_name.split('/');
-    setGithubLoadingBranches(true);
-    const list = await fetchGithubBranches(githubSession, owner, repo.name);
-    setGithubLoadingBranches(false);
-    const resolved = list.length > 0 ? list : [repo.default_branch].filter(Boolean);
-    setGithubBranches(resolved);
-    setGithubBranch(repo.default_branch || resolved[0] || GITHUB_DEFAULT_BRANCH);
-  };
-
-  // Load a BESSER-created repo's model into a fresh project AND prime the next
-  // Spec-Driven Agent run to modify that repo's code and push back to the same repo.
-  const handleContinueGithubRepo = async () => {
-    setGithubError(null);
-    const repo: GitHubRepository | undefined = githubRepositories.find(
-      (r) => r.full_name === githubRepoFullName,
-    );
-    if (!repo) {
-      setGithubError(t('project.hub.github.errors.selectRepo', { defaultValue: 'Select a repository to continue from.' }));
-      return;
-    }
     if (!githubSession) {
+      track('project_creation_failed', { via: 'github', reason: 'invalid_input' });
       setGithubError(t('project.hub.github.errors.noSession', { defaultValue: 'GitHub session not found. Please reconnect.' }));
       return;
     }
-
-    const [owner] = repo.full_name.split('/');
-    const branch = githubBranch || repo.default_branch || GITHUB_DEFAULT_BRANCH;
-
     try {
       setIsBusy(true);
-      const response = await apiClient.post<ImportGitHubRunResponse>(
-        '/spec-driven/import-github-run',
-        { owner, repo: repo.name, branch },
-        { headers: { 'X-GitHub-Session': githubSession } },
-      );
-
-      if (!response.has_model) {
-        setGithubError(
-          t('project.hub.github.errors.noModel', {
-            defaultValue: "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
-          }),
-        );
+      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession, source: 'hub' });
+      if (!result.ok || !result.projectId) {
+        track('project_creation_failed', { via: 'github', reason: 'request' });
+        setGithubError(result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }));
         return;
       }
-
-      // The returned ``project`` is a V2 export envelope — route it through the
-      // V2-aware importer (validateV2ExportData + extractPersonalization) by
-      // wrapping it in a File, exactly like a ``diagrams.json`` import.
-      const file = new File([JSON.stringify(response.project)], 'diagrams.json', {
-        type: 'application/json',
-      });
-      const imported = await importProjectFromJson(file);
-      await loadProject(imported.id);
-
-      // Link the push target so a later spec-driven push updates the same repo.
-      LocalStorageRepository.setDeployLinkedRepo(imported.id, GITHUB_TARGET, {
-        owner: response.owner,
-        repo: response.repo,
-        branch: response.branch,
-      });
-
-      // Prime the modify base: record this run as the project's last successful
-      // run so the next spec-driven request auto-selects mode=modify + base_run_id
-      // (via decideRunMode). Mirror to localStorage AND the in-memory store.
-      const at = Date.now();
-      writeProjectLastRun(imported.id, response.run_id, at);
-      dispatch(setLastRunForProject({ projectId: imported.id, runId: response.run_id, at }));
+      await loadProject(result.projectId);
+      // A repo a local project already links to is pulled into it: no new project.
+      if (!result.reused) {
+        const opened = ProjectStorageRepository.loadProject(result.projectId);
+        trackProjectCreated(opened?.settings?.preferredInterface ?? 'model', 'github');
+      }
+      onRepoOpened?.(describeOpenedRepo(result));
+      if (result.runId) {
+        dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
+      }
 
       refreshProjects();
-      handleDialogOpenChange(false);
-      // Opt-in research telemetry: a completed continue-from-repo import is a
-      // delivery action. Fire-and-forget; no-op unless opened with `?pilot=<label>`.
-      emitDeliveryEvent('continue_from_repo', response.run_id);
+      closeWithProject();
       toast.success(t('project.hub.github.toasts.continuing', {
         defaultValue: 'Continuing from {{repo}}.',
-        repo: `${response.owner}/${response.repo}`,
+        repo: `${owner}/${repo}`,
       }));
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setGithubError(t('project.hub.github.errors.sessionExpired', { defaultValue: 'Your GitHub session expired. Reconnect and try again.' }));
-        toast.error(t('project.hub.github.toasts.sessionExpired', { defaultValue: 'GitHub session expired — please reconnect.' }));
-      } else {
-        const message =
-          error instanceof ApiError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
-        setGithubError(message);
-        toast.error(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }));
-      }
+      const message =
+        error instanceof Error ? error.message : t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
+      trackFailure('project_creation_failed', error, { via: 'github', reason: 'exception' });
+      setGithubError(message);
+      reportError(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }), { error });
     } finally {
       setIsBusy(false);
     }
@@ -886,6 +846,65 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       </div>
     </FormField>
   );
+
+  // "Save it on GitHub": a checkbox (on by default) when signed in, a connect link otherwise.
+  const renderSaveOnGithub = () => {
+    const title = (
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+        <Github aria-hidden className="size-3.5" />
+        {t('project.hub.create.github.label', { defaultValue: 'Save it on GitHub' })}
+      </span>
+    );
+    if (!isGithubAuthenticated) {
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border/70 px-3 py-2.5">
+          <span className="min-w-0">
+            {title}
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {t('project.hub.create.github.connectHint', {
+                defaultValue: 'Connect GitHub to keep this project in a private repository of your own.',
+              })}
+            </span>
+          </span>
+          <Button
+            type="button"
+            variant="link"
+            size="xs"
+            className="shrink-0 px-0"
+            onClick={handleConnectGithubFromCreate}
+            data-testid="create-github-connect"
+          >
+            {t('project.hub.create.github.connect', { defaultValue: 'Connect GitHub' })}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <label
+        htmlFor="create-save-github"
+        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:border-brand/30"
+      >
+        <Checkbox
+          id="create-save-github"
+          className="mt-0.5"
+          checked={saveOnGithub}
+          onCheckedChange={setSaveOnGithub}
+          data-testid="create-save-github"
+        />
+        <span className="min-w-0">
+          {title}
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            <Trans
+              i18nKey="project.hub.create.github.privateRepo"
+              defaults="A private repository named <repo>{{repo}}</repo> keeps your model and code."
+              values={{ repo: repoSlug(normalizeProjectName(form.name)) }}
+              components={{ repo: <code className="break-all font-mono text-[11px] text-foreground" /> }}
+            />
+          </span>
+        </span>
+      </label>
+    );
+  };
 
   // Project cards: the whole card opens the project (the primary action);
   // delete is a hover/focus-revealed corner control so it can't be hit by
@@ -1002,7 +1021,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       icon: Github,
       title: t('project.hub.start.cardGithub.title', { defaultValue: 'Continue From GitHub' }),
       description: t('project.hub.start.cardGithub.description', {
-        defaultValue: 'Reopen a repo BESSER created and keep building.',
+        defaultValue: 'Open any repo, BESSER-made or not, and keep building.',
       }),
       onClick: handleOpenGithubStep,
     },
@@ -1016,6 +1035,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             onChoose={handleChooseInterface}
             onMoreOptions={() => setStep('start')}
             defaultRemember={readPreferredInterface() !== null}
+            github={{
+              connected: isGithubAuthenticated,
+              username: githubUsername ?? null,
+              onConnect: handleConnectGithubFromLanding,
+            }}
           />
         )}
         {step !== 'welcome' && (
@@ -1199,12 +1223,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         id="project-description"
                         value={form.description}
                         onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                        placeholder={t('project.field.descriptionPlaceholder')}
                         className="min-h-16"
                       />
                     </FormField>
                     {renderInterfaceModePicker()}
                     {(pendingPreferredInterface ?? 'model') === 'model' &&
                       renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                    {renderSaveOnGithub()}
                     <Button type="submit" disabled={isBusy || !createValidation.isValid} className="w-full gap-2">
                       <Sparkles className="size-4" />
                       {t('project.hub.create.submit')}
@@ -1293,6 +1319,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, description: event.target.value }))
                         }
+                        placeholder={t('project.field.descriptionPlaceholder')}
                         className="min-h-24"
                       />
                     </FormField>
@@ -1435,7 +1462,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'github' && !isGithubAuthenticated && (
+          {step === 'github' && isGithubChecking && (
+            <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              {t('github.connect.checking', { defaultValue: 'Checking your GitHub connection…' })}
+            </div>
+          )}
+
+          {step === 'github' && !isGithubAuthenticated && !isGithubChecking && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 {t('project.hub.github.connectHint', {
@@ -1449,76 +1483,18 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'github' && isGithubAuthenticated && (
-            <form
-              className="flex flex-col gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!isBusy && githubRepoFullName) {
-                  void handleContinueGithubRepo();
-                }
-              }}
-            >
-              <FormField label={t('github.linked.repository')} htmlFor="github-continue-repo">
-                <Select
-                  value={githubRepoFullName}
-                  onValueChange={(value) => value && void handleSelectGithubRepo(value)}
-                  disabled={githubReposLoading || isBusy}
-                >
-                  <SelectTrigger id="github-continue-repo">
-                    <SelectValue
-                      placeholder={githubReposLoading
-                        ? t('project.hub.github.loadingRepos', { defaultValue: 'Loading repositories…' })
-                        : t('project.hub.github.selectRepo', { defaultValue: 'Select a repository' })}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {githubRepositories.map((repo) => (
-                      <SelectItem key={repo.id} value={repo.full_name}>
-                        {repo.full_name}
-                        {repo.private ? ` ${t('project.hub.github.privateSuffix', { defaultValue: '(private)' })}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-
-              {githubRepoFullName && (
-                <FormField label={t('github.linkModal.branch')} htmlFor="github-continue-branch">
-                  <Select
-                    value={githubLoadingBranches ? '' : githubBranch}
-                    onValueChange={(value) => value && setGithubBranch(value)}
-                    disabled={githubLoadingBranches || isBusy}
-                  >
-                    <SelectTrigger id="github-continue-branch">
-                      <SelectValue
-                        placeholder={githubLoadingBranches
-                          ? t('project.hub.github.loadingBranches', { defaultValue: 'Loading branches…' })
-                          : undefined}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {githubBranches.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              )}
-
-              {githubError && (
-                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {githubError}
-                </p>
-              )}
-
-              <Button type="submit" disabled={isBusy || !githubRepoFullName} className="w-full gap-2">
-                {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
-                {isBusy ? t('common.loading') : t('project.hub.github.continue', { defaultValue: 'Continue' })}
-              </Button>
-            </form>
+          {step === 'github' && isGithubAuthenticated && githubSession && (
+            <RepoBrowser
+              githubSession={githubSession}
+              actionLabel={t('project.hub.github.continue', { defaultValue: 'Continue' })}
+              onAction={handleContinueGithubRepo}
+              busy={isBusy}
+              error={githubError}
+              allowWithoutModel
+              noModelHint={t('github.repoBrowser.readsCode', {
+                defaultValue: 'No BESSER model yet. BESSER reads its code and proposes one for you to accept.',
+              })}
+            />
           )}
         </div>
         )}

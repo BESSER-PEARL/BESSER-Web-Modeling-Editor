@@ -1,5 +1,13 @@
 import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent, isUMLModel } from '../types/project';
+import {
+  BesserProject,
+  ProjectDiagram,
+  SupportedDiagramType,
+  getActiveDiagram,
+  diagramHasContent,
+  isUMLModel,
+  userProjectDescription,
+} from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
 import {
@@ -135,6 +143,7 @@ export const buildExportableProjectPayload = (
 ): ExportableProjectPayload => {
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
+  projectClone.description = userProjectDescription(projectClone.description);
 
   return filterProjectDiagrams(projectClone, selectedDiagramTypes);
 };
@@ -173,6 +182,9 @@ export const buildProjectPayloadForBackend = (
     }
   }
   delete payload.elementLineage;
+  // The assistant conversation is kept for people (it goes to the repo with
+  // the project file); generation does not read it.
+  delete payload.assistantConversation;
 
   return payload;
 };
@@ -180,12 +192,11 @@ export const buildProjectPayloadForBackend = (
 /**
  * Canonical V2 project-export envelope. The shape is shared by:
  *   - "Export Project" JSON download (useExportProjectJSON)
- *   - "Project preview" dialog (useProjectPreview)
  *   - Assistant-driven exports (WorkspaceShell)
  *   - GitHub deploy payload (useGitHubRepo) — backend writes it as diagrams.json
  *
  * Anything that needs the V2 envelope MUST go through buildProjectExportEnvelope
- * so the four sites stay in sync.
+ * so the three sites stay in sync.
  */
 export interface ProjectExportEnvelope {
   project: ExportableProjectPayload;

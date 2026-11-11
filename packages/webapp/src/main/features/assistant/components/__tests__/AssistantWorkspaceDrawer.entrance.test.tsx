@@ -11,7 +11,7 @@ import { Provider } from 'react-redux';
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { specDrivenReducer } from '../../../spec-driven/state/specDrivenSlice';
+import { specDrivenReducer } from '../../../spec-driven';
 
 vi.mock('../../hooks/useAssistantLogic', () => ({
   useAssistantLogic: () => ({
@@ -36,6 +36,8 @@ vi.mock('../../hooks/useAssistantLogic', () => ({
   }),
 }));
 vi.mock('../AssistantByokDialog', () => ({ AssistantByokDialog: () => null }));
+vi.mock('../StartFromRepoDialog', () => ({ StartFromRepoDialog: () => null }));
+vi.mock('../../../github/components/RepoChatHeader', () => ({ RepoChatHeader: () => null }));
 
 import { AssistantWorkspaceDrawer } from '../AssistantWorkspaceDrawer';
 
@@ -80,5 +82,16 @@ describe('AssistantWorkspaceDrawer welcome entrance', () => {
     expect(container.querySelector('textarea')).toBe(composer);
     const keyWarnings = consoleError.mock.calls.filter((args) => String(args[0]).includes('same key'));
     expect(keyWarnings).toHaveLength(0);
+  });
+
+  it('offers no repository entry in the welcome view; repositories open from the project hub', () => {
+    const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
+    const { container } = render(
+      <Provider store={store}>
+        <AssistantWorkspaceDrawer open onOpenChange={() => {}} />
+      </Provider>,
+    );
+
+    expect(container.textContent).not.toContain('Start from a GitHub repository');
   });
 });

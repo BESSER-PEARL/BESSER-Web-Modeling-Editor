@@ -78,6 +78,8 @@ These are exactly the seven names in the ``define`` block.
 
 ``SENTRY_DSN``
    Optional DSN for Sentry browser error reporting. Leave unset to disable.
+   Sentry starts only for users who accept analytics in the cookie banner, and
+   its events carry the error type, HTTP status and stack, never messages.
 
 ``POSTHOG_KEY`` / ``POSTHOG_HOST``
    Optional PostHog product analytics. Leave unset to disable.
@@ -98,9 +100,15 @@ It reads only two variables at runtime:
    ``build/webapp/*.js`` on start-up, and tags the Sentry environment.
 
 ``SENTRY_DSN``
-   Optional DSN for server-side error reporting.
+   Optional DSN for server-side error reporting. Its origin also goes into the
+   Content-Security-Policy, so set the same DSN here as for the webapp build.
 
 The listening port is hardcoded to ``8080`` in ``packages/server/src/main/server.ts``.
+
+The server also sends the security headers (Content-Security-Policy, HSTS, ``X-Frame-Options``), from
+``packages/server/src/main/security-headers.ts``. Its webpack bundle bakes in ``BACKEND_URL``, ``UML_BOT_WS_URL``
+and ``POSTHOG_HOST`` (from the environment, then ``packages/webapp/.env``), so the policy allows what the webapp was
+built with. ``localhost`` ports are allowed only when none of these URLs is known to be remote.
 
 .. note::
    Earlier versions of this page documented ``APOLLON_REDIS_URL``,
@@ -148,7 +156,8 @@ performed by the **BESSER Python backend**:
    backend's ``/github/auth/callback`` route.
 #. The backend exchanges the code for an access token using
    ``GITHUB_CLIENT_SECRET``, stores the token server-side, and redirects the
-   browser back to ``<DEPLOYMENT_URL>?github_session=<id>&username=<login>``.
+   browser back to ``<DEPLOYMENT_URL>#github_session=<id>&username=<login>``;
+   the fragment never reaches a server or proxy log.
 #. The webapp keeps only that opaque session id (in ``sessionStorage``); the
    access token never reaches the browser.
 

@@ -12,7 +12,7 @@ vi.mock('../../../app/store/hooks', () => ({
   useAppDispatch: () => vi.fn(),
   useAppSelector: () => undefined,
 }));
-vi.mock('../../github/hooks/useGitHubAuth', () => ({
+vi.mock('../../../shared/hooks/useGitHubAuth', () => ({
   useGitHubAuth: () => ({ githubSession: null }),
 }));
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));

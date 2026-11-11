@@ -6,7 +6,9 @@ import { toast } from 'react-toastify';
 import { useGenerateDockerCompose } from '../useGenerateDockerCompose';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { useAppSelector } from '../../../../app/store/hooks';
+import { selectProject } from '../../../../app/store/workspaceSlice';
 import { createDefaultProject } from '../../../../shared/types/project';
+import { track } from '../../../../shared/services/analytics/events';
 
 const mockDownloadFile = vi.fn();
 
@@ -27,6 +29,11 @@ vi.mock('../../../../app/store/hooks', () => ({
   useAppSelector: vi.fn(),
 }));
 
+vi.mock('../../../../shared/services/analytics/events', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/services/analytics/events')>()),
+  track: vi.fn(),
+}));
+
 const errorResponse = (status: number, detail: string) =>
   vi.fn().mockResolvedValue({ ok: false, status, json: vi.fn().mockResolvedValue({ detail }) });
 
@@ -43,7 +50,8 @@ describe('useGenerateDockerCompose', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(project);
-    vi.mocked(useAppSelector).mockReturnValue(project.diagrams.DeploymentDiagram[0]);
+    vi.mocked(useAppSelector).mockImplementation(((selector: unknown) =>
+      selector === selectProject ? project : project.diagrams.DeploymentDiagram[0]) as typeof useAppSelector);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
@@ -106,5 +114,50 @@ describe('useGenerateDockerCompose', () => {
     await generate();
 
     expect(toast.error).toHaveBeenCalledWith('A different validation error');
+  });
+});
+
+describe('useGenerateDockerCompose analytics', () => {
+  const project = createDefaultProject('Acme Secret', '', '');
+  const sent = (event: string) => vi.mocked(track).mock.calls.filter(([name]) => name === event).map(([, props]) => props);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(project);
+    vi.mocked(useAppSelector).mockImplementation(((selector: unknown) =>
+      selector === selectProject ? project : project.diagrams.DeploymentDiagram[0]) as typeof useAppSelector);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('reports a generated Docker Compose as generator_used', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      blob: vi.fn().mockResolvedValue(new Blob(['zip'])),
+      headers: { get: () => 'attachment; filename="docker_compose.zip"' },
+    }));
+
+    await generate();
+
+    expect(sent('generator_used')).toEqual([
+      expect.objectContaining({ generator_type: 'docker_compose', source: 'menu', duration_ms: expect.any(Number) }),
+    ]);
+    expect(sent('generator_failed')).toHaveLength(0);
+  });
+
+  it('reports a rejected Docker Compose as generator_failed with its status, never the detail', async () => {
+    vi.stubGlobal('fetch', errorResponse(422, "Invalid Governance DSL on merging gateway 'Acme gateway': bad"));
+
+    await generate();
+
+    expect(sent('generator_failed')).toEqual([
+      expect.objectContaining({ generator_type: 'docker_compose', reason: 'request', http_status: 422 }),
+    ]);
+    expect(JSON.stringify(vi.mocked(track).mock.calls)).not.toMatch(/acme/i);
   });
 });

@@ -10,7 +10,7 @@
 import { useCallback, useRef, useState } from 'react';
 
 import * as kgFocus from '../../shared/kg/kgFocus';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { track } from '../../shared/services/analytics/events';
 import type { KgIssue } from '../../shared/api/knowledgeGraph';
 import type { ConsistencyReport } from '../../shared/types/project';
 import { isKnowledgeGraphData } from '../../shared/types/project';
@@ -26,11 +26,11 @@ const CLOSED_KG_GATE: KgConsistencyGate = { open: false, report: null };
 /** How many first-degree neighbours "Fix in KG" brings onto the canvas. */
 const FOCUS_MAX_NEIGHBORS = 15;
 
-function trackFlow(flow: 'kg_to_class' | 'kg_refine'): void {
+function trackRefineOpened(): void {
   const model = getActiveKgDiagram()?.diagram?.model;
-  getPostHog()?.capture('generator_used', {
-    generator_type: flow,
-    diagram_type: 'KnowledgeGraphDiagram',
+  track('editor_action', {
+    editor: 'kg',
+    action: 'refine_opened',
     nodes_count: isKnowledgeGraphData(model) ? model.nodes.length : 0,
     edges_count: isKnowledgeGraphData(model) ? model.edges.length : 0,
   });
@@ -77,11 +77,11 @@ export function useKgFlows() {
     try {
       const report = await runPreflight();
       if (!report) return;
-      trackFlow('kg_to_class');
       if (report.issueCount === 0) {
         await runConversion({ kgSignature: report.kgSignature, onConsistencyIssues });
         return;
       }
+      track('editor_action', { editor: 'kg', action: 'refine_opened', kind: 'convert', issue_count: report.issueCount });
       setIsKgConvertMode(true);
     } finally {
       setIsConverting(false);
@@ -89,7 +89,7 @@ export function useKgFlows() {
   }, [runPreflight, runConversion, onConsistencyIssues, setIsKgConvertMode]);
 
   const openRefine = useCallback(() => {
-    trackFlow('kg_refine');
+    trackRefineOpened();
     setIsKgRefineOpen(true);
   }, [setIsKgRefineOpen]);
 

@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { SupportedDiagramType } from '../../shared/types/project';
-import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
-import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/workspace-types';
+import type { QualityCheckResult, QualityCheckState } from '../../shared/types/quality-check';
 
 export interface AgentVariantOption {
   id: string;
@@ -22,6 +22,8 @@ export interface WorkspaceTopBarProps {
   githubLoading: boolean;
   hasProject: boolean;
   isDeploymentAvailable: boolean;
+  /** Deploy puts the linked repo online (Go live) instead of rebuilding the app. */
+  deployGoesLive?: boolean;
   /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
   onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
@@ -31,7 +33,6 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
-  onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;
@@ -42,7 +43,8 @@ export interface WorkspaceTopBarProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
-  onOpenGitHubSidebar: () => void;
+  /** A repository was opened from the GitHub menu: show its summary in the assistant. */
+  onRepoOpened?: (summary: string) => void;
   hasStarred: boolean;
   starLoading: boolean;
   onToggleStar: () => void;

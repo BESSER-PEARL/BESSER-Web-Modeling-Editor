@@ -18,6 +18,7 @@ export * from './typings';
 // Export the main editor component and its related functionality
 // This is the primary entry point for users who want to embed the UML editor
 export * from './apollon-editor';
+export { sanitizeSvg } from './utils/sanitize-svg';
 
 // Export the headless ELK auto-layout helper (pure model -> laid-out model)
 export { layoutModel } from './services/layouter/model-layout';
@@ -37,6 +38,9 @@ export * from './services/diagram-bridge';
 // Export the settings service
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
+
+// Export the on-demand loader for non-English UI labels
+export { loadLocale } from './components/i18n/i18n-provider';
 
 // Export BPMN flow semantics + validation (consumed by the webapp's BPMN
 // import / export + the Phase C vitest coverage).

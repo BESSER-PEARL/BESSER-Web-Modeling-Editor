@@ -15,6 +15,8 @@ interface DeployMenuProps {
   isAuthenticated: boolean;
   githubLoading: boolean;
   isDeploymentAvailable: boolean;
+  /** The project is linked to a repo: deploy puts that repo online (Go live). */
+  deployGoesLive?: boolean;
   onGitHubLogin: () => void;
   onOpenDeployDialog: () => void;
 }
@@ -24,15 +26,16 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   isAuthenticated,
   githubLoading,
   isDeploymentAvailable,
+  deployGoesLive = false,
   onGitHubLogin,
   onOpenDeployDialog,
 }) => {
   const { t } = useTranslation();
   // Publishing needs a GitHub session; disable it (with a reason) instead of a click that only toasts.
-  const publishEnabled = isDeploymentAvailable && isAuthenticated;
+  const publishEnabled = (isDeploymentAvailable || deployGoesLive) && isAuthenticated;
   const publishHint = !isAuthenticated
     ? t('menu.deploy.connectGitHubFirstHint', { defaultValue: 'Connect GitHub first' })
-    : !isDeploymentAvailable
+    : !isDeploymentAvailable && !deployGoesLive
       ? t('deploy.toasts.availableFor')
       : null;
   const title = t('menu.deploy.title');
@@ -60,7 +63,9 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
           aria-describedby={publishHint ? 'deploy-publish-hint' : undefined}
         >
           <Rocket className="mr-2 size-4" />
-          {t('menu.deploy.publishToRender')}
+          {deployGoesLive
+            ? t('menu.deploy.goLive', { defaultValue: 'Go live from GitHub' })
+            : t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
         {publishHint && (
           <p id="deploy-publish-hint" className="-mt-1 pb-1.5 pl-8 pr-2 text-xs text-muted-foreground">

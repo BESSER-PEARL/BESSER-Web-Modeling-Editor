@@ -657,3 +657,37 @@ describe('extractVerification', () => {
     expect(card.status).toBe('done');
   });
 });
+
+describe('specDrivenSlice — what a run changed', () => {
+  const CARD = { phases: [], warnings: [], text: '', status: 'running' as const };
+  const DONE = {
+    event: 'done',
+    runId: 'a'.repeat(32),
+    downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+    fileName: 'app.zip',
+    isZip: true,
+    recipe: {},
+  } as const;
+
+  it('carries an update run\'s model and code changes onto the card', () => {
+    const card = applySpecDrivenEvent(CARD, {
+      ...DONE,
+      mode: 'modify',
+      changedFiles: ['backend/main_api.py', 'frontend/src/App.tsx'],
+      changedFileCount: 2,
+      modelChanges: ['Added class Review'],
+    });
+    expect(card).toMatchObject({
+      runMode: 'modify',
+      changedFiles: ['backend/main_api.py', 'frontend/src/App.tsx'],
+      changedFileCount: 2,
+      modelChanges: ['Added class Review'],
+    });
+  });
+
+  it('leaves the fields unset for an older backend that does not send them', () => {
+    const card = applySpecDrivenEvent(CARD, DONE);
+    expect(card.runMode).toBeUndefined();
+    expect(card.changedFiles).toBeUndefined();
+  });
+});

@@ -9,7 +9,37 @@
     "loading": "S'està carregant…",
     "yes": "Sí",
     "no": "No",
-    "retry": "Torna-ho a provar"
+    "retry": "Torna-ho a provar",
+    "ok": "D'acord"
+  },
+  "whatsNew": {
+    "title": "Novetats",
+    "unread_one": "Novetats (1 nova)",
+    "unread_other": "Novetats ({{count}} noves)",
+    "new": "Nou",
+    "entries": {
+      "repoTogether": {
+        "title": "Treballeu junts en un repositori",
+        "body": "Un projecte enllaçat amb GitHub ara continua des del seu codi, fins i tot quan l’última execució ha caducat. Quan algú altre fa push, una targeta indica qui i què, i pots previsualitzar les seves classes al llenç abans d’incorporar-les."
+      },
+      "keepEdits": {
+        "title": "Els teus canvis sobreviuen a un canvi de model",
+        "body": "Canvia el model de classes d’una app creada pel Spec-Driven Agent: regenera els fitxers que ningú no ha editat i fusiona els teus canvis amb la resta, de manera que molts menys canvis necessiten la IA."
+      },
+      "anyStack": {
+        "title": "Aplicacions en la tecnologia que demanis",
+        "body": "Demana al Spec-Driven Agent una API REST en Go o una eina de línia d’ordres en Rust: la construeix i després comprova l’aplicació igual que comprova una aplicació web."
+      },
+      "githubRepo": {
+        "title": "Projectes vinculats a GitHub",
+        "body": "Vincula un projecte a un repositori de GitHub. El menú GitHub hi desa el teu model, obté l’última versió, mostra l’historial i et diu si estàs sincronitzat."
+      },
+      "knowledgeGraph": {
+        "title": "Diagrames Knowledge Graph",
+        "body": "Importa una ontologia OWL o RDF, edita-la com un graf, comprova-la amb les seves restriccions OWL i SHACL i converteix-la en un diagrama de classes amb restriccions OCL.",
+        "action": "Obre l’editor Knowledge Graph"
+      }
+    }
   },
   "topbar": {
     "language": "Idioma",
@@ -37,7 +67,22 @@
       "needsRecheck": "Cal revisar-ho",
       "notValidated": "No validat"
     },
-    "more": "Més"
+    "more": "Més",
+    "linkToGithub": "Vincula amb GitHub",
+    "repoState": {
+      "behind": "{{repo}}: {{count}} commits nous a GitHub",
+      "behind_one": "{{repo}}: 1 commit nou a GitHub",
+      "checking": "{{repo}}: s’està comprovant GitHub",
+      "diverged": "{{repo}}: canviat aquí i a GitHub",
+      "in-sync": "{{repo}}: sincronitzat amb GitHub",
+      "local-changes": "{{repo}}: canvis del model sense desar a GitHub",
+      "missing": "{{repo}}: no s’ha trobat la branca o el repositori a GitHub",
+      "reconnect": "{{repo}}: sessió de GitHub caducada",
+      "signed-out": "GitHub",
+      "unknown": "{{repo}}: no s’ha pogut accedir a GitHub",
+      "unlinked": "Vincula aquest projecte a un repositori de GitHub",
+      "not-in-tab": "{{repo}}: GitHub no està connectat en aquesta pestanya"
+    }
   },
   "nav": {
     "editors": "Editors",
@@ -73,7 +118,6 @@
       "newOpenImport": "Nou / Obre / Importa un projecte",
       "loadTemplate": "Carrega una plantilla…",
       "exportProject": "Exporta el projecte…",
-      "previewProject": "Previsualitza el projecte…",
       "importBpmnDiagram": "Importa un diagrama BPMN (.bpmn / .xml)…",
       "importGroupProject": "Projecte",
       "importGroupClassDiagram": "Diagrama de classes des de",
@@ -127,7 +171,8 @@
       "title": "Desplega",
       "connectGitHub": "Connecta GitHub per desplegar",
       "publishToRender": "Publica a Render…",
-      "connectGitHubFirstHint": "Connecta GitHub primer"
+      "connectGitHubFirstHint": "Connecta GitHub primer",
+      "goLive": "Posa en línia des de GitHub"
     },
     "community": {
       "title": "Comunitat",
@@ -902,7 +947,8 @@
     "field": {
       "name": "Nom",
       "owner": "Propietari",
-      "description": "Descripció"
+      "description": "Descripció",
+      "descriptionPlaceholder": "De què tracta aquest projecte? (opcional)"
     },
     "hub": {
       "stepBadge": "Pas {{current}} de {{total}}",
@@ -914,7 +960,18 @@
         "detailsTitle": "Detalls del projecte",
         "detailsDescription": "Posa un nom i una descripció al teu espai de treball.",
         "submit": "Crear projecte",
-        "tip": "Consell: tria una perspectiva de modelatge per centrar l'espai de treball en els diagrames que necessites."
+        "tip": "Consell: tria una perspectiva de modelatge per centrar l'espai de treball en els diagrames que necessites.",
+        "github": {
+          "connect": "Connecta GitHub",
+          "connectHint": "Connecta GitHub per guardar aquest projecte en un repositori privat propi.",
+          "label": "Desa-ho a GitHub",
+          "toasts": {
+            "failed": "El teu projecte s’ha creat, però no s’ha pogut desar a GitHub: {{error}}",
+            "saved": "Desat a GitHub com a {{repo}}.",
+            "saving": "S’està desant {{name}} a GitHub…"
+          },
+          "privateRepo": "Un repositori privat anomenat <repo>{{repo}}</repo> guarda el teu model i el teu codi."
+        }
       },
       "import": {
         "title": "Importar un projecte",
@@ -976,7 +1033,7 @@
         "noProjects": "Encara no hi ha projectes.",
         "warningBanner": "Crea, importa o obre un projecte per entrar a l'espai de treball.",
         "cardGithub": {
-          "description": "Torna a obrir un repositori creat per BESSER i continua construint.",
+          "description": "Obre qualsevol repositori, creat amb BESSER o no, i continua construint.",
           "title": "Continua des de GitHub"
         },
         "cardNew": {
@@ -1024,13 +1081,14 @@
       "github": {
         "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
         "continue": "Continua",
-        "description": "Tria un repositori creat per BESSER: se’n carrega el model i la propera execució del Spec-Driven Agent n’edita el codi.",
+        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
         "errors": {
           "generic": "No s’ha pogut continuar des d’aquest repositori.",
           "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",
           "noSession": "No s’ha trobat la sessió de GitHub. Torna’t a connectar.",
           "selectRepo": "Selecciona un repositori des d’on continuar.",
-          "sessionExpired": "La teva sessió de GitHub ha caducat. Torna’t a connectar i torna-ho a provar."
+          "sessionExpired": "La teva sessió de GitHub ha caducat. Torna’t a connectar i torna-ho a provar.",
+          "repoNotFound": "No s’ha trobat {{repo}}, o el teu compte de GitHub no hi té accés."
         },
         "loadingBranches": "S’estan carregant les branques…",
         "loadingRepos": "S’estan carregant els repositoris…",
@@ -1191,126 +1249,70 @@
     "toasts": {
       "createOrLoadFirst": "Crea o carrega primer un projecte."
     },
-    "preview": {
-      "toasts": {
-        "jsonCopied": "S'ha copiat el JSON del projecte.",
-        "jsonCopyFailed": "No s'ha pogut copiar el JSON del projecte.",
-        "bumlFailedFallback": "No s'ha pogut generar la vista prèvia de B-UML.",
-        "bumlFailed": "No s'ha pogut generar la vista prèvia de B-UML: {{message}}",
-        "noBumlToCopy": "No hi ha cap vista prèvia de B-UML per copiar.",
-        "bumlCopied": "S'ha copiat el B-UML del projecte.",
-        "bumlCopyFailed": "No s'ha pogut copiar la vista prèvia de B-UML.",
-        "noBumlToDownload": "No hi ha cap vista prèvia de B-UML per baixar."
+    "landing": {
+      "dialogTitle": "Tria com vols començar",
+      "eyebrow": "Benvingut a BESSER",
+      "heading": "Com vols <em>començar</em>?",
+      "subtitle": "Dos camins cap al mateix editor. Tria'n un per començar — pots canviar quan vulguis.",
+      "model": {
+        "kicker": "Low-code · Visual",
+        "illustration": "Un diagrama de classes UML",
+        "sampleClassA": "Llibre",
+        "sampleClassB": "Préstec",
+        "title": "Modela-ho",
+        "description": "Dibuixa el teu sistema amb precisió — classes, relacions, pantalles. Resultat determinista, exacte a cada execució.",
+        "cta": "Comença a modelar"
+      },
+      "agent": {
+        "kicker": "Agèntic · Llenguatge natural",
+        "samplePrompt": "una app de reserves d'hotel",
+        "sampleResult": "app",
+        "title": "Descriu-ho",
+        "description": "Digues el que vols amb paraules senzilles. BESSER crea el model i el codi — tu el refines conversant.",
+        "badge": "Gratuït · model allotjat",
+        "cta": "Comença a descriure"
+      },
+      "remember": "Recorda la meva elecció i omet això la propera vegada",
+      "moreOptions": "Més opcions",
+      "github": {
+        "pitch": "Guarda els teus projectes als teus propis repositoris de GitHub",
+        "connectedAs": "Connectat com a {{username}}",
+        "connected": "Connectat a GitHub",
+        "connect": "Connecta GitHub"
       }
     }
   },
   "github": {
-    "sync": "Sincronització amb GitHub",
-    "closeSidebar": "Tanca el tauler de GitHub",
-    "fullPath": "Ruta completa:",
-    "folderPathLabel": "Ruta de la carpeta (opcional)",
-    "folderPathPlaceholder": "p. ex., projects/my-models",
-    "fileNameLabel": "Nom del fitxer",
     "defaultRepoDescription": "Projecte BESSER: {{name}}",
-    "defaultGistDescription": "Projecte BESSER: {{name}}",
     "connect": {
-      "title": "Connecta amb GitHub",
-      "subtitle": "Inicia la sessió per sincronitzar els teus projectes amb GitHub.",
-      "button": "Connecta amb GitHub"
+      "button": "Connecta amb GitHub",
+      "checking": "S’està comprovant la teva connexió amb GitHub…"
     },
     "noProject": {
       "title": "Cap projecte seleccionat",
       "subtitle": "Obre o crea un projecte per utilitzar la sincronització amb GitHub."
     },
-    "notLinked": {
-      "title": "Vincula un repositori",
-      "subtitle": "Vincula aquest projecte a un repositori de GitHub per al control de versions.",
-      "linkExisting": "Vincula'n un d'existent",
-      "createNew": "Crea'n un de nou"
-    },
     "linked": {
       "repository": "Repositori",
       "checking": "S'està comprovant…",
-      "unsavedChanges": "Tens canvis sense desar",
-      "upToDate": "Actualitzat",
-      "push": "Puja (Push)",
-      "pull": "Baixa (Pull)",
       "pullConfirmTitle": "Vols substituir els canvis locals?",
       "pullConfirmDescription": "El pull carrega la versió de GitHub i descarta els canvis que encara no has pujat.",
       "pullConfirmAction": "Fes pull i descarta els canvis",
-      "history": "Historial",
       "refreshHistory": "Actualitza l'historial de commits",
       "latest": "Més recent",
-      "clickToRestore": "Fes clic per restaurar",
       "noCommits": "Encara no hi ha commits",
-      "share": "Comparteix",
-      "createSecretGist": "Crea un Gist secret",
       "openOnGitHub": "Obre a GitHub",
-      "unlink": "Desvincula el repositori",
       "unlinkConfirmTitle": "Vols desvincular aquest repositori?",
-      "unlinkConfirmDescription": "El projecte es queda al navegador i a GitHub. Push, Pull i el commit automàtic s’aturen fins que tornis a vincular un repositori.",
-      "unlinkConfirmAction": "Desvincula"
-    },
-    "settings": {
-      "title": "Configuració",
-      "autoCommit": "Commit automàtic",
-      "enabledWithInterval": "Activat ({{minutes}} min)",
-      "disabled": "Desactivat",
-      "intervalLabel": "Interval (minuts)",
-      "interval5": "5 minuts",
-      "interval10": "10 minuts",
-      "interval15": "15 minuts",
-      "interval30": "30 minuts",
-      "interval60": "1 hora",
-      "autoSaving": "S'està desant automàticament…"
+      "unlinkConfirmAction": "Desvincula",
+      "keepLocalChanges": "Conserva els meus canvis"
     },
     "linkModal": {
-      "goBack": "Torna a la selecció de repositori",
-      "titleSelect": "Vincula a un repositori",
-      "titleConfigure": "Configura la vinculació",
-      "descriptionSelect": "Selecciona un repositori amb el qual sincronitzar el teu projecte.",
-      "descriptionConfigure": "Estableix la branca i la ruta del fitxer per a aquesta sincronització del projecte.",
-      "private": "Privat",
-      "updated": "Actualitzat: {{date}}",
-      "noRepositories": "No s'ha trobat cap repositori",
-      "branch": "Branca",
-      "browseFiles": "Explora els fitxers del repositori",
-      "browseHint": "Tria un fitxer de projecte existent sense escriure la ruta.",
-      "checkFileExists": "Comprova si el fitxer existeix",
-      "fileExistsPrompt": "El fitxer ja existeix al repositori. Tria com vols continuar:",
-      "loadAndLinkRecommended": "Carrega i vincula (recomanat)",
-      "linkWithoutLoading": "Vincula sense carregar (pot sobreescriure)",
-      "filePathAvailable": "La ruta del fitxer està disponible. Fes clic a «Vincula el repositori» per continuar.",
-      "loadAndLink": "Carrega i vincula",
-      "linkRepository": "Vincula el repositori",
-      "selectProjectFile": "Selecciona el fitxer de projecte"
-    },
-    "fileBrowser": {
-      "selectFile": "Selecciona un fitxer",
-      "loadFailed": "No s'ha pogut carregar el contingut del directori",
-      "root": "root",
-      "upOneLevel": "Puja un nivell",
-      "emptyDirectory": "Directori buit",
-      "dirHint": "Navega fins a la carpeta de destinació i després fes clic a «Selecciona la carpeta actual».",
-      "selectCurrentFolder": "Selecciona la carpeta actual"
+      "branch": "Branca"
     },
     "commit": {
       "title": "Puja a GitHub",
-      "description": "Escriu un missatge de commit per als teus canvis.",
       "messageLabel": "Missatge de commit",
-      "messagePlaceholder": "Descriu els teus canvis…",
-      "pushing": "S'està pujant…",
-      "push": "Push"
-    },
-    "gist": {
-      "title": "Crea un Gist",
-      "description": "Crea un Gist de GitHub per compartir ràpidament el teu projecte.",
-      "descriptionLabel": "Descripció",
-      "descriptionPlaceholder": "Descripció del Gist…",
-      "publicGist": "Gist públic",
-      "secretHint": "Els gists secrets estan amagats dels motors de cerca, però són visibles per a qualsevol que tingui l'enllaç.",
-      "creating": "S'està creant…",
-      "createGist": "Crea un Gist"
+      "pushing": "S'està pujant…"
     },
     "createRepo": {
       "title": "Crea un repositori",
@@ -1330,61 +1332,20 @@
       "restoring": "S'està restaurant…",
       "restoreButton": "Restaura aquesta versió"
     },
-    "context": {
-      "loadingDirectory": "S'està carregant el contingut del directori",
-      "githubPush": "Push de GitHub",
-      "githubPull": "Pull de GitHub",
-      "fetchingRepositories": "S'estan obtenint els repositoris",
-      "fetchingCommits": "S'estan obtenint els commits",
-      "checkingChanges": "S'estan comprovant els canvis",
-      "selectingRepository": "S'està seleccionant el repositori",
-      "checkingFile": "S'està comprovant l'existència del fitxer",
-      "linkingRepository": "S'està vinculant el repositori",
-      "creatingRepository": "S'està creant el repositori",
-      "committing": "S'està fent commit a GitHub",
-      "restoringCommit": "S'està restaurant el commit",
-      "creatingGist": "S'està creant el Gist",
-      "unlinkingRepository": "Desvinculant el repositori"
-    },
     "toasts": {
-      "loadProjectFailed": "No s'ha pogut carregar el projecte",
       "couldNotLoadProjectData": "No s'han pogut carregar les dades del projecte",
       "projectPulled": "Projecte baixat des de GitHub",
       "projectLoadedFromRepo": "Projecte carregat des del repositori de GitHub",
-      "loadFromRepoFailedLinking": "No s'ha pogut carregar des del repositori; es vincula sense carregar.",
-      "linkedReconnectToPush": "Repositori vinculat. Torna a connectar GitHub per pujar el fitxer de projecte inicial.",
-      "linkedInitialPushReadFailed": "Repositori vinculat, però la pujada inicial ha fallat perquè no s'ha pogut llegir el projecte local.",
-      "initialSyncCommitMessage": "Sincronització inicial des de BESSER Web Modeling Editor",
-      "linkedInitialPushFailed": "Repositori vinculat, però la pujada inicial ha fallat. Pots pujar manualment des de GitHub Sync.",
-      "couldNotLoadRepoContents": "No s'ha pogut carregar el contingut del repositori",
       "repoUnlinked": "Repositori desvinculat",
-      "alreadyLatest": "Aquesta ja és la versió més recent",
       "projectRestored": "Projecte restaurat des del commit seleccionat",
       "authFailed": "L'autenticació de GitHub ha fallat: {{error}}",
       "signedInAs": "Sessió iniciada com a {{username}}",
-      "autoSaveCommitMessage": "Desament automàtic: {{timestamp}}",
-      "autoSaved": "Desat automàticament a GitHub",
       "noProjectToDeploy": "No hi ha cap projecte per desplegar.",
       "notSignedIn": "No has iniciat la sessió a GitHub.",
       "repoUpdated": "Repositori actualitzat: {{name}}",
       "repoCreated": "Repositori creat: {{name}}",
       "deploymentFailed": "El desplegament ha fallat",
       "repoCreationFailed": "No s'ha pogut crear el repositori",
-      "requestTimedOut": "La sol·licitud ha esgotat el temps d'espera. Torna-ho a provar.",
-      "fetchReposFailed": "No s'han pogut obtenir els repositoris de GitHub",
-      "repoLinkedPushToSync": "Repositori vinculat! Fes push per sincronitzar el teu projecte.",
-      "fetchCommitsFailed": "No s'ha pogut obtenir l'historial de commits",
-      "saveProjectFailed": "No s'ha pogut desar el projecte a GitHub",
-      "projectSaved": "Projecte desat a GitHub!",
-      "saveProjectFailedShort": "No s'ha pogut desar el projecte",
-      "loadProjectFromGitHubFailed": "No s'ha pogut carregar el projecte des de GitHub",
-      "loadFromCommitFailed": "No s'ha pogut carregar el projecte des del commit",
-      "restoredFromCommitFallback": "commit",
-      "restoredVersionFrom": "Versió restaurada des de {{source}}",
-      "createRepoFailed": "No s'ha pogut crear el repositori",
-      "repoCreatedQuoted": "Repositori «{{name}}» creat!",
-      "createGistFailed": "No s'ha pogut crear el Gist",
-      "gistCreated": "Gist creat correctament!",
       "invalidGitHubUrl": "URL de GitHub no vàlida. Proporciona una URL vàlida d'un repositori de GitHub.",
       "fetchingFromGitHub": "S'està obtenint {{filename}} de GitHub…",
       "fileNotFound": "No s'ha trobat el fitxer a GitHub. Comprova l'URL i torna-ho a provar.",
@@ -1405,8 +1366,6 @@
       "descriptionCreate": "Puja el codi generat i el model del projecte a un repositori de GitHub.",
       "descriptionUpdate": "Actualitza el repositori enllaçat amb el teu darrer codi generat i el model.",
       "done": "Fet",
-      "filesUploaded_one": "{{count}} fitxer pujat.",
-      "filesUploaded_other": "{{count}} fitxers pujats.",
       "linkedTo": "Enllaçat amb",
       "loadingBranches": "S’estan carregant les branques…",
       "loadingRepositories": "S’estan carregant els repositoris…",
@@ -1420,7 +1379,257 @@
       "successCreated": "Repositori creat i fitxers pujats.",
       "successTitle": "Pujat a GitHub",
       "successUpdated": "Repositori actualitzat amb la teva darrera generació.",
-      "useExisting": "Utilitza un repositori existent"
+      "useExisting": "Utilitza un repositori existent",
+      "conflict": "Algú ha canviat els mateixos fitxers a GitHub des de la teva última sincronització, així que GitHub no ha pogut combinar aquest push tot sol. El teu push és a la branca {{branch}}; no s’ha sobreescrit res.",
+      "conflictTitle": "Cal combinar",
+      "errors": {
+        "auth": "La teva sessió de GitHub ha caducat. Torna a connectar-te i torna-ho a provar.",
+        "branchMoved": "La branca ha canviat a GitHub durant el push. Torna-ho a provar. ({{detail}})",
+        "expired": "Aquesta generació ha caducat: torna a generar per fer push.",
+        "failed": "No s’ha pogut desar a GitHub.",
+        "forbidden": "GitHub ha rebutjat el push: el teu compte no pot escriure en aquest repositori. ({{detail}})",
+        "nameTaken": "Ja existeix un repositori amb aquest nom: fes-hi push com a repositori existent.",
+        "repoMissing": "Aquest repositori ja no existeix o el teu compte de GitHub no el pot veure. Tria un altre repositori o crea’n un de nou."
+      },
+      "howTitle": "Com fer push",
+      "modeCommit": "Fes commit a {{branch}}",
+      "modeCommitHint": "Els commits fets a GitHub des de la teva última sincronització es combinen, mai no se sobreescriuen.",
+      "modePullRequest": "Obre una pull request",
+      "modePullRequestHint": "El teu equip revisa el canvi a GitHub abans que s’incorpori. El millor per a repositoris compartits.",
+      "openPullRequest": "Obre una pull request per combinar-lo",
+      "successMerged": "Combinat amb els commits fets a GitHub des de la teva última sincronització. No s’ha sobreescrit res i l’editor mostra ara el model combinat.",
+      "successPullRequest": "Els teus canvis són en una pull request, a punt per a revisió.",
+      "toasts": {
+        "conflict": "GitHub no ha pogut combinar aquest push automàticament.",
+        "connectFirst": "Connecta GitHub per fer push de la teva aplicació generada.",
+        "connectFirstGenerated": "Connecta GitHub al menú GitHub i torna a generar el codi per desar-lo-hi.",
+        "created": "Push fet a {{repo}}",
+        "modelUpdated": "El model inclou ara les classes que ha afegit l’agent.",
+        "noProject": "Obre un projecte abans de fer push a GitHub.",
+        "nothingToPush": "No hi ha res per pujar.",
+        "pullRequest": "Pull request oberta a {{repo}}",
+        "pullRequestFailed": "No s’ha pogut obrir la pull request.",
+        "updated": "{{repo}} actualitzat",
+        "uploadFailed": "No s'ha pogut preparar el codi generat per a GitHub: {{detail}}"
+      },
+      "viewPullRequest": "Mostra la pull request",
+      "filesChanged_one": "{{count}} fitxer canviat.",
+      "filesChanged_other": "{{count}} fitxers canviats.",
+      "modelChoice": {
+        "title": "Vols conservar el teu model o fer servir el de l’execució?",
+        "description": "Aquesta execució ha canviat el model, i el model del llenç ha canviat després que comencés. Fes servir el model de l’execució i perd els canvis que has fet des de llavors, o conserva el teu model i desa’l a GitHub més tard.",
+        "takeRun": "Fes servir el model de l’execució",
+        "keepMine": "Conserva el meu model"
+      }
+    },
+    "chatHeader": {
+      "diverged": "Canviat aquí i a GitHub",
+      "openMenu": "Treballant a {{repo}}: {{state}}. Obre el menú de GitHub.",
+      "signedOut": "Connecta GitHub per veure’n l’estat",
+      "workingOn": "Treballant a",
+      "notInTab": "Sense connexió en aquesta pestanya"
+    },
+    "goLive": {
+      "addresses": "La teva aplicació serà a",
+      "alreadyReady": "{{repo}} ja estava a punt per a Render.",
+      "classicHint": "El desplegament clàssic encara funciona: reconstrueix l’aplicació a partir dels teus diagrames en un repositori a part, sense els canvis de l’agent.",
+      "description": "Posa en línia l’aplicació de {{repo}}. El que es publica és exactament el codi del repositori.",
+      "freeTier": "El pla gratuït de Render suspèn l’aplicació quan ningú no la fa servir (la primera visita triga aleshores un minut aproximadament) i la base de dades es reinicia a cada redesplegament.",
+      "next": "Obre Render, inicia la sessió amb GitHub i fes clic a Apply. Si el repositori és privat, Render demana primer accés.",
+      "openRender": "Obre Render",
+      "prepare": "Prepara {{repo}}",
+      "ready": "{{repo}} està a punt per a Render.",
+      "step1": "BESSER afegeix a {{repo}} el fitxer de desplegament de Render, escrit per a les carpetes de l’aplicació.",
+      "step2": "Obres Render, inicies la sessió i fas clic a Apply una sola vegada.",
+      "step3": "A partir d’aleshores, cada desament de codi a GitHub actualitza l’aplicació en línia. Desar només el model no ho fa.",
+      "title": "Posa en línia",
+      "useClassic": "Fes servir el desplegament clàssic"
+    },
+    "menu": {
+      "changeRepository": "Canvia de repositori…",
+      "commitMessageOptional": "Què ha canviat? (opcional)",
+      "createRepository": "Crea un repositori per a aquest projecte",
+      "defaultCommitMessage": "Actualitza el model des de l’editor de BESSER",
+      "dismissPending": "Deixa de seguir-lo",
+      "divergedHint": "Desar combina les dues versions. «Obtén l’última versió» agafa en canvi la versió de GitHub.",
+      "getLatest": "Obtén l’última versió",
+      "history": "Historial…",
+      "linkExisting": "Vincula un repositori existent…",
+      "linkTitle": "Vincula un repositori",
+      "localChangesHint": "Desa a GitHub per conservar-los al repositori.",
+      "missingHint": "La branca {{branch}} o el repositori s’ha eliminat o reanomenat, o el teu compte n’ha perdut l’accés. Vincula un altre repositori per continuar desant.",
+      "pendingConflict": "Un desament no s’ha pogut combinar amb canvis més recents i és a la branca {{branch}}. Obre una pull request per resoldre’l a GitHub.",
+      "pendingPullRequest": "La pull request #{{number}} espera revisió. Quan es combini, «Obtén l’última versió» la incorpora.",
+      "reconnect": "Torna a connectar GitHub",
+      "reconnectHint": "Torna a connectar GitHub per desar i comprovar si hi ha commits nous. El teu projecte es conserva.",
+      "restore": "Restaura",
+      "save": "Desa",
+      "saveDescription": "Fa commit del teu model a {{repo}} sobre {{branch}}. Els canvis més recents a GitHub es combinen, mai no se sobreescriuen.",
+      "saveToGitHub": "Desa a GitHub…",
+      "signedInAs": "Sessió iniciada com a {{name}}",
+      "unlinkConfirmDescription": "El projecte es queda al teu navegador i el repositori a GitHub. Desar a GitHub s’atura fins que tornis a vincular un repositori.",
+      "howItWorks": "Com funciona GitHub a BESSER",
+      "notInTabHint": "GitHub no està connectat en aquesta pestanya. Connecta’l per fer-lo servir aquí.",
+      "startFromRepo": "Comença des d’un repositori de GitHub…"
+    },
+    "origin": {
+      "agent": "Spec-Driven Agent",
+      "editor": "Editor",
+      "person": "Persona"
+    },
+    "panel": {
+      "conflict": "El teu desament i un canvi més recent a GitHub toquen la mateixa part del model, així que GitHub no els ha pogut combinar. El teu desament és a la branca {{branch}}; no s’ha sobreescrit res.",
+      "conflictToast": "GitHub no ha pogut combinar el teu desament automàticament.",
+      "created": "S’ha creat {{repo}} amb el teu model.",
+      "historyFailed": "No s’ha pogut carregar l’historial.",
+      "historyTitle": "Historial del model",
+      "linkAction": "Vincula a aquest projecte",
+      "linked": "Vinculat a {{repo}}. Desa per posar-hi el teu model.",
+      "loadRepoModel": "Carrega el model del repositori",
+      "moreChanges": "i {{count}} més",
+      "notLinkedHint": "Un repositori vinculat guarda el teu model, el seu historial i el codi de la teva aplicació en un sol lloc, per a tu i el teu equip.",
+      "nothingToSave": "El teu model coincideix amb el repositori.",
+      "openPr": "Obre una pull request per combinar-lo",
+      "prOpened": "Pull request oberta",
+      "prTitle": "Canvis del model des de l’editor de BESSER",
+      "repoHasModelTitle": "Aquest repositori ja conté un model",
+      "saveAction": "Desa a GitHub",
+      "saved": "Model desat a GitHub.",
+      "savedMerged": "Desat i combinat amb els canvis més recents de GitHub.",
+      "repoHasModelChoice": "{{repo}} conté «{{name}}». Carrega’l en aquest projecte, substituint el model obert, o conserva el teu model i vincula: el teu proper desament substituirà llavors el model del repositori.",
+      "pickModelFile": "Aquest repositori conté {{number}} models. Tria el que vulguis utilitzar:",
+      "keepModelAndLink": "Conserva el meu model i vincula"
+    },
+    "preview": {
+      "addedSeveral": "Afegit: {{items}}",
+      "changedSeveral": "Canviat: {{items}}",
+      "removedSeveral": "Eliminat: {{items}}",
+      "relationshipsRemoved_one": "{{count}} relació eliminada",
+      "relationshipsRemoved_other": "{{count}} relacions eliminades",
+      "notDrawn": "Aquest diagrama és buit aquí: els canvis es llisten però no es dibuixen.",
+      "title": "Previsualització de les novetats a GitHub",
+      "loading": "Llegint la versió nova…",
+      "button": "Previsualitza",
+      "menu": "Previsualitza els canvis",
+      "close": "Tanca la previsualització",
+      "hint": "El teu model encara no ha canviat. Els altres diagrames i el codi hi vénen inclosos.",
+      "nothing": "Els diagrames de classes són iguals. Potser han canviat altres diagrames o el codi.",
+      "changed": "{{author}} ha canviat {{items}}",
+      "removedLine": "{{author}} ha eliminat {{items}}",
+      "removed": "Eliminat",
+      "failed": "No s'ha pogut carregar la previsualització."
+    },
+    "teammate": {
+      "changedModel": "{{author}} ha canviat el model",
+      "pushed": "{{author}} ha enviat a {{branch}}",
+      "more_one": "i {{count}} commit més",
+      "more_other": "i {{count}} commits més",
+      "mergeHint": "Tens canvis sense desar. En desar es combinen les dues versions.",
+      "saveAndMerge": "Desa i combina",
+      "dismiss": "Tanca"
+    },
+    "attribution": {
+      "title": "Novetats des de l'última sincronització",
+      "added": "{{author}} ha afegit {{items}}",
+      "more": "{{items}} i {{count}} més",
+      "clear": "Esborra les marques",
+      "addedBy": "Afegit per {{author}} el {{date}}"
+    },
+    "proposal": {
+      "accept": "Accepta el model",
+      "aiSource": "Una lectura de {{files}} feta per IA, no exacta. Revisa cada classe i després accepta.",
+      "aiTitle": "Proposat per IA a partir de {{repo}}: {{count}} classes",
+      "discard": "Descarta",
+      "discardConfirmDescription": "Les classes que BESSER ha llegit del codi es treuen del llenç. El repositori i el seu codi no canvien.",
+      "discardConfirmTitle": "Vols descartar el model proposat?",
+      "label": "Model proposat",
+      "source": "Llegit de {{source}} a {{files}}. Edita el que vulguis i després accepta.",
+      "title": "Proposat a partir de {{repo}}: {{count}} classes"
+    },
+    "repoBrowser": {
+      "besserRepos": "Projectes de BESSER",
+      "classes": "{{count}} classes",
+      "classes_one": "1 classe",
+      "loadFailed": "No s’han pogut carregar els teus repositoris. Comprova la connexió amb GitHub i torna-ho a provar.",
+      "loading": "S’estan carregant els teus repositoris…",
+      "noBesserMatch": "Cap projecte de BESSER no coincideix amb la cerca.",
+      "noBesserRepos": "Encara cap. Els repositoris als quals facis push des de BESSER apareixen aquí.",
+      "noModel": "Encara no hi ha cap model de BESSER en aquest repositori.",
+      "otherRepos": "Altres repositoris",
+      "private": "Privat",
+      "readOnly": "Només lectura",
+      "readOnlyHint": "El teu compte de GitHub pot llegir aquest repositori però no hi pot escriure, així que BESSER no hi pot desar.",
+      "reading": "S’està llegint el repositori…",
+      "readsCode": "Encara no hi ha model de BESSER. BESSER en llegeix el codi i en proposa un perquè l’acceptis.",
+      "refresh": "Actualitza els repositoris",
+      "search": "Cerca als teus repositoris",
+      "showOthers": "Mostra {{count}} repositoris més",
+      "showOthers_one": "Mostra 1 repositori més",
+      "summaryFailed": "No s’ha pogut llegir aquest repositori.",
+      "truncated": "Es mostren els teus {{count}} repositoris actualitzats més recentment. Enganxa un enllaç per obrir-ne un altre.",
+      "diagramKinds": {
+        "ClassDiagram": "Classes",
+        "ObjectDiagram": "Objectes",
+        "StateMachineDiagram": "Màquina d’estats",
+        "AgentDiagram": "Agent",
+        "UserDiagram": "Usuari",
+        "GUINoCodeDiagram": "GUI",
+        "QuantumCircuitDiagram": "Quàntic",
+        "NNDiagram": "Xarxa neuronal",
+        "BPMN": "BPMN"
+      }
+    },
+    "status": {
+      "behind": "{{count}} commits nous a GitHub",
+      "behind_one": "1 commit nou a GitHub",
+      "inSync": "Sincronitzat amb GitHub",
+      "localChanges": "Canvis del model sense desar a GitHub",
+      "missing": "No s’ha trobat la branca o el repositori a GitHub",
+      "reconnect": "Sessió de GitHub caducada: torna a connectar",
+      "unknown": "No s’ha pogut accedir al repositori",
+      "unlinked": "No vinculat a cap repositori"
+    },
+    "aiReading": {
+      "title": "Vols llegir aquest repositori amb IA?",
+      "description": "BESSER no ha pogut llegir directament les classes de dades de {{repo}}. Pot enviar un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER, que pot estar gestionat per un proveïdor extern. Llavors el teu codi surt del servidor de BESSER. No s’envia res sense el teu consentiment.",
+      "accept": "Llegeix amb IA",
+      "decline": "Ara no"
+    },
+    "recap": {
+      "recentWork": "Feina recent",
+      "stillOpen": "Encara pendent en acabar l'última execució",
+      "newOnGitHub": "Novetats a GitHub des de llavors",
+      "more": "i {{hidden}} més",
+      "missing": "No és al codi: {{text}}",
+      "notChecked": "Sense comprovar: {{text}}",
+      "leftOut": "Omès: {{text}}",
+      "continuing": "Continuant des de {{repo}} a {{branch}}.",
+      "continuingPulled": "Continuant des de {{repo}} a {{branch}}. Tenia un model més recent, així que primer l'he incorporat a aquest projecte."
+    },
+    "linkedRun": {
+      "pullInterrupted": "No s'ha carregat la versió de GitHub: el projecte o el seu enllaç de GitHub ha canviat mentrestant. Torna-ho a provar.",
+      "repoChanged": "L'enllaç de GitHub d'aquest projecte ha canviat mentre s'iniciava. Torna-ho a demanar.",
+      "pulledModel": "{{repo}} tenia un model més recent, així que primer l'he incorporat a aquest projecte.",
+      "unsaved": "{{repo}} té commits a {{branch}} que aquest projecte no ha incorporat, i el teu model té canvis que no hi estan desats. Combina'ls amb **Puja a GitHub** al menú de GitHub i torna-ho a demanar.",
+      "busy": "BESSER està ocupat amb altres execucions. Torna-ho a demanar d’aquí a un moment.",
+      "badModel": "No s’ha pogut carregar el model d’aquest repositori.",
+      "title": "Vols reconstruir l’aplicació a partir del teu model?",
+      "description": "Aquest projecte està vinculat a {{repo}}, però BESSER no pot llegir-ne el codi: {{reason}}. Soluciona-ho i torna-ho a demanar per continuar des d’aquest codi. La reconstrucció parteix del teu model i ignora el que hi ha a GitHub.",
+      "rebuild": "Reconstrueix des del model",
+      "cancel": "Cancel·la",
+      "notConnected": "GitHub no està connectat en aquesta pestanya",
+      "notFound": "no s’ha trobat el repositori o el teu compte no hi té accés",
+      "failed": "no s’ha pogut contactar amb GitHub"
+    },
+    "startFromRepo": {
+      "badLink": "Enganxa un enllaç com github.com/owner/repo.",
+      "connect": "Connecta GitHub per obrir un dels teus repositoris.",
+      "description": "Tria un repositori per continuar-hi construint. Un repositori de BESSER s’obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model que acceptes al llenç. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+      "failed": "No s’ha pogut obrir aquest repositori.",
+      "linkLabel": "Enllaç del repositori",
+      "linkPlaceholder": "Enganxa un enllaç: github.com/owner/repo",
+      "open": "Obre",
+      "title": "Comença des d’un repositori de GitHub"
     }
   },
   "assistant": {
@@ -1466,11 +1675,11 @@
     "byBesser": "per BESSER",
     "welcome": {
       "greeting": "Hola! Soc el teu assistent de modelatge",
-      "intro": "Et puc ajudar a crear i modificar diagrames UML, generar codi i respondre preguntes de modelatge. Prova alguna cosa com ara:",
+      "intro": "Et puc ajudar a crear i modificar els teus models i respondre preguntes de modelatge. Prova alguna cosa com ara:",
       "suggestions": {
         "library": "Crea un sistema de gestió de biblioteca",
         "payment": "Afegeix una classe Payment amb amount i date",
-        "django": "Genera codi Django"
+        "stateMachine": "Crea una màquina d'estats per a una comanda"
       },
       "headlinePre": "Què t'agradaria",
       "headlineEmphasis": "modelar",
@@ -1628,7 +1837,18 @@
       "dropFiles": "Deixa anar els fitxers aquí per adjuntar-los.",
       "transcribingAudio": "S'està transcrivint l'àudio…",
       "recordingPrompt": "Gravant… fes clic aquí o torna a prémer el micròfon per aturar i enviar ({{time}})",
-      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})"
+      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})",
+      "runChanges": {
+        "title": "Què ha canviat",
+        "model": "Model",
+        "unchanged": "sense canvis",
+        "code": "Codi",
+        "noFiles": "cap fitxer modificat",
+        "filesChanged_one": "{{count}} fitxer modificat",
+        "filesChanged_other": "{{count}} fitxers modificats",
+        "showAll": "Mostra’ls tots ({{count}})",
+        "more": "i {{count}} més"
+      }
     }
   },
   "deploy": {
@@ -1678,7 +1898,6 @@
       "descUpdatedAgent": "Els canvis del teu agent s'han enviat a GitHub. Activa un redesplegament a Render per aplicar-los.",
       "descCreated": "Continua amb el desplegament amb un clic a Render o inspecciona el repositori generat.",
       "descCreatedAgent": "Continua amb el desplegament amb un clic a Render per al teu agent independent o inspecciona el repositori generat.",
-      "filesUploaded": "{{count}} fitxers pujats.",
       "notSeeingChanges": "Encara no veus els teus canvis?",
       "manualSyncIntro": "Obre el teu Blueprint a Render i fes clic a",
       "manualSyncLabel": "Sincronització Manual",
@@ -1688,7 +1907,9 @@
       "openLiveApp": "Obre l'aplicació en directe",
       "openRenderDeployment": "Obre el desplegament de Render",
       "openBlueprint": "Obre el Blueprint de Render",
-      "viewRepo": "Mostra el repositori de GitHub"
+      "viewRepo": "Mostra el repositori de GitHub",
+      "filesChanged_one": "{{count}} fitxer canviat.",
+      "filesChanged_other": "{{count}} fitxers canviats."
     },
     "toasts": {
       "availableFor": "El desplegament està disponible per a diagrames d'aplicació web i d'agent.",
@@ -1993,6 +2214,39 @@
           "title": "Definir tipus d’elements",
           "body": "<p>Fes doble clic en una tasca, esdeveniment o passarel·la per definir-ne el tipus, per exemple una tasca d’usuari o de servei, un esdeveniment d’inici de temporitzador, o una passarel·la exclusiva o paral·lela.</p>"
         }
+      },
+      "projectHeading": "El teu projecte",
+      "github": {
+        "label": "GitHub",
+        "summary": "Desa cada projecte en el teu propi repositori de GitHub: desa i fusiona el teu model, revisa els canvis i deixa que el Spec-Driven Agent construeixi sobre qualsevol repositori.",
+        "connect": {
+          "title": "Connectar i vincular",
+          "body": "<p>Connecta GitHub des de la pantalla d’inici o el botó de GitHub de la barra superior. Cada projecte es vincula a un repositori: crea’n un de privat per a ell o vincula’n un que ja tingueu tu, un col·laborador o la teva organització.</p><p>Marcar <strong>Desa-ho a GitHub</strong> en crear un projecte crea i vincula un repositori privat en un sol pas.</p>"
+        },
+        "repoContents": {
+          "title": "Què va al repositori",
+          "body": "<p>En desar s’escriu tot el projecte a <code>buml/diagrams.json</code>, el Python B-UML dels teus diagrames al costat a <code>buml/</code>, i <code>.besser/project.json</code>, que marca el repositori com a projecte BESSER. Després d’una execució del Spec-Driven Agent, el codi de l’aplicació és al mateix repositori.</p><p>Les claus, tokens i contrasenyes de la configuració del teu agent es treuen abans d’escriure res. El navegador les conserva i tornen quan carregues el model al mateix projecte.</p>"
+        },
+        "saveLatest": {
+          "title": "Desar i obtenir l’última versió",
+          "body": "<p>El punt del botó de GitHub mostra on ets: sincronitzat, canvis sense desar, commits nous a GitHub o canviat a tots dos costats.</p><ul><li><strong>Desa a GitHub</strong> fa commit del teu model. Si la branca s’ha mogut des de l’última sincronització, es fusionen les dues versions, el model com a dades, de manera que dues persones que afegeixen una classe cadascuna les conserven totes dues.</li><li><strong>Obtén l’última versió</strong> carrega la versió de GitHub a l’editor.</li></ul>"
+        },
+        "pullRequests": {
+          "title": "Conflictes i pull requests",
+          "body": "<p>Quan el mateix element s’ha canviat de manera diferent a tots dos costats, no se sobreescriu res: el teu desament es conserva a la seva pròpia branca i el menú de GitHub ofereix obrir una pull request. També pots enviar qualsevol desament com a pull request, perquè el teu equip el revisi primer.</p><p>Quan la pull request es fusioni, fes servir <strong>Obtén l’última versió</strong> per portar el resultat a l’editor.</p>"
+        },
+        "history": {
+          "title": "Historial",
+          "body": "<p><strong>Historial…</strong> llista els commits que han canviat el model, amb el que ha canviat cadascun (classes afegides, reanomenades o eliminades), i carrega qualsevol versió anterior a l’editor.</p>"
+        },
+        "anyRepo": {
+          "title": "Començar des de qualsevol repositori",
+          "body": "<p>Fes servir <strong>Continua des de GitHub</strong> a la pantalla d’inici, o <strong>Comença des d’un repositori de GitHub…</strong> al menú de GitHub. Un repositori BESSER s’obre amb el seu model. Per a qualsevol altre, BESSER llegeix les seves classes de dades (SQLAlchemy, Django, Pydantic, dataclasses) i proposa un diagrama de classes que acceptes o descartes al llenç. No s’escriu res al repositori fins que desis.</p><p>Si BESSER no pot llegir directament les classes de dades, primer t’ho pregunta. Només si hi estàs d’acord envia un breu extracte del codi (fins a uns 40.000 caràcters, sense fitxers ni claus secrets) al model d’IA que fa servir el servidor de BESSER per proposar el diagrama. Aquest model pot estar gestionat per un proveïdor extern, de manera que l’extracte surt del servidor de BESSER.</p><p>Després, el Spec-Driven Agent treballa sobre aquest codi i els seus canvis tornen al mateix repositori.</p>"
+        },
+        "publish": {
+          "title": "Publicar i compartir",
+          "body": "<p><strong>Desplega → Posa en línia des de GitHub</strong> posa en línia l’aplicació del repositori vinculat, tal com la conté el repositori, quan el servidor ho ofereix.</p><p>Per compartir el projecte, comparteix el seu repositori vinculat: qui hi tingui accés l’obre amb <strong>Continua des de GitHub</strong>.</p>"
+        }
       }
     }
   },
@@ -2037,7 +2291,7 @@
       "settingsButton": "Configuració de privadesa",
       "banner": {
         "title": "Galetes d'analítica",
-        "subtitle": "Analítica anònima per millorar BESSER.",
+        "subtitle": "Analítica i informes d'error per millorar BESSER.",
         "details": "Detalls",
         "hideDetails": "Amaga els detalls",
         "decline": "Rebutja",
@@ -2045,10 +2299,13 @@
         "accept": "Accepta",
         "privacyPolicy": "Política de privadesa",
         "rows": {
-          "generators": "Generadors de codi utilitzats",
+          "generators": "Funcions utilitzades i si funcionen",
+          "interactions": "Posicions dels clics (mapes de calor) i velocitat de càrrega de les pàgines",
           "diagramComplexity": "Tipus de diagrama i complexitat del model",
           "assistantUsage": "Recompte d'ús de l'assistent d'IA",
-          "noContent": "Sense contingut del model ni dades personals"
+          "errorReports": "Informes d'error anònims",
+          "visitStats": "Estadístiques de visites (Google Analytics)",
+          "noContent": "Sense contingut del model, noms de projectes ni dades d'identitat"
         }
       },
       "settings": {
@@ -2064,10 +2321,13 @@
         "aboutBody": "BESSER (Better Smart Software Faster) és una plataforma low-code de codi obert desenvolupada pel Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
         "collectTitle": "Dades que recollim",
         "collect": {
-          "usage": "Ús de funcions (generadors i fluxos de treball de diagrames)",
+          "usage": "Ús de funcions i resultats: quines funcions feu servir, si funcionen o fallen, quant triguen i el tipus d'error (mai el que escriviu o modeleu)",
+          "interactions": "Posicions dels clics i del punter a les pàgines (mapes de calor) i rendiment de càrrega de les pàgines",
           "metrics": "Mètriques del model (recomptes de mida i estructura)",
           "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
-          "session": "Metadades de sessió anònimes"
+          "session": "Metadades de sessió anònimes",
+          "visits": "Estadístiques de visites: pàgines visitades, ubicació aproximada derivada de la teva adreça IP, tipus de dispositiu i de navegador",
+          "errors": "Informes d'error anònims (tipus d'error, traça de la pila, estat HTTP, ruta de la pàgina i tipus de navegador)"
         },
         "noCollectTitle": "Dades que no recollim",
         "noCollect": {
@@ -2078,9 +2338,13 @@
         },
         "useTitle": "Com utilitzem les dades",
         "useBody": "L'analítica només s'utilitza per millorar la qualitat del producte i prioritzar el desenvolupament de funcions. No s'utilitza per a màrqueting ni revenda.",
-        "providerTitle": "Proveïdor",
-        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Veu la",
-        "providerLinkText": "Política de privadesa de PostHog"
+        "providerTitle": "Proveïdors",
+        "providerIntro": "Utilitzem PostHog (allotjat a la UE) per a l'analítica d'ús. Veu la",
+        "providerLinkText": "Política de privadesa de PostHog",
+        "errorProviderIntro": "Els informes d'error s'envien a Sentry (allotjat a la UE, de.sentry.io) només després que acceptis l'analítica, i mai no inclouen contingut de models ni noms de projectes. Veu la",
+        "errorProviderLinkText": "Política de privadesa de Sentry",
+        "visitProviderIntro": "Les estadístiques de visites s'envien a Google Analytics només després que acceptis l'analítica. Google no emmagatzema la teva adreça IP, i els senyals de Google i la personalització d'anuncis estan desactivats. Veu la",
+        "visitProviderLinkText": "Política de privadesa de Google"
       }
     },
     "errors": {
@@ -2092,23 +2356,6 @@
       "unknownError": "Error desconegut",
       "tryAgainLabel": "Torna-ho a provar després de l'error",
       "tryAgain": "Torna-ho a provar"
-    },
-    "jsonViewer": {
-      "jsonTitle": "Vista prèvia JSON del projecte",
-      "diagramBuml": "Diagrama B-UML",
-      "closeLabel": "Tanca la finestra de vista prèvia",
-      "expand": "Desplega {{name}}",
-      "collapse": "Replega {{name}}",
-      "root": "root",
-      "generatingBuml": "S'està generant la vista prèvia de B-UML…",
-      "noBumlPreview": "Encara no hi ha cap vista prèvia de B-UML disponible.",
-      "generating": "S'està generant…",
-      "regenerate": "Regenera",
-      "downloadBuml": "Baixa el B-UML",
-      "copyBuml": "Copia el B-UML",
-      "downloadJson": "Baixa el JSON",
-      "copyJson": "Copia el JSON",
-      "copyValue": "Copia el valor"
     },
     "notFound": {
       "title": "Pàgina no trobada",
@@ -2159,11 +2406,6 @@
       "open": "Obre la navegació",
       "close": "Tanca la navegació",
       "title": "Navegació"
-    },
-    "preview": {
-      "projectLabel": "Projecte (V{{version}})",
-      "bumlLabelNamed": "Previsualització B-UML del projecte ({{name}})",
-      "bumlLabel": "Previsualització B-UML del projecte"
     },
     "skipToEditor": "Vés a l’editor"
   },
@@ -2680,8 +2922,6 @@
       "statusSaved": "Desat",
       "statusSaving": "S'està desant…",
       "statusErrorSaving": "Error en desar",
-      "editorStillLoading": "L'editor encara s'està carregant. Espera un moment i torna-ho a provar.",
-      "errorSavingProject": "Error en desar el projecte. Consulta la consola per a més detalls.",
       "downloadHtml": "Baixa HTML",
       "exportTemplate": "Exporta la plantilla",
       "downloadJson": "Baixa JSON",
@@ -2705,9 +2945,6 @@
       "qualityCheckFailedMessage": "S'han trobat errors al teu diagrama de classes. Corregeix-los abans de generar la interfície.",
       "classDiagramErrors": "Errors del diagrama de classes",
       "noClassesFound": "No s'han trobat classes al diagrama de classes. Primer crea un diagrama de classes.",
-      "noPageSelected": "No s'ha seleccionat cap pàgina",
-      "editRoutePrompt": "Edita el camí de ruta per a la pàgina \"{{pageName}}\":\n\nExemples:\n- /home\n- /users/:id\n- /products",
-      "routeUpdated": "Ruta actualitzada a: {{route}}",
       "sidebarBlocks": "Blocs",
       "sidebarStyles": "Estils",
       "sidebarTraits": "Propietats",
@@ -2796,6 +3033,20 @@
         "starterPromptNoClasses": "Crea una pàgina d’inici per a la meva aplicació",
         "generateDescription_one": "1 classe trobada: {{names}}.",
         "generateDescription_other": "{{count}} classes trobades: {{names}}."
+      },
+      "navigationMap": {
+        "open": "Mostra el mapa de navegació",
+        "button": "Mapa",
+        "title": "Mapa de navegació",
+        "description": "Com s’enllacen les pàgines entre si, tal com les segueix l’aplicació generada. Aquest mapa és només de lectura: canvia els enllaços a les mateixes pàgines.",
+        "navBar": "Barra de navegació",
+        "attention": "Cal revisar",
+        "allGood": "Totes les pàgines són accessibles des de la pàgina d’inici i tots els enllaços tenen destinació.",
+        "unreached": "«{{page}}» no és accessible des de la pàgina d’inici",
+        "broken": "«{{label}}» a {{page}} apunta a {{target}}, que no és una pàgina",
+        "hint": "Fes clic en una pàgina per obrir-la",
+        "summary": "Pàgines: {{pages}} · Enllaços a les pàgines: {{links}}",
+        "canvasLabel": "Mapa de navegació. Pàgines: {{pages}}. Enllaços a les pàgines: {{links}}."
       }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI…",
@@ -3509,7 +3760,6 @@
       "failed": "L'exportació ha fallat: {{error}}",
       "validationFailed": "La validació ha fallat",
       "noDiagramToExport": "No hi ha cap diagrama per exportar",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
       "bumlExportSuccess": "Exportació de B-UML completada correctament",
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
@@ -3580,8 +3830,7 @@
       "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de graf de coneixement: {{message}}",
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
-      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
-      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid"
     },
     "warnings": {
       "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",
@@ -3760,6 +4009,15 @@
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
       "unknownError": "Error desconegut"
+    },
+    "warningsConfirm": {
+      "title_one": "El model té un avís de validació",
+      "title_other": "El model té {{count}} avisos de validació",
+      "description": "Voleu generar igualment o corregir primer el model?",
+      "more_one": "…i 1 més.",
+      "more_other": "…i {{count}} més.",
+      "confirm": "Genera igualment",
+      "cancel": "Corregeix primer el model"
     }
   },
   "quantum": {

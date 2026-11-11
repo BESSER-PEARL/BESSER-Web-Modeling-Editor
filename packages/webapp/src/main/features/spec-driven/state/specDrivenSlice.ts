@@ -25,12 +25,10 @@
  */
 
 import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
-// Type-only import — erased at runtime, so no runtime dependency on the
-// component module. The card state shape is defined next to the card.
-import type { SpecDrivenMessageState } from '@/components/chatbot-kit/ui/chat-message';
 import type {
   SpecDrivenErrorCode,
   SpecDrivenEvent,
+  SpecDrivenMessageState,
   SpecDrivenPhase,
   SpecDrivenProvider,
   SpecDrivenVerificationItem,
@@ -354,6 +352,10 @@ export function applySpecDrivenEvent(
         // The three states the blocker count collapses. Undefined for older
         // backends — the card keeps its blocker-count summary then.
         verification: extractVerification(event.verification),
+        runMode: event.mode,
+        changedFiles: Array.isArray(event.changedFiles) ? event.changedFiles : undefined,
+        changedFileCount: typeof event.changedFileCount === 'number' ? event.changedFileCount : undefined,
+        modelChanges: Array.isArray(event.modelChanges) ? event.modelChanges : undefined,
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.

@@ -7,6 +7,18 @@ import { FileMenu } from '../menus/FileMenu';
 import { MoreMenu } from '../menus/MoreMenu';
 import { TopBarUtilities } from '../menus/TopBarUtilities';
 import { LanguageSelector } from '../LanguageSelector';
+import type { SupportedDiagramType } from '../../../shared/types/project';
+
+// The GitHub control has its own tests; here it only has to be mounted once.
+vi.mock('../../../features/github/components/GitHubMenu', () => ({
+  GitHubMenu: ({ isAuthenticated, username }: { isAuthenticated: boolean; username?: string }) => (
+    <div data-testid="github-menu">{isAuthenticated ? `signed in as ${username}` : 'signed out'}</div>
+  ),
+}));
+// Reads the store; covered by its own tests.
+vi.mock('../../../features/whats-new/WhatsNewMenu', () => ({
+  WhatsNewMenu: () => <div data-testid="whats-new-menu" />,
+}));
 
 const withTooltips = (ui: React.ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
 const openMenu = (name: string) => fireEvent.keyDown(screen.getByRole('button', { name }), { key: 'ArrowDown' });
@@ -34,12 +46,12 @@ describe('GenerateMenu', () => {
 });
 
 describe('FileMenu', () => {
-  const renderOpen = (hasProject = true) => {
+  const renderOpen = (hasProject = true, activeDiagramType: SupportedDiagramType = 'ClassDiagram') => {
     withTooltips(
       <FileMenu
         outlineButtonClass=""
         hasProject={hasProject}
-        activeDiagramType="ClassDiagram"
+        activeDiagramType={activeDiagramType}
         onOpenProjectHub={vi.fn()}
         onOpenTemplateDialog={vi.fn()}
         onExportProject={vi.fn()}
@@ -48,7 +60,6 @@ describe('FileMenu', () => {
         onOpenAssistantImportImage={vi.fn()}
         onOpenAssistantImportKg={vi.fn()}
         onImportOwl={vi.fn()}
-        onOpenProjectPreview={vi.fn()}
       />,
     );
     openMenu('File');
@@ -61,6 +72,31 @@ describe('FileMenu', () => {
     expect(screen.queryByText('Import Class Diagram from')).toBeNull();
     expect(screen.queryByText('Project Actions')).toBeNull();
   });
+
+  // BESSER-PEARL/BESSER#749: Export covers the preview, and the GitHub menu covers sharing.
+  it.each([true, false])('offers no Preview Project or Share as Gist entry (project open: %s)', (hasProject) => {
+    renderOpen(hasProject);
+    const labels = screen.getAllByRole('menuitem').map((item) => item.textContent ?? '');
+    expect(labels).toContain('Export Project…');
+    expect(labels.some((label) => /preview|gist/i.test(label))).toBe(false);
+  });
+
+  it('does not end with a separator when no diagram-specific import applies', () => {
+    renderOpen();
+    const items = screen.getByRole('menu').children;
+    expect(items[items.length - 1]).not.toHaveAttribute('role', 'separator');
+  });
+
+  it.each<SupportedDiagramType>(['BPMN', 'KnowledgeGraphDiagram'])(
+    'separates the %s import from Export Project',
+    (diagramType) => {
+      renderOpen(true, diagramType);
+      const items = Array.from(screen.getByRole('menu').children);
+      const exportIndex = items.findIndex((item) => item.textContent === 'Export Project…');
+      expect(items[exportIndex + 1]).toHaveAttribute('role', 'separator');
+      expect(items[exportIndex + 2]).toHaveAttribute('role', 'menuitem');
+    },
+  );
 
   it('gives every top-level item an icon', () => {
     renderOpen();
@@ -129,11 +165,35 @@ describe('TopBarUtilities', () => {
         onToggleTheme={vi.fn()}
         onGitHubLogin={vi.fn()}
         onGitHubLogout={vi.fn()}
-        onOpenGitHubSidebar={vi.fn()}
         onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
       />,
     );
 
     expect(screen.getByRole('button', { name: 'Quality Check: Validated' })).toBeInTheDocument();
+  });
+
+  it('renders the single GitHub control with the sign-in state', () => {
+    withTooltips(
+      <TopBarUtilities
+        showQualityCheck={false}
+        outlineButtonClass=""
+        isDarkTheme={false}
+        isAuthenticated
+        username="ana"
+        githubLoading={false}
+        hasStarred
+        starLoading={false}
+        onQualityCheck={vi.fn()}
+        onToggleTheme={vi.fn()}
+        onGitHubLogin={vi.fn()}
+        onGitHubLogout={vi.fn()}
+        onToggleStar={vi.fn()}
+        onSwitchDiagramType={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByTestId('github-menu')).toHaveLength(1);
+    expect(screen.getByTestId('github-menu')).toHaveTextContent('signed in as ana');
   });
 });

@@ -12,7 +12,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '@/main/app/store/store';
-import { conversationStore } from '@/main/features/assistant/hooks/assistantConversationStore';
+import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import type { SpecDrivenRunResult } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { writeProjectLastRun } from '@/main/features/spec-driven/storage';
@@ -22,8 +22,8 @@ import * as modelChange from '@/main/features/spec-driven/services/modelChange';
 import type { ModelChange } from '@/main/features/spec-driven/services/modelChange';
 import * as confirm from '@/main/shared/services/confirm/globalConfirm';
 import {
-  sessionStorageSpecDrivenApiKey,
-  sessionStorageSpecDrivenProvider,
+  sessionStorageLlmApiKey,
+  sessionStorageLlmProvider,
 } from '@/main/shared/constants/constant';
 
 vi.mock('react-toastify', () => ({
@@ -43,7 +43,7 @@ vi.mock('@/main/features/spec-driven/services/specDrivenSseClient', () => ({
   })),
 }));
 
-vi.mock('@/main/features/spec-driven/services/specDrivenConfig', async (importOriginal) => {
+vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<any>();
   return {
     ...mod,
@@ -131,8 +131,8 @@ beforeEach(() => {
   conversationStore.clear();
   window.sessionStorage.clear();
   window.localStorage?.clear();
-  window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-test');
-  window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+  window.sessionStorage.setItem(sessionStorageLlmApiKey, 'sk-test');
+  window.sessionStorage.setItem(sessionStorageLlmProvider, 'anthropic');
   writeProjectLastRun(PROJECT_ID, BASE, Date.now() - 60_000);
 });
 

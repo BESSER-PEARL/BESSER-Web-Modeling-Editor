@@ -19,8 +19,8 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import {
   specDrivenReducer,
   claimRunSlot,
-} from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+} from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 const _client = vi.hoisted(() => ({ resetSessionCalls: 0 }));
 
@@ -38,6 +38,7 @@ vi.mock('../../services', async (importOriginal) => {
     disconnect() {}
     resetSession() { _client.resetSessionCalls += 1; }
     setContextProvider() {}
+    setHistoryProvider() {}
     sendMessage() { return 'sent' as const; }
     sendVoiceMessage() { return 'sent' as const; }
     sendFrontendEvent() { return 'sent' as const; }
@@ -56,8 +57,9 @@ vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
 
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';

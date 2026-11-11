@@ -25,6 +25,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   githubLoading,
   hasProject,
   isDeploymentAvailable,
+  deployGoesLive,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
@@ -33,7 +34,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onImportOwl,
-  onOpenProjectPreview,
   onGenerate,
   onQualityCheck,
   qualityCheckState,
@@ -44,7 +44,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
-  onOpenGitHubSidebar,
+  onRepoOpened,
   hasStarred,
   starLoading,
   onToggleStar,
@@ -130,7 +130,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onImportOwl={onImportOwl}
-            onOpenProjectPreview={onOpenProjectPreview}
           />
           <GenerateMenu
             mode={generatorMode}
@@ -150,6 +149,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               isAuthenticated={isAuthenticated}
               githubLoading={githubLoading}
               isDeploymentAvailable={isDeploymentAvailable}
+              deployGoesLive={deployGoesLive}
               onGitHubLogin={onGitHubLogin}
               onOpenDeployDialog={onOpenDeployDialog}
             />
@@ -181,8 +181,9 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
-            onOpenGitHubSidebar={onOpenGitHubSidebar}
             onToggleStar={onToggleStar}
+            onRepoOpened={onRepoOpened}
+            onSwitchDiagramType={onSwitchDiagramType}
           />
           <div className="hidden sm:contents">
             <LanguageSelector outlineButtonClass={outlineButtonClass} />
@@ -192,7 +193,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             isDarkTheme={isDarkTheme}
             isAuthenticated={isAuthenticated}
             githubLoading={githubLoading}
-            isDeploymentAvailable={isDeploymentAvailable}
+            isDeploymentAvailable={isDeploymentAvailable || !!deployGoesLive}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
             onOpenDeployDialog={onOpenDeployDialog}

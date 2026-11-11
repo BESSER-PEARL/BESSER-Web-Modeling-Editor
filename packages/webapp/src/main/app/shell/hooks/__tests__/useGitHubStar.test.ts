@@ -53,4 +53,20 @@ describe('useGitHubStar and the post-generation star prompt', () => {
     promptForGitHubStarOnce();
     expect(toast.info).not.toHaveBeenCalled();
   });
+
+  it('sends the session as a header, never in the URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ starred: false }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useGitHubStar({ isAuthenticated: true, githubSession: 'session' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await result.current.handleToggleStar();
+    });
+
+    for (const [url, init] of fetchMock.mock.calls) {
+      expect(url).not.toContain('session');
+      expect(init.headers).toEqual({ 'X-GitHub-Session': 'session' });
+    }
+  });
 });

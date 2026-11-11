@@ -10,21 +10,25 @@
  */
 
 import React from 'react';
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChatMessage, InjectionCommand, SendStatus } from '../../services/assistant-types';
-import { workspaceReducer } from '../../../../app/store/workspaceSlice';
+import { syncProjectFromStorage, workspaceReducer } from '../../../../app/store/workspaceSlice';
+import { createDefaultProject, type BesserProject } from '../../../../shared/types/project';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { specDrivenReducer } from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 const _client = vi.hoisted(() => ({
   messageHandlers: [] as Array<(m: ChatMessage) => void>,
   injectionHandlers: [] as Array<(c: InjectionCommand) => void>,
+  actionHandlers: [] as Array<(a: Record<string, unknown>) => void>,
   sentMessages: [] as string[],
+  historyRequests: 0,
+  turnId: null as string | null,
 }));
 
 vi.mock('../../services', async (importOriginal) => {
@@ -47,7 +51,8 @@ vi.mock('../../services', async (importOriginal) => {
     onTyping() {
       return noopUnsub;
     }
-    onAction() {
+    onAction(handler: (a: Record<string, unknown>) => void) {
+      _client.actionHandlers.push(handler);
       return noopUnsub;
     }
     clearHandlers() {}
@@ -57,9 +62,17 @@ vi.mock('../../services', async (importOriginal) => {
     disconnect() {}
     resetSession() {}
     setContextProvider() {}
+    setHistoryProvider() {}
+    sendHistoryWithNextMessage() {
+      _client.historyRequests += 1;
+    }
     sendMessage(text: string): SendStatus {
       _client.sentMessages.push(text);
+      _client.turnId = `turn_${_client.sentMessages.length}`;
       return 'sent';
+    }
+    get turnId() {
+      return _client.turnId;
     }
     sendVoiceMessage(): SendStatus {
       return 'sent';
@@ -79,10 +92,18 @@ vi.mock('../../services', async (importOriginal) => {
 });
 
 // The real injection path needs a live editor; the auto-fix loop only cares
-// that an applied ClassDiagram model is reported back through onModelApplied.
+// that a ClassDiagram model is reported back as applied (onModelApplied) or
+// as not applicable (onModelApplyFailed, for a command marked `unappliable`).
 vi.mock('../useModelInjection', () => ({
-  useModelInjection: (options: { onModelApplied?: (info: any) => void }) => ({
-    handleInjection: async (command: InjectionCommand) => {
+  useModelInjection: (options: {
+    onModelApplied?: (info: any) => void;
+    onModelApplyFailed?: (info: any) => boolean;
+  }) => ({
+    handleInjection: async (command: InjectionCommand & { unappliable?: boolean }) => {
+      if (command.unappliable) {
+        options.onModelApplyFailed?.({ action: command.action, diagramType: 'ClassDiagram', turnId: command.turnId });
+        return;
+      }
       options.onModelApplied?.({ action: command.action, diagramType: 'ClassDiagram', model: {} });
     },
     ensureTargetDiagramReady: async () => true,
@@ -100,16 +121,20 @@ vi.mock('../../../../shared/services/validation/validateDiagram', () => ({
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';
-import { autoFixRef, conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
+import { autoFixRef, conversationStore, freshAutoFixState, voicePlaceholderIdRef } from '../assistantConversationStore';
+import { autoFixInterruptedMessage } from '../autoFixMessages';
 
 interface SurfaceAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
   submit: (text: string) => Promise<void>;
+  input: string;
+  setInput: (text: string) => void;
 }
 
 function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
@@ -117,6 +142,8 @@ function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
   apiRef.current = {
     sendVoiceMessage: hook.sendVoiceMessage,
     submit: (text) => hook.handleSubmit(undefined, { overrideText: text }),
+    input: hook.inputValue,
+    setInput: hook.setInputValue,
   };
   return null;
 }
@@ -148,9 +175,15 @@ function emit(message: Partial<ChatMessage>) {
   });
 }
 
-async function emitInjection() {
+async function emitInjection(fields: Record<string, unknown> = {}) {
   await act(async () => {
-    _client.injectionHandlers.forEach((h) => h({ action: 'modify_model' } as InjectionCommand));
+    _client.injectionHandlers.forEach((h) => h({ action: 'modify_model', ...fields } as InjectionCommand));
+  });
+}
+
+async function emitAction(action: Record<string, unknown>) {
+  await act(async () => {
+    _client.actionHandlers.forEach((h) => h(action));
   });
 }
 
@@ -158,9 +191,11 @@ const repairRequests = () => _client.sentMessages.filter((m) => m.startsWith('[a
 
 beforeEach(() => {
   _client.sentMessages = [];
+  _client.historyRequests = 0;
+  _client.turnId = null;
   conversationStore.clear();
   voicePlaceholderIdRef.current = null;
-  autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
+  autoFixRef.current = freshAutoFixState();
   validateDiagramMock.mockResolvedValue({ errors: ['Class "Book" has no attributes'] });
 });
 
@@ -227,5 +262,179 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     emit({ message: 'done', isUser: false });
     await emitInjection();
     await waitFor(() => expect(repairRequests()).toHaveLength(2));
+  });
+
+  const spinning = () => conversationStore.getMessages().filter((m) => m.isProgress && m.content.includes('fixing'));
+  const failedOutcome = () => conversationStore.getMessages().find((m) => m.content.includes('could not fix'));
+
+  async function startRepair(drawer: { current: SurfaceAPI | null }) {
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+    emit({ message: 'done', isUser: false });
+    await emitInjection();
+    await waitFor(() => expect(repairRequests()).toHaveLength(1));
+    expect(spinning()).toHaveLength(1);
+  }
+
+  async function expectRepairFailed() {
+    await waitFor(() => expect(failedOutcome()).toBeDefined());
+    const outcome = failedOutcome()!;
+    expect(outcome.content).toContain('Class "Book" has no attributes');
+    expect(outcome.isProgress).toBeFalsy();
+    expect(outcome.isError).toBe(true);
+    expect(spinning()).toHaveLength(0);
+    expect(autoFixRef.current.fixInFlight).toBe(false);
+  }
+
+  // BESSER#744: the repair request was answered "I couldn't process that
+  // modification", with no model, and the "fixing them now…" line spun forever.
+  it.each(['assistant_message', 'agent_error'])(
+    'settles the auto-fix line when the repair is answered by %s instead of a model',
+    async (action) => {
+      const { drawer } = renderTwoSurfaces();
+      await waitFor(() => expect(drawer.current).not.toBeNull());
+      await startRepair(drawer);
+
+      await emitAction({ action, message: "I couldn't process that modification." });
+
+      await expectRepairFailed();
+    },
+  );
+
+  it('settles the auto-fix line when the repair model cannot be applied', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+
+    await emitInjection({ unappliable: true, turnId: _client.turnId });
+
+    await expectRepairFailed();
+  });
+
+  it('settles the auto-fix line only on a reply to the repair turn, not a late one to an earlier turn', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+    const repairTurn = _client.turnId;
+    expect(repairTurn).toBe('turn_2');
+
+    // A multi-diagram plan's second reply, stamped with the user's own turn.
+    await emitAction({ action: 'assistant_message', message: 'Created the state machine.', turnId: 'turn_1' });
+    expect(spinning()).toHaveLength(1);
+    expect(autoFixRef.current.fixInFlight).toBe(true);
+
+    await emitAction({ action: 'assistant_message', message: 'The diagram is unchanged.', turnId: repairTurn });
+    await expectRepairFailed();
+  });
+
+  it('stops the auto-fix spinner when the user sends a new message before the repair answers', async () => {
+    const { drawer } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await startRepair(drawer);
+
+    vi.setSystemTime(Date.now() + 5000);
+    await act(async () => {
+      await drawer.current!.submit('add a Member class');
+    });
+
+    await waitFor(() => expect(spinning()).toHaveLength(0));
+    const settled = conversationStore
+      .getMessages()
+      .find((m) => m.content === autoFixInterruptedMessage(['Class "Book" has no attributes']));
+    expect(settled).toBeDefined();
+    expect(settled?.isProgress).toBeFalsy();
+    expect(autoFixRef.current.fixInFlight).toBe(false);
+  });
+});
+
+describe('useAssistantLogic keeps the conversation with the project (BESSER#745)', () => {
+  function renderWithProject(project: BesserProject) {
+    const workspace = { ...workspaceReducer(undefined, { type: 'init' }), project };
+    const store = configureStore({
+      reducer: { workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer },
+      preloadedState: { workspace } as never,
+    });
+    const api: { current: SurfaceAPI | null } = { current: null };
+    render(
+      <Provider store={store}>
+        <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+          <Surface apiRef={api} />
+        </ApollonEditorProvider>
+      </Provider>,
+    );
+    return { store, api };
+  }
+
+  it("restores a project's saved conversation into an empty chat and gives the agent its history", async () => {
+    const project = createDefaultProject('Library', '', '');
+    project.assistantConversation = {
+      turns: [
+        { role: 'user', content: 'A library system with books, members and loans' },
+        { role: 'assistant', content: 'Created Book, Member and Loan.' },
+      ],
+      updatedAt: '2026-11-08T00:00:00Z',
+    };
+    renderWithProject(project);
+
+    await waitFor(() => expect(conversationStore.getMessages()).toHaveLength(2));
+    expect(conversationStore.getMessages()[0]).toMatchObject({
+      role: 'user',
+      content: 'A library system with books, members and loans',
+    });
+    expect(_client.historyRequests).toBe(1);
+  });
+
+  it('writes the conversation to the project as it changes', async () => {
+    const { store, api } = renderWithProject(createDefaultProject('Library', '', ''));
+    await waitFor(() => expect(api.current).not.toBeNull());
+
+    await act(async () => {
+      await api.current!.submit('A library system with books and loans');
+    });
+    emit({ message: 'Created Book and Loan.' });
+
+    await waitFor(
+      () =>
+        expect(store.getState().workspace.project?.assistantConversation?.turns).toEqual([
+          { role: 'user', content: 'A library system with books and loans' },
+          { role: 'assistant', content: 'Created Book and Loan.' },
+        ]),
+      { timeout: 4000 },
+    );
+  });
+});
+
+describe('a project switch with the widget and the drawer both mounted', () => {
+  it('stops the turn in both surfaces, not only in the one whose effect runs first', async () => {
+    const library = createDefaultProject('Library', '', '');
+    const shop = createDefaultProject('Shop', '', '');
+    const reducer = combineReducers({ workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer });
+    const store = configureStore({
+      reducer,
+      preloadedState: { workspace: { ...workspaceReducer(undefined, { type: 'init' }), project: library } },
+    });
+    const drawer: { current: SurfaceAPI | null } = { current: null };
+    const widget: { current: SurfaceAPI | null } = { current: null };
+    render(
+      <Provider store={store}>
+        <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+          <Surface apiRef={drawer} />
+          <Surface apiRef={widget} />
+        </ApollonEditorProvider>
+      </Provider>,
+    );
+    act(() => {
+      drawer.current!.setInput('a half-typed request');
+      widget.current!.setInput('a half-typed request');
+    });
+
+    act(() => {
+      store.dispatch(syncProjectFromStorage(shop));
+    });
+    await waitFor(() => {
+      expect(drawer.current!.input).toBe('');
+      expect(widget.current!.input).toBe('');
+    });
   });
 });

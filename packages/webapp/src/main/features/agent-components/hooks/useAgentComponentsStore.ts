@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { track } from '../../../shared/services/analytics/events';
 import { AgentComponentType, UMLModelComponent } from '@besser/wme';
 
 import { useAppSelector } from '../../../app/store/hooks';
@@ -6,12 +7,12 @@ import { selectActiveDiagram, selectProject } from '../../../app/store/workspace
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { getAgentComponents, normalizeStoredAgentModel } from '../../../shared/utils/projectExportUtils';
-import type { SqlDatabaseEntry } from '../../agent-config/AgentConfigYamlEditor';
+import type { SqlDatabaseEntry } from '../../agent-config';
 import {
   DEFAULT_AGENT_CONFIG_FORM,
   agentConfigFormToYaml,
   buildConfigYaml,
-} from '../../agent-config/AgentConfigYamlEditor';
+} from '../../agent-config';
 import {
   AgentComponents,
   CreatableComponentType,
@@ -157,6 +158,7 @@ export function useAgentComponentsStore() {
     (type: CreatableComponentType): string => {
       const component = createAgentComponent(type);
       writeComponents((current) => ({ ...current, [component.id]: component }));
+      track('agent_component_changed', { change: 'added', type });
       return component.id;
     },
     [writeComponents],
@@ -181,6 +183,7 @@ export function useAgentComponentsStore() {
     (id: string) => {
       const target = components[id];
       writeComponents((current) => removeComponent(current, id));
+      if (target) track('agent_component_changed', { change: 'removed', type: String(target.type) });
       if (target && (target.type as string) === AgentComponentType.AgentLLM && target.name && target.name === defaultLlmName) {
         writeConfig((config) => ({ ...config, default_llm_name: '' }));
       }
@@ -213,11 +216,15 @@ export function useAgentComponentsStore() {
   /** Append an empty SQL database; returns its index. */
   const addSqlDatabase = useCallback((): number => {
     writeSqlDatabases((dbs) => [...dbs, { ...EMPTY_SQL_DATABASE }]);
+    track('agent_component_changed', { change: 'added', type: 'SqlDatabase' });
     return sqlDatabases.length;
   }, [writeSqlDatabases, sqlDatabases.length]);
 
   const removeSqlDatabase = useCallback(
-    (index: number) => writeSqlDatabases((dbs) => dbs.filter((_, i) => i !== index)),
+    (index: number) => {
+      writeSqlDatabases((dbs) => dbs.filter((_, i) => i !== index));
+      track('agent_component_changed', { change: 'removed', type: 'SqlDatabase' });
+    },
     [writeSqlDatabases],
   );
 

@@ -9,6 +9,7 @@ import {
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
   localStorageDeployLinkedRepoPrefix,
+  localStorageLegacyAgentConfig,
   localStorageSystemConfig,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
@@ -22,12 +23,6 @@ import {
 } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
-
-/**
- * Pre-prefix key retained for one-shot migration. All new keys MUST be defined
- * in ``shared/constants/constant.ts`` with the ``besser_`` prefix.
- */
-const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
 export interface AgentRuntimeConfig {
   agentPlatform: string;
@@ -417,11 +412,11 @@ export const LocalStorageRepository = {
    * value has been migrated into the new per-project storage.
    */
   getLegacyAgentConfig: (): string | null => {
-    return localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+    return localStorage.getItem(localStorageLegacyAgentConfig);
   },
 
   clearLegacyAgentConfig: () => {
-    localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
+    localStorage.removeItem(localStorageLegacyAgentConfig);
   },
 
   loadAgentConfiguration: (id: string): StoredAgentConfiguration | null => {
@@ -587,7 +582,7 @@ export const LocalStorageRepository = {
 
   /**
    * One-shot v2 -> v3 migration hook. Call once at startup from the global
-   * storage-migration runner (see ``shared/utils/storage-migration.ts``).
+   * storage-migration runner (see ``shared/services/storage/storage-migration.ts``).
    * Idempotent — safe to invoke on every boot.
    */
   migrateToV3,

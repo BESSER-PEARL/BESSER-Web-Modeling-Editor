@@ -24,7 +24,19 @@ Data model
    (a map of diagram type to referenced diagram ID for cross-diagram resolution).
    The initial model is a basic diagram created via ``createEmptyDiagram``.
 
-``SupportedDiagramType`` / ``toUMLDiagramType``  
+``BesserProject.assistantConversation``
+   Optional. The modeling assistant's conversation (its latest 50 user and
+   assistant turns, each cut to 4000 characters), so the user's specification
+   is kept with the project. It is saved with the project in the browser and,
+   being part of the project file, written to ``buml/diagrams.json`` on a GitHub
+   save; provider tokens are redacted from it there like from the rest of the
+   model, and the BYOK key stored in the tab is replaced before it is kept at
+   all. Opening a project that has no conversation in this browser (below)
+   restores it; a field that is not
+   a list of turns restores nothing. Generation requests and gists leave it
+   out.
+
+``SupportedDiagramType`` / ``toUMLDiagramType``
    Guard the subset of diagram types available through the project UI.
 
 Persistence
@@ -48,6 +60,29 @@ handles read/write operations:
   (``trace`` of the JSON envelope, or a ``TRACEABILITY`` section of the B-UML file);
   importing that file stores it under the new project id (``importProjectTrace``). Its format mirrors the backend traceability metamodel
   (``shared/types/traceability.ts``).
+* ``besser_github_link_<projectId>`` is the project's one GitHub repository
+  (``shared/services/storage/projectGitHubLink.ts``): owner, repo and branch,
+  the commit last synced (``baseCommitSha``) with a fingerprint of the model at
+  that commit, a model BESSER proposed from the repo's code until it is
+  accepted, and ``pendingChange``, a save or push waiting on its own branch for
+  a pull request. Every GitHub path reads and writes this one record.
+* ``besser_assistant_conversation_v2_<projectId>`` is the project's full
+  assistant conversation in this browser (``shared/services/storage/assistantStorage.ts``):
+  the latest 100 messages within 200K characters, run cards and message
+  details included, with the stored BYOK key removed. Every tab that opens the
+  project shows it and continues it; a tab already open on the project picks
+  up another tab's turns through the ``storage`` event, and its next message
+  starts a new agent session that carries the history. A new chat is stored as
+  an empty conversation with a new id, so it clears the other tabs too. The 20
+  most recently saved conversations are kept, within 1M characters together;
+  deleting a project deletes its conversation, and a project save that finds
+  storage full drops them all and retries. When a project has none here, the
+  text copy in ``assistantConversation`` is restored. Before v8.9.3 the
+  conversation lived in ``sessionStorage``, one per tab
+  (``besser_assistant_conversation_v1``). The first project a tab opens takes
+  that copy once when it is under 48 hours old, the project has no
+  conversation in this browser yet, and the project's text copy matches it or
+  is absent; otherwise it is dropped.
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
 

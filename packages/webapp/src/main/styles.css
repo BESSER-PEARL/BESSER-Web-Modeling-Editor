@@ -309,6 +309,13 @@ select {
   top: 4.25rem;
 }
 
+/* Toastify pins phone toasts to the left edge; centre them in the container's 90vw. */
+@media only screen and (max-width: 480px) {
+  .Toastify .Toastify__toast-container--top-right {
+    left: 5vw;
+  }
+}
+
 .Toastify__toast {
   border-radius: 12px;
 }

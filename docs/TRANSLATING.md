@@ -62,7 +62,7 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
 1. **Register the editor locale.** In
    `packages/editor/src/main/services/editor/editor-types.ts`, add `it = 'it',` to the
    `Locale` enum, and register it in `packages/editor/src/main/components/i18n/i18n-provider.tsx`
-   (import the new JSON and add it to the `dictionary` map).
+   (add an `import()` of the new JSON to the `loaders` map; TypeScript flags it if you forget).
 
 2. **Register the webapp language.** In
    `packages/webapp/src/main/shared/i18n/languages.ts`, add an entry to `SUPPORTED_LANGUAGES`:
@@ -71,15 +71,9 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
    { code: 'it', nativeName: 'Italiano', englishName: 'Italian' },
    ```
 
-   Then import and register its resource in `packages/webapp/src/main/shared/i18n/index.ts`:
-   - Add a new import line with the other language imports at the top:
-     ```ts
-     import it from '../../../../../i18n/it/webapp.json';
-     ```
-   - Add an entry in the `resources` object:
-     ```ts
-     it: { translation: it },
-     ```
+   Nothing else to register: `packages/webapp/src/main/shared/i18n/index.ts` loads
+   `packages/i18n/<code>/webapp.json` on demand when the language is selected. Only English is
+   bundled with the app; every other language is downloaded as its own chunk.
 
 3. **Create the files** by copying the English ones:
    - `packages/i18n/en/webapp.json` → `packages/i18n/it/webapp.json`
@@ -265,5 +259,5 @@ node scripts/i18n-check.mjs --complete
       only warn. If you renamed or removed keys, fix the resulting extra-key failures.
 - [ ] `npm run test --workspace=webapp` passes.
 - [ ] Reviewed by a native/fluent speaker — name them or note "self, native speaker" in the PR.
-- [ ] For a brand-new language: registered in `editor-types.ts`, `i18n-provider.tsx`,
-      `languages.ts`, and `shared/i18n/index.ts`.
+- [ ] For a brand-new language: registered in `editor-types.ts`, `i18n-provider.tsx`
+      and `languages.ts`.

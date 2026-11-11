@@ -2,11 +2,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { DeployToGitHubResult } from '../../github/hooks/useGitHubDeploy';
+import type { DeployToRenderResult } from '../hooks/useRenderDeploy';
 
 interface DeployResultDialogProps {
   open: boolean;
-  deploymentResult: DeployToGitHubResult | null;
+  deploymentResult: DeployToRenderResult | null;
   onOpenChange: (open: boolean) => void;
   /** Unused: the actions are now real links. Kept so existing callers compile. */
   onOpenExternal?: (url: string) => void;
@@ -58,7 +58,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               <p className="break-all font-medium">
                 {deploymentResult.owner}/{deploymentResult.repo_name}
               </p>
-              <p className="text-xs">{t('deploy.result.filesUploaded', { count: deploymentResult.files_uploaded })}</p>
+              <p className="text-xs">{t('deploy.result.filesChanged', { count: deploymentResult.files_uploaded })}</p>
             </div>
             {isRedeploy && (
               <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">

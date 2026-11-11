@@ -8,13 +8,13 @@
 
 import {
   SMART_GEN_ENDPOINT,
-  specDrivenRunEventsJsonUrl,
   specDrivenRunEventsUrl,
 } from '../../../shared/constants/constant';
+import { getSpecDrivenRunEventsPage } from '../../../shared/api/specDriven';
 import {
   SseHttpError,
   streamSse,
-} from '../../../shared/services/sse/sseClient';
+} from '../../../shared/api/sseClient';
 
 /**
  * Liveness bound for the run stream. The backend's cost emitter puts a
@@ -81,6 +81,7 @@ import {
   getPilotParticipant,
 } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { RequirementKind } from '../../../shared/types/traceability';
+import { track } from '../../../shared/services/analytics/events';
 import type {
   SpecDrivenEvent,
   SpecDrivenMode,
@@ -108,7 +109,7 @@ export interface StartSpecDrivenRunParams {
   provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
-  /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
+  /** The user's OpenAI-compatible base URL for the 'local' provider. */
   baseUrl?: string;
   /**
    * Demo-link secret (`?demo=<token>`), sent only with provider 'sponsored'.
@@ -314,10 +315,7 @@ async function* pollSpecDrivenRun(
       status?: string;
     };
     try {
-      const response = await fetch(
-        specDrivenRunEventsJsonUrl(runId, cursor),
-        { signal: requestController.signal, headers: { Accept: 'application/json' } },
-      );
+      const response = await getSpecDrivenRunEventsPage(runId, cursor, requestController.signal);
       if (!response.ok) {
         let text = '';
         try {
@@ -475,6 +473,11 @@ async function* withDurableReconnect(
 
     const delayMs = RECONNECT_BACKOFF_MS[reconnectAttempts] ?? 60_000;
     reconnectAttempts += 1;
+    track('spec_stream_reconnecting', {
+      attempt: reconnectAttempts,
+      stream_failures: streamFailures,
+      polling: usePolling,
+    });
     // A wake signal means the network just changed under us — retry now and
     // restore the budget rather than counting this against it.
     const wokeEarly = await waitForReconnect(delayMs, signal);
@@ -535,10 +538,10 @@ export function startSpecDrivenRun(
   const controller = new AbortController();
   const acceptedCursor: { runId?: string } = {};
 
-  // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the backend
-  // as provider='openai' + base_url so the server builds an OpenAI client
-  // pointed at the gateway / local server.
-  const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
+  // 'local' is the user's OpenAI-compatible server: sent as provider='openai'
+  // + base_url. 'pia' travels as itself; the server resolves its endpoint
+  // from its model catalog.
+  const usesBaseUrl = params.provider === 'local';
   const wireProvider = usesBaseUrl ? 'openai' : params.provider;
 
   // Both server-paid tiers ('free' keyless, 'sponsored' demo) MUST NOT carry

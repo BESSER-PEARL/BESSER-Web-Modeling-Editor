@@ -9,4 +9,5 @@ changes belong in the
 .. toctree::
    :maxdepth: 1
 
+   v8.9.3
    v8.0.0

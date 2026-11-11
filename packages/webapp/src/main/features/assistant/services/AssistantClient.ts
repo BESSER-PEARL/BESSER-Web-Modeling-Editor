@@ -16,12 +16,14 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
-import { readAssistantApiKey } from './byokStorage';
+import { track } from '../../../shared/services/analytics/events';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
-  assistantSessionStorageKey,
-  getOrCreateAssistantSessionId,
-  getPilotParticipant,
-} from '../../../shared/services/telemetry/pilotTelemetry';
+  clearAssistantSessionId,
+  readAssistantUserId,
+  writeAssistantUserId,
+} from '../../../shared/services/storage/assistantStorage';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -47,11 +49,6 @@ type QueuedMessage =
     context?: Partial<AssistantWorkspaceContext>;
   };
 
-// Per-tab session id key — owned by the shared telemetry/session service so
-// the telemetry session id is guaranteed to be the SAME id.
-const SESSION_STORAGE_KEY = assistantSessionStorageKey;
-const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
-
 const getStableUserId = (): string => {
   // BAF's websocket platform keys backend sessions on the `user_id`
   // query param; without a stable id every reconnect creates a brand-new
@@ -59,7 +56,7 @@ const getStableUserId = (): string => {
   // (and re-running the greeting). Persisted in localStorage so the id
   // survives tab and browser restarts (create once, reuse forever).
   try {
-    const existing = localStorage.getItem(USER_ID_STORAGE_KEY);
+    const existing = readAssistantUserId();
     if (existing) return existing;
   } catch {
     // localStorage unavailable (e.g. iframe sandbox) — fall through
@@ -71,7 +68,7 @@ const getStableUserId = (): string => {
       : `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    localStorage.setItem(USER_ID_STORAGE_KEY, id);
+    writeAssistantUserId(id);
   } catch {
     // best-effort
   }
@@ -108,6 +105,30 @@ const createTurnId = (): string =>
 
 // How many recent turns keep their applied reply seqs (older turns are superseded).
 const MAX_TRACKED_TURNS = 20;
+
+/** One earlier turn of the conversation, as sent in `recentHistory`. */
+export interface HistoryTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Caps on `recentHistory` (the agent enforces the same ones): enough recent
+ * turns to rebuild the agent's memory without sending the whole chat. */
+export const MAX_RECENT_HISTORY_TURNS = 20;
+export const MAX_RECENT_HISTORY_CHARS = 4000;
+
+/** The newest turns, oldest first, each cut to the character cap. */
+export const clampRecentHistory = (turns: readonly HistoryTurn[]): HistoryTurn[] =>
+  turns
+    .filter((t) => (t.role === 'user' || t.role === 'assistant') && t.content.trim().length > 0)
+    .slice(-MAX_RECENT_HISTORY_TURNS)
+    .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_RECENT_HISTORY_CHARS) }));
+
+/** Shown when no reply arrived within the hard timeout. The request keeps
+ * running, so this must not tell the user it failed or to try again. */
+export const RESPONSE_STILL_RUNNING_MESSAGE =
+  'This is taking much longer than usual. The request is still running: its result will appear here when it arrives, ' +
+  'so there is no need to send it again.';
 
 const isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -186,6 +207,7 @@ const mergeContexts = (
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
+    githubRepo: override?.githubRepo || base?.githubRepo,
   };
 };
 
@@ -339,6 +361,8 @@ export class AssistantClient {
   private readonly baseReconnectDelay = 2000;
   private readonly maxReconnectDelay = 30000;
   private readonly maxReconnectAttempts = 8;
+  /** Analytics: the give-up is reported once, until the next successful connect. */
+  private gaveUpReported = false;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -385,6 +409,15 @@ export class AssistantClient {
   // workspace context by whichever surface is currently mounted, instead of
   // going stale when the creating surface unmounts.
   private contextProvider?: () => AssistantWorkspaceContext | undefined;
+  // The conversation before the message being sent. The agent keeps its memory
+  // in its own process, so a restart or an idle expiry loses it; the first
+  // message on each new socket carries the recent turns so the agent can
+  // rebuild it (it ignores them when its memory is intact). BESSER#745.
+  private historyProvider?: (currentMessage: string) => HistoryTurn[];
+  private sendHistoryOnNextMessage = false;
+  // Another tab added turns this session's agent memory lacks (the agent seeds
+  // only an empty memory), so the next message starts a new session with them.
+  private restartOnNextMessage = false;
 
   // Multi-subscriber handlers so a SINGLE shared client can feed BOTH the
   // floating widget and the workspace drawer (one socket, one session id).
@@ -397,6 +430,12 @@ export class AssistantClient {
   private readonly actionHandlers = new Set<ActionHandler>();
 
   private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  /** Count an unexpected drop of a live socket once (a failed connection attempt was never live). */
+  private trackUnexpectedDrop(): void {
+    if (this.isConnected && this.shouldReconnect) {
+      track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
+    }
+  }
   private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
   private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
   private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
@@ -406,6 +445,25 @@ export class AssistantClient {
     this.clientMode = options.clientMode || 'widget';
     this.sessionId = options.sessionId || createSessionId();
     this.contextProvider = options.contextProvider;
+  }
+
+  /** Set the source of the conversation history sent after a (re)connect. */
+  setHistoryProvider(provider: (currentMessage: string) => HistoryTurn[]): void {
+    this.historyProvider = provider;
+  }
+
+  /** Send the recent history with the next message: a conversation restored
+   * from the project is unknown to the agent's new session. */
+  sendHistoryWithNextMessage(): void {
+    this.sendHistoryOnNextMessage = true;
+  }
+
+  /** Another tab changed the conversation: the next text message starts a new
+   * agent session that carries the history. A reply in flight is unaffected.
+   * A voice message leaves it pending: its wire format cannot carry the history,
+   * so a new session would start with an empty memory. */
+  restartWithHistoryOnNextMessage(): void {
+    this.restartOnNextMessage = true;
   }
 
   /** Re-point the (possibly shared) client at the live workspace-context source. */
@@ -433,6 +491,11 @@ export class AssistantClient {
         this.ws = new WebSocket(withStableUserParam(this.url));
         this.ws.onopen = () => {
           this.isConnected = true;
+          track('assistant_connection', {
+            state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
+            attempt: this.reconnectAttempts,
+          });
+          this.gaveUpReported = false;
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -445,6 +508,7 @@ export class AssistantClient {
           // Sent BEFORE draining the queue so any queued user message is
           // processed with the key already in place.
           this.rearmUserApiKey();
+          this.sendHistoryOnNextMessage = true;
           // If a reply was in flight when the socket dropped, ask the agent to
           // replay its last completed reply — the reconnect may have lost it.
           this.requestReplayIfPending();
@@ -454,6 +518,7 @@ export class AssistantClient {
         };
 
         this.ws.onclose = () => {
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.stopHeartbeat();
           this.connectingPromise = null;
@@ -468,6 +533,8 @@ export class AssistantClient {
 
         this.ws.onerror = (error) => {
           console.error('Assistant WebSocket error:', error);
+          // An abnormal drop fires `error` before `close`, so it is counted here.
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.connectingPromise = null;
           this.emitTyping(false);
@@ -616,13 +683,14 @@ export class AssistantClient {
       // Only attach provider/model when actually setting a key — a clear
       // sends the bare `{ user_api_key: '' }`.
       if (params.apiKey) {
-        // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the
-        // agent as provider='openai' + a base URL (user_api_base).
-        const wireProvider =
-          params.provider === 'pia' || params.provider === 'local' ? 'openai' : params.provider;
+        // 'local' is the user's OpenAI-compatible server: sent to the agent as
+        // provider='openai' + a base URL (user_api_base). 'pia' travels as
+        // itself; the agent resolves its endpoint from its model catalog.
+        const isLocal = params.provider === 'local';
+        const wireProvider = isLocal ? 'openai' : params.provider;
         if (wireProvider) message.user_api_provider = wireProvider;
         if (params.model) message.user_api_model = params.model;
-        if (params.baseUrl) message.user_api_base = params.baseUrl;
+        if (isLocal && params.baseUrl) message.user_api_base = params.baseUrl;
       }
       this.ws.send(
         JSON.stringify({
@@ -645,10 +713,11 @@ export class AssistantClient {
    */
   private rearmUserApiKey(): void {
     try {
-      const stored = readAssistantApiKey();
-      if (!stored) {
+      const stored = readLlmKey();
+      if (!stored || !isAssistantKeyProvider(stored.provider)) {
         // The agent session outlives the tab (keyed by the persistent user
-        // id): clear a key the user removed or that died with an old tab.
+        // id): clear a key the user removed, that died with an old tab, or
+        // whose provider the assistant does not take.
         this.setUserApiKey({ apiKey: '' });
         return;
       }
@@ -737,15 +806,23 @@ export class AssistantClient {
    */
   resetSession(): void {
     try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      clearAssistantSessionId();
     } catch {
       // sessionStorage unavailable — fall through to a fresh in-memory id
     }
     this.sessionId = createSessionId();
+    // A new conversation has no history to restore.
+    this.sendHistoryOnNextMessage = false;
+    this.restartOnNextMessage = false;
     // Replies to the old conversation's turns must not land in the new one.
     this.turns.clear();
     this.currentTurnId = null;
     this.awaitingResponse = false;
+  }
+
+  /** The turnId of the last user_message sent, which the agent echoes on its replies. */
+  get turnId(): string | null {
+    return this.currentTurnId;
   }
 
   get connected(): boolean {
@@ -784,6 +861,16 @@ export class AssistantClient {
     if (pilotParticipant) {
       context.pilotParticipant = pilotParticipant;
     }
+    if (this.restartOnNextMessage) {
+      this.restartOnNextMessage = false;
+      try {
+        clearAssistantSessionId();
+      } catch {
+        // sessionStorage unavailable — fall through to a fresh in-memory id
+      }
+      this.sessionId = createSessionId();
+      this.sendHistoryOnNextMessage = true;
+    }
     const payload: Record<string, any> = {
       action: 'user_message',
       protocolVersion: '2.0',
@@ -794,6 +881,11 @@ export class AssistantClient {
     };
     if (attachments && attachments.length > 0) {
       payload.attachments = attachments;
+    }
+    if (this.sendHistoryOnNextMessage) {
+      this.sendHistoryOnNextMessage = false;
+      const history = clampRecentHistory(this.historyProvider?.(message) ?? []);
+      if (history.length > 0) payload.recentHistory = history;
     }
     return payload;
   }
@@ -1000,6 +1092,7 @@ export class AssistantClient {
         { cause: error instanceof Error ? error : undefined },
       );
       console.error('Error parsing assistant websocket message', protocolError);
+      track('assistant_client_error', { kind: 'protocol' });
       // Surface parse failures as a chat message so the user knows something went wrong
       const chatMessage: ChatMessage = {
         id: createMessageId(),
@@ -1081,6 +1174,10 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
+    if (this.shouldReconnect && this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpReported) {
+      this.gaveUpReported = true;
+      track('assistant_connection', { state: 'gave_up', attempt: this.reconnectAttempts });
+    }
     if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
       return;
     }
@@ -1088,7 +1185,10 @@ export class AssistantClient {
     const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
-      this.connect().catch((error) => console.error('Assistant reconnect failed', error));
+      this.connect().catch((error) => {
+        console.error('Assistant reconnect failed', error);
+        track('assistant_connection', { state: 'reconnect_failed', attempt: this.reconnectAttempts });
+      });
     }, delay);
   }
 
@@ -1104,13 +1204,15 @@ export class AssistantClient {
   private onResponseTick(): void {
     const elapsed = Date.now() - this.responseStartedAt;
     if (elapsed >= this.responseHardTimeoutMs) {
-      // Genuinely stuck (no reply after the hard cap) — give up so the user
-      // can retry.
+      // Stop the loading indicator so the user can carry on, but don't call it
+      // a failure: the request is not cancelled (the socket has no cancel), so
+      // its reply can still arrive and be applied (BESSER#744).
+      track('assistant_client_error', { kind: 'timeout' });
       this.emitTyping(false);
       this.emitMessage({
         id: createMessageId(),
         action: 'agent_error',
-        message: 'The assistant is taking too long to respond. Please try again.',
+        message: RESPONSE_STILL_RUNNING_MESSAGE,
         isUser: false,
         timestamp: new Date(),
       });

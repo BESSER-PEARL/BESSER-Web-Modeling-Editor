@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { SaveStatus as SaveStatusType } from '../hooks/useCircuitPersistence';
 import { Circuit } from '../types';
 import { EXAMPLE_CIRCUITS, getCircuitsByCategory } from '../exampleCircuits';
+import { track } from '../../../../shared/services/analytics/events';
 import {
     Toolbar,
     SaveStatus,
@@ -59,6 +60,7 @@ export function EditorToolbar({
                 }))
             };
             onLoadCircuit(clonedCircuit);
+            track('editor_action', { editor: 'quantum', action: 'example_loaded', qubit_count: circuit.qubitCount });
         }
         setExamplesOpen(false);
     }, [onLoadCircuit]);

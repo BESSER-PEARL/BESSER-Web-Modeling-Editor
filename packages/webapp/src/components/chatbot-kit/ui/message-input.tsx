@@ -226,8 +226,10 @@ export function MessageInput({
   })
 
   return (
+    // overflow-hidden keeps the recording / interrupt prompts inside the box; the 3px
+    // padding (offset by the negative margin) leaves room for the focus halo.
     <div
-      className="relative flex w-full overflow-hidden"
+      className="relative -m-[3px] flex w-[calc(100%+6px)] overflow-hidden p-[3px]"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}

@@ -32,8 +32,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { specDrivenReducer } from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 /* ------------------------------------------------------------------ */
 /*  Mock the AssistantClient (keep the rest of the barrel real)         */
@@ -81,6 +81,7 @@ vi.mock('../../services', async (importOriginal) => {
     disconnect() {}
     resetSession() {}
     setContextProvider() {}
+    setHistoryProvider() {}
     sendMessage(): SendStatus {
       return 'sent';
     }
@@ -117,8 +118,9 @@ vi.mock('react-toastify', () => ({
 }));
 
 // Avoid lazy analytics import side effects.
-vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
 }));
 
 /* ------------------------------------------------------------------ */

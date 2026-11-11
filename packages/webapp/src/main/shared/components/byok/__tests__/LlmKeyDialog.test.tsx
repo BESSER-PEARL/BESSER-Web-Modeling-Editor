@@ -6,34 +6,94 @@
  * The free tier: the dialog reads GET /spec-driven/config (mocked here) and,
  * when the server advertises the keyless free tier, offers it in the provider
  * dropdown with the server's free-model choice.
+ *
+ * The providers and models come from the same config (the server's model
+ * catalog); CATALOG below stands in for it. The gateway in it is fictional.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { LlmKeyDialog } from '../LlmKeyDialog';
 import {
   getSpecDrivenConfig,
+  peekSpecDrivenConfig,
   FALLBACK_SMART_GEN_CONFIG,
+  type SpecDrivenConfig,
 } from '../../../services/specDrivenConfig';
 
+const models = (...entries: [string, string, boolean?][]) =>
+  entries.map(([id, label, isDefault]) => ({ id, label, default: isDefault === true }));
+
+const CATALOG = [
+  {
+    id: 'anthropic', label: 'Anthropic (Claude)', hint: null, key_prefix: null,
+    models: models(
+      ['claude-fable-5-1', 'Claude Fable 5.1 — most capable'],
+      ['claude-opus-5-5', 'Claude Opus 5.5 — top tier'],
+      ['claude-opus-4-6', 'Claude Opus 4.6 — previous generation'],
+      ['claude-haiku-4-5', 'Claude Haiku 4.5 — fast & cheap'],
+    ),
+  },
+  {
+    id: 'openai', label: 'OpenAI (GPT)', hint: null, key_prefix: null,
+    models: models(['gpt-6-sol', 'GPT-6 Sol — balanced'], ['gpt-6-luna', 'GPT-6 Luna — fast & cheap']),
+  },
+  {
+    id: 'mistral', label: 'Mistral', hint: null, key_prefix: null,
+    models: models(['mistral-large-latest', 'Mistral Large — most capable']),
+  },
+  {
+    id: 'nebius', label: 'Nebius Token Factory', hint: null, key_prefix: null,
+    models: models(['Qwen/Qwen3-30B-A3B-Instruct-2507', 'Qwen3 30B A3B Instruct', true]),
+  },
+  {
+    id: 'local', label: 'Local (self-hosted)', hint: null, key_prefix: null,
+    models: models(['qwen2.5-coder:7b', 'qwen2.5-coder:7b — code', true], ['llama3.1:8b', 'llama3.1:8b']),
+  },
+  {
+    id: 'pia', label: 'Example gateway', hint: 'Your gateway key (starts with sk-).', key_prefix: 'sk-',
+    models: models(
+      ['gpt-6-luna', 'GPT-6 Luna — routine work'],
+      ['claude-sonnet-5-5', 'Claude Sonnet 5.5 — default', true],
+      ['claude-haiku-4-5-20251001', 'Claude Haiku 4.5'],
+    ),
+  },
+];
+
+const CATALOG_CONFIG: SpecDrivenConfig = { ...FALLBACK_SMART_GEN_CONFIG, providers: CATALOG };
+
 // Mock the shared config service so the dialog never hits the network. The
-// default (fallback) advertises NO free tier — the pre-existing tests below
-// exercise exactly the old BYOK-only dropdown.
+// default advertises NO free tier — the pre-existing tests below exercise
+// exactly the BYOK-only dropdown — and has already been loaded once, as it
+// has by the time a user opens the dialog.
 vi.mock('../../../services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../../../services/specDrivenConfig')>();
   return {
     ...mod,
-    getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+    getSpecDrivenConfig: vi.fn(),
+    peekSpecDrivenConfig: vi.fn(),
+  };
+});
+
+// Every key provider is on the assistant's allowlist today; a test drops one to
+// stand in for a future Spec-Driven-only provider.
+const assistantAllowlist = vi.hoisted(() => ({ drop: null as string | null }));
+vi.mock('../../../services/llmKeyStorage', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../../services/llmKeyStorage')>();
+  return {
+    ...mod,
+    isAssistantKeyProvider: (value: unknown) =>
+      value !== assistantAllowlist.drop && mod.isAssistantKeyProvider(value),
   };
 });
 
 beforeEach(() => {
+  assistantAllowlist.drop = null;
   window.sessionStorage.clear();
   vi.clearAllMocks();
   // clearAllMocks wipes call data but NOT implementations — restore the
-  // default (free tier unavailable) so per-test overrides don't leak.
-  vi.mocked(getSpecDrivenConfig).mockImplementation(() =>
-    Promise.resolve(FALLBACK_SMART_GEN_CONFIG),
-  );
+  // defaults so per-test overrides don't leak.
+  vi.mocked(getSpecDrivenConfig).mockImplementation(() => Promise.resolve(CATALOG_CONFIG));
+  vi.mocked(peekSpecDrivenConfig).mockImplementation(() => CATALOG_CONFIG);
 });
 
 describe('LlmKeyDialog — unified BYOK key', () => {
@@ -59,12 +119,23 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
   });
 
+  it('keeps the typed key out of the DOM, where injected CSS could read it', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const field = document.getElementById('llm-key-api-key') as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: 'sk-ant-test-key' } });
+
+    expect(field.value).toBe('sk-ant-test-key');
+    expect(field.hasAttribute('value')).toBe(false);
+    expect(document.querySelector('input[value^="sk-"]')).toBeNull();
+  });
+
   it('shows quality/speed/cost guidance near the model selector (#6)', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     // Helper note that explains the trade-off so users choose well.
     expect(screen.getByText(/cost more and run slower/i)).toBeTruthy();
-    // The model dropdown still carries the data-driven per-preset hints
-    // (from MODEL_PRESETS) — the guidance note complements them.
+    // The model dropdown still carries the data-driven per-model hints
+    // (from the server catalog) — the guidance note complements them.
     const modelSelect = document.getElementById('llm-key-model') as HTMLSelectElement;
     expect(modelSelect).toBeTruthy();
     expect(modelSelect.textContent).toMatch(/fast & cheap/i);
@@ -93,7 +164,7 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     );
   });
 
-  it('saves the PIA (LIST) provider with the fixed gateway base URL', () => {
+  it('saves the gateway provider with no base URL: the server resolves it', () => {
     const setUserApiKey = vi.fn();
     render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
 
@@ -106,16 +177,19 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('pia');
-    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBe(
-      'https://gateway.pia.private.list.lu/v1',
-    );
-    // The dialog passes provider='pia' + baseUrl; AssistantClient maps it to openai on the wire.
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
     expect(setUserApiKey).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: 'pia',
-        baseUrl: 'https://gateway.pia.private.list.lu/v1',
-      }),
+      expect.objectContaining({ provider: 'pia', baseUrl: undefined }),
     );
+  });
+
+  it("takes the gateway's name and key hint from the catalog", () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toContain('Example gateway');
+
+    fireEvent.change(select, { target: { value: 'pia' } });
+    expect(screen.getByText('Your gateway key (starts with sk-).')).toBeTruthy();
   });
 
   it('arms a provided agent client on save', () => {
@@ -131,6 +205,25 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(setUserApiKey).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'sk-ant-armed', provider: 'anthropic' }),
     );
+  });
+
+  it('stores but never sends the agent a key whose provider is off the assistant allowlist', () => {
+    assistantAllowlist.drop = 'mistral';
+    const setUserApiKey = vi.fn();
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} onSaved={onSaved} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'mistral' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'spec-driven-only-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('mistral');
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ provider: 'mistral' }));
+    expect(setUserApiKey).not.toHaveBeenCalled();
   });
 
   it('refuses to save when the key prefix contradicts the selected provider', () => {
@@ -346,6 +439,64 @@ describe('LlmKeyDialog — remove key and error announcement', () => {
   });
 });
 
+describe('LlmKeyDialog — changing only the model (BESSER#743)', () => {
+  const seedKey = () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-5-5');
+  };
+  const saveButton = () => screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
+  const pickModel = (value: string) =>
+    fireEvent.change(document.getElementById('llm-key-model') as HTMLSelectElement, { target: { value } });
+
+  it('saves a new model with the stored key when the key field is left empty', () => {
+    seedKey();
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    expect(saveButton().disabled).toBe(false);
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-haiku-4-5');
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-ant-stored', provider: 'anthropic', model: 'claude-haiku-4-5' }),
+    );
+  });
+
+  it('keeps the latest stored key when it was replaced while the dialog stayed mounted', () => {
+    seedKey();
+    const { rerender } = render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    rerender(<LlmKeyDialog open={false} onOpenChange={() => {}} />);
+    // Another surface saves a new key for the same provider.
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-newer');
+    rerender(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-newer');
+  });
+
+  it('still needs a key for another provider', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it('does not reuse the stored key once its removal is staged', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    fireEvent.click(saveButton());
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
+  });
+});
+
 describe('LlmKeyDialog — model pickers', () => {
   function modelOptions(provider: string): string[] {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
@@ -356,48 +507,35 @@ describe('LlmKeyDialog — model pickers', () => {
     return Array.from(select.options).map((o) => o.value);
   }
 
-  it('offers the current Claude models and no dated or retired ids', () => {
+  it("renders the catalog's models in its order", () => {
     expect(modelOptions('anthropic')).toEqual([
       '',
       'claude-fable-5-1',
       'claude-opus-5-5',
-      'claude-opus-5',
-      'claude-sonnet-5',
-      'claude-sonnet-4-6',
       'claude-opus-4-6',
       'claude-haiku-4-5',
       '__custom__',
     ]);
   });
 
-  // PIA's recommended set (2026-10-26). gpt-5.4 / gpt-5.4-mini were listed by
-  // /v1/models but rejected on /chat/completions as invalid model names.
-  it('offers the PIA gateway recommended models, one Claude and one GPT per tier', () => {
+  it("offers the gateway's catalog models, its default first", () => {
     expect(modelOptions('pia')).toEqual([
       '',
       'claude-sonnet-5-5',
-      'gpt-6.1-sol',
-      'claude-opus-5-5',
-      'gpt-6-astra',
-      'claude-haiku-4-5-20251001',
       'gpt-6-luna',
+      'claude-haiku-4-5-20251001',
       '__custom__',
     ]);
   });
 
-  it('offers GPT-6 alongside the GPT-5.6 family', () => {
-    expect(modelOptions('openai')).toEqual([
-      '',
-      'gpt-6-sol',
-      'gpt-6-luna',
-      'gpt-5.6-terra',
-      'gpt-5.6-sol',
-      'gpt-5.6-luna',
-      'gpt-5.5',
-      'gpt-5.4-mini',
-      'gpt-4o',
-      '__custom__',
-    ]);
+  it('offers a model the server catalog adds, with no frontend change', () => {
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue({
+      ...CATALOG_CONFIG,
+      providers: CATALOG.map((p) =>
+        p.id === 'openai' ? { ...p, models: models(['gpt-9-nova', 'GPT-9 Nova']) } : p,
+      ),
+    });
+    expect(modelOptions('openai')).toEqual(['', 'gpt-9-nova', '__custom__']);
   });
 
   it('labels the new models clearly', () => {
@@ -487,8 +625,7 @@ describe('LlmKeyDialog — model pickers', () => {
     expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('');
   });
 
-  it('keeps the dated Haiku id on PIA, whose preset list is unchanged', () => {
-    // jsdom runs on localhost, so the local-only PIA provider is offered.
+  it('keeps the dated Haiku id on the gateway, whose list carries it', () => {
     window.sessionStorage.setItem('besser_llm_api_key', 'sk-pia');
     window.sessionStorage.setItem('besser_llm_provider', 'pia');
     window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5-20251001');
@@ -497,6 +634,95 @@ describe('LlmKeyDialog — model pickers', () => {
     expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe(
       'claude-haiku-4-5-20251001',
     );
+  });
+});
+
+describe('LlmKeyDialog — model catalog', () => {
+  const providerValues = () =>
+    Array.from((document.getElementById('llm-key-provider') as HTMLSelectElement).options).map(
+      (o) => o.value,
+    );
+
+  it('does not offer the gateway on a server whose catalog has none', () => {
+    const withoutGateway = { ...CATALOG_CONFIG, providers: CATALOG.filter((p) => p.id !== 'pia') };
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(withoutGateway);
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue(withoutGateway);
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    expect(providerValues()).not.toContain('pia');
+    expect(providerValues()).not.toContain('gateway');
+  });
+
+  it('offers a second gateway with its name and models from the catalog, sent with no base URL', () => {
+    const withSecond = {
+      ...CATALOG_CONFIG,
+      providers: [
+        ...CATALOG,
+        {
+          id: 'gateway', label: 'Second gateway', hint: 'Your key for it.', key_prefix: null,
+          models: models(['vendor/model-a', 'Model A', true]),
+        },
+      ],
+    };
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(withSecond);
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue(withSecond);
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toContain('Second gateway');
+    fireEvent.change(select, { target: { value: 'gateway' } });
+    expect(screen.getByText('Your key for it.')).toBeTruthy();
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('vendor/model-a');
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'any-shape-of-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('gateway');
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'gateway', apiKey: 'any-shape-of-key', baseUrl: undefined }),
+    );
+  });
+
+  it('falls back to the vendors with default and custom models when the config is unreadable', async () => {
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(null);
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue(FALLBACK_SMART_GEN_CONFIG);
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(vi.mocked(getSpecDrivenConfig)).toHaveBeenCalled());
+
+    expect(providerValues()).toEqual(['anthropic', 'openai', 'mistral', 'nebius', 'local']);
+    const modelSelect = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(Array.from(modelSelect.options).map((o) => o.value)).toEqual(['', '__custom__']);
+  });
+
+  it('restores a stored gateway key once the catalog arrives on a first open', async () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-pia');
+    window.sessionStorage.setItem('besser_llm_provider', 'pia');
+    window.sessionStorage.setItem('besser_llm_model', 'gpt-6-luna');
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(null);
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    const providerSelect = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    await waitFor(() => expect(providerSelect.value).toBe('pia'));
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('gpt-6-luna');
+  });
+
+  it('keeps a model picked before the catalog arrives', async () => {
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(null);
+    let resolve: (cfg: SpecDrivenConfig) => void = () => {};
+    vi.mocked(getSpecDrivenConfig).mockReturnValue(new Promise((r) => { resolve = r; }));
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const modelSelect = document.getElementById('llm-key-model') as HTMLSelectElement;
+    fireEvent.change(modelSelect, { target: { value: '__custom__' } });
+
+    resolve(CATALOG_CONFIG);
+    await waitFor(() =>
+      expect(Array.from(modelSelect.options).map((o) => o.value)).toContain('claude-fable-5-1'),
+    );
+    expect(modelSelect.value).toBe('__custom__');
   });
 });
 
@@ -512,7 +738,7 @@ describe('LlmKeyDialog — keyless free tier', () => {
 
   function mockFreeConfig(freeTier = TWO_MODEL_FREE_TIER) {
     vi.mocked(getSpecDrivenConfig).mockResolvedValue({
-      ...FALLBACK_SMART_GEN_CONFIG,
+      ...CATALOG_CONFIG,
       free_tier: freeTier,
     });
   }

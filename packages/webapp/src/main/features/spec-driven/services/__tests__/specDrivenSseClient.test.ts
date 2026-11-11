@@ -7,7 +7,7 @@ import {
 import {
   SseHttpError,
   streamSse,
-} from '../../../../shared/services/sse/sseClient';
+} from '../../../../shared/api/sseClient';
 import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -19,9 +19,9 @@ import {
   startSpecDrivenRun,
 } from '../specDrivenSseClient';
 
-vi.mock('../../../../shared/services/sse/sseClient', async (importOriginal) => {
+vi.mock('../../../../shared/api/sseClient', async (importOriginal) => {
   const actual = await importOriginal<
-    typeof import('../../../../shared/services/sse/sseClient')
+    typeof import('../../../../shared/api/sseClient')
   >();
   return {
     ...actual,

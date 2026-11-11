@@ -15,8 +15,17 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
-import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
+import {
+  localStorageDeployLinkedRepoPrefix,
+  localStorageGitHubLinkPrefix,
+  localStorageLegacyGitHubAutoCommit,
+  localStorageLegacyGitHubLinkedRepos,
+  localStorageProjectPrefix,
+  localStorageLatestProject,
+  localStorageProjectsList,
+} from '../../constants/constant';
+import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
+import { checkLocalStorageQuota } from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 import { deleteProjectTrace } from '../../traceability/traceStore';
 
@@ -104,7 +113,7 @@ export class ProjectStorageRepository {
     }
 
     ProjectStorageRepository.isWriting = true;
-    try {
+    const write = () => {
       const projectKey = `${localStorageProjectPrefix}${project.id}`;
       localStorage.setItem(projectKey, JSON.stringify(project));
 
@@ -113,11 +122,23 @@ export class ProjectStorageRepository {
 
       // Update projects list
       this.updateProjectsList(project.id);
+    };
+    const isQuotaError = (error: unknown) => error instanceof DOMException && error.name === 'QuotaExceededError';
+    try {
+      try {
+        write();
+      } catch (error) {
+        if (!isQuotaError(error)) throw error;
+        // The assistant conversations kept in this browser are the one thing
+        // safe to drop: each project's text copy still restores its chat.
+        clearStoredConversations();
+        write();
+      }
     } catch (error) {
       console.error('Error saving project:', error);
       // Say what actually went wrong: a full browser store is the one failure
       // the user can fix themselves, and a bare "Failed to save project" hides it.
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      if (isQuotaError(error)) {
         throw new Error(
           'Browser storage is full, so the project could not be saved. ' +
           'Export it and delete unused projects to free space.',
@@ -167,9 +188,18 @@ export class ProjectStorageRepository {
     }
   }
   
+  /** Id of the project the user last had open, or null. */
+  static getLatestProjectId(): string | null {
+    return localStorage.getItem(localStorageLatestProject);
+  }
+
+  static setLatestProjectId(projectId: string): void {
+    localStorage.setItem(localStorageLatestProject, projectId);
+  }
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
-    const latestProjectId = localStorage.getItem(localStorageLatestProject);
+    const latestProjectId = this.getLatestProjectId();
     if (!latestProjectId) {
       return null;
     }
@@ -431,6 +461,7 @@ export class ProjectStorageRepository {
 
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
+      clearStoredConversation(projectId);
 
       // The project's trace is stored under its own key
       deleteProjectTrace(projectId);
@@ -453,38 +484,39 @@ export class ProjectStorageRepository {
   private static cleanupGitHubMetadata(projectId: string): void {
     // Clean up linked repos entry
     try {
-      const linkedReposRaw = localStorage.getItem('besser_github_linked_repos');
+      const linkedReposRaw = localStorage.getItem(localStorageLegacyGitHubLinkedRepos);
       if (linkedReposRaw) {
         const links = JSON.parse(linkedReposRaw);
         if (links && typeof links === 'object' && projectId in links) {
           delete links[projectId];
-          localStorage.setItem('besser_github_linked_repos', JSON.stringify(links));
+          localStorage.setItem(localStorageLegacyGitHubLinkedRepos, JSON.stringify(links));
         }
       }
     } catch {
       // If data is corrupt, remove the entire key to prevent further issues
-      localStorage.removeItem('besser_github_linked_repos');
+      localStorage.removeItem(localStorageLegacyGitHubLinkedRepos);
     }
 
     // Clean up auto-commit settings entry
     try {
-      const autoCommitRaw = localStorage.getItem('besser_github_auto_commit');
+      const autoCommitRaw = localStorage.getItem(localStorageLegacyGitHubAutoCommit);
       if (autoCommitRaw) {
         const settings = JSON.parse(autoCommitRaw);
         if (settings && typeof settings === 'object' && projectId in settings) {
           delete settings[projectId];
-          localStorage.setItem('besser_github_auto_commit', JSON.stringify(settings));
+          localStorage.setItem(localStorageLegacyGitHubAutoCommit, JSON.stringify(settings));
         }
       }
     } catch {
-      localStorage.removeItem('besser_github_auto_commit');
+      localStorage.removeItem(localStorageLegacyGitHubAutoCommit);
     }
 
     // Clean up deploy linked repo entries (per-project keys). The bare key is
     // the legacy Render webapp link; ``_github`` is the Spec-Driven Agent "Push to
     // GitHub" link, kept separate so it never collides with Render targets.
-    localStorage.removeItem(`besser_deploy_linked_${projectId}`);
-    localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}`);
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}_github`);
+    localStorage.removeItem(`${localStorageGitHubLinkPrefix}${projectId}`);
   }
   
   // Helper: Update projects list

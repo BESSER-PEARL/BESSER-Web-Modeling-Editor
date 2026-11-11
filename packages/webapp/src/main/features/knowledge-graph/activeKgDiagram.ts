@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 
 import i18n from '../../shared/i18n';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -16,12 +16,12 @@ import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
 export function getActiveKgDiagram(): { project: BesserProject; diagram: ProjectDiagram } | null {
   const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
   if (!project) {
-    toast.error(i18n.t('knowledgeGraph.toUml.noProject'));
+    reportError(i18n.t('knowledgeGraph.toUml.noProject'));
     return null;
   }
   const diagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
   if (!diagram || !diagram.model) {
-    toast.error(i18n.t('knowledgeGraph.toUml.noDiagram'));
+    reportError(i18n.t('knowledgeGraph.toUml.noDiagram'));
     return null;
   }
   return { project, diagram };

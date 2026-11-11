@@ -303,7 +303,7 @@ export const AgentFileExplorer: React.FC = () => {
         ...file,
         path: normalizePath(file.path),
       }));
-      const normalizedDirectories = (data.directories ?? [])
+      const normalizedDirectories = data.directories
         .map(normalizeDirectoryPath)
         .filter((path) => Boolean(path));
       setFiles(normalizedFiles);

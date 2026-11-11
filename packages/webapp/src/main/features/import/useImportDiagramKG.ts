@@ -1,14 +1,15 @@
 // Import diagram from KG using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromKg } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { bumpEditorRevision } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { useBumlToDiagram } from './useBumlToDiagram';
 
 
@@ -22,26 +23,17 @@ export const useImportDiagramFromKG = () => {
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('kg_file', file);
-      formData.append('api_key', apiKey);
-
-      // Call backend endpoint
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-kg`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+      let data;
+      try {
+        data = await getJsonModelFromKg(file, apiKey);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
       // Should be a diagram JSON
-      if (!data || !data.model || !data.model.type) {
+      if (!isUMLModel(data.model)) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
 
@@ -57,7 +49,7 @@ export const useImportDiagramFromKG = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || t('import.descriptions.importedFromKg', { diagramType }),
+        description: t('import.descriptions.importedFromKg', { diagramType }),
       };
       const updatedProject = {
         ...currentProject,

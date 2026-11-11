@@ -55,4 +55,13 @@ describe('DeployMenu', () => {
     expect(publish).toHaveAttribute('data-disabled');
     expect(publish).toHaveAccessibleDescription('Deploy is available for Web App and Agent diagrams.');
   });
+
+  it("offers Go live for a linked repo even where the classic deploy does not apply", () => {
+    const { onOpenDeployDialog } = renderOpen({ isDeploymentAvailable: false, deployGoesLive: true });
+
+    const goLive = screen.getByRole('menuitem', { name: 'Go live from GitHub' });
+    expect(goLive).not.toHaveAttribute('data-disabled');
+    fireEvent.click(goLive);
+    expect(onOpenDeployDialog).toHaveBeenCalledTimes(1);
+  });
 });
