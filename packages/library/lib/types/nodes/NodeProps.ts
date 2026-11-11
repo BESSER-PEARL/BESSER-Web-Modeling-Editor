@@ -980,6 +980,7 @@ export type NNContainerNodeProps = DefaultNodeProps & {
   /** Optional entry-layer pointer (v3 named `entryLayer` / `inputLayer`). */
   entryLayerId?: string
   description?: string
+  uri?: string
   /** Variable the network's forward pass takes (`NN.input_var`). */
   input_var?: string
   /** Variables the network returns (`NN.return_vars`, one entry each). */

@@ -938,8 +938,14 @@ function convertV3NodeDataToV4(
   element: V3UMLElement,
   allElements: Record<string, V3UMLElement>
 ): BesserNode["data"] {
+  const metadata = element as { description?: unknown; uri?: unknown }
   const baseData = {
     name: element.name,
+    // Every v3 element could carry a description and a URI.
+    ...(typeof metadata.description === "string" &&
+      metadata.description && { description: metadata.description }),
+    ...(typeof metadata.uri === "string" &&
+      metadata.uri && { uri: metadata.uri }),
     ...(element.fillColor && { fillColor: element.fillColor }),
     ...(element.strokeColor && { strokeColor: element.strokeColor }),
     ...(element.textColor && { textColor: element.textColor }),

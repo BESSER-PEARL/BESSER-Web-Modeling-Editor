@@ -299,6 +299,41 @@ export const rendersNameLabel = (nodeType?: string): boolean => {
   return NODE_LABEL_CAPABILITIES[nodeType as DiagramNodeType].rendersNameLabel
 }
 
+/**
+ * Node types whose develop popup offered a description and a URI
+ * (`DefaultPopup` and `UMLComponentUpdate` in the old engine).
+ */
+const NODE_TYPES_WITH_METADATA: ReadonlySet<string> = new Set([
+  "package",
+  "activity",
+  "activityInitialNode",
+  "activityFinalNode",
+  "activityActionNode",
+  "activityObjectNode",
+  "activityForkNode",
+  "activityForkNodeHorizontal",
+  "useCase",
+  "useCaseActor",
+  "useCaseSystem",
+  "component",
+  "componentInterface",
+  "deploymentComponent",
+  "deploymentArtifact",
+  "deploymentInterface",
+  "petriNetTransition",
+  "bpmnAnnotation",
+  "bpmnDataObject",
+  "bpmnDataStore",
+  "bpmnGroup",
+  "StateActionNode",
+  "StateObjectNode",
+  "StateInitialNode",
+  "StateFinalNode",
+])
+
+export const hasDescriptionAndUri = (nodeType?: string): boolean =>
+  !!nodeType && NODE_TYPES_WITH_METADATA.has(nodeType)
+
 export const isParentNodeType = (nodeType?: string) => {
   if (!nodeType) {
     return false

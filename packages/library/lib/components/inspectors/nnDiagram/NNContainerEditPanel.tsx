@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNContainerNodeProps } from "@/types"
 import { NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { NodeMetadataFields } from "@/components/inspectors/shared"
 import { useTranslation } from "@/i18n"
 import {
   IDENTIFIER_REGEX,
@@ -178,6 +179,11 @@ export const NNContainerEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           {errorText(returnVarsError)}
         </>
       )}
+      <NodeMetadataFields
+        description={data.description}
+        uri={data.uri}
+        onChange={handleDataFieldUpdate}
+      />
     </Box>
   )
 }

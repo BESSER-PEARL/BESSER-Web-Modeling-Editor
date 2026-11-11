@@ -3,8 +3,12 @@ import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { PopoverProps } from "./types"
 import { NodeStyleEditor } from "../ui"
-import { LineageSourceLink } from "@/components/inspectors/shared"
-import { rendersNameLabel, supportsMultilineName } from "@/utils/nodeUtils"
+import { LineageSourceLink, NodeMetadataFields } from "@/components/inspectors/shared"
+import {
+  hasDescriptionAndUri,
+  rendersNameLabel,
+  supportsMultilineName,
+} from "@/utils/nodeUtils"
 
 export const DefaultNodeEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -41,7 +45,10 @@ export const DefaultNodeEditPopover: React.FC<PopoverProps> = ({
     return null
   }
 
-  const nodeData = node.data as DefaultNodeProps
+  const nodeData = node.data as DefaultNodeProps & {
+    description?: string
+    uri?: string
+  }
 
   return (
     <div
@@ -60,6 +67,13 @@ export const DefaultNodeEditPopover: React.FC<PopoverProps> = ({
       />
 
       {children}
+      {hasDescriptionAndUri(node.type) && (
+        <NodeMetadataFields
+          description={nodeData.description}
+          uri={nodeData.uri}
+          onChange={handleDataFieldUpdate}
+        />
+      )}
       <LineageSourceLink elementId={elementId} />
     </div>
   )
