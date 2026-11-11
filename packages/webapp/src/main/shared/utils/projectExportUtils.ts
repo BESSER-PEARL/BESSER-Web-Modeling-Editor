@@ -1,4 +1,6 @@
 import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
+import { toast } from 'react-toastify';
+import i18n from '../i18n';
 import {
   BesserProject,
   ProjectDiagram,
@@ -145,6 +147,9 @@ export const buildExportableProjectPayload = (
  * Sends full diagram arrays (not flattened) so the backend has all diagrams.
  * The backend uses currentDiagramIndices to pick the active diagram per type.
  *
+ * A diagram that is left out because it could not be migrated is named in a
+ * warning toast, so the user knows the result does not cover it.
+ *
  * @param selectedDiagramTypes  Optional filter – only include these diagram types.
  */
 export const buildProjectPayloadForBackend = (
@@ -155,14 +160,21 @@ export const buildProjectPayloadForBackend = (
 
   // The backend reads v4 only: an unmigrated (read-only) v3 diagram stays in
   // the project file export but is left out of backend requests.
+  const leftOut: string[] = [];
   for (const [type, diagrams] of Object.entries(payload.diagrams)) {
     const kept = diagrams.filter((d) => !isV3UMLModel(d.model));
     if (kept.length === diagrams.length) continue;
+    leftOut.push(...diagrams.filter((d) => !kept.includes(d)).map((d) => d.title || type));
     const key = type as SupportedDiagramType;
     const active = diagrams[payload.currentDiagramIndices[key] ?? 0];
     if (kept.length) payload.diagrams[type] = kept;
     else delete payload.diagrams[type];
     payload.currentDiagramIndices[key] = Math.max(0, kept.indexOf(active));
+  }
+  if (leftOut.length > 0) {
+    toast.warning(i18n.t('export.toasts.unmigratedLeftOut', { titles: leftOut.join(', ') }), {
+      toastId: `unmigrated-left-out-${project.id}`,
+    });
   }
 
   const agentDiagrams = payload.diagrams.AgentDiagram;

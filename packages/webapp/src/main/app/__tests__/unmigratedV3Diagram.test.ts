@@ -13,24 +13,6 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { updateDiagramModelThunk, workspaceReducer, type WorkspaceState } from '../store/workspaceSlice';
 import { useModelInjection } from '../../features/assistant/hooks/useModelInjection';
-
-// A v3 model marked `failMe` makes the migrator throw, standing in for any
-// v3 data the converter still cannot lift.
-const failedAttempts = vi.hoisted(() => ({ count: 0 }));
-vi.mock('../../shared/services/storage/migrate-uml-v3-to-v4', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../shared/services/storage/migrate-uml-v3-to-v4')>();
-  return {
-    ...actual,
-    migrateUMLModelV3ToV4: (model: any, ...rest: any[]) => {
-      if (model?.failMe) {
-        failedAttempts.count += 1;
-        throw new Error('cannot migrate');
-      }
-      return (actual.migrateUMLModelV3ToV4 as any)(model, ...rest);
-    },
-  };
-});
-
 const toastError = vi.fn();
 const toastWarning = vi.fn();
 vi.mock('react-toastify', () => ({
@@ -189,6 +171,18 @@ describe('a v3 diagram that fails to migrate is never overwritten', () => {
     const project = projectWithV3Class();
     const payload = buildProjectPayloadForBackend(project) as { diagrams: Record<string, unknown[]> };
     expect(payload.diagrams.ClassDiagram).toBeUndefined();
+  });
+
+  // The diagram was dropped silently, so the generated result looked complete.
+  it('is named in a warning when it is left out of a backend request', () => {
+    toastWarning.mockClear();
+    buildProjectPayloadForBackend(projectWithV3Class());
+    expect(toastWarning).toHaveBeenCalledTimes(1);
+    expect(String(toastWarning.mock.calls[0][0])).toContain('Library');
+
+    toastWarning.mockClear();
+    buildProjectPayloadForBackend(createDefaultProject('P', '', ''));
+    expect(toastWarning).not.toHaveBeenCalled();
   });
 
   it('an empty v3 model is still empty', () => {

@@ -3802,7 +3802,8 @@
       "bumlExportSuccess": "BUML export completed successfully",
       "noProjectData": "No project data available to export",
       "projectExportedAs": "Project exported as {{filename}}",
-      "projectExportFailed": "Failed to export project: {{error}}"
+      "projectExportFailed": "Failed to export project: {{error}}",
+      "unmigratedLeftOut": "Not included, because they are in an old format that could not be converted: {{titles}}"
     },
     "diagramLabels": {
       "ClassDiagram": "Class Diagram",

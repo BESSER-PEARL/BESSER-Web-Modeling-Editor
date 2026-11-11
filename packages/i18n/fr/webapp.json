@@ -3802,7 +3802,8 @@
       "bumlExportSuccess": "Export B-UML terminé avec succès",
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
-      "projectExportFailed": "Échec de l'export du projet : {{error}}"
+      "projectExportFailed": "Échec de l'export du projet : {{error}}",
+      "unmigratedLeftOut": "Non inclus, car ils sont dans un ancien format qui n'a pas pu être converti : {{titles}}"
     },
     "diagramLabels": {
       "ClassDiagram": "Diagramme de classes",
