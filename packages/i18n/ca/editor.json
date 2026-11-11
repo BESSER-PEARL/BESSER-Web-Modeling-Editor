@@ -74,6 +74,11 @@
         "typeIntegers": "enters",
         "typeString": "cadena",
         "typeStrings": "cadenes"
+      },
+      "reference": {
+        "references": "referència a",
+        "noContainer": "— cap contenidor —",
+        "noOtherContainer": "Aquest diagrama encara no té cap altre contenidor NN."
       }
     },
     "attributes": "Atributs",

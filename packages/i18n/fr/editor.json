@@ -74,6 +74,11 @@
         "typeIntegers": "entiers",
         "typeString": "chaîne",
         "typeStrings": "chaînes"
+      },
+      "reference": {
+        "references": "référence",
+        "noContainer": "— aucun conteneur —",
+        "noOtherContainer": "Ce diagramme ne contient pas encore d'autre conteneur NN."
       }
     },
     "attributes": "Attributs",

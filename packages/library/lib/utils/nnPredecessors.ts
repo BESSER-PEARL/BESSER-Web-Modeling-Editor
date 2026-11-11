@@ -21,7 +21,7 @@ export interface MinimalNNNode {
   type?: string
   /** Loose payload — `name` is narrowed at read time so React Flow's
    * `Record<string, unknown>` node data is accepted without casts. */
-  data?: { name?: unknown } | null
+  data?: { name?: unknown; referenceTarget?: unknown } | null
 }
 
 export interface MinimalNNEdge {
@@ -33,6 +33,25 @@ export interface MinimalNNEdge {
 export interface NNPredecessor {
   id: string
   name: string
+}
+
+/**
+ * Name a node goes by. An `NNReference` goes by the current name of the
+ * container it points at (`data.referenceTarget`); its own `data.name` is
+ * a copy taken when the target was picked and goes stale on a rename.
+ */
+export function resolveNNNodeName(
+  node: MinimalNNNode | undefined,
+  nodeById: ReadonlyMap<string, MinimalNNNode>
+): string {
+  const own = node?.data?.name
+  if (node?.type === "NNReference") {
+    const target = node.data?.referenceTarget
+    const targetName =
+      typeof target === "string" ? nodeById.get(target)?.data?.name : undefined
+    if (typeof targetName === "string" && targetName.length > 0) return targetName
+  }
+  return typeof own === "string" ? own : ""
 }
 
 export function computeNNPredecessors(
@@ -53,8 +72,8 @@ export function computeNNPredecessors(
       const upstreamId = edge.source
       if (visited.has(upstreamId)) continue
       visited.add(upstreamId)
-      const name = nodeById.get(upstreamId)?.data?.name
-      if (typeof name === "string" && name.length > 0) {
+      const name = resolveNNNodeName(nodeById.get(upstreamId), nodeById)
+      if (name.length > 0) {
         result.push({ id: upstreamId, name })
       }
       visit(upstreamId)

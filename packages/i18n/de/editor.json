@@ -74,6 +74,11 @@
         "typeIntegers": "Ganzzahlen",
         "typeString": "Zeichenkette",
         "typeStrings": "Zeichenketten"
+      },
+      "reference": {
+        "references": "verweist auf",
+        "noContainer": "— kein Container —",
+        "noOtherContainer": "Dieses Diagramm enthält noch keinen anderen NN-Container."
       }
     },
     "attributes": "Attribute",

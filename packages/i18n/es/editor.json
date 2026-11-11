@@ -74,6 +74,11 @@
         "typeIntegers": "enteros",
         "typeString": "cadena",
         "typeStrings": "cadenas"
+      },
+      "reference": {
+        "references": "referencia a",
+        "noContainer": "— ningún contenedor —",
+        "noOtherContainer": "Este diagrama aún no tiene otro contenedor NN."
       }
     },
     "attributes": "Atributos",

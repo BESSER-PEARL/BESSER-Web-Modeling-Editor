@@ -74,6 +74,11 @@
         "typeIntegers": "ganz Zuelen",
         "typeString": "Zeechekette",
         "typeStrings": "Zeecheketten"
+      },
+      "reference": {
+        "references": "verweist op",
+        "noContainer": "— kee Container —",
+        "noOtherContainer": "An dësem Diagramm gëtt et nach keen aneren NN-Container."
       }
     },
     "attributes": "Attributer",
