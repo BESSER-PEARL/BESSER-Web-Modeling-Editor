@@ -35,7 +35,9 @@ export interface TraceActor {
 
 export interface TraceTool {
   id: string;
-  type: 'Editor' | 'CodeGenerator' | 'LLM';
+  /** A `ModelGenerator` is a deterministic BESSER model generator (a GUI derived from a class diagram); a
+   *  modeling session that calls one derived its changes rather than had them made in the editor. */
+  type: 'Editor' | 'CodeGenerator' | 'ModelGenerator' | 'LLM';
   name: string;
   version?: string;
   provider?: string;
@@ -154,7 +156,8 @@ interface OperationBase {
   confidence?: TraceConfidence;
 }
 
-/** Edits made to models, change by change. */
+/** Edits made to models, change by change: in the editor (a call to the `Editor`), or derived in one run by a
+ *  `ModelGenerator`. */
 export interface ModelingSessionOperation extends OperationBase {
   type: 'ModelingSession';
   changes: TraceChangeEvent[];

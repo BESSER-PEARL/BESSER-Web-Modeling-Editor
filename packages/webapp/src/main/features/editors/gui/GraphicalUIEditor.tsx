@@ -17,6 +17,7 @@ import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
+import { guiTraceRecorderOf } from './guiTraceRecording';
 import i18n from '@/main/shared/i18n';
 import { track, trackFailure } from '../../../shared/services/analytics/events';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
@@ -206,6 +207,7 @@ export const GraphicalUIEditor: React.FC = () => {
                 model: normalized,
                 lastUpdate: new Date().toISOString(),
               });
+              guiTraceRecorderOf(editor).recordLoaded(project, currentGuiDiagram, 'assistant');
             }
           }
 
@@ -814,6 +816,7 @@ export function setupProjectStorageIntegration(
         if (updated) {
           // Redux sync happens automatically via useStorageSync
           setSaveStatus('saved');
+          if (targetDiagram) guiTraceRecorderOf(editor).record(project, targetDiagram, grapesData);
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
@@ -846,6 +849,10 @@ export function setupProjectStorageIntegration(
   editor.on('load', () => {
     // Add a delay to ensure everything is fully initialized
     setTimeout(() => {
+      // The project trace compares each save with the model as it loaded (ids given to traced components).
+      const traceRecorder = guiTraceRecorderOf(editor, () => ProjectStorageRepository.getCurrentProject());
+      traceRecorder.start();
+      editor.on('component:add', (component: any) => traceRecorder.added(component));
       isEditorReady = true;
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
 
@@ -1336,79 +1343,88 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> 
     throw new Error(i18n.t('editors.gui.noClassesFound'));
   }
   
-  // Clear all existing pages
-  const pages = editor.Pages;
-  if (pages) {
-    const existingPages = pages.getAll();
-    existingPages.forEach((page: any) => {
-      pages.remove(page);
+  // From clearing the pages to the last save, the GUI generator's saves are one run in the project trace.
+  const traceRecorder = guiTraceRecorderOf(editor);
+  traceRecorder.beginDerivation();
+  try {
+    // Clear all existing pages
+    const pages = editor.Pages;
+    if (pages) {
+      const existingPages = pages.getAll();
+      existingPages.forEach((page: any) => {
+        pages.remove(page);
+      });
+    }
+    
+    // Create all pages and force render each one to ensure proper styling
+    const createdPages: any[] = [];
+    
+    classes.forEach((classOption: any, index: number) => {
+      const className = classOption.label;
+      const classId = classOption.value;
+      const pageName = className.toLowerCase().replace(/\s+/g, '-');
+      const pageRoute = `/${pageName}`;
+      
+      // Get class metadata (attributes and methods)
+      const classMetadata = getClassMetadata(classId);
+      const methods = getMethodsByClassId(classId);
+      
+      // Create the page with route_path
+      const page = pages.add({
+        id: `page-${pageName}-${index}`,
+        name: className,
+      });
+      
+      // Set the route_path on the page
+      if (page) {
+        page.set('route_path', pageRoute);
+      }
+      
+      // Store created page
+      createdPages.push({ page, className, classId, classMetadata, methods, index });
     });
+    
+    // Process each page sequentially with delays to ensure GrapesJS renders each one
+    // This ensures all pages get proper IDs and normalized styles
+    const processPages = async () => {
+      const initializations: Promise<void>[] = [];
+      for (let i = 0; i < createdPages.length; i++) {
+        const { page, className, classId, classMetadata, methods, index } = createdPages[i];
+        
+        // Select the page to force GrapesJS to render it
+        pages.select(page);
+        
+        // Build the page components
+        initializations.push(buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index));
+        
+        // Wait for GrapesJS to process the page (render and assign IDs)
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Trigger a canvas refresh to ensure components are processed
+        editor.refresh();
+      }
+      
+      // Every page's components are initialized before the GUI is saved and recorded.
+      await Promise.all(initializations);
+
+      // Return to the first page after all pages are processed
+      if (createdPages.length > 0) {
+        pages.select(createdPages[0].page);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 120));
+      await editor.store();
+
+      // Auto-generate replaced every page: the undo history behind it mixes
+      // the old and new documents. Reset it so Ctrl+Z can't corrupt the result.
+      editor.UndoManager?.clear?.();
+    };
+
+    await processPages();
+    return createdPages.length;
+  } finally {
+    traceRecorder.endDerivation();
   }
-  
-  // Create all pages and force render each one to ensure proper styling
-  const createdPages: any[] = [];
-  
-  classes.forEach((classOption: any, index: number) => {
-    const className = classOption.label;
-    const classId = classOption.value;
-    const pageName = className.toLowerCase().replace(/\s+/g, '-');
-    const pageRoute = `/${pageName}`;
-    
-    // Get class metadata (attributes and methods)
-    const classMetadata = getClassMetadata(classId);
-    const methods = getMethodsByClassId(classId);
-    
-    // Create the page with route_path
-    const page = pages.add({
-      id: `page-${pageName}-${index}`,
-      name: className,
-    });
-    
-    // Set the route_path on the page
-    if (page) {
-      page.set('route_path', pageRoute);
-    }
-    
-    // Store created page
-    createdPages.push({ page, className, classId, classMetadata, methods, index });
-  });
-  
-  // Process each page sequentially with delays to ensure GrapesJS renders each one
-  // This ensures all pages get proper IDs and normalized styles
-  const processPages = async () => {
-    for (let i = 0; i < createdPages.length; i++) {
-      const { page, className, classId, classMetadata, methods, index } = createdPages[i];
-      
-      // Select the page to force GrapesJS to render it
-      pages.select(page);
-      
-      // Build the page components
-      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
-      
-      // Wait for GrapesJS to process the page (render and assign IDs)
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Trigger a canvas refresh to ensure components are processed
-      editor.refresh();
-    }
-    
-    // Return to the first page after all pages are processed
-    if (createdPages.length > 0) {
-      pages.select(createdPages[0].page);
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 120));
-    editor.store();
-
-    // Auto-generate replaced every page: the undo history behind it mixes
-    // the old and new documents. Reset it so Ctrl+Z can't corrupt the result.
-    editor.UndoManager?.clear?.();
-  };
-
-  // Execute the async page processing
-  await processPages();
-  return createdPages.length;
-
 }
 
 /**
@@ -1423,7 +1439,7 @@ function buildPageComponents(
   methods: any[],
   allClasses: any[],
   pageCounter: number
-) {
+): Promise<void> {
   const wrapper = page.getMainComponent();
   
   // Generate a unique table ID for this page using counter
@@ -1657,74 +1673,58 @@ function buildPageComponents(
   // Force the page to be selected to ensure components are properly initialized
   editor.Pages?.select(page);
   
-  // Initialize components after they are added and page is selected
-  setTimeout(() => {
-    try {
-      // Re-select the page to ensure we're working with the right context
-      editor.Pages?.select(page);
-      const pageWrapper = page.getMainComponent();
-      
-      // Find the table component by ID within this page
-      const tables = pageWrapper?.find(`#${tableId}`) || [];
-      const tableComp = tables[0];
-      
-      if (tableComp) {
-        
-        // Get the current data-source value
-        const currentDataSource = tableComp.get('data-source') || classId;
-        
-        // Force re-initialization by clearing and setting again
-        tableComp.set('data-source', '');
-        
-        setTimeout(() => {
-          tableComp.set('data-source', currentDataSource);
-          
-          // After table is initialized, initialize buttons
-          setTimeout(() => {
-            const buttons = pageWrapper?.find('.action-button-component') || [];
-            
-            buttons.forEach((buttonComp: any, btnIdx: number) => {
-              const methodClass = buttonComp.get('method-class');
-              const methodId = buttonComp.get('method');
-              const instanceSource = buttonComp.get('instance-source');
-              
-              // console.log(`[Auto-Generate] Initializing button ${btnIdx + 1}:`, {
-              //   methodClass,
-              //   methodId,
-              //   instanceSource,
-              //   expectedTableId: tableId
-              // });
-              
-              // Force the button to re-initialize its traits
-              buttonComp.set('method-class', '');
-              
-              setTimeout(() => {
-                buttonComp.set('method-class', methodClass);
-                
-                setTimeout(() => {
-                  if (methodId) {
-                    buttonComp.set('method', methodId);
-                  }
-                  
-                  setTimeout(() => {
-                    if (instanceSource) {
-                      buttonComp.set('instance-source', instanceSource);
-                      console.log(`[Auto-Generate] Button ${btnIdx + 1} instance-source set to: ${instanceSource}`);
-                    }
-                  }, 50);
-                }, 50);
-              }, 50);
-            });
-          }, 100);
-        }, 100);
-      } else {
-        console.warn(`[Auto-Generate] Table not found with id: ${tableId}`);
-      }
-    } catch (e) {
-      console.warn('[Auto-Generate] Could not trigger component initialization:', e);
+  return initializePageComponents(editor, page, classId, tableId);
+}
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Initialize a generated page's table and method buttons once GrapesJS has rendered them, by setting their traits
+ * again. Resolves when they are all set.
+ */
+async function initializePageComponents(editor: Editor, page: any, classId: string, tableId: string): Promise<void> {
+  await wait(300);
+  try {
+    // Re-select the page to ensure we're working with the right context
+    editor.Pages?.select(page);
+    const pageWrapper = page.getMainComponent();
+
+    // Find the table component by ID within this page
+    const tableComp = (pageWrapper?.find(`#${tableId}`) || [])[0];
+    if (!tableComp) {
+      console.warn(`[Auto-Generate] Table not found with id: ${tableId}`);
+      return;
     }
-  }, 300);
-  
+
+    // Force re-initialization by clearing and setting the data source again
+    const currentDataSource = tableComp.get('data-source') || classId;
+    tableComp.set('data-source', '');
+    await wait(100);
+    tableComp.set('data-source', currentDataSource);
+    await wait(100);
+
+    // After the table is initialized, initialize the buttons
+    const buttons: any[] = pageWrapper?.find('.action-button-component') || [];
+    await Promise.all(buttons.map(async (buttonComp: any, btnIdx: number) => {
+      const methodClass = buttonComp.get('method-class');
+      const methodId = buttonComp.get('method');
+      const instanceSource = buttonComp.get('instance-source');
+
+      // Force the button to re-initialize its traits
+      buttonComp.set('method-class', '');
+      await wait(50);
+      buttonComp.set('method-class', methodClass);
+      await wait(50);
+      if (methodId) buttonComp.set('method', methodId);
+      await wait(50);
+      if (instanceSource) {
+        buttonComp.set('instance-source', instanceSource);
+        console.log(`[Auto-Generate] Button ${btnIdx + 1} instance-source set to: ${instanceSource}`);
+      }
+    }));
+  } catch (e) {
+    console.warn('[Auto-Generate] Could not trigger component initialization:', e);
+  }
 }
 
 // ============================================

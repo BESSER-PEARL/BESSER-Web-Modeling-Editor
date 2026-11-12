@@ -3,11 +3,15 @@ import { toast } from 'react-toastify';
 import i18n from '../i18n';
 import { reportError } from '../services/errors/reportError';
 import { readLegacyTrace, removeLegacyTrace } from '../services/storage/legacyTraceStorage';
+import { getReferencedDiagram } from '../types/project';
 import type { BesserProject, ProjectDiagram } from '../types/project';
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { RequirementArtifact, TraceFile } from '../types/traceability';
 import { diffClassModel } from './classModelDiff';
-import type { ClassModelLike, ElementChange } from './classModelDiff';
+import type { ClassModelLike } from './classModelDiff';
+import { diffGuiModel, guiBindings, pageSources } from './guiModelDiff';
+import type { GuiModelLike } from './guiModelDiff';
+import type { ElementChange } from './modelDiff';
 import { indexedDbTraceStorage, memoryTraceStorage } from './traceDatabase';
 import type { TraceStorage } from './traceDatabase';
 import {
@@ -18,6 +22,7 @@ import {
   recordConversationReply,
   recordConversationRequest,
   recordElementChanges,
+  GUI_GENERATOR_NAME,
 } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
 import { latestRequirements } from './traceQueries';
@@ -279,6 +284,52 @@ export function recordClassDiagramUpdate(
       requirementsRequest: pending?.requirementsRequest,
       model: nextModel as ClassModelLike,
     });
+  });
+}
+
+/** Who made a GUI diagram's changes: the user, the assistant, or the GUI generator deriving it from the class
+ *  diagram (for the user). */
+export type GuiChangeSource = ModelingSource | 'derivation';
+
+/**
+ * Record the changes between two versions of a GUI diagram, when the project records traces: a modeling
+ * session of the user or the assistant, or the one session of a GUI generator run. Each changed element is
+ * linked to the class-diagram elements it is bound to (the diagram the GUI references); an assistant's edits are
+ * linked from the request they answer, as for a class diagram.
+ */
+export function recordGuiDiagramUpdate(
+  project: BesserProject,
+  diagram: ProjectDiagram,
+  previousModel: unknown,
+  nextModel: unknown,
+  source: GuiChangeSource,
+): void {
+  if (!isTraceabilityEnabled(project)) return;
+  const classDiagram = getReferencedDiagram(project, diagram, 'ClassDiagram');
+  const classModel = classDiagram?.model as ClassModelLike | undefined;
+  const changes = diffGuiModel(previousModel as GuiModelLike, nextModel as GuiModelLike, classModel);
+  if (changes.length === 0) return;
+  const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
+  // A generator run also derives each page from the classes it shows: the page is generated for them.
+  const bindings = new Map([
+    ...guiBindings(nextModel as GuiModelLike, classModel),
+    ...(source === 'derivation' ? pageSources(nextModel as GuiModelLike, classModel) : []),
+  ]);
+  void updateProjectTrace(project.id, (trace) => {
+    const pending = source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest : undefined;
+    const ctx = {
+      diagramId: diagram.id,
+      diagramTitle: diagram.title,
+      modelType: 'GUIModel',
+      actorName: traceActorName(project),
+      source: source === 'derivation' ? ('user' as const) : source,
+      now,
+      request: pending?.request,
+      bindings,
+      ...(classDiagram ? { boundModel: { id: classDiagram.id, title: classDiagram.title, modelType: 'DomainModel' } } : {}),
+      ...(source === 'derivation' ? { generatorName: GUI_GENERATOR_NAME } : {}),
+    };
+    recordElementChanges(trace, changes, ctx);
   });
 }
 

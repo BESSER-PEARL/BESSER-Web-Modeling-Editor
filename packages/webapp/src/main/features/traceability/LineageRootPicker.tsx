@@ -43,7 +43,7 @@ export const LineageRootPicker: React.FC<{ index: TraceIndex; rootId: string | n
   index, rootId, onChange,
 }) => {
   const { t, i18n } = useTranslation();
-  const points = useMemo(() => lineageStartingPoints(index, lineageOf(index, null, { latestGenerationOnly: true })), [index]);
+  const points = useMemo(() => lineageStartingPoints(index, lineageOf(index, null, { history: false })), [index]);
   const root = rootId ? index.artifacts.get(rootId) : undefined;
   const listed = useMemo(
     () => new Set([

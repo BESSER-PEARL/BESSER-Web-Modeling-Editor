@@ -39,8 +39,9 @@ export interface Lineage {
 }
 
 export interface LineageOptions {
-  /** Keep, per source and generator, only the newest generation's links (older runs are superseded). */
-  latestGenerationOnly: boolean;
+  /** Keep what the project no longer is: the links of older generations (per source and generator, a newer run
+   *  supersedes them) and the links from or to a deleted element. Without it the lineage is the project now. */
+  history: boolean;
 }
 
 /** `links` without generation links superseded by a newer run of the same generator. */
@@ -84,15 +85,19 @@ function layers(ids: Iterable<string>, pairs: [string, string][]): Map<string, n
 
 /** The lineage of `rootId` (the root and its parts that take part in links), or of the whole project. */
 export function lineageOf(index: TraceIndex, rootId: string | null, options: LineageOptions): Lineage {
+  const current = (link: TraceLink) => !isDeleted(index, link.sourceId) && !isDeleted(index, link.targetId);
   const outgoing = (id: string) => {
     const links = index.linksBySource.get(id) ?? [];
-    return options.latestGenerationOnly ? withoutOlderGenerations(index, links) : links;
+    return options.history ? links : withoutOlderGenerations(index, links).filter(current);
   };
-  const incoming = (id: string) => index.linksByTarget.get(id) ?? [];
+  const incoming = (id: string) => {
+    const links = index.linksByTarget.get(id) ?? [];
+    return options.history ? links : links.filter(current);
+  };
 
   const edges = new Map<string, TraceLink>();
   if (rootId === null) {
-    // The whole project: every source's links (its newest generations only, unless asked otherwise).
+    // The whole project: every source's links (as it is now, unless its history is asked for).
     for (const source of index.linksBySource.keys()) for (const link of outgoing(source)) edges.set(link.id, link);
   } else {
     // The root and its parts that take part in links (a diagram's elements, a file's fragments).
@@ -116,7 +121,8 @@ export function lineageOf(index: TraceIndex, rootId: string | null, options: Lin
     walk(incoming, (link) => link.sourceId); // what the root was derived from
   }
   const links = [...edges.values()].filter((l) => index.artifacts.has(l.sourceId) && index.artifacts.has(l.targetId));
-  // Without older generations, an artifact reached only through them is not part of the lineage.
+  // Without the history, an artifact reached only through it (an older generation, a deleted element) is not
+  // part of the lineage.
   const ends = new Set([...links.flatMap((l) => [l.sourceId, l.targetId]), ...(rootId ? [rootId] : [])]);
 
   const lineageEdges = links.map((link) => ({ link, outOfDate: outOfDate(index, link) }));

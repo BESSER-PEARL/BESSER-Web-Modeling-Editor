@@ -18,7 +18,9 @@ import { isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '.
 import type { AssistantRequirements } from './assistantRequirements';
 import { findNamedElement } from './classModelDiff';
 import { turnExtractionId, turnPromptId } from './traceQueries';
-import type { ClassModelLike, ElementChange } from './classModelDiff';
+import type { ClassModelLike } from './classModelDiff';
+import type { ElementChange } from './modelDiff';
+import type { BoundElement } from './guiModelDiff';
 
 /**
  * Writes what happened into a project trace. Every function here updates the
@@ -54,6 +56,11 @@ export const MAX_LOGGED_MESSAGE_CHARS = 10_000;
 const PROMPT_NAME_CHARS = 60;
 /** Why a requirement comes from a prompt, when its quote is found in the prompt's text. */
 export const REQUIREMENT_QUOTE_RULE = 'requirement quote found in the prompt';
+/** Why a GUI element comes from a class-diagram element: it is bound to it (a table's data source, a column's
+ *  attribute, a button's method). */
+export const GUI_BINDING_RULE = 'GUI element bound to the model element';
+/** The model generator that derives a GUI from a class diagram (the GUI editor's auto-generation). */
+export const GUI_GENERATOR_NAME = 'BESSER GUI generator';
 
 /** Who made an edit: the user alone, or the assistant for the user (both are recorded as actors). */
 export type ModelingSource = 'user' | 'assistant';
@@ -61,6 +68,16 @@ export type ModelingSource = 'user' | 'assistant';
 export interface RecordContext {
   diagramId: string;
   diagramTitle: string;
+  /** The diagram's B-UML model class: `DomainModel` (the default) for a class diagram, `GUIModel` for a GUI. */
+  modelType?: string;
+  /** What each changed element is bound to in another model (a GUI element's class-diagram elements), by
+   *  element id: each gets a link from what it is bound to. */
+  bindings?: Map<string, BoundElement[]>;
+  /** The diagram holding the bound elements. */
+  boundModel?: { id: string; title: string; modelType: string };
+  /** The model generator that derived these changes in one run (a GUI generated from its class diagram), when
+   *  they were not made in the editor: their session calls it, and is never merged with another. */
+  generatorName?: string;
   actorName: string;
   source: ModelingSource;
   /** ISO 8601 UTC. */
@@ -141,14 +158,17 @@ function sameIds(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((id) => b.includes(id));
 }
 
-/** The open modeling session of these actors, or a new one (with one call to the editor, which lasts as
- *  long as the session) when the last operation is another one or idle. */
-function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], editorId: string): ModelingSessionOperation {
+/** The open editor session of these actors, or a new one (with one call to `tool`, which lasts as long as the
+ *  session) when the last operation is another one or idle. A generator's run is a session of its own: edits
+ *  made after it are not part of it, so they mark its links out of date. */
+function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], tool: TraceTool): ModelingSessionOperation {
   const last = trace.operations[trace.operations.length - 1];
   const lastActivity = last ? ms(last.endedAt ?? last.startedAt) : 0;
   if (
+    tool.type === 'Editor' &&
     isModelingSession(last) &&
     sameIds(last.performedBy, actorIds) &&
+    sameIds(toolIdsOf(last), [tool.id]) &&
     ms(ctx.now) - lastActivity <= SESSION_IDLE_MS
   ) {
     return last;
@@ -156,7 +176,7 @@ function sessionFor(trace: TraceFile, ctx: RecordContext, actorIds: string[], ed
   const session: ModelingSessionOperation = {
     id: newId(), type: 'ModelingSession', status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
     performedBy: actorIds, reads: [], writes: [], changes: [],
-    toolCalls: [{ id: newId(), toolId: editorId, sequenceNumber: 0, status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now, logs: [] }],
+    toolCalls: [{ id: newId(), toolId: tool.id, sequenceNumber: 0, status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now, logs: [] }],
   };
   trace.operations.push(session);
   return session;
@@ -188,15 +208,17 @@ function foldUpdate(session: ModelingSessionOperation, artifactId: string, chang
   return false;
 }
 
-/** Record the changes of one model save into the trace. */
+/** Record the changes of one model save, or of one generator run (`ctx.generatorName`), into the trace. */
 export function recordElementChanges(trace: TraceFile, changes: ElementChange[], ctx: RecordContext): void {
   if (changes.length === 0) return;
   const actors = [ensureActor(trace, 'Person', ctx.actorName, ctx.now)];
   if (ctx.source === 'assistant') actors.push(ensureActor(trace, 'Agent', ASSISTANT_AGENT_NAME, ctx.now));
-  const editor = ensureTool(trace, 'Editor', EDITOR_TOOL_NAME, ctx.now);
-  const model = ensureModelArtifact(trace, ctx.diagramId, 'DomainModel', ctx.diagramTitle, undefined, ctx.now);
+  const tool = ctx.generatorName
+    ? ensureTool(trace, 'ModelGenerator', ctx.generatorName, ctx.now)
+    : ensureTool(trace, 'Editor', EDITOR_TOOL_NAME, ctx.now);
+  const model = ensureModelArtifact(trace, ctx.diagramId, ctx.modelType ?? 'DomainModel', ctx.diagramTitle, undefined, ctx.now);
   model.name = ctx.diagramTitle || model.name;
-  const session = sessionFor(trace, ctx, actors.map((a) => a.id), editor.id);
+  const session = sessionFor(trace, ctx, actors.map((a) => a.id), tool);
 
   for (const change of changes) {
     // An owner that existed before recording started is recorded now, so its members are filed under it.
@@ -219,11 +241,12 @@ export function recordElementChanges(trace: TraceFile, changes: ElementChange[],
     });
   }
   session.endedAt = ctx.now;
-  for (const call of session.toolCalls) if (call.toolId === editor.id) call.endedAt = ctx.now;
+  for (const call of session.toolCalls) if (call.toolId === tool.id) call.endedAt = ctx.now;
   if (session.changes.length === 0) {
     trace.operations.splice(trace.operations.indexOf(session), 1);
     return;
   }
+  linkBindings(trace, session, changes.filter((c) => c.kind === 'CREATED' || c.feature === 'bindings'), ctx);
   if (ctx.source === 'assistant' && ctx.request) {
     const touched = changes.filter((c) => c.kind !== 'DELETED').map((c) => findModelArtifact(trace, c.elementId)!);
     if (ctx.requirements) linkRequirements(trace, session, ctx, ctx.request, ctx.requirements);
@@ -235,6 +258,41 @@ export function recordElementChanges(trace: TraceFile, changes: ElementChange[],
     linkRequest(trace, session, builtFrom, touched.filter((a) => !realized.has(a.id)), ctx.now);
   }
 }
+
+/**
+ * Link each element of `changes` to what it is bound to in another model (`ctx.bindings`): a GUI table to the
+ * class it shows, a column's attribute. The operation reads those elements; the evidence is the binding. A link
+ * already there is not repeated (a generator run makes it again); one to an element no longer bound stays, as
+ * what the element was derived from then (the edit since marks it out of date).
+ */
+function linkBindings(trace: TraceFile, operation: TraceOperation, changes: ElementChange[], ctx: RecordContext): void {
+  if (!ctx.bindings || !ctx.boundModel) return;
+  const boundModel = ensureModelArtifact(trace, ctx.boundModel.id, ctx.boundModel.modelType, ctx.boundModel.title, undefined, ctx.now);
+  for (const change of changes) {
+    const target = findModelArtifact(trace, change.elementId);
+    if (!target) continue;
+    for (const bound of ctx.bindings.get(change.elementId) ?? []) {
+      const owner = bound.parent
+        ? ensureModelArtifact(trace, bound.parent.elementId, bound.parent.elementType, bound.parent.name, boundModel.id, ctx.now)
+        : undefined;
+      const source = ensureModelArtifact(trace, bound.elementId, bound.elementType, bound.name, (owner ?? boundModel).id, ctx.now);
+      if (!operation.reads.includes(source.id)) operation.reads.push(source.id);
+      const evidence = [{ id: newId(), type: 'RuleEvidence' as const, rule: GUI_BINDING_RULE, timestamp: ctx.now }];
+      const existing = trace.traceLinks.find((link) => link.sourceId === source.id && link.targetId === target.id);
+      if (existing && ctx.generatorName) {
+        // A generator run that derives the element again makes the link again: it holds from this run on.
+        Object.assign(existing, { operationId: operation.id, timestamp: ctx.now, evidence });
+        continue;
+      }
+      if (existing) continue;
+      trace.traceLinks.push({
+        id: newId(), sourceId: source.id, targetId: target.id, operationId: operation.id, timestamp: ctx.now, evidence,
+      });
+    }
+  }
+}
+
+
 
 /* ------------------------------------------------------------------ conversations with the assistant */
 

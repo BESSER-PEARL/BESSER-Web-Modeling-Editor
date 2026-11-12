@@ -26,6 +26,7 @@ import { DeepPartial } from '../../shared/utils/types';
 import {
   recordClassDiagramUpdate,
   recordDiagramDeleted,
+  recordGuiDiagramUpdate,
   recordDiagramRenamed,
 } from '../../shared/traceability/traceStore';
 import type { ModelingSource } from '../../shared/traceability/traceRecorder';
@@ -327,6 +328,10 @@ export const updateDiagramModelThunk = createAsyncThunk(
     if (!success) throw new Error('Failed to update diagram');
     if (activeDiagramType === 'ClassDiagram' && updates.model) {
       recordClassDiagramUpdate(project, updated, current.model, updated.model, traceSource);
+    }
+    // The GUI editor records its own saves; an assistant's GUI written while it is closed is recorded here.
+    if (activeDiagramType === 'GUINoCodeDiagram' && updates.model && traceSource === 'assistant') {
+      recordGuiDiagramUpdate(project, updated, current.model, updated.model, traceSource);
     }
     if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
     return updated;

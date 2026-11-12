@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { TraceArtifact, TraceChangeEvent, TraceOperation } from '../../shared/types/traceability';
+import type { TraceArtifact, TraceChangeEvent, TraceOperation, TraceTool } from '../../shared/types/traceability';
 import { isModelArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { qualifiedName } from '../../shared/traceability/traceQueries';
@@ -25,6 +25,13 @@ export const operationKind = (operation: TraceOperation): OperationKind => OPERA
 /** Whether an agent (the assistant) is among the operation's actors. */
 export const byAgent = (operation: TraceOperation, index: TraceIndex): boolean =>
   operation.performedBy.some((id) => index.trace.actors.find((a) => a.id === id)?.type === 'Agent');
+
+/** The model generator that derived a modeling session's changes in one run, or undefined when they were made
+ *  in the editor. */
+export const derivedBy = (operation: TraceOperation, index: TraceIndex): TraceTool | undefined =>
+  operation.type === 'ModelingSession'
+    ? toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)).find((tool) => tool?.type === 'ModelGenerator')
+    : undefined;
 
 export const operationLabel = (t: TFunction, operation: TraceOperation, index: TraceIndex): string => {
   if (operation.type === 'CodeGeneration') {

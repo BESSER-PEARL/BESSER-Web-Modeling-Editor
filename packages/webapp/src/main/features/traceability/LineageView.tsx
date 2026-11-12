@@ -92,10 +92,10 @@ const LineageExplorer: React.FC<{
   setZoom: (zoom: number) => void;
 }> = ({ index, root, onRootChange, onOpenElement, fullScreen, setFullScreen, zoom, setZoom }) => {
   const { t } = useTranslation();
-  const [olderGenerations, setOlderGenerations] = useState(false);
+  const [history, setHistory] = useState(false);
   const lineage = useMemo(
-    () => lineageOf(index, root, { latestGenerationOnly: !olderGenerations }),
-    [index, root, olderGenerations],
+    () => lineageOf(index, root, { history }),
+    [index, root, history],
   );
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(root ? pathTo(index, root) : []),
@@ -143,8 +143,10 @@ const LineageExplorer: React.FC<{
       <div className="flex flex-wrap items-center gap-3">
         <LineageRootPicker index={index} rootId={root} onChange={onRootChange} />
         <div className="flex items-center gap-2">
-          <Checkbox id="lineage-older" checked={olderGenerations} onCheckedChange={(checked) => setOlderGenerations(checked === true)} />
-          <Label htmlFor="lineage-older" className="text-xs font-normal">{t('traceability.lineage.olderGenerations')}</Label>
+          <Checkbox id="lineage-history" checked={history} onCheckedChange={(checked) => setHistory(checked === true)} />
+          <Label htmlFor="lineage-history" className="text-xs font-normal" title={t('traceability.lineage.historyHint')}>
+            {t('traceability.lineage.history')}
+          </Label>
         </div>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => setExpanded(expandableIds(index, lineage))}>

@@ -57,7 +57,7 @@ function chain(): TraceFile {
   };
 }
 
-const latest = { latestGenerationOnly: true };
+const latest = { history: false };
 const ids = (lineage: Lineage) => [...lineage.nodes.keys()].sort();
 const edgeIds = (lineage: Lineage) => lineage.edges.map((e) => e.link.id).sort();
 /** Each column's cards, each card as its visible rows (`id`, or `id+` when it hides parts), indented by depth.
@@ -77,8 +77,24 @@ describe('lineageOf', () => {
   });
 
   it('shows older generations only when asked', () => {
-    const lineage = lineageOf(indexTrace(chain()), 'book', { latestGenerationOnly: false });
+    const lineage = lineageOf(indexTrace(chain()), 'book', { history: true });
     expect(edgeIds(lineage)).toEqual(['g1', 'g2', 'k']);
+  });
+
+  it('shows a deleted element and its links only in the history', () => {
+    const trace = chain();
+    trace.operations.push(operation('remove', 'ModelingSession', 6, {
+      changes: [{ id: 'c1', kind: 'DELETED', artifactId: 'concept', oldValue: 'Book concept', timestamp: at(6) }],
+    }));
+    const now = lineageOf(indexTrace(trace), null, latest);
+    expect(edgeIds(now)).toEqual(['d2', 'g2']);
+    expect(now.nodes.has('concept')).toBe(false);
+    // The class's code goes with it; the diagram stays, with the link to its file.
+    trace.operations.push(operation('clear', 'ModelingSession', 7, {
+      changes: [{ id: 'c2', kind: 'DELETED', artifactId: 'book', oldValue: 'Book', timestamp: at(7) }],
+    }));
+    expect(edgeIds(lineageOf(indexTrace(trace), null, latest))).toEqual(['d2']);
+    expect(edgeIds(lineageOf(indexTrace(trace), null, { history: true }))).toEqual(['d1', 'd2', 'g1', 'g2', 'k']);
   });
 
   it("starts a diagram's lineage from the diagram and its linked elements", () => {

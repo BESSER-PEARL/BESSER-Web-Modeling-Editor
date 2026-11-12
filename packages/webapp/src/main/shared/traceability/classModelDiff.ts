@@ -1,32 +1,15 @@
-import type { ChangeKind } from '../types/traceability';
+import { diffSnapshots, value } from './modelDiff';
+import type { ElementChange, FeatureValue, Snapshot } from './modelDiff';
 
 /**
- * What changed between two versions of a class diagram, element by element.
+ * What changed between two versions of a class diagram, element by element (compared in `modelDiff.ts`).
  *
  * Only what reaches the B-UML model is compared: layout (position, size,
- * colours, paths) is ignored, and element types are reported by their B-UML
- * metaclass name, the same names the backend's trace uses. A reference to
+ * colours, paths) is ignored. A reference to
  * another element (an attribute's owner, an association end) is compared by
  * id and reported by name, so renaming a class does not show up as a change of
  * every association attached to it.
  */
-
-export interface ElementChange {
-  kind: ChangeKind;
-  elementId: string;
-  /** B-UML metaclass: `Class`, `Enumeration`, `Property`, `EnumerationLiteral`, `Method`, `Constraint`,
-   *  `BinaryAssociation`, `Generalization`. */
-  elementType: string;
-  /** Display name after the change (before it, for a deletion). */
-  name: string;
-  /** The owning element (a class for an attribute), or null for a top-level element. */
-  parentElementId: string | null;
-  /** The owner's metaclass and name, so a recorder can file the change under an owner it has not seen yet. */
-  parent?: { elementType: string; name: string };
-  feature?: string;
-  oldValue?: string;
-  newValue?: string;
-}
 
 /** Minimal view of an Apollon model: the fields read here. */
 interface EditorElement {
@@ -57,21 +40,6 @@ export interface ClassModelLike {
   relationships?: Record<string, EditorRelationship>;
 }
 
-/** A compared value: `key` decides whether it changed, `display` is what is recorded. */
-interface FeatureValue {
-  key: string;
-  display: string;
-}
-
-interface Snapshot {
-  elementType: string;
-  name: string;
-  parentElementId: string | null;
-  features: Record<string, FeatureValue>;
-  /** Created and deleted in this order: types, then their members, then relationships. */
-  rank: number;
-}
-
 const CLASS_TYPES = new Set(['Class', 'AbstractClass', 'Interface']);
 const ASSOCIATION_TYPES = new Set(['ClassBidirectional', 'ClassUnidirectional', 'ClassComposition', 'ClassAggregation']);
 /** Editor field -> recorded feature, with the value the editor assumes when the field is absent
@@ -84,12 +52,6 @@ const PROPERTY_FIELDS: Record<string, { feature: string; absent: unknown }> = {
   isId: { feature: 'isId', absent: false },
   isExternalId: { feature: 'isExternalId', absent: false },
   defaultValue: { feature: 'defaultValue', absent: '' },
-};
-
-const value = (raw: unknown, absent: unknown = ''): FeatureValue => {
-  const resolved = raw === undefined || raw === null ? absent : raw;
-  const text = String(resolved);
-  return { key: text, display: text };
 };
 
 /** A constraint name made from the start of its OCL is cut at this length. */
@@ -113,7 +75,8 @@ const reference = (id: string | null | undefined, names: Map<string, string>): F
   display: (id && names.get(id)) || '',
 });
 
-function snapshot(model: ClassModelLike | null | undefined): Map<string, Snapshot> {
+/** The class diagram's elements that reach the B-UML model, by editor element id. */
+export function snapshotClassModel(model: ClassModelLike | null | undefined): Map<string, Snapshot> {
   const elements = model?.elements ?? {};
   const names = new Map(Object.values(elements).map((e) => [e.id, e.name ?? '']));
   const result = new Map<string, Snapshot>();
@@ -189,48 +152,7 @@ export function diffClassModel(
   previous: ClassModelLike | null | undefined,
   next: ClassModelLike | null | undefined,
 ): ElementChange[] {
-  const before = snapshot(previous);
-  const after = snapshot(next);
-  const created: ElementChange[] = [];
-  const updated: ElementChange[] = [];
-  const deleted: ElementChange[] = [];
-
-  const ownerOf = (parentElementId: string | null, snapshots: Map<string, Snapshot>) => {
-    const owner = parentElementId ? snapshots.get(parentElementId) : undefined;
-    return owner ? { parent: { elementType: owner.elementType, name: owner.name } } : {};
-  };
-
-  for (const [id, now] of after) {
-    const old = before.get(id);
-    const base = {
-      elementId: id, elementType: now.elementType, name: now.name, parentElementId: now.parentElementId,
-      ...ownerOf(now.parentElementId, after),
-    };
-    if (!old || old.elementType !== now.elementType) {
-      if (old) deleted.push({ ...base, kind: 'DELETED', name: old.name, elementType: old.elementType, oldValue: old.name });
-      created.push({ ...base, kind: 'CREATED', newValue: now.name });
-      continue;
-    }
-    for (const [feature, current] of Object.entries(now.features)) {
-      const previousValue = old.features[feature];
-      if (previousValue && previousValue.key !== current.key) {
-        updated.push({ ...base, kind: 'UPDATED', feature, oldValue: previousValue.display, newValue: current.display });
-      }
-    }
-  }
-  for (const [id, old] of before) {
-    if (!after.has(id)) {
-      deleted.push({
-        kind: 'DELETED', elementId: id, elementType: old.elementType, name: old.name,
-        parentElementId: old.parentElementId, oldValue: old.name, ...ownerOf(old.parentElementId, before),
-      });
-    }
-  }
-
-  const rank = (changes: ElementChange[], snapshots: Map<string, Snapshot>) =>
-    changes.sort((a, b) => (snapshots.get(a.elementId)?.rank ?? 0) - (snapshots.get(b.elementId)?.rank ?? 0));
-  // Owners are created before their members and deleted after them.
-  return [...rank(created, after), ...updated, ...rank(deleted, before).reverse()];
+  return diffSnapshots(snapshotClassModel(previous), snapshotClassModel(next));
 }
 
 /** An element named the way the modeling assistant names it: its B-UML metaclass, its name, and the
@@ -263,7 +185,7 @@ function ownerMatches(found: Snapshot, ref: NamedElementRef, snapshots: Map<stri
 
 /** The id of the element of `model` that `ref` names, or undefined when it names none. */
 export function findNamedElement(model: ClassModelLike | null | undefined, ref: NamedElementRef): string | undefined {
-  const snapshots = snapshot(model);
+  const snapshots = snapshotClassModel(model);
   for (const [id, found] of snapshots) {
     if (found.elementType === ref.type && namesElement(found, ref, snapshots)) return id;
   }

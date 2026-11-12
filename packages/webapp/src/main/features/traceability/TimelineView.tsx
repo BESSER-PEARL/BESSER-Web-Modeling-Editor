@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, ChevronDown, ChevronRight, Code2, ListChecks, MessagesSquare, Pencil } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, Code2, ListChecks, MessagesSquare, Pencil, Wand2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type {
@@ -12,9 +12,9 @@ import type {
 } from '../../shared/types/traceability';
 import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact, logsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
-import { diagramsOfOperation, isDiagram, topLevelOf } from '../../shared/traceability/traceQueries';
+import { diagramOf, diagramsOfOperation, isDiagram, topLevelOf } from '../../shared/traceability/traceQueries';
 import type { OperationKind } from './traceLabels';
-import { actorNames, byAgent, describeChange, elementTypeLabel, formatTime, operationKind, operationLabel } from './traceLabels';
+import { actorNames, byAgent, derivedBy, describeChange, elementTypeLabel, formatTime, operationKind, operationLabel } from './traceLabels';
 
 const OPERATION_ICONS: Record<OperationKind, React.ReactNode> = {
   modeling: <Pencil className="size-4" />,
@@ -89,7 +89,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
         {operations.slice(0, shown).map((op) => (
           <li key={op.id} className="relative">
             <span className="absolute -left-[29px] top-2 flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
-              {op.type === 'ModelingSession' && byAgent(op, index) ? <Bot className="size-4" /> : OPERATION_ICONS[operationKind(op)]}
+              {derivedBy(op, index) ? (
+                <Wand2 className="size-4" />
+              ) : op.type === 'ModelingSession' && byAgent(op, index) ? (
+                <Bot className="size-4" />
+              ) : (
+                OPERATION_ICONS[operationKind(op)]
+              )}
             </span>
             <OperationCard
               operation={op}
@@ -133,6 +139,13 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
     [index, operation],
   );
   const diagrams = useMemo(() => diagramsOfOperation(index, operation), [index, operation]);
+  const generator = derivedBy(operation, index);
+  // The models a generator run read, which what it made is derived from (a GUI from its class diagram).
+  const derivedFrom = useMemo(() => {
+    if (!generator) return [];
+    const changed = new Set(changesOf(operation).map((c) => index.artifacts.get(c.artifactId)).flatMap((a) => (a ? [diagramOf(index, a)?.id] : [])));
+    return diagrams.filter((diagram) => !changed.has(diagram.id));
+  }, [generator, operation, index, diagrams]);
 
   // Changes grouped under the element they belong to (a class and its attributes together).
   const groups = useMemo(() => {
@@ -203,7 +216,16 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
               ))}
             </ol>
           ) : (
-            groups.map(([elementId, changes]) => (
+            <>
+            {generator && (
+              <p className="text-xs text-muted-foreground">
+                {t('traceability.timeline.derivedBy', {
+                  generator: generator.name,
+                  models: derivedFrom.map((d) => d.name).join(', ') || '?',
+                })}
+              </p>
+            )}
+            {groups.map(([elementId, changes]) => (
               <div key={elementId}>
                 <button
                   type="button"
@@ -221,7 +243,8 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
                   ))}
                 </ul>
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
       )}
