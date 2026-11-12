@@ -2165,7 +2165,7 @@
           "conversion"
         ],
         "summary": "Get Svg",
-        "description": "Convert a B-UML class-diagram file to an auto-laid-out SVG image.\n\nPipeline: parse the B-UML to a DomainModel, convert it to the editor JSON\nmodel, then delegate rendering to the WME Node server (Apollon, headless),\nwhich runs ELK auto-layout and exports SVG. The Node server base URL is read\nfrom the WME_NODE_SERVER_URL env var (default http://localhost:8080).",
+        "description": "Convert a B-UML class-diagram file to an auto-laid-out SVG image.\n\nPipeline: parse the B-UML to a DomainModel, convert it to the editor JSON\nmodel, then delegate rendering to the WME Node server (headless editor),\nwhich runs ELK auto-layout and exports SVG. The Node server base URL is read\nfrom the WME_NODE_SERVER_URL env var (default http://localhost:8080).",
         "operationId": "get_svg_besser_api_get_svg_post",
         "requestBody": {
           "content": {

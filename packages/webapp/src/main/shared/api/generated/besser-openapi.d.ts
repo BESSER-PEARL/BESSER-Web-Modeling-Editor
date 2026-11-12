@@ -758,7 +758,7 @@ export interface paths {
          * @description Convert a B-UML class-diagram file to an auto-laid-out SVG image.
          *
          *     Pipeline: parse the B-UML to a DomainModel, convert it to the editor JSON
-         *     model, then delegate rendering to the WME Node server (Apollon, headless),
+         *     model, then delegate rendering to the WME Node server (headless editor),
          *     which runs ELK auto-layout and exports SVG. The Node server base URL is read
          *     from the WME_NODE_SERVER_URL env var (default http://localhost:8080).
          */
