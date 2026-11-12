@@ -95,13 +95,31 @@ describe('AssistantClient analytics', () => {
     expect(events('assistant_connection').filter((p) => (p as { state: string }).state === 'disconnected')).toHaveLength(0);
   });
 
-  it('reports giving up once, after the last reconnect attempt', () => {
+  // Live on 2026-11-11 the agent took about 4 minutes to boot after a deploy;
+  // tabs stopped after 8 attempts (about 2 minutes) and stayed disconnected
+  // until reloaded.
+  it('keeps reconnecting through a 5-minute agent outage and reports 8 failures', async () => {
     const client = new AssistantClient('ws://agent.test');
-    const priv = client as unknown as { reconnectAttempts: number; attemptReconnect(): void };
-    priv.reconnectAttempts = 8;
-    priv.attemptReconnect();
-    priv.attemptReconnect();
-    expect(events('assistant_connection')).toEqual([{ state: 'gave_up', attempt: 8 }]);
+    const connecting = client.connect();
+    latest().open();
+    await connecting;
+    latest().drop();
+
+    const outageEnds = Date.now() + 5 * 60_000;
+    while (Date.now() < outageEnds) {
+      const before = FakeSocket.instances.length;
+      await vi.advanceTimersByTimeAsync(30_000);
+      if (FakeSocket.instances.length > before) latest().fail();
+    }
+    const afterOutage = FakeSocket.instances.length;
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(FakeSocket.instances.length).toBe(afterOutage + 1);
+    latest().open();
+    expect(client.connected).toBe(true);
+    const failures = events('assistant_connection').filter((p) => (p as { state: string }).state === 'reconnect_failed');
+    expect(failures).toEqual([1, 2, 3, 4, 5, 6, 7, 8].map((attempt) => ({ state: 'reconnect_failed', attempt })));
+    client.disconnect();
   });
 
   it('tracks a malformed reply as a protocol error', () => {
