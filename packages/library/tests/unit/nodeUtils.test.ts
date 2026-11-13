@@ -61,6 +61,7 @@ vi.mock("@/nodes", () => ({
 import {
   getPositionOnCanvas,
   resizeAllParents,
+  fitContainerToChildren,
   sortNodesTopologically,
   isParentNodeType,
 } from "@/utils/nodeUtils"
@@ -148,8 +149,8 @@ describe("getPositionOnCanvas", () => {
 // ---------------------------------------------------------------------------
 
 describe("resizeAllParents", () => {
-  // Containers only grow to fit their children, like develop's
-  // `UMLPackage.render` (bounding box of the container plus its children).
+  // Containers only grow to fit their children, and keep a 40 px header
+  // band and a 10 px margin around them.
   it("shifts parent when child has negative x position", () => {
     const parent = makeNode({
       id: "p",
@@ -165,9 +166,9 @@ describe("resizeAllParents", () => {
       height: 50,
     })
     resizeAllParents(child, [parent, child])
-    expect(parent.position.x).toBe(80)
-    expect(child.position.x).toBe(0)
-    expect(parent.width).toBe(220)
+    expect(parent.position.x).toBe(70)
+    expect(child.position.x).toBe(10)
+    expect(parent.width).toBe(230)
   })
 
   it("shifts parent when child has negative y position", () => {
@@ -185,9 +186,9 @@ describe("resizeAllParents", () => {
       height: 50,
     })
     resizeAllParents(child, [parent, child])
-    expect(parent.position.y).toBe(70)
-    expect(child.position.y).toBe(0)
-    expect(parent.height).toBe(230)
+    expect(parent.position.y).toBe(30)
+    expect(child.position.y).toBe(40)
+    expect(parent.height).toBe(270)
   })
 
   it("grows parent when child extends beyond right edge", () => {
@@ -199,14 +200,14 @@ describe("resizeAllParents", () => {
     })
     const child = makeNode({
       id: "c",
-      position: { x: 80, y: 10 },
+      position: { x: 80, y: 40 },
       parentId: "p",
       width: 50,
       height: 20,
     })
     resizeAllParents(child, [parent, child])
-    expect(parent.width).toBe(130)
-    expect(child.position).toEqual({ x: 80, y: 10 })
+    expect(parent.width).toBe(140)
+    expect(child.position).toEqual({ x: 80, y: 40 })
   })
 
   it("grows parent when child extends beyond bottom edge", () => {
@@ -224,7 +225,7 @@ describe("resizeAllParents", () => {
       height: 50,
     })
     resizeAllParents(child, [parent, child])
-    expect(parent.height).toBe(130)
+    expect(parent.height).toBe(140)
     expect(child.position).toEqual({ x: 10, y: 80 })
   })
 
@@ -282,7 +283,7 @@ describe("resizeAllParents", () => {
     })
     const parent = makeNode({
       id: "p",
-      position: { x: 10, y: 10 },
+      position: { x: 10, y: 40 },
       parentId: "gp",
       width: 100,
       height: 100,
@@ -296,13 +297,67 @@ describe("resizeAllParents", () => {
     })
     resizeAllParents(child, [gp, parent, child])
     expect({ width: parent.width, height: parent.height }).toEqual({
-      width: 130,
-      height: 130,
-    })
-    expect({ width: gp.width, height: gp.height }).toEqual({
       width: 140,
       height: 140,
     })
+    expect({ width: gp.width, height: gp.height }).toEqual({
+      width: 160,
+      height: 190,
+    })
+  })
+
+  // Live repro: a 295x205 component dropped at the corner of a 180x120 one
+  // made the parent exactly its size, hidden underneath it.
+  it("keeps the parent's header band and margin visible around a larger child", () => {
+    const parent = makeNode({
+      id: "p",
+      type: "component",
+      position: { x: 200, y: 200 },
+      width: 180,
+      height: 120,
+    })
+    const child = makeNode({
+      id: "c",
+      type: "component",
+      position: { x: 0, y: 0 },
+      parentId: "p",
+      width: 295,
+      height: 205,
+    })
+    resizeAllParents(child, [parent, child])
+    expect(child.position).toEqual({ x: 10, y: 40 })
+    expect(parent.position).toEqual({ x: 190, y: 160 })
+    expect({ width: parent.width, height: parent.height }).toEqual({
+      width: 315,
+      height: 255,
+    })
+  })
+})
+
+describe("fitContainerToChildren", () => {
+  // Live repro: a parent component resized to 75x80 left its 180x120 child
+  // sticking out.
+  it("grows a container back around a child it was resized below", () => {
+    const parent = makeNode({ id: "p", type: "component", width: 75, height: 80 })
+    const child = makeNode({
+      id: "c",
+      type: "component",
+      position: { x: 10, y: 45 },
+      parentId: "p",
+      width: 180,
+      height: 120,
+    })
+    const nodes = [parent, child]
+    const fitted = fitContainerToChildren("p", nodes)
+    expect(fitted[0]).toMatchObject({ width: 200, height: 175 })
+    expect(fitted[1].position).toEqual({ x: 10, y: 45 })
+    // The input is left untouched.
+    expect(parent.width).toBe(75)
+  })
+
+  it("returns the same list for a node without children", () => {
+    const nodes = [makeNode({ id: "a", width: 50, height: 50 })]
+    expect(fitContainerToChildren("a", nodes)).toBe(nodes)
   })
 })
 

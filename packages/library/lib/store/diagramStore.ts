@@ -10,7 +10,7 @@ import {
   applyEdgeChanges,
 } from "@xyflow/react"
 import * as Y from "yjs"
-import { sortNodesTopologically } from "@/utils"
+import { fitContainerToChildren, sortNodesTopologically } from "@/utils"
 import {
   getNodesMap,
   getEdgesMap,
@@ -685,7 +685,7 @@ export const createDiagramStore = (
               change.type === "dimensions" ? [change.id] : []
             )
           )
-          const nextNodes = applyNodeChanges(
+          const appliedNodes = applyNodeChanges(
             filteredChanges,
             resizedIds.size === 0
               ? currentNodes
@@ -695,6 +695,15 @@ export const createDiagramStore = (
                     : node
                 )
           )
+          // A container released smaller than its content grows back around it.
+          const nextNodes = filteredChanges.reduce(
+            (nodes, change) =>
+              change.type === "dimensions" && change.resizing === false
+                ? fitContainerToChildren(change.id, nodes)
+                : nodes,
+            appliedNodes
+          )
+          const refitted = nextNodes !== appliedNodes
           if (deepEqual(currentNodes, nextNodes)) {
             return
           }
@@ -792,7 +801,7 @@ export const createDiagramStore = (
             // Commit everything deferred while the gesture was in flight.
             // `reconcileYMap` writes only keys whose value actually changed,
             // so this is a no-op for nodes the loop above already wrote.
-            if (gestureSettled && !gestureInFlight) {
+            if ((gestureSettled && !gestureInFlight) || refitted) {
               reconcileYMap(
                 getNodesMap(ydoc),
                 nodeEntriesForPersistence(nextNodes)

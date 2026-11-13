@@ -1,6 +1,7 @@
 import { DiagramNodeTypeRecord, type DiagramNodeType } from "@/nodes"
 import { XYPosition, type Node } from "@xyflow/react"
 import { log } from "../logger"
+import { LAYOUT } from "@/constants"
 
 export const getPositionOnCanvas = (
   node: Node,
@@ -48,32 +49,54 @@ export const resizeAllParents = (node: Node, allNodes: Node[]) => {
     }
     const allChildren = allNodes.filter((n) => n.parentId === parent.id)
 
-    if (currentNode.position.x < 0) {
-      const parentPositionUpdateOffsetX = -1 * currentNode.position.x
-      parent.position.x = parent.position.x - parentPositionUpdateOffsetX
-      parent.width = parent.width! + parentPositionUpdateOffsetX
+    // The container keeps its header band and a margin around its content,
+    // so a child can never cover it completely.
+    const marginX = LAYOUT.DEFAULT_PADDING
+    const marginTop = LAYOUT.DEFAULT_HEADER_HEIGHT
+    if (currentNode.position.x < marginX) {
+      const offsetX = marginX - currentNode.position.x
+      parent.position.x = parent.position.x - offsetX
+      parent.width = parent.width! + offsetX
       allChildren.forEach((child) => {
-        child.position.x = child.position.x + parentPositionUpdateOffsetX
+        child.position.x = child.position.x + offsetX
       })
     }
-    if (currentNode.position.y < 0) {
-      const parentPositionUpdateOffsetY = -1 * currentNode.position.y
-      parent.position.y = parent.position.y - parentPositionUpdateOffsetY
-      parent.height = parent.height! + parentPositionUpdateOffsetY
+    if (currentNode.position.y < marginTop) {
+      const offsetY = marginTop - currentNode.position.y
+      parent.position.y = parent.position.y - offsetY
+      parent.height = parent.height! + offsetY
       allChildren.forEach((child) => {
-        child.position.y = child.position.y + parentPositionUpdateOffsetY
+        child.position.y = child.position.y + offsetY
       })
     }
-    if (currentNode.position.x + currentNode.width! > parent.width!) {
-      parent.width = currentNode.position.x + currentNode.width!
+    const right = currentNode.position.x + currentNode.width! + marginX
+    if (right > parent.width!) {
+      parent.width = right
     }
-    if (currentNode.position.y + currentNode.height! > parent.height!) {
-      parent.height = currentNode.position.y + currentNode.height!
+    const bottom = currentNode.position.y + currentNode.height! + marginX
+    if (bottom > parent.height!) {
+      parent.height = bottom
     }
 
     currentNode = allNodes.find((n) => n.id === currentNode.parentId)!
   }
   return allNodes
+}
+
+/**
+ * `nodes` with the container `containerId` (and its ancestors) grown back
+ * around its children, e.g. after it was resized smaller than them.
+ */
+export const fitContainerToChildren = (
+  containerId: string,
+  nodes: Node[]
+): Node[] => {
+  if (!nodes.some((node) => node.parentId === containerId)) return nodes
+  const fitted = structuredClone(nodes)
+  fitted
+    .filter((node) => node.parentId === containerId)
+    .forEach((child) => resizeAllParents(child, fitted))
+  return fitted
 }
 
 export function sortNodesTopologically(nodes: Node[]): Node[] {
