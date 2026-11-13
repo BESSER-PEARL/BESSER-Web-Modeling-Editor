@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven';
-import { ApollonEditorProvider } from '../../../editors';
+import { BesserEditorProvider } from '../../../editors';
 
 const fake = vi.hoisted(() => ({
   rateLimitAllowed: true,
@@ -89,9 +89,9 @@ function renderHarness() {
   });
   render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Harness apiRef={apiRef} />
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>,
   );
   return apiRef;

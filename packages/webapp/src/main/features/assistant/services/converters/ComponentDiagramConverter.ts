@@ -1,15 +1,17 @@
 /**
- * Component Diagram Converter
+ * Component Diagram Converter (v4-native)
  * Converts a simplified ComponentDiagram spec emitted by the modeling agent
- * into the Apollon ComponentDiagram model.
+ * into a v4 ComponentDiagram model.
  *
- * Elements: Subsystem (container), Component.
- * Relationships: ComponentDependency.
- * Layout: subsystems are placed in a grid left-to-right;
- *         components inside subsystems are placed below their subsystem label.
+ * Nodes: `componentSubsystem` (container), `component`.
+ * Edges: `ComponentDependency` with `data.stereotype`.
+ * Layout: subsystems are placed left-to-right; components inside a subsystem
+ *         are stacked below its header (positions relative to the subsystem).
  */
 
-import { DiagramConverter, centerElementsOnOrigin, generateUniqueId } from './base';
+import type { BesserEdge, BesserNode } from '@besser/wme';
+import { DiagramConverter, centerNodesOnOrigin, generateUniqueId } from './base';
+import { buildV4Edge, buildV4Node, createEmptyV4Model } from '../shared/v4Builders';
 
 const SUBSYSTEM_W = 300;
 const SUBSYSTEM_H_MIN = 160;
@@ -18,21 +20,23 @@ const COMPONENT_H = 80;
 const COMPONENT_GAP = 20;
 const SUBSYSTEM_GAP_X = 60;
 const SUBSYSTEM_PADDING = 30;
-const TOP_PADDING = 40;
+// Children start below the subsystem's «subsystem» stereotype and name.
+const TOP_PADDING = 70;
 
 export class ComponentDiagramConverter implements DiagramConverter {
   getDiagramType() {
     return 'ComponentDiagram' as const;
   }
 
-  convertSingleElement(spec: any) {
+  convertSingleElement(spec: any): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const name = spec?.name || spec?.elementName || 'Component';
-    return this.convertCompleteSystem({
+    const { nodes, edges } = this.convertCompleteSystem({
       systemName: name,
       subsystems: [],
       components: [{ id: 'comp1', name, owner: null, stereotype: spec?.stereotype || 'solution' }],
       dependencies: [],
     });
+    return { nodes, edges };
   }
 
   convertCompleteSystem(systemSpec: any) {
@@ -40,116 +44,103 @@ export class ComponentDiagramConverter implements DiagramConverter {
     const components: any[] = Array.isArray(systemSpec?.components) ? systemSpec.components : [];
     const deps: any[] = Array.isArray(systemSpec?.dependencies) ? systemSpec.dependencies : [];
 
-    const elements: Record<string, any> = {};
-    const relationships: Record<string, any> = {};
-    // Map spec id → apollon id
+    const model = createEmptyV4Model('ComponentDiagram', systemSpec?.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
+    // spec id -> node id
     const idMap: Record<string, string> = {};
+    // subsystem node id -> absolute position, to nest subsystems relative to their owner
+    const absPos: Record<string, { x: number; y: number }> = {};
 
-    // ── 1. Place subsystems left-to-right ──────────────────────────────
-    // First compute how many components each subsystem has (for height)
-    const subComps: Record<string, any[]> = {};
-    subsystems.forEach((s) => { subComps[s.id] = []; });
+    // 1. Subsystems left-to-right, tall enough for their components.
+    const compCount: Record<string, number> = {};
+    subsystems.forEach((s) => {
+      compCount[s.id] = 0;
+    });
     components.forEach((c) => {
-      if (c.owner && subComps[c.owner] !== undefined) {
-        subComps[c.owner].push(c);
-      }
+      if (c.owner && compCount[c.owner] !== undefined) compCount[c.owner] += 1;
     });
 
     let curX = 0;
-    const subBounds: Record<string, { x: number; y: number; width: number; height: number }> = {};
-
     subsystems.forEach((sub) => {
-      const compCount = subComps[sub.id]?.length || 0;
       const height = Math.max(
         SUBSYSTEM_H_MIN,
-        TOP_PADDING + compCount * (COMPONENT_H + COMPONENT_GAP) + SUBSYSTEM_PADDING,
+        TOP_PADDING + (compCount[sub.id] || 0) * (COMPONENT_H + COMPONENT_GAP) + SUBSYSTEM_PADDING,
       );
-      const width = SUBSYSTEM_W;
-      const apollonId = generateUniqueId('sub');
-      idMap[sub.id] = apollonId;
-      subBounds[sub.id] = { x: curX, y: 0, width, height };
-      elements[apollonId] = {
-        id: apollonId,
-        name: typeof sub.name === 'string' ? sub.name : '',
-        type: 'Subsystem',
-        owner: sub.owner && idMap[sub.owner] ? idMap[sub.owner] : null,
-        bounds: { x: curX, y: 0, width, height },
-        stereotype: 'subsystem',
-        displayStereotype: true,
-      };
-      curX += width + SUBSYSTEM_GAP_X;
+      const id = generateUniqueId('sub');
+      const parentId = sub.owner ? idMap[sub.owner] : undefined;
+      const parentPos = (parentId && absPos[parentId]) || { x: 0, y: 0 };
+      idMap[sub.id] = id;
+      absPos[id] = { x: curX, y: 0 };
+      nodes.push(
+        buildV4Node(
+          id,
+          'componentSubsystem',
+          { x: curX - parentPos.x, y: -parentPos.y },
+          { width: SUBSYSTEM_W, height },
+          {
+            name: typeof sub.name === 'string' ? sub.name : '',
+            stereotype: 'subsystem',
+            isComponentSubsystemHeaderShown: true,
+          },
+          parentId,
+        ),
+      );
+      curX += SUBSYSTEM_W + SUBSYSTEM_GAP_X;
     });
 
-    // ── 2. Place components ────────────────────────────────────────────
-    // Track how many components placed per subsystem for vertical stacking
-    const subCompCursor: Record<string, number> = {};
-    let floatingX = curX;  // for top-level components (no owner)
-
+    // 2. Components: stacked inside their owner, else to the right of the subsystems.
+    const ownerCursor: Record<string, number> = {};
+    let floatingX = curX;
     components.forEach((comp) => {
-      const apollonId = generateUniqueId('comp');
-      idMap[comp.id] = apollonId;
-
-      let x = 0, y = 0, owner: string | null = null;
-      if (comp.owner && idMap[comp.owner]) {
-        owner = idMap[comp.owner];
-        const sb = subBounds[comp.owner];
-        const idx = subCompCursor[comp.owner] || 0;
-        x = (sb?.x || 0) + SUBSYSTEM_PADDING;
-        y = (sb?.y || 0) + TOP_PADDING + idx * (COMPONENT_H + COMPONENT_GAP);
-        subCompCursor[comp.owner] = idx + 1;
+      const id = generateUniqueId('comp');
+      idMap[comp.id] = id;
+      const parentId = comp.owner ? idMap[comp.owner] : undefined;
+      let position: { x: number; y: number };
+      if (parentId) {
+        const idx = ownerCursor[comp.owner] || 0;
+        position = { x: SUBSYSTEM_PADDING, y: TOP_PADDING + idx * (COMPONENT_H + COMPONENT_GAP) };
+        ownerCursor[comp.owner] = idx + 1;
       } else {
-        // No owner — place to the right of subsystems
-        x = floatingX;
-        y = 0;
+        position = { x: floatingX, y: 0 };
         floatingX += COMPONENT_W + COMPONENT_GAP;
       }
-
-      elements[apollonId] = {
-        id: apollonId,
-        name: typeof comp.name === 'string' ? comp.name : '',
-        type: 'Component',
-        owner,
-        bounds: { x, y, width: COMPONENT_W, height: COMPONENT_H },
-        stereotype: comp.stereotype || 'solution',
-        displayStereotype: true,
-        realizes: [],
-        processModelRefs: [],
-      };
+      nodes.push(
+        buildV4Node(
+          id,
+          'component',
+          position,
+          { width: COMPONENT_W, height: COMPONENT_H },
+          {
+            name: typeof comp.name === 'string' ? comp.name : '',
+            stereotype: comp.stereotype || 'solution',
+            isComponentHeaderShown: true,
+            realizes: [],
+            processModelRefs: [],
+          },
+          parentId,
+        ),
+      );
     });
 
-    // ── 3. Dependencies ────────────────────────────────────────────────
+    // 3. Dependencies.
     deps.forEach((dep) => {
-      const srcId = idMap[String(dep.source)];
-      const tgtId = idMap[String(dep.target)];
-      if (!srcId || !tgtId) return;
-      const relId = generateUniqueId('cdep');
-      relationships[relId] = {
-        id: relId,
-        name: '',
-        type: 'ComponentDependency',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 100, height: 1 },
-        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-        source: { element: srcId, direction: 'Right' },
-        target: { element: tgtId, direction: 'Left' },
-        isManuallyLayouted: false,
-        stereotype: dep.stereotype || 'uses',
-      };
+      const source = idMap[String(dep.source)];
+      const target = idMap[String(dep.target)];
+      if (!source || !target) return;
+      edges.push(
+        buildV4Edge(
+          generateUniqueId('cdep'),
+          'ComponentDependency',
+          source,
+          target,
+          { source: 'right', target: 'left' },
+          { name: '', label: '', stereotype: dep.stereotype || 'uses' },
+        ),
+      );
     });
 
-    // ── Centre on origin ───────────────────────────────────────────────
-    const size = centerElementsOnOrigin(elements);
-    const totalW = size?.width ?? 800;
-    const totalH = size?.height ?? 400;
-
-    return {
-      version: '3.0.0',
-      type: 'ComponentDiagram',
-      size: { width: Math.max(600, totalW + 80), height: Math.max(300, totalH + 80) },
-      interactive: { elements: {}, relationships: {} },
-      elements,
-      relationships,
-      assessments: {},
-    };
+    centerNodesOnOrigin(model);
+    return model;
   }
 }

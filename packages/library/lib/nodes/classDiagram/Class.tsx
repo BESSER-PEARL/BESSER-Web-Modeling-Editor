@@ -1,0 +1,246 @@
+import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { DefaultNodeWrapper } from "@/nodes/wrappers"
+import { ClassSVG } from "@/components"
+import { useEffect, useMemo, useRef } from "react"
+import { ClassNodeElement, ClassNodeProps } from "@/types"
+import { useDiagramStore } from "@/store/context"
+import { useShallow } from "zustand/shallow"
+import {
+  measureTextWidth,
+  calculateMinWidth,
+  calculateMinHeight,
+} from "@/utils"
+import { LAYOUT } from "@/constants"
+import { PopoverManager } from "@/components/popovers/PopoverManager"
+import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { formatDisplayName } from "@/utils/classifierMemberDisplay"
+import { useClassNotation } from "@/store/settingsStore"
+import { applyNodeSize } from "@/utils/nodeSizing"
+
+/**
+ * Format a row for display. When the row carries structured BESSER fields
+ * (`attributeType`, `visibility`, …) we re-render the canonical UML / ER
+ * string so the editor responds to notation toggles without round-tripping
+ * to the inspector. Stock diagrams that only set `{id, name}` get the raw
+ * `name` back unchanged.
+ *
+ * When the parent class' `stereotype` is
+ * `'Enumeration'`, the row is an enumeration literal — `formatDisplayName`
+ * drops visibility / type / flag markers and returns just the bare name.
+ * We force-format Enumeration rows even when the row has no structured
+ * fields, because legacy fixtures may store visibility / type in the
+ * `name` itself ("+ FOO: int") and the Enumeration display must scrub it.
+ */
+const formatRow = (
+  row: ClassNodeElement,
+  mode: "UML" | "ER",
+  stereotype?: string | null,
+  isMethod = false
+): ClassNodeElement => {
+  const hasStructuredFields =
+    row.attributeType !== undefined ||
+    row.visibility !== undefined ||
+    row.isOptional !== undefined ||
+    row.isDerived !== undefined ||
+    row.isId !== undefined ||
+    row.isExternalId !== undefined ||
+    row.defaultValue !== undefined ||
+    row.parameters !== undefined
+  const isEnumeration = stereotype === "Enumeration"
+  if (!hasStructuredFields && !isEnumeration) return row
+  const formatted = formatDisplayName(
+    {
+      name: row.name,
+      attributeType: row.attributeType,
+      visibility: row.visibility,
+      isOptional: row.isOptional,
+      isDerived: row.isDerived,
+      isId: row.isId,
+      isExternalId: row.isExternalId,
+      defaultValue: row.defaultValue,
+      // Method rows: rebuild the `(p: type, …)` signature segment from
+      // the structured parameters (bare-name + parameters[] storage).
+      parameters: row.parameters,
+    },
+    mode,
+    stereotype ?? undefined,
+    isMethod
+  )
+  return { ...row, name: formatted }
+}
+
+export function Class({
+  id,
+  width,
+  height,
+  data,
+}: NodeProps<Node<ClassNodeProps>>) {
+  const { setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      setNodes: state.setNodes,
+    }))
+  )
+  const classNotation = useClassNotation()
+  const { name, stereotype, attributes, methods } = data
+  // Replaces the v3 `editorRevision++` hack: the Zustand subscription on
+  // `classNotation` re-renders this node whenever ER↔UML flips, with no
+  // editor remount and no undo-history loss.
+  const displayAttributes = useMemo(
+    () => attributes.map((a) => formatRow(a, classNotation, stereotype)),
+    [attributes, classNotation, stereotype]
+  )
+  const displayMethods = useMemo(
+    () => methods.map((m) => formatRow(m, classNotation, stereotype, true)),
+    [methods, classNotation, stereotype]
+  )
+
+  const isDiagramModifiable = useDiagramModifiable()
+
+  const [classSvgWrapperEl, classSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
+
+  const showStereotype = !!stereotype
+  const headerHeight = showStereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
+
+  const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
+  const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
+  const padding = LAYOUT.DEFAULT_PADDING
+  const font = LAYOUT.DEFAULT_FONT
+
+  // Calculate the widest text accurately. Width must consider the
+  // *display* name (post-format) so ER/UML toggles re-fit the node.
+  const maxTextWidth = useMemo(() => {
+    // The header renders bold (HeaderSection).
+    const boldFont = font.replace(/^\d+/, "700")
+    const headerTextWidths = [
+      stereotype ? measureTextWidth(`«${stereotype}»`, boldFont) : 0,
+      measureTextWidth(name, boldFont),
+    ]
+    const attributesTextWidths = displayAttributes.map((attr) =>
+      measureTextWidth(attr.name, font)
+    )
+    const methodsTextWidths = displayMethods.map((method) =>
+      measureTextWidth(method.name, font)
+    )
+    const allTextWidths = [
+      ...headerTextWidths,
+      ...attributesTextWidths,
+      ...methodsTextWidths,
+    ]
+
+    const result = Math.max(...allTextWidths, 0)
+    return result
+  }, [stereotype, name, displayAttributes, displayMethods, font])
+
+  const minWidth = useMemo(() => {
+    const result = calculateMinWidth(maxTextWidth, padding)
+    return result
+  }, [maxTextWidth, padding])
+
+  // Calculate minimum dimensions. Enumeration
+  // hides the methods compartment entirely; height drops the methods
+  // contribution to match. ER mode also hides methods for entity-capable
+  // classifiers (Class / Abstract) — must drop the height contribution
+  // too so the node doesn't reserve empty space below the attributes.
+  const isEnumerationVariant = stereotype === "Enumeration"
+  const isERHidesMethodsVariant =
+    classNotation === "ER" &&
+    stereotype !== "Interface" &&
+    stereotype !== "Enumeration"
+  const effectiveMethodCount =
+    isEnumerationVariant || isERHidesMethodsVariant ? 0 : methods.length
+  const minHeight = useMemo(
+    () =>
+      calculateMinHeight(
+        headerHeight,
+        attributes.length,
+        effectiveMethodCount,
+        attributeHeight,
+        methodHeight
+      ),
+    [
+      headerHeight,
+      attributes.length,
+      effectiveMethodCount,
+      attributeHeight,
+      methodHeight,
+    ]
+  )
+
+  // A class fits its rows until the user makes it taller: grow to the
+  // content, and follow the content while the height still fits it (also
+  // the methods-included height, for a UML-saved class shown in ER).
+  const fullContentHeight = calculateMinHeight(
+    headerHeight,
+    attributes.length,
+    methods.length,
+    attributeHeight,
+    methodHeight
+  )
+  const fittedHeight = useRef(minHeight)
+  useEffect(() => {
+    const fitted =
+      height === fittedHeight.current || height === fullContentHeight
+    fittedHeight.current = minHeight
+    if (height && (height < minHeight || (fitted && height !== minHeight))) {
+      setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
+    }
+  }, [minHeight, fullContentHeight, height, id, setNodes])
+
+  useEffect(() => {
+    if (width && width < minWidth) {
+      setNodes((prev) => applyNodeSize(prev, id, { width: minWidth }))
+    }
+    // Grow only when the content (minWidth) changes; re-running on every
+    // `width` change would write to the store mid-resize.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, setNodes, minWidth])
+
+  const finalWidth = Math.max(width ?? 0, minWidth)
+  const finalHeight = Math.max(height ?? 0, minHeight)
+
+  return (
+    <DefaultNodeWrapper
+      width={width}
+      height={height}
+      elementId={id}
+    >
+      <NodeToolbar elementId={id} />
+
+      <NodeResizer
+        nodeId={id}
+        isVisible={isDiagramModifiable}
+        minWidth={minWidth}
+        minHeight={minHeight}
+        handleStyle={{ width: 8, height: 8 }}
+      />
+      <div ref={classSvgWrapperRef}>
+        {/* Pass the *raw* attribute/method rows (not the pre-formatted
+            display copies). ClassSVG reads the live `classNotation` from
+            the settings store and runs `formatDisplayName` once on the
+            raw rows — feeding it already-formatted names produces double
+            visibility prefixes and double `?` markers because the strip
+            logic doesn't reverse the inline `optional`/`derived` flags.
+            `displayAttributes`/`displayMethods` above are kept for the
+            width calculation (a single canonical-form measure is what
+            we want there). */}
+        <ClassSVG
+          width={finalWidth}
+          height={finalHeight}
+          data={data}
+          id={id}
+          showAssessmentResults={!isDiagramModifiable}
+        />
+      </div>
+
+      <PopoverManager
+        anchorEl={classSvgWrapperEl}
+        elementId={id}
+        type={"class" as const}
+      />
+    </DefaultNodeWrapper>
+  )
+}

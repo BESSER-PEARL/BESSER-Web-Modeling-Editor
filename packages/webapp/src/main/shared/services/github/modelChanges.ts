@@ -11,6 +11,7 @@ import {
   type ClassModelElement,
   type ClassRelationship,
 } from './modelAttribution';
+import { hasClass, relationshipIds } from './modelGeometry';
 
 export interface ModelChanges {
   added: ClassModelElement[];
@@ -34,8 +35,6 @@ function signature({ name, type, visibility, kind, ownerId }: ClassModelElement)
   const visible = visibility ?? (symbol ? VISIBILITY_BY_SYMBOL[symbol] : 'public');
   return `${visible}|${bare}|${typeInName || type || 'str'}`;
 }
-
-type ApollonModel = { elements?: Record<string, unknown>; relationships?: Record<string, unknown> };
 
 export function diffClassModels(base: BesserProject | null, head: BesserProject): ModelChanges {
   const before = base ? classModelElements(base) : new Map<string, ClassModelElement>();
@@ -92,17 +91,17 @@ export function pathMidpoint(points: { x: number; y: number }[]): { x: number; y
 }
 
 /**
- * The ids to draw from `headModel` (an Apollon diagram): new relationships, and the
- * classes that are new or changed, whole, since a class is drawn with its members.
+ * The ids to draw from `headModel` (a class diagram in either editor format): new
+ * relationships, and the classes that are new or changed, whole, since a class is
+ * drawn with its members.
  */
 export function idsToDraw(changes: ModelChanges, baseModel: unknown, headModel: unknown): string[] {
-  const head = (headModel ?? {}) as ApollonModel;
-  const base = (baseModel ?? {}) as ApollonModel;
   const classes = new Set(
     [...changes.added, ...changes.changed].map((element) => element.ownerId ?? element.id),
   );
-  const relationships = Object.keys(head.relationships ?? {}).filter((id) => !base.relationships?.[id]);
-  return [...[...classes].filter((id) => head.elements?.[id]), ...relationships];
+  const before = new Set(relationshipIds(baseModel));
+  const relationships = relationshipIds(headModel).filter((id) => !before.has(id));
+  return [...[...classes].filter((id) => hasClass(headModel, id)), ...relationships];
 }
 
 /** Who a commit is by: the GitHub account when it matched one, else the git name. */

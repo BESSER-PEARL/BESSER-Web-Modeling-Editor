@@ -1,15 +1,23 @@
 /**
- * Component Diagram Modifier
+ * Component Diagram Modifier (v4-native)
  * Handles incremental modify_model operations for ComponentDiagram.
  *
  * Actions: add_component, add_subsystem, add_dependency,
  *          modify_element, remove_element, remove_dependency.
+ * Elements are referenced by node id or name; `changes.owner` names the
+ * Subsystem a new element goes into.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import { buildV4Edge, buildV4Node } from '../shared/v4Builders';
 
-const COMPONENT_TYPES = ['Component', 'Subsystem'];
+const COMPONENT_TYPES = ['component', 'componentSubsystem'];
+// Inner layout of a Subsystem (matches the converter).
+const SUBSYSTEM_PADDING = 30;
+const TOP_PADDING = 70;
+const CHILD_GAP = 20;
 
 export class ComponentDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -29,7 +37,6 @@ export class ComponentDiagramModifier implements DiagramModifier {
 
   applyModification(model: BESSERModel, modification: ModelModification): BESSERModel {
     const updated = ModifierHelpers.cloneModel(model);
-    if (!updated.relationships) updated.relationships = {};
     switch (modification.action) {
       case 'add_component':
         return this.addComponent(updated, modification);
@@ -48,116 +55,130 @@ export class ComponentDiagramModifier implements DiagramModifier {
     }
   }
 
-  /** Place new elements to the right of existing content, near the vertical mean. */
-  private nextPosition(model: BESSERModel): { x: number; y: number } {
-    let maxRight = 0;
-    let sumY = 0;
-    let count = 0;
-    for (const el of Object.values(model.elements)) {
-      if (!COMPONENT_TYPES.includes(el.type)) continue;
-      maxRight = Math.max(maxRight, el.bounds.x + el.bounds.width);
-      sumY += el.bounds.y;
-      count += 1;
+  /**
+   * Top-level elements go right of the existing ones, near their vertical
+   * mean; inside a Subsystem they stack below its children (Subsystem-relative).
+   */
+  private nextPosition(model: BESSERModel, parentId?: string): { x: number; y: number } {
+    const siblings = ModifierHelpers.nodes(model).filter(
+      (n) => COMPONENT_TYPES.includes(n.type) && n.parentId === parentId,
+    );
+    if (parentId) {
+      const bottom = Math.max(TOP_PADDING - CHILD_GAP, ...siblings.map((n) => n.position.y + (n.height || 0)));
+      return { x: SUBSYSTEM_PADDING, y: bottom + CHILD_GAP };
     }
-    return { x: count ? maxRight + 40 : 0, y: count ? Math.round(sumY / count) : 0 };
+    if (!siblings.length) return { x: 0, y: 0 };
+    const maxRight = Math.max(...siblings.map((n) => n.position.x + (n.width || 0)));
+    const meanY = siblings.reduce((sum, n) => sum + n.position.y, 0) / siblings.length;
+    return { x: maxRight + 40, y: Math.round(meanY) };
   }
 
-  private requireElement(model: BESSERModel, m: ModelModification): string {
-    const id =
-      ModifierHelpers.resolveElementRef(model, m.target.elementId, COMPONENT_TYPES) ??
-      ModifierHelpers.resolveElementRef(model, m.target.elementName, COMPONENT_TYPES);
-    if (!id) {
+  private addChild(model: BESSERModel, node: BesserNode): void {
+    ModifierHelpers.addNode(model, node);
+    ModifierHelpers.growParentToFit(model, node, SUBSYSTEM_PADDING);
+  }
+
+  private requireElement(model: BESSERModel, m: ModelModification): BesserNode {
+    const node =
+      ModifierHelpers.resolveNodeRef(model, m.target.elementId, COMPONENT_TYPES) ??
+      ModifierHelpers.resolveNodeRef(model, m.target.elementName, COMPONENT_TYPES);
+    if (!node) {
       throw new Error(`Element '${m.target.elementName ?? m.target.elementId ?? ''}' not found in the model.`);
     }
-    return id;
+    return node;
   }
 
   /** The Subsystem a new element goes into; a named Subsystem that does not exist is an error. */
-  private ownerSubsystem(model: BESSERModel, ref?: string): string | null {
-    if (!ref) return null;
-    const id = ModifierHelpers.resolveElementRef(model, ref, ['Subsystem']);
-    if (!id) throw new Error(`Subsystem '${ref}' not found in the model.`);
-    return id;
+  private ownerSubsystem(model: BESSERModel, ref?: string): string | undefined {
+    if (!ref) return undefined;
+    const node = ModifierHelpers.resolveNodeRef(model, ref, ['componentSubsystem']);
+    if (!node) throw new Error(`Subsystem '${ref}' not found in the model.`);
+    return node.id;
   }
 
   private addComponent(model: BESSERModel, m: ModelModification): BESSERModel {
-    const { x, y } = this.nextPosition(model);
-    const id = ModifierHelpers.generateUniqueId('comp');
-    model.elements[id] = {
-      id,
-      type: 'Component',
-      name: m.target.elementName || m.changes.name || 'Component',
-      owner: this.ownerSubsystem(model, m.changes.owner),
-      stereotype: m.changes.stereotype || 'solution',
-      displayStereotype: true,
-      bounds: { x, y, width: 160, height: 80 },
-      realizes: [],
-      processModelRefs: [],
-    };
+    const parentId = this.ownerSubsystem(model, m.changes.owner);
+    this.addChild(
+      model,
+      buildV4Node(
+        ModifierHelpers.generateUniqueId('comp'),
+        'component',
+        this.nextPosition(model, parentId),
+        { width: 160, height: 80 },
+        {
+          name: m.target.elementName || m.changes.name || 'Component',
+          stereotype: m.changes.stereotype || 'solution',
+          isComponentHeaderShown: true,
+          realizes: [],
+          processModelRefs: [],
+        },
+        parentId,
+      ),
+    );
     return model;
   }
 
   private addSubsystem(model: BESSERModel, m: ModelModification): BESSERModel {
-    const { x, y } = this.nextPosition(model);
-    const id = ModifierHelpers.generateUniqueId('sub');
-    model.elements[id] = {
-      id,
-      type: 'Subsystem',
-      name: m.target.elementName || m.changes.name || 'Subsystem',
-      owner: this.ownerSubsystem(model, m.changes.owner),
-      stereotype: 'subsystem',
-      displayStereotype: true,
-      bounds: { x, y, width: 300, height: 160 },
-    };
+    const parentId = this.ownerSubsystem(model, m.changes.owner);
+    this.addChild(
+      model,
+      buildV4Node(
+        ModifierHelpers.generateUniqueId('sub'),
+        'componentSubsystem',
+        this.nextPosition(model, parentId),
+        { width: 300, height: 160 },
+        {
+          name: m.target.elementName || m.changes.name || 'Subsystem',
+          stereotype: 'subsystem',
+          isComponentSubsystemHeaderShown: true,
+        },
+        parentId,
+      ),
+    );
     return model;
   }
 
   private addDependency(model: BESSERModel, m: ModelModification): BESSERModel {
-    const srcId = ModifierHelpers.resolveElementRef(model, m.changes.source, COMPONENT_TYPES);
-    const tgtId = ModifierHelpers.resolveElementRef(model, m.changes.target, COMPONENT_TYPES);
-    if (!srcId || !tgtId) throw new Error('Could not locate source or target element for the dependency.');
-    const id = ModifierHelpers.generateUniqueId('cdep');
-    model.relationships[id] = {
-      id,
-      type: 'ComponentDependency',
-      name: '',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 100, height: 1 },
-      path: [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
-      ],
-      source: { element: srcId, direction: 'Right' },
-      target: { element: tgtId, direction: 'Left' },
-      isManuallyLayouted: false,
-      stereotype: m.changes.dependencyStereotype || 'uses',
-    };
+    const source = ModifierHelpers.resolveNodeRef(model, m.changes.source, COMPONENT_TYPES);
+    const target = ModifierHelpers.resolveNodeRef(model, m.changes.target, COMPONENT_TYPES);
+    if (!source || !target) throw new Error('Could not locate source or target element for the dependency.');
+    ModifierHelpers.addEdge(
+      model,
+      buildV4Edge(
+        ModifierHelpers.generateUniqueId('cdep'),
+        'ComponentDependency',
+        source.id,
+        target.id,
+        { source: 'right', target: 'left' },
+        { name: '', label: '', stereotype: m.changes.dependencyStereotype || 'uses' },
+      ),
+    );
     return model;
   }
 
   private modifyElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    const el = model.elements[this.requireElement(model, m)];
-    if (m.changes.name) el.name = m.changes.name;
-    if (m.changes.stereotype) el.stereotype = m.changes.stereotype;
+    const data = this.requireElement(model, m).data;
+    if (m.changes.name) data.name = m.changes.name;
+    if (m.changes.stereotype) data.stereotype = m.changes.stereotype;
     return model;
   }
 
-  /** Removes the element, everything it owns and every dependency touching them. */
+  /** Removes the element, everything it contains and every dependency touching them. */
   private removeElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    return ModifierHelpers.removeElementWithChildren(model, this.requireElement(model, m));
+    return ModifierHelpers.removeNodeWithChildren(model, this.requireElement(model, m).id);
   }
 
   private removeDependency(model: BESSERModel, m: ModelModification): BESSERModel {
-    const srcId = ModifierHelpers.resolveElementRef(model, m.changes.source, COMPONENT_TYPES);
-    const tgtId = ModifierHelpers.resolveElementRef(model, m.changes.target, COMPONENT_TYPES);
-    const relId = Object.keys(model.relationships).find(
-      (rid) =>
-        model.relationships[rid].source?.element === srcId && model.relationships[rid].target?.element === tgtId,
-    );
-    if (!srcId || !tgtId || !relId) {
+    const source = ModifierHelpers.resolveNodeRef(model, m.changes.source, COMPONENT_TYPES);
+    const target = ModifierHelpers.resolveNodeRef(model, m.changes.target, COMPONENT_TYPES);
+    const edge =
+      source && target
+        ? ModifierHelpers.edges(model).find((e) => e.source === source.id && e.target === target.id)
+        : undefined;
+    if (!edge) {
       throw new Error(`No dependency from '${m.changes.source ?? ''}' to '${m.changes.target ?? ''}' found.`);
     }
-    delete model.relationships[relId];
+    model.edges = ModifierHelpers.edges(model).filter((e: BesserEdge) => e.id !== edge.id);
     return model;
   }
 }

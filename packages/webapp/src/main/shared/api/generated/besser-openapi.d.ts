@@ -736,6 +736,12 @@ export interface paths {
          * Get Single Json Model
          * @description Convert a BUML Python file to JSON format for single diagram import.
          *     This endpoint handles both full project files and single diagram files.
+         *
+         *     When `existing_model` is provided (as a stringified v4 diagram JSON of the
+         *     diagram the file updates), the imported diagram is laid out like it:
+         *     matched elements keep their id, position and size, new ones are placed
+         *     next to a neighbour. `warnings` then reports what was kept, added and not
+         *     in the file. Class, Agent and State Machine diagrams only.
          */
         post: operations["get_single_json_model_besser_api_get_json_model_post"];
         delete?: never;
@@ -758,7 +764,7 @@ export interface paths {
          * @description Convert a B-UML class-diagram file to an auto-laid-out SVG image.
          *
          *     Pipeline: parse the B-UML to a DomainModel, convert it to the editor JSON
-         *     model, then delegate rendering to the WME Node server (Apollon, headless),
+         *     model, then delegate rendering to the WME Node server (headless editor),
          *     which runs ELK auto-layout and exports SVG. The Node server base URL is read
          *     from the WME_NODE_SERVER_URL env var (default http://localhost:8080).
          */
@@ -1891,6 +1897,8 @@ export interface components {
         Body_get_single_json_model_besser_api_get_json_model_post: {
             /** Buml File */
             buml_file: string;
+            /** Existing Model */
+            existing_model?: string;
         };
         /** Body_get_svg_besser_api_get_svg_post */
         Body_get_svg_besser_api_get_svg_post: {

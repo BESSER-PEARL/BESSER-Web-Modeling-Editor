@@ -11,8 +11,9 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import type { ApollonEditor } from '@besser/wme';
-import { X, Plus, Trash2, ChevronDown, ChevronRight, UserCircle2, Info } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { BesserEditor } from '@besser/wme';
+import { X, Plus, Trash2, ChevronDown, ChevronRight, UserCircle2, Info, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,7 +29,7 @@ import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types
 interface UserProfileFormPanelProps {
   open: boolean;
   onClose: () => void;
-  editor: ApollonEditor | undefined;
+  editor: BesserEditor | undefined;
 }
 
 const fieldSelectClass =
@@ -278,7 +279,8 @@ const PartSection: React.FC<{
 /* ------------------------------------------------------------------ */
 
 export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open, onClose, editor }) => {
-  const { tree, formState, applyEdit, ready } = useUserProfileForm(open, editor);
+  const { t } = useTranslation();
+  const { tree, formState, applyEdit, ready, locked } = useUserProfileForm(open, editor);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Double-clicking a diagram element on the canvas opens its own editor popup;
@@ -352,7 +354,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
   return ReactDOM.createPortal(
     <div
       ref={panelRef}
-      className="pointer-events-auto fixed inset-y-0 right-0 flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card/95 shadow-elevation-3 backdrop-blur-sm"
+      className="pointer-events-auto fixed inset-y-0 right-0 flex w-[420px] max-w-[92vw] flex-col border-l border-brand/12 bg-card shadow-elevation-3"
       style={{ zIndex: Z_INDEX.POPOVER }}
     >
       {/* Header */}
@@ -381,6 +383,15 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
           </div>
         ) : (
           <>
+            {locked && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-[13px] text-foreground"
+              >
+                <Lock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span>{t('editors.userProfileForm.locked')}</span>
+              </div>
+            )}
             {/* Fixed User root — cannot be removed */}
             <div className="rounded-lg border border-brand/25 bg-brand/[0.04] p-2.5">
               <div className="flex items-center gap-2">

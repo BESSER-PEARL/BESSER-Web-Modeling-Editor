@@ -1,0 +1,171 @@
+import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { DefaultNodeWrapper } from "@/nodes/wrappers"
+import { ObjectNameSVG, resolveObjectHeaderLabel } from "@/components"
+import { useEffect, useMemo } from "react"
+import { ClassNodeElement, ObjectNodeAttribute, ObjectNodeProps } from "@/types"
+import { useDiagramStore } from "@/store/context"
+import { useShallow } from "zustand/shallow"
+import {
+  measureTextWidth,
+  calculateMinWidth,
+  calculateMinHeight,
+} from "@/utils"
+import { LAYOUT } from "@/constants"
+import { PopoverManager } from "@/components/popovers/PopoverManager"
+import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { formatObjectMember } from "@/utils/classifierMemberDisplay"
+import { applyNodeSize } from "@/utils/nodeSizing"
+
+/**
+ * Object-diagram rows render as `attribute = value` (no visibility, no
+ * type, no `{id}` markers). v3 stripped these via
+ * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`); we
+ * route through `formatObjectMember` so the canvas label is consistent
+ * even when the inspector stores `visibility` / `attributeType` on the
+ * row.
+ */
+const formatObjectAttribute = (row: ObjectNodeAttribute): ClassNodeElement => {
+  const displayName = formatObjectMember({
+    name: row.name,
+    attributeType: row.attributeType,
+    value: row.value,
+  })
+  return { ...row, name: displayName }
+}
+
+export function ObjectName({
+  id,
+  width,
+  height,
+  data,
+}: NodeProps<Node<ObjectNodeProps>>) {
+  const { attributes, stereotype } = data
+  const displayAttributes = useMemo(
+    () => attributes.map(formatObjectAttribute),
+    [attributes]
+  )
+  const { setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      setNodes: state.setNodes,
+    }))
+  )
+
+  const isDiagramModifiable = useDiagramModifiable()
+
+  const [objectSvgWrapperEl, objectSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
+
+  // ObjectName carries an optional stereotype band; widen
+  // the header height to make room for the `«…»` line when set.
+  const hasStereotype = !!stereotype
+  const headerHeight = hasStereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
+  const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
+  const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
+  const padding = LAYOUT.DEFAULT_PADDING
+  const font = LAYOUT.DEFAULT_FONT
+
+  // Calculate the widest text accurately. include the
+  // `«stereotype»` line in the width budget when set so a long
+  // stereotype label doesn't get clipped. object
+  // instances don't carry methods (UML object diagrams show data
+  // values, not types — methods are owned by the class), so the width
+  // budget excludes any method row. The header renders as
+  // `name : ClassName` for linked instances (v3 displayLabel), so the
+  // width budget measures the full label, not just the bare name.
+  const headerLabel = resolveObjectHeaderLabel(data)
+  const maxTextWidth = useMemo(() => {
+    const stereotypeWidth = stereotype
+      ? measureTextWidth(`«${stereotype}»`, font)
+      : 0
+    const headerTextWidth = measureTextWidth(headerLabel, font)
+    const attributesTextWidths = displayAttributes.map(
+      (attr: { name: string }) => measureTextWidth(attr.name, font)
+    )
+    const allTextWidths = [
+      stereotypeWidth,
+      headerTextWidth,
+      ...attributesTextWidths,
+    ]
+
+    const result = Math.max(...allTextWidths, 0)
+    return result
+  }, [stereotype, headerLabel, displayAttributes, font])
+
+  const minWidth = useMemo(() => {
+    const result = calculateMinWidth(maxTextWidth, padding)
+    return result
+  }, [maxTextWidth, padding])
+
+  // Calculate minimum dimensions. pass `0` for the
+  // method row count — objects render no method section.
+  const minHeight = useMemo(
+    () =>
+      calculateMinHeight(
+        headerHeight,
+        attributes.length,
+        0,
+        attributeHeight,
+        methodHeight
+      ),
+    [
+      headerHeight,
+      attributes.length,
+      attributeHeight,
+      methodHeight,
+    ]
+  )
+
+  useEffect(() => {
+    if (height && height < minHeight) {
+      setNodes((prev) => applyNodeSize(prev, id, { height: minHeight }))
+    }
+  }, [minHeight, height, id, setNodes])
+
+  useEffect(() => {
+    if (width && width < minWidth) {
+      setNodes((prev) => applyNodeSize(prev, id, { width: minWidth }))
+    }
+    // Grow only when the content (minWidth) changes; re-running on every
+    // `width` change would write to the store mid-resize.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, setNodes, minWidth])
+
+  const finalWidth = Math.max(width ?? 0, minWidth)
+
+  return (
+    <DefaultNodeWrapper
+      width={width}
+      height={height}
+      elementId={id}
+      className="horizontally-not-resizable"
+    >
+      <NodeToolbar elementId={id} />
+      <NodeResizer
+        nodeId={id}
+        isVisible={isDiagramModifiable}
+        minWidth={minWidth}
+        minHeight={minHeight}
+        maxHeight={minHeight}
+        handleStyle={{ width: 8, height: 8 }}
+      />
+
+      <div ref={objectSvgWrapperRef}>
+        <ObjectNameSVG
+          width={finalWidth}
+          height={minHeight}
+          data={{ ...data, attributes: displayAttributes }}
+          id={id}
+          showAssessmentResults={!isDiagramModifiable}
+        />
+      </div>
+      <PopoverManager
+        anchorEl={objectSvgWrapperEl}
+        elementId={id}
+        type={"objectName" as const}
+      />
+    </DefaultNodeWrapper>
+  )
+}

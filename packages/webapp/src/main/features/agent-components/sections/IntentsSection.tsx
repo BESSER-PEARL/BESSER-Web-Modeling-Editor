@@ -14,6 +14,9 @@ import type { SectionProps } from './types';
 export function IntentsSection({ store, expandedId, toggle, expand }: SectionProps) {
   const { t } = useTranslation();
   const { intents, components, updateComponent, removeComponent } = store;
+  // A sentence added from the keyboard (Enter) or the Add button takes focus when it mounts.
+  const [focusBodyId, setFocusBodyId] = React.useState<string | null>(null);
+  const addSentence = (intentId: string) => setFocusBodyId(store.addTrainingSentence(intentId));
 
   return (
     <SectionPage
@@ -59,7 +62,7 @@ export function IntentsSection({ store, expandedId, toggle, expand }: SectionPro
                   variant="ghost"
                   size="sm"
                   className="h-6 gap-1 text-xs px-2"
-                  onClick={() => store.addTrainingSentence(el.id)}
+                  onClick={() => addSentence(el.id)}
                 >
                   <Plus className="h-3 w-3" /> {t('agentComponents.intents.addSentence')}
                 </Button>
@@ -74,6 +77,13 @@ export function IntentsSection({ store, expandedId, toggle, expand }: SectionPro
                   <Input
                     value={body.name || ''}
                     onChange={e => store.updateTrainingSentence(body.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        addSentence(el.id);
+                      }
+                    }}
+                    autoFocus={body.id === focusBodyId}
                     placeholder={t('agentComponents.intents.sentencePlaceholder')}
                     className="h-7 text-sm flex-1"
                   />

@@ -29,7 +29,14 @@ const unappliable = {
   turnId: 'turn_2',
 };
 
-function render(onModelApplyFailed?: (info: { action: string; diagramType?: string; turnId?: string }) => boolean) {
+const v4Model = { version: '4.0.0', type: 'ClassDiagram', nodes: [], edges: [] };
+// An unmigrated v3 diagram: read-only, so the injection is refused.
+const v3Model = { version: '3.0.0', type: 'ClassDiagram', elements: {}, relationships: {} };
+
+function render(
+  onModelApplyFailed?: (info: { action: string; diagramType?: string; turnId?: string }) => boolean,
+  currentModel: unknown = v4Model,
+) {
   const setMessages = vi.fn();
   const { result } = renderHook(() =>
     useModelInjection({
@@ -38,7 +45,7 @@ function render(onModelApplyFailed?: (info: { action: string; diagramType?: stri
       >[0]['dispatch'],
       editor: null,
       modelingServiceRef: { current: null },
-      currentModelRef: { current: { type: 'ClassDiagram', elements: {}, relationships: {} } },
+      currentModelRef: { current: currentModel },
       currentProjectRef: { current: null },
       currentDiagramTypeRef: { current: 'ClassDiagram' },
       switchDiagramRef: { current: async () => true },
@@ -79,5 +86,30 @@ describe('useModelInjection when the update cannot be applied', () => {
     });
     const reply = added().find((m: { content?: string }) => m.content?.includes('Try rephrasing'));
     expect(reply?.isError).toBe(true);
+  });
+
+  it('hands a refused edit of a read-only diagram to onModelApplyFailed', async () => {
+    const onModelApplyFailed = vi.fn(() => true);
+    const { result, added } = render(onModelApplyFailed, v3Model);
+    await act(async () => {
+      await result.current.handleInjection(unappliable);
+    });
+    expect(onModelApplyFailed).toHaveBeenCalledWith({
+      action: 'modify_model',
+      diagramType: 'ClassDiagram',
+      turnId: 'turn_2',
+    });
+    expect(added()).toEqual([]);
+  });
+
+  it('explains a read-only diagram without suggesting a rephrase', async () => {
+    const { result, added } = render(() => false, v3Model);
+    await act(async () => {
+      await result.current.handleInjection(unappliable);
+    });
+    const replies = added().filter((m: { isError?: boolean }) => m.isError);
+    expect(replies).toHaveLength(1);
+    expect(replies[0].content).toContain('cannot be changed');
+    expect(replies[0].content).not.toContain('Try rephrasing');
   });
 });

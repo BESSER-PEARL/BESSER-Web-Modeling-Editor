@@ -1,0 +1,39 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": { "width": 600, "height": 400 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "as-A": {
+      "id": "as-A",
+      "name": "A",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": { "x": 60, "y": 60, "width": 120, "height": 60 }
+    },
+    "as-B": {
+      "id": "as-B",
+      "name": "B",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": { "x": 260, "y": 60, "width": 120, "height": 60 }
+    }
+  },
+  "relationships": {
+    "t-3": {
+      "id": "t-3",
+      "name": "onScore",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": { "x": 180, "y": 80, "width": 80, "height": 0 },
+      "path": [{ "x": 0, "y": 0 }, { "x": 80, "y": 0 }],
+      "source": { "element": "as-A", "direction": "Right" },
+      "target": { "element": "as-B", "direction": "Left" },
+      "predefinedType": "when_variable_operation_matched",
+      "variable": "score",
+      "operator": ">=",
+      "targetValue": "10"
+    }
+  },
+  "assessments": {}
+}

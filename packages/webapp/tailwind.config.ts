@@ -71,6 +71,15 @@ const config: Config = {
   				'dark-bg': 'var(--shiki-dark-bg)'
   			}
   		},
+  		// Finer steps used across the UI (e.g. border-brand/12, bg-primary/8); without them
+  		// Tailwind 3 silently generates nothing for those classes.
+  		opacity: {
+  			'3': '0.03',
+  			'7': '0.07',
+  			'8': '0.08',
+  			'12': '0.12',
+  			'97': '0.97'
+  		},
   		borderRadius: {
   			sm: 'calc(var(--radius) - 4px)',
   			md: 'calc(var(--radius) - 2px)',

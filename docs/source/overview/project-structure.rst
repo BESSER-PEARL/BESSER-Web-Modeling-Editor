@@ -30,9 +30,10 @@ Top-level directories
 Workspace packages
 ------------------
 
-``packages/editor/``
-   The reusable UML engine exported on npm as ``@besser/wme``. It exposes the
-   ``ApollonEditor`` class, diagram type registries, Redux stores, and
+``packages/library/``
+   The reusable UML engine exported on npm as ``@besser/wme``. Built on React
+   Flow + Zustand, it exposes the ``BesserEditor`` class, per-diagram node /
+   edge / inspector registries, the diagram and metadata stores, and the
    supporting services used by both the standalone webapp and external
    integrations.
 

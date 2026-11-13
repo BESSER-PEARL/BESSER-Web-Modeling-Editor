@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { conditionalAtAlias } from './atAlias';
+
 export default defineConfig({
   plugins: [react()],
   // Same injection as vite.config.ts, so tests see the real editor version.
@@ -18,11 +20,11 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@besser/wme': path.resolve(__dirname, '../editor/src/main/index.ts'),
-      shared: path.resolve(__dirname, '../shared/src/index.ts'),
-      webapp: path.resolve(__dirname, '.'),
-    },
+    alias: [
+      conditionalAtAlias,
+      { find: '@besser/wme', replacement: path.resolve(__dirname, '../library/lib/index.tsx') },
+      { find: 'shared', replacement: path.resolve(__dirname, '../shared/src/index.ts') },
+      { find: /^webapp\/(.*)/, replacement: path.resolve(__dirname, './$1') },
+    ],
   },
 });

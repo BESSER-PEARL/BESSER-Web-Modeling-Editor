@@ -3,7 +3,7 @@
  * who wants to fix the warnings first does not spend a generation (#752).
  */
 import { act, renderHook } from '@testing-library/react';
-import type { ApollonEditor } from '@besser/wme';
+import type { BesserEditor } from '@besser/wme';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useGenerateCode } from '../useGenerateCode';
@@ -22,7 +22,7 @@ vi.mock('../../../../shared/api/generation', async (importOriginal) => ({
   generateFromDiagram: vi.fn(),
 }));
 
-const editor = { model: { type: 'ClassDiagram', elements: { a: {} }, relationships: {} } } as unknown as ApollonEditor;
+const editor = { model: { type: 'ClassDiagram', elements: { a: {} }, relationships: {} } } as unknown as BesserEditor;
 
 const generateSql = async (): Promise<GenerationResult> => {
   const { result } = renderHook(() => useGenerateCode());

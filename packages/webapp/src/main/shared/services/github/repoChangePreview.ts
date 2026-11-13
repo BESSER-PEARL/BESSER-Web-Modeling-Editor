@@ -1,21 +1,17 @@
 /** What is new on a linked branch, read and drawn ahead of taking it in. Writes nothing. */
-import { ApollonEditor, sanitizeSvg, type UMLModel } from '@besser/wme';
+import { BesserEditor, sanitizeSvg, type UMLModel } from '@besser/wme';
 import { ApiError } from '../../api/api-client';
 import { loadModelAtCommit } from '../../api/github';
 import { readRepoProject } from '../project-import/projectImport';
 import type { BesserProject } from '../../types/project';
 import { classModelElements, elementLabel, type ClassModelElement } from './modelAttribution';
 import { diffClassModels, idsToDraw, incomingMarks, type ModelChanges } from './modelChanges';
+import { elementBounds, memberBounds, relationshipPoints, type Bounds } from './modelGeometry';
 
 // The canvas holds the same ids: `url(#id)` would resolve to its clip, cutting off a new row.
 const DRAWING_ID_PREFIX = 'repo-preview-';
 
-export interface Bounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+export type { Bounds };
 
 export interface RepoChangePreviewData {
   changes: ModelChanges;
@@ -32,13 +28,8 @@ export interface RepoChangePreviewData {
   drawnRelationships: { id: string; points: { x: number; y: number }[] }[];
 }
 
-type ApollonModel = {
-  elements?: Record<string, { bounds?: Bounds }>;
-  relationships?: Record<string, { bounds?: Bounds; path?: { x: number; y: number }[] }>;
-};
-
 const diagramModel = (project: BesserProject | null, diagramId: string | undefined) =>
-  project?.diagrams?.ClassDiagram?.find((diagram) => diagram.id === diagramId)?.model as unknown as ApollonModel | undefined;
+  project?.diagrams?.ClassDiagram?.find((diagram) => diagram.id === diagramId)?.model as unknown;
 
 export async function loadRepoChangePreview(
   session: string,
@@ -65,7 +56,7 @@ export async function loadRepoChangePreview(
   let drawing: RepoChangePreviewData['drawing'] = null;
   if (include.length && headModel) {
     try {
-      const { svg, clip } = await ApollonEditor.exportModelAsSvg(headModel as unknown as UMLModel, { include, margin: 0 });
+      const { svg, clip } = await BesserEditor.exportModelAsSvg(headModel as UMLModel, { include, margin: 0 });
       drawing = { svg: sanitizeSvg(svg, DRAWING_ID_PREFIX), clip };
     } catch (error) {
       // The bar still says what changed.
@@ -81,18 +72,16 @@ export async function loadRepoChangePreview(
     removedLabels: new Map(changes.removed.map((element) => [element.id, elementLabel(element, before)])),
     drawing,
     drawnClasses: include.flatMap((id) => {
-      const bounds = headModel?.elements?.[id]?.bounds;
+      const bounds = headModel ? elementBounds(headModel, id) : null;
       return bounds ? [{ id, bounds, whole: wholeClasses.has(id) }] : [];
     }),
     drawnRows: rows.flatMap(({ id }) => {
-      const bounds = headModel?.elements?.[id]?.bounds;
+      const bounds = headModel ? memberBounds(headModel, id) : null;
       return bounds ? [{ id, bounds }] : [];
     }),
     drawnRelationships: changes.addedRelationships.flatMap(({ id }) => {
-      const { bounds, path } = headModel?.relationships?.[id] ?? {};
-      return bounds && Array.isArray(path)
-        ? [{ id, points: path.map((point) => ({ x: bounds.x + point.x, y: bounds.y + point.y })) }]
-        : [];
+      const points = headModel ? relationshipPoints(headModel, id) : null;
+      return points ? [{ id, points }] : [];
     }),
   };
 }

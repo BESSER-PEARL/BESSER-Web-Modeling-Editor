@@ -1,0 +1,70 @@
+{
+  "version": "3.0.0",
+  "type": "ObjectDiagram",
+  "size": { "width": 800, "height": 600 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "obj-rex": {
+      "id": "obj-rex",
+      "name": "rex: Dog",
+      "type": "ObjectName",
+      "owner": null,
+      "bounds": { "x": 100, "y": 100, "width": 200, "height": 100 },
+      "attributes": ["attr-rex-name", "attr-rex-age"],
+      "methods": [],
+      "classId": "node-Dog",
+      "className": "Dog"
+    },
+    "attr-rex-name": {
+      "id": "attr-rex-name",
+      "name": "name = Rex",
+      "type": "ObjectAttribute",
+      "owner": "obj-rex",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "str",
+      "attributeId": "attr-Dog-name"
+    },
+    "attr-rex-age": {
+      "id": "attr-rex-age",
+      "name": "age = 3",
+      "type": "ObjectAttribute",
+      "owner": "obj-rex",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "int"
+    },
+    "obj-alice": {
+      "id": "obj-alice",
+      "name": "alice: Owner",
+      "type": "ObjectName",
+      "owner": null,
+      "bounds": { "x": 400, "y": 100, "width": 200, "height": 80 },
+      "attributes": ["attr-alice-name"],
+      "methods": [],
+      "classId": "node-Owner"
+    },
+    "attr-alice-name": {
+      "id": "attr-alice-name",
+      "name": "name = Alice",
+      "type": "ObjectAttribute",
+      "owner": "obj-alice",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "str"
+    }
+  },
+  "relationships": {
+    "link-1": {
+      "id": "link-1",
+      "name": "owns",
+      "type": "ObjectLink",
+      "owner": null,
+      "bounds": { "x": 250, "y": 130, "width": 0, "height": 0 },
+      "path": [{ "x": 0, "y": 0 }, { "x": 100, "y": 0 }],
+      "source": { "element": "obj-alice", "direction": "Left" },
+      "target": { "element": "obj-rex", "direction": "Right" }
+    }
+  },
+  "assessments": {}
+}

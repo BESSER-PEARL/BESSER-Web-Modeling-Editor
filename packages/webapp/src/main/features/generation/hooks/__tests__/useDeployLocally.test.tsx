@@ -6,7 +6,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'react-toastify';
-import type { ApollonEditor } from '@besser/wme';
+import type { BesserEditor } from '@besser/wme';
 
 import { useDeployLocally } from '../useDeployLocally';
 import { deployApp } from '../../../../shared/api/generation';
@@ -30,7 +30,7 @@ vi.mock('../../../../shared/services/validation/validateDiagram', () => ({
 vi.mock('../../../../shared/api/generation', () => ({ deployApp: vi.fn() }));
 vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({ globalConfirm: vi.fn() }));
 
-const editor = { model: { type: 'ClassDiagram', elements: {} } } as unknown as ApollonEditor;
+const editor = { model: { type: 'ClassDiagram', elements: {} } } as unknown as BesserEditor;
 
 const deploy = async () => {
   const { result } = renderHook(() => useDeployLocally());

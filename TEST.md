@@ -3,7 +3,7 @@
 This document is the contributor-facing map of the WME test suite: what the two
 test layers are, how to run each, and an inventory of every spec.
 
-All tests live in the **`packages/webapp`** workspace. There are two layers:
+The webapp tests live in the **`packages/webapp`** workspace. There are two layers:
 
 | Layer | Tech | Location | What it proves |
 |---|---|---|---|
@@ -13,9 +13,11 @@ All tests live in the **`packages/webapp`** workspace. There are two layers:
 > **See also** `packages/webapp/tests/e2e/README.md` — the narrative test catalogue
 > for the E2E and natural-language generation surfaces.
 
-The suite that runs is in `packages/webapp`. `packages/editor/src/tests/unit` holds a legacy Jest
-suite with no runner configured, so it does not run; `packages/server` has no tests. Editor behaviour
-is covered from the webapp tests.
+The diagramming library `packages/library` (`@besser/wme`) has its own Vitest
+suite in `packages/library/tests/unit/` (run it with
+`npm run test --workspace=@besser/wme`); it is not inventoried here.
+`packages/server` has a small Vitest suite for its security headers
+(`npm run test --workspace=server`).
 
 ---
 
@@ -142,7 +144,7 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
 
 | File | ~cases | Covers |
 |---|---|---|
-| `bpmn-xml-roundtrip.test.ts` | 5 | `apollonBpmnToXml` ↔ `bpmnXmlToApollon` full round-trip (DI bounds, waypoints, default-flow flag). |
+| `bpmn-xml-roundtrip.test.ts` | 7 | `bpmnModelToXml` ↔ `bpmnXmlToModel` full round-trip (DI bounds, waypoints, default-flow flag). |
 | `bpmn-flow-validator.test.ts` | 11 | Legal flow-type pairs, default-flow eligibility, missing endpoints. |
 
 **GUI generation helpers** (`src/main/shared/utils/…`)

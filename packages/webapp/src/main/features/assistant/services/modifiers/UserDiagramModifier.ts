@@ -1,28 +1,35 @@
 /**
- * User Profile Diagram Modifier
- * Handles modification operations for User Profile (UserDiagram) models.
+ * User Profile Diagram Modifier (v4-native)
  *
- * Mirrors ObjectDiagramModifier but operates on UserModelName / UserModelAttribute
- * elements and ObjectLink relationships. Attribute rows are matching criteria
- * carrying a comparison operator (rendered "age >= 18").
+ * Handles modification operations for User Profile (UserDiagram) models by
+ * walking v4 `model.nodes[]` / `model.edges[]` directly.
+ *
+ * Mirrors ObjectDiagramModifier but operates on `UserModelName` nodes and
+ * `UserModelLink` edges. Attribute rows are matching criteria carrying a
+ * comparison operator (rendered "age >= 18"): each row keeps its bare
+ * `name` plus a structured `attributeOperator` / `value` pair. The
+ * metamodel class icon is a plain `data.icon` SVG string on the node (User
+ * diagrams render in icon view; without it the box shows as a bare box).
  *
  * Reuses the ObjectDiagram action vocabulary so no new ModelModification
  * action strings are required.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import {
+  USER_LINK_TYPE,
+  USER_NODE_TYPE,
+  USER_NODE_WIDTH,
+  UserAttributeRow,
+  buildUserAttributeRow,
+  normalizeUserModelOperator,
+  userNodeHeight,
+} from '../shared/userModelBuilders';
 
-const OPERATORS = ['<', '<=', '==', '>=', '>'];
-
-const normalizeOperator = (raw?: string): string => {
-  if (typeof raw !== 'string') return '==';
-  const op = raw.trim();
-  if (op === '=') return '==';
-  return OPERATORS.includes(op) ? op : '==';
-};
-
-const displaySymbol = (op: string): string => (op === '==' ? '=' : op);
+/** Bare attribute name of a criterion row (legacy rows may embed "name op value"). */
+const rowAttributeName = (row: UserAttributeRow): string => (row.name || '').split(/[<>=]/)[0].trim();
 
 export class UserDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -58,19 +65,51 @@ export class UserDiagramModifier implements DiagramModifier {
     }
   }
 
-  /** Resolve a UserModelName element id by profileName (its `name`) or className. */
-  private findProfile(model: BESSERModel, ...candidates: Array<string | undefined>): string | null {
-    const names = candidates.filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-      .map((c) => c.trim().toLowerCase());
-    if (names.length === 0) return null;
-    for (const [id, el] of Object.entries(model.elements)) {
-      if ((el as any).type !== 'UserModelName') continue;
-      const nm = ((el as any).name || '').trim().toLowerCase();
-      const cls = ((el as any).className || '').trim().toLowerCase();
-      if (names.includes(nm) || names.includes(cls)) return id;
+  // ─── Helpers ────────────────────────────────────────────────────────────
+
+  /**
+   * Resolve a `UserModelName` node by profile name (its `data.name`) or by
+   * the linked class name (`data.className`) — the backend references
+   * singleton profiles by their metamodel class. A node id is accepted too.
+   */
+  private findProfile(model: BESSERModel, ...candidates: Array<string | undefined>): BesserNode | undefined {
+    const raw = candidates.filter((c): c is string => typeof c === 'string' && c.trim() !== '').map((c) => c.trim());
+    if (raw.length === 0) return undefined;
+
+    const profiles = ModifierHelpers.nodes(model).filter((n) => n.type === USER_NODE_TYPE);
+    for (const cand of raw) {
+      const byId = profiles.find((n) => n.id === cand);
+      if (byId) return byId;
     }
-    return null;
+
+    const names = raw.map((c) => c.toLowerCase());
+    for (const n of profiles) {
+      const data = (n.data as any) || {};
+      const nm = (typeof data.name === 'string' ? data.name : '').trim().toLowerCase();
+      const cls = (typeof data.className === 'string' ? data.className : '').trim().toLowerCase();
+      if ((nm && names.includes(nm)) || (cls && names.includes(cls))) return n;
+    }
+    return undefined;
   }
+
+  /** Compute the next vertical slot below all existing nodes. */
+  private nextPosition(model: BESSERModel): { x: number; y: number } {
+    let maxY = 0;
+    for (const n of ModifierHelpers.nodes(model)) {
+      const bottom = (n.position?.y ?? 0) + (n.height ?? 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    return { x: 100, y: maxY + 40 };
+  }
+
+  private resizeProfile(node: BesserNode): void {
+    const rows = (node.data as any)?.attributes;
+    const height = userNodeHeight(Array.isArray(rows) ? rows.length : 0);
+    node.height = height;
+    node.measured = { width: node.width ?? USER_NODE_WIDTH, height };
+  }
+
+  // ─── Action handlers ────────────────────────────────────────────────────
 
   private addProfile(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes || {};
@@ -78,73 +117,43 @@ export class UserDiagramModifier implements DiagramModifier {
     const className = changes.className || '';
     const profileName = changes.profileName || target.profileName || className || 'profile';
 
-    // Place below existing elements.
-    let maxY = 0;
-    for (const el of Object.values(model.elements)) {
-      const bottom = ((el as any).bounds?.y || 0) + ((el as any).bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
+    const pos = this.nextPosition(model);
+    const nodeId = ModifierHelpers.generateUniqueId('user');
+    const attributes = (changes.attributes ?? []).map((attr) => buildUserAttributeRow(attr));
+    const width = USER_NODE_WIDTH;
+    const height = userNodeHeight(attributes.length);
 
-    const nameId = ModifierHelpers.generateUniqueId('user');
-    const attrs = changes.attributes || [];
-    const totalHeight = 50 + attrs.length * 30;
-
-    const nameElement: any = {
-      type: 'UserModelName',
-      id: nameId,
+    const data: Record<string, unknown> = {
       name: profileName,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 200, height: totalHeight },
-      attributes: [] as string[],
+      attributes,
       methods: [],
+      view: 'icon',
     };
-    if (className) nameElement.className = className;
-    if (changes.classId) nameElement.classId = changes.classId;
-
-    // Metamodel class icon child (User diagrams always render in icon view;
+    if (className) data.className = className;
+    if (changes.classId) data.classId = changes.classId;
+    // Metamodel class icon (User diagrams always render in icon view;
     // without it the box shows as a bare, empty box). Mirrors UserDiagramConverter.
-    if (changes.icon && typeof changes.icon === 'string' && changes.icon.trim() !== '') {
-      const iconId = ModifierHelpers.generateUniqueId('usericon');
-      model.elements[iconId] = {
-        type: 'UserModelIcon',
-        id: iconId,
-        name: '',
-        owner: nameId,
-        bounds: { x: pos.x, y: pos.y, width: 50, height: 50 },
-        icon: changes.icon,
-      };
-      nameElement.icon = iconId;
-    }
+    if (typeof changes.icon === 'string' && changes.icon.trim() !== '') data.icon = changes.icon;
 
-    let currentY = pos.y + 40;
-    for (const attr of attrs) {
-      const attrId = ModifierHelpers.generateUniqueId('userattr');
-      nameElement.attributes.push(attrId);
-      const op = normalizeOperator((attr as any).operator);
-      const attrElement: any = {
-        id: attrId,
-        name: `${attr.name} ${displaySymbol(op)} ${attr.value || ''}`,
-        type: 'UserModelAttribute',
-        owner: nameId,
-        bounds: { x: pos.x + 1, y: currentY, width: 198, height: 30 },
-        attributeOperator: op,
-      };
-      if (attr.attributeId) attrElement.attributeId = attr.attributeId;
-      model.elements[attrId] = attrElement;
-      currentY += 30;
-    }
-
-    model.elements[nameId] = nameElement;
+    const node: BesserNode = {
+      id: nodeId,
+      type: USER_NODE_TYPE as any,
+      position: { x: pos.x, y: pos.y },
+      width,
+      height,
+      measured: { width, height },
+      data,
+    };
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
   private modifyProfile(model: BESSERModel, modification: ModelModification): BESSERModel {
     const target = modification.target || {};
-    const id = this.findProfile(model, target.profileName, target.className, target.name);
-    if (id && model.elements[id]) {
+    const node = this.findProfile(model, target.objectId, target.profileName, target.className, target.name);
+    if (node) {
       const newName = modification.changes?.profileName || modification.changes?.name;
-      if (newName) model.elements[id].name = newName;
+      if (newName) (node.data as any).name = newName;
     }
     return model;
   }
@@ -161,62 +170,59 @@ export class UserDiagramModifier implements DiagramModifier {
       );
     }
 
-    const profileId = this.findProfile(model, target.profileName, target.className);
-    if (!profileId) {
-      throw new Error(`Profile '${target.profileName || target.className}' not found in the model.`);
+    const node = this.findProfile(model, target.objectId, target.profileName, target.className, target.objectName);
+    if (!node) {
+      throw new Error(`Profile '${target.profileName || target.className || target.objectName}' not found in the model.`);
     }
 
-    for (const element of Object.values(model.elements)) {
-      if (
-        (element as any).type === 'UserModelAttribute' &&
-        (element as any).owner === profileId
-      ) {
-        // The row name is "<attr> <op> <value>"; match on the attribute name token.
-        const currentName = (element as any).name || '';
-        const attrToken = currentName.split(/[<>=]/)[0].trim();
-        if (attrToken === attributeName) {
-          const op = normalizeOperator(newOperator || (element as any).attributeOperator);
-          const value = newValue !== undefined ? newValue : currentName.replace(/^[^<>=]*[<>=]+\s*/, '').trim();
-          (element as any).attributeOperator = op;
-          (element as any).name = `${attributeName} ${displaySymbol(op)} ${value}`;
-          return model;
-        }
-      }
+    const data = node.data as any;
+    const rows: UserAttributeRow[] = Array.isArray(data.attributes) ? data.attributes : [];
+    const wanted = attributeName.trim().toLowerCase();
+    const row = rows.find((r) => rowAttributeName(r).toLowerCase() === wanted);
+    if (!row) {
+      throw new Error(`Attribute '${attributeName}' not found on the target profile.`);
     }
 
-    throw new Error(`Attribute '${attributeName}' not found on the target profile.`);
+    // Normalise legacy fused names ("age >= 18") to the structured shape.
+    row.name = rowAttributeName(row) || attributeName;
+    row.attributeOperator = normalizeUserModelOperator(newOperator ?? row.attributeOperator);
+    if (newValue !== undefined) row.value = newValue;
+    return model;
   }
 
   private addLink(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) model.relationships = {};
-
     const changes = modification.changes || {};
     const target = modification.target || {};
-    const sourceId = this.findProfile(model, changes.source, target.sourceProfile, target.profileName);
-    const targetId = this.findProfile(model, changes.target, target.targetProfile);
+    const sourceNode = this.findProfile(model, changes.source, target.sourceProfile, target.objectId, target.profileName);
+    const targetNode = this.findProfile(model, changes.target, target.targetProfile);
 
-    if (!sourceId || !targetId) {
+    if (!sourceNode || !targetNode) {
       throw new Error('Could not locate source or target profile for link.');
     }
 
-    const linkId = ModifierHelpers.generateUniqueId('link');
-    model.relationships[linkId] = {
-      id: linkId,
-      type: 'ObjectLink',
-      source: { element: sourceId, direction: 'Right' },
-      target: { element: targetId, direction: 'Left' },
-      name: changes.relationshipType || changes.name || '',
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
-      isManuallyLayouted: false,
+    const linkName = changes.relationshipType || changes.name || '';
+    const edge: BesserEdge = {
+      id: ModifierHelpers.generateUniqueId('link'),
+      type: USER_LINK_TYPE as any,
+      source: sourceNode.id,
+      target: targetNode.id,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      data: {
+        label: linkName,
+        name: linkName,
+        points: [],
+        isManuallyLayouted: false,
+      },
     };
+    ModifierHelpers.addEdge(model, edge);
     return model;
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const target = modification.target || {};
     const candidates: string[] = [];
-    for (const key of ['profileName', 'name', 'className', 'objectName', 'targetName', 'elementName']) {
+    for (const key of ['objectId', 'profileName', 'name', 'className', 'objectName', 'targetName', 'elementName']) {
       const v = (target as any)[key];
       if (typeof v === 'string' && v.trim()) candidates.push(v.trim());
     }
@@ -226,9 +232,9 @@ export class UserDiagramModifier implements DiagramModifier {
       }
     }
 
-    const id = this.findProfile(model, ...candidates);
-    if (id) {
-      return ModifierHelpers.removeElementWithChildren(model, id);
+    const node = this.findProfile(model, ...candidates);
+    if (node) {
+      return ModifierHelpers.removeNodeWithChildren(model, node.id);
     }
 
     // Idempotent no-op when already removed.

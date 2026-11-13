@@ -1,20 +1,39 @@
 import {
-  BPMNAgentRole,
+  UMLDiagramType,
+  clampMultiplicity,
+  clampTrustScore,
+  findOrphanedMergingGateways,
   migrateLegacyRole,
+} from '@besser/wme';
+import type {
+  UMLModel,
+  BesserNode,
+  BesserEdge,
+  DiagramNodeType,
+  DiagramEdgeType,
+  BPMNAgentRole,
   BPMNGatewayRole,
   BPMNReflectionMode,
-  UMLDiagramType,
-  UMLElement,
-  UMLModel,
-  UMLRelationship,
-  canSourceCarryDefault,
-  clampTrustScore,
-  clampMultiplicity,
-  findOrphanedMergingGateways,
 } from '@besser/wme';
+import { uuid } from '../../shared/utils/uuid';
 
-// Inverse of bpmn-xml-exporter.ts.
-
+// BPMN 2.0 XML importer (v4 {nodes, edges} shape). Inverse of bpmn-xml-exporter.ts.
+// BPMN 2.0.2 spec citations are given inline where a rule is enforced.
+//
+// Ported from develop's `features/import/bpmn-xml-importer.ts`, re-targeted from
+// the v3 `{elements, relationships}` UMLModel to the migration's v4 shape:
+//   - every node is a React Flow `BesserNode` with a lowerCamelCase `type`
+//     (`bpmnTask`, `bpmnPool`, `bpmnSwimlane`, …), containment via top-level
+//     `parentId`, and a position RELATIVE to its direct parent;
+//   - every edge is a `BesserEdge` with one of four `type` strings
+//     (`BPMNSequenceFlow` / `BPMNMessageFlow` / `BPMNAssociationFlow` /
+//     `BPMNDataAssociationFlow`), name in both `data.name` and `data.label`,
+//     and `data.isDefault` for default sequence flows;
+//   - `<agentic:agentic>` extension attributes land on `node.data` / `edge.data`.
+//
+// The XML parsing / element classification / lane+pool nesting reconstruction /
+// `default="…"` handling are faithful to develop; only the node/edge construction
+// is re-targeted to v4 objects.
 
 export const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 export const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
@@ -80,7 +99,6 @@ const END_EVENT_DEF_TO_TYPE: Record<string, string> = {
 };
 
 // Intermediate events split by direction (catch vs throw) × definition.
-// Tag is intermediateCatchEvent or intermediateThrowEvent; def is the child.
 function intermediateEventTypeFor(tag: string, defLocalName: string | null): string {
   const dir = tag === 'intermediateThrowEvent' ? 'throw' : 'catch';
   const base = (() => {
@@ -106,8 +124,18 @@ function intermediateEventTypeFor(tag: string, defLocalName: string | null): str
   return base ? `${base}-${dir}` : 'default';
 }
 
-// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13) — `canSourceCarryDefault`
-// is the shared predicate from @besser/wme (consolidated in 04C / C2).
+// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13): an Activity, or an
+// Exclusive / Inclusive / Complex gateway. Expressed against v4 node types.
+function canSourceCarryDefault(node: WorkNode | undefined): boolean {
+  if (!node) return false;
+  const t = node.type;
+  if (t === 'bpmnTask' || t === 'bpmnSubprocess' || t === 'bpmnTransaction' || t === 'bpmnCallActivity') {
+    return true;
+  }
+  if (t !== 'bpmnGateway') return false;
+  const gw = String(node.data.gatewayType ?? 'exclusive');
+  return gw === 'exclusive' || gw === 'inclusive' || gw === 'complex';
+}
 
 // ─── DOM helpers (namespace-agnostic via localName) ─────────────────────────
 
@@ -164,15 +192,8 @@ function findGovernanceText(parent: Element): string | null {
   return null;
 }
 
-// Parse the agentic extension into a partial-fields object. Unknown
-// enum values and bad numerics emit a warning and the field is left unset
-// (the model class's default kicks in). Returns null if no agentic extension
-// is present.
-function parseAgenticExtension(
-  parent: Element,
-  warnings: ParseWarning[],
-  _elementId: string,
-): null | {
+// Agentic fields read from the extension block; merged into `node.data` / `edge.data`.
+interface AgenticFields {
   isAgentic: true;
   role?: BPMNAgentRole;
   reflectionMode?: BPMNReflectionMode;
@@ -181,13 +202,17 @@ function parseAgenticExtension(
   multiplicity?: number;
   // Lane/task Agent diagram ref. Free-form UUID; never validated here because the
   // target project may not even contain the diagram.
-
   agentDiagramRef?: string;
   // Reviewer lane UUID for cross-reflection.
   reflectionReviewerLaneId?: string;
   // Governance DSL CDATA child (merging gateways only). Opaque string.
   governanceDsl?: string;
-} {
+}
+
+// Parse the agentic extension. Unknown enum values and bad numerics emit a
+// warning and the field is left unset (the editor default applies). Returns
+// null if no agentic extension is present.
+function parseAgenticExtension(parent: Element, warnings: ParseWarning[]): AgenticFields | null {
   const a = findAgenticExtension(parent);
   if (!a) return null;
   const out: Record<string, unknown> = { isAgentic: true };
@@ -250,38 +275,57 @@ function parseAgenticExtension(
   // attribute. Read it off the same extensionElements parent.
   const gov = findGovernanceText(parent);
   if (gov !== null && gov !== '') out.governanceDsl = gov;
-  return out as ReturnType<typeof parseAgenticExtension>;
+  return out as unknown as AgenticFields;
 }
 
-// ─── Internal types (closed-over by the parser) ─────────────────────────────
+// ─── Internal work types (closed-over by the parser) ────────────────────────
 
-interface AnyBPMNElement extends UMLElement {
-  taskType?: string;
-  marker?: string;
-  gatewayType?: string;
-  eventType?: string;
-}
-
-interface AnyBPMNFlow extends UMLRelationship {
-  flowType?: 'sequence' | 'message' | 'association' | 'data association';
-  isDefault?: boolean;
-}
-
-interface AbsoluteBounds {
+interface Bounds {
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-// ─── Semantic walk ──────────────────────────────────────────────────────────
+interface WorkNode {
+  id: string;
+  type: string; // v4 lowerCamelCase
+  data: Record<string, unknown>; // includes `name` + type-specific fields
+  parentId?: string;
+  bounds: Bounds; // ABSOLUTE during parsing; converted to relative on emit
+}
+
+interface WorkEdge {
+  id: string;
+  type: DiagramEdgeType | string; // one of the four BPMN flow strings
+  source: string;
+  target: string;
+  name: string;
+  flowKind: 'sequence' | 'message' | 'association' | 'data association';
+  isDefault?: boolean;
+  agentic?: AgenticFields; // message flows only
+  points: Array<{ x: number; y: number }>; // ABSOLUTE waypoints
+}
 
 interface SemanticContext {
   warnings: ParseWarning[];
   skipped: SkippedElement[];
-  nodes: AnyBPMNElement[]; // pool, lane, flow-node, data, artifact
-  edges: AnyBPMNFlow[]; // sequence / message / association / data-assoc
+  nodes: WorkNode[];
+  edges: WorkEdge[];
   defaultFlowByOwner: Map<string, string>; // sourceNodeId → defaultFlowId
+}
+
+function edgeTypeForKind(kind: WorkEdge['flowKind']): DiagramEdgeType | string {
+  switch (kind) {
+    case 'message':
+      return 'BPMNMessageFlow';
+    case 'association':
+      return 'BPMNAssociationFlow';
+    case 'data association':
+      return 'BPMNDataAssociationFlow';
+    default:
+      return 'BPMNSequenceFlow';
+  }
 }
 
 const FLOW_NODE_TAGS = new Set<string>([
@@ -309,14 +353,13 @@ function parseDefinitions(root: Element, ctx: SemanticContext): void {
       const name = p.getAttribute('name') ?? '';
       if (poolId) {
         processToPool.set(procRef, poolId);
-        ctx.nodes.push(makeNode(poolId, 'BPMNPool', name, undefined));
+        ctx.nodes.push(makeNode(poolId, 'bpmnPool', name, undefined));
       }
     }
-    // Message flows live at the collaboration level.
     for (const mf of childrenByLocalName(collab, 'messageFlow')) {
       const edge = makeEdge(mf, 'message');
-      const mfExt = parseAgenticExtension(mf, ctx.warnings, edge.id);
-      if (mfExt) Object.assign(edge, mfExt);
+      const mfExt = parseAgenticExtension(mf, ctx.warnings);
+      if (mfExt) edge.agentic = mfExt;
       ctx.edges.push(edge);
     }
   }
@@ -329,7 +372,7 @@ function parseDefinitions(root: Element, ctx: SemanticContext): void {
 }
 
 function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext): void {
-  // 1) Lane set → swimlanes (owner = poolId). Collect flowNodeRef map.
+  // 1) Lane set → swimlanes (parent = poolId). Collect flowNodeRef map.
   const laneOf = new Map<string, string>(); // flowNodeId → laneId
   const laneSet = childByLocalName(proc, 'laneSet');
   if (laneSet) {
@@ -340,9 +383,9 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
         ctx.warnings.push({ code: 'lane-without-pool', message: `Lane ${laneId} in pool-less process; ignored` });
         continue;
       }
-      const laneNode = makeNode(laneId, 'BPMNSwimlane', name, poolId);
-      const laneExt = parseAgenticExtension(lane, ctx.warnings, laneId);
-      if (laneExt) Object.assign(laneNode, laneExt);
+      const laneNode = makeNode(laneId, 'bpmnSwimlane', name, poolId);
+      const laneExt = parseAgenticExtension(lane, ctx.warnings);
+      if (laneExt) Object.assign(laneNode.data, laneExt);
       ctx.nodes.push(laneNode);
       for (const ref of childrenByLocalName(lane, 'flowNodeRef')) {
         const id = (ref.textContent ?? '').trim();
@@ -360,15 +403,13 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
     const owner = laneOf.get(id) ?? poolId ?? undefined;
     const node = createFlowNode(child, tag, id, name, owner);
     if (!node) continue;
-    const nodeExt = parseAgenticExtension(child, ctx.warnings, id);
-    if (nodeExt) Object.assign(node, nodeExt);
+    const nodeExt = parseAgenticExtension(child, ctx.warnings);
+    if (nodeExt) Object.assign(node.data, nodeExt);
     ctx.nodes.push(node);
 
-    // Default-flow attribute (BPMN 2.0.2 § 8.3.13).
     const def = child.getAttribute('default');
     if (def) ctx.defaultFlowByOwner.set(id, def);
 
-    // Data associations nested inside flow nodes.
     for (const dia of childrenByLocalName(child, 'dataInputAssociation')) {
       const ref = childByLocalName(dia, 'sourceRef')?.textContent?.trim() ?? '';
       if (ref) ctx.edges.push(makeAssocEdge(dia, ref, id, 'data association'));
@@ -389,25 +430,23 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
     ctx.edges.push(makeEdge(a, 'association'));
   }
 
-  // 5) Data + artifacts.
+  // 5) Data + artifacts (parented directly to the pool).
   for (const ref of childrenByLocalName(proc, 'dataObjectReference')) {
     ctx.nodes.push(
-      makeNode(ref.getAttribute('id') ?? '', 'BPMNDataObject', ref.getAttribute('name') ?? '', poolId ?? undefined),
+      makeNode(ref.getAttribute('id') ?? '', 'bpmnDataObject', ref.getAttribute('name') ?? '', poolId ?? undefined),
     );
   }
   for (const ref of childrenByLocalName(proc, 'dataStoreReference')) {
     ctx.nodes.push(
-      makeNode(ref.getAttribute('id') ?? '', 'BPMNDataStore', ref.getAttribute('name') ?? '', poolId ?? undefined),
+      makeNode(ref.getAttribute('id') ?? '', 'bpmnDataStore', ref.getAttribute('name') ?? '', poolId ?? undefined),
     );
   }
   for (const ta of childrenByLocalName(proc, 'textAnnotation')) {
     const text = childByLocalName(ta, 'text')?.textContent ?? '';
-    ctx.nodes.push(makeNode(ta.getAttribute('id') ?? '', 'BPMNAnnotation', text, poolId ?? undefined));
+    ctx.nodes.push(makeNode(ta.getAttribute('id') ?? '', 'bpmnAnnotation', text, poolId ?? undefined));
   }
   for (const g of childrenByLocalName(proc, 'group')) {
-    ctx.nodes.push(
-      makeNode(g.getAttribute('id') ?? '', 'BPMNGroup', g.getAttribute('name') ?? '', poolId ?? undefined),
-    );
+    ctx.nodes.push(makeNode(g.getAttribute('id') ?? '', 'bpmnGroup', g.getAttribute('name') ?? '', poolId ?? undefined));
   }
 }
 
@@ -417,40 +456,50 @@ function createFlowNode(
   id: string,
   name: string,
   owner: string | undefined,
-): AnyBPMNElement | null {
+): WorkNode | null {
   if (tag in TASK_ELEMENT_TO_TYPE) {
-    return {
-      ...makeNode(id, 'BPMNTask', name, owner),
-      taskType: TASK_ELEMENT_TO_TYPE[tag],
-      marker: detectLoopMarker(el),
-    };
+    const n = makeNode(id, 'bpmnTask', name, owner);
+    n.data.taskType = TASK_ELEMENT_TO_TYPE[tag];
+    n.data.marker = detectLoopMarker(el);
+    return n;
   }
-  if (tag === 'subProcess') return makeNode(id, 'BPMNSubprocess', name, owner);
-  if (tag === 'transaction') return makeNode(id, 'BPMNTransaction', name, owner);
-  if (tag === 'callActivity') return makeNode(id, 'BPMNCallActivity', name, owner);
+  if (tag === 'subProcess') {
+    const n = makeNode(id, 'bpmnSubprocess', name, owner);
+    n.data.isExpanded = false;
+    return n;
+  }
+  if (tag === 'transaction') {
+    const n = makeNode(id, 'bpmnTransaction', name, owner);
+    n.data.isExpanded = false;
+    return n;
+  }
+  if (tag === 'callActivity') {
+    const n = makeNode(id, 'bpmnCallActivity', name, owner);
+    n.data.calledElement = el.getAttribute('calledElement') ?? '';
+    return n;
+  }
   if (tag in GATEWAY_ELEMENT_TO_TYPE) {
-    return { ...makeNode(id, 'BPMNGateway', name, owner), gatewayType: GATEWAY_ELEMENT_TO_TYPE[tag] };
+    const n = makeNode(id, 'bpmnGateway', name, owner);
+    n.data.gatewayType = GATEWAY_ELEMENT_TO_TYPE[tag];
+    return n;
   }
   if (tag === 'startEvent') {
     const defLocal = findFirstEventDefinitionChild(el)?.localName ?? null;
-    return {
-      ...makeNode(id, 'BPMNStartEvent', name, owner),
-      eventType: defLocal ? (START_EVENT_DEF_TO_TYPE[defLocal] ?? 'default') : 'default',
-    };
+    const n = makeNode(id, 'bpmnStartEvent', name, owner);
+    n.data.eventType = defLocal ? (START_EVENT_DEF_TO_TYPE[defLocal] ?? 'default') : 'default';
+    return n;
   }
   if (tag === 'endEvent') {
     const defLocal = findFirstEventDefinitionChild(el)?.localName ?? null;
-    return {
-      ...makeNode(id, 'BPMNEndEvent', name, owner),
-      eventType: defLocal ? (END_EVENT_DEF_TO_TYPE[defLocal] ?? 'default') : 'default',
-    };
+    const n = makeNode(id, 'bpmnEndEvent', name, owner);
+    n.data.eventType = defLocal ? (END_EVENT_DEF_TO_TYPE[defLocal] ?? 'default') : 'default';
+    return n;
   }
   if (tag === 'intermediateCatchEvent' || tag === 'intermediateThrowEvent') {
     const defLocal = findFirstEventDefinitionChild(el)?.localName ?? null;
-    return {
-      ...makeNode(id, 'BPMNIntermediateEvent', name, owner),
-      eventType: intermediateEventTypeFor(tag, defLocal),
-    };
+    const n = makeNode(id, 'bpmnIntermediateEvent', name, owner);
+    n.data.eventType = intermediateEventTypeFor(tag, defLocal);
+    return n;
   }
   return null;
 }
@@ -462,64 +511,42 @@ function detectLoopMarker(el: Element): string {
   return 'none';
 }
 
-// Factory: bounds are zero here — filled in by the DI walk (Step 3).
-function makeNode(id: string, type: string, name: string, owner: string | undefined): AnyBPMNElement {
+// Factory: bounds are zero here — filled in by the DI walk.
+function makeNode(id: string, type: string, name: string, owner: string | undefined): WorkNode {
   return {
     id,
     type,
-    name: name ?? '',
-    owner: owner ?? null,
+    data: { name: name ?? '' },
+    ...(owner ? { parentId: owner } : {}),
     bounds: { x: 0, y: 0, width: 0, height: 0 },
-  } as unknown as AnyBPMNElement;
+  };
 }
 
-function makeEdge(el: Element, flowType: AnyBPMNFlow['flowType']): AnyBPMNFlow {
+function makeEdge(el: Element, flowKind: WorkEdge['flowKind']): WorkEdge {
   const id = el.getAttribute('id') ?? '';
   const name = el.getAttribute('name') ?? '';
   const source = el.getAttribute('sourceRef') ?? '';
   const target = el.getAttribute('targetRef') ?? '';
-  return {
-    id,
-    type: 'BPMNFlow',
-    name,
-    owner: null,
-    bounds: { x: 0, y: 0, width: 0, height: 0 },
-    path: [],
-    source: { direction: 'Right', element: source },
-    target: { direction: 'Left', element: target },
-    isManuallyLayouted: false,
-    flowType,
-  } as unknown as AnyBPMNFlow;
+  return { id, type: edgeTypeForKind(flowKind), source, target, name, flowKind, points: [] };
 }
 
-function makeAssocEdge(el: Element, source: string, target: string, flowType: AnyBPMNFlow['flowType']): AnyBPMNFlow {
+function makeAssocEdge(el: Element, source: string, target: string, flowKind: WorkEdge['flowKind']): WorkEdge {
   const id = el.getAttribute('id') ?? '';
-  return {
-    id,
-    type: 'BPMNFlow',
-    name: '',
-    owner: null,
-    bounds: { x: 0, y: 0, width: 0, height: 0 },
-    path: [],
-    source: { direction: 'Right', element: source },
-    target: { direction: 'Left', element: target },
-    isManuallyLayouted: false,
-    flowType,
-  } as unknown as AnyBPMNFlow;
+  return { id, type: edgeTypeForKind(flowKind), source, target, name: '', flowKind, points: [] };
 }
 
 // ─── DI walk ────────────────────────────────────────────────────────────────
 
 interface DiMaps {
-  bounds: Map<string, AbsoluteBounds>;
+  bounds: Map<string, Bounds>;
   waypoints: Map<string, Array<{ x: number; y: number }>>;
 }
 
 function parseDiagramInterchange(root: Element): DiMaps {
   const out: DiMaps = { bounds: new Map(), waypoints: new Map() };
 
-  // BPMN 2.0.2 § 12 (p. 367): every BPMN element gets a BPMNShape or BPMNEdge in
-  // the BPMNPlane. Multi-plane files (subprocess drill-down) are rare; for
+  // BPMN 2.0.2 § 12: every BPMN element gets a BPMNShape or BPMNEdge in the
+  // BPMNPlane. Multi-plane files (subprocess drill-down) are rare; for
   // round-trip with our exporter we only need the primary plane.
   for (const diag of childrenByLocalName(root, 'BPMNDiagram')) {
     for (const plane of childrenByLocalName(diag, 'BPMNPlane')) {
@@ -548,30 +575,21 @@ function parseDiagramInterchange(root: Element): DiMaps {
   return out;
 }
 
-// ─── Coordinate transform ─────────────────────────────────
-
-// Apollon's BPMN package stores bounds in ABSOLUTE canvas coordinates for every
-// element regardless of the `owner` chain (pool, lane, flow node, data, artifact).
-// The `owner` field is for ownership semantics (selection / grouping) — it does
-// NOT define a coordinate frame. Confirmed against the editor's at-rest model
-// in localStorage (see commit message). The exporter writes bounds AS-IS, so
-// BPMN DI absolute bounds round-trip directly into Apollon's storage with no
-// owner-chain subtraction needed.
-function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: ParseWarning[]): void {
+// BPMN DI bounds are ABSOLUTE canvas coordinates for every shape regardless of
+// the pool / lane nesting. They are kept absolute while parsing; the emit step
+// converts each node to a position relative to its direct `parentId`.
+function applyBoundsToNodes(nodes: WorkNode[], di: DiMaps, warnings: ParseWarning[]): void {
   const abs = di.bounds;
-
-  // Apply absolute as-is — that's the canonical Apollon storage format for BPMN.
   for (const n of nodes) {
     const b = abs.get(n.id);
     if (b) n.bounds = { x: b.x, y: b.y, width: b.width, height: b.height };
   }
-
-  // Fallback grid layout for nodes without DI (I2).
+  // Fallback grid layout for nodes without DI.
   const missing = nodes.filter((n) => !abs.get(n.id));
   if (missing.length > 0) {
     warnings.push({ code: 'di-missing', message: `${missing.length} element(s) had no BPMN DI shape; auto-laid-out` });
-    let col = 0,
-      row = 0;
+    let col = 0;
+    let row = 0;
     for (const n of missing) {
       n.bounds = { x: 80 + col * 200, y: 60 + row * 120, width: 120, height: 60 };
       col += 1;
@@ -583,27 +601,43 @@ function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: Parse
   }
 }
 
-function applyBoundsToEdges(edges: AnyBPMNFlow[], di: DiMaps, warnings: ParseWarning[]): void {
+function applyWaypointsToEdges(edges: WorkEdge[], di: DiMaps, warnings: ParseWarning[]): void {
   for (const e of edges) {
     const pts = di.waypoints.get(e.id);
     if (!pts || pts.length < 2) {
-      warnings.push({ code: 'edge-di-missing', message: `Edge ${e.id} has no waypoints; using zero-length path` });
+      warnings.push({ code: 'edge-di-missing', message: `Edge ${e.id} has no waypoints; using empty path` });
       continue;
     }
-    const xs = pts.map((p) => p.x),
-      ys = pts.map((p) => p.y);
-    const x = Math.min(...xs),
-      y = Math.min(...ys);
-    const width = Math.max(...xs) - x,
-      height = Math.max(...ys) - y;
-    e.bounds = { x, y, width, height };
-    e.path = pts.map((p) => ({ x: p.x - x, y: p.y - y })) as any;
+    e.points = pts.map((p) => ({ x: p.x, y: p.y }));
+  }
+}
+
+function centerOnOrigin(nodes: WorkNode[], edges: WorkEdge[]): void {
+  if (nodes.length === 0) return;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.bounds.x);
+    minY = Math.min(minY, n.bounds.y);
+    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
+    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  }
+  const dx = -Math.round((minX + maxX) / 2);
+  const dy = -Math.round((minY + maxY) / 2);
+  if (dx === 0 && dy === 0) return;
+  for (const n of nodes) {
+    n.bounds = { x: n.bounds.x + dx, y: n.bounds.y + dy, width: n.bounds.width, height: n.bounds.height };
+  }
+  for (const e of edges) {
+    e.points = e.points.map((p) => ({ x: p.x + dx, y: p.y + dy }));
   }
 }
 
 // ─── Top-level entry point ──────────────────────────────────────────────────
 
-export function bpmnXmlToApollon(xml: string): ImportResult {
+export function bpmnXmlToModel(xml: string): ImportResult {
   if (!xml || !xml.trim()) {
     throw new Error('Empty BPMN file');
   }
@@ -625,20 +659,17 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
 
   const di = parseDiagramInterchange(root);
   applyBoundsToNodes(ctx.nodes, di, ctx.warnings);
-  applyBoundsToEdges(ctx.edges, di, ctx.warnings);
+  applyWaypointsToEdges(ctx.edges, di, ctx.warnings);
 
-  // Shift the whole diagram so its bounding-box center sits near the canvas origin.
-  // BPMN DI bounds are absolute, so files authored by other tools often place
-  // content far from (0, 0). Apollon's canvas viewport opens around the origin
-  // and doesn't auto-fit-to-content, so without this shift imported diagrams can
-  // land off-screen (e.g., bottom-right). Interactively-created diagrams sit
-  // near the origin already, so this matches that convention.
+  // Shift the whole diagram so its bounding-box center sits near the canvas
+  // origin. BPMN DI bounds are absolute, so files authored by other tools often
+  // place content far from (0, 0) and would otherwise land off-screen.
   centerOnOrigin(ctx.nodes, ctx.edges);
 
-  // Resolve default flows (BPMN 2.0.2 § 8.3.13, spec-strict source check from 04A1).
-  const elementById = new Map(ctx.nodes.map((n) => [n.id, n]));
+  // Resolve default flows (BPMN 2.0.2 § 8.3.13).
+  const nodeById = new Map(ctx.nodes.map((n) => [n.id, n]));
   for (const [sourceId, flowId] of ctx.defaultFlowByOwner.entries()) {
-    const source = elementById.get(sourceId);
+    const source = nodeById.get(sourceId);
     if (!canSourceCarryDefault(source)) {
       ctx.warnings.push({
         code: 'default-flow-illegal-source',
@@ -648,40 +679,68 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
     }
     const flow = ctx.edges.find((e) => e.id === flowId);
     if (!flow) {
-      ctx.warnings.push({
-        code: 'default-flow-missing',
-        message: `default="${flowId}" on ${sourceId} points to no flow`,
-      });
+      ctx.warnings.push({ code: 'default-flow-missing', message: `default="${flowId}" on ${sourceId} points to no flow` });
       continue;
     }
-    if (flow.flowType !== 'sequence') {
+    if (flow.flowKind !== 'sequence') {
       ctx.warnings.push({
         code: 'default-flow-wrong-type',
-        message: `Flow ${flowId} marked default but flowType=${flow.flowType}; ignoring`,
+        message: `Flow ${flowId} marked default but flowKind=${flow.flowKind}; ignoring`,
       });
       continue;
     }
     flow.isDefault = true;
   }
 
-  // Emit UMLModel.
-  const elements: Record<string, UMLElement> = {};
-  for (const n of ctx.nodes) elements[n.id] = n;
-  const relationships: Record<string, UMLRelationship> = {};
-  for (const e of ctx.edges) relationships[e.id] = e;
+  // Convert work objects → v4 nodes/edges. Child positions are RELATIVE to their
+  // direct parent's absolute position (React Flow convention).
+  const absBoundsById = new Map(ctx.nodes.map((n) => [n.id, n.bounds]));
+  const nodes: BesserNode[] = ctx.nodes.map((n) => {
+    const parentAbs = n.parentId ? absBoundsById.get(n.parentId) : undefined;
+    const position = parentAbs
+      ? { x: n.bounds.x - parentAbs.x, y: n.bounds.y - parentAbs.y }
+      : { x: n.bounds.x, y: n.bounds.y };
+    const node: BesserNode = {
+      id: n.id,
+      type: n.type as DiagramNodeType,
+      position,
+      width: n.bounds.width,
+      height: n.bounds.height,
+      measured: { width: n.bounds.width, height: n.bounds.height },
+      data: n.data,
+      ...(n.parentId ? { parentId: n.parentId } : {}),
+    };
+    return node;
+  });
 
-  // Canvas bounds: bounding box of all top-level (owner=null) shapes + edges.
-  const topLevel = ctx.nodes.filter((n) => !n.owner);
-  const size = computeCanvasSize(topLevel, ctx.edges);
+  const edges: BesserEdge[] = ctx.edges.map((e) => {
+    const edge: BesserEdge = {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      type: e.type as DiagramEdgeType,
+      sourceHandle: '',
+      targetHandle: '',
+      data: {
+        label: e.name,
+        name: e.name,
+        ...(e.isDefault ? { isDefault: true } : {}),
+        ...e.agentic,
+        points: e.points,
+      },
+    };
+    return edge;
+  });
 
   const model: UMLModel = {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: uuid(),
+    title: 'Imported BPMN',
     type: UMLDiagramType.BPMN,
-    size,
-    interactive: { elements: {}, relationships: {} },
-    elements,
-    relationships,
+    nodes,
+    edges,
     assessments: {},
+    interactive: { elements: {}, relationships: {} },
   };
 
   // A merging gateway with no upstream diverging gateway is a structural
@@ -691,64 +750,15 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
   return { model, warnings: ctx.warnings, skipped: ctx.skipped };
 }
 
-// Build the unified element + relationship map the validator helpers consume.
-// Same shape as `validateAllBpmnFlows`'s input.
-function unifiedElementsById(model: UMLModel): Record<string, { id: string; type: string; [k: string]: unknown }> {
-  const out: Record<string, { id: string; type: string; [k: string]: unknown }> = {};
-  for (const id of Object.keys(model.elements)) out[id] = model.elements[id] as never;
-  for (const id of Object.keys(model.relationships)) out[id] = model.relationships[id] as never;
-  return out;
-}
-
 // Warn on agentic merging gateways with no upstream diverging gateway.
 function warnOrphanedMergingGateways(model: UMLModel, warnings: ParseWarning[]): void {
-  const unified = unifiedElementsById(model);
-  const orphanIds = findOrphanedMergingGateways(unified);
-  for (const id of orphanIds) {
-    const name = model.elements[id]?.name;
-    const label = name ? `"${name}"` : 'unnamed';
+  const nameById = new Map(model.nodes.map((n) => [n.id, n.data?.name]));
+  for (const id of findOrphanedMergingGateways(model)) {
+    const name = nameById.get(id);
+    const label = typeof name === 'string' && name ? `"${name}"` : 'unnamed';
     warnings.push({
       code: 'orphaned-merging-gateway',
       message: `Agentic merging gateway ${label} has no upstream diverging gateway; collaboration mode unknown.`,
     });
   }
-}
-
-function centerOnOrigin(nodes: AnyBPMNElement[], edges: AnyBPMNFlow[]): void {
-  if (nodes.length === 0) return;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  for (const n of nodes) {
-    minX = Math.min(minX, n.bounds.x);
-    minY = Math.min(minY, n.bounds.y);
-    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
-    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
-  }
-  const dx = -Math.round((minX + maxX) / 2);
-  const dy = -Math.round((minY + maxY) / 2);
-  if (dx === 0 && dy === 0) return;
-  for (const n of nodes) {
-    n.bounds = { x: n.bounds.x + dx, y: n.bounds.y + dy, width: n.bounds.width, height: n.bounds.height };
-  }
-  for (const e of edges) {
-    // Edge waypoints are stored relative to e.bounds, so shifting only e.bounds
-    // moves the whole edge with its node endpoints.
-    e.bounds = { x: e.bounds.x + dx, y: e.bounds.y + dy, width: e.bounds.width, height: e.bounds.height };
-  }
-}
-
-function computeCanvasSize(topLevel: AnyBPMNElement[], edges: AnyBPMNFlow[]): { width: number; height: number } {
-  let maxX = 0,
-    maxY = 0;
-  for (const n of topLevel) {
-    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
-    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
-  }
-  for (const e of edges) {
-    maxX = Math.max(maxX, e.bounds.x + e.bounds.width);
-    maxY = Math.max(maxY, e.bounds.y + e.bounds.height);
-  }
-  return { width: Math.max(800, Math.ceil(maxX + 80)), height: Math.max(600, Math.ceil(maxY + 80)) };
 }

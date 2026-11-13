@@ -1,0 +1,256 @@
+import { BaseEdge } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import {
+  BaseEdgeProps,
+  EdgeBendHandles,
+  EdgeEndpointMarkers,
+  CommonEdgeElements,
+} from "../GenericEdge"
+import { EdgeMiddleLabels } from "../labelTypes/EdgeMiddleLabels"
+import { useEdgeConfig } from "@/hooks/useEdgeConfig"
+import { DiagramEdgeType } from "@/edges"
+import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
+import { useDiagramStore, usePopoverStore } from "@/store/context"
+import { useShallow } from "zustand/shallow"
+import { useToolbar } from "@/hooks"
+import { EDGES } from "@/constants"
+import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
+import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSelectableWrapper"
+import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
+import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
+import { registerEdgeTypes } from "../types"
+
+/**
+ * StateMachineDiagram transition edge. Single-headed arrow with a
+ * label at the path midpoint. Shape-of-`data` (per
+ * `docs/source/migrations/uml-v4-shape.md`, StateMachineDiagram §):
+ *
+ * ```ts
+ * {
+ *   name?: string;        // edge label / event description
+ *   guard?: string;       // optional guard expression (renders as [...])
+ *   params: { [key: string]: string };
+ *   points: IPoint[];
+ *   // BESSER addition (per the brief):
+ *   code?: string;        // action code attached to the transition
+ *   eventName?: string;   // explicit event-driven trigger
+ * }
+ * ```
+ *
+ * Note (decision): the brief also specifies `code` and `eventName`
+ * fields on the edge `data`. The spec at `uml-v4-shape.md` does not list
+ * those, but it's the same pattern v3's editor used internally
+ * (`v3 source: uml-state-transition.ts:14`'s `params` dict was
+ * the legacy carrier). Both are passed through verbatim — the inspector
+ * exposes them; the round-trip preserves them.
+ */
+export const StateMachineDiagramEdge = ({
+  id,
+  type,
+  source,
+  target,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  sourceHandleId,
+  targetHandleId,
+  data,
+  selected,
+}: BaseEdgeProps) => {
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
+  const { handleDelete } = useToolbar({ id })
+
+  // `StateTransition` is registered into `edgeConfig` (see
+  // `edges/types.tsx`); the cast widens to `DiagramEdgeType` because the
+  // edge type itself is registered at runtime via `registerEdgeTypes`.
+  const config = useEdgeConfig(type as DiagramEdgeType)
+
+  const allowMidpointDragging =
+    "allowMidpointDragging" in config ? config.allowMidpointDragging : true
+
+  const { assessments } = useDiagramStore(
+    useShallow((state) => ({
+      assessments: state.assessments,
+    }))
+  )
+
+  const setPopOverElementId = usePopoverStore(
+    useShallow((state) => state.setPopOverElementId)
+  )
+
+  // Continuous ports: anchors and route computed from the node outlines.
+  const floating = useFloatingEdgeLayout(id)
+
+  const {
+    pathRef,
+    edgeData,
+    currentPath,
+    overlayPath,
+    midpoints,
+    hasInitialCalculation,
+    isReconnectingRef,
+    markerEnd,
+    markerStart,
+    strokeDashArray,
+    handlePointerDown,
+    handleEndpointPointerDown,
+    sourcePoint,
+    targetPoint,
+    isDiagramModifiable,
+  } = useStepPathEdge({
+    id,
+    type,
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    sourceHandleId,
+    targetHandleId,
+    data,
+    allowMidpointDragging,
+    enableReconnection: true,
+    enableStraightPath: false,
+    floating,
+  })
+
+  const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+  const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
+
+  // Compose the visible edge label: `name [params...] [guard]` mirrors
+  // v3 state-transition notation
+  // (`v3 source: uml-state-transition.ts:38-65`), where
+  // `params` is a dict / array stored on the relationship root and
+  // all values are joined with ", " inside a single bracket pair
+  // (develop parity: `uml-state-transition-component.tsx` `getDisplayText()`
+  // lines 46-61). `code` is reserved for the inspector — it's not part of
+  // the canvas label. Include `params` entries before the guard.
+  const dataAny = (data ?? {}) as {
+    name?: string
+    guard?: string
+    params?: { [id: string]: string } | string[] | string
+  }
+  const paramValues: string[] = (() => {
+    const p = dataAny.params
+    if (!p) return []
+    if (typeof p === "string") return p ? [p] : []
+    if (Array.isArray(p)) return p.filter((v) => !!v)
+    return Object.values(p).filter((v) => typeof v === "string" && !!v)
+  })()
+  const paramSegment =
+    paramValues.length > 0 ? `[${paramValues.join(", ")}]` : ""
+  const label =
+    [
+      dataAny.name,
+      paramSegment,
+      dataAny.guard ? `[${dataAny.guard}]` : "",
+    ]
+      .filter(Boolean)
+      .join(" ") || (data?.label as string | undefined) || ""
+
+  return (
+    <AssessmentSelectableWrapper elementId={id} asElement="g">
+      <FeedbackDropzone elementId={id} asElement="path" elementType={type}>
+        <g className="edge-container">
+          <BaseEdge
+            key={markerKey}
+            id={id}
+            path={currentPath}
+            pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
+            style={{
+              stroke: strokeColor,
+              strokeDasharray: isReconnectingRef.current
+                ? "none"
+                : strokeDashArray,
+              transition: hasInitialCalculation
+                ? "opacity 0.1s ease-in"
+                : "none",
+              opacity: 1,
+            }}
+          />
+
+          {!isReconnectingRef.current && (
+            <EdgeInlineMarkers
+              pathD={currentPath}
+              markerEnd={markerEnd}
+              markerStart={markerStart}
+              strokeColor={strokeColor}
+            />
+          )}
+
+          <path
+            ref={pathRef}
+            className="edge-overlay"
+            d={overlayPath}
+            fill="none"
+            strokeWidth={EDGES.EDGE_HIGHLIGHT_STROKE_WIDTH}
+            pointerEvents="stroke"
+            style={{
+              opacity: isReconnectingRef.current ? 0 : 0.4,
+            }}
+          />
+
+          <EdgeEndpointMarkers
+            sourcePoint={sourcePoint}
+            targetPoint={targetPoint}
+            isDiagramModifiable={isDiagramModifiable}
+            selected={selected}
+            diagramType="step"
+            pathType="step"
+            showDots={!!floating}
+            onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
+            onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
+          />
+
+          {isDiagramModifiable &&
+            !isReconnectingRef.current &&
+            allowMidpointDragging &&
+            (
+              <EdgeBendHandles
+                id={id}
+                midpoints={midpoints}
+                floating={!!floating}
+                onPointerDown={handlePointerDown}
+              />
+            )}
+        </g>
+
+        <EdgeMiddleLabels
+          label={label}
+          pathMiddlePosition={edgeData.pathMiddlePosition}
+          isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          points={edgeData.activePoints}
+          showRelationshipLabels={true}
+          textColor={textColor}
+        />
+
+        <CommonEdgeElements
+          id={id}
+          pathMiddlePosition={edgeData.pathMiddlePosition}
+          isDiagramModifiable={isDiagramModifiable}
+          assessments={assessments}
+          anchorRef={anchorRef}
+          anchorEl={anchorEl}
+          handleDelete={handleDelete}
+          setPopOverElementId={setPopOverElementId}
+          type={type}
+        />
+      </FeedbackDropzone>
+    </AssessmentSelectableWrapper>
+  )
+}
+
+// Side-effect registration: extends the central `_edgeTypeRegistry` so
+// `<ReactFlow edgeTypes={diagramEdgeTypes}>` picks the edge up.
+registerEdgeTypes({ StateTransition: StateMachineDiagramEdge })

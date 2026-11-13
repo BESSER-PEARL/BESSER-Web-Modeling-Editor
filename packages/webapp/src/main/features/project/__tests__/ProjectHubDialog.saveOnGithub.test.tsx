@@ -136,7 +136,7 @@ describe('Save it on GitHub', () => {
       autoClose: 8000,
     }));
     expect(captureException).toHaveBeenCalledWith(error, { tags: { handled: 'reportError' } });
-    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shop'));
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shop'), expect.anything());
     expect(ProjectStorageRepository.loadProject(project.id)).not.toBeNull();
     expect(getProjectGitHubLink(project.id)).toBeNull();
   });

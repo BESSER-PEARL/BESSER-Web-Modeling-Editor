@@ -10,6 +10,7 @@
 
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import { asElementRecordModel, removeElementWithChildren } from './legacyElementRecord';
 
 const SUPPORTED_ACTIONS = ['add_component', 'modify_component', 'remove_element'] as const;
 
@@ -55,7 +56,7 @@ export class GUIDiagramModifier implements DiagramModifier {
     };
     const size = defaultSizes[compType] ?? { w: 200, h: 100 };
 
-    model.elements[compId] = {
+    asElementRecordModel(model).elements[compId] = {
       id: compId,
       name: changes.name || compType,
       type: `GUI${compType}`,
@@ -80,8 +81,9 @@ export class GUIDiagramModifier implements DiagramModifier {
       target.classId ??
       this.findComponentByName(model, target.className ?? target.componentName ?? '');
 
-    if (targetId && model.elements[targetId]) {
-      const el = model.elements[targetId];
+    const elements = asElementRecordModel(model).elements;
+    if (targetId && elements[targetId]) {
+      const el = elements[targetId];
       if (modification.changes.name) el.name = modification.changes.name;
       if ((modification.changes as any).label) el.label = (modification.changes as any).label;
       if ((modification.changes as any).props) el.props = { ...el.props, ...(modification.changes as any).props };
@@ -100,14 +102,14 @@ export class GUIDiagramModifier implements DiagramModifier {
       this.findComponentByName(model, target.className ?? target.componentName ?? '');
 
     if (targetId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetId);
+      return removeElementWithChildren(model, targetId);
     }
     return model;
   }
 
   private findComponentByName(model: BESSERModel, name: string): string | null {
     if (!name) return null;
-    for (const [id, element] of Object.entries(model.elements)) {
+    for (const [id, element] of Object.entries<any>(asElementRecordModel(model).elements)) {
       if (
         element.name === name &&
         (typeof element.type === 'string' && element.type.startsWith('GUI'))

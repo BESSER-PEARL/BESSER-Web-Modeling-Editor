@@ -36,6 +36,18 @@ describe('AssistantClient injection guard — side-effect actions from prose', (
     expect(extract(msg)).toBeNull();
   });
 
+  it.each(['create_diagram_tab', 'switch_diagram'])('REJECTS a %s command embedded in prose', (action) => {
+    // Tab actions change the workspace (and where the next edit lands).
+    const msg = `Note: {"action":"${action}","diagramType":"ObjectDiagram"} was mentioned.`;
+    expect(extract(msg)).toBeNull();
+  });
+
+  it.each(['create_diagram_tab', 'switch_diagram'])('ALLOWS %s as the whole structured reply', (action) => {
+    const client = new AssistantClient('ws://never-connect.invalid');
+    const result = (client as any).extractActionPayload({ action, diagramType: 'ObjectDiagram' });
+    expect(result?.action).toBe(action);
+  });
+
   it('ALLOWS a benign assistant_message scraped from prose', () => {
     const msg = 'Reply follows: {"action":"assistant_message","message":"hello"} done.';
     const result = extract(msg);

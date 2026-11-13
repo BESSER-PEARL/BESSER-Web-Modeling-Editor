@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeColor } from '../../../../../../../editor/src/main/utils/safe-color';
-import { sanitizeSvg } from '../../../../../../../editor/src/main/utils/sanitize-svg';
+import { safeColor, sanitizeSvg } from '@besser/wme';
 
 // A model is a file anyone with write access to a linked repository can edit.
 describe('sanitizeSvg', () => {

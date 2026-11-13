@@ -1,0 +1,235 @@
+import { BaseEdge } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import {
+  BaseEdgeProps,
+  EdgeBendHandles,
+  EdgeEndpointMarkers,
+  CommonEdgeElements,
+} from "../GenericEdge"
+import { useDiagramStore, usePopoverStore } from "@/store/context"
+import { useShallow } from "zustand/shallow"
+import { EdgeMiddleLabels } from "../labelTypes/EdgeMiddleLabels"
+import { useEdgeConfig } from "@/hooks/useEdgeConfig"
+import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
+import { useToolbar } from "@/hooks"
+import { EDGES } from "@/constants"
+import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
+import { AssessmentSelectableWrapper } from "@/components"
+import { getCustomColorsFromDataForEdge } from "@/utils"
+import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
+
+export const BPMNDiagramEdge = ({
+  id,
+  type,
+  source,
+  target,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  sourceHandleId,
+  targetHandleId,
+  data,
+  selected,
+}: BaseEdgeProps) => {
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
+  const { handleDelete } = useToolbar({ id })
+
+  const config = useEdgeConfig(
+    type as
+      | "BPMNSequenceFlow"
+      | "BPMNMessageFlow"
+      | "BPMNAssociationFlow"
+      | "BPMNDataAssociationFlow"
+  )
+
+  // For component edges, config has allowMidpointDragging
+  const allowMidpointDragging =
+    "allowMidpointDragging" in config ? config.allowMidpointDragging : true
+  const showRelationshipLabels =
+    "showRelationshipLabels" in config ? config.showRelationshipLabels : true
+
+  const { assessments } = useDiagramStore(
+    useShallow((state) => ({
+      assessments: state.assessments,
+    }))
+  )
+
+  const setPopOverElementId = usePopoverStore(
+    useShallow((state) => state.setPopOverElementId)
+  )
+
+  // Continuous ports: anchors and route computed from the node outlines.
+  const floating = useFloatingEdgeLayout(id)
+
+  const {
+    pathRef,
+    edgeData,
+    currentPath,
+    overlayPath,
+    midpoints,
+    hasInitialCalculation,
+    isReconnectingRef,
+    markerEnd,
+    markerStart,
+    strokeDashArray,
+    handlePointerDown,
+    handleEndpointPointerDown,
+    sourcePoint,
+    targetPoint,
+    isDiagramModifiable,
+  } = useStepPathEdge({
+    id,
+    type,
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    sourceHandleId,
+    targetHandleId,
+    data,
+    allowMidpointDragging,
+    enableReconnection: true,
+    enableStraightPath: false,
+    floating,
+  })
+
+  const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+  const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
+
+  // BPMN 2.0.2 §8.3.13 default-flow marker: a short diagonal slash near
+  // the start of a default sequence flow. Ported from develop's
+  // bpmn-flow-component.tsx — take the first connector segment's unit
+  // direction, offset 12px from the source along it, then draw a 5px
+  // half-length segment rotated 45° from that direction
+  // (slashDir = ((dx - dy)·k, (dx + dy)·k) with k = √½).
+  const defaultFlowMarker = (() => {
+    if (type !== "BPMNSequenceFlow" || !data?.isDefault) return null
+    const p1 = midpoints[0] ?? targetPoint
+    const dx = p1.x - sourcePoint.x
+    const dy = p1.y - sourcePoint.y
+    const len = Math.hypot(dx, dy)
+    if (len === 0) return null
+    const ux = dx / len
+    const uy = dy / len
+    const cx = sourcePoint.x + ux * 12
+    const cy = sourcePoint.y + uy * 12
+    const k = Math.SQRT1_2
+    const sx = (ux - uy) * k
+    const sy = (ux + uy) * k
+    const half = 5
+    return (
+      <path
+        d={`M ${cx - sx * half} ${cy - sy * half} L ${cx + sx * half} ${cy + sy * half}`}
+        stroke={strokeColor}
+        strokeLinecap="round"
+        fill="none"
+        pointerEvents="none"
+      />
+    )
+  })()
+
+  return (
+    <AssessmentSelectableWrapper elementId={id} asElement="g">
+      <FeedbackDropzone elementId={id} asElement="path" elementType={type}>
+        <g className="edge-container">
+          <BaseEdge
+            key={markerKey}
+            id={id}
+            path={currentPath}
+            pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
+            style={{
+              stroke: strokeColor,
+              strokeDasharray: isReconnectingRef.current
+                ? "4 4"
+                : strokeDashArray,
+              transition: hasInitialCalculation
+                ? "opacity 0.1s ease-in"
+                : "none",
+              opacity: 1,
+            }}
+          />
+
+          {!isReconnectingRef.current && (
+            <EdgeInlineMarkers
+              pathD={currentPath}
+              markerEnd={markerEnd}
+              markerStart={markerStart}
+              strokeColor={strokeColor}
+            />
+          )}
+
+          {!isReconnectingRef.current && defaultFlowMarker}
+
+          <path
+            ref={pathRef}
+            className="edge-overlay"
+            d={overlayPath}
+            fill="none"
+            strokeWidth={EDGES.EDGE_HIGHLIGHT_STROKE_WIDTH}
+            pointerEvents="stroke"
+            style={{
+              opacity: isReconnectingRef.current ? 0 : 0.4,
+            }}
+          />
+
+          <EdgeEndpointMarkers
+            sourcePoint={sourcePoint}
+            targetPoint={targetPoint}
+            isDiagramModifiable={isDiagramModifiable}
+            selected={selected}
+            diagramType="step"
+            pathType="step"
+            showDots={!!floating}
+            onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
+            onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
+          />
+
+          {isDiagramModifiable &&
+            !isReconnectingRef.current &&
+            allowMidpointDragging &&
+            (
+              <EdgeBendHandles
+                id={id}
+                midpoints={midpoints}
+                floating={!!floating}
+                onPointerDown={handlePointerDown}
+              />
+            )}
+        </g>
+
+        <EdgeMiddleLabels
+          label={data?.label}
+          pathMiddlePosition={edgeData.pathMiddlePosition}
+          isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+          points={edgeData.activePoints}
+          showRelationshipLabels={showRelationshipLabels}
+          textColor={textColor}
+        />
+
+        <CommonEdgeElements
+          id={id}
+          pathMiddlePosition={edgeData.pathMiddlePosition}
+          isDiagramModifiable={isDiagramModifiable}
+          assessments={assessments}
+          anchorRef={anchorRef}
+          anchorEl={anchorEl}
+          handleDelete={handleDelete}
+          setPopOverElementId={setPopOverElementId}
+          type={type}
+        />
+      </FeedbackDropzone>
+    </AssessmentSelectableWrapper>
+  )
+}

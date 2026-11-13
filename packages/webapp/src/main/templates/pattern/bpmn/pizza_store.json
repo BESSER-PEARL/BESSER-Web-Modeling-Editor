@@ -1,988 +1,1022 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "converted-diagram-1782994098534",
+  "title": "Pizza Store",
   "type": "BPMNDiagram",
-  "size": {
-    "width": 1300,
-    "height": 710
-  },
-  "interactive": {
-    "elements": {},
-    "relationships": {}
-  },
-  "elements": {
-    "c-pool": {
+  "nodes": [
+    {
       "id": "c-pool",
-      "name": "Pizza Customer",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnPool",
+      "position": {
         "x": 0,
-        "y": 0,
+        "y": 0
+      },
+      "width": 1300,
+      "height": 260,
+      "measured": {
         "width": 1300,
         "height": 260
+      },
+      "data": {
+        "name": "Pizza Customer"
       }
     },
-    "c-start": {
+    {
       "id": "c-start",
-      "name": "Hungry for pizza",
-      "type": "BPMNStartEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnStartEvent",
+      "position": {
         "x": 60,
-        "y": 110,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "Hungry for pizza",
+        "eventType": "default"
+      },
+      "parentId": "c-pool"
     },
-    "c-select": {
+    {
       "id": "c-select",
-      "name": "Select a pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 150,
-        "y": 100,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Select a pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "c-pool"
     },
-    "c-order": {
+    {
       "id": "c-order",
-      "name": "Order a pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 320,
-        "y": 100,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "send",
-      "marker": "none"
+      "data": {
+        "name": "Order a pizza",
+        "taskType": "send",
+        "marker": "none"
+      },
+      "parentId": "c-pool"
     },
-    "c-gw": {
+    {
       "id": "c-gw",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnGateway",
+      "position": {
         "x": 480,
-        "y": 110,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "gatewayType": "event-based"
+      "data": {
+        "name": "",
+        "gatewayType": "event-based"
+      },
+      "parentId": "c-pool"
     },
-    "c-timer": {
+    {
       "id": "c-timer",
-      "name": "60 min",
-      "type": "BPMNIntermediateEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnIntermediateEvent",
+      "position": {
         "x": 480,
-        "y": 190,
+        "y": 190
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "timer-catch"
+      "data": {
+        "name": "60 min",
+        "eventType": "timer-catch"
+      },
+      "parentId": "c-pool"
     },
-    "c-ask": {
+    {
       "id": "c-ask",
-      "name": "Ask for pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 525,
-        "y": 180,
+        "y": 180
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Ask for pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "c-pool"
     },
-    "c-msg": {
+    {
       "id": "c-msg",
-      "name": "Pizza received",
-      "type": "BPMNIntermediateEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnIntermediateEvent",
+      "position": {
         "x": 795,
-        "y": 110,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "message-catch"
+      "data": {
+        "name": "Pizza received",
+        "eventType": "message-catch"
+      },
+      "parentId": "c-pool"
     },
-    "c-pay": {
+    {
       "id": "c-pay",
-      "name": "Pay for pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 900,
-        "y": 100,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Pay for pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "c-pool"
     },
-    "c-eat": {
+    {
       "id": "c-eat",
-      "name": "Eat the pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 1070,
-        "y": 100,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Eat the pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "c-pool"
     },
-    "c-end": {
+    {
       "id": "c-end",
-      "name": "Hunger satisfied",
-      "type": "BPMNEndEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnEndEvent",
+      "position": {
         "x": 1240,
-        "y": 110,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "Hunger satisfied",
+        "eventType": "default"
+      },
+      "parentId": "c-pool"
     },
-    "v-pool": {
+    {
       "id": "v-pool",
-      "name": "Pizza Vendor",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnPool",
+      "position": {
         "x": 0,
-        "y": 300,
+        "y": 300
+      },
+      "width": 1300,
+      "height": 390,
+      "measured": {
         "width": 1300,
         "height": 390
+      },
+      "data": {
+        "name": "Pizza Vendor"
       }
     },
-    "v-lane-clerk": {
+    {
       "id": "v-lane-clerk",
-      "name": "Clerk",
-      "type": "BPMNSwimlane",
-      "owner": "v-pool",
-      "bounds": {
+      "type": "bpmnSwimlane",
+      "position": {
         "x": 40,
-        "y": 300,
+        "y": 0
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
         "width": 1260,
         "height": 130
-      }
+      },
+      "data": {
+        "name": "Clerk"
+      },
+      "parentId": "v-pool"
     },
-    "v-lane-chef": {
+    {
       "id": "v-lane-chef",
-      "name": "Pizza Chef",
-      "type": "BPMNSwimlane",
-      "owner": "v-pool",
-      "bounds": {
+      "type": "bpmnSwimlane",
+      "position": {
         "x": 40,
-        "y": 430,
+        "y": 130
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
         "width": 1260,
         "height": 130
-      }
+      },
+      "data": {
+        "name": "Pizza Chef"
+      },
+      "parentId": "v-pool"
     },
-    "v-lane-delivery": {
+    {
       "id": "v-lane-delivery",
-      "name": "Delivery Boy",
-      "type": "BPMNSwimlane",
-      "owner": "v-pool",
-      "bounds": {
+      "type": "bpmnSwimlane",
+      "position": {
         "x": 40,
-        "y": 560,
+        "y": 260
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
         "width": 1260,
         "height": 130
+      },
+      "data": {
+        "name": "Delivery Boy"
+      },
+      "parentId": "v-pool"
+    },
+    {
+      "id": "v-start",
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 315,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Order received",
+        "eventType": "message"
+      },
+      "parentId": "v-lane-clerk"
+    },
+    {
+      "id": "v-pgw",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 410,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel"
+      },
+      "parentId": "v-lane-clerk"
+    },
+    {
+      "id": "v-askmsg",
+      "type": "bpmnIntermediateEvent",
+      "position": {
+        "x": 520,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Where is my pizza?",
+        "eventType": "message-catch"
+      },
+      "parentId": "v-lane-clerk"
+    },
+    {
+      "id": "v-calm",
+      "type": "bpmnTask",
+      "position": {
+        "x": 610,
+        "y": 40
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Calm customer",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "v-lane-clerk"
+    },
+    {
+      "id": "v-bake",
+      "type": "bpmnTask",
+      "position": {
+        "x": 480,
+        "y": 35
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Bake the pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "v-lane-chef"
+    },
+    {
+      "id": "v-deliver",
+      "type": "bpmnTask",
+      "position": {
+        "x": 720,
+        "y": 35
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Deliver the pizza",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "v-lane-delivery"
+    },
+    {
+      "id": "v-receive",
+      "type": "bpmnTask",
+      "position": {
+        "x": 860,
+        "y": 35
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Receive payment",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "v-lane-delivery"
+    },
+    {
+      "id": "v-end",
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 1020,
+        "y": 45
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Order complete",
+        "eventType": "default"
+      },
+      "parentId": "v-lane-delivery"
+    }
+  ],
+  "edges": [
+    {
+      "id": "f-c1",
+      "source": "c-start",
+      "target": "c-select",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 100,
+            "y": 130
+          },
+          {
+            "x": 150,
+            "y": 130
+          }
+        ]
       }
     },
-    "v-start": {
-      "id": "v-start",
-      "name": "Order received",
-      "type": "BPMNStartEvent",
-      "owner": null,
-      "bounds": {
-        "x": 355,
-        "y": 350,
-        "width": 40,
-        "height": 40
-      },
-      "eventType": "message"
-    },
-    "v-pgw": {
-      "id": "v-pgw",
-      "name": "",
-      "type": "BPMNGateway",
-      "owner": null,
-      "bounds": {
-        "x": 450,
-        "y": 350,
-        "width": 40,
-        "height": 40
-      },
-      "gatewayType": "parallel"
-    },
-    "v-askmsg": {
-      "id": "v-askmsg",
-      "name": "Where is my pizza?",
-      "type": "BPMNIntermediateEvent",
-      "owner": null,
-      "bounds": {
-        "x": 560,
-        "y": 350,
-        "width": 40,
-        "height": 40
-      },
-      "eventType": "message-catch"
-    },
-    "v-calm": {
-      "id": "v-calm",
-      "name": "Calm customer",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
-        "x": 650,
-        "y": 340,
-        "width": 110,
-        "height": 60
-      },
-      "taskType": "user",
-      "marker": "none"
-    },
-    "v-bake": {
-      "id": "v-bake",
-      "name": "Bake the pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
-        "x": 520,
-        "y": 465,
-        "width": 110,
-        "height": 60
-      },
-      "taskType": "user",
-      "marker": "none"
-    },
-    "v-deliver": {
-      "id": "v-deliver",
-      "name": "Deliver the pizza",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
-        "x": 760,
-        "y": 595,
-        "width": 110,
-        "height": 60
-      },
-      "taskType": "user",
-      "marker": "none"
-    },
-    "v-receive": {
-      "id": "v-receive",
-      "name": "Receive payment",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
-        "x": 900,
-        "y": 595,
-        "width": 110,
-        "height": 60
-      },
-      "taskType": "user",
-      "marker": "none"
-    },
-    "v-end": {
-      "id": "v-end",
-      "name": "Order complete",
-      "type": "BPMNEndEvent",
-      "owner": null,
-      "bounds": {
-        "x": 1060,
-        "y": 605,
-        "width": 40,
-        "height": 40
-      },
-      "eventType": "default"
-    }
-  },
-  "relationships": {
-    "f-c1": {
-      "id": "f-c1",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 100,
-        "y": 130,
-        "width": 50,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-start"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-select"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
-    },
-    "f-c2": {
+    {
       "id": "f-c2",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 260,
-        "y": 130,
-        "width": 60,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-select"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-order"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-select",
+      "target": "c-order",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 260,
+            "y": 130
+          },
+          {
+            "x": 320,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-c3": {
+    {
       "id": "f-c3",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 430,
-        "y": 130,
-        "width": 50,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-order"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-gw"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-order",
+      "target": "c-gw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 430,
+            "y": 130
+          },
+          {
+            "x": 480,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-c4": {
+    {
       "id": "f-c4",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 500,
-        "y": 150,
-        "width": 1,
-        "height": 40
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 40
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "c-gw"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "c-timer"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-gw",
+      "target": "c-timer",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 500,
+            "y": 150
+          },
+          {
+            "x": 500,
+            "y": 190
+          }
+        ]
+      }
     },
-    "f-c5": {
+    {
       "id": "f-c5",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 520,
-        "y": 130,
-        "width": 275,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 275,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-gw"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-msg"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-gw",
+      "target": "c-msg",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 130
+          },
+          {
+            "x": 795,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-c6": {
+    {
       "id": "f-c6",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 520,
-        "y": 210,
-        "width": 5,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 5,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-timer"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-ask"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-timer",
+      "target": "c-ask",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 210
+          },
+          {
+            "x": 525,
+            "y": 210
+          }
+        ]
+      }
     },
-    "f-c7": {
+    {
       "id": "f-c7",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 835,
-        "y": 130,
-        "width": 65,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 65,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-msg"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-pay"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-msg",
+      "target": "c-pay",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 835,
+            "y": 130
+          },
+          {
+            "x": 900,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-c8": {
+    {
       "id": "f-c8",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 1010,
-        "y": 130,
-        "width": 60,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-pay"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-eat"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-pay",
+      "target": "c-eat",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1010,
+            "y": 130
+          },
+          {
+            "x": 1070,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-c9": {
+    {
       "id": "f-c9",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 1180,
-        "y": 130,
-        "width": 60,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "c-eat"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "c-end"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "c-eat",
+      "target": "c-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1180,
+            "y": 130
+          },
+          {
+            "x": 1240,
+            "y": 130
+          }
+        ]
+      }
     },
-    "f-v1": {
+    {
       "id": "f-v1",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 395,
-        "y": 370,
-        "width": 55,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "v-start"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-pgw"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-start",
+      "target": "v-pgw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 395,
+            "y": 370
+          },
+          {
+            "x": 450,
+            "y": 370
+          }
+        ]
+      }
     },
-    "f-v2": {
+    {
       "id": "f-v2",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 470,
-        "y": 390,
-        "width": 50,
-        "height": 105
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 105
-        },
-        {
-          "x": 50,
-          "y": 105
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "v-pgw"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-bake"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-pgw",
+      "target": "v-bake",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 470,
+            "y": 390
+          },
+          {
+            "x": 470,
+            "y": 495
+          },
+          {
+            "x": 520,
+            "y": 495
+          }
+        ]
+      }
     },
-    "f-v3": {
+    {
       "id": "f-v3",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 490,
-        "y": 370,
-        "width": 70,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 70,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "v-pgw"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-askmsg"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-pgw",
+      "target": "v-askmsg",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 490,
+            "y": 370
+          },
+          {
+            "x": 560,
+            "y": 370
+          }
+        ]
+      }
     },
-    "f-v4": {
+    {
       "id": "f-v4",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 600,
-        "y": 370,
-        "width": 50,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "v-askmsg"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-calm"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-askmsg",
+      "target": "v-calm",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 600,
+            "y": 370
+          },
+          {
+            "x": 650,
+            "y": 370
+          }
+        ]
+      }
     },
-    "f-v5": {
+    {
       "id": "f-v5",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 575,
-        "y": 525,
-        "width": 185,
-        "height": 100
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 100
-        },
-        {
-          "x": 185,
-          "y": 100
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "v-bake"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-deliver"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-bake",
+      "target": "v-deliver",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 575,
+            "y": 525
+          },
+          {
+            "x": 575,
+            "y": 625
+          },
+          {
+            "x": 760,
+            "y": 625
+          }
+        ]
+      }
     },
-    "f-v6": {
+    {
       "id": "f-v6",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 870,
-        "y": 625,
-        "width": 30,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 30,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "v-deliver"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-receive"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-deliver",
+      "target": "v-receive",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 870,
+            "y": 625
+          },
+          {
+            "x": 900,
+            "y": 625
+          }
+        ]
+      }
     },
-    "f-v7": {
+    {
       "id": "f-v7",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 1010,
-        "y": 625,
-        "width": 50,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "v-receive"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "v-end"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "v-receive",
+      "target": "v-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1010,
+            "y": 625
+          },
+          {
+            "x": 1060,
+            "y": 625
+          }
+        ]
+      }
     },
-    "mf-1": {
+    {
       "id": "mf-1",
-      "name": "Pizza order",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 375,
-        "y": 160,
-        "width": 1,
-        "height": 190
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 190
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "c-order"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "v-start"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "c-order",
+      "target": "v-start",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Pizza order",
+        "name": "Pizza order",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 375,
+            "y": 160
+          },
+          {
+            "x": 375,
+            "y": 350
+          }
+        ]
+      }
     },
-    "mf-2": {
+    {
       "id": "mf-2",
-      "name": "Where is my pizza?",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 580,
-        "y": 240,
-        "width": 1,
-        "height": 110
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 110
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "c-ask"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "v-askmsg"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "c-ask",
+      "target": "v-askmsg",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Where is my pizza?",
+        "name": "Where is my pizza?",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 580,
+            "y": 240
+          },
+          {
+            "x": 580,
+            "y": 350
+          }
+        ]
+      }
     },
-    "mf-3": {
+    {
       "id": "mf-3",
-      "name": "Pizza delivered",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 815,
-        "y": 150,
-        "width": 1,
-        "height": 445
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 445
-        },
-        {
-          "x": 0,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "v-deliver"
-      },
-      "target": {
-        "direction": "Down",
-        "element": "c-msg"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "v-deliver",
+      "target": "c-msg",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "Pizza delivered",
+        "name": "Pizza delivered",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 815,
+            "y": 595
+          },
+          {
+            "x": 815,
+            "y": 150
+          }
+        ]
+      }
     },
-    "mf-4": {
+    {
       "id": "mf-4",
-      "name": "Payment",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 955,
-        "y": 160,
-        "width": 1,
-        "height": 435
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 435
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "c-pay"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "v-receive"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "c-pay",
+      "target": "v-receive",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Payment",
+        "name": "Payment",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 955,
+            "y": 160
+          },
+          {
+            "x": 955,
+            "y": 595
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

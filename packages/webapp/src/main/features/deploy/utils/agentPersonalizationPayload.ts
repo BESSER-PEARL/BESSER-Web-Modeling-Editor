@@ -1,7 +1,8 @@
 import { UMLDiagramType } from '@besser/wme';
 import type { BesserProject, ProjectDiagram } from '../../../shared/types/project';
-import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
+import { getActiveDiagram, isUMLModel, isV3UMLModel } from '../../../shared/types/project';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { normalizeUmlModelSnapshot } from '../../../shared/services/storage/migrate-uml-v3-to-v4';
 
 export interface PersonalizationMappingEntry {
   name: string;
@@ -24,7 +25,18 @@ const readVariantSnapshots = (diagram: ProjectDiagram | undefined): Personalized
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.filter((entry): entry is PersonalizedVariantSnapshot => {
+  // A v3 variant snapshot (older project / template) is lifted to v4 here
+  // rather than silently dropped or posted to the v4 backend as-is.
+  const lifted = raw.map((entry) => {
+    const model = (entry as { model?: unknown } | null)?.model;
+    if (!model || !isV3UMLModel(model)) return entry;
+    try {
+      return { ...(entry as object), model: normalizeUmlModelSnapshot(model) };
+    } catch {
+      return entry;
+    }
+  });
+  return lifted.filter((entry): entry is PersonalizedVariantSnapshot => {
     if (!entry || typeof entry !== 'object') return false;
     const variant = entry as Partial<PersonalizedVariantSnapshot>;
     return (

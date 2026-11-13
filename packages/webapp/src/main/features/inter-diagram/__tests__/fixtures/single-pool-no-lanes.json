@@ -1,17 +1,27 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "single-pool-no-lanes",
+  "title": "single-pool-no-lanes",
   "type": "BPMNDiagram",
-  "size": { "width": 800, "height": 600 },
-  "elements": {
-    "pool-1": {
+  "nodes": [
+    {
       "id": "pool-1",
-      "name": "Empty Pool",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 40, "width": 600, "height": 200 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 600,
+      "height": 200,
+      "measured": {
+        "width": 600,
+        "height": 200
+      },
+      "data": {
+        "name": "Empty Pool"
+      }
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {},
+  ],
+  "edges": [],
   "assessments": {}
 }

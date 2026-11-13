@@ -1,7 +1,16 @@
+/**
+ * Assistant BPMN converter / modifier tests (v4-native).
+ *
+ * Models carry `nodes[]` / `edges[]` arrays; node types are the library's
+ * lowerCamelCase React-Flow types (`bpmnTask`, `bpmnPool`, …) and flows are
+ * `BPMNSequenceFlow` / `BPMNMessageFlow` edges.
+ */
+
 import { BPMNDiagramConverter } from '../converters/BPMNDiagramConverter';
 import { BPMNDiagramModifier } from '../modifiers/BPMNDiagramModifier';
 import type { ModelModification } from '../modifiers/base';
 import type { BESSERModel } from '../UMLModelingService';
+import { isUMLModel } from '../../../../shared/types/project';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -9,18 +18,50 @@ import type { BESSERModel } from '../UMLModelingService';
 
 function makeEmptyBPMNModel(): BESSERModel {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: '',
+    title: '',
     type: 'BPMNDiagram',
-    size: { width: 800, height: 600 },
-    elements: {},
-    relationships: {},
-    interactive: { elements: {}, relationships: {} },
+    nodes: [],
+    edges: [],
     assessments: {},
+  } as any;
+}
+
+function nodesByType(model: any, type: string): any[] {
+  return ((model.nodes ?? []) as any[]).filter((n) => n.type === type);
+}
+
+function bpmnNode(
+  id: string,
+  type: string,
+  name: string,
+  x: number,
+  extraData: Record<string, unknown> = {},
+  size: { width: number; height: number } = { width: 140, height: 60 },
+): any {
+  return {
+    id,
+    type,
+    position: { x, y: 0 },
+    width: size.width,
+    height: size.height,
+    measured: { ...size },
+    data: { name, ...extraData },
   };
 }
 
-function elementsByType(model: BESSERModel, type: string) {
-  return Object.values(model.elements).filter((el: any) => el.type === type);
+/** Absolute canvas rectangle of a node (children are positioned relative to their parent). */
+function absoluteRect(model: any, node: any): { x: number; y: number; width: number; height: number } {
+  let x = node.position.x;
+  let y = node.position.y;
+  let parent = node.parentId ? model.nodes.find((n: any) => n.id === node.parentId) : undefined;
+  while (parent) {
+    x += parent.position.x;
+    y += parent.position.y;
+    parent = parent.parentId ? model.nodes.find((n: any) => n.id === parent.parentId) : undefined;
+  }
+  return { x, y, width: node.width, height: node.height };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -31,7 +72,7 @@ describe('BPMNDiagramConverter', () => {
   const converter = new BPMNDiagramConverter();
 
   describe('convertCompleteSystem', () => {
-    it('creates elements for each node with correct Apollon types', () => {
+    it('creates nodes for each spec node with the correct v4 node types', () => {
       const result = converter.convertCompleteSystem({
         nodes: [
           { id: 'n0', type: 'startEvent', name: 'Start' },
@@ -46,14 +87,18 @@ describe('BPMNDiagramConverter', () => {
         ],
       });
 
-      expect(elementsByType(result, 'BPMNStartEvent')).toHaveLength(1);
-      expect(elementsByType(result, 'BPMNTask')).toHaveLength(1);
-      expect(elementsByType(result, 'BPMNGateway')).toHaveLength(1);
-      expect(elementsByType(result, 'BPMNEndEvent')).toHaveLength(1);
-      expect(Object.values(result.relationships)).toHaveLength(3);
+      expect(isUMLModel(result)).toBe(true);
+      expect(result.version).toBe('4.0.0');
+      expect(result).not.toHaveProperty('elements');
+      expect(nodesByType(result, 'bpmnStartEvent')).toHaveLength(1);
+      expect(nodesByType(result, 'bpmnTask')).toHaveLength(1);
+      expect(nodesByType(result, 'bpmnGateway')).toHaveLength(1);
+      expect(nodesByType(result, 'bpmnEndEvent')).toHaveLength(1);
+      expect(result.edges).toHaveLength(3);
+      result.edges.forEach((e: any) => expect(e.type).toBe('BPMNSequenceFlow'));
     });
 
-    it('sets taskType on BPMNTask and falls back to "default" for unknown types', () => {
+    it('sets taskType on bpmnTask and falls back to "default" for unknown types', () => {
       const result = converter.convertCompleteSystem({
         nodes: [
           { id: 't1', type: 'task', name: 'ValidTask', taskType: 'service' },
@@ -61,11 +106,12 @@ describe('BPMNDiagramConverter', () => {
         ],
         flows: [],
       });
-      const tasks = elementsByType(result, 'BPMNTask') as any[];
-      const valid = tasks.find((t) => t.name === 'ValidTask');
-      const bad = tasks.find((t) => t.name === 'BadTask');
-      expect(valid?.taskType).toBe('service');
-      expect(bad?.taskType).toBe('default');
+      const tasks = nodesByType(result, 'bpmnTask');
+      const valid = tasks.find((t) => t.data.name === 'ValidTask');
+      const bad = tasks.find((t) => t.data.name === 'BadTask');
+      expect(valid?.data.taskType).toBe('service');
+      expect(bad?.data.taskType).toBe('default');
+      expect(valid?.data.marker).toBe('none');
     });
 
     it('passes through eventType on event nodes', () => {
@@ -73,8 +119,8 @@ describe('BPMNDiagramConverter', () => {
         nodes: [{ id: 'e0', type: 'startEvent', name: 'MsgStart', eventType: 'message' }],
         flows: [],
       });
-      const events = elementsByType(result, 'BPMNStartEvent') as any[];
-      expect(events[0]?.eventType).toBe('message');
+      const events = nodesByType(result, 'bpmnStartEvent');
+      expect(events[0]?.data.eventType).toBe('message');
     });
 
     it('centers content around the origin', () => {
@@ -85,11 +131,12 @@ describe('BPMNDiagramConverter', () => {
         ],
         flows: [{ source: 'a', target: 'b' }],
       });
-      const elements = Object.values(result.elements) as any[];
-      const minX = Math.min(...elements.map((e) => e.bounds.x));
-      const maxX = Math.max(...elements.map((e) => e.bounds.x + e.bounds.width));
-      const minY = Math.min(...elements.map((e) => e.bounds.y));
-      const maxY = Math.max(...elements.map((e) => e.bounds.y + e.bounds.height));
+      const rects: Array<{ x: number; y: number; width: number; height: number }> =
+        result.nodes.map((n: any) => absoluteRect(result, n));
+      const minX = Math.min(...rects.map((r) => r.x));
+      const maxX = Math.max(...rects.map((r) => r.x + r.width));
+      const minY = Math.min(...rects.map((r) => r.y));
+      const maxY = Math.max(...rects.map((r) => r.y + r.height));
       expect(Math.round((minX + maxX) / 2)).toBe(0);
       expect(Math.round((minY + maxY) / 2)).toBe(0);
     });
@@ -97,6 +144,8 @@ describe('BPMNDiagramConverter', () => {
     it('emits model.type "BPMNDiagram"', () => {
       const result = converter.convertCompleteSystem({ nodes: [], flows: [] });
       expect(result.type).toBe('BPMNDiagram');
+      expect(result.nodes).toEqual([]);
+      expect(result.edges).toEqual([]);
     });
 
     it('ignores flows that reference unknown node ids', () => {
@@ -104,15 +153,29 @@ describe('BPMNDiagramConverter', () => {
         nodes: [{ id: 'x', type: 'task', name: 'X' }],
         flows: [{ source: 'x', target: 'missing' }],
       });
-      expect(Object.values(result.relationships)).toHaveLength(0);
+      expect(result.edges).toHaveLength(0);
     });
 
-    it('convertSingleElement wraps spec in a one-node process', () => {
+    it('writes the flow label to both data.name and data.label and keeps the default marker', () => {
+      const result = converter.convertCompleteSystem({
+        nodes: [
+          { id: 'g', type: 'gateway', name: 'Ok?' },
+          { id: 't', type: 'task', name: 'Ship' },
+        ],
+        flows: [{ source: 'g', target: 't', name: 'yes', isDefault: true }],
+      });
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].data).toMatchObject({ name: 'yes', label: 'yes', isDefault: true });
+    });
+
+    it('convertSingleElement returns a one-node {nodes, edges} fragment', () => {
       const result = converter.convertSingleElement({ type: 'task', name: 'Solo' });
-      expect(elementsByType(result, 'BPMNTask')).toHaveLength(1);
+      expect(result.edges).toEqual([]);
+      expect(result.nodes).toHaveLength(1);
+      expect(result.nodes[0]).toMatchObject({ type: 'bpmnTask', data: { name: 'Solo' } });
     });
 
-    it('emits pools, swimlanes, and lane-owned nodes for pooled specs', () => {
+    it('emits pools, swimlanes, and lane-parented nodes for pooled specs', () => {
       const result = converter.convertCompleteSystem({
         nodes: [
           {
@@ -147,23 +210,42 @@ describe('BPMNDiagramConverter', () => {
         ],
       });
 
-      const pools = elementsByType(result, 'BPMNPool') as any[];
-      const lanes = elementsByType(result, 'BPMNSwimlane') as any[];
-      const start = elementsByType(result, 'BPMNStartEvent')[0] as any;
-      const task = elementsByType(result, 'BPMNTask')[0] as any;
-      const clerkLane = lanes.find((lane) => lane.name === 'Clerk');
-      const chefLane = lanes.find((lane) => lane.name === 'Chef');
-      const emptyLane = lanes.find((lane) => lane.name === 'Delivery Driver');
+      const pools = nodesByType(result, 'bpmnPool');
+      const lanes = nodesByType(result, 'bpmnSwimlane');
+      const start = nodesByType(result, 'bpmnStartEvent')[0];
+      const task = nodesByType(result, 'bpmnTask')[0];
+      const clerkLane = lanes.find((lane) => lane.data.name === 'Clerk');
+      const chefLane = lanes.find((lane) => lane.data.name === 'Chef');
+      const emptyLane = lanes.find((lane) => lane.data.name === 'Delivery Driver');
 
       expect(pools).toHaveLength(1);
+      expect(pools[0].parentId).toBeUndefined();
       expect(lanes).toHaveLength(3);
-      expect(clerkLane?.owner).toBe(pools[0].id);
-      expect(chefLane?.owner).toBe(pools[0].id);
+      expect(clerkLane?.parentId).toBe(pools[0].id);
+      expect(chefLane?.parentId).toBe(pools[0].id);
       expect(emptyLane).toBeDefined();
-      expect(start.owner).toBe(clerkLane?.id);
-      expect(task.owner).toBe(chefLane?.id);
-      expect(start.owner).not.toBe('clerk');
-      expect(task.owner).not.toBe('chef');
+      // Flow nodes are parented to their lane (never to the raw spec lane id).
+      expect(start.parentId).toBe(clerkLane?.id);
+      expect(task.parentId).toBe(chefLane?.id);
+      expect(start.parentId).not.toBe('clerk');
+      expect(task.parentId).not.toBe('chef');
+
+      // Geometry: lanes tile the pool vertically, nodes sit inside their lane.
+      const poolRect = absoluteRect(result, pools[0]);
+      lanes.forEach((lane) => {
+        const r = absoluteRect(result, lane);
+        expect(r.x).toBeGreaterThanOrEqual(poolRect.x);
+        expect(r.y).toBeGreaterThanOrEqual(poolRect.y);
+        expect(r.y + r.height).toBeLessThanOrEqual(poolRect.y + poolRect.height + 0.001);
+      });
+      const startRect = absoluteRect(result, start);
+      const clerkRect = absoluteRect(result, clerkLane);
+      expect(startRect.y).toBeGreaterThanOrEqual(clerkRect.y);
+      expect(startRect.y + startRect.height).toBeLessThanOrEqual(clerkRect.y + clerkRect.height);
+
+      // Same-pool flow stays a sequence flow.
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].type).toBe('BPMNSequenceFlow');
     });
 
     it('infers message flows for cross-pool edges', () => {
@@ -179,9 +261,28 @@ describe('BPMNDiagramConverter', () => {
         ],
       });
 
-      const flows = Object.values(result.relationships) as any[];
-      expect(flows).toHaveLength(1);
-      expect(flows[0].flowType).toBe('message');
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].type).toBe('BPMNMessageFlow');
+      // Cross-pool flows run vertically between the stacked pools.
+      expect(result.edges[0].sourceHandle).toBe('bottom');
+      expect(result.edges[0].targetHandle).toBe('top');
+      expect(nodesByType(result, 'bpmnPool')).toHaveLength(2);
+    });
+
+    it('keeps nodes with an unknown poolId in a trailing flat band', () => {
+      const result = converter.convertCompleteSystem({
+        nodes: [
+          { id: 'in', type: 'task', name: 'In Pool', poolId: 'p' },
+          { id: 'out', type: 'task', name: 'Orphan', poolId: 'nope' },
+        ],
+        flows: [],
+        pools: [{ id: 'p', name: 'Pool' }],
+      });
+      const tasks = nodesByType(result, 'bpmnTask');
+      const inPool = tasks.find((t) => t.data.name === 'In Pool');
+      const orphan = tasks.find((t) => t.data.name === 'Orphan');
+      expect(inPool.parentId).toBe(nodesByType(result, 'bpmnPool')[0].id);
+      expect(orphan.parentId).toBeUndefined();
     });
   });
 });
@@ -194,66 +295,50 @@ describe('BPMNDiagramModifier', () => {
   const modifier = new BPMNDiagramModifier();
 
   function modelWithNodes(): BESSERModel {
-    const m = makeEmptyBPMNModel();
-    m.elements['task1'] = {
-      id: 'task1',
-      type: 'BPMNTask',
-      name: 'Review',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 140, height: 60 },
-      taskType: 'default',
-      marker: 'none',
-    };
-    m.elements['gw1'] = {
-      id: 'gw1',
-      type: 'BPMNGateway',
-      name: 'Branch',
-      owner: null,
-      bounds: { x: 200, y: 0, width: 40, height: 40 },
-      gatewayType: 'exclusive',
-    };
-    m.elements['evt1'] = {
-      id: 'evt1',
-      type: 'BPMNStartEvent',
-      name: 'Start',
-      owner: null,
-      bounds: { x: -100, y: 0, width: 40, height: 40 },
-      eventType: 'default',
-    };
+    const m: any = makeEmptyBPMNModel();
+    m.nodes.push(bpmnNode('task1', 'bpmnTask', 'Review', 0, { taskType: 'default', marker: 'none' }));
+    m.nodes.push(bpmnNode('gw1', 'bpmnGateway', 'Branch', 200, { gatewayType: 'exclusive' }, { width: 40, height: 40 }));
+    m.nodes.push(bpmnNode('evt1', 'bpmnStartEvent', 'Start', -100, { eventType: 'default' }, { width: 40, height: 40 }));
     return m;
   }
+
+  it('canHandle accepts both the BPMN and the generic state-machine vocabularies', () => {
+    for (const a of [
+      'add_task', 'add_gateway', 'add_event', 'add_flow', 'modify_node', 'remove_flow', 'remove_element',
+      'add_state', 'modify_state', 'add_transition', 'remove_transition',
+    ]) {
+      expect(modifier.canHandle(a)).toBe(true);
+    }
+    expect(modifier.canHandle('add_class')).toBe(false);
+  });
 
   // ── add_flow ─────────────────────────────────────────────────────────────
 
   describe('add_flow', () => {
-    it('creates a BPMNFlow relationship between two nodes resolved by id', () => {
+    it('creates a BPMNSequenceFlow edge between two nodes resolved by id', () => {
       const model = modelWithNodes();
       const mod: ModelModification = {
         action: 'add_flow',
         target: {},
         changes: { source: 'task1', target: 'gw1' },
       };
-      const result = modifier.applyModification(model, mod);
-      const flows = Object.values(result.relationships) as any[];
-      expect(flows).toHaveLength(1);
-      expect(flows[0].type).toBe('BPMNFlow');
-      expect(flows[0].source.element).toBe('task1');
-      expect(flows[0].target.element).toBe('gw1');
-      expect(flows[0].flowType).toBe('sequence');
+      const result: any = modifier.applyModification(model, mod);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]).toMatchObject({ type: 'BPMNSequenceFlow', source: 'task1', target: 'gw1' });
+      expect(result.edges[0].data.isDefault).toBe(false);
     });
 
-    it('creates a BPMNFlow when source/target are given as display names', () => {
+    it('creates a flow when source/target are given as display names', () => {
       const model = modelWithNodes();
       const mod: ModelModification = {
         action: 'add_flow',
         target: {},
-        changes: { source: 'Review', target: 'Branch' },
+        changes: { source: 'Review', target: 'Branch', label: 'ok' },
       };
-      const result = modifier.applyModification(model, mod);
-      const flows = Object.values(result.relationships) as any[];
-      expect(flows).toHaveLength(1);
-      expect(flows[0].source.element).toBe('task1');
-      expect(flows[0].target.element).toBe('gw1');
+      const result: any = modifier.applyModification(model, mod);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]).toMatchObject({ source: 'task1', target: 'gw1' });
+      expect(result.edges[0].data).toMatchObject({ name: 'ok', label: 'ok' });
     });
 
     it('throws when a node cannot be resolved', () => {
@@ -266,63 +351,42 @@ describe('BPMNDiagramModifier', () => {
       expect(() => modifier.applyModification(model, mod)).toThrow();
     });
 
-    it('accepts BPMNCallActivity as a flow source/target', () => {
-      const model = makeEmptyBPMNModel();
-      model.elements['ca1'] = {
-        id: 'ca1',
-        type: 'BPMNCallActivity',
-        name: 'OrderProcess',
-        owner: null,
-        bounds: { x: 200, y: 0, width: 140, height: 60 },
-      } as any;
-      model.elements['task1'] = {
-        id: 'task1',
-        type: 'BPMNTask',
-        name: 'Confirm',
-        owner: null,
-        bounds: { x: 400, y: 0, width: 140, height: 60 },
-        taskType: 'default',
-        marker: 'none',
-      };
+    it('accepts bpmnCallActivity as a flow source/target', () => {
+      const model: any = makeEmptyBPMNModel();
+      model.nodes.push(bpmnNode('ca1', 'bpmnCallActivity', 'OrderProcess', 200, { calledElement: '' }));
+      model.nodes.push(bpmnNode('task1', 'bpmnTask', 'Confirm', 400, { taskType: 'default', marker: 'none' }));
       const mod: ModelModification = {
         action: 'add_flow',
         target: {},
         changes: { source: 'ca1', target: 'task1' },
       };
-      const result = modifier.applyModification(model, mod);
-      const flows = Object.values(result.relationships) as any[];
-      expect(flows).toHaveLength(1);
-      expect(flows[0].source.element).toBe('ca1');
-      expect(flows[0].target.element).toBe('task1');
+      const result: any = modifier.applyModification(model, mod);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]).toMatchObject({ source: 'ca1', target: 'task1', type: 'BPMNSequenceFlow' });
     });
 
-    it('accepts BPMNSubprocess as a flow endpoint by id', () => {
-      const model = makeEmptyBPMNModel();
-      model.elements['sp1'] = {
-        id: 'sp1',
-        type: 'BPMNSubprocess',
-        name: 'InnerFlow',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 140, height: 80 },
-      } as any;
-      model.elements['task2'] = {
-        id: 'task2',
-        type: 'BPMNTask',
-        name: 'Next',
-        owner: null,
-        bounds: { x: 200, y: 0, width: 140, height: 60 },
-        taskType: 'default',
-        marker: 'none',
-      };
-      const mod: ModelModification = {
+    it('accepts bpmnSubprocess and bpmnTransaction as flow endpoints by id', () => {
+      const model: any = makeEmptyBPMNModel();
+      model.nodes.push(bpmnNode('sp1', 'bpmnSubprocess', 'InnerFlow', 0, { isExpanded: false }));
+      model.nodes.push(bpmnNode('tx1', 'bpmnTransaction', 'Payment', 200, { isExpanded: false }));
+      const result: any = modifier.applyModification(model, {
         action: 'add_flow',
         target: {},
-        changes: { source: 'sp1', target: 'task2' },
-      };
-      const result = modifier.applyModification(model, mod);
-      const flows = Object.values(result.relationships) as any[];
-      expect(flows).toHaveLength(1);
-      expect(flows[0].source.element).toBe('sp1');
+        changes: { source: 'sp1', target: 'tx1' },
+      });
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]).toMatchObject({ source: 'sp1', target: 'tx1' });
+    });
+
+    it('add_transition is an alias of add_flow', () => {
+      const model = modelWithNodes();
+      const result: any = modifier.applyModification(model, {
+        action: 'add_transition',
+        target: {},
+        changes: { source: 'Start', target: 'Review' },
+      });
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]).toMatchObject({ source: 'evt1', target: 'task1' });
     });
   });
 
@@ -330,81 +394,179 @@ describe('BPMNDiagramModifier', () => {
 
   describe('resolveNode', () => {
     it('prefers a direct id match over a name match', () => {
-      const model = modelWithNodes();
+      const model: any = modelWithNodes();
       // Add a task whose display name happens to be 'gw1' (same as the gateway's id).
-      model.elements['other'] = {
-        id: 'other',
-        type: 'BPMNTask',
-        name: 'gw1',
-        owner: null,
-        bounds: { x: 400, y: 0, width: 140, height: 60 },
-        taskType: 'default',
-        marker: 'none',
-      };
-      const mod: ModelModification = {
+      model.nodes.push(bpmnNode('other', 'bpmnTask', 'gw1', 400, { taskType: 'default', marker: 'none' }));
+      const result: any = modifier.applyModification(model, {
         action: 'add_flow',
         target: {},
         changes: { source: 'task1', target: 'gw1' },
-      };
-      const result = modifier.applyModification(model, mod);
-      const flow = Object.values(result.relationships)[0] as any;
-      // 'gw1' is the id of the BPMNGateway, not the task named 'gw1'.
-      expect(flow.target.element).toBe('gw1');
+      });
+      // 'gw1' is the id of the gateway, not the task named 'gw1'.
+      expect(result.edges[0].target).toBe('gw1');
     });
   });
 
-  // ── add_event eventType ───────────────────────────────────────────────────
+  // ── add_task / add_gateway / add_event ───────────────────────────────────
+
+  describe('add_task / add_gateway', () => {
+    it('add_task reuses the agent-proposed nodeId and places the node to the right', () => {
+      const model = modelWithNodes();
+      const result: any = modifier.applyModification(model, {
+        action: 'add_task',
+        target: { nodeId: 'approve', nodeName: 'Approve' },
+        changes: { taskType: 'user' },
+      });
+      const task = result.nodes.find((n: any) => n.id === 'approve');
+      expect(task).toMatchObject({ type: 'bpmnTask', data: { name: 'Approve', taskType: 'user', marker: 'none' } });
+      // Right of the rightmost existing node (gw1 ends at x=240).
+      expect(task.position.x).toBeGreaterThan(240);
+    });
+
+    it('add_task mints a fresh id when the proposed one is taken', () => {
+      const model = modelWithNodes();
+      const result: any = modifier.applyModification(model, {
+        action: 'add_task',
+        target: { nodeId: 'task1', nodeName: 'Duplicate' },
+        changes: {},
+      });
+      expect(nodesByType(result, 'bpmnTask')).toHaveLength(2);
+      expect(new Set(result.nodes.map((n: any) => n.id)).size).toBe(result.nodes.length);
+    });
+
+    it('add_gateway falls back to exclusive for unknown gateway types', () => {
+      const result: any = modifier.applyModification(makeEmptyBPMNModel(), {
+        action: 'add_gateway',
+        target: { nodeName: 'Split' },
+        changes: { gatewayType: 'bogus' },
+      });
+      const gw = nodesByType(result, 'bpmnGateway')[0];
+      expect(gw.data.gatewayType).toBe('exclusive');
+      expect(gw).toMatchObject({ width: 40, height: 40 });
+    });
+  });
 
   describe('add_event', () => {
     it('reads eventType from changes when provided', () => {
-      const model = makeEmptyBPMNModel();
-      const mod: ModelModification = {
+      const result: any = modifier.applyModification(makeEmptyBPMNModel(), {
         action: 'add_event',
         target: { nodeName: 'MsgStart' },
         changes: { eventKind: 'start', eventType: 'message' },
-      };
-      const result = modifier.applyModification(model, mod);
-      const events = elementsByType(result, 'BPMNStartEvent') as any[];
+      });
+      const events = nodesByType(result, 'bpmnStartEvent');
       expect(events).toHaveLength(1);
-      expect(events[0].eventType).toBe('message');
+      expect(events[0].data.eventType).toBe('message');
     });
 
     it('defaults eventType to "default" when omitted', () => {
-      const model = makeEmptyBPMNModel();
-      const mod: ModelModification = {
+      const result: any = modifier.applyModification(makeEmptyBPMNModel(), {
         action: 'add_event',
         target: { nodeName: 'End' },
         changes: { eventKind: 'end' },
-      };
-      const result = modifier.applyModification(model, mod);
-      const events = elementsByType(result, 'BPMNEndEvent') as any[];
-      expect(events[0].eventType).toBe('default');
+      });
+      const events = nodesByType(result, 'bpmnEndEvent');
+      expect(events[0].data.eventType).toBe('default');
+    });
+
+    it('generic add_state infers the node kind from stateType', () => {
+      const result: any = modifier.applyModification(makeEmptyBPMNModel(), {
+        action: 'add_state',
+        target: { stateName: 'Wait' },
+        changes: { stateType: 'intermediateEvent' },
+      });
+      expect(nodesByType(result, 'bpmnIntermediateEvent')).toHaveLength(1);
     });
   });
 
-  // ── modify_node eventType ─────────────────────────────────────────────────
+  // ── modify_node ───────────────────────────────────────────────────────────
 
   describe('modify_node', () => {
     it('updates eventType on an event node', () => {
       const model = modelWithNodes(); // evt1 has eventType 'default'
-      const mod: ModelModification = {
+      const result: any = modifier.applyModification(model, {
         action: 'modify_node',
         target: { nodeId: 'evt1' },
         changes: { eventType: 'timer' },
-      };
-      const result = modifier.applyModification(model, mod);
-      expect((result.elements['evt1'] as any).eventType).toBe('timer');
+      });
+      expect(result.nodes.find((n: any) => n.id === 'evt1').data.eventType).toBe('timer');
     });
 
     it('does not set eventType on a gateway node', () => {
       const model = modelWithNodes();
-      const mod: ModelModification = {
+      const result: any = modifier.applyModification(model, {
         action: 'modify_node',
         target: { nodeId: 'gw1' },
         changes: { eventType: 'message' },
-      };
-      const result = modifier.applyModification(model, mod);
-      expect((result.elements['gw1'] as any).eventType).toBeUndefined();
+      });
+      expect(result.nodes.find((n: any) => n.id === 'gw1').data.eventType).toBeUndefined();
+    });
+
+    it('renames and retypes a task addressed by name', () => {
+      const model = modelWithNodes();
+      const result: any = modifier.applyModification(model, {
+        action: 'modify_node',
+        target: { nodeName: 'Review' },
+        changes: { name: 'Approve', taskType: 'user' },
+      });
+      expect(result.nodes.find((n: any) => n.id === 'task1').data).toMatchObject({ name: 'Approve', taskType: 'user' });
+    });
+  });
+
+  // ── remove_flow / remove_element ──────────────────────────────────────────
+
+  describe('remove_flow / remove_element', () => {
+    it('remove_flow deletes by flowId or by resolved endpoints', () => {
+      let model: any = modifier.applyModification(modelWithNodes(), {
+        action: 'add_flow',
+        target: {},
+        changes: { source: 'task1', target: 'gw1' },
+      });
+      model = modifier.applyModification(model, {
+        action: 'add_flow',
+        target: {},
+        changes: { source: 'evt1', target: 'task1' },
+      });
+      expect(model.edges).toHaveLength(2);
+
+      const byId = modifier.applyModification(model, {
+        action: 'remove_flow',
+        target: { flowId: model.edges[0].id },
+        changes: {},
+      }) as any;
+      expect(byId.edges).toHaveLength(1);
+
+      const byEndpoints = modifier.applyModification(model, {
+        action: 'remove_flow',
+        target: {},
+        changes: { source: 'Start', target: 'Review' },
+      }) as any;
+      expect(byEndpoints.edges).toHaveLength(1);
+      expect(byEndpoints.edges[0]).toMatchObject({ source: 'task1', target: 'gw1' });
+    });
+
+    it('remove_element drops the node and its incident flows', () => {
+      const model: any = modifier.applyModification(modelWithNodes(), {
+        action: 'add_flow',
+        target: {},
+        changes: { source: 'task1', target: 'gw1' },
+      });
+      const result: any = modifier.applyModification(model, {
+        action: 'remove_element',
+        target: { nodeName: 'Branch' },
+        changes: {},
+      });
+      expect(nodesByType(result, 'bpmnGateway')).toHaveLength(0);
+      expect(result.edges).toHaveLength(0);
+    });
+
+    it('remove_element throws for an unknown node', () => {
+      expect(() =>
+        modifier.applyModification(modelWithNodes(), {
+          action: 'remove_element',
+          target: { nodeName: 'Ghost' },
+          changes: {},
+        }),
+      ).toThrow(/Ghost/);
     });
   });
 });
@@ -445,37 +607,41 @@ describe('BPMN data objects', () => {
     ],
   };
 
-  function byName(model: BESSERModel, name: string): any {
-    return Object.values(model.elements).find((el: any) => el.name === name);
+  function byName(model: any, name: string): any {
+    return (model.nodes as any[]).find((n) => n.data?.name === name);
   }
 
-  it('emits a BPMNDataObject per data object, including unlinked ones', () => {
+  function rectOf(model: any, name: string) {
+    return absoluteRect(model, byName(model, name));
+  }
+
+  it('emits a bpmnDataObject node per data object, including unlinked ones', () => {
     const result = converter.convertCompleteSystem(battery);
-    const dataObjects = elementsByType(result, 'BPMNDataObject') as any[];
-    expect(dataObjects.map((d) => d.name).sort()).toEqual(['Binder', 'Process Notes', 'Slurry', 'Solvent']);
-    expect(dataObjects[0].bounds.width).toBe(40);
-    expect(dataObjects[0].bounds.height).toBe(60);
+    const dataObjects = nodesByType(result, 'bpmnDataObject');
+    expect(dataObjects.map((d) => d.data.name).sort()).toEqual(['Binder', 'Process Notes', 'Slurry', 'Solvent']);
+    expect(dataObjects[0].width).toBe(40);
+    expect(dataObjects[0].height).toBe(60);
   });
 
   it('links them with data associations in the right direction', () => {
     const result = converter.convertCompleteSystem(battery);
-    const flows = Object.values(result.relationships) as any[];
-    const data = flows.filter((f) => f.flowType === 'data association');
-    expect(flows.filter((f) => f.flowType === 'sequence')).toHaveLength(3);
+    const edges = result.edges as any[];
+    const data = edges.filter((e) => e.type === 'BPMNDataAssociationFlow');
+    expect(edges.filter((e) => e.type === 'BPMNSequenceFlow')).toHaveLength(3);
     expect(data).toHaveLength(4);
 
     const mixing = byName(result, 'Mixing').id;
     const binder = byName(result, 'Binder').id;
     const slurry = byName(result, 'Slurry').id;
-    const pairs = data.map((f) => [f.source.element, f.target.element]);
+    const pairs = data.map((e) => [e.source, e.target]);
     expect(pairs).toContainEqual([binder, mixing]); // input: data object -> task
     expect(pairs).toContainEqual([mixing, slurry]); // output: task -> data object
   });
 
   it('puts a task\'s data objects side by side in a row centered under it', () => {
     const result = converter.convertCompleteSystem(battery);
-    const mixing = byName(result, 'Mixing').bounds;
-    const row = ['Binder', 'Solvent', 'Slurry'].map((n) => byName(result, n).bounds);
+    const mixing = rectOf(result, 'Mixing');
+    const row = ['Binder', 'Solvent', 'Slurry'].map((n) => rectOf(result, n));
     expect(new Set(row.map((b) => b.y)).size).toBe(1);
     expect(row[0].y).toBeGreaterThanOrEqual(mixing.y + mixing.height);
     const left = Math.min(...row.map((b) => b.x));
@@ -485,7 +651,7 @@ describe('BPMN data objects', () => {
     const xs = row.map((b) => b.x).sort((a, b) => a - b);
     expect(xs[1] - xs[0]).toBeGreaterThanOrEqual(80);
     // The next task still sits to the right, clear of the row.
-    expect(byName(result, 'Coating').bounds.x).toBeGreaterThan(right);
+    expect(rectOf(result, 'Coating').x).toBeGreaterThan(right);
   });
 
   it('staggers a second row so its associations pass between the first row', () => {
@@ -495,8 +661,8 @@ describe('BPMN data objects', () => {
       dataObjects: ['A', 'B', 'C', 'D'].map((n) => ({ id: n, name: n })),
       dataAssociations: ['A', 'B', 'C', 'D'].map((n) => ({ dataObject: n, node: 'mixing', direction: 'input' })),
     });
-    const first = ['A', 'B', 'C'].map((n) => byName(result, n).bounds);
-    const d = byName(result, 'D').bounds;
+    const first = ['A', 'B', 'C'].map((n) => rectOf(result, n));
+    const d = rectOf(result, 'D');
     expect(d.y).toBeGreaterThan(first[0].y);
     const centre = d.x + d.width / 2;
     expect(first.every((b) => centre < b.x || centre > b.x + b.width)).toBe(true);
@@ -504,7 +670,7 @@ describe('BPMN data objects', () => {
 
   it('leaves the layout of a process without data objects unchanged', () => {
     const result = converter.convertCompleteSystem({ nodes: battery.nodes, flows: battery.flows });
-    expect(byName(result, 'Coating').bounds.x - byName(result, 'Mixing').bounds.x).toBe(220);
+    expect(rectOf(result, 'Coating').x - rectOf(result, 'Mixing').x).toBe(220);
   });
 
   it('places a data object in the lane of its task', () => {
@@ -518,25 +684,20 @@ describe('BPMN data objects', () => {
       dataObjects: [{ id: 'recipe', name: 'Recipe' }],
       dataAssociations: [{ dataObject: 'recipe', node: 'bake', direction: 'input' }],
     });
-    const chef = byName(result, 'Chef');
-    const recipe = byName(result, 'Recipe');
-    expect(recipe.bounds.y).toBeGreaterThanOrEqual(chef.bounds.y);
-    expect(recipe.bounds.y + recipe.bounds.height).toBeLessThanOrEqual(chef.bounds.y + chef.bounds.height);
-    const flow = (Object.values(result.relationships) as any[]).find((f) => f.source.element === recipe.id);
-    expect(flow.flowType).toBe('data association');
+    const chefNode = byName(result, 'Chef');
+    const recipeNode = byName(result, 'Recipe');
+    expect(recipeNode.parentId).toBe(chefNode.id);
+    const chef = absoluteRect(result, chefNode);
+    const recipe = absoluteRect(result, recipeNode);
+    expect(recipe.y).toBeGreaterThanOrEqual(chef.y);
+    expect(recipe.y + recipe.height).toBeLessThanOrEqual(chef.y + chef.height);
+    const flow = (result.edges as any[]).find((e) => e.source === recipeNode.id);
+    expect(flow.type).toBe('BPMNDataAssociationFlow');
   });
 
   it('add_data_object creates a data object that add_flow links as a data association', () => {
     let model = makeEmptyBPMNModel();
-    model.elements['task1'] = {
-      id: 'task1',
-      type: 'BPMNTask',
-      name: 'Mixing',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 140, height: 60 },
-      taskType: 'default',
-      marker: 'none',
-    };
+    (model as any).nodes.push(bpmnNode('task1', 'bpmnTask', 'Mixing', 0, { taskType: 'default', marker: 'none' }));
     model = modifier.applyModification(model, { action: 'add_data_object', target: { nodeName: 'Binder' }, changes: {} });
     model = modifier.applyModification(model, {
       action: 'add_flow',
@@ -551,12 +712,30 @@ describe('BPMN data objects', () => {
     });
 
     const binder = byName(model, 'Binder');
-    expect(binder.type).toBe('BPMNDataObject');
-    const flows = Object.values(model.relationships) as any[];
-    expect(flows).toHaveLength(2);
-    expect(flows.every((f) => f.flowType === 'data association')).toBe(true);
-    expect(flows[0].source.element).toBe(binder.id);
-    expect(flows[1].target.element).toBe(byName(model, 'Slurry').id);
+    expect(binder.type).toBe('bpmnDataObject');
+    expect([binder.width, binder.height]).toEqual([40, 60]);
+    const edges = (model as any).edges as any[];
+    expect(edges).toHaveLength(2);
+    expect(edges.every((e) => e.type === 'BPMNDataAssociationFlow')).toBe(true);
+    expect(edges[0].source).toBe(binder.id);
+    expect(edges[1].target).toBe(byName(model, 'Slurry').id);
+  });
+
+  it('links a data object in another pool as a data association, not a message flow', () => {
+    let model = makeEmptyBPMNModel();
+    (model as any).nodes.push(
+      bpmnNode('p1', 'bpmnPool', 'Customer', 0, {}, { width: 600, height: 200 }),
+      bpmnNode('p2', 'bpmnPool', 'Vendor', 0, {}, { width: 600, height: 200 }),
+      { ...bpmnNode('task1', 'bpmnTask', 'Order', 60), parentId: 'p1' },
+      { ...bpmnNode('doc', 'bpmnDataObject', 'Invoice', 60, {}, { width: 40, height: 60 }), parentId: 'p2' },
+    );
+    (model as any).nodes[1].position.y = 260;
+    model = modifier.applyModification(model, {
+      action: 'add_flow',
+      target: {},
+      changes: { source: 'Invoice', target: 'Order' },
+    });
+    expect(((model as any).edges as any[]).map((e) => e.type)).toEqual(['BPMNDataAssociationFlow']);
   });
 
   it('canHandle add_data_object', () => {

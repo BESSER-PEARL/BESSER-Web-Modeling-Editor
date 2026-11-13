@@ -11,7 +11,7 @@ export const KnowledgeGraphPalette: React.FC = () => {
   const { t } = useTranslation();
   return (
     <aside className="flex shrink-0 flex-col gap-2 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="bp-section-title besser-sidebar__section-title">
         {t('editors.kg.palette.heading')}
       </div>
       {KG_NODE_TYPES.map((item) => (
@@ -22,7 +22,7 @@ export const KnowledgeGraphPalette: React.FC = () => {
             e.dataTransfer.setData(KG_DRAG_MIME, item.type);
             e.dataTransfer.effectAllowed = 'copy';
           }}
-          className="group flex cursor-grab items-center gap-2 rounded-md border border-border/50 bg-background p-2 text-sm transition-colors hover:border-brand/60 active:cursor-grabbing"
+          className="besser-palette-item flex items-center gap-2 border border-border/50 bg-background px-2 py-1.5 text-sm active:cursor-grabbing"
           title={nodeTypeDescription(t, item)}
         >
           <span className="inline-flex h-5 w-6 shrink-0 items-center justify-center">
@@ -36,7 +36,8 @@ export const KnowledgeGraphPalette: React.FC = () => {
           i18nKey="editors.kg.palette.hint"
           values={{ addRelation: t('editors.kg.toolbar.addRelation') }}
           components={{ action: <span className="font-medium" /> }}
-        />
+        />{' '}
+        {t('editors.kg.palette.canvasHint')}
       </div>
     </aside>
   );

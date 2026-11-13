@@ -1,7 +1,6 @@
 // BAF reads a sqlite path from `db.sql.<name>.file`; with `database:` it logs
 // "Missing required DB properties for 'db1' (dialect=sqlite): file".
 import { describe, it, expect } from 'vitest';
-// @ts-ignore
 import * as jsyaml from 'js-yaml';
 import {
   agentConfigFormToYaml,

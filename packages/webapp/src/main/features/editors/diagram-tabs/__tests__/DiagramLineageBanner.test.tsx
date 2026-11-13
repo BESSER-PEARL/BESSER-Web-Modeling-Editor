@@ -25,21 +25,22 @@ interface MockState {
 let mockState: MockState;
 
 const bpmnModel = (laneRef?: string): UMLModel => ({
-  version: '3.0.0',
+  version: '4.0.0',
+  id: 'bpmn',
+  title: 'Process',
   type: UMLDiagramType.BPMN,
-  size: { width: 800, height: 600 },
-  elements: {
-    lane1: {
+  nodes: [
+    {
       id: 'lane1',
-      name: 'Reviewer',
-      type: 'BPMNSwimlane',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 400, height: 120 },
-      ...(laneRef ? { agentDiagramRef: laneRef } : {}),
+      type: 'bpmnSwimlane',
+      position: { x: 0, y: 0 },
+      width: 400,
+      height: 120,
+      measured: { width: 400, height: 120 },
+      data: { name: 'Reviewer', ...(laneRef ? { agentDiagramRef: laneRef } : {}) },
     },
-  },
-  relationships: {},
-  interactive: { elements: {}, relationships: {} },
+  ],
+  edges: [],
   assessments: {},
 });
 

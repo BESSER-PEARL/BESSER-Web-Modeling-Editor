@@ -14,6 +14,7 @@ import { OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { reportError } from '../../../shared/services/errors/reportError';
 import { elementLabel, elementRecords, relationshipLabel } from '../../../shared/services/github/modelAttribution';
 import { hasModelChanges, renameLabel, soleAuthor } from '../../../shared/services/github/modelChanges';
+import { classIds, elementBounds } from '../../../shared/services/github/modelGeometry';
 import {
   loadRepoChangePreview,
   type Bounds,
@@ -173,11 +174,8 @@ export const RepoChangePreview: React.FC = () => {
   }, [open, headSha, link?.owner, link?.repo, link?.baseCommitSha, link?.legacyFilePath, githubSession, activeDiagramId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Any class on the canvas fixes where model coordinates fall on screen, through every pan and zoom.
-  const localElements = (activeClassDiagram(currentProject)?.model as { elements?: Record<string, { bounds?: Bounds; owner?: string | null }> } | undefined)?.elements;
-  const referenceId = useMemo(
-    () => Object.entries(localElements ?? {}).find(([, element]) => element.bounds && !element.owner)?.[0],
-    [localElements],
-  );
+  const localModel = activeClassDiagram(currentProject)?.model;
+  const referenceId = useMemo(() => classIds(localModel)[0], [localModel]);
   const removedIds = useMemo(() => (preview?.changes.removed ?? []).filter((element) => !element.ownerId).map((element) => element.id), [preview]);
   const tracked = useMemo(
     () => (open ? [...(referenceId ? [referenceId] : []), ...removedIds] : []),
@@ -188,7 +186,7 @@ export const RepoChangePreview: React.FC = () => {
   if (!open) return null;
 
   const referenceBox = referenceId ? boxes[referenceId] : undefined;
-  const referenceBounds = referenceId ? localElements?.[referenceId]?.bounds : undefined;
+  const referenceBounds = referenceId ? (elementBounds(localModel, referenceId) ?? undefined) : undefined;
   const scale = referenceBox && referenceBounds?.width ? referenceBox.width / referenceBounds.width : 0;
   const toScreen: ToScreen = (x, y) => ({
     left: (referenceBox?.left ?? 0) + (x - (referenceBounds?.x ?? 0)) * scale,

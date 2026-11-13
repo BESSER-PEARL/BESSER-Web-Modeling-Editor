@@ -1,1 +1,1 @@
-export { apollonBpmnToXml } from './bpmn-xml-exporter';
+export { bpmnModelToXml, bpmnModelToXmlDetailed } from './bpmn-xml-exporter';

@@ -237,7 +237,14 @@ export function modelFingerprint(project: BesserProject): string {
   const models: Record<string, unknown[]> = {};
   for (const [type, diagrams] of Object.entries(project.diagrams ?? {})) {
     const list = Array.isArray(diagrams) ? diagrams : [diagrams];
-    models[type] = list.map((d) => (d as { model?: unknown } | undefined)?.model ?? null);
+    // A v4 model's own `id` is left out: an empty diagram back-filled on load gets a
+    // fresh one every time, so the same stored project would fingerprint differently.
+    models[type] = list.map((d) => {
+      const model = (d as { model?: unknown } | undefined)?.model ?? null;
+      if (!model || typeof model !== 'object' || Array.isArray(model)) return model;
+      const { id: _id, ...rest } = model as Record<string, unknown>;
+      return rest;
+    });
   }
   const text = JSON.stringify(models);
   let hash = 5381;
@@ -275,6 +282,23 @@ export function modelContentFingerprint(project: BesserProject): string {
 export function hasUnsyncedModelChanges(project: BesserProject, link: ProjectGitHubLink): boolean {
   if (link.baselinePending) return false;
   return !link.syncedModel || modelFingerprint(project) !== link.syncedModel;
+}
+
+/**
+ * Keep a linked project in sync across a format migration. `syncedModel` was
+ * taken over the stored models; when it equals `storedFingerprint` (the
+ * project as stored, before the load migrated it), the migration is the only
+ * difference, so the fingerprint of the migrated project replaces it. A
+ * project with real local changes does not match and stays "changed".
+ */
+export function restampMigratedGitHubLink(project: BesserProject, storedFingerprint: string): void {
+  const link = getProjectGitHubLink(project.id);
+  if (!link?.syncedModel || link.syncedModel !== storedFingerprint) return;
+  const migrated = modelFingerprint(project);
+  if (migrated === storedFingerprint) return;
+  writeLink(project.id, { ...link, syncedModel: migrated });
+  // Projects are loaded while components render, so listeners hear of it afterwards.
+  queueMicrotask(() => notify(project.id));
 }
 
 /**

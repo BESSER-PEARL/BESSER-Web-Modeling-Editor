@@ -10,6 +10,11 @@
 
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import {
+  asElementRecordModel,
+  findElementByName,
+  removeElementWithChildren,
+} from './legacyElementRecord';
 
 const SUPPORTED_ACTIONS = ['add_gate', 'remove_element', 'modify_gate'] as const;
 
@@ -41,7 +46,7 @@ export class QuantumCircuitModifier implements DiagramModifier {
     const changes = modification.changes as any;
     const gateId = ModifierHelpers.generateUniqueId('qgate');
 
-    model.elements[gateId] = {
+    asElementRecordModel(model).elements[gateId] = {
       id: gateId,
       name: changes.name || 'H',
       type: 'QuantumGate',
@@ -64,10 +69,11 @@ export class QuantumCircuitModifier implements DiagramModifier {
     const targetId =
       target.gateId ??
       target.stateId ??
-      ModifierHelpers.findElementByName(model, target.stateName ?? target.gateName ?? '', 'QuantumGate');
+      findElementByName(model, target.stateName ?? target.gateName ?? '', 'QuantumGate');
 
-    if (targetId && model.elements[targetId]) {
-      const el = model.elements[targetId];
+    const elements = asElementRecordModel(model).elements;
+    if (targetId && elements[targetId]) {
+      const el = elements[targetId];
       if (modification.changes.name) el.name = modification.changes.name;
       if ((modification.changes as any).params) el.params = (modification.changes as any).params;
       if ((modification.changes as any).qubits) el.qubits = (modification.changes as any).qubits;
@@ -81,10 +87,10 @@ export class QuantumCircuitModifier implements DiagramModifier {
     const targetId =
       target.gateId ??
       target.stateId ??
-      ModifierHelpers.findElementByName(model, target.stateName ?? target.gateName ?? '', 'QuantumGate');
+      findElementByName(model, target.stateName ?? target.gateName ?? '', 'QuantumGate');
 
     if (targetId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetId);
+      return removeElementWithChildren(model, targetId);
     }
     return model;
   }

@@ -1,0 +1,688 @@
+/**
+ * Display-name and authoring helpers for class/object/agent attribute and
+ * method rows.
+ *
+ * Extracted from
+ * `v3 source: common/uml-classifier/uml-classifier-member.ts`
+ * (`parseLegacyNameFormat`, `displayName`/`displayNameER`) and
+ * `uml-classifier-method-update.tsx` (def-line signature extraction).
+ *
+ * Pure functions, no React, no Redux. Used by the inline class-row
+ * renderer, the class inspector authoring inputs, and JSON round-trip
+ * migrators.
+ */
+
+import { v4 as uuidv4 } from "uuid"
+import {
+  SYMBOL_TO_VISIBILITY,
+  VISIBILITY_SYMBOLS,
+  Visibility,
+  normalizeType,
+} from "./typeNormalization"
+
+/**
+ * Subset of an `IUMLClassifierMember` needed for display formatting.
+ * Marked partial because legacy data may omit fields.
+ */
+export interface ClassifierMemberLike {
+  name: string
+  attributeType?: string
+  visibility?: Visibility
+  isOptional?: boolean
+  isDerived?: boolean
+  isId?: boolean
+  isExternalId?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  defaultValue?: any
+  /**
+   * Structured method parameters. When present (method rows authored via
+   * the inspector store a bare `name` + `parameters[]` instead of the
+   * legacy fused "name(p: type)" string), the display formatter rebuilds
+   * the `(p: type, …)` segment so the canvas renders the full signature
+   * exactly like develop's fused-name `displayName` did.
+   */
+  parameters?: { name: string; parameterType?: string; defaultValue?: unknown }[]
+}
+
+/**
+ * Parse legacy-format names like "+ counter: int" or "- doSomething(): str"
+ * into the canonical { visibility, name, attributeType } triple.
+ *
+ * Method signatures contain '(' — split at the colon AFTER the last ')'
+ * so parameter type colons (e.g. "param: str") are not misinterpreted.
+ */
+export const parseLegacyNameFormat = (
+  name: string
+): { visibility: Visibility; name: string; attributeType: string } => {
+  const trimmed = name.trim()
+  let visibility: Visibility = "public"
+  let parsedName = ""
+  let attributeType = "str"
+
+  // Check for visibility symbol at the start
+  let afterVisibility = trimmed
+  const visibilityMatch = trimmed.match(/^([+\-#~])\s*/)
+  if (visibilityMatch) {
+    visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]] || "public"
+    afterVisibility = trimmed.substring(visibilityMatch[0].length)
+  }
+
+  if (afterVisibility.includes("(")) {
+    const lastParen = afterVisibility.lastIndexOf(")")
+    if (lastParen >= 0) {
+      const signaturePart = afterVisibility.substring(0, lastParen + 1)
+      const afterParen = afterVisibility.substring(lastParen + 1).trim()
+      if (afterParen.startsWith(":")) {
+        parsedName = signaturePart.trim()
+        attributeType = normalizeType(afterParen.substring(1).trim())
+      } else {
+        parsedName = afterVisibility.trim()
+        attributeType = ""
+      }
+    } else {
+      // Has '(' but no ')' — malformed, store as-is
+      parsedName = afterVisibility.trim()
+      attributeType = ""
+    }
+  } else {
+    // Attribute format: split at first colon
+    const typeMatch = afterVisibility.match(/^([^:]+):\s*(.+)$/)
+    if (typeMatch) {
+      parsedName = typeMatch[1].trim()
+      attributeType = normalizeType(typeMatch[2].trim())
+    } else {
+      parsedName = afterVisibility.trim()
+    }
+  }
+
+  return { visibility, name: parsedName, attributeType }
+}
+
+/**
+ * Format an Object-diagram attribute row for canvas rendering.
+ *
+ * Object instances don't carry visibility semantics, so we
+ * render `name = value` (or just `name` when no value is present) with no
+ * `+/-/#/~` symbol and no `{id}` markers. Mirrors v3
+ * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`).
+ *
+ * String attributes (`str` / `string`, or no type — v3's
+ * `UMLObjectAttribute.attributeType` defaulted to `'str'`) quote the value,
+ * `name = "value"` (`name = ""` when empty), like develop's
+ * `uml-classifier-member-component.tsx` `isStringAttribute` branch, with
+ * embedded double quotes escaped.
+ */
+export const formatObjectMember = (
+  member: ClassifierMemberLike & { value?: unknown }
+): string => {
+  const type = member.attributeType
+  const isString = !type || type === "str" || type === "string"
+  let name = member.name ?? ""
+  let value = member.value
+  // A legacy fused `name = value` row carries the value in the name.
+  const eqIndex = name.indexOf(" = ")
+  if (eqIndex !== -1 && (value === undefined || value === null)) {
+    value = name.substring(eqIndex + 3)
+    name = name.substring(0, eqIndex)
+  }
+  if (isString) {
+    // Escape embedded quotes so `It "works"` renders `"It \"works\""`.
+    const text = value === undefined || value === null ? "" : String(value)
+    return `${name} = "${text.replace(/"/g, '\\"')}"`
+  }
+  const hasValue = value !== undefined && value !== null && value !== ""
+  return hasValue ? `${name} = ${value}` : name
+}
+
+/**
+ * Format a classifier member for rendering in a class row.
+ *
+ * `mode === 'UML'` (default) — produces the standard UML form:
+ *   `+ counter?: int = 0 {id}`
+ *
+ * `mode === 'ER'` — Chen-style: drops the visibility symbol and the
+ *   `{id, external id}` suffix. Identifying attributes are marked with
+ *   an underline at render time.
+ *
+ * When the parent class' `stereotype` is
+ * `'Enumeration'`, attribute rows are enumeration *literals* — emit just
+ * the bare name, no visibility prefix, no `: <Type>` suffix, no flag
+ * markers. Mirrors v3 `uml-classifier-component.tsx` which branched on
+ * the Enumeration stereotype to hide visibility / type columns.
+ */
+export const formatDisplayName = (
+  member: ClassifierMemberLike,
+  mode: "UML" | "ER" = "UML",
+  stereotype?: string | null,
+  /** Method rows always render as a signature: `name()` even without parameters. */
+  isMethod = false
+): string => {
+  const visSymbol = VISIBILITY_SYMBOLS[member.visibility ?? "public"] || "+"
+  const derivedPrefix = member.isDerived ? "/" : ""
+  const optionalMarker = member.isOptional ? "?" : ""
+  const defaultSuffix =
+    member.defaultValue !== undefined && member.defaultValue !== null && member.defaultValue !== ""
+      ? ` = ${member.defaultValue}`
+      : ""
+
+  // Structured parameters also mark a method row.
+  const hasParameters = (member.parameters?.length ?? 0) > 0
+  if ((isMethod || hasParameters) && stereotype !== "Enumeration") {
+    return formatMethodDisplayName(member, mode, visSymbol)
+  }
+
+  // Defensively strip a leading visibility symbol
+  // and a trailing `: <type>` from the *raw* name when the structured
+  // `attributeType` is also present. Legacy palette defaults shipped a
+  // pre-formatted "+ attribute: Type" string in `name`; without this
+  // strip the row would render as "+ + attribute: Type: str" once the
+  // user toggled an id/optional/derived flag (which forces structured
+  // formatting). This matches v3 `displayName` semantics — the name
+  // stored is just the bare identifier; visibility / type live in the
+  // structured fields.
+  let bareName = member.name ?? ""
+  if (/^[+\-#~]\s/.test(bareName)) {
+    bareName = bareName.replace(/^[+\-#~]\s+/, "")
+  }
+  // Strip a legacy `: <Type>` suffix on attribute rows (no parentheses).
+  // Legacy method rows preserve their `(…)` signature in `name` and only
+  // carry the return type via `attributeType`/`returnType`, so the regex
+  // explicitly excludes that case.
+  if (
+    member.attributeType &&
+    !bareName.includes("(") &&
+    /:\s*[^:]+$/.test(bareName)
+  ) {
+    bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
+  }
+
+  // Enumeration literals are bare names — no
+  // visibility, no `: Type`, no flag markers, no default value. Return
+  // early before any UML/ER decoration logic runs.
+  if (stereotype === "Enumeration") {
+    return bareName
+  }
+
+  if (mode === "ER") {
+    if (bareName && member.attributeType) {
+      return `${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}`
+    }
+    return `${derivedPrefix}${bareName}${optionalMarker}${defaultSuffix}`
+  }
+
+  // UML mode (default).
+  // Id / externalId / derived / optional markers
+  // are appended unconditionally when their flags are set. Previously
+  // a legacy-format `name` ("+ x: Type") fell through a fast-path that
+  // skipped the markers entirely — see history. The fast-path is gone:
+  // we always strip the legacy prefix/suffix above and rebuild the
+  // canonical UML display string here. This matches v3
+  // `UMLClassifierMember.displayName` (`uml-classifier-member.ts:111`).
+  if (bareName && member.attributeType) {
+    const idMarkers = [
+      member.isId ? "id" : null,
+      member.isExternalId ? "external id" : null,
+    ].filter(Boolean)
+    const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(", ")}}` : ""
+    return `${visSymbol} ${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}${idSuffix}`
+  }
+  // Fallback to name for backward compatibility or simple display
+  return bareName
+}
+
+/**
+ * Method rows, mirroring develop's `UMLClassifierMethod.displayName`:
+ *  - a legacy fused name that starts with a visibility symbol
+ *    ("+ decrease_stock(qty: int)") renders verbatim — its stored
+ *    `attributeType` is not appended (templates carry junk such as
+ *    `"int): any"` there);
+ *  - otherwise the signature always gets `()` (or the structured
+ *    `parameters[]`), and the return type is appended only when the name
+ *    does not already declare one after its `)`.
+ */
+const formatMethodDisplayName = (
+  member: ClassifierMemberLike,
+  mode: "UML" | "ER",
+  visSymbol: string
+): string => {
+  const raw = member.name ?? ""
+  if (/^[+\-#~]\s/.test(raw)) {
+    return mode === "ER" ? raw.replace(/^[+\-#~]\s+/, "") : raw
+  }
+  let signature = raw
+  // Legacy "name: type" method row without parentheses.
+  if (member.attributeType && !signature.includes("(") && /:\s*[^:]+$/.test(signature)) {
+    signature = signature.replace(/\s*:\s*[^:]+$/, "")
+  }
+  if (!signature) return signature
+  // Inspector-authored rows store a bare name + structured parameters.
+  if (!signature.includes("(")) {
+    const paramList = (member.parameters ?? [])
+      .map((p) => {
+        const typed = p.parameterType ? `${p.name}: ${p.parameterType}` : p.name
+        const hasDefault =
+          p.defaultValue !== undefined && p.defaultValue !== null && p.defaultValue !== ""
+        return hasDefault ? `${typed} = ${p.defaultValue}` : typed
+      })
+      .join(", ")
+    signature = `${signature}(${paramList})`
+  }
+  const declaresType = signature
+    .substring(signature.lastIndexOf(")") + 1)
+    .trim()
+    .startsWith(":")
+  const returnType =
+    !declaresType && member.attributeType ? `: ${member.attributeType}` : ""
+  if (mode === "ER") return `${signature}${returnType}`
+  return `${visSymbol} ${signature}${returnType}`
+}
+
+/* -------------------------------------------------------------------------- */
+/* Authoring helpers (class inspector inputs)                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Strip everything that isn't a Python-identifier character. Mirrors the
+ * v3 rename sanitiser (`uml-classifier-update.tsx:475`). Applied to what
+ * remains of a name AFTER shorthand parsing — never to the raw input,
+ * which would destroy the `+ name: type` markers.
+ */
+export const sanitizeIdentifier = (raw: string): string =>
+  raw.replace(/[^a-zA-Z0-9_]/g, "")
+
+export interface ParsedAttributeInput {
+  /** Sanitized bare identifier left after shorthand parsing. */
+  name: string
+  /** Only set when the input carried a `+ - # ~` visibility prefix. */
+  visibility?: Visibility
+  /** Only set when the input carried a `: <type>` suffix (normalized). */
+  attributeType?: string
+}
+
+/**
+ * Parse the Apollon attribute shorthand (`"+ price: float"`) typed into
+ * the inspector's add-attribute input or a row name field. Mirrors v3
+ * `UMLClassifierMember.parseNameFormat` (`uml-classifier-member.ts:158`),
+ * but unlike the legacy parser it only reports `visibility` /
+ * `attributeType` when they are explicitly present in the input — so
+ * committing a plain identifier never clobbers the structured fields
+ * already stored on the row.
+ */
+export const parseAttributeInput = (raw: string): ParsedAttributeInput => {
+  const trimmed = raw.trim()
+  let visibility: Visibility | undefined
+  let rest = trimmed
+  const visibilityMatch = trimmed.match(/^([+\-#~])\s*/)
+  if (visibilityMatch) {
+    visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]]
+    rest = trimmed.substring(visibilityMatch[0].length)
+  }
+  let name = rest
+  let attributeType: string | undefined
+  const typeMatch = rest.match(/^([^:]+):\s*(.+)$/)
+  if (typeMatch) {
+    name = typeMatch[1]
+    attributeType = normalizeType(typeMatch[2].trim())
+  }
+  return {
+    name: sanitizeIdentifier(name),
+    ...(visibility && { visibility }),
+    ...(attributeType !== undefined && { attributeType }),
+  }
+}
+
+export interface ParsedMethodParameter {
+  name: string
+  parameterType?: string
+  defaultValue?: string
+}
+
+export interface ParsedMethodInput {
+  /** Sanitized bare identifier left after shorthand parsing. */
+  name: string
+  /** Only set when the input carried a `+ - # ~` visibility prefix. */
+  visibility?: Visibility
+  /**
+   * Only set when the input carried a `(...)` list — `[]` means the user
+   * typed explicit empty parens. Undefined ⇒ don't touch existing params.
+   */
+  parameters?: ParsedMethodParameter[]
+  /** Only set when the input carried a `: <type>` return suffix. */
+  returnType?: string
+}
+
+/**
+ * Split a `(`-delimited parameter list (`"self, a: int = 2, b"`) into
+ * structured rows, the way `splitLegacyMethodSignature` reads imported
+ * signatures: top-level commas only, `= default` stored apart from the
+ * type (quotes stripped). `keepSelf: false` drops `self`, mirroring the v3
+ * def-line extraction (`uml-classifier-method-update.tsx:268-276`).
+ */
+const parseParameterList = (
+  raw: string,
+  keepSelf: boolean
+): ParsedMethodParameter[] =>
+  splitTopLevel(raw, ",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && (keepSelf || p !== "self"))
+    .map((p) => {
+      const [head, ...defaultParts] = splitTopLevel(p, "=")
+      const defaultValue = defaultParts
+        .join("=")
+        .trim()
+        .replace(/^(['"])(.*)\1$/, "$2")
+      const colonIdx = head.indexOf(":")
+      const ptype = colonIdx >= 0 ? head.substring(colonIdx + 1).trim() : ""
+      return {
+        name: sanitizeIdentifier(
+          colonIdx >= 0 ? head.substring(0, colonIdx) : head
+        ),
+        ...(ptype && { parameterType: normalizeType(ptype) }),
+        ...(defaultValue && { defaultValue }),
+      }
+    })
+    .filter((p) => p.name.length > 0)
+
+/**
+ * Parse the Apollon method shorthand (`"+ name(p: type): ret"`) typed
+ * into the inspector's add-method input or a method row name field.
+ * Mirrors v3 `UMLClassifierMember.parseNameFormat` (split at the colon
+ * AFTER the last `)` so parameter type colons aren't misinterpreted),
+ * with the signature exploded into structured `parameters[]` /
+ * `returnType` instead of being string-fused into the name.
+ */
+export const parseMethodInput = (raw: string): ParsedMethodInput => {
+  const trimmed = raw.trim()
+  let visibility: Visibility | undefined
+  let rest = trimmed
+  const visibilityMatch = trimmed.match(/^([+\-#~])\s*/)
+  if (visibilityMatch) {
+    visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]]
+    rest = trimmed.substring(visibilityMatch[0].length)
+  }
+
+  if (rest.includes("(")) {
+    const openParen = rest.indexOf("(")
+    const lastParen = rest.lastIndexOf(")")
+    if (lastParen > openParen) {
+      const afterParen = rest.substring(lastParen + 1).trim()
+      const returnType = afterParen.startsWith(":")
+        ? normalizeType(afterParen.substring(1).trim())
+        : undefined
+      return {
+        name: sanitizeIdentifier(rest.substring(0, openParen)),
+        ...(visibility && { visibility }),
+        parameters: parseParameterList(
+          rest.substring(openParen + 1, lastParen),
+          true
+        ),
+        ...(returnType !== undefined && { returnType }),
+      }
+    }
+    // Has '(' but no ')' — malformed / mid-typing, treat as a bare name.
+    return {
+      name: sanitizeIdentifier(rest),
+      ...(visibility && { visibility }),
+    }
+  }
+
+  // No parens: attribute-style "name: type" maps the type onto the
+  // return type (v3 parsed it into `attributeType`, which is the method
+  // return type in the legacy shape).
+  const typeMatch = rest.match(/^([^:]+):\s*(.+)$/)
+  if (typeMatch) {
+    return {
+      name: sanitizeIdentifier(typeMatch[1]),
+      ...(visibility && { visibility }),
+      returnType: normalizeType(typeMatch[2].trim()),
+    }
+  }
+  return {
+    name: sanitizeIdentifier(rest),
+    ...(visibility && { visibility }),
+  }
+}
+
+export interface ExtractedMethodSignature {
+  name: string
+  parameters: ParsedMethodParameter[]
+  returnType?: string
+}
+
+/**
+ * Extract the method signature from the first python/BAL
+ * `def name(params) -> ret:` (or BAL `... -> ret {`) line of a
+ * code-implemented method body. Regexes ported verbatim from v3
+ * `uml-classifier-method-update.tsx:handleCodeChange` (260-276).
+ * Returns undefined when no `def <name>(...)` line is present.
+ */
+export const extractMethodSignatureFromCode = (
+  code: string
+): ExtractedMethodSignature | undefined => {
+  const methodMatch = code.match(/def\s+(\w+)\s*\(([^)]*)\)/)
+  if (!methodMatch || !methodMatch[1]) return undefined
+  const returnTypeMatch = code.match(
+    /def\s+\w+\s*\([^)]*\)\s*->\s*([^:{]+)\s*[:{]/
+  )
+  return {
+    name: methodMatch[1],
+    parameters: parseParameterList(methodMatch[2] ?? "", false),
+    ...(returnTypeMatch && {
+      returnType: normalizeType(returnTypeMatch[1].trim()),
+    }),
+  }
+}
+
+/** Structural shape of `ClassifierMethodParameter` (avoids a `@/types` import). */
+export interface MethodParameterLike {
+  id: string
+  name: string
+  parameterType?: string
+  defaultValue?: unknown
+}
+
+/**
+ * Reconcile a parsed parameter list with the structured rows already on
+ * a method, preserving existing parameter ids (matched by name first,
+ * then by position) so Yjs sync and round-trips stay stable while the
+ * user retypes a signature.
+ */
+export const mergeParameterIds = (
+  existing: MethodParameterLike[],
+  parsed: ParsedMethodParameter[]
+): MethodParameterLike[] => {
+  const used = new Set<string>()
+  // Pass 1: reserve ids for exact name matches first, so an inserted /
+  // renamed parameter at an earlier position can't steal them.
+  const nameMatches = parsed.map((p) => {
+    const match = existing.find((e) => e.name === p.name && !used.has(e.id))
+    if (match) used.add(match.id)
+    return match
+  })
+  // Pass 2: positional fallback for the rest, fresh ids for new params.
+  return parsed.map((p, index) => {
+    let match = nameMatches[index]
+    if (!match) {
+      const positional = existing[index]
+      if (positional && !used.has(positional.id)) {
+        match = positional
+        used.add(positional.id)
+      }
+    }
+    return {
+      id: match?.id ?? uuidv4(),
+      name: p.name,
+      ...(p.parameterType !== undefined && {
+        parameterType: p.parameterType,
+      }),
+      ...(p.defaultValue !== undefined && { defaultValue: p.defaultValue }),
+    }
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Default-value widget selection                                              */
+/* -------------------------------------------------------------------------- */
+
+export type DefaultValueWidget =
+  | "enum"
+  | "boolean"
+  | "numeric"
+  | "date"
+  | "datetime-local"
+  | "time"
+  | "text"
+
+/**
+ * Pick the default-value input widget for an attribute row. Mirrors v3
+ * `StylePane.renderDefaultValueInput` (`style-pane.tsx:145`):
+ * enumeration literals win over everything, then int/float (numeric),
+ * bool (true/false dropdown), date / datetime / time (native inputs),
+ * plain text otherwise.
+ */
+export const selectDefaultValueWidget = (
+  attributeType: string | undefined,
+  enumerationLiterals?: string[]
+): DefaultValueWidget => {
+  if (enumerationLiterals && enumerationLiterals.length > 0) return "enum"
+  switch (attributeType) {
+    case "int":
+    case "float":
+      return "numeric"
+    case "bool":
+      return "boolean"
+    case "date":
+      return "date"
+    case "datetime":
+      return "datetime-local"
+    case "time":
+      return "time"
+    default:
+      return "text"
+  }
+}
+
+/**
+ * v3 StylePane numeric default sanitiser — digits, decimal point and
+ * minus sign only (`style-pane.tsx:183`).
+ */
+export const sanitizeNumericDefault = (value: string): string =>
+  value.replace(/[^0-9.-]/g, "")
+
+/* -------------------------------------------------------------------------- */
+/* Legacy fused-name splitting (load-time migration)                           */
+/* -------------------------------------------------------------------------- */
+
+/** Split on top-level occurrences of `sep`, ignoring brackets and quotes. */
+const splitTopLevel = (raw: string, sep: string): string[] => {
+  const parts: string[] = []
+  let depth = 0
+  let quote: string | null = null
+  let current = ""
+  for (const ch of raw) {
+    if (quote) {
+      if (ch === quote) quote = null
+    } else if (ch === "'" || ch === '"') {
+      quote = ch
+    } else if ("([{".includes(ch)) {
+      depth += 1
+    } else if (")]}".includes(ch)) {
+      depth -= 1
+    } else if (ch === sep && depth === 0) {
+      parts.push(current)
+      current = ""
+      continue
+    }
+    current += ch
+  }
+  parts.push(current)
+  return parts
+}
+
+export interface LegacyMethodSignature {
+  /** Set only when the name carried a `+ - # ~` prefix. */
+  visibility?: Visibility
+  name: string
+  /** Set only when the name carried a `(...)` list. */
+  parameters?: { name: string; parameterType?: string; defaultValue?: string }[]
+  /** Set only when the name declared a `: type` return suffix. */
+  returnType?: string
+}
+
+/**
+ * Split a legacy fused method name (`"+ greet(name: str = 'x'): str"`) into
+ * its parts, the way the backend's `parse_method` read it: types verbatim
+ * (so the canvas renders what develop did), `self` kept, quotes around a
+ * default stripped. Returns `undefined` when the name is already a bare
+ * identifier or is malformed (unbalanced parentheses).
+ */
+export const splitLegacyMethodSignature = (
+  raw: string
+): LegacyMethodSignature | undefined => {
+  const trimmed = raw.trim()
+  const visMatch = trimmed.match(/^([+\-#~])\s*/)
+  const visibility = visMatch ? SYMBOL_TO_VISIBILITY[visMatch[1]] : undefined
+  const rest = visMatch ? trimmed.substring(visMatch[0].length) : trimmed
+  const open = rest.indexOf("(")
+
+  if (open >= 0) {
+    const close = rest.lastIndexOf(")")
+    if (close < open) return undefined
+    const after = rest.substring(close + 1).trim()
+    const parameters = splitTopLevel(rest.substring(open + 1, close), ",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .map((p) => {
+        const [head, ...defaultParts] = splitTopLevel(p, "=")
+        const colon = head.indexOf(":")
+        const name = (colon >= 0 ? head.substring(0, colon) : head).trim()
+        const parameterType = colon >= 0 ? head.substring(colon + 1).trim() : ""
+        // Quotes are stripped like the backend's name parser did.
+        const defaultValue = defaultParts
+          .join("=")
+          .trim()
+          .replace(/^(['"])(.*)\1$/, "$2")
+        return {
+          name,
+          ...(parameterType && { parameterType }),
+          ...(defaultValue && { defaultValue }),
+        }
+      })
+    return {
+      ...(visibility && { visibility }),
+      name: rest.substring(0, open).trim(),
+      parameters,
+      ...(after.startsWith(":") &&
+        after.substring(1).trim() && { returnType: after.substring(1).trim() }),
+    }
+  }
+
+  const colon = rest.indexOf(":")
+  if (colon >= 0) {
+    return {
+      ...(visibility && { visibility }),
+      name: rest.substring(0, colon).trim(),
+      ...(rest.substring(colon + 1).trim() && {
+        returnType: rest.substring(colon + 1).trim(),
+      }),
+    }
+  }
+  if (!visibility) return undefined
+  return { visibility, name: rest }
+}
+
+export type UserCriterionOperator = "<" | "<=" | "==" | ">=" | ">"
+
+/**
+ * Parse a legacy user-model criterion row name (`"age < 18"`,
+ * `"lastName = "`) into name / operator / value. Returns `undefined` when
+ * the name holds no comparator. `=` is read as `==` (develop parity).
+ */
+export const parseUserCriterion = (
+  raw: string
+): { name: string; operator: UserCriterionOperator; value: string } | undefined => {
+  const match = raw.match(/^\s*([^<>=]*?)\s*(<=|>=|==|=|<|>)\s*(.*?)\s*$/)
+  if (!match) return undefined
+  const op = match[2] === "=" ? "==" : (match[2] as UserCriterionOperator)
+  return { name: match[1], operator: op, value: match[3] }
+}

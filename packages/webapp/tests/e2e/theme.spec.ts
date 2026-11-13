@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createBlankProject, openFreshApp } from './helpers/project';
 
 /**
  * Theme switching tests — verify that the theme toggle works correctly,
@@ -7,12 +8,7 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Theme switching', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
     await createBlankProject(page, 'Theme_E2E');
   });
 
@@ -152,22 +148,3 @@ test.describe('Theme switching', () => {
     }
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}

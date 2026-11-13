@@ -3,7 +3,16 @@ import { collectPickableElements } from '../useElementPickerProvider';
 import { BesserProject } from '../../../shared/types/project';
 
 // Minimal project factory — only `diagrams[*].{id,title,model}` matter here.
-// `model` must satisfy `isUMLModel` (type + version + elements + relationships).
+// `model` must satisfy `isUMLModel` (type + version + nodes + edges).
+const node = (id: string, type: string, name: string) => ({
+  id,
+  type,
+  position: { x: 0, y: 0 },
+  width: 100,
+  height: 60,
+  data: { name },
+});
+
 const proj = (): BesserProject =>
   ({
     diagrams: {
@@ -12,14 +21,14 @@ const proj = (): BesserProject =>
           id: 'cd-1',
           title: 'Domain',
           model: {
-            version: '3.0.0',
+            version: '4.0.0',
             type: 'ClassDiagram',
-            elements: {
-              c1: { id: 'c1', type: 'Class', name: 'Order' },
-              c2: { id: 'c2', type: 'Class', name: 'Customer' },
-              a1: { id: 'a1', type: 'ClassAttribute', name: 'total' },
-            },
-            relationships: {},
+            nodes: [
+              node('c1', 'class', 'Order'),
+              { ...node('c2', 'class', 'Customer'), data: { name: 'Customer', stereotype: 'Abstract' } },
+              { ...node('e1', 'class', 'Status'), data: { name: 'Status', stereotype: 'Enumeration' } },
+            ],
+            edges: [],
           },
         },
       ],
@@ -28,31 +37,38 @@ const proj = (): BesserProject =>
           id: 'cmp-1',
           title: 'Components',
           model: {
-            version: '3.0.0',
+            version: '4.0.0',
             type: 'ComponentDiagram',
-            elements: { k1: { id: 'k1', type: 'Component', name: 'Billing' } },
-            relationships: {},
+            nodes: [node('k1', 'component', 'Billing')],
+            edges: [],
           },
         },
       ],
     },
   }) as unknown as BesserProject;
 
+const CLASS_TOKENS = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
+
 describe('collectPickableElements (19 — realizes picker)', () => {
   it('T-R1 collects Class elements across diagrams', () => {
-    const out = collectPickableElements(proj(), ['Class']);
-    expect(out.map((e) => e.id).sort()).toEqual(['c1', 'c2']);
+    const out = collectPickableElements(proj(), CLASS_TOKENS);
+    expect(out.map((e) => e.id).sort()).toEqual(['c1', 'c2', 'e1']);
     expect(out.find((e) => e.id === 'c1')).toMatchObject({ name: 'Order', diagramTitle: 'Domain' });
   });
 
   it('T-R2 excludes the active diagram', () => {
-    const out = collectPickableElements(proj(), ['Class'], 'cd-1');
+    const out = collectPickableElements(proj(), CLASS_TOKENS, 'cd-1');
     expect(out).toEqual([]);
   });
 
   it('T-R3 filters by type token (Component not returned for Class)', () => {
-    const out = collectPickableElements(proj(), ['Class']);
+    const out = collectPickableElements(proj(), CLASS_TOKENS);
     expect(out.some((e) => e.id === 'k1')).toBe(false);
+  });
+
+  it('T-R3b maps the Component token to component nodes (manifests picker)', () => {
+    const out = collectPickableElements(proj(), ['Component']);
+    expect(out).toEqual([{ id: 'k1', name: 'Billing', diagramTitle: 'Components' }]);
   });
 
   it('T-R4 returns [] for null project', () => {

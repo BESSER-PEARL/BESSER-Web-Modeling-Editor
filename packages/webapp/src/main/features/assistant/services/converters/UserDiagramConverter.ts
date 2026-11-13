@@ -1,31 +1,31 @@
 /**
- * User Profile Diagram Converter
- * Converts simplified user-profile specs to Apollon UserDiagram format.
+ * User Profile Diagram Converter (v4-native)
  *
- * A user-profile model is a set of class-instance boxes (UserModelName) drawn
- * from a fixed metamodel. Each attribute row (UserModelAttribute) is a matching
- * criterion carrying a comparison operator, rendered like "age >= 18".
+ * Converts simplified user-profile specs straight into the canonical v4
+ * shape ({version: '4.0.0', type: 'UserDiagram', nodes[], edges[]}).
+ *
+ * A user-profile model is a set of class-instance boxes (`UserModelName`)
+ * drawn from the fixed user metamodel. Each attribute row is a matching
+ * criterion carrying a comparison operator (rendered like "age >= 18"):
+ *   - `UserModelName` is the only node type; criterion rows live inline on
+ *     `node.data.attributes` ({id, name, attributeOperator, value,
+ *     attributeId?}) — there is no separate UserModelAttribute node,
+ *   - the metamodel class icon is a plain `data.icon` SVG string (no
+ *     separate UserModelIcon node) and the node renders in icon view,
+ *   - links are `UserModelLink` edges (the library's default edge type for
+ *     UserDiagram; handled exactly like ObjectLink).
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
-
-const OPERATORS = ['<', '<=', '==', '>=', '>'];
-
-const normalizeOperator = (raw: any): string => {
-  if (typeof raw !== 'string') return '==';
-  const op = raw.trim();
-  if (op === '=') return '==';
-  return OPERATORS.includes(op) ? op : '==';
-};
-
-// Equality displays as a single '=' to match the editor's own rendering
-// (UMLUserModelAttribute extracts the operator back from the name).
-const attrDisplayName = (attr: any): string => {
-  const op = normalizeOperator(attr.operator);
-  const symbol = op === '==' ? '=' : op;
-  const value = attr.value ?? '';
-  return `${attr.name} ${symbol} ${value}`;
-};
+import { createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+import {
+  USER_LINK_TYPE,
+  USER_NODE_TYPE,
+  USER_NODE_WIDTH,
+  buildUserAttributeRow,
+  userNodeHeight,
+} from '../shared/userModelBuilders';
 
 export class UserDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -34,115 +34,88 @@ export class UserDiagramConverter implements DiagramConverter {
     return 'UserDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+  ): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const pos = position || this.positionGenerator.getNextPosition();
-    const nameId = generateUniqueId('user');
+    const nodeId = generateUniqueId('user');
 
-    const attrCount = spec.attributes?.length || 0;
-    const totalHeight = 50 + attrCount * 30;
+    const attributes = (Array.isArray(spec?.attributes) ? spec.attributes : []).map((attr: any) =>
+      buildUserAttributeRow(attr),
+    );
+    const profileName = spec?.profileName || spec?.className || 'profile';
+    const width = USER_NODE_WIDTH;
+    const height = userNodeHeight(attributes.length);
 
-    const profileName = spec.profileName || spec.className || 'profile';
-
-    const nameElement: any = {
-      type: 'UserModelName',
-      id: nameId,
+    const data: Record<string, unknown> = {
       name: profileName,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 200, height: totalHeight },
-      attributes: [] as string[],
+      attributes,
       methods: [],
+      // User diagrams render in icon view (the v3 fork's preferred preview).
+      view: 'icon',
     };
-    if (spec.className) nameElement.className = spec.className;
-    if (spec.classId) nameElement.classId = spec.classId;
+    if (spec?.className) data.className = spec.className;
+    if (spec?.classId) data.classId = spec.classId;
+    if (typeof spec?.icon === 'string' && spec.icon.trim() !== '') data.icon = spec.icon;
 
-    const children: Record<string, any> = {};
-
-    // Optional icon child carrying the metamodel class SVG.
-    if (spec.icon && typeof spec.icon === 'string' && spec.icon.trim() !== '') {
-      const iconId = generateUniqueId('usericon');
-      children[iconId] = {
-        type: 'UserModelIcon',
-        id: iconId,
-        name: '',
-        owner: nameId,
-        bounds: { x: pos.x, y: pos.y, width: 50, height: 50 },
-        icon: spec.icon,
-      };
-      nameElement.icon = iconId;
-    }
-
-    // Attribute (criteria) children.
-    let currentY = pos.y + 40;
-    (spec.attributes || []).forEach((attr: any) => {
-      const attrId = generateUniqueId('userattr');
-      nameElement.attributes.push(attrId);
-      const attrElement: any = {
-        id: attrId,
-        name: attrDisplayName(attr),
-        type: 'UserModelAttribute',
-        owner: nameId,
-        bounds: { x: pos.x + 1, y: currentY, width: 198, height: 30 },
-        attributeOperator: normalizeOperator(attr.operator),
-      };
-      if (attr.attributeId) attrElement.attributeId = attr.attributeId;
-      children[attrId] = attrElement;
-      currentY += 30;
-    });
-
-    return { name: nameElement, children };
+    return {
+      nodes: [
+        {
+          id: nodeId,
+          type: USER_NODE_TYPE as any,
+          position: { x: pos.x, y: pos.y },
+          width,
+          height,
+          measured: { width, height },
+          data,
+        },
+      ],
+      edges: [],
+    };
   }
 
   convertCompleteSystem(systemSpec: any) {
     this.positionGenerator.reset();
-    const allElements: Record<string, any> = {};
-    const allRelationships: Record<string, any> = {};
+    const model = createEmptyV4Model('UserDiagram', systemSpec?.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
     const profileIdMap: Record<string, string> = {};
 
-    (systemSpec.profiles || []).forEach((profileSpec: any) => {
+    (systemSpec?.profiles || []).forEach((profileSpec: any) => {
       const position = profileSpec.position || this.positionGenerator.getNextPosition();
-      const built = this.convertSingleElement(profileSpec, position);
-      const key = profileSpec.profileName || profileSpec.className;
-      if (key) profileIdMap[key] = built.name.id;
-      allElements[built.name.id] = built.name;
-      Object.assign(allElements, built.children);
+      const { nodes: built } = this.convertSingleElement(profileSpec, position);
+      const node = built[0];
+      // Links may reference a profile by its instance name OR its class name.
+      if (profileSpec.profileName) profileIdMap[profileSpec.profileName] = node.id;
+      if (profileSpec.className && !profileIdMap[profileSpec.className]) {
+        profileIdMap[profileSpec.className] = node.id;
+      }
+      nodes.push(node);
     });
 
-    (systemSpec.links || []).forEach((link: any) => {
+    (systemSpec?.links || []).forEach((link: any) => {
       const sourceId = profileIdMap[link.source];
       const targetId = profileIdMap[link.target];
-      if (sourceId && targetId) {
-        const linkId = generateUniqueId('link');
-        allRelationships[linkId] = {
-          id: linkId,
-          // The editor's UserModelName supports ObjectLink (and the fixtures
-          // use it), so emit ObjectLink for compatibility.
-          type: 'ObjectLink',
-          source: {
-            element: sourceId,
-            direction: link.sourceDirection || 'Right',
-            bounds: { x: 0, y: 0, width: 0, height: 0 },
-          },
-          target: {
-            element: targetId,
-            direction: link.targetDirection || 'Left',
-            bounds: { x: 0, y: 0, width: 0, height: 0 },
-          },
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
-          name: link.relationshipType || '',
-          path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
+      if (!sourceId || !targetId) return;
+
+      const linkName = link.relationshipType || '';
+      edges.push({
+        id: generateUniqueId('link'),
+        source: sourceId,
+        target: targetId,
+        type: USER_LINK_TYPE as any,
+        sourceHandle: directionToHandle(link.sourceDirection, 'Right'),
+        targetHandle: directionToHandle(link.targetDirection, 'Left'),
+        data: {
+          label: linkName,
+          ...(linkName && { name: linkName }),
           isManuallyLayouted: false,
-        };
-      }
+          points: [],
+        },
+      });
     });
 
-    return {
-      version: '3.0.0',
-      type: 'UserDiagram',
-      size: { width: 1400, height: 740 },
-      elements: allElements,
-      relationships: allRelationships,
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-    };
+    return model;
   }
 }

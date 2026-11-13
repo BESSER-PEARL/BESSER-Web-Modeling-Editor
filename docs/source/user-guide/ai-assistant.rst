@@ -109,7 +109,7 @@ That check validates the model, not the behaviour of a generated application.
 Supported diagram types
 -----------------------
 
-The assistant can create and edit eight of the editor's nine diagram types:
+The assistant can create and edit ten of the editor's eleven diagram types:
 
 * Class diagrams (including OCL constraints)
 * Object diagrams
@@ -119,6 +119,8 @@ The assistant can create and edit eight of the editor's nine diagram types:
 * GUI (no-code) diagrams
 * Quantum circuit diagrams
 * BPMN diagrams
+* Component diagrams
+* Deployment diagrams
 
 **Neural network diagrams are not supported** — the chat bubble is hidden while
 an NN diagram is active.

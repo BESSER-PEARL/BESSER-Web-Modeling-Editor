@@ -1,787 +1,808 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "converted-diagram-1782994098528",
+  "title": "Car Wash",
   "type": "BPMNDiagram",
-  "size": {
-    "width": 1100,
-    "height": 660
-  },
-  "interactive": {
-    "elements": {},
-    "relationships": {}
-  },
-  "elements": {
-    "cu-pool": {
+  "nodes": [
+    {
       "id": "cu-pool",
-      "name": "Customer",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnPool",
+      "position": {
         "x": 0,
-        "y": 0,
+        "y": 0
+      },
+      "width": 1100,
+      "height": 300,
+      "measured": {
         "width": 1100,
         "height": 300
+      },
+      "data": {
+        "name": "Customer"
       }
     },
-    "cu-start": {
+    {
       "id": "cu-start",
-      "name": "Customer arrives",
-      "type": "BPMNStartEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnStartEvent",
+      "position": {
         "x": 40,
-        "y": 90,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "Customer arrives",
+        "eventType": "default"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-pull": {
+    {
       "id": "cu-pull",
-      "name": "Pulls car up to car wash",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 140,
-        "y": 80,
+        "y": 80
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Pulls car up to car wash",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-choose": {
+    {
       "id": "cu-choose",
-      "name": "Chooses wash",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 305,
-        "y": 80,
+        "y": 80
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "user",
-      "marker": "none"
+      "data": {
+        "name": "Chooses wash",
+        "taskType": "user",
+        "marker": "none"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-gw": {
+    {
       "id": "cu-gw",
-      "name": "Which wash program?",
-      "type": "BPMNGateway",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnGateway",
+      "position": {
         "x": 470,
-        "y": 90,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "gatewayType": "exclusive"
+      "data": {
+        "name": "Which wash program?",
+        "gatewayType": "exclusive"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-pay8": {
+    {
       "id": "cu-pay8",
-      "name": "Pay 8",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 435,
-        "y": 200,
+        "y": 200
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "send",
-      "marker": "none"
+      "data": {
+        "name": "Pay 8",
+        "taskType": "send",
+        "marker": "none"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-pay15": {
+    {
       "id": "cu-pay15",
-      "name": "Pay 15",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 625,
-        "y": 200,
+        "y": 200
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "send",
-      "marker": "none"
+      "data": {
+        "name": "Pay 15",
+        "taskType": "send",
+        "marker": "none"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-drive": {
+    {
       "id": "cu-drive",
-      "name": "Drives away",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 875,
-        "y": 80,
+        "y": 80
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "receive",
-      "marker": "none"
+      "data": {
+        "name": "Drives away",
+        "taskType": "receive",
+        "marker": "none"
+      },
+      "parentId": "cu-pool"
     },
-    "cu-end": {
+    {
       "id": "cu-end",
-      "name": "",
-      "type": "BPMNEndEvent",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnEndEvent",
+      "position": {
         "x": 1015,
-        "y": 90,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "eventType": "default"
+      "data": {
+        "name": "",
+        "eventType": "default"
+      },
+      "parentId": "cu-pool"
     },
-    "ma-pool": {
+    {
       "id": "ma-pool",
-      "name": "Car Wash Machine",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnPool",
+      "position": {
         "x": 0,
-        "y": 340,
+        "y": 340
+      },
+      "width": 1100,
+      "height": 280,
+      "measured": {
         "width": 1100,
         "height": 280
+      },
+      "data": {
+        "name": "Car Wash Machine"
       }
     },
-    "ma-soft": {
+    {
       "id": "ma-soft",
-      "name": "Soft Cloth Wash",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 435,
-        "y": 380,
+        "y": 40
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "service",
-      "marker": "none"
+      "data": {
+        "name": "Soft Cloth Wash",
+        "taskType": "service",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-gw": {
+    {
       "id": "ma-gw",
-      "name": "Which wash program?",
-      "type": "BPMNGateway",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnGateway",
+      "position": {
         "x": 600,
-        "y": 390,
+        "y": 50
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
         "width": 40,
         "height": 40
       },
-      "gatewayType": "exclusive"
+      "data": {
+        "name": "Which wash program?",
+        "gatewayType": "exclusive"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-wheelclean": {
+    {
       "id": "ma-wheelclean",
-      "name": "Wheel Clean",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 725,
-        "y": 380,
+        "y": 40
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "service",
-      "marker": "none"
+      "data": {
+        "name": "Wheel Clean",
+        "taskType": "service",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-dry": {
+    {
       "id": "ma-dry",
-      "name": "Dry",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 875,
-        "y": 380,
+        "y": 40
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "send",
-      "marker": "none"
+      "data": {
+        "name": "Dry",
+        "taskType": "send",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-double": {
+    {
       "id": "ma-double",
-      "name": "Double Polish",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 565,
-        "y": 500,
+        "y": 160
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "service",
-      "marker": "none"
+      "data": {
+        "name": "Double Polish",
+        "taskType": "service",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-clear": {
+    {
       "id": "ma-clear",
-      "name": "Clear Coat Protection",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 725,
-        "y": 500,
+        "y": 160
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "service",
-      "marker": "none"
+      "data": {
+        "name": "Clear Coat Protection",
+        "taskType": "service",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     },
-    "ma-luster": {
+    {
       "id": "ma-luster",
-      "name": "Wheel Luster Wheel Clean",
-      "type": "BPMNTask",
-      "owner": null,
-      "bounds": {
+      "type": "bpmnTask",
+      "position": {
         "x": 875,
-        "y": 500,
+        "y": 160
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
         "width": 110,
         "height": 60
       },
-      "taskType": "service",
-      "marker": "none"
+      "data": {
+        "name": "Wheel Luster Wheel Clean",
+        "taskType": "service",
+        "marker": "none"
+      },
+      "parentId": "ma-pool"
     }
-  },
-  "relationships": {
-    "f1": {
+  ],
+  "edges": [
+    {
       "id": "f1",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 80,
-        "y": 110,
-        "width": 60,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "cu-start"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "cu-pull"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-start",
+      "target": "cu-pull",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 80,
+            "y": 110
+          },
+          {
+            "x": 140,
+            "y": 110
+          }
+        ]
+      }
     },
-    "f2": {
+    {
       "id": "f2",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 250,
-        "y": 110,
-        "width": 55,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "cu-pull"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "cu-choose"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-pull",
+      "target": "cu-choose",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 250,
+            "y": 110
+          },
+          {
+            "x": 305,
+            "y": 110
+          }
+        ]
+      }
     },
-    "f3": {
+    {
       "id": "f3",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 415,
-        "y": 110,
-        "width": 55,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "cu-choose"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "cu-gw"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-choose",
+      "target": "cu-gw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 415,
+            "y": 110
+          },
+          {
+            "x": 470,
+            "y": 110
+          }
+        ]
+      }
     },
-    "f4": {
+    {
       "id": "f4",
-      "name": "ECO",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 490,
-        "y": 130,
-        "width": 1,
-        "height": 70
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 70
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "cu-gw"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "cu-pay8"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-gw",
+      "target": "cu-pay8",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "ECO",
+        "name": "ECO",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 490,
+            "y": 130
+          },
+          {
+            "x": 490,
+            "y": 200
+          }
+        ]
+      }
     },
-    "f5": {
+    {
       "id": "f5",
-      "name": "Polish Plus",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 510,
-        "y": 110,
-        "width": 170,
-        "height": 90
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 170,
-          "y": 0
-        },
-        {
-          "x": 170,
-          "y": 90
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "cu-gw"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "cu-pay15"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-gw",
+      "target": "cu-pay15",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "label": "Polish Plus",
+        "name": "Polish Plus",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 510,
+            "y": 110
+          },
+          {
+            "x": 680,
+            "y": 110
+          },
+          {
+            "x": 680,
+            "y": 200
+          }
+        ]
+      }
     },
-    "f6": {
+    {
       "id": "f6",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 985,
-        "y": 110,
-        "width": 30,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 30,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "cu-drive"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "cu-end"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "cu-drive",
+      "target": "cu-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 985,
+            "y": 110
+          },
+          {
+            "x": 1015,
+            "y": 110
+          }
+        ]
+      }
     },
-    "g1": {
+    {
       "id": "g1",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 545,
-        "y": 410,
-        "width": 55,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 55,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ma-soft"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ma-gw"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-soft",
+      "target": "ma-gw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 545,
+            "y": 410
+          },
+          {
+            "x": 600,
+            "y": 410
+          }
+        ]
+      }
     },
-    "g2": {
+    {
       "id": "g2",
-      "name": "ECO",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 640,
-        "y": 410,
-        "width": 85,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 85,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ma-gw"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ma-wheelclean"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-gw",
+      "target": "ma-wheelclean",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "ECO",
+        "name": "ECO",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 640,
+            "y": 410
+          },
+          {
+            "x": 725,
+            "y": 410
+          }
+        ]
+      }
     },
-    "g3": {
+    {
       "id": "g3",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 835,
-        "y": 410,
-        "width": 40,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 40,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ma-wheelclean"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ma-dry"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-wheelclean",
+      "target": "ma-dry",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 835,
+            "y": 410
+          },
+          {
+            "x": 875,
+            "y": 410
+          }
+        ]
+      }
     },
-    "g4": {
+    {
       "id": "g4",
-      "name": "Polish Plus",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 620,
-        "y": 430,
-        "width": 1,
-        "height": 70
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 70
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "ma-gw"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "ma-double"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-gw",
+      "target": "ma-double",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Polish Plus",
+        "name": "Polish Plus",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 620,
+            "y": 430
+          },
+          {
+            "x": 620,
+            "y": 500
+          }
+        ]
+      }
     },
-    "g5": {
+    {
       "id": "g5",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 675,
-        "y": 530,
-        "width": 50,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 50,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ma-double"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ma-clear"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-double",
+      "target": "ma-clear",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 675,
+            "y": 530
+          },
+          {
+            "x": 725,
+            "y": 530
+          }
+        ]
+      }
     },
-    "g6": {
+    {
       "id": "g6",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 835,
-        "y": 530,
-        "width": 40,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 40,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ma-clear"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "ma-luster"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-clear",
+      "target": "ma-luster",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 835,
+            "y": 530
+          },
+          {
+            "x": 875,
+            "y": 530
+          }
+        ]
+      }
     },
-    "g7": {
+    {
       "id": "g7",
-      "name": "",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 930,
-        "y": 440,
-        "width": 1,
-        "height": 60
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 60
-        },
-        {
-          "x": 0,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "ma-luster"
-      },
-      "target": {
-        "direction": "Down",
-        "element": "ma-dry"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "sequence",
-      "isDefault": false
+      "source": "ma-luster",
+      "target": "ma-dry",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 930,
+            "y": 500
+          },
+          {
+            "x": 930,
+            "y": 440
+          }
+        ]
+      }
     },
-    "m1": {
+    {
       "id": "m1",
-      "name": "Payment",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 490,
-        "y": 260,
-        "width": 1,
-        "height": 120
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": 120
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "cu-pay8"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "ma-soft"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "cu-pay8",
+      "target": "ma-soft",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Payment",
+        "name": "Payment",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 490,
+            "y": 260
+          },
+          {
+            "x": 490,
+            "y": 380
+          }
+        ]
+      }
     },
-    "m2": {
+    {
       "id": "m2",
-      "name": "Payment",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 490,
-        "y": 260,
-        "width": 190,
-        "height": 120
-      },
-      "path": [
-        {
-          "x": 190,
-          "y": 0
-        },
-        {
-          "x": 190,
-          "y": 60
-        },
-        {
-          "x": 0,
-          "y": 60
-        },
-        {
-          "x": 0,
-          "y": 120
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "cu-pay15"
-      },
-      "target": {
-        "direction": "Up",
-        "element": "ma-soft"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "cu-pay15",
+      "target": "ma-soft",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Payment",
+        "name": "Payment",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 680,
+            "y": 260
+          },
+          {
+            "x": 680,
+            "y": 320
+          },
+          {
+            "x": 490,
+            "y": 320
+          },
+          {
+            "x": 490,
+            "y": 380
+          }
+        ]
+      }
     },
-    "m3": {
+    {
       "id": "m3",
-      "name": "Car ready",
-      "type": "BPMNFlow",
-      "owner": null,
-      "bounds": {
-        "x": 930,
-        "y": 140,
-        "width": 1,
-        "height": 240
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 240
-        },
-        {
-          "x": 0,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "ma-dry"
-      },
-      "target": {
-        "direction": "Down",
-        "element": "cu-drive"
-      },
-      "isManuallyLayouted": false,
-      "flowType": "message",
-      "isDefault": false
+      "source": "ma-dry",
+      "target": "cu-drive",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "Car ready",
+        "name": "Car ready",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 930,
+            "y": 380
+          },
+          {
+            "x": 930,
+            "y": 140
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

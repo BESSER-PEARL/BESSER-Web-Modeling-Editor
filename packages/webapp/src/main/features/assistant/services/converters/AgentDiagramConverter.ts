@@ -1,137 +1,227 @@
 /**
- * Agent Diagram Converter
- * Converts simplified agent system specifications to Apollon format.
- * New format: intents/intent-bodies go to `components` (no bounds);
- * states/state-bodies stay in `elements` (with bounds).
+ * Agent Diagram Converter (v4-native)
+ *
+ * Converts simplified agent system specifications straight into the
+ * canonical v4 shape ({version: '4.0.0', nodes[], edges[], components}).
+ * Shapes are identical to what the editor and the agent Components page
+ * produce (per `docs/source/migrations/uml-v4-shape.md` → AgentDiagram):
+ *   - canvas: `AgentState` nodes carry inline `data.bodies[]` /
+ *     `data.fallbackBodies[]` action rows ({id, name, replyType, actionType,
+ *     …type-specific fields}), plus the `StateInitialNode` marker and the
+ *     `AgentStateTransition(Init)` edges with the canonical
+ *     `{transitionType, predefined | custom}` data,
+ *   - off-canvas: intents (+ their `AgentIntentBody` training sentences),
+ *     LLMs, RAG databases, tools, skills, workspaces and GUIs are flat
+ *     entries in the top-level `model.components` map (no position).
  */
 
-import { AgentComponentType } from '@besser/wme';
+import { AgentComponentType, REPLY_TYPE_TO_ACTION_TYPE } from '@besser/wme';
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
+import { createEmptyV4Model, directionToHandle, estimateAgentNodeWidth } from '../shared/v4Builders';
 
-function estimateWidth(texts: string[], baseWidth: number): number {
-  let maxW = baseWidth;
-  for (const text of texts) {
-    if (text) {
-      const estimated = text.length * 8 + 40;
-      maxW = Math.max(maxW, estimated);
-    }
-  }
-  return Math.max(maxW, baseWidth);
-}
+/** One inline AgentState action row (v4 `data.bodies[]` / `data.fallbackBodies[]`). */
+export type AgentBodyRow = { id: string; name: string; replyType: string; actionType: string; [field: string]: unknown };
 
-export const REPLY_TYPE_TO_ACTION_TYPE: Record<string, string> = {
-  text: 'TextReplyAction',
-  llm: 'LLMReplyAction',
-  llm_chat: 'LLMChatAction',
-  rag: 'RAGReplyAction',
-  db_reply: 'DBAction',
-  code: 'CustomCodeAction',
-  web_crawl_llm: 'WebCrawlLLMAction',
-  ws_markdown: 'WebSocketReplyMarkdownAction',
-  ws_html: 'WebSocketReplyHTMLAction',
-  ws_speech: 'WebSocketReplySpeechAction',
-  ws_options: 'WebSocketReplyOptionsAction',
-  ws_location: 'WebSocketReplyLocationAction',
-  ws_file: 'WebSocketReplyFileAction',
-  ws_image: 'WebSocketReplyImageAction',
-  ws_dataframe: 'WebSocketReplyDataframeAction',
-  ws_plotly: 'WebSocketReplyPlotlyAction',
-  gui_reply: 'GUIReplyAction',
-};
-
-export type AgentStateBodyElementType = 'AgentStateBody' | 'AgentStateFallbackBody';
+/** An off-canvas agent component entry (v4 `model.components[id]`). */
+export type AgentComponentEntry = { id: string; type: string; name: string; owner: string | null; [field: string]: unknown };
 
 /**
- * Build one agent state body (reply) element from an assistant reply spec — a plain string
- * (text reply) or an object with ``replyType`` and the type-specific fields. Shared by the
- * converter and by AgentDiagramModifier (``add_state`` and ``add_state_body``) so every path
- * produces identical bodies.
+ * Build one agent state action row from an assistant reply spec — a plain
+ * string (text reply) or an object with `replyType` and the type-specific
+ * fields. Shared by the converter and by AgentDiagramModifier (`add_state`
+ * and `add_state_body`) so every path produces identical rows.
  */
-export function buildAgentStateBody(
-  raw: any,
-  options: {
-    id: string;
-    owner: string;
-    elementType: AgentStateBodyElementType;
-    bounds: { x: number; y: number; width: number; height: number };
-  },
-): Record<string, any> {
-  const body = typeof raw === 'string' ? { text: raw, replyType: 'text' } : (raw || {});
+export function buildAgentStateBody(raw: any, id: string): AgentBodyRow {
+  const body = typeof raw === 'string' ? { text: raw, replyType: 'text' } : raw || {};
   const replyType: string = body.replyType || 'text';
   const actionType = REPLY_TYPE_TO_ACTION_TYPE[replyType] || 'TextReplyAction';
 
-  const el: Record<string, any> = {
-    id: options.id,
+  const row: AgentBodyRow = {
+    id,
     name: body.text || '',
-    type: options.elementType,
-    owner: options.owner,
-    bounds: options.bounds,
-    actionType,
     replyType,
+    actionType,
     useSessionVars: false,
   };
 
   // LLM / LLMChat fields
   if (actionType === 'LLMReplyAction' || actionType === 'LLMChatAction') {
-    el.system_message = body.system_message || '';
-    el.llm_name = body.llm_name || '';
-    el.systemPromptUseSessionVars = false;
-    el.storeInSession = body.storeInSession || '';
-    el.sendReply = body.sendReply !== false;
-    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-    el.customInputPrompt = body.customInputPrompt || '';
-    el.customInputPromptUseSessionVars = false;
+    row.system_message = body.system_message || '';
+    row.llm_name = body.llm_name || '';
+    row.systemPromptUseSessionVars = false;
+    row.storeInSession = body.storeInSession || '';
+    row.sendReply = body.sendReply !== false;
+    row.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    row.customInputPrompt = body.customInputPrompt || '';
+    row.customInputPromptUseSessionVars = false;
   }
 
   // RAG fields
   if (actionType === 'RAGReplyAction') {
-    el.ragDatabaseName = body.ragDatabaseName || '';
-    el.llm_name = body.llm_name || '';
-    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-    el.storeInSession = body.storeInSession || '';
-    el.sendReply = body.sendReply !== false;
+    row.ragDatabaseName = body.ragDatabaseName || '';
+    row.llm_name = body.llm_name || '';
+    row.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    row.storeInSession = body.storeInSession || '';
+    row.sendReply = body.sendReply !== false;
   }
 
   // DB fields
   if (actionType === 'DBAction') {
-    el.dbSelectionType = body.dbSelectionType || 'default';
-    el.dbCustomName = body.dbCustomName || '';
-    el.dbQueryMode = body.dbQueryMode || 'llm_query';
-    el.dbOperation = body.dbOperation || 'any';
-    el.dbSqlQuery = body.dbSqlQuery || '';
-    el.llm_name = body.llm_name || '';
-    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-    el.storeInSession = body.storeInSession || '';
-    el.sendReply = body.sendReply !== false;
+    row.dbSelectionType = body.dbSelectionType || 'default';
+    row.dbCustomName = body.dbCustomName || '';
+    row.dbQueryMode = body.dbQueryMode || 'llm_query';
+    row.dbOperation = body.dbOperation || 'any';
+    row.dbSqlQuery = body.dbSqlQuery || '';
+    row.llm_name = body.llm_name || '';
+    row.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    row.storeInSession = body.storeInSession || '';
+    row.sendReply = body.sendReply !== false;
   }
 
   // WebCrawlLLM fields
   if (actionType === 'WebCrawlLLMAction') {
-    el.initial_url = body.initial_url || '';
-    el.llm_name = body.llm_name || '';
-    el.storeInSession = body.storeInSession || '';
-    el.sendReply = body.sendReply !== false;
+    row.initial_url = body.initial_url || '';
+    row.llm_name = body.llm_name || '';
+    row.storeInSession = body.storeInSession || '';
+    row.sendReply = body.sendReply !== false;
+  }
+
+  // Custom code: v4 code rows carry the source on `code`
+  if (actionType === 'CustomCodeAction' && (body.code || body.text)) {
+    row.code = body.code || body.text || '';
   }
 
   // WebSocket message fields
   if (['WebSocketReplyMarkdownAction', 'WebSocketReplyHTMLAction', 'WebSocketReplySpeechAction'].includes(actionType)) {
-    el.ws_message = body.ws_message || body.text || '';
+    row.ws_message = body.ws_message || body.text || '';
   }
   if (actionType === 'WebSocketReplyOptionsAction') {
-    el.ws_options = body.ws_options || '';
+    row.ws_options = body.ws_options || '';
   }
   if (actionType === 'WebSocketReplyLocationAction') {
-    el.ws_latitude = body.ws_latitude ?? 0;
-    el.ws_longitude = body.ws_longitude ?? 0;
+    row.ws_latitude = body.ws_latitude ?? 0;
+    row.ws_longitude = body.ws_longitude ?? 0;
   }
 
   // GUI reply field
   if (actionType === 'GUIReplyAction') {
-    el.guiId = body.guiId || body.gui_id || '';
+    row.guiId = body.guiId || body.gui_id || '';
   }
 
-  return el;
+  return row;
 }
+
+/** Build an intent component plus one `AgentIntentBody` component per training phrase. */
+export function buildIntentComponents(spec: any): { intent: AgentComponentEntry; components: Record<string, AgentComponentEntry> } {
+  const intentId = generateUniqueId('intent');
+  const bodies: string[] = [];
+  const components: Record<string, AgentComponentEntry> = {};
+
+  (spec.trainingPhrases || spec.intentBodies || spec.bodies || []).forEach((phrase: any) => {
+    const bodyId = generateUniqueId('intentBody');
+    bodies.push(bodyId);
+    components[bodyId] = {
+      id: bodyId,
+      name: typeof phrase === 'string' ? phrase : phrase?.text || '',
+      type: AgentComponentType.AgentIntentBody,
+      owner: intentId,
+    };
+  });
+
+  const intent: AgentComponentEntry = {
+    id: intentId,
+    name: spec.intentName || spec.name || '',
+    type: AgentComponentType.AgentIntent,
+    owner: null,
+    intent_description: spec.intentDescription || spec.intent_description || spec.description || '',
+    bodies,
+  };
+  components[intentId] = intent;
+  return { intent, components };
+}
+
+/** Component builders shared with the modifier's `add_*` component actions. */
+export const buildAgentComponent = {
+  rag(spec: any): AgentComponentEntry {
+    return {
+      id: generateUniqueId('rag'),
+      type: AgentComponentType.AgentRagElement,
+      name: spec.name || 'RAG DB',
+      owner: null,
+      llm_name: spec.llm_name || '',
+      llm_prompt: spec.llm_prompt || '',
+      k: spec.k ?? 4,
+      num_previous_messages: spec.num_previous_messages ?? 0,
+      embedding_provider: spec.embedding_provider || 'openai',
+      embedding_base_url: spec.embedding_base_url || '',
+      embedding_model: spec.embedding_model || '',
+      use_hybrid_rag: spec.use_hybrid_rag === true,
+      bm25_weight: typeof spec.bm25_weight === 'number' ? spec.bm25_weight : 0.6,
+    };
+  },
+  llm(spec: any): AgentComponentEntry {
+    return {
+      id: generateUniqueId('llm'),
+      type: AgentComponentType.AgentLLM,
+      name: spec.name || 'LLM',
+      owner: null,
+      provider: spec.provider || 'openai',
+      parameters: spec.parameters && typeof spec.parameters === 'object' ? spec.parameters : {},
+      num_previous_messages: spec.num_previous_messages ?? 1,
+      global_context: spec.global_context || '',
+    };
+  },
+  tool(spec: any): AgentComponentEntry {
+    return {
+      id: generateUniqueId('tool'),
+      type: AgentComponentType.AgentTool,
+      name: spec.name || 'Tool',
+      owner: null,
+      description: spec.description || '',
+      code: spec.code || '',
+    };
+  },
+  skill(spec: any): AgentComponentEntry {
+    return {
+      id: generateUniqueId('skill'),
+      type: AgentComponentType.AgentSkill,
+      name: spec.name || 'Skill',
+      owner: null,
+      content: spec.content || '',
+      description: spec.description || '',
+    };
+  },
+  workspace(spec: any): AgentComponentEntry {
+    return {
+      id: generateUniqueId('workspace'),
+      type: AgentComponentType.AgentWorkspace,
+      name: spec.name || 'Workspace',
+      owner: null,
+      path: spec.path || '',
+      description: spec.description || '',
+      writable: spec.writable !== false,
+      max_read_bytes: spec.max_read_bytes ?? 200000,
+    };
+  },
+  gui(spec: any): AgentComponentEntry {
+    const guiPageId = spec.gui_id || spec.name || 'gui_page';
+    return {
+      id: generateUniqueId('gui'),
+      type: AgentComponentType.AgentGUI,
+      name: guiPageId,
+      owner: null,
+      gui_id: guiPageId,
+      persist: spec.persist !== false,
+      is_form: spec.is_form === true,
+      width: spec.width || '',
+      guiModel: null,
+    };
+  },
+};
+
+/** Inline AgentState row height (px) — matches the AgentState node renderer. */
+export const agentStateHeight = (rowCount: number): number => Math.max(70, 41 + rowCount * 30);
 
 export class AgentDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -140,336 +230,187 @@ export class AgentDiagramConverter implements DiagramConverter {
     return 'AgentDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }) {
-    const pos = position || this.positionGenerator.getNextPosition();
-
+  /**
+   * One spec → a merge fragment `{nodes, edges, components}`. An intent is
+   * an off-canvas component, so its fragment carries no nodes.
+   */
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+  ): { nodes: BesserNode[]; edges: BesserEdge[]; components: Record<string, AgentComponentEntry> } {
     if (spec.type === 'intent' || spec.intentBodies) {
-      const result = this.createIntent(spec);
-      return {
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 1080, height: 400 },
-        elements: {},
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-        components: result.components,
-      };
-    } else if (spec.type === 'initial') {
-      const result = this.createInitialNode(pos);
-      return {
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 1080, height: 400 },
-        elements: { [result.initialNode.id]: result.initialNode },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-        components: {},
-      };
-    } else {
-      const result = this.createState(spec, pos);
-      const elements: Record<string, any> = { [result.state.id]: result.state };
-      Object.assign(elements, result.bodies);
-      return {
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 1080, height: 400 },
-        elements,
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-        components: {},
-      };
+      return { nodes: [], edges: [], components: buildIntentComponents(spec).components };
     }
+    const pos = position || this.positionGenerator.getNextPosition();
+    if (spec.type === 'initial') {
+      return { nodes: [this.createInitialNode(pos)], edges: [], components: {} };
+    }
+    return { nodes: [this.createStateNode(spec, pos)], edges: [], components: {} };
   }
 
-  private createInitialNode(pos: { x: number; y: number }) {
-    const nodeId = generateUniqueId('initial');
+  private createInitialNode(pos: { x: number; y: number }): BesserNode {
     return {
-      initialNode: {
-        id: nodeId,
-        name: '',
-        type: 'StateInitialNode',
-        owner: null,
-        bounds: { x: pos.x, y: pos.y, width: 45, height: 45 },
-      },
+      id: generateUniqueId('initial'),
+      type: 'StateInitialNode' as any,
+      position: { x: pos.x, y: pos.y },
+      width: 45,
+      height: 45,
+      measured: { width: 45, height: 45 },
+      data: { name: '' },
     };
   }
 
-  private createState(spec: any, pos: { x: number; y: number }) {
-    const stateId = generateUniqueId('state');
-    const actionIds: string[] = [];
-    const fallbackActionIds: string[] = [];
-    const bodyElements: Record<string, any> = {};
+  private createStateNode(spec: any, pos: { x: number; y: number }): BesserNode {
+    const replies: any[] = spec.bodies || spec.replies || [];
+    const fallbacks: any[] = spec.fallbackBodies || [];
 
     const allTexts: string[] = [];
-    (spec.bodies || spec.replies || []).forEach((b: any) =>
-      allTexts.push(typeof b === 'string' ? b : b.text || ''),
-    );
-    (spec.fallbackBodies || []).forEach((f: any) =>
-      allTexts.push(typeof f === 'string' ? f : f.text || ''),
-    );
-    const stateWidth = estimateWidth(allTexts, 210);
-    const bodyWidth = stateWidth - 1;
+    replies.forEach((b: any) => allTexts.push(typeof b === 'string' ? b : b?.text || ''));
+    fallbacks.forEach((f: any) => allTexts.push(typeof f === 'string' ? f : f?.text || ''));
+    const stateWidth = estimateAgentNodeWidth(allTexts, 210);
 
-    let currentY = pos.y + 41;
-
-    (spec.bodies || spec.replies || []).forEach((body: any) => {
-      const bodyId = generateUniqueId('body');
-      actionIds.push(bodyId);
-      bodyElements[bodyId] = buildAgentStateBody(body, {
-        id: bodyId,
-        owner: stateId,
-        elementType: 'AgentStateBody',
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-      });
-      currentY += 30;
-    });
-
-    (spec.fallbackBodies || []).forEach((fallback: any) => {
-      const fallbackId = generateUniqueId('fallback');
-      fallbackActionIds.push(fallbackId);
-      bodyElements[fallbackId] = buildAgentStateBody(fallback, {
-        id: fallbackId,
-        owner: stateId,
-        elementType: 'AgentStateFallbackBody',
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-      });
-      currentY += 30;
-    });
-
-    const totalHeight = Math.max(70, currentY - pos.y);
-
-    const stateElement = {
-      id: stateId,
-      name: spec.stateName || spec.name,
-      type: 'AgentState',
-      stateType: 'standard',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: stateWidth, height: totalHeight },
-      fallbackBodyEnabled: fallbackActionIds.length > 0,
-      actions: actionIds,
-      fallbackActions: fallbackActionIds,
-      bodies: actionIds,
-      fallbackBodies: fallbackActionIds,
-    };
+    const bodies = replies.map((body) => buildAgentStateBody(body, generateUniqueId('body')));
+    const fallbackBodies = fallbacks.map((body) => buildAgentStateBody(body, generateUniqueId('fallback')));
+    const totalHeight = agentStateHeight(bodies.length + fallbackBodies.length);
 
     return {
-      state: stateElement,
-      bodies: bodyElements,
-    };
-  }
-
-  private createIntent(spec: any) {
-    const intentId = generateUniqueId('intent');
-    const bodies: string[] = [];
-    const componentElements: Record<string, any> = {};
-
-    (spec.trainingPhrases || spec.intentBodies || spec.bodies || []).forEach((phrase: any) => {
-      const bodyId = generateUniqueId('intentBody');
-      bodies.push(bodyId);
-      componentElements[bodyId] = {
-        id: bodyId,
-        name: typeof phrase === 'string' ? phrase : phrase.text,
-        type: AgentComponentType.AgentIntentBody,
-        owner: intentId,
-      };
-    });
-
-    const intentElement = {
-      id: intentId,
-      name: spec.intentName || spec.name,
-      type: AgentComponentType.AgentIntent,
-      owner: null,
-      intent_description: spec.intentDescription || spec.intent_description || '',
-      bodies,
-    };
-    componentElements[intentId] = intentElement;
-
-    return {
-      intent: intentElement,
-      components: componentElements,
+      id: generateUniqueId('state'),
+      type: 'AgentState' as any,
+      position: { x: pos.x, y: pos.y },
+      width: stateWidth,
+      height: totalHeight,
+      measured: { width: stateWidth, height: totalHeight },
+      data: {
+        name: spec.stateName || spec.name,
+        stateType: 'standard',
+        replyType: 'text',
+        fallbackBodyEnabled: fallbackBodies.length > 0,
+        bodies,
+        fallbackBodies,
+      },
     };
   }
 
   convertCompleteSystem(systemSpec: any) {
     this.positionGenerator.reset();
-    const allElements: Record<string, any> = {};
-    const allComponents: Record<string, any> = {};
-    const allRelationships: Record<string, any> = {};
-    const elementIdMap: Record<string, string> = {};
+    const model = createEmptyV4Model('AgentDiagram', systemSpec.systemName || systemSpec.name || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
+    const components: Record<string, AgentComponentEntry> = {};
+    const nodeIdByName: Record<string, string> = {};
+    const nodeById: Record<string, BesserNode> = {};
 
-    // Initial node → elements (has canvas bounds)
+    const pushNode = (node: BesserNode) => {
+      nodes.push(node);
+      nodeById[node.id] = node;
+    };
+
+    // Initial node (canvas)
     if (systemSpec.hasInitialNode !== false) {
-      const initialPos =
-        systemSpec.initialNode?.position ||
-        systemSpec.initialPosition ||
-        { x: -470, y: -30 };
+      const initialPos = systemSpec.initialNode?.position || systemSpec.initialPosition || { x: -470, y: -30 };
       const initial = this.createInitialNode(initialPos);
-      allElements[initial.initialNode.id] = initial.initialNode;
-      elementIdMap['initial'] = initial.initialNode.id;
+      pushNode(initial);
+      nodeIdByName['initial'] = initial.id;
     }
 
-    // Intents → components (no bounds)
+    // Intents → components (off-canvas)
     (systemSpec.intents || []).forEach((intentSpec: any) => {
-      const result = this.createIntent(intentSpec);
-      elementIdMap[intentSpec.intentName || intentSpec.name] = result.intent.id;
-      Object.assign(allComponents, result.components);
+      Object.assign(components, buildIntentComponents(intentSpec).components);
     });
 
-    // States → elements (with bounds)
+    // States → canvas nodes
     (systemSpec.states || []).forEach((stateSpec: any) => {
       const position = stateSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.createState(stateSpec, position);
-      elementIdMap[stateSpec.stateName || stateSpec.name] = completeElement.state.id;
-      allElements[completeElement.state.id] = completeElement.state;
-      Object.assign(allElements, completeElement.bodies);
+      const stateNode = this.createStateNode(stateSpec, position);
+      nodeIdByName[stateSpec.stateName || stateSpec.name] = stateNode.id;
+      pushNode(stateNode);
     });
 
-    // Transitions
+    // Transitions — only between canvas nodes. An intent-sourced transition
+    // (legacy spec, intents were canvas nodes) has no canvas source: skip it.
     (systemSpec.transitions || []).forEach((transition: any) => {
-      const sourceId = elementIdMap[transition.source];
-      const targetId = elementIdMap[transition.target];
+      const sourceId = nodeIdByName[transition.source];
+      const targetId = nodeIdByName[transition.target];
+      if (!sourceId || !targetId) return;
 
-      if (sourceId && targetId) {
-        const transId = generateUniqueId('transition');
-        const sourceElement = allElements[sourceId];
-        const isInitialTransition = sourceElement?.type === 'StateInitialNode';
+      const sourceNode = nodeById[sourceId];
+      const isInitialTransition = (sourceNode?.type as string) === 'StateInitialNode';
+      const label = transition.label || '';
 
-        const rel: any = {
-          id: transId,
-          name: transition.label || '',
-          type: isInitialTransition ? 'AgentStateTransitionInit' : 'AgentStateTransition',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 100, height: 1 },
-          path: [
-            { x: 0, y: 0 },
-            { x: 100, y: 0 },
-          ],
-          source: {
-            direction: transition.sourceDirection || 'Right',
-            element: sourceId,
-          },
-          target: {
-            direction: transition.targetDirection || 'Left',
-            element: targetId,
-          },
+      edges.push({
+        id: generateUniqueId('transition'),
+        source: sourceId,
+        target: targetId,
+        type: (isInitialTransition ? 'AgentStateTransitionInit' : 'AgentStateTransition') as any,
+        sourceHandle: directionToHandle(transition.sourceDirection, 'Right'),
+        targetHandle: directionToHandle(transition.targetDirection, 'Left'),
+        data: {
+          label,
+          ...(label && { name: label }),
           isManuallyLayouted: false,
-        };
-
-        if (!isInitialTransition && transition.condition) {
-          rel.transitionType = 'predefined';
-          if (transition.condition === 'when_intent_matched') {
-            rel.predefined = {
-              predefinedType: 'when_intent_matched',
-              intentName: transition.conditionValue || '',
-            };
-          } else if (transition.condition === 'when_no_intent_matched') {
-            rel.predefined = { predefinedType: 'when_no_intent_matched' };
-          } else {
-            rel.predefined = {
-              predefinedType: transition.condition,
-              conditionValue: transition.conditionValue || '',
-            };
-          }
-          rel.custom = { condition: [] };
-        }
-
-        allRelationships[transId] = rel;
-      }
+          points: [],
+          // Canonical v4 transition condition (init edges carry none)
+          ...(isInitialTransition ? {} : buildTransitionConditionData(transition)),
+        },
+      });
     });
 
-    // All agent components → allComponents (no bounds)
+    // Remaining agent components (off-canvas)
+    const add = (entry: AgentComponentEntry) => {
+      components[entry.id] = entry;
+    };
+    (systemSpec.ragElements || []).forEach((spec: any) => add(buildAgentComponent.rag(spec)));
+    (systemSpec.llms || []).forEach((spec: any) => add(buildAgentComponent.llm(spec)));
+    (systemSpec.tools || []).forEach((spec: any) => add(buildAgentComponent.tool(spec)));
+    (systemSpec.skills || []).forEach((spec: any) => add(buildAgentComponent.skill(spec)));
+    (systemSpec.workspaces || []).forEach((spec: any) => add(buildAgentComponent.workspace(spec)));
+    (systemSpec.guis || []).forEach((spec: any) => add(buildAgentComponent.gui(spec)));
 
-    for (const ragSpec of (systemSpec.ragElements || [])) {
-      const ragId = generateUniqueId('rag');
-      allComponents[ragId] = {
-        id: ragId,
-        type: AgentComponentType.AgentRagElement,
-        name: ragSpec.name || 'RAG DB',
-        owner: null,
-        llm_name: ragSpec.llm_name || '',
-        llm_prompt: ragSpec.llm_prompt || '',
-        k: ragSpec.k ?? 4,
-        embedding_provider: ragSpec.embedding_provider || 'openai',
-      };
-    }
+    model.components = components;
+    return model;
+  }
+}
 
-    for (const llmSpec of (systemSpec.llms || [])) {
-      const llmId = generateUniqueId('llm');
-      allComponents[llmId] = {
-        id: llmId,
-        type: AgentComponentType.AgentLLM,
-        name: llmSpec.name,
-        owner: null,
-        provider: llmSpec.provider || 'openai',
-        num_previous_messages: llmSpec.num_previous_messages ?? 1,
-        global_context: llmSpec.global_context || '',
-      };
-    }
+/**
+ * Lift a spec's flat `condition` / `conditionValue` pair (or the modeling
+ * agent's `intentName`) into the canonical v4 `{transitionType, predefined |
+ * custom}` data. Mirrors the legacy-flat handling of
+ * `liftAgentTransitionDataToV4` in the library's versionConverter.
+ */
+export function buildTransitionConditionData(transition: any): Record<string, unknown> {
+  const condition: string | undefined = transition.condition;
+  const conditionValue = transition.conditionValue;
 
-    for (const toolSpec of (systemSpec.tools || [])) {
-      const toolId = generateUniqueId('tool');
-      allComponents[toolId] = {
-        id: toolId,
-        type: AgentComponentType.AgentTool,
-        name: toolSpec.name,
-        owner: null,
-        description: toolSpec.description || '',
-        code: toolSpec.code || '',
-      };
-    }
-
-    for (const skillSpec of (systemSpec.skills || [])) {
-      const skillId = generateUniqueId('skill');
-      allComponents[skillId] = {
-        id: skillId,
-        type: AgentComponentType.AgentSkill,
-        name: skillSpec.name,
-        owner: null,
-        content: skillSpec.content || '',
-        description: skillSpec.description || '',
-      };
-    }
-
-    for (const wsSpec of (systemSpec.workspaces || [])) {
-      const wsId = generateUniqueId('workspace');
-      allComponents[wsId] = {
-        id: wsId,
-        type: AgentComponentType.AgentWorkspace,
-        name: wsSpec.name,
-        owner: null,
-        path: wsSpec.path || '',
-        description: wsSpec.description || '',
-        writable: wsSpec.writable !== false,
-        max_read_bytes: wsSpec.max_read_bytes ?? 200000,
-      };
-    }
-
-    for (const guiSpec of (systemSpec.guis || [])) {
-      const guiId = generateUniqueId('gui');
-      allComponents[guiId] = {
-        id: guiId,
-        type: AgentComponentType.AgentGUI,
-        name: guiSpec.gui_id || guiSpec.name || '',
-        owner: null,
-        gui_id: guiSpec.gui_id || '',
-        persist: guiSpec.persist !== false,
-        is_form: guiSpec.is_form === true,
-        width: guiSpec.width || '',
-      };
-    }
-
+  if (condition === 'custom_transition') {
     return {
-      version: '3.0.0',
-      type: 'AgentDiagram',
-      size: { width: 1080, height: 400 },
-      elements: allElements,
-      relationships: allRelationships,
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-      components: allComponents,
+      transitionType: 'custom',
+      custom: {
+        event: transition.event || 'WildcardEvent',
+        condition: conditionValue ? [String(conditionValue)] : [],
+      },
     };
   }
+
+  if (condition) {
+    const predefined: Record<string, unknown> = { predefinedType: condition };
+    if (condition === 'when_intent_matched') {
+      predefined.intentName = transition.intentName || conditionValue || '';
+    } else if (condition === 'when_file_received') {
+      predefined.fileType = transition.fileType || conditionValue || '';
+    } else if (condition === 'when_form_submitted') {
+      predefined.formGuiId = transition.formGuiId || transition.guiId || conditionValue || '';
+    } else if (condition !== 'when_no_intent_matched' && condition !== 'auto' && conditionValue !== undefined) {
+      predefined.conditionValue = conditionValue;
+    }
+    return { transitionType: 'predefined', predefined };
+  }
+
+  if (transition.intentName) {
+    return {
+      transitionType: 'predefined',
+      predefined: { predefinedType: 'when_intent_matched', intentName: transition.intentName },
+    };
+  }
+  // No condition: develop left the type unset, which reads as when_intent_matched.
+  return { transitionType: 'predefined', predefined: { predefinedType: 'when_intent_matched', intentName: '' } };
 }

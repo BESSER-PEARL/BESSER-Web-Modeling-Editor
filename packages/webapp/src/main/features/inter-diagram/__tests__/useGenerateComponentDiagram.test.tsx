@@ -16,15 +16,14 @@ vi.mock('../bpmn-to-component', () => ({ bpmnModelToComponentModel: vi.fn() }));
 describe('useGenerateComponentDiagram', () => {
   it('passes the saved per-agent default LLM name to capability derivation', async () => {
     const model = {
-      version: '3.0.0', type: 'AgentDiagram', size: { width: 800, height: 600 },
-      elements: {}, relationships: {}, interactive: { elements: {}, relationships: {} }, assessments: {},
+      version: '4.0.0', id: 'agent-1', title: 'Agent', type: 'AgentDiagram', nodes: [], edges: [], assessments: {},
       components: { llm: { id: 'llm', type: 'AgentLLM', name: 'gpt-6-luna', owner: null } },
     } as unknown as UMLModel;
     const dispatch = vi.fn();
     const state = {
       workspace: {
         activeDiagramType: 'BPMN',
-        activeDiagram: { id: 'bpmn', model: minimalAgentic },
+        activeDiagram: { id: 'bpmn', model: minimalAgentic as unknown as UMLModel },
         project: { diagrams: { AgentDiagram: [
           { id: 'agent-1', model, agentConfigForm: { default_llm_name: 'gpt-6-luna' } },
         ] } },

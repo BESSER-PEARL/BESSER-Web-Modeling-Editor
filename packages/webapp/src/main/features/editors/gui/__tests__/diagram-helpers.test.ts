@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAgentOptions, getEndsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAgentOptions, getClassOptions, getEndsByClassId, getInheritedEndsByClassId, getMethodsByClassId } from '../diagram-helpers';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { BesserProject, createDefaultProject, ProjectDiagram } from '../../../../shared/types/project';
 
@@ -12,7 +12,7 @@ function makeAgentDiagram(id: string, title: string): ProjectDiagram {
   return {
     id,
     title,
-    model: { version: '3.0.0', type: 'AgentDiagram', elements: {}, relationships: {} } as any,
+    model: { version: '4.0.0', id, title, type: 'AgentDiagram', nodes: [], edges: [] } as any,
     lastUpdate: new Date().toISOString(),
   };
 }
@@ -86,14 +86,51 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     (ProjectStorageRepository as any).suppressDepth = 0;
   });
 
+  /**
+   * Build a v4 ClassDiagram (`{nodes, edges}`) from compact v3-style element /
+   * relationship maps: classes become `class` nodes (name on `data.name`), end
+   * roles / `navigable` flags move to `edge.data.{source,target}{Role,Navigable}`
+   * (docs/source/migrations/uml-v4-shape.md).
+   */
+  function v4ClassModel(elements: Record<string, any>, relationships: Record<string, any>) {
+    return {
+      version: '4.0.0',
+      type: 'ClassDiagram',
+      nodes: Object.values(elements).map((e: any) => ({
+        id: e.id,
+        type: e.type === 'Class' ? 'class' : e.type,
+        position: { x: 0, y: 0 },
+        width: 160,
+        height: 100,
+        data: e.type === 'Class'
+          ? { name: e.name, attributes: [], methods: [] }
+          : { name: e.name, constraint: e.constraint },
+      })),
+      edges: Object.values(relationships).map((r: any) => {
+        const data: Record<string, unknown> = { points: [] };
+        if (r.source?.role !== undefined) data.sourceRole = r.source.role;
+        if (r.target?.role !== undefined) data.targetRole = r.target.role;
+        if (typeof r.source?.navigable === 'boolean') data.sourceNavigable = r.source.navigable;
+        if (typeof r.target?.navigable === 'boolean') data.targetNavigable = r.target.navigable;
+        return {
+          id: r.id,
+          type: r.type,
+          source: r.source.element,
+          target: r.target.element,
+          sourceHandle: 'Right',
+          targetHandle: 'Left',
+          data,
+        };
+      }),
+    };
+  }
+
   // Mirrors the hotel-booking benchmark model: Guest and Employee inherit from
   // Person; Person has a real association to Booking, an OCL constraint attached
   // via ClassOCLLink, and a non-association ClassLinkRel.
   function setHotelLikeProject() {
-    const model = {
-      version: '3.0.0',
-      type: 'ClassDiagram',
-      elements: {
+    const model = v4ClassModel(
+      {
         person: { id: 'person', type: 'Class', name: 'Person' },
         guest: { id: 'guest', type: 'Class', name: 'Guest' },
         employee: { id: 'employee', type: 'Class', name: 'Employee' },
@@ -101,7 +138,7 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
         admin: { id: 'admin', type: 'Class', name: 'Admin' },
         ocl1: { id: 'ocl1', type: 'ClassOCLConstraint', name: '', constraint: 'context Person inv: self.age >= 0' },
       },
-      relationships: {
+      {
         inh1: { id: 'inh1', type: 'ClassInheritance', source: { element: 'guest' }, target: { element: 'person' } },
         inh2: { id: 'inh2', type: 'ClassInheritance', source: { element: 'employee' }, target: { element: 'person' } },
         assoc1: {
@@ -119,7 +156,7 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
           target: { element: 'person', role: 'managedPersons' },
         },
       },
-    };
+    );
     const project = createDefaultProject('Test', '', 'user');
     project.diagrams.ClassDiagram = [
       { id: 'cd1', title: 'Classes', model: model as any, lastUpdate: new Date().toISOString() },
@@ -157,16 +194,14 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
   // Per-end navigability: the `navigable` flags on each end decide the ends,
   // not the relationship type.
   function setNavigabilityProject() {
-    const model = {
-      version: '3.0.0',
-      type: 'ClassDiagram',
-      elements: {
+    const model = v4ClassModel(
+      {
         order: { id: 'order', type: 'Class', name: 'Order' },
         customer: { id: 'customer', type: 'Class', name: 'Customer' },
         line: { id: 'line', type: 'Class', name: 'OrderLine' },
         product: { id: 'product', type: 'Class', name: 'Product' },
       },
-      relationships: {
+      {
         // Only the target (Customer) end is navigable: Order -> Customer.
         oneWay: {
           id: 'oneWay',
@@ -189,7 +224,7 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
           target: { element: 'order', role: 'order', navigable: false },
         },
       },
-    };
+    );
     const project = createDefaultProject('Test', '', 'user');
     project.diagrams.ClassDiagram = [
       { id: 'cd1', title: 'Classes', model: model as any, lastUpdate: new Date().toISOString() },
@@ -212,5 +247,103 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     expect(getEndsByClassId('product', false)).toEqual([{ value: 'line', label: 'lines' }]);
     // OrderLine reaches neither Product nor the non-navigable whole end of the composition.
     expect(getEndsByClassId('line', false)).toEqual([]);
+  });
+});
+
+// The library writes ClassType casing ('Abstract'); an exact lowercase compare
+// dropped every editor-authored abstract class from the GUI binding pickers.
+describe('getClassOptions', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    ProjectStorageRepository.revision = 0;
+    (ProjectStorageRepository as any).changeListeners = [];
+    (ProjectStorageRepository as any).suppressDepth = 0;
+  });
+
+  it('lists plain and abstract classes (any casing) but not interfaces or enumerations', () => {
+    const project = createDefaultProject('Test', '', 'user');
+    const node = (id: string, stereotype?: string) => ({
+      id,
+      type: 'class',
+      position: { x: 0, y: 0 },
+      data: { name: id, attributes: [], methods: [], ...(stereotype && { stereotype }) },
+    });
+    project.diagrams.ClassDiagram[0].model = {
+      version: '4.0.0',
+      id: 'cd',
+      title: 'cd',
+      type: 'ClassDiagram',
+      nodes: [
+        node('Plain'),
+        node('Shape', 'Abstract'),
+        node('Legacy', 'abstract'),
+        node('Named', 'Interface'),
+        node('Color', 'Enumeration'),
+      ],
+      edges: [],
+    } as any;
+    setCurrentProject(project);
+
+    expect(getClassOptions().map((o) => o.label)).toEqual(['Plain', 'Shape', 'Legacy']);
+  });
+});
+
+// Methods are now stored as a bare name plus structured `parameters[]`
+// (imported v3 methods included); reading the name string alone gave the GUI
+// editor no parameters and never flagged instance methods.
+describe('getMethodsByClassId', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    ProjectStorageRepository.revision = 0;
+    (ProjectStorageRepository as any).changeListeners = [];
+    (ProjectStorageRepository as any).suppressDepth = 0;
+  });
+
+  const withMethods = (methods: any[]) => {
+    const project = createDefaultProject('Test', '', 'user');
+    project.diagrams.ClassDiagram[0].model = {
+      version: '4.0.0',
+      id: 'cd',
+      title: 'cd',
+      type: 'ClassDiagram',
+      nodes: [{ id: 'Book', type: 'class', position: { x: 0, y: 0 }, data: { name: 'Book', attributes: [], methods } }],
+      edges: [],
+    } as any;
+    setCurrentProject(project);
+    return getMethodsByClassId('Book');
+  };
+
+  it('reads structured parameters and detects a structured self as an instance method', () => {
+    const [method] = withMethods([
+      {
+        id: 'm1',
+        name: 'borrow',
+        returnType: 'bool',
+        parameters: [
+          { id: 'p0', name: 'self' },
+          { id: 'p1', name: 'days', parameterType: 'int', defaultValue: 14 },
+          { id: 'p2', name: 'member' },
+        ],
+      },
+    ]);
+    expect(method.name).toBe('borrow');
+    expect(method.isInstanceMethod).toBe(true);
+    expect(method.parameters).toEqual([
+      { name: 'days', type: 'int', hasDefault: true, defaultValue: 14 },
+      { name: 'member', type: 'str', hasDefault: false, defaultValue: undefined },
+    ]);
+  });
+
+  it('treats a structured method without self as a class-level method', () => {
+    const [method] = withMethods([{ id: 'm2', name: 'count', parameters: [{ id: 'p', name: 'x', parameterType: 'int' }] }]);
+    expect(method.isInstanceMethod).toBe(false);
+    expect(method.parameters.map((p) => p.name)).toEqual(['x']);
+  });
+
+  it('still parses older signature-in-name methods', () => {
+    const [method] = withMethods([{ id: 'm3', name: 'renew(self, weeks: int = 2)' }]);
+    expect(method.name).toBe('renew');
+    expect(method.isInstanceMethod).toBe(true);
+    expect(method.parameters).toEqual([{ name: 'weeks', type: 'int', hasDefault: true, defaultValue: '2' }]);
   });
 });

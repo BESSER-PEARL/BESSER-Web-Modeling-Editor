@@ -10,7 +10,7 @@
  * Space. Escape is the one exception: it ends a connect gesture started from
  * the toolbar, so focus is typically on that toolbar button.
  */
-import type { ConnectMode } from './KnowledgeGraphToolbar';
+import type { ConnectMode } from './types';
 
 export interface CanvasSelection {
   nodeIds: string[];

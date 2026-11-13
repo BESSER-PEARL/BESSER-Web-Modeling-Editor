@@ -42,7 +42,7 @@ const renderFromClassDiagram = (landsOn: string, openType = 'ClassDiagram') => {
       dispatch: dispatch as unknown as Parameters<typeof useModelInjection>[0]['dispatch'],
       editor: null,
       modelingServiceRef: { current: null },
-      currentModelRef: { current: { type: 'ClassDiagram', elements: {}, relationships: {} } },
+      currentModelRef: { current: { version: '4.0.0', type: 'ClassDiagram', nodes: [], edges: [] } },
       currentProjectRef: { current: null },
       currentDiagramTypeRef,
       switchDiagramRef: {

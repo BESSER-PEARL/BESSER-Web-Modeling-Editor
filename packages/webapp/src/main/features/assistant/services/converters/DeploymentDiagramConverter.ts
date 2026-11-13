@@ -1,14 +1,17 @@
 /**
- * Deployment Diagram Converter
+ * Deployment Diagram Converter (v4-native)
  * Converts a simplified DeploymentDiagram spec emitted by the modeling agent
- * into the Apollon DeploymentDiagram model.
+ * into a v4 DeploymentDiagram model.
  *
- * Elements: DeploymentNode (container), DeploymentArtifact (inside nodes),
- *           DeploymentComponent (logical, outside nodes).
- * Relationships: DeploymentDependency.
+ * Nodes: `deploymentNode` (container), `deploymentArtifact` (inside nodes,
+ *        positioned relative to them), `deploymentComponent` (logical, below
+ *        the nodes).
+ * Edges: `DeploymentDependency`.
  */
 
-import { DiagramConverter, centerElementsOnOrigin, generateUniqueId } from './base';
+import type { BesserEdge, BesserNode } from '@besser/wme';
+import { DiagramConverter, centerNodesOnOrigin, generateUniqueId } from './base';
+import { buildV4Edge, buildV4Node, createEmptyV4Model } from '../shared/v4Builders';
 
 const NODE_W = 280;
 const NODE_PADDING = 30;
@@ -26,155 +29,140 @@ export class DeploymentDiagramConverter implements DiagramConverter {
     return 'DeploymentDiagram' as const;
   }
 
-  convertSingleElement(spec: any) {
+  convertSingleElement(spec: any): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const name = spec?.name || 'Node';
-    return this.convertCompleteSystem({
+    const { nodes, edges } = this.convertCompleteSystem({
       systemName: name,
       nodes: [{ id: 'node1', name, stereotype: 'node' }],
       artifacts: [],
       deployComponents: [],
       dependencies: [],
     });
+    return { nodes, edges };
   }
 
   convertCompleteSystem(systemSpec: any) {
-    const nodes: any[] = Array.isArray(systemSpec?.nodes) ? systemSpec.nodes : [];
+    const specNodes: any[] = Array.isArray(systemSpec?.nodes) ? systemSpec.nodes : [];
     const artifacts: any[] = Array.isArray(systemSpec?.artifacts) ? systemSpec.artifacts : [];
     const deployComponents: any[] = Array.isArray(systemSpec?.deployComponents) ? systemSpec.deployComponents : [];
     const deps: any[] = Array.isArray(systemSpec?.dependencies) ? systemSpec.dependencies : [];
 
-    const elements: Record<string, any> = {};
-    const relationships: Record<string, any> = {};
+    const model = createEmptyV4Model('DeploymentDiagram', systemSpec?.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
     const idMap: Record<string, string> = {};
 
-    // ── 1. Group artifacts by node ─────────────────────────────────────
-    const nodeArtifacts: Record<string, any[]> = {};
-    nodes.forEach((n) => { nodeArtifacts[n.id] = []; });
+    // 1. Count artifacts per node (for node height).
+    const artCount: Record<string, number> = {};
+    specNodes.forEach((n) => {
+      artCount[n.id] = 0;
+    });
     artifacts.forEach((a) => {
-      if (a.owner && nodeArtifacts[a.owner] !== undefined) {
-        nodeArtifacts[a.owner].push(a);
-      }
+      if (a.owner && artCount[a.owner] !== undefined) artCount[a.owner] += 1;
     });
 
-    // ── 2. Place nodes left-to-right (top row) ─────────────────────────
+    // 2. Nodes left-to-right (top row).
     let nodeX = 0;
-    const nodeBounds: Record<string, { x: number; y: number; width: number; height: number }> = {};
-
-    nodes.forEach((node) => {
-      const artCount = nodeArtifacts[node.id]?.length || 0;
-      const nodeH = Math.max(
-        160,
-        NODE_TOP + artCount * (ARTIFACT_H + ARTIFACT_GAP) + NODE_PADDING,
+    let maxNodeH = 0;
+    specNodes.forEach((n) => {
+      const height = Math.max(160, NODE_TOP + (artCount[n.id] || 0) * (ARTIFACT_H + ARTIFACT_GAP) + NODE_PADDING);
+      const id = generateUniqueId('dnode');
+      idMap[n.id] = id;
+      maxNodeH = Math.max(maxNodeH, height);
+      nodes.push(
+        buildV4Node(
+          id,
+          'deploymentNode',
+          { x: nodeX, y: 0 },
+          { width: NODE_W, height },
+          {
+            name: typeof n.name === 'string' ? n.name : '',
+            stereotype: n.stereotype || 'node',
+            isComponentHeaderShown: true,
+          },
+        ),
       );
-      const nodeW = NODE_W;
-      const apollonId = generateUniqueId('dnode');
-      idMap[node.id] = apollonId;
-      nodeBounds[node.id] = { x: nodeX, y: 0, width: nodeW, height: nodeH };
-      elements[apollonId] = {
-        id: apollonId,
-        name: typeof node.name === 'string' ? node.name : '',
-        type: 'DeploymentNode',
-        owner: null,
-        bounds: { x: nodeX, y: 0, width: nodeW, height: nodeH },
-        stereotype: node.stereotype || 'node',
-        displayStereotype: true,
-      };
-      nodeX += nodeW + NODE_GAP_X;
+      nodeX += NODE_W + NODE_GAP_X;
     });
 
-    // ── 3. Place artifacts inside nodes ────────────────────────────────
+    // 3. Artifacts stacked inside their node.
     const nodeArtCursor: Record<string, number> = {};
     artifacts.forEach((art) => {
-      const apollonId = generateUniqueId('dart');
-      idMap[art.id] = apollonId;
-      let x = 0, y = 0, owner: string | null = null;
-      if (art.owner && idMap[art.owner]) {
-        owner = idMap[art.owner];
-        const nb = nodeBounds[art.owner];
+      const id = generateUniqueId('dart');
+      idMap[art.id] = id;
+      const parentId = art.owner ? idMap[art.owner] : undefined;
+      let position = { x: 0, y: 0 };
+      if (parentId) {
         const idx = nodeArtCursor[art.owner] || 0;
-        x = (nb?.x || 0) + NODE_PADDING;
-        y = (nb?.y || 0) + NODE_TOP + idx * (ARTIFACT_H + ARTIFACT_GAP);
+        position = { x: NODE_PADDING, y: NODE_TOP + idx * (ARTIFACT_H + ARTIFACT_GAP) };
         nodeArtCursor[art.owner] = idx + 1;
       }
-      elements[apollonId] = {
-        id: apollonId,
-        name: typeof art.name === 'string' ? art.name : '',
-        type: 'DeploymentArtifact',
-        owner,
-        bounds: { x, y, width: ARTIFACT_W, height: ARTIFACT_H },
-        manifests: [],
-      };
+      nodes.push(
+        buildV4Node(
+          id,
+          'deploymentArtifact',
+          position,
+          { width: ARTIFACT_W, height: ARTIFACT_H },
+          { name: typeof art.name === 'string' ? art.name : '', manifests: [] },
+          parentId,
+        ),
+      );
     });
 
-    // ── 4. Place DeploymentComponents (logical) below nodes ────────────
-    const maxNodeH = nodes.length
-      ? Math.max(...nodes.map((n) => (nodeBounds[n.id]?.height || 0)))
-      : 0;
+    // 4. Logical DeploymentComponents in a row below the nodes.
     const compRowY = maxNodeH + NODE_GAP_Y;
     let compX = NODE_PADDING;
-
     deployComponents.forEach((dc) => {
-      const apollonId = generateUniqueId('dcomp');
-      idMap[dc.id] = apollonId;
-      elements[apollonId] = {
-        id: apollonId,
-        name: typeof dc.name === 'string' ? dc.name : '',
-        type: 'DeploymentComponent',
-        owner: null,
-        bounds: { x: compX, y: compRowY, width: COMP_W, height: COMP_H },
-        stereotype: dc.stereotype || 'solution',
-        displayStereotype: true,
-      };
-      // Create manifest relationship if manifestedBy is set
+      const id = generateUniqueId('dcomp');
+      idMap[dc.id] = id;
+      nodes.push(
+        buildV4Node(
+          id,
+          'deploymentComponent',
+          { x: compX, y: compRowY },
+          { width: COMP_W, height: COMP_H },
+          {
+            name: typeof dc.name === 'string' ? dc.name : '',
+            stereotype: dc.stereotype || 'solution',
+            isComponentHeaderShown: true,
+          },
+        ),
+      );
+      // The artifact that manifests this component.
       if (dc.manifestedBy && idMap[dc.manifestedBy]) {
-        const manifestId = generateUniqueId('dman');
-        relationships[manifestId] = {
-          id: manifestId,
-          name: '',
-          type: 'DeploymentDependency',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 1, height: 80 },
-          path: [{ x: 0, y: 0 }, { x: 0, y: 80 }],
-          source: { element: idMap[dc.manifestedBy], direction: 'Down' },
-          target: { element: apollonId, direction: 'Up' },
-          isManuallyLayouted: false,
-        };
+        edges.push(
+          buildV4Edge(
+            generateUniqueId('dman'),
+            'DeploymentDependency',
+            idMap[dc.manifestedBy],
+            id,
+            { source: 'bottom', target: 'top' },
+            { name: '', label: '' },
+          ),
+        );
       }
       compX += COMP_W + ARTIFACT_GAP;
     });
 
-    // ── 5. Additional dependencies ─────────────────────────────────────
+    // 5. Additional dependencies.
     deps.forEach((dep) => {
-      const srcId = idMap[String(dep.source)];
-      const tgtId = idMap[String(dep.target)];
-      if (!srcId || !tgtId) return;
-      const relId = generateUniqueId('ddep');
-      relationships[relId] = {
-        id: relId,
-        name: dep.name || '',
-        type: 'DeploymentDependency',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 100, height: 1 },
-        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-        source: { element: srcId, direction: 'Right' },
-        target: { element: tgtId, direction: 'Left' },
-        isManuallyLayouted: false,
-      };
+      const source = idMap[String(dep.source)];
+      const target = idMap[String(dep.target)];
+      if (!source || !target) return;
+      const name = dep.name || '';
+      edges.push(
+        buildV4Edge(
+          generateUniqueId('ddep'),
+          'DeploymentDependency',
+          source,
+          target,
+          { source: 'right', target: 'left' },
+          { name, label: name },
+        ),
+      );
     });
 
-    // ── Centre on origin ───────────────────────────────────────────────
-    const size = centerElementsOnOrigin(elements);
-    const totalW = size?.width ?? 600;
-    const totalH = size?.height ?? 400;
-
-    return {
-      version: '3.0.0',
-      type: 'DeploymentDiagram',
-      size: { width: Math.max(600, totalW + 80), height: Math.max(300, totalH + 80) },
-      interactive: { elements: {}, relationships: {} },
-      elements,
-      relationships,
-      assessments: {},
-    };
+    centerNodesOnOrigin(model);
+    return model;
   }
 }

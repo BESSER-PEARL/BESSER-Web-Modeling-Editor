@@ -1,5 +1,5 @@
 /**
- * Wires the User Profile form to the live Apollon editor and Redux so the form
+ * Wires the User Profile form to the live BesserEditor and Redux so the form
  * and the graphical canvas stay in sync in both directions.
  *
  * Design invariant: the editor model is written ONLY in response to an explicit
@@ -8,7 +8,7 @@
  * call `editor.model = …`, so simply opening the form can never reload or
  * mutate the canvas.
  *
- *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.model
+ *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.applyModel
  *   canvas edit    -> subscribeToModelChange -> reparse -> setState (no write-back)
  *
  * `suppressSyncRef` prevents our own model-change listener from reacting to the
@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ApollonEditor } from '@besser/wme';
+import type { BesserEditor, UMLModel } from '@besser/wme';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
 import { buildMetamodelTree, MetaTree } from './metamodel-tree';
@@ -37,12 +37,19 @@ interface UseUserProfileForm {
   applyEdit: (updater: (prev: Instance) => Instance) => void;
   /** True once a metamodel + root instance are available. */
   ready: boolean;
+  /** The diagram or one of its boxes or links is locked: edits are ignored. */
+  locked: boolean;
 }
 
-export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefined): UseUserProfileForm => {
+const isLocked = (model: UMLModel): boolean =>
+  !!model.locked || model.nodes.some((node) => node.locked) || model.edges.some((edge) => edge.locked);
+
+export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefined): UseUserProfileForm => {
   const dispatch = useAppDispatch();
   const [tree, setTree] = useState<MetaTree | null>(null);
   const [formState, setFormState] = useState<Instance | null>(null);
+  const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
 
   const treeRef = useRef<MetaTree | null>(null);
   const formStateRef = useRef<Instance | null>(null);
@@ -50,6 +57,11 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
   const lastSigRef = useRef<string>('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const releaseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncLocked = useCallback((model: UMLModel) => {
+    lockedRef.current = isLocked(model);
+    setLocked(lockedRef.current);
+  }, []);
 
   // Read-only state update (open / external sync). Never writes to the editor.
   const commitState = useCallback((next: Instance | null) => {
@@ -66,14 +78,15 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
       debounceRef.current = setTimeout(async () => {
         const t = treeRef.current;
         if (!t) return;
-        const model = buildUserDiagramModel(state, t, editor.model as any);
+        const model: UMLModel = buildUserDiagramModel(state, t, editor.model);
         lastSigRef.current = instanceSignature(state);
         suppressSyncRef.current = true;
         try {
-          await dispatch(updateDiagramModelThunk({ model: model as any })).unwrap();
-          await editor.nextRender;
-          editor.model = { ...(model as any) };
-          await editor.nextRender;
+          await dispatch(updateDiagramModelThunk({ model })).unwrap();
+          await editor.ready;
+          // One undoable step; the `model` setter is a load that wipes undo history.
+          if (typeof editor.applyModel === 'function') editor.applyModel({ ...model });
+          else editor.model = { ...model };
         } catch {
           // Swallow: a transient write failure shouldn't break the form.
         } finally {
@@ -91,7 +104,7 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
   const applyEdit = useCallback(
     (updater: (prev: Instance) => Instance) => {
       const prev = formStateRef.current;
-      if (!prev) return;
+      if (!prev || lockedRef.current) return;
       const next = updater(prev);
       if (next === prev) return; // updater declined the change
       formStateRef.current = next;
@@ -108,19 +121,21 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
     const t = buildMetamodelTree();
     treeRef.current = t;
     setTree(t);
+    if (editor) syncLocked(editor.model);
     if (!t.root) {
       commitState(null);
       return;
     }
-    const parsed = (editor ? parseUserDiagramModel(editor.model as any, t) : null) ?? createEmptyInstance(t.root);
+    const parsed = (editor ? parseUserDiagramModel(editor.model, t) : null) ?? createEmptyInstance(t.root);
     commitState(parsed);
-  }, [open, editor, commitState]);
+  }, [open, editor, commitState, syncLocked]);
 
   // Canvas -> form: reflect external model changes while the drawer is open.
   // Read-only — never writes back.
   useEffect(() => {
     if (!open || !editor) return;
-    const subId = editor.subscribeToModelChange((model: any) => {
+    const subId = editor.subscribeToModelChange((model: UMLModel) => {
+      syncLocked(model);
       if (suppressSyncRef.current) return; // ignore the echo of our own write
       const t = treeRef.current;
       if (!t?.root) return;
@@ -129,7 +144,7 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
       commitState(parsed);
     });
     return () => editor.unsubscribeFromModelChange(subId);
-  }, [open, editor, commitState]);
+  }, [open, editor, commitState, syncLocked]);
 
   // Reset transient state when the drawer closes.
   useEffect(() => {
@@ -139,5 +154,5 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
     suppressSyncRef.current = false;
   }, [open]);
 
-  return { tree, formState, applyEdit, ready: !!tree?.root && !!formState };
+  return { tree, formState, applyEdit, ready: !!tree?.root && !!formState, locked };
 };

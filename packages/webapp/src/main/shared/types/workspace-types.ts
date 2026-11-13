@@ -16,9 +16,9 @@ export type GeneratorType =
   | 'jsonobject'
   | 'pytorch'
   | 'tensorflow'
+  | 'test_case'
   | 'forecaster'
   | 'bpmn'
-  | 'test_case'
   | 'kg_to_class';
 
 export type GeneratorMenuMode =

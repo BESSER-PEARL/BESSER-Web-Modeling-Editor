@@ -80,7 +80,7 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 border-t border-border/60 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="bp-section-title besser-sidebar__section-title">
         {t('editors.kg.nodeList.heading', { count: model.nodes.length })}
       </div>
 

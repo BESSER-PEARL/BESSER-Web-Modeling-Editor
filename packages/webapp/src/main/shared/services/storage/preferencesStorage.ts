@@ -1,6 +1,7 @@
 /**
  * Per-browser preferences in localStorage: the default interface, the one-time
- * GitHub star prompt, the analytics consent and the What's new version last seen.
+ * GitHub star prompt, the analytics consent, the What's new version last seen and
+ * the user-model validation records.
  * Best effort: never throws.
  */
 import {
@@ -8,6 +9,7 @@ import {
   localStorageGitHubStarPrompted,
   localStorageLatestProject,
   localStoragePreferredInterface,
+  localStorageUserModelValidation,
   localStorageWhatsNewSeen,
 } from '../../constants/constant';
 import type { InterfaceMode } from '../../types/project';
@@ -110,5 +112,23 @@ export function writeWhatsNewSeen(version: string, storage?: Storage): void {
     (storage ?? localStorage).setItem(localStorageWhatsNewSeen, version);
   } catch {
     // storage unavailable
+  }
+}
+
+/** The stored user-model validation records, keyed by diagram id; {} when none or unreadable. */
+export function readUserModelValidationRecords(): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(localStorageUserModelValidation) ?? '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeUserModelValidationRecords(records: Record<string, unknown>): void {
+  try {
+    localStorage.setItem(localStorageUserModelValidation, JSON.stringify(records));
+  } catch {
+    // Storage full or unavailable: the records stay in memory for this tab.
   }
 }

@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useModelInjection } from '../useModelInjection';
-import { consumeAutoLayoutRequest } from '../../../../shared/utils/autoLayoutSignal';
+
+const { layoutModel } = vi.hoisted(() => ({ layoutModel: vi.fn(async (model: any) => model) }));
+vi.mock('@besser/wme', async (importOriginal) => ({ ...(await importOriginal<object>()), layoutModel }));
 
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
@@ -16,34 +18,37 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
   bumpEditorRevision: () => ({ type: 'bumpEditorRevision' }),
 }));
 
-const b = (x = 0, y = 0) => ({ x, y, width: 220, height: 100 });
+const row = (id: string, name: string, attributeType = 'str') => ({ id, name, attributeType, visibility: 'public' });
+const classNode = (id: string, name: string, x: number, y: number, attributes: any[], methods: any[] = [], stereotype?: string) => ({
+  id,
+  type: 'class',
+  position: { x, y },
+  width: 220,
+  height: 100,
+  measured: { width: 220, height: 100 },
+  data: { name, attributes, methods, ...(stereotype && { stereotype }) },
+});
 
-/** Book/Author class diagram with legacy "+ name: type" member labels and an enum. */
-const libraryModel = () => ({
-  version: '3.0.0',
+/** Book/Author class diagram with a legacy "+ title: str" member label and an enum. */
+const libraryModel = (): any => ({
+  version: '4.0.0',
   type: 'ClassDiagram',
-  size: { width: 1000, height: 1000 },
-  interactive: { elements: {}, relationships: {} },
-  assessments: {},
-  elements: {
-    'cls-book': { id: 'cls-book', type: 'Class', name: 'Book', owner: null, bounds: b(40, 40), attributes: ['att-title', 'att-pages', 'att-genre'], methods: ['met-read'] },
-    'att-title': { id: 'att-title', type: 'ClassAttribute', name: '+ title: str', attributeType: 'str', owner: 'cls-book', bounds: b(40, 90) },
-    'att-pages': { id: 'att-pages', type: 'ClassAttribute', name: 'pages', attributeType: 'int', owner: 'cls-book', bounds: b(40, 115) },
-    'att-genre': { id: 'att-genre', type: 'ClassAttribute', name: 'genre', attributeType: 'Genre', owner: 'cls-book', bounds: b(40, 140) },
-    'met-read': { id: 'met-read', type: 'ClassMethod', name: '+ read(): str', owner: 'cls-book', bounds: b(40, 170) },
-    'cls-author': { id: 'cls-author', type: 'Class', name: 'Author', owner: null, bounds: b(400, 40), attributes: ['att-name'], methods: [] },
-    'att-name': { id: 'att-name', type: 'ClassAttribute', name: 'name', attributeType: 'str', owner: 'cls-author', bounds: b(400, 90) },
-    'enum-genre': { id: 'enum-genre', type: 'Enumeration', name: 'Genre', owner: null, bounds: b(40, 400), attributes: ['lit-fiction', 'lit-poetry'], methods: [] },
-    'lit-fiction': { id: 'lit-fiction', type: 'ClassAttribute', name: 'FICTION', owner: 'enum-genre', bounds: b(40, 450) },
-    'lit-poetry': { id: 'lit-poetry', type: 'ClassAttribute', name: 'POETRY', owner: 'enum-genre', bounds: b(40, 475) },
-  },
-  relationships: {
-    'rel-writes': {
-      id: 'rel-writes', type: 'ClassBidirectional', name: 'writes', bounds: b(), path: [],
-      source: { element: 'cls-author', multiplicity: '1', role: 'author', direction: 'Left', bounds: b() },
-      target: { element: 'cls-book', multiplicity: '*', role: 'books', direction: 'Right', bounds: b() },
+  nodes: [
+    classNode('cls-book', 'Book', 40, 40, [row('att-title', '+ title: str'), row('att-pages', 'pages', 'int'), row('att-genre', 'genre', 'Genre')], [
+      row('met-read', '+ read(): str'),
+    ]),
+    classNode('cls-author', 'Author', 400, 40, [row('att-name', 'name')]),
+    classNode('enum-genre', 'Genre', 40, 400, [row('lit-fiction', 'FICTION'), row('lit-poetry', 'POETRY')], [], 'Enumeration'),
+  ],
+  edges: [
+    {
+      id: 'rel-writes',
+      type: 'ClassBidirectional',
+      source: 'cls-author',
+      target: 'cls-book',
+      data: { name: 'writes', sourceMultiplicity: '1', targetMultiplicity: '*', points: [] },
     },
-  },
+  ],
 });
 
 /** The same model as the agent re-describes it in a rebuild: names only, no ids. */
@@ -105,16 +110,20 @@ const rebuild = (systemSpec: any, replaceExisting?: boolean, currentModel?: any)
   run({ action: 'inject_complete_system', systemSpec, replaceExisting }, currentModel);
 
 const memberName = (name: string) => name.replace(/^[+\-#~] /, '').split(/[:(]/)[0].trim();
-const idOf = (model: any, name: string, owner: string | null = null) =>
-  (Object.values(model.elements) as any[]).find(
-    (e) => memberName(e.name) === name && (owner === null ? !e.owner : e.owner === owner),
-  )?.id;
+const nodeNamed = (model: any, name: string) => model.nodes.find((n: any) => n.data.name === name);
+const idOf = (model: any, name: string) => nodeNamed(model, name)?.id;
+const rows = (model: any, classId: string, list = 'attributes') =>
+  model.nodes.find((n: any) => n.id === classId)?.data[list] ?? [];
+const memberId = (model: any, name: string, classId: string, list = 'attributes') =>
+  rows(model, classId, list).find((r: any) => memberName(r.name) === name)?.id;
+const allIds = (model: any) => [
+  ...model.nodes.map((n: any) => n.id),
+  ...model.nodes.flatMap((n: any) => [...(n.data.attributes ?? []), ...(n.data.methods ?? [])].map((r: any) => r.id)),
+  ...model.edges.map((e: any) => e.id),
+];
 
 describe('whole-diagram rebuild keeps element ids', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    consumeAutoLayoutRequest();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   it('reuses class, attribute, method, literal and relationship ids on a replace rebuild', async () => {
     const model = await rebuild(librarySpec(), true);
@@ -122,25 +131,22 @@ describe('whole-diagram rebuild keeps element ids', () => {
     expect(idOf(model, 'Book')).toBe('cls-book');
     expect(idOf(model, 'Author')).toBe('cls-author');
     expect(idOf(model, 'Genre')).toBe('enum-genre');
-    expect(idOf(model, 'title', 'cls-book')).toBe('att-title');
-    expect(idOf(model, 'pages', 'cls-book')).toBe('att-pages');
-    expect(idOf(model, 'genre', 'cls-book')).toBe('att-genre');
-    expect(idOf(model, 'read', 'cls-book')).toBe('met-read');
-    expect(idOf(model, 'name', 'cls-author')).toBe('att-name');
-    expect(idOf(model, 'FICTION', 'enum-genre')).toBe('lit-fiction');
-    expect(idOf(model, 'POETRY', 'enum-genre')).toBe('lit-poetry');
-    expect(Object.keys(model.relationships)).toEqual(['rel-writes']);
-    expect(model.relationships['rel-writes'].source.element).toBe('cls-author');
-    expect(model.elements['cls-book'].attributes).toEqual(['att-title', 'att-pages', 'att-genre']);
+    expect(rows(model, 'cls-book').map((r: any) => r.id)).toEqual(['att-title', 'att-pages', 'att-genre']);
+    expect(memberId(model, 'read', 'cls-book', 'methods')).toBe('met-read');
+    expect(memberId(model, 'name', 'cls-author')).toBe('att-name');
+    expect(rows(model, 'enum-genre').map((r: any) => r.id)).toEqual(['lit-fiction', 'lit-poetry']);
+    expect(model.edges.map((e: any) => e.id)).toEqual(['rel-writes']);
+    expect(model.edges[0].source).toBe('cls-author');
   });
 
   it('keeps object-diagram references resolvable after the rebuild', async () => {
     const model = await rebuild(librarySpec(), true);
 
     for (const ref of objectDiagramRefs) {
-      expect(model.elements[ref.classId]?.name).toBe(ref.className);
-      expect(model.elements[ref.attributeId]?.owner).toBe(ref.classId);
-      expect(memberName(model.elements[ref.attributeId].name)).toBe(ref.attributeName);
+      const node = model.nodes.find((n: any) => n.id === ref.classId);
+      expect(node?.data.name).toBe(ref.className);
+      const attribute = node.data.attributes.find((r: any) => r.id === ref.attributeId);
+      expect(memberName(attribute.name)).toBe(ref.attributeName);
     }
   });
 
@@ -152,11 +158,11 @@ describe('whole-diagram rebuild keeps element ids', () => {
 
     const loanId = idOf(model, 'Loan');
     expect(loanId).toBeTruthy();
-    expect(Object.keys(libraryModel().elements)).not.toContain(loanId);
+    expect(allIds(libraryModel())).not.toContain(loanId);
     // Same attribute name on another class does not steal Book.title's id.
-    expect(idOf(model, 'title', loanId)).not.toBe('att-title');
-    expect(idOf(model, 'title', 'cls-book')).toBe('att-title');
-    const ids = [...Object.keys(model.elements), ...Object.keys(model.relationships)];
+    expect(memberId(model, 'title', loanId)).not.toBe('att-title');
+    expect(memberId(model, 'title', 'cls-book')).toBe('att-title');
+    const ids = allIds(model);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -169,7 +175,7 @@ describe('whole-diagram rebuild keeps element ids', () => {
     const model = await rebuild(spec, true);
 
     expect(idOf(model, 'book')).toBe('cls-book');
-    expect(Object.keys(model.relationships)).toEqual(['rel-writes']);
+    expect(model.edges.map((e: any) => e.id)).toEqual(['rel-writes']);
   });
 
   it('ignores ids the spec carries and matches by name', async () => {
@@ -181,15 +187,13 @@ describe('whole-diagram rebuild keeps element ids', () => {
 
     expect(idOf(model, 'Book')).toBe('cls-book');
     expect(idOf(model, 'Author')).toBe('cls-author');
-    expect(idOf(model, 'title', 'cls-book')).toBe('att-title');
-    expect(Object.keys(libraryModel().elements)).not.toContain(idOf(model, 'Shelf'));
+    expect(memberId(model, 'title', 'cls-book')).toBe('att-title');
+    expect(allIds(libraryModel())).not.toContain(idOf(model, 'Shelf'));
   });
 
   it('keeps the ids of classes whose names differ only in case', async () => {
     const current = libraryModel();
-    current.elements['cls-book2' as 'cls-book'] = {
-      id: 'cls-book2', type: 'Class', name: 'book', owner: null, bounds: b(800, 40), attributes: [], methods: [],
-    } as any;
+    current.nodes.push(classNode('cls-book2', 'book', 800, 40, []));
     const model = await rebuild(librarySpec([{ className: 'book', attributes: [], methods: [] }]), true, current);
 
     expect(idOf(model, 'Book')).toBe('cls-book');
@@ -198,10 +202,7 @@ describe('whole-diagram rebuild keeps element ids', () => {
 
   it('keeps the ids of overloaded methods', async () => {
     const current = libraryModel();
-    current.elements['cls-book'].methods.push('met-read2');
-    current.elements['met-read2' as 'met-read'] = {
-      id: 'met-read2', type: 'ClassMethod', name: '+ read(page: int): str', owner: 'cls-book', bounds: b(40, 195),
-    } as any;
+    current.nodes[0].data.methods.push(row('met-read2', '+ read(page: int): str'));
     const spec = librarySpec();
     spec.classes[0].methods = [
       { name: 'read', returnType: 'str' },
@@ -209,26 +210,12 @@ describe('whole-diagram rebuild keeps element ids', () => {
     ] as any;
     const model = await rebuild(spec, true, current);
 
-    const methodIds = (Object.values(model.elements) as any[]).filter((e) => e.type === 'ClassMethod').map((e) => e.id);
-    expect(methodIds.sort()).toEqual(['met-read', 'met-read2']);
-  });
-
-  it('prefers a name match over a wrong id the spec carries', async () => {
-    const spec = librarySpec();
-    (spec.classes[1] as any).id = 'cls-book'; // Author listed with Book's id
-    spec.classes.reverse();
-    const model = await rebuild(spec, true);
-
-    expect(idOf(model, 'Book')).toBe('cls-book');
-    expect(idOf(model, 'Author')).toBe('cls-author');
+    expect(rows(model, 'cls-book', 'methods').map((r: any) => r.id).sort()).toEqual(['met-read', 'met-read2']);
   });
 });
 
 describe('replaceExisting=false keeps the existing diagram', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    consumeAutoLayoutRequest();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   it('adds the new classes alongside the old ones', async () => {
     const model = await rebuild(
@@ -241,16 +228,16 @@ describe('replaceExisting=false keeps the existing diagram', () => {
     );
 
     const before = libraryModel();
-    for (const [id, element] of Object.entries(before.elements)) {
-      expect(model.elements[id]).toEqual(element);
+    for (const node of before.nodes) {
+      expect(model.nodes.find((n: any) => n.id === node.id)).toEqual(node);
     }
-    expect(model.relationships['rel-writes']).toEqual(before.relationships['rel-writes']);
+    expect(model.edges.find((e: any) => e.id === 'rel-writes')).toEqual(before.edges[0]);
     const orderId = idOf(model, 'Order');
     expect(orderId).toBeTruthy();
-    expect(idOf(model, 'total', orderId)).toBeTruthy();
+    expect(memberId(model, 'total', orderId)).toBeTruthy();
     // Placed below the existing content, and the user's layout is not rearranged.
-    expect(model.elements[orderId].bounds.y).toBeGreaterThan(500);
-    expect(consumeAutoLayoutRequest()).toBe(false);
+    expect(nodeNamed(model, 'Order').position.y).toBeGreaterThan(500);
+    expect(layoutModel).not.toHaveBeenCalled();
   });
 
   it('adds a new association between two existing classes', async () => {
@@ -266,9 +253,8 @@ describe('replaceExisting=false keeps the existing diagram', () => {
       false,
     );
 
-    const names = (Object.values(model.relationships) as any[]).map((r) => r.name).sort();
-    expect(names).toEqual(['reviews', 'writes']);
-    expect(model.relationships['rel-writes'].name).toBe('writes');
+    expect(model.edges.map((e: any) => e.data.name).sort()).toEqual(['reviews', 'writes']);
+    expect(model.edges.find((e: any) => e.id === 'rel-writes').data.name).toBe('writes');
   });
 
   it('does not fold a class into an existing one because the spec carries its id', async () => {
@@ -277,7 +263,7 @@ describe('replaceExisting=false keeps the existing diagram', () => {
       false,
     );
 
-    expect(model.elements['cls-author'].name).toBe('Author');
+    expect(model.nodes.find((n: any) => n.id === 'cls-author').data.name).toBe('Author');
     expect(idOf(model, 'Shelf')).toBeTruthy();
   });
 
@@ -294,15 +280,14 @@ describe('replaceExisting=false keeps the existing diagram', () => {
       false,
     );
 
-    const books = (Object.values(model.elements) as any[]).filter((e) => e.name === 'Book');
-    expect(books).toHaveLength(1);
-    const isbnId = idOf(model, 'isbn', 'cls-book');
+    expect(model.nodes.filter((n: any) => n.data.name === 'Book')).toHaveLength(1);
+    const isbnId = memberId(model, 'isbn', 'cls-book');
     expect(isbnId).toBeTruthy();
-    expect(model.elements['cls-book'].attributes).toEqual(['att-title', 'att-pages', 'att-genre', isbnId]);
-    expect(model.elements['cls-book'].bounds).toEqual(libraryModel().elements['cls-book'].bounds);
-    const borrows = (Object.values(model.relationships) as any[]).find((r) => r.name === 'borrows');
-    expect(borrows.target.element).toBe('cls-book');
-    expect(Object.keys(model.relationships)).toHaveLength(2);
+    expect(rows(model, 'cls-book').map((r: any) => r.id)).toEqual(['att-title', 'att-pages', 'att-genre', isbnId]);
+    expect(nodeNamed(model, 'Book').position).toEqual(libraryModel().nodes[0].position);
+    const borrows = model.edges.find((e: any) => e.data.name === 'borrows');
+    expect(borrows.target).toBe('cls-book');
+    expect(model.edges).toHaveLength(2);
   });
 
   it('still replaces when replaceExisting is true or not sent', async () => {
@@ -311,7 +296,7 @@ describe('replaceExisting=false keeps the existing diagram', () => {
         { systemName: 'Shop', classes: [{ className: 'Order', attributes: [], methods: [] }], relationships: [] },
         replaceExisting,
       );
-      expect((Object.values(model.elements) as any[]).map((e) => e.name)).toEqual(['Order']);
+      expect(model.nodes.map((n: any) => n.data.name)).toEqual(['Order']);
     }
   });
 });

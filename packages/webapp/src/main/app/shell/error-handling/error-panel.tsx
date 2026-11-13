@@ -13,7 +13,7 @@ export const ErrorPanel: React.FC = () => {
     <div className="pointer-events-none fixed right-3 top-3 flex w-[min(420px,calc(100vw-1.5rem))] flex-col gap-2 sm:right-4 sm:top-4" style={{ zIndex: Z_INDEX.NOTIFICATION }}>
       {errors.map((error) => (
         <div className="pointer-events-auto" key={error.id}>
-          <ErrorMessage error={error} onClose={(apollonError) => dispatch(dismissError(apollonError.id))} />
+          <ErrorMessage error={error} onClose={(besserError) => dispatch(dismissError(besserError.id))} />
         </div>
       ))}
     </div>

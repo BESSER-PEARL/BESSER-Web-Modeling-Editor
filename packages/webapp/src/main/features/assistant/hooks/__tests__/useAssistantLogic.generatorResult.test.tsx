@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven';
-import { ApollonEditorProvider } from '../../../editors';
+import { BesserEditorProvider } from '../../../editors';
 import type { GenerationResult } from '../../../generation';
 
 const fake = vi.hoisted(() => ({
@@ -71,9 +71,9 @@ function renderHarness(onGenerate: OnGenerate) {
   });
   render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Harness apiRef={apiRef} onGenerate={onGenerate} />
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>,
   );
   return apiRef;

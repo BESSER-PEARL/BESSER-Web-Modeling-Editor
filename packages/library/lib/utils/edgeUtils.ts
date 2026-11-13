@@ -1,0 +1,1460 @@
+import { EDGES, INTERFACE, MARKER_CONFIGS } from "@/constants"
+import { IPoint } from "@/edges/Connection"
+import { DiagramEdgeType, UMLDiagramType } from "@/typings"
+import {
+  Node,
+  Position,
+  Rect,
+  XYPosition,
+  ConnectionLineType,
+} from "@xyflow/react"
+
+/**
+ * Adjusts the target coordinates based on the position and marker padding.
+ */
+export const adjustTargetCoordinates = (
+  targetX: number,
+  targetY: number,
+  targetPosition: Position,
+  markerPadding: number
+): { targetX: number; targetY: number } => {
+  if (targetPosition === "left") {
+    targetX -= markerPadding
+  } else if (targetPosition === "right") {
+    targetX += markerPadding
+  } else if (targetPosition === "top") {
+    targetY -= markerPadding
+  } else if (targetPosition === "bottom") {
+    targetY += markerPadding
+  }
+  return { targetX, targetY }
+}
+
+/**
+ * Adjusts the source coordinates based on the position and marker padding.
+ */
+export const adjustSourceCoordinates = (
+  sourceX: number,
+  sourceY: number,
+  sourcePosition: Position,
+  sourcePadding: number
+): { sourceX: number; sourceY: number } => {
+  if (sourcePosition === "left") {
+    sourceX += sourcePadding
+  } else if (sourcePosition === "right") {
+    sourceX -= sourcePadding
+  } else if (sourcePosition === "top") {
+    sourceY += sourcePadding
+  } else if (sourcePosition === "bottom") {
+    sourceY -= sourcePadding
+  }
+  return { sourceX, sourceY }
+}
+
+interface TextPlacement {
+  roleX: number
+  roleY: number
+  multiplicityX: number
+  multiplicityY: number
+}
+
+export const calculateTextPlacement = (
+  x: number,
+  y: number,
+  position: Position
+): TextPlacement => {
+  let roleX = x,
+    roleY = y
+  let multiplicityX = x,
+    multiplicityY = y
+
+  switch (position) {
+    case "top":
+      roleX = x - 10
+      roleY = y - 15
+      multiplicityX = x + 10
+      multiplicityY = y - 15
+      break
+    case "right":
+      roleX = x + 15
+      roleY = y - 10
+      multiplicityX = x + 15
+      multiplicityY = y + 15
+      break
+    case "bottom":
+      roleX = x - 10
+      roleY = y + 15
+      multiplicityX = x + 10
+      multiplicityY = y + 15
+      break
+    case "left":
+      roleX = x - 15
+      roleY = y - 10
+      multiplicityX = x - 15
+      multiplicityY = y + 15
+      break
+  }
+
+  return {
+    roleX,
+    roleY,
+    multiplicityX,
+    multiplicityY,
+  }
+}
+
+export const calculateDynamicEdgeLabels = (
+  x: number,
+  y: number,
+  direction: string
+) => {
+  const offset = 10
+  const textOffset = 15
+
+  switch (direction) {
+    case "top": {
+      const topYOffset = -5
+      return {
+        roleX: x - offset,
+        roleY: y + topYOffset,
+        roleTextAnchor: "end" as const,
+        multiplicityX: x + offset,
+        multiplicityY: y + topYOffset,
+        multiplicityTextAnchor: "start" as const,
+      }
+    }
+    case "bottom": {
+      const bottomYOffset = textOffset
+      return {
+        roleX: x - offset,
+        roleY: y + bottomYOffset,
+        roleTextAnchor: "end" as const,
+        multiplicityX: x + offset,
+        multiplicityY: y + bottomYOffset,
+        multiplicityTextAnchor: "start" as const,
+      }
+    }
+    case "left": {
+      const leftXOffset = -5
+      return {
+        roleX: x + leftXOffset,
+        roleY: y - offset,
+        roleTextAnchor: "end" as const,
+        multiplicityX: x + leftXOffset,
+        multiplicityY: y + 20,
+        multiplicityTextAnchor: "end" as const,
+      }
+    }
+    case "right": {
+      return {
+        roleX: x + 5,
+        roleY: y - offset,
+        roleTextAnchor: "start" as const,
+        multiplicityX: x + 5,
+        multiplicityY: y + 20,
+        multiplicityTextAnchor: "start" as const,
+      }
+    }
+    default: {
+      return {
+        roleX: x,
+        roleY: y - offset,
+        roleTextAnchor: "middle" as const,
+        multiplicityX: x,
+        multiplicityY: y + offset,
+        multiplicityTextAnchor: "middle" as const,
+      }
+    }
+  }
+}
+
+export interface EdgeMarkerStyles {
+  markerEnd?: string
+  markerStart?: string
+  markerPadding?: number
+  strokeDashArray?: string
+  offset?: number
+}
+
+/**
+ * How far an end marker (`url(#id)`) reaches back along the line, so the
+ * end's role / multiplicity labels can start just past it. `withArrow` adds
+ * the arrowhead an aggregation draws in front of its diamond when the whole
+ * is the only navigable end. 0 when there is no marker.
+ */
+export const endMarkerLength = (marker?: string, withArrow = false): number => {
+  const markerId = marker?.match(/#([^)]+)/)?.[1]
+  const config =
+    markerId && markerId in MARKER_CONFIGS
+      ? MARKER_CONFIGS[markerId as keyof typeof MARKER_CONFIGS]
+      : undefined
+  const arrow = MARKER_CONFIGS["black-arrow"]
+  return (
+    (config ? config.size * config.widthFactor : 0) +
+    (withArrow ? arrow.size * arrow.widthFactor : 0)
+  )
+}
+
+export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
+  switch (edgeType) {
+    case "ClassBidirectional":
+    case "DeploymentAssociation":
+    case "ObjectLink":
+    case "SyntaxTreeLink":
+    case "CommunicationLink":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ActivityControlFlow":
+    case "ClassUnidirectional":
+    case "FlowChartFlowline":
+    case "ReachabilityGraphArc":
+    // StateTransition / AgentStateTransition — directed
+    // arrow marker. v3 metamodel rendered both with the standard
+    // arrow-end marker (`uml-state-transition.tsx` /
+    // `agent-state-transition.tsx`); prior to this case they fell
+    // through to `default` which omits any marker, so transitions
+    // rendered as plain lines.
+    // falls through
+    case "StateTransition":
+    case "AgentStateTransition":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ClassAggregation":
+      // Diamond on the target (whole) end: the backend reads the target end
+      // of an aggregation / composition as the composite, and v3 drew the
+      // diamond there. ClassDiagramEdge adds the navigability arrows on top
+      // (see `getAssociationMarkers`).
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#white-rhombus)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ClassComposition":
+      // Diamond on the target (whole) end, see ClassAggregation.
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-rhombus)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ClassInheritance":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#white-triangle)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "PetriNetArc":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-triangle)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ComponentDependency":
+    case "ClassDependency":
+    case "DeploymentDependency":
+    // CommentLink — render the dashed-dependency style
+    // so comment tethers look like their v3 `Link` counterpart (drawn
+    // dashed by the association component). Created via
+    // `resolveCommentEdgeType`; styled via `CommentLinkEditPanel`.
+    // falls through
+    case "CommentLink":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "10",
+        offset: 0,
+      }
+    case "ClassRealization":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#white-triangle)",
+        strokeDashArray: "10",
+        offset: 0,
+      }
+    // ClassOCLLink — dashed line, open arrow.
+    case "ClassOCLLink":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#class-ocl-link-marker)",
+        strokeDashArray: "4 2",
+        offset: 0,
+      }
+    // ClassLinkRel — link relationship (dashed). v3 metamodel rendered
+    // these with `strokeDasharray="5,5"`. Without an explicit case here
+    // the type previously fell through to `default` and rendered as a
+    // plain solid line.
+    case "ClassLinkRel":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "5 5",
+        offset: 0,
+      }
+    case "BPMNSequenceFlow":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#bpmn-black-triangle)",
+        strokeDashArray: "0",
+        offset: 8,
+      }
+    case "BPMNMessageFlow":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#bpmn-white-triangle)",
+        markerStart: "url(#bpmn-white-circle)",
+        strokeDashArray: "10",
+        offset: 8,
+      }
+    case "BPMNAssociationFlow":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "10",
+        offset: 0,
+      }
+    case "BPMNDataAssociationFlow":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#bpmn-arrow)",
+        strokeDashArray: "10",
+        offset: 8,
+      }
+    case "UseCaseAssociation":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "UseCaseInclude":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "10",
+        offset: 0,
+      }
+    case "UseCaseExtend":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "10",
+        offset: 0,
+      }
+    case "UseCaseGeneralization":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#white-triangle)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+
+    case "ComponentProvidedInterface":
+    case "DeploymentProvidedInterface":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0", // Plain line like association
+        offset: 0,
+      }
+    case "ComponentRequiredInterface":
+    case "DeploymentRequiredInterface":
+      return {
+        // markerPadding = MARKER_PADDING + gap
+        // MARKER_PADDING (-3) compensates for React Flow handle offset
+        // gap is the spacing between socket arc and ball circle
+        markerPadding: EDGES.MARKER_PADDING + INTERFACE.SOCKET_GAP,
+        markerEnd: "url(#required-interface)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ComponentRequiredQuarterInterface":
+    case "DeploymentRequiredQuarterInterface":
+      return {
+        markerPadding: EDGES.MARKER_PADDING + INTERFACE.SOCKET_GAP,
+        markerEnd: "url(#required-interface-quarter)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "ComponentRequiredThreeQuarterInterface":
+    case "DeploymentRequiredThreeQuarterInterface":
+      return {
+        markerPadding: EDGES.MARKER_PADDING + INTERFACE.SOCKET_GAP,
+        markerEnd: "url(#required-interface-threequarter)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    // BESSER AgentDiagram init edge. v3 source
+    // `agent-state-transition-init-component.tsx` renders as a solid
+    // arrow (no `strokeDasharray`). `AgentStateTransition` itself is
+    // already covered by the combined `StateTransition` /
+    // `AgentStateTransition` case above.
+    case "AgentStateTransitionInit":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    // BESSER NNDiagram edges. `NNNext` is a unidirectional flow
+    // arrow; `NNComposition` puts a black diamond on the source side
+    // (the NNContainer); `NNAssociation` is a plain line (Dataset ↔
+    // NNContainer).
+    case "NNNext":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        // Compact arrow (12 px) so the NN flow arrows don't overpower
+        // the short layer-to-layer segments.
+        markerEnd: "url(#nn-arrow)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "NNComposition":
+      // UML composition convention: diamond at the WHOLE end. The
+      // NNContainer is the whole, Configuration is the part. Auto-drag
+      // (Configuration → NNContainer in `resolveNNEdgeType`) puts
+      // NNContainer at the target end, so the diamond lives on
+      // markerEnd, not markerStart.
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-rhombus)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "NNAssociation":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    default:
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0",
+        offset: 0,
+      }
+  }
+}
+
+function distance(p1: XYPosition, p2: XYPosition): number {
+  return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+}
+
+interface FindClosestHandleParams {
+  point: XYPosition
+  rect: Rect
+  useFourHandles?: boolean
+}
+
+export function findClosestHandle({
+  point,
+  rect,
+  useFourHandles = false,
+}: FindClosestHandleParams): string {
+  // Start with basic 4 handles (top, bottom, left, right)
+  const points: { label: string; position: XYPosition }[] = [
+    { label: "top", position: { x: rect.x + rect.width / 2, y: rect.y } },
+    {
+      label: "bottom",
+      position: { x: rect.x + rect.width / 2, y: rect.y + rect.height },
+    },
+    { label: "left", position: { x: rect.x, y: rect.y + rect.height / 2 } },
+    {
+      label: "right",
+      position: { x: rect.x + rect.width, y: rect.y + rect.height / 2 },
+    },
+  ]
+
+  // If not a 4-handle node, append additional handles
+  if (!useFourHandles) {
+    points.push(
+      {
+        label: "top-left",
+        position: { x: rect.x + rect.width / 3, y: rect.y },
+      },
+      {
+        label: "top-right",
+        position: { x: rect.x + (2 / 3) * rect.width, y: rect.y },
+      },
+      {
+        label: "bottom-left",
+        position: { x: rect.x + rect.width / 3, y: rect.y + rect.height },
+      },
+      {
+        label: "bottom-right",
+        position: { x: rect.x + (2 / 3) * rect.width, y: rect.y + rect.height },
+      },
+      {
+        label: "left-top",
+        position: { x: rect.x, y: rect.y + rect.height / 3 },
+      },
+      {
+        label: "left-bottom",
+        position: { x: rect.x, y: rect.y + (2 / 3) * rect.height },
+      },
+      {
+        label: "right-top",
+        position: { x: rect.x + rect.width, y: rect.y + rect.height / 3 },
+      },
+      {
+        label: "right-bottom",
+        position: { x: rect.x + rect.width, y: rect.y + (2 / 3) * rect.height },
+      }
+    )
+  }
+
+  let closest = points[0]
+  let minDist = distance(point, points[0].position)
+
+  for (const p of points) {
+    const d = distance(point, p.position)
+    if (d < minDist) {
+      minDist = d
+      closest = p
+    }
+  }
+
+  return closest.label
+}
+
+/**
+ * Helper function to get handle position on ellipse perimeter
+ */
+export function getEllipseHandlePosition(
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+  handle: string
+): { x: number; y: number } {
+  const angleMap: { [key: string]: number } = {
+    right: 0,
+    "right-mid-bottom": Math.PI / 10, // 18°
+    "right-bottom": Math.PI / 5, // 36°
+    "bottom-right": (3 * Math.PI) / 10, // 54°
+    "bottom-mid-right": (2 * Math.PI) / 5, // 72°
+    bottom: Math.PI / 2, // 90°
+    "bottom-mid-left": (3 * Math.PI) / 5, // 108°
+    "bottom-left": (7 * Math.PI) / 10, // 126°
+    "left-bottom": (4 * Math.PI) / 5, // 144°
+    "left-mid-bottom": (9 * Math.PI) / 10, // 162°
+    left: Math.PI, // 180°
+    "left-mid-top": (11 * Math.PI) / 10, // 198°
+    "left-top": (6 * Math.PI) / 5, // 216°
+    "top-left": (13 * Math.PI) / 10, // 234°
+    "top-mid-left": (7 * Math.PI) / 5, // 252°
+    top: (3 * Math.PI) / 2, // 270°
+    "top-mid-right": (8 * Math.PI) / 5, // 288°
+    "top-right": (17 * Math.PI) / 10, // 306°
+    "right-top": (9 * Math.PI) / 5, // 324°
+    "right-mid-top": (19 * Math.PI) / 10, // 342°
+  }
+
+  const angle = angleMap[handle] ?? 0
+
+  return {
+    x: centerX + radiusX * Math.cos(angle),
+    y: centerY + radiusY * Math.sin(angle),
+  }
+}
+
+export function calculateOverlayPath(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  type: string
+): string {
+  // Round coordinates to whole pixels for pixel-perfect rendering
+  const sX = Math.round(sourceX)
+  const sY = Math.round(sourceY)
+  const tX = Math.round(targetX)
+  const tY = Math.round(targetY)
+
+  if (
+    type == "UseCaseInclude" ||
+    type == "UseCaseExtend" ||
+    type == "UseCaseGeneralization" ||
+    type == "CommunicationLink" ||
+    type == "PetriNetArc"
+  ) {
+    const { offset } = getEdgeMarkerStyles(type)
+    const markerOffset = offset ?? 0
+
+    if (markerOffset !== 0) {
+      const dx = tX - sX
+      const dy = tY - sY
+      const length = Math.sqrt(dx * dx + dy * dy)
+
+      if (length > 0) {
+        const normalizedDx = dx / length
+        const normalizedDy = dy / length
+        const adjustedTargetX = Math.round(tX + normalizedDx * markerOffset)
+        const adjustedTargetY = Math.round(tY + normalizedDy * markerOffset)
+
+        return `M ${sX},${sY} L ${adjustedTargetX},${adjustedTargetY}`
+      }
+    }
+  }
+  return `M ${sX},${sY} L ${tX},${tY}`
+}
+
+export function calculateStraightPath(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  type: string
+): string {
+  // Round coordinates to whole pixels for pixel-perfect rendering
+  const sX = Math.round(sourceX)
+  const sY = Math.round(sourceY)
+  const tX = Math.round(targetX)
+  const tY = Math.round(targetY)
+
+  const dx = tX - sX
+  const dy = tY - sY
+  const length = Math.sqrt(dx * dx + dy * dy)
+
+  if (length === 0) {
+    return `M ${sX},${sY} L ${tX},${tY}`
+  }
+
+  if (type === "UseCaseInclude" || type == "UseCaseExtend") {
+    const midX = Math.round((sX + tX) / 2)
+    const midY = Math.round((sY + tY) / 2)
+
+    const normalizedDx = dx / length
+    const normalizedDy = dy / length
+    const gapSize = 40
+
+    const gapStartX = Math.round(midX - normalizedDx * gapSize)
+    const gapStartY = Math.round(midY - normalizedDy * gapSize)
+    const gapEndX = Math.round(midX + normalizedDx * gapSize)
+    const gapEndY = Math.round(midY + normalizedDy * gapSize)
+
+    return `M ${sX},${sY} L ${gapStartX},${gapStartY} M ${gapEndX},${gapEndY} L ${tX},${tY}`
+  }
+
+  // For all other edge types, just create a straight line
+  return `M ${sX},${sY} L ${tX},${tY}`
+}
+
+export function simplifySvgPath(path: string): string {
+  // Round to whole pixels for pixel-perfect rendering
+  const round = (num: number) => Math.round(num)
+
+  const withSpaces = path.replace(/([MLQ])(?=[-0-9])/gi, "$1 ")
+  const cleaned = withSpaces.replace(/,/g, " ").trim()
+  const tokens = cleaned.split(/\s+/)
+  const outputTokens: string[] = []
+  let i = 0
+
+  while (i < tokens.length) {
+    const token = tokens[i].toUpperCase()
+    if (token === "M" || token === "L") {
+      const x = parseFloat(tokens[i + 1])
+      const y = parseFloat(tokens[i + 2])
+      if (!isNaN(x) && !isNaN(y)) {
+        outputTokens.push(token, round(x).toString(), round(y).toString())
+      }
+      i += 3
+    } else if (token === "Q") {
+      const cx = parseFloat(tokens[i + 1])
+      const cy = parseFloat(tokens[i + 2])
+      const ex = parseFloat(tokens[i + 3])
+      const ey = parseFloat(tokens[i + 4])
+      if (cx === ex && cy === ey) {
+        outputTokens.push("L", round(ex).toString(), round(ey).toString())
+      } else {
+        outputTokens.push(
+          "Q",
+          round(cx).toString(),
+          round(cy).toString(),
+          round(ex).toString(),
+          round(ey).toString()
+        )
+      }
+      i += 5
+    } else {
+      const x = parseFloat(tokens[i])
+      const y = parseFloat(tokens[i + 1])
+      if (!isNaN(x) && !isNaN(y)) {
+        outputTokens.push(round(x).toString(), round(y).toString())
+      }
+      i += 2
+    }
+  }
+
+  return outputTokens.join(" ")
+}
+
+export function simplifyPoints(points: IPoint[]): IPoint[] {
+  if (points.length < 3) return points
+  const result: IPoint[] = [points[0]]
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = result[result.length - 1]
+    const curr = points[i]
+    const next = points[i + 1]
+    if (prev.x === curr.x && curr.x === next.x) {
+      continue
+    }
+    if (prev.y === curr.y && curr.y === next.y) {
+      continue
+    }
+    result.push(curr)
+  }
+  result.push(points[points.length - 1])
+  return result
+}
+
+export function parseSvgPath(path: string): IPoint[] {
+  const tokens = simplifySvgPath(path).replace(/,/g, " ").trim().split(/\s+/)
+  const points: IPoint[] = []
+  let i = 0
+  while (i < tokens.length) {
+    const token = tokens[i]
+    if (token === "M" || token === "L") {
+      const x = parseFloat(tokens[i + 1])
+      const y = parseFloat(tokens[i + 2])
+      if (!isNaN(x) && !isNaN(y)) {
+        points.push({ x, y })
+      }
+      i += 3
+    } else {
+      const x = parseFloat(tokens[i])
+      const y = parseFloat(tokens[i + 1])
+      if (!isNaN(x) && !isNaN(y)) {
+        points.push({ x, y })
+      }
+      i += 2
+    }
+  }
+  return simplifyPoints(points)
+}
+
+export function calculateInnerMidpoints(
+  points: IPoint[],
+  decimals: number = 2
+): IPoint[] {
+  const round = (num: number) => Number(num.toFixed(decimals))
+  const midpoints: IPoint[] = []
+  if (points.length < 3) return midpoints
+
+  // Group consecutive points that form straight lines (horizontal or vertical)
+  const segments: IPoint[][] = []
+  let currentSegment: IPoint[] = [points[0]]
+
+  for (let i = 1; i < points.length; i++) {
+    const prevPoint = currentSegment[currentSegment.length - 1]
+    const currentPoint = points[i]
+
+    // Check if this point continues the current segment (same direction)
+    const isHorizontal = Math.abs(prevPoint.y - currentPoint.y) < 0.1
+    const isVertical = Math.abs(prevPoint.x - currentPoint.x) < 0.1
+
+    if (currentSegment.length === 1) {
+      // First segment, just add the point
+      currentSegment.push(currentPoint)
+    } else {
+      // Check if the new point continues the same direction as the current segment
+      const segmentStart = currentSegment[0]
+      const segmentPrev = currentSegment[currentSegment.length - 1]
+      const wasHorizontal = Math.abs(segmentStart.y - segmentPrev.y) < 0.1
+      const wasVertical = Math.abs(segmentStart.x - segmentPrev.x) < 0.1
+
+      if ((wasHorizontal && isHorizontal) || (wasVertical && isVertical)) {
+        // Continue current segment
+        currentSegment.push(currentPoint)
+      } else {
+        // Start new segment
+        segments.push([...currentSegment])
+        currentSegment = [prevPoint, currentPoint]
+      }
+    }
+  }
+
+  // Add the last segment
+  if (currentSegment.length > 1) {
+    segments.push(currentSegment)
+  }
+
+  // Calculate one midpoint per segment (excluding first and last segments to avoid endpoints)
+  for (let i = 1; i < segments.length - 1; i++) {
+    const segment = segments[i]
+    if (segment.length >= 2) {
+      const start = segment[0]
+      const end = segment[segment.length - 1]
+      const midpoint = {
+        x: round((start.x + end.x) / 2),
+        y: round((start.y + end.y) / 2),
+      }
+      midpoints.push(midpoint)
+    }
+  }
+
+  return midpoints
+}
+
+export function removeDuplicatePoints(points: IPoint[]): IPoint[] {
+  if (points.length === 0) return points
+  const filtered: IPoint[] = [points[0]]
+  for (let i = 1; i < points.length; i++) {
+    const prev = filtered[filtered.length - 1]
+    const current = points[i]
+    if (current.x !== prev.x || current.y !== prev.y) {
+      filtered.push(current)
+    }
+  }
+  return filtered
+}
+
+export function getMarkerSegmentPath(
+  points: IPoint[],
+  offset: number,
+  targetPosition: "top" | "bottom" | "left" | "right"
+): string {
+  if (points.length === 0) return ""
+
+  const lastPoint = points[points.length - 1]
+  // Round coordinates to whole pixels for pixel-perfect rendering
+  const lastX = Math.round(lastPoint.x)
+  const lastY = Math.round(lastPoint.y)
+  let extendedX = lastX
+  let extendedY = lastY
+  switch (targetPosition) {
+    case "top":
+      extendedY = lastY + offset
+      break
+    case "bottom":
+      extendedY = lastY - offset
+      break
+    case "left":
+      extendedX = lastX + offset
+      break
+    case "right":
+      extendedX = lastX - offset
+      break
+    default:
+      break
+  }
+
+  return `M ${lastX} ${lastY} L ${extendedX} ${extendedY}`
+}
+
+export const getDefaultEdgeType = (
+  diagramType: UMLDiagramType
+): DiagramEdgeType => {
+  switch (diagramType) {
+    // BESSER ClassDiagram defaults to a
+    // bidirectional association. v3 truth — the palette's "drop a line"
+    // affordance creates a plain bidirectional edge, not a
+    // unidirectional one. (Inheritance / aggregation / composition stay
+    // explicit relationship picks.)
+    case "ClassDiagram":
+      return "ClassBidirectional"
+    case "ActivityDiagram":
+      return "ActivityControlFlow"
+
+    case "UseCaseDiagram":
+      return "UseCaseAssociation"
+    case "ComponentDiagram":
+      return "ComponentDependency"
+    case "DeploymentDiagram":
+      return "DeploymentAssociation"
+    case "ObjectDiagram":
+      return "ObjectLink"
+    case "Flowchart":
+      return "FlowChartFlowline"
+    case "SyntaxTree":
+      return "SyntaxTreeLink"
+    case "ReachabilityGraph":
+      return "ReachabilityGraphArc"
+    case "BPMNDiagram":
+      return "BPMNSequenceFlow"
+    case "Sfc":
+      return "SfcDiagramEdge"
+    case "CommunicationDiagram":
+      return "CommunicationLink"
+    case "PetriNet":
+      return "PetriNetArc"
+    case "NNDiagram":
+      return "NNNext"
+    // BESSER behavioral diagrams. v3 truth —
+    // `DefaultUMLRelationshipType` in `uml-relationship-type.ts` maps
+    // StateMachineDiagram → StateTransition, AgentDiagram →
+    // AgentStateTransition and UserDiagram → UserModelLink. Without
+    // these cases user-drawn edges fell through to
+    // `ClassUnidirectional` and were silently dropped by the backend
+    // processors. (AgentDiagram additionally promotes edges touching
+    // the initial node to `AgentStateTransitionInit` — see
+    // `resolveAgentEdgeType` below.)
+    case "StateMachineDiagram":
+      return "StateTransition"
+    case "AgentDiagram":
+      return "AgentStateTransition"
+    case "UserDiagram":
+      return "UserModelLink"
+    default:
+      return "ClassUnidirectional"
+  }
+}
+
+/**
+ * Auto-detect the NNDiagram edge type from its endpoints. Configuration
+ * → NNContainer is a composition (diamond on the Configuration side, v3
+ * `NNComposition`); NNContainer ↔ NNContainer is also a composition
+ * (sub-network reuse — develop `nn-container.ts`
+ * `supportedRelationships = [NNComposition, NNAssociation]`, first
+ * entry wins in the connectable intersection); TrainingDataset /
+ * TestDataset → NNContainer is the association line (`NNAssociation`);
+ * everything else (layer → layer, TensorOp → layer) is the standard
+ * `NNNext` flow arrow.
+ */
+export const resolveNNEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  if (!sourceType || !targetType) return fallback
+  if (sourceType === "NNContainer" && targetType === "NNContainer") {
+    return "NNComposition"
+  }
+  const containerTouching =
+    sourceType === "NNContainer" || targetType === "NNContainer"
+  if (!containerTouching) return fallback
+  const datasetTypes = new Set(["TrainingDataset", "TestDataset"])
+  if (sourceType === "Configuration" || targetType === "Configuration") {
+    return "NNComposition"
+  }
+  if (datasetTypes.has(sourceType) || datasetTypes.has(targetType)) {
+    return "NNAssociation"
+  }
+  return fallback
+}
+
+// BPMN flow-legality node-type sets. Ported verbatim from develop's
+// `bpmn-flow/bpmn-flow-semantics.ts`, translated to migration's
+// camelCase React Flow node-type strings (cross-checked against
+// `utils/bpmnConstraints.ts`'s `canDropIntoParent` lists). Single source
+// of truth for both `resolveBpmnEdgeType` (below) and the up-front
+// `bpmnFlowConnectionRule` (`services/connectionRules/bpmnFlowRules.ts`),
+// the same relationship develop keeps between bpmn-flow-semantics.ts and
+// bpmn-flow-validator.ts.
+const BPMN_FLOW_NODES = new Set([
+  "bpmnStartEvent",
+  "bpmnIntermediateEvent",
+  "bpmnEndEvent",
+  "bpmnTask",
+  "bpmnSubprocess",
+  "bpmnTransaction",
+  "bpmnCallActivity",
+  "bpmnGateway",
+])
+const BPMN_DATA_NODES = new Set(["bpmnDataObject", "bpmnDataStore"])
+const BPMN_ARTIFACT_NODES = new Set(["bpmnAnnotation", "bpmnGroup"])
+// Message-eligible = flow nodes minus the gateway, plus the pool.
+// Gateways are NOT message-eligible in develop's semantics.
+const BPMN_MESSAGE_ELIGIBLE = new Set([
+  "bpmnStartEvent",
+  "bpmnIntermediateEvent",
+  "bpmnEndEvent",
+  "bpmnTask",
+  "bpmnSubprocess",
+  "bpmnTransaction",
+  "bpmnCallActivity",
+  "bpmnPool",
+])
+
+/**
+ * Port of develop's `getAllowedBpmnFlowTypes`, expressed as React Flow
+ * edge-type strings. Given a source/target node-type pair, returns every
+ * BPMN flow subtype that is legal between them (empty when the pair is
+ * illegal, e.g. data-node ↔ data-node). Shared by `resolveBpmnEdgeType`
+ * (default-pick) and `bpmnFlowConnectionRule` (up-front veto).
+ */
+export function getAllowedBpmnFlowEdgeTypes(
+  sourceType: string | undefined,
+  targetType: string | undefined
+): DiagramEdgeType[] {
+  const s = sourceType ?? ""
+  const t = targetType ?? ""
+  const allowed: DiagramEdgeType[] = []
+  // A sequence flow never leaves an end event or enters a start event.
+  if (
+    BPMN_FLOW_NODES.has(s) &&
+    BPMN_FLOW_NODES.has(t) &&
+    s !== "bpmnEndEvent" &&
+    t !== "bpmnStartEvent"
+  ) {
+    allowed.push("BPMNSequenceFlow")
+  }
+  if (
+    (BPMN_DATA_NODES.has(s) && BPMN_FLOW_NODES.has(t)) ||
+    (BPMN_FLOW_NODES.has(s) && BPMN_DATA_NODES.has(t))
+  ) {
+    allowed.push("BPMNDataAssociationFlow")
+  }
+  if (BPMN_ARTIFACT_NODES.has(s) || BPMN_ARTIFACT_NODES.has(t)) {
+    allowed.push("BPMNAssociationFlow")
+  }
+  // Start events only catch messages and end events only throw them.
+  if (
+    BPMN_MESSAGE_ELIGIBLE.has(s) &&
+    BPMN_MESSAGE_ELIGIBLE.has(t) &&
+    s !== "bpmnStartEvent" &&
+    t !== "bpmnEndEvent"
+  ) {
+    allowed.push("BPMNMessageFlow")
+  }
+  return allowed
+}
+
+/**
+ * Auto-detect the BPMNDiagram edge type from its endpoints (mirrors
+ * `resolveNNEdgeType`). Picks the highest-priority legal flow subtype for
+ * the node pair — sequence > message > data association > association,
+ * matching develop's `getDefaultBpmnFlowType`. Falls back to the diagram
+ * default when no BPMN-specific subtype is legal.
+ */
+export const resolveBpmnEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  const allowed = getAllowedBpmnFlowEdgeTypes(sourceType, targetType)
+  if (allowed.includes("BPMNSequenceFlow")) return "BPMNSequenceFlow"
+  if (allowed.includes("BPMNMessageFlow")) return "BPMNMessageFlow"
+  if (allowed.includes("BPMNDataAssociationFlow")) {
+    return "BPMNDataAssociationFlow"
+  }
+  if (allowed.includes("BPMNAssociationFlow")) return "BPMNAssociationFlow"
+  return fallback
+}
+
+const PROVIDED_INTERFACE_EDGE: Record<string, DiagramEdgeType> = {
+  componentInterface: "ComponentProvidedInterface",
+  deploymentInterface: "DeploymentProvidedInterface",
+}
+
+/**
+ * Component / Deployment: an edge touching an interface is a provided
+ * interface, the first type both ends support (develop's
+ * `supportedRelationships`); anything else keeps the diagram default.
+ */
+export const resolveInterfaceEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType =>
+  PROVIDED_INTERFACE_EDGE[targetType ?? ""] ??
+  PROVIDED_INTERFACE_EDGE[sourceType ?? ""] ??
+  fallback
+
+/**
+ * Normalize `NNComposition` endpoint order at creation time so the
+ * NNContainer always sits at the **target** end — where the filled
+ * rhombus rides (`getEdgeMarkerStyles('NNComposition')` puts it on
+ * `markerEnd`). Develop achieved the same visual by reversing the
+ * rendered path whenever the *source* was the container
+ * (`nn-composition-component.tsx` 33-60); v4 normalizes the data
+ * instead so exports carry the canonical direction.
+ *
+ * Truth table:
+ *  - config → container: no swap (diamond already at the container),
+ *  - container → config: swap,
+ *  - containerA → containerB: swap — diamond lands on the drag-source
+ *    container, matching develop's render-time reversal semantics.
+ *
+ * Non-composition pairs are returned unchanged.
+ */
+export const normalizeNNCompositionEndpoints = <
+  T extends {
+    source: string
+    target: string
+    sourceHandle?: string | null
+    targetHandle?: string | null
+  },
+>(
+  connection: T,
+  sourceType: string | undefined,
+  targetType: string | undefined
+): T => {
+  const resolved = resolveNNEdgeType(sourceType, targetType, "NNNext")
+  if (resolved !== "NNComposition") return connection
+  if (sourceType !== "NNContainer") return connection
+  return {
+    ...connection,
+    source: connection.target,
+    sourceHandle: connection.targetHandle,
+    target: connection.source,
+    targetHandle: connection.sourceHandle,
+  }
+}
+
+const INTERFACE_NODE_TYPES = new Set(["componentInterface", "deploymentInterface"])
+const INTERFACE_EDGE_TYPE = /^(Component|Deployment)(Provided|Required)/
+
+/**
+ * The connection in the direction its edge type requires (a connection
+ * can be dragged either way): the NN container is a composition's target,
+ * the initial marker is the source of the agent's entry edge, an
+ * interface is the target of a provided / required interface edge, and an
+ * artifact is the source of its deployment on a node.
+ */
+export const orientEdgeEndpoints = <
+  T extends {
+    source: string
+    target: string
+    sourceHandle?: string | null
+    targetHandle?: string | null
+  },
+>(
+  type: string,
+  connection: T,
+  sourceType: string | undefined,
+  targetType: string | undefined
+): T => {
+  if (type === "NNComposition") {
+    return normalizeNNCompositionEndpoints(connection, sourceType, targetType)
+  }
+  const reversed =
+    (type === "AgentStateTransitionInit" && targetType === "StateInitialNode") ||
+    (INTERFACE_EDGE_TYPE.test(type) &&
+      INTERFACE_NODE_TYPES.has(sourceType ?? "") &&
+      !INTERFACE_NODE_TYPES.has(targetType ?? "")) ||
+    (type === "DeploymentAssociation" &&
+      sourceType === "deploymentNode" &&
+      targetType === "deploymentArtifact")
+  return reversed
+    ? {
+        ...connection,
+        source: connection.target,
+        sourceHandle: connection.targetHandle,
+        target: connection.source,
+        targetHandle: connection.sourceHandle,
+      }
+    : connection
+}
+
+/**
+ * Auto-detect the AgentDiagram edge type from its endpoints. Mirrors
+ * v3's supported-relationship intersection (`connectable-repository.ts`
+ * + `agent-state.ts` / `uml-state-initial-node.ts`): the initial node
+ * supports `[AgentStateTransitionInit, StateTransition]` and AgentState
+ * supports `[AgentStateTransition, AgentStateTransitionInit, Link]`, so
+ * initial ↔ AgentState (either direction) intersects to
+ * `AgentStateTransitionInit`. Reasoning states are no longer a distinct
+ * type — develop folded them into `AgentState` with
+ * `data.stateType === "reasoning"`, so a reasoning node is still
+ * `type: "AgentState"` and participates in transitions identically
+ * (including being the initial-edge target). Everything else (state ↔ state, anything
+ * touching intents / RAG elements) falls back to the diagram default
+ * `AgentStateTransition`.
+ */
+export const resolveAgentEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  const isInitial = (t?: string) => t === "StateInitialNode"
+  // Reasoning states carry `type: "AgentState"` (only `data.stateType`
+  // differs after develop folded the separate `AgentReasoningState`
+  // type), so `"AgentState"` alone covers both modes.
+  const isAgentState = (t?: string) => t === "AgentState"
+  if (
+    (isInitial(sourceType) &&
+      (isAgentState(targetType) || isInitial(targetType))) ||
+    (isInitial(targetType) && isAgentState(sourceType))
+  ) {
+    return "AgentStateTransitionInit"
+  }
+  return fallback
+}
+
+/**
+ * Diagram-agnostic comment tethering. Drawing a connection where either
+ * endpoint is the free-form `comment` sticky note produces a dashed
+ * `CommentLink` edge — the v4 spelling of v3's
+ * `GeneralRelationshipType.Link` (`uml-link.ts`, rendered dashed by the
+ * association component). comment ↔ comment also links: on develop,
+ * `Comments.supportedRelationships = [Link]` on both ends intersected
+ * to Link.
+ *
+ * Decision (parity superset, recorded here on purpose): develop only
+ * tethered cleanly to elements that listed `GeneralRelationshipType.Link`
+ * (UMLClass, ObjectName, State, AgentState — standard and reasoning,
+ * UserModelName, Comments). Endpoints WITHOUT it (AbstractClass,
+ * Interface, OCL constraint) fell through to the mistyped diagram
+ * default (e.g. `ClassBidirectional`) — a develop bug, not a
+ * capability. The v4 rule is uniform: ANY non-Enumeration node can be
+ * tethered. Enumerations stay blocked upstream by `isValidConnection` /
+ * `canConnectEndpoints` (`bpmnConstraints.ts`), exact develop parity
+ * (`uml-enumeration.ts` set `features.connectable: false`).
+ *
+ * Returns `null` when no comment endpoint is involved so callers fall
+ * through to their per-diagram resolution.
+ */
+export const resolveCommentEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined
+): "CommentLink" | null =>
+  sourceType === "comment" || targetType === "comment" ? "CommentLink" : null
+
+/**
+ * Default `data` payload for a freshly hand-drawn edge. Mirrors what a
+ * v3 relationship instance serialized on creation so the inspector and
+ * the backend processors see the same canonical shape:
+ *
+ *   - `AgentStateTransition` — v3 `agent-state-transition.ts` defaults
+ *     to a predefined `when_intent_matched` transition with an empty
+ *     intent (`transitionType: 'predefined'`, `predefined:
+ *     { predefinedType: 'when_intent_matched', intentName: '' }`,
+ *     `custom: { condition: [] }`, `params: {}`).
+ *   - `AgentStateTransitionInit` — pure marker, only `params`.
+ *   - `NNNext` — v3 `nn-unidirectional.ts` seeds `name = 'next'` in the
+ *     constructor and serializes it verbatim. (`resolveNNEdgeType` may
+ *     instead resolve NNComposition / NNAssociation — those carry no
+ *     name.)
+ *
+ * Everything else returns `undefined` (no data key on the new edge),
+ * matching the previous behavior for class / object / … edges whose
+ * inspectors tolerate missing data.
+ */
+export const getInitialEdgeData = (
+  edgeType: string
+): Record<string, unknown> | undefined => {
+  switch (edgeType) {
+    case "AgentStateTransition":
+      // smart-gen 3d720bdd: a hand-drawn transition starts as 'auto'
+      // (stored transitions without a condition still load as
+      // 'when_intent_matched' via the normalizer).
+      return {
+        transitionType: "predefined",
+        predefined: { predefinedType: "auto" },
+        custom: { condition: [] },
+        params: {},
+      }
+    case "AgentStateTransitionInit":
+      return { params: {} }
+    case "NNNext":
+      return { name: "next" }
+    // Class associations: the editor always writes explicit per-end
+    // navigability (smart-gen bb8624cc / 7d75c20c); a new association is
+    // navigable both ways.
+    case "ClassBidirectional":
+    case "ClassComposition":
+    case "ClassAggregation":
+      return { sourceNavigable: true, targetNavigable: true }
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Compute the auto-filled OCL expression for a constraint node that was
+ * just linked to a class. Port of the v3 post-connect hook in
+ * `connectable-repository.ts` (develop), adapted to the v4 palette seed
+ * which already ships a context clause (`context Class inv: true`):
+ *
+ *   - empty / no `context` clause → seed `context <ClassName> inv: `
+ *     (v3 behavior — it overwrote any text without a context clause).
+ *   - `context <Other> …` → rewrite just the class token, preserving
+ *     the rest of the expression (handles the v4 palette seed and
+ *     re-linking to a different class).
+ *   - `context <ClassName> …` already correct → `null` (no change).
+ *
+ * Returns the new expression, or `null` when nothing should change.
+ */
+export const computeOclAutofillExpression = (
+  currentExpression: string | undefined,
+  className: string
+): string | null => {
+  const trimmed = (currentExpression ?? "").trim()
+  const match = /^context\s+(\S+)([\s\S]*)$/.exec(trimmed)
+  if (!match) {
+    // Empty or no context clause — v3 overwrote with a fresh clause.
+    return `context ${className} inv: `
+  }
+  if (match[1] === className) {
+    return null
+  }
+  return `context ${className}${match[2]}`
+}
+
+/**
+ * Apply the OCL context auto-fill to the node list after a
+ * `ClassOCLLink` was created between `sourceId` and `targetId`. Finds
+ * the `ClassOCLConstraint` endpoint and the class endpoint, computes
+ * the new expression via `computeOclAutofillExpression`, and returns a
+ * new node array with the constraint node's `data.expression` patched —
+ * or `null` when nothing changes (no constraint endpoint, unnamed
+ * class, or the context clause already references the class).
+ */
+export const applyOclContextAutofill = (
+  nodes: Node[],
+  sourceId: string | null | undefined,
+  targetId: string | null | undefined
+): Node[] | null => {
+  const sourceNode = nodes.find((n) => n.id === sourceId)
+  const targetNode = nodes.find((n) => n.id === targetId)
+  const isConstraint = (n?: Node) => n?.type === "ClassOCLConstraint"
+  let constraintNode: Node | undefined
+  let classNode: Node | undefined
+  if (isConstraint(sourceNode) && !isConstraint(targetNode)) {
+    constraintNode = sourceNode
+    classNode = targetNode
+  } else if (isConstraint(targetNode) && !isConstraint(sourceNode)) {
+    constraintNode = targetNode
+    classNode = sourceNode
+  }
+  if (!constraintNode || !classNode) return null
+
+  const className = (
+    (classNode.data as { name?: string } | undefined)?.name ?? ""
+  ).trim()
+  if (!className) return null
+
+  const currentExpression = (
+    constraintNode.data as { expression?: string } | undefined
+  )?.expression
+  const nextExpression = computeOclAutofillExpression(
+    currentExpression,
+    className
+  )
+  if (nextExpression === null) return null
+
+  const constraintId = constraintNode.id
+  return nodes.map((n) =>
+    n.id === constraintId
+      ? { ...n, data: { ...n.data, expression: nextExpression } }
+      : n
+  )
+}
+
+/**
+ * Determines the appropriate connection line type based on the diagram type
+ * @param diagramType - The type of diagram being rendered
+ * @returns The corresponding ConnectionLineType
+ */
+export function getConnectionLineType(
+  diagramType: UMLDiagramType
+): ConnectionLineType {
+  switch (diagramType) {
+    case "UseCaseDiagram":
+    case "SyntaxTree":
+    case "PetriNet":
+      return ConnectionLineType.Straight
+
+    default:
+      return ConnectionLineType.Step
+  }
+}
+
+interface ToolbarRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Length of segment a→b inside `r` (Liang-Barsky clipping). */
+const segmentLengthInside = (a: IPoint, b: IPoint, r: ToolbarRect): number => {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  let t0 = 0
+  let t1 = 1
+  const clip = (p: number, q: number) => {
+    if (p === 0) return q >= 0
+    const t = q / p
+    if (p < 0) {
+      if (t > t1) return false
+      if (t > t0) t0 = t
+    } else {
+      if (t < t0) return false
+      if (t < t1) t1 = t
+    }
+    return true
+  }
+  if (
+    clip(-dx, a.x - r.x) &&
+    clip(dx, r.x + r.width - a.x) &&
+    clip(-dy, a.y - r.y) &&
+    clip(dy, r.y + r.height - a.y)
+  ) {
+    return Math.max(0, t1 - t0) * Math.hypot(dx, dy)
+  }
+  return 0
+}
+
+/** Gap between an edge toolbar and the line / node it must not cover. */
+const TOOLBAR_GAP = 16
+
+/**
+ * Top-left of an edge toolbar (`w` × `h`) beside `mid`: below-right when
+ * that is clear, otherwise the candidate around `mid` that covers the least
+ * of the route (`points`), of node boxes and of where the middle label sits
+ * (above a horizontal line, left of a vertical one).
+ */
+export const placeEdgeToolbar = (
+  mid: IPoint,
+  w: number,
+  h: number,
+  points: readonly IPoint[],
+  rects: readonly ToolbarRect[]
+): IPoint => {
+  const g = TOOLBAR_GAP
+  const candidates: IPoint[] = [
+    { x: mid.x + g, y: mid.y + g },
+    { x: mid.x - w - g, y: mid.y + g },
+    { x: mid.x - w / 2, y: mid.y + g },
+    { x: mid.x + g, y: mid.y - h / 2 },
+    { x: mid.x - w - g, y: mid.y - h / 2 },
+    { x: mid.x + g, y: mid.y - h - g },
+    { x: mid.x - w - g, y: mid.y - h - g },
+    { x: mid.x - w / 2, y: mid.y - h - g },
+  ]
+  // Orientation of the segment closest to the midpoint (label side).
+  let horizontal = true
+  let nearest = Infinity
+  for (let i = 0; i + 1 < points.length; i++) {
+    const a = points[i]
+    const b = points[i + 1]
+    const cx = Math.min(Math.max(mid.x, Math.min(a.x, b.x)), Math.max(a.x, b.x))
+    const cy = Math.min(Math.max(mid.y, Math.min(a.y, b.y)), Math.max(a.y, b.y))
+    const d = Math.hypot(mid.x - cx, mid.y - cy)
+    if (d < nearest) {
+      nearest = d
+      horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y)
+    }
+  }
+  // Containers around the edge (packages, pools) are not in the way.
+  const blockers = rects.filter(
+    (r) => !(mid.x > r.x && mid.x < r.x + r.width && mid.y > r.y && mid.y < r.y + r.height)
+  )
+  let best = candidates[0]
+  let bestCost = Infinity
+  candidates.forEach((c, i) => {
+    const box = { x: c.x - 4, y: c.y - 4, width: w + 8, height: h + 8 }
+    let cost = i * 0.01
+    for (let k = 0; k + 1 < points.length; k++) cost += 10 * segmentLengthInside(points[k], points[k + 1], box)
+    for (const r of blockers) {
+      const ox = Math.min(box.x + box.width, r.x + r.width) - Math.max(box.x, r.x)
+      const oy = Math.min(box.y + box.height, r.y + r.height) - Math.max(box.y, r.y)
+      if (ox > 0 && oy > 0) cost += ox * oy
+    }
+    const labelSide = horizontal ? c.y + h <= mid.y : c.x + w <= mid.x
+    if (labelSide) cost += 40
+    if (cost < bestCost) {
+      bestCost = cost
+      best = c
+    }
+  })
+  return best
+}

@@ -97,6 +97,8 @@ export const SHOW_AGENT_PERSONALIZATION_BUTTON = false;
 export const localStorageProjectPrefix = localStoragePrefix + 'project_';
 export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
+// Per-diagram User Model validation records (app/shell/userModelValidation.ts).
+export const localStorageUserModelValidation = localStoragePrefix + 'user_model_validation';
 
 // Unified LLM BYOK session-storage keys — ONE key for the whole app, read and
 // written only through shared/services/llmKeyStorage.

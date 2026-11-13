@@ -3,21 +3,21 @@ Embedding the Editor
 
 You can reuse the editor in two different ways:
 
-* embed the bare ``ApollonEditor`` class directly inside another application;
+* embed the bare ``BesserEditor`` class directly inside another application;
 * embed the ready-made React components shipped with the webapp when you need
   the same UX (modals, project sidebar, collaboration widgets).
 
 Using the bare editor
 ---------------------
 
-Refer to :doc:`../editor/api` for the core ``ApollonEditor`` workflow. This is
+Refer to :doc:`../editor/api` for the core ``BesserEditor`` workflow. This is
 the lightest option and gives full control over state management, styling, and
 integration points.
 
 Reusing the webapp component
 ----------------------------
 
-``packages/webapp/src/main/features/editors/uml/ApollonEditorComponent.tsx``
+``packages/webapp/src/main/features/editors/uml/BesserEditorComponent.tsx``
 wraps the editor with the Redux slices, autosave logic, and palette that the
 standalone application uses. To integrate it into another React host:
 
@@ -25,7 +25,7 @@ standalone application uses. To integrate it into another React host:
 2. Mount the ``ApplicationStore`` provider (``app/store/application-store``)
    at the root of your host application to configure the Redux store and
    persistence.
-3. Render ``ApollonEditorComponent`` inside the store provider.
+3. Render ``BesserEditorComponent`` inside the store provider.
 4. Use the exported hooks in ``hooks/`` to interact with the
    slices (for example, ``useAppDispatch`` and ``useAppSelector``).
 
@@ -35,12 +35,12 @@ Example
 .. code-block:: tsx
 
    import { ApplicationStore } from 'packages/webapp/src/main/app/store/application-store';
-   import { ApollonEditorComponent } from 'packages/webapp/src/main/features/editors/uml/ApollonEditorComponent';
+   import { BesserEditorComponent } from 'packages/webapp/src/main/features/editors/uml/BesserEditorComponent';
 
    export function EmbeddedEditor() {
      return (
        <ApplicationStore>
-         <ApollonEditorComponent />
+         <BesserEditorComponent />
        </ApplicationStore>
      );
    }
@@ -57,9 +57,10 @@ synchronizing diagram changes between participants.
 Styling and layout
 ------------------
 
-The webapp relies on CSS variables (``--apollon-background``) and global CSS
-defined in ``src/main/styles.css``. When embedding components selectively, make
-sure these variables are set in your host application or import the stylesheet.
+The webapp relies on CSS variables (``--besser-background``,
+``--besser-primary-contrast``) and global CSS defined in ``src/main/styles.css``.
+When embedding components selectively, make sure these variables are set in your
+host application or import the stylesheet.
 
 When extending the layout, prefer using the existing components (application bar
 and sidebar) to stay consistent with the standalone experience.

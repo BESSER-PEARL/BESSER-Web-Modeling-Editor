@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RuntimeSettingsSection } from '../runtime/sections/RuntimeSettingsSection';
+import { installPointerEventPolyfill } from './pointerEventPolyfill';
 import type { AgentRuntimeConfig } from '../../../shared/services/storage/local-storage-repository';
 
 // Radix Select calls scrollIntoView on open, which jsdom may lack.
 beforeAll(() => {
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
+  installPointerEventPolyfill();
 });
 
 const baseConfig = {

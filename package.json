@@ -15,7 +15,7 @@
   "workspaces": [
     "packages/server",
     "packages/webapp",
-    "packages/editor"
+    "packages/library"
   ],
   "scripts": {
     "dev": "npm run start --workspace=webapp",

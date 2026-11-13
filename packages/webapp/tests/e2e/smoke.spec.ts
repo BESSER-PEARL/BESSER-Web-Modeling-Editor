@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chooserHeading, createBlankProject, openCreateProjectForm, openFreshApp, workspaceSidebar } from './helpers/project';
 
 /**
  * Smoke tests — verify the app boots, renders its core shell, and allows
@@ -6,30 +7,22 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Smoke tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
-    });
-    await page.reload();
+    await openFreshApp(page);
   });
 
-  test('app loads and shows the welcome / project hub dialog', async ({ page }) => {
+  test('app loads and shows the first-run "Model it / Describe it" chooser', async ({ page }) => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 15_000 });
-    await expect(dialog.getByText('Welcome to the BESSER Web Modeling Editor')).toBeVisible();
+    await expect(chooserHeading(page)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /model it/i })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /describe it/i })).toBeVisible();
   });
 
   test('can create a new blank project from the hub', async ({ page }) => {
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    const dialog = await openCreateProjectForm(page);
+    await expect(dialog.getByRole('heading', { name: /create a project/i })).toBeVisible();
 
-    await dialog.getByText('Create Blank').click();
-    await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-    const nameInput = dialog.getByLabel(/name/i);
-    await nameInput.clear();
-    await nameInput.fill('E2E_Smoke_Test');
+    await dialog.locator('#project-name').fill('E2E_Smoke_Test');
 
     await dialog.getByRole('button', { name: /create project/i }).click();
     await expect(dialog).toBeHidden({ timeout: 10_000 });
@@ -39,7 +32,7 @@ test.describe('Smoke tests', () => {
     await createBlankProject(page, 'Sidebar_Test');
 
     // WorkspaceSidebar renders an <aside> element.
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // Sidebar has multiple buttons (6 diagram types + settings + collapse toggle = 8+)
@@ -52,15 +45,18 @@ test.describe('Smoke tests', () => {
   test('can switch between diagram types via the sidebar', async ({ page }) => {
     await createBlankProject(page, 'Switch_Diagram_Test');
 
-    const sidebar = page.getByRole('complementary');
+    const sidebar = workspaceSidebar(page);
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-    // Click the second button (Object diagram) — first is Class (default active).
-    const buttons = sidebar.getByRole('button');
-    await buttons.nth(1).click();
+    // Class is active by default; switch to the Object diagram.
+    const classButton = sidebar.getByRole('button', { name: 'Class', exact: true });
+    const objectButton = sidebar.getByRole('button', { name: 'Object', exact: true });
+    await expect(classButton).toHaveAttribute('aria-current', 'page');
+    await objectButton.click();
 
-    // The clicked button should have brand active styling.
-    await expect(buttons.nth(1)).toHaveClass(/border-brand/);
+    // The clicked button becomes the active page; Class no longer is.
+    await expect(objectButton).toHaveAttribute('aria-current', 'page');
+    await expect(classButton).not.toHaveAttribute('aria-current', 'page');
   });
 
   test('header contains logo, file menu, and generate menu', async ({ page }) => {
@@ -72,27 +68,8 @@ test.describe('Smoke tests', () => {
     // Logo image should be present.
     await expect(header.locator('img')).toBeVisible();
 
-    // File and Generate buttons visible (by title attribute).
-    await expect(header.locator('button[title="File"]')).toBeVisible();
-    await expect(header.locator('button[title="Generate"]')).toBeVisible();
+    // File and Generate menu triggers visible (by accessible name).
+    await expect(header.getByRole('button', { name: /^file$/i })).toBeVisible();
+    await expect(header.getByRole('button', { name: /^generate/i })).toBeVisible();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function createBlankProject(page: import('@playwright/test').Page, name: string) {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible({ timeout: 15_000 });
-
-  await dialog.getByText('Create Blank').click();
-  await expect(dialog.getByText('Create A Project')).toBeVisible();
-
-  const nameInput = dialog.getByLabel(/name/i);
-  await nameInput.clear();
-  await nameInput.fill(name);
-
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}

@@ -1,1 +1,1 @@
-export { ApollonEditorContext, ApollonEditorProvider } from './uml/apollon-editor-context';
+export { BesserEditorContext, BesserEditorProvider } from './uml/besser-editor-context';

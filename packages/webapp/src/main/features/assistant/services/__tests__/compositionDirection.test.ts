@@ -16,36 +16,41 @@ import type { BESSERModel } from '../UMLModelingService';
 
 function userModel(): BESSERModel {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: 'm',
+    title: '',
     type: 'ClassDiagram',
-    size: { width: 1400, height: 740 },
-    elements: {
-      class_User: {
+    nodes: [
+      {
         id: 'class_User',
-        name: 'User',
-        type: 'Class',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 220, height: 140 },
-        attributes: ['attr_name', 'attr_street', 'attr_city'],
-        methods: [],
+        type: 'class',
+        position: { x: 0, y: 0 },
+        width: 220,
+        height: 140,
+        measured: { width: 220, height: 140 },
+        data: {
+          name: 'User',
+          methods: [],
+          attributes: [
+            { id: 'attr_name', name: 'name', attributeType: 'str', visibility: 'public' },
+            { id: 'attr_street', name: 'street', attributeType: 'str', visibility: 'public' },
+            { id: 'attr_city', name: 'city', attributeType: 'str', visibility: 'public' },
+          ],
+        },
       },
-      attr_name: { id: 'attr_name', name: 'name', type: 'ClassAttribute', owner: 'class_User', attributeType: 'str' },
-      attr_street: { id: 'attr_street', name: 'street', type: 'ClassAttribute', owner: 'class_User', attributeType: 'str' },
-      attr_city: { id: 'attr_city', name: 'city', type: 'ClassAttribute', owner: 'class_User', attributeType: 'str' },
-    },
-    relationships: {},
-    interactive: { elements: {}, relationships: {} },
+    ],
+    edges: [],
     assessments: {},
   } as unknown as BESSERModel;
 }
 
 const classId = (model: BESSERModel, name: string) =>
-  Object.values(model.elements).find((el: any) => el.type === 'Class' && el.name === name)!.id;
+  (model.nodes as any[]).find((node) => node.type === 'class' && node.data?.name === name)!.id;
 
 const onlyRelationship = (model: BESSERModel) => {
-  const rels = Object.values(model.relationships);
+  const rels = model.edges as any[];
   expect(rels).toHaveLength(1);
-  return rels[0] as any;
+  return rels[0];
 };
 
 describe('composition direction', () => {
@@ -60,10 +65,10 @@ describe('composition direction', () => {
 
     const rel = onlyRelationship(result);
     expect(rel.type).toBe('ClassComposition');
-    expect(rel.target.element).toBe(classId(result, 'User'));
-    expect(rel.source.element).toBe(classId(result, 'Address'));
+    expect(rel.target).toBe(classId(result, 'User'));
+    expect(rel.source).toBe(classId(result, 'Address'));
     // A part belongs to exactly one whole: the whole end is single-valued.
-    expect(rel.target.multiplicity).toBe('1');
+    expect(rel.data.targetMultiplicity).toBe('1');
   });
 
   it('promote_attribute makes the promoted class the part', () => {
@@ -77,9 +82,9 @@ describe('composition direction', () => {
 
     const rel = onlyRelationship(result);
     expect(rel.type).toBe('ClassComposition');
-    expect(rel.target.element).toBe(classId(result, 'User'));
-    expect(rel.source.element).toBe(classId(result, 'Street'));
-    expect(rel.source.navigable).toBe(true);
+    expect(rel.target).toBe(classId(result, 'User'));
+    expect(rel.source).toBe(classId(result, 'Street'));
+    expect(rel.data.sourceNavigable).toBe(true);
   });
 
   it('extract_class with an association keeps the original class as the source', () => {
@@ -93,7 +98,7 @@ describe('composition direction', () => {
 
     const rel = onlyRelationship(result);
     expect(rel.type).toBe('ClassBidirectional');
-    expect(rel.source.element).toBe(classId(result, 'User'));
+    expect(rel.source).toBe(classId(result, 'User'));
   });
 
   it('passes an agent composition through as is: the target class is the whole', () => {
@@ -119,8 +124,8 @@ describe('composition direction', () => {
 
     const rel = onlyRelationship(model as BESSERModel);
     expect(rel.type).toBe('ClassComposition');
-    expect(rel.target.element).toBe(classId(model as BESSERModel, 'Brand'));
-    expect(rel.target.multiplicity).toBe('1');
+    expect(rel.target).toBe(classId(model as BESSERModel, 'Brand'));
+    expect(rel.data.targetMultiplicity).toBe('1');
   });
 
   it('recognises both spellings of the whole/part types', () => {

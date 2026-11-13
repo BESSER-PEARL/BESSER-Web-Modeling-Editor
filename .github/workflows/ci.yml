@@ -30,6 +30,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Lint (errors fail, warnings are reported)
         run: npm run lint
+      - name: Lint the library
+        run: npm run lint --workspace=@besser/wme
       - name: OpenAPI types match the committed schema
         run: |
           npm run api:types --workspace=webapp
@@ -50,16 +52,17 @@ jobs:
         run: npm test --workspace=webapp
       - name: Server tests (vitest)
         run: npm test --workspace=server
+      - name: Library tests (vitest)
+        run: npm test --workspace=@besser/wme
 
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # Errors on develop: 350 when this check was added (300 of them in
-      # packages/editor, type-checked under the webapp's settings), 83 since the
-      # themed SVG shapes declare their colour props. The count may only go down:
-      # lower this number when you fix some.
-      TSC_ERROR_BASELINE: 83
+      # The one error left is in packages/webapp/vitest.config.ts: vitest is typed
+      # against the root vite (6.x, the library's pin), @vitejs/plugin-react against
+      # the webapp's vite 7. The count may only go down.
+      TSC_ERROR_BASELINE: 1
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -93,3 +96,5 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Build (webapp + server)
         run: npm run build
+      - name: Build the library (tsc -b + vite)
+        run: npm run build --workspace=@besser/wme

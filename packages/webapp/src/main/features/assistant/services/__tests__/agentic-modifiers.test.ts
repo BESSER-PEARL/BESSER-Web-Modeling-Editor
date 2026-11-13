@@ -5,43 +5,46 @@ import { DeploymentDiagramModifier } from '../modifiers/DeploymentDiagramModifie
 import type { ModelModification } from '../modifiers/base';
 import type { BESSERModel } from '../UMLModelingService';
 
-const bounds = (x = 0, y = 0) => ({ x, y, width: 100, height: 60 });
-
-const model = (type: string, elements: BESSERModel['elements'], relationships: BESSERModel['relationships'] = {}) =>
-  ({
-    version: '3.0.0',
-    type,
-    size: { width: 800, height: 600 },
-    elements,
-    relationships,
-    interactive: { elements: {}, relationships: {} },
-    assessments: {},
-  }) satisfies BESSERModel;
-
-const flow = (id: string, source: string, target: string) => ({
+const node = (id: string, type: string, name: string, parentId?: string, x = 0) => ({
   id,
-  type: 'BPMNFlow',
-  name: '',
-  owner: null,
-  bounds: bounds(),
-  path: [],
-  source: { element: source, direction: 'Right' },
-  target: { element: target, direction: 'Left' },
-  flowType: 'sequence',
+  type,
+  position: { x, y: 0 },
+  width: 100,
+  height: 60,
+  measured: { width: 100, height: 60 },
+  data: { name },
+  ...(parentId ? { parentId } : {}),
 });
+
+const edge = (id: string, type: string, source: string, target: string) => ({
+  id,
+  type,
+  source,
+  target,
+  sourceHandle: 'right',
+  targetHandle: 'left',
+  data: { name: '', label: '', points: [] },
+});
+
+const model = (type: string, nodes: any[], edges: any[] = []) =>
+  ({ version: '4.0.0', id: '', title: '', type, nodes, edges, assessments: {} }) as unknown as BESSERModel;
+
+const nodeIds = (m: BESSERModel) => ((m as any).nodes as any[]).map((n) => n.id).sort();
+const edgeIds = (m: BESSERModel) => ((m as any).edges as any[]).map((e) => e.id);
+const byName = (m: BESSERModel, name: string) => ((m as any).nodes as any[]).find((n) => n.data?.name === name);
 
 const pooledBpmn = () =>
   model(
     'BPMNDiagram',
-    {
-      pool: { id: 'pool', type: 'BPMNPool', name: 'Shop', owner: null, bounds: bounds() },
-      lane: { id: 'lane', type: 'BPMNSwimlane', name: 'Sales', owner: 'pool', bounds: bounds() },
-      other: { id: 'other', type: 'BPMNSwimlane', name: 'Billing', owner: 'pool', bounds: bounds() },
-      t1: { id: 't1', type: 'BPMNTask', name: 'Quote', owner: 'lane', bounds: bounds() },
-      t2: { id: 't2', type: 'BPMNTask', name: 'Invoice', owner: 'other', bounds: bounds() },
-      outside: { id: 'outside', type: 'BPMNTask', name: 'Outside', owner: null, bounds: bounds() },
-    },
-    { f1: flow('f1', 't1', 't2'), f2: flow('f2', 'outside', 'outside') },
+    [
+      node('pool', 'bpmnPool', 'Shop'),
+      node('lane', 'bpmnSwimlane', 'Sales', 'pool'),
+      node('other', 'bpmnSwimlane', 'Billing', 'pool'),
+      node('t1', 'bpmnTask', 'Quote', 'lane'),
+      node('t2', 'bpmnTask', 'Invoice', 'other'),
+      node('outside', 'bpmnTask', 'Outside'),
+    ],
+    [edge('f1', 'BPMNSequenceFlow', 't1', 't2'), edge('f2', 'BPMNSequenceFlow', 'outside', 'outside')],
   );
 
 const mod = (action: ModelModification['action'], target: ModelModification['target'], changes = {}) =>
@@ -52,14 +55,14 @@ describe('BPMNDiagramModifier pools and lanes', () => {
 
   it('removing a lane removes its tasks and the flows touching them', () => {
     const result = modifier.applyModification(pooledBpmn(), mod('remove_swimlane', { swimlaneName: 'Sales' }));
-    expect(Object.keys(result.elements).sort()).toEqual(['other', 'outside', 'pool', 't2']);
-    expect(Object.keys(result.relationships)).toEqual(['f2']);
+    expect(nodeIds(result)).toEqual(['other', 'outside', 'pool', 't2']);
+    expect(edgeIds(result)).toEqual(['f2']);
   });
 
   it('removing a pool removes its lanes, their contents and their flows', () => {
     const result = modifier.applyModification(pooledBpmn(), mod('remove_pool', { poolName: 'Shop' }));
-    expect(Object.keys(result.elements)).toEqual(['outside']);
-    expect(Object.keys(result.relationships)).toEqual(['f2']);
+    expect(nodeIds(result)).toEqual(['outside']);
+    expect(edgeIds(result)).toEqual(['f2']);
   });
 
   it('throws for a lane or pool that does not exist', () => {
@@ -79,14 +82,51 @@ describe('BPMNDiagramModifier pools and lanes', () => {
 
   it('adds a plain lane unless the change asks for an agentic one', () => {
     const plain = modifier.applyModification(pooledBpmn(), mod('add_swimlane', { nodeName: 'Ops' }, { poolName: 'Shop' }));
-    const plainLane = Object.values(plain.elements).find((el) => el.name === 'Ops');
-    expect(plainLane).toMatchObject({ owner: 'pool', isAgentic: false });
+    expect(byName(plain, 'Ops')).toMatchObject({ type: 'bpmnSwimlane', parentId: 'pool' });
+    expect(byName(plain, 'Ops').data).not.toHaveProperty('isAgentic');
 
     const agentic = modifier.applyModification(
       pooledBpmn(),
       mod('add_swimlane', { nodeName: 'Bot' }, { poolName: 'Shop', isAgentic: true }),
     );
-    expect(Object.values(agentic.elements).find((el) => el.name === 'Bot')).toMatchObject({ isAgentic: true });
+    expect(byName(agentic, 'Bot')).toMatchObject({ data: { isAgentic: true } });
+  });
+
+  it('migrates a legacy lane role and clamps lane numbers', () => {
+    const added = modifier.applyModification(
+      pooledBpmn(),
+      mod('add_swimlane', { nodeName: 'Boss' }, { poolName: 'Shop', isAgentic: true, role: 'manager', trustScore: 150, multiplicity: 0 }),
+    );
+    expect(byName(added, 'Boss').data).toMatchObject({ role: 'supervision', trustScore: 100, multiplicity: 1 });
+
+    const modified = modifier.applyModification(
+      pooledBpmn(),
+      mod('modify_swimlane', { swimlaneName: 'Sales' }, { isAgentic: true, role: 'worker', trustScore: -5, multiplicity: 3 }),
+    );
+    expect(byName(modified, 'Sales').data).toMatchObject({ role: 'solution', trustScore: 0, multiplicity: 3 });
+  });
+
+  it('puts a task added to a lane inside that lane', () => {
+    const result = modifier.applyModification(pooledBpmn(), mod('add_task', { nodeName: 'Ship' }, { owner: 'Billing' }));
+    const task = byName(result, 'Ship');
+    expect(task.parentId).toBe('other');
+    const lane = byName(result, 'Billing');
+    expect(task.position.x + task.width).toBeLessThanOrEqual(lane.width);
+  });
+
+  it('makes a flow between different pools a message flow', () => {
+    const twoPools = model('BPMNDiagram', [
+      node('p1', 'bpmnPool', 'Customer'),
+      { ...node('p2', 'bpmnPool', 'Shop'), position: { x: 0, y: 300 } },
+      node('a', 'bpmnTask', 'Order', 'p1'),
+      node('b', 'bpmnTask', 'Receive', 'p2'),
+    ]);
+    const result = modifier.applyModification(twoPools, mod('add_flow', {}, { source: 'Order', target: 'Receive' }));
+    expect((result as any).edges[0]).toMatchObject({
+      type: 'BPMNMessageFlow',
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+    });
   });
 });
 
@@ -95,18 +135,18 @@ describe('ComponentDiagramModifier', () => {
   const components = () =>
     model(
       'ComponentDiagram',
-      {
-        sub: { id: 'sub', type: 'Subsystem', name: 'Core', owner: null, bounds: bounds() },
-        c1: { id: 'c1', type: 'Component', name: 'Planner', owner: 'sub', bounds: bounds() },
-        c2: { id: 'c2', type: 'Component', name: 'Gateway', owner: null, bounds: bounds(200) },
-      },
-      { d1: { id: 'd1', type: 'ComponentDependency', source: { element: 'c2' }, target: { element: 'c1' } } },
+      [
+        node('sub', 'componentSubsystem', 'Core'),
+        node('c1', 'component', 'Planner', 'sub'),
+        node('c2', 'component', 'Gateway', undefined, 200),
+      ],
+      [edge('d1', 'ComponentDependency', 'c2', 'c1')],
     );
 
   it('removing a Subsystem removes its Components and their dependencies', () => {
     const result = modifier.applyModification(components(), mod('remove_element', { elementName: 'Core' }));
-    expect(Object.keys(result.elements)).toEqual(['c2']);
-    expect(result.relationships).toEqual({});
+    expect(nodeIds(result)).toEqual(['c2']);
+    expect(edgeIds(result)).toEqual([]);
   });
 
   it('throws for elements and dependencies that do not exist', () => {
@@ -117,6 +157,27 @@ describe('ComponentDiagramModifier', () => {
       modifier.applyModification(components(), mod('remove_dependency', {}, { source: 'Planner', target: 'Gateway' })),
     ).toThrow(/No dependency/);
   });
+
+  it('adds a component inside the named Subsystem and a stereotyped dependency', () => {
+    let result = modifier.applyModification(
+      components(),
+      mod('add_component', { elementName: 'Reviewer' }, { owner: 'Core', stereotype: 'supervision' }),
+    );
+    result = modifier.applyModification(
+      result,
+      mod('add_dependency', {}, { source: 'Reviewer', target: 'Planner', dependencyStereotype: 'supervises' }),
+    );
+    const reviewer = byName(result, 'Reviewer');
+    expect(reviewer).toMatchObject({ type: 'component', parentId: 'sub', data: { stereotype: 'supervision' } });
+    const sub = byName(result, 'Core');
+    expect(reviewer.position.y + reviewer.height).toBeLessThanOrEqual(sub.height);
+    expect((result as any).edges.at(-1)).toMatchObject({
+      type: 'ComponentDependency',
+      source: reviewer.id,
+      target: 'c1',
+      data: { stereotype: 'supervises' },
+    });
+  });
 });
 
 describe('DeploymentDiagramModifier', () => {
@@ -125,22 +186,30 @@ describe('DeploymentDiagramModifier', () => {
   it('removing a Node removes its artifacts and their relationships', () => {
     const deployment = model(
       'DeploymentDiagram',
-      {
-        node: { id: 'node', type: 'DeploymentNode', name: 'Server', owner: null, bounds: bounds() },
-        art: { id: 'art', type: 'DeploymentArtifact', name: 'app.jar', owner: 'node', bounds: bounds() },
-        other: { id: 'other', type: 'DeploymentNode', name: 'DB', owner: null, bounds: bounds(300) },
-      },
-      { d1: { id: 'd1', type: 'DeploymentDependency', source: { element: 'art' }, target: { element: 'other' } } },
+      [
+        node('node', 'deploymentNode', 'Server'),
+        node('art', 'deploymentArtifact', 'app.jar', 'node'),
+        node('other', 'deploymentNode', 'DB', undefined, 300),
+      ],
+      [edge('d1', 'DeploymentDependency', 'art', 'other')],
     );
     const result = modifier.applyModification(deployment, mod('remove_element', { elementName: 'Server' }));
-    expect(Object.keys(result.elements)).toEqual(['other']);
-    expect(result.relationships).toEqual({});
+    expect(nodeIds(result)).toEqual(['other']);
+    expect(edgeIds(result)).toEqual([]);
   });
 
   it('throws when an artifact names a Node that does not exist', () => {
-    const empty = model('DeploymentDiagram', {});
+    const empty = model('DeploymentDiagram', []);
     expect(() => modifier.applyModification(empty, mod('add_artifact', { elementName: 'a' }, { owner: 'Nope' }))).toThrow(
       /not found/,
     );
+  });
+
+  it('stacks an artifact inside the named Node', () => {
+    const withNode = model('DeploymentDiagram', [node('node', 'deploymentNode', 'Server')]);
+    const result = modifier.applyModification(withNode, mod('add_artifact', { elementName: 'app.jar' }, { owner: 'Server' }));
+    const artifact = byName(result, 'app.jar');
+    expect(artifact).toMatchObject({ type: 'deploymentArtifact', parentId: 'node', data: { manifests: [] } });
+    expect(artifact.position.y + artifact.height).toBeLessThanOrEqual(byName(result, 'Server').height);
   });
 });

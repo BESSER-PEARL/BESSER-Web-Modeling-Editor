@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { BesserEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { reportError } from '../../shared/services/errors/reportError';
@@ -10,12 +10,28 @@ import { ApiError } from '../../shared/api/api-client';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { ExportOutcome } from './exportOutcome';
 
+/**
+ * Download name for a diagram's B-UML export: the diagram's title (the
+ * backend's generic `domain_model.py` would make every export look alike),
+ * keeping the backend's file extension when it sends one.
+ */
+export const bumlExportFilename = (
+  diagramTitle: string,
+  modelType: string | undefined,
+  contentDisposition: string | null,
+): string => {
+  const backendName = contentDisposition?.match(/filename="?([^";]+)"?/)?.[1]?.trim();
+  const extension = backendName?.match(/\.[a-z0-9]+$/i)?.[0] ?? '.py';
+  const base = diagramTitle.trim().toLowerCase().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') || 'exported_buml';
+  return `${base}${modelType === 'ObjectDiagram' ? '_object' : ''}${extension}`;
+};
+
 export const useExportBUML = () => {
   const downloadFile = useFileDownload();
   const { t } = useTranslation();
 
   const exportBUML = useCallback(
-    async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel): Promise<ExportOutcome> => {
+    async (editor: BesserEditor, diagramTitle: string, referenceDiagramData?: UMLModel): Promise<ExportOutcome> => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         reportError(validationResult.message || t('export.toasts.validationFailed'));
@@ -37,25 +53,7 @@ export const useExportBUML = () => {
           ...(referenceDiagramData ? { referenceDiagramData } : {}),
         });
 
-        const contentDisposition = headers.get('Content-Disposition');
-        let filename = 'exported_buml.py';
-
-        if (contentDisposition) {
-          const patterns = [/filename="([^"]+)"/, /filename=([^;\s]+)/, /filename="?([^";\s]+)"?/];
-          for (const pattern of patterns) {
-            const match = contentDisposition.match(pattern);
-            if (match) {
-              filename = match[1];
-              break;
-            }
-          }
-        } else {
-          if (editor.model.type === 'ObjectDiagram') {
-            filename = `${diagramTitle.toLowerCase().replace(/\s+/g, '_')}_object.py`;
-          } else {
-            filename = `${diagramTitle.toLowerCase().replace(/\s+/g, '_')}.py`;
-          }
-        }
+        const filename = bumlExportFilename(diagramTitle, editor.model.type, headers.get('Content-Disposition'));
 
         downloadFile({ file: blob, filename });
         toast.success(t('export.toasts.bumlExportSuccess'));

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { createBlankProject } from './helpers/project';
 
 /**
  * E2E: the FULL Spec-Driven Agent conversation, driven through the real editor
@@ -50,7 +51,7 @@ const SSE_STREAM =
   `data: ${JSON.stringify({ event: 'start', runId: RUN_ID, provider: 'free', llmModel: 'qwen3-coder:30b', maxCost: 1, maxRuntime: 600 })}\n\n` +
   `data: ${JSON.stringify({ event: 'phase', phase: 'select', message: 'Selecting generator' })}\n\n` +
   `data: ${JSON.stringify({ event: 'phase', phase: 'generate', message: 'Running deterministic generator' })}\n\n` +
-  `data: ${JSON.stringify({ event: 'done', runId: RUN_ID, downloadUrl: `/besser_api/download-smart/${RUN_ID}`, fileName: 'task_app.zip', isZip: true, recipe: { generator_used: 'backend' } })}\n\n`;
+  `data: ${JSON.stringify({ event: 'done', runId: RUN_ID, downloadUrl: `/besser_api/spec-driven/download/${RUN_ID}`, fileName: 'task_app.zip', isZip: true, recipe: { generator_used: 'backend' } })}\n\n`;
 
 const FREE_CONFIG = {
   caps: { max_cost_usd_hard_cap: 2, max_runtime_seconds_hard_cap: 900, default_max_cost_usd: 1, default_max_runtime_seconds: 600 },
@@ -77,25 +78,18 @@ function userText(raw: string): string {
   }
 }
 
-async function createBlankProject(page: Page, name: string): Promise<void> {
-  const dialog = page.getByRole('dialog');
-  await dialog.getByText('Create Blank').click();
-  await dialog.getByLabel(/name/i).fill(name);
-  await dialog.getByRole('button', { name: /create project/i }).click();
-  await expect(dialog).toBeHidden({ timeout: 10_000 });
-}
 
 test('full conversation (no AI): request → model → GUI → PAUSE → generate → done', async ({ page }) => {
   let smartGenBody: Record<string, unknown> | null = null;
 
-  await page.route('**/besser_api/smart-gen/config', (route) =>
+  await page.route('**/besser_api/spec-driven/config', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FREE_CONFIG) }),
   );
-  await page.route('**/besser_api/smart-generate', (route) => {
+  await page.route('**/besser_api/spec-driven/generate', (route) => {
     smartGenBody = route.request().postDataJSON() as Record<string, unknown>;
     route.fulfill({ status: 200, contentType: 'text/event-stream', body: SSE_STREAM });
   });
-  await page.route(`**/besser_api/download-smart/${RUN_ID}`, (route) =>
+  await page.route(`**/besser_api/spec-driven/download/${RUN_ID}`, (route) =>
     route.fulfill({ status: 200, contentType: 'application/zip', body: Buffer.from('PK\x03\x04 fake-zip') }),
   );
 
@@ -175,8 +169,8 @@ test('full conversation (no AI): request → model → GUI → PAUSE → generat
   await composer.press('Enter');
 
   // 1 — the CLASS MODEL rendered on the canvas.
-  await expect(page.locator('svg text').getByText('Task', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('svg text').getByText('Project', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.react-flow__node').getByText('Task', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.react-flow__node').getByText('Project', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/spec is ready/i).first()).toBeVisible();
 
   // 2 — the GUI-choice prompt appears; pick Auto-generate.

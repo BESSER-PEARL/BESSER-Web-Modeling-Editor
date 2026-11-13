@@ -20,7 +20,7 @@ import { syncProjectFromStorage, workspaceReducer } from '../../../../app/store/
 import { createDefaultProject, type BesserProject } from '../../../../shared/types/project';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven';
-import { ApollonEditorProvider } from '../../../editors';
+import { BesserEditorProvider } from '../../../editors';
 
 const _client = vi.hoisted(() => ({
   messageHandlers: [] as Array<(m: ChatMessage) => void>,
@@ -157,10 +157,10 @@ function renderTwoSurfaces() {
   });
   const tree = (showWidget: boolean) => (
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Surface apiRef={drawer} />
         {showWidget && <Surface apiRef={widget} />}
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>
   );
   const { rerender } = render(tree(true));
@@ -351,16 +351,14 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
 describe('useAssistantLogic keeps the conversation with the project (BESSER#745)', () => {
   function renderWithProject(project: BesserProject) {
     const workspace = { ...workspaceReducer(undefined, { type: 'init' }), project };
-    const store = configureStore({
-      reducer: { workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer },
-      preloadedState: { workspace } as never,
-    });
+    const reducer = combineReducers({ workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer });
+    const store = configureStore({ reducer, preloadedState: { workspace } });
     const api: { current: SurfaceAPI | null } = { current: null };
     render(
       <Provider store={store}>
-        <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+        <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
           <Surface apiRef={api} />
-        </ApollonEditorProvider>
+        </BesserEditorProvider>
       </Provider>,
     );
     return { store, api };
@@ -418,10 +416,10 @@ describe('a project switch with the widget and the drawer both mounted', () => {
     const widget: { current: SurfaceAPI | null } = { current: null };
     render(
       <Provider store={store}>
-        <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+        <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
           <Surface apiRef={drawer} />
           <Surface apiRef={widget} />
-        </ApollonEditorProvider>
+        </BesserEditorProvider>
       </Provider>,
     );
     act(() => {

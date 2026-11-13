@@ -7,41 +7,82 @@ import type { UMLModel } from '@besser/wme';
  * structural change flips the hash.
  *
  * Canonicalisation strategy:
- *  - object keys sorted at every level (so insertion order doesn't
- *    matter — the editor reorders elements over a session)
- *  - irrelevant runtime metadata (`interactive`, `assessments`)
- *    excluded so cosmetic state doesn't trigger false staleness
- *  - element bounds rounded to integer (sub-pixel drift on save/load
- *    shouldn't count as "source changed")
+ *  - object keys sorted at every level and nodes / edges sorted by id
+ *    (so insertion order doesn't matter — the editor reorders them over
+ *    a session)
+ *  - only the persisted node / edge fields are hashed: runtime state
+ *    (`selected`, `dragging`, `measured`, ...), `interactive`,
+ *    `assessments` and the diagram `id` / `title` never trigger staleness
+ *  - positions, sizes and edge points rounded to integer (sub-pixel
+ *    drift on save/load shouldn't count as "source changed")
  */
 export function hashUmlModel(model: UMLModel): string {
   const canonical = canonicalize(stripVolatile(model));
   return djb2(JSON.stringify(canonical));
 }
 
-function stripVolatile(model: UMLModel): Partial<UMLModel> {
-  const { type, version, elements, relationships } = model;
-  return {
-    type,
-    version,
-    elements: roundBoundsRecursively(elements),
-    relationships: roundBoundsRecursively(relationships),
-  } as Partial<UMLModel>;
+const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+const roundPoint = (p: { x: number; y: number }) => ({ x: Math.round(p.x), y: Math.round(p.y) });
+
+function stripVolatile(model: UMLModel): unknown {
+  const { type, version } = model;
+  const nodes = [...(model.nodes ?? [])].sort(byId).map((node) => ({
+    id: node.id,
+    type: node.type,
+    parentId: node.parentId,
+    position: roundPoint(node.position),
+    width: Math.round(node.width ?? 0),
+    height: Math.round(node.height ?? 0),
+    data: node.data,
+  }));
+  const edges = [...(model.edges ?? [])].sort(byId).map((edge) => {
+    const data = edge.data ?? { points: [] };
+    return {
+      id: edge.id,
+      type: edge.type,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      data: { ...data, points: Array.isArray(data.points) ? data.points.map(roundPoint) : [] },
+    };
+  });
+  return { type, version, nodes, edges };
 }
 
-function roundBoundsRecursively<T extends Record<string, unknown>>(map: T): T {
+type LegacyV3Model = {
+  type?: unknown;
+  version?: unknown;
+  elements?: Record<string, unknown>;
+  relationships?: Record<string, unknown>;
+};
+
+/**
+ * The hash the v3 editor stamped on `derivedFrom.sourceModelHash`, over the v3
+ * `elements` / `relationships` records (bounds rounded). Only used while
+ * lifting a stored v3 source to v4, to restamp derived diagrams that were in
+ * sync with it.
+ */
+export function hashLegacyV3Model(model: LegacyV3Model): string {
+  const { type, version, elements = {}, relationships = {} } = model;
+  const stripped = { type, version, elements: roundBounds(elements), relationships: roundBounds(relationships) };
+  return djb2(JSON.stringify(canonicalize(stripped)));
+}
+
+function roundBounds(map: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(map)) {
-    if (v && typeof v === 'object' && 'bounds' in (v as object)) {
-      const cv = v as { bounds?: { x: number; y: number; width: number; height: number } };
+    if (v && typeof v === 'object' && 'bounds' in v) {
+      const bounds = (v as { bounds?: { x: number; y: number; width: number; height: number } }).bounds;
       out[k] = {
         ...v,
-        bounds: cv.bounds
+        bounds: bounds
           ? {
-              x: Math.round(cv.bounds.x),
-              y: Math.round(cv.bounds.y),
-              width: Math.round(cv.bounds.width),
-              height: Math.round(cv.bounds.height),
+              x: Math.round(bounds.x),
+              y: Math.round(bounds.y),
+              width: Math.round(bounds.width),
+              height: Math.round(bounds.height),
             }
           : undefined,
       };
@@ -49,7 +90,7 @@ function roundBoundsRecursively<T extends Record<string, unknown>>(map: T): T {
       out[k] = v;
     }
   }
-  return out as T;
+  return out;
 }
 
 function canonicalize(value: unknown): unknown {

@@ -24,8 +24,9 @@ const project = {
         title: 'Acme',
         model: {
           type: 'ClassDiagram',
-          elements: { a: { type: 'Class' }, b: { type: 'ClassAttribute' } },
-          relationships: { r: {} },
+          version: '4.0.0',
+          nodes: [{ id: 'a', type: 'class', data: { attributes: [{ id: 'b' }] } }],
+          edges: [{ id: 'r' }],
         },
       },
     ],

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { UMLModel } from '@besser/wme';
-import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
+import { isUMLModel, type BesserProject, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import {
   addDiagramThunk,
@@ -11,8 +11,8 @@ import {
 } from '../../app/store/workspaceSlice';
 import type { DiagramLineage } from '../../shared/types/project';
 import { componentModelToDeploymentModel } from './component-to-deployment';
-import { hashUmlModel } from '../../shared/utils/lineageHash';
 import type { DeploymentDerivationResult } from './types';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 /**
  * Generate a Deployment diagram from the active Component diagram.
@@ -81,7 +81,7 @@ export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivati
  *
  * Returns `{}` (every artifact keeps its plain name) when the Component diagram is
  * hand-built (no `derivedFrom`), has no lineage entry, the BPMN diagram is gone, or
- * no lane has a count > 1. Only `BPMNSwimlane` sources with `multiplicity > 1` are
+ * no lane has a count > 1. Only `bpmnSwimlane` sources with `multiplicity > 1` are
  * recorded — pool/flow lineage entries and Components that resolve to N==1 are skipped.
  */
 function resolveLaneMultiplicities(
@@ -96,17 +96,17 @@ function resolveLaneMultiplicities(
   if (!lineage || !bpmnDiagramId) return out;
 
   const bpmnDiagram = project.diagrams.BPMN?.find((d) => d.id === bpmnDiagramId);
-  const bpmnModel = bpmnDiagram?.model as UMLModel | undefined;
-  if (!bpmnModel?.elements) return out;
+  if (!bpmnDiagram || !isUMLModel(bpmnDiagram.model) || !isUMLModel(componentDiagram.model)) return out;
 
-  const componentElements = (componentDiagram.model as UMLModel | undefined)?.elements ?? {};
+  const componentNodes = new Map(componentDiagram.model.nodes.map((n) => [n.id, n]));
+  const bpmnNodes = new Map(bpmnDiagram.model.nodes.map((n) => [n.id, n]));
 
   for (const [componentElementId, sourceElementId] of Object.entries(lineage)) {
-    // Only Component elements carry a swarm count; skip Subsystem←Pool / edge←flow rows.
-    if (componentElements[componentElementId]?.type !== 'Component') continue;
-    const laneEl = bpmnModel.elements[sourceElementId] as { type?: string; multiplicity?: number } | undefined;
-    if (laneEl?.type !== 'BPMNSwimlane') continue;
-    const n = laneEl.multiplicity ?? 1;
+    // Only Component nodes carry a swarm count; skip Subsystem←Pool / edge←flow rows.
+    if (componentNodes.get(componentElementId)?.type !== 'component') continue;
+    const lane = bpmnNodes.get(sourceElementId);
+    if (lane?.type !== 'bpmnSwimlane') continue;
+    const n = typeof lane.data.multiplicity === 'number' ? lane.data.multiplicity : 1;
     if (n > 1) out[componentElementId] = n;
   }
 

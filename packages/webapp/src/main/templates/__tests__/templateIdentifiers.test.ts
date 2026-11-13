@@ -15,8 +15,15 @@ function unmarkedIds(node: unknown, out: string[]): string[] {
     node.forEach((child) => unmarkedIds(child, out));
   } else if (node && typeof node === 'object') {
     const obj = node as any;
-    if (obj.type === 'ClassAttribute' && typeof obj.name === 'string' && obj.name.trim() === 'id' && !obj.isId) {
+    const isUnmarkedId = (attribute: any) =>
+      typeof attribute?.name === 'string' && attribute.name.trim() === 'id' && !attribute.isId;
+    // v3: a ClassAttribute element pointing at its owner.
+    if (obj.type === 'ClassAttribute' && isUnmarkedId(obj)) {
       out.push(String(obj.owner));
+    }
+    // v4: the attribute rows on a class node's data.
+    if (Array.isArray(obj.data?.attributes) && obj.data.attributes.some(isUnmarkedId)) {
+      out.push(String(obj.id));
     }
     Object.values(obj).forEach((child) => unmarkedIds(child, out));
   }

@@ -51,16 +51,23 @@ packages via npm workspaces.
 
 .. note::
    There is **no ``test`` script at the workspace root**. Tests live in the
-   webapp and server packages — see below, or run them with
-   ``npm run test --workspace=webapp`` and ``npm run test --workspace=server``.
+   webapp, server and library packages — see below, or run them with
+   ``npm run test --workspace=webapp``, ``--workspace=server`` and
+   ``--workspace=@besser/wme``.
 
 Package-specific scripts
 ------------------------
 
-Editor (``packages/editor``)
-   * ``npm run lint`` – ESLint for the editor package.
-   * ``npm run lint:ts`` / ``lint:css`` – TypeScript and styled-components linting.
-   * ``npm run prettier:*`` – Formatting helpers scoped to the editor source.
+Library (``packages/library``)
+   * ``npm run dev`` – Vite dev server for the library on its own.
+   * ``npm run build`` – Type-checks (``tsc -b``) and bundles the library into ``dist``.
+   * ``npm run lint`` / ``lint:fix`` – ESLint for the library package.
+   * ``npm run test`` – Vitest unit tests (jsdom).
+   * ``npm run test:watch`` / ``test:coverage`` – Watch mode and coverage report.
+   * ``npm run typecheck:tests`` – Type-checks the test files.
+
+   Run these from ``packages/library``, or from the root with
+   ``--workspace=@besser/wme``.
 
 Webapp (``packages/webapp``)
    * ``npm run start`` / ``npm run dev`` – Vite dev server on port 8080.

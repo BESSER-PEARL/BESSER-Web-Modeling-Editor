@@ -81,22 +81,18 @@ describe('Multi-agent Bug Fixing template', () => {
     const coder = first.diagrams.AgentDiagram.find((diagram) => diagram.title === 'AgentCoder')!;
     const reviewer = first.diagrams.AgentDiagram.find((diagram) => diagram.title === 'AgentReviewer')!;
     const model = reviewer.model as any;
-    const names = new Map(Object.entries(model.elements).map(([id, element]: [string, any]) => [id, element.name]));
-    const intake = Object.values(model.relationships).filter(
-      (relationship: any) => names.get(relationship.source.element) === 'AgentReviewer_greet',
-    ) as any[];
-    expect(intake.map((relationship) => names.get(relationship.target.element))).toEqual([
-      'Label_report', 'Address_merge_decision',
-    ]);
-    expect(intake[0].custom).toEqual({ event: 'ReceiveTextEvent', condition: [] });
-    expect(intake[1].name).toContain(`ref=${coder.id};flow=gw-merge`);
+    const names = new Map(model.nodes.map((node: any) => [node.id, node.data.name]));
+    // Edge order is transition priority.
+    const intake = model.edges.filter((edge: any) => names.get(edge.source) === 'AgentReviewer_greet') as any[];
+    expect(intake.map((edge) => names.get(edge.target))).toEqual(['Label_report', 'Address_merge_decision']);
+    expect(intake[0].data.custom).toEqual({ event: 'ReceiveTextEvent', condition: [] });
+    expect(intake[1].data.name).toContain(`ref=${coder.id};flow=gw-merge`);
     expect(reviewer.config?.agentPlatformUseStreamlit).toBe(true);
     expect(coder.config?.agentPlatformUseStreamlit).toBe(false);
 
-    const components = Object.values((first.diagrams.ComponentDiagram[0].model as any).elements) as any[];
-    expect(components.find((element) => element.name === 'AgentReviewer').agentModelRef).toBe(reviewer.id);
-    const deployed = Object.values((first.diagrams.DeploymentDiagram[0].model as any).elements) as any[];
-    expect(deployed.find((element) => element.name === 'AgentCoder [2]').agentModelRef).toBe(coder.id);
+    const nodeNamed = (diagram: any, name: string) => diagram.model.nodes.find((node: any) => node.data.name === name);
+    expect(nodeNamed(first.diagrams.ComponentDiagram[0], 'AgentReviewer').data.agentModelRef).toBe(reviewer.id);
+    expect(nodeNamed(first.diagrams.DeploymentDiagram[0], 'AgentCoder [2]').data.agentModelRef).toBe(coder.id);
   });
 
   it('shows the new section and loads its entire project from the dialog', async () => {

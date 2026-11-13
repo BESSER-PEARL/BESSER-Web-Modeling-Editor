@@ -78,7 +78,7 @@ export const ConstraintSpecsEditor: React.FC<ConstraintSpecsEditorProps> = ({
   return (
     <div className="space-y-3 border-t border-border/60 pt-3">
       <div className="flex items-baseline justify-between gap-2">
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Label className="text-xs font-semibold text-muted-foreground">
           {t('editors.kg.constraints.editor.heading', { count: specs.length })}
         </Label>
         {targetName && (

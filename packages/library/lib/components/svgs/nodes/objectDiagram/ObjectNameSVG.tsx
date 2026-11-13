@@ -1,0 +1,195 @@
+import { ClassNodeElement, ClassType, ObjectNodeProps } from "@/types"
+import { LAYOUT } from "@/constants"
+import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
+import { HeaderSection } from "../HeaderSection"
+import { RowBlockSection } from "../RowBlockSection"
+import { useDiagramStore } from "@/store"
+import { useSettingsStore } from "@/store/settingsStore"
+import { useShallow } from "zustand/shallow"
+import AssessmentIcon from "../../AssessmentIcon"
+import { SVGComponentProps } from "@/types/SVG"
+import { StyledRect } from "@/components"
+import { getCustomColorsFromData } from "@/utils"
+import { diagramBridge } from "@/services/diagramBridge"
+import { IconImage } from "../IconImage"
+
+interface Props extends SVGComponentProps {
+  data: ObjectNodeProps
+}
+
+/**
+ * Resolve the canvas header label for an object instance — v3 parity
+ * with `uml-object-name-component.tsx`:
+ *
+ *   `${element.name}${className ? ` : ${className}` : ''}`
+ *
+ * The class name resolves **live** from the diagram bridge (so a class
+ * rename in the sibling ClassDiagram is reflected the next time the
+ * object diagram renders), falling back to the cached `data.className`
+ * only when the bridge has no class data at all (e.g. standalone diagrams
+ * imported without their ClassDiagram). A linked id missing from present
+ * class data means the class was deleted, and its name is dropped.
+ */
+export function resolveObjectHeaderLabel(data: {
+  name: string
+  classId?: string
+  className?: string
+}): string {
+  let className: string | undefined = data.className
+  if (data.classId) {
+    try {
+      // Class data present but the id gone = the class was deleted.
+      if (diagramBridge.hasClassDiagramData()) {
+        className = diagramBridge.getClassById(data.classId)?.name
+      }
+    } catch {
+      // Keep the cached name.
+    }
+  }
+  return className ? `${data.name} : ${className}` : data.name
+}
+
+export const ObjectNameSVG = ({
+  id,
+  width,
+  height,
+  data,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  showAssessmentResults = false,
+}: Props) => {
+  const { attributes, icon, stereotype } = data
+  // V3 ObjectName extends UMLClassifier and renders a
+  // `«stereotype»` band above the underlined name when set (see
+  // `uml-object-name-component.tsx:104-120`). Falsy => no band.
+  const hasStereotype = !!stereotype
+  const headerHeight = hasStereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
+  const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
+  const padding = LAYOUT.DEFAULT_PADDING
+
+  const assessments = useDiagramStore(useShallow((state) => state.assessments))
+
+  // Respect the global icon-view toggle (settingsService key
+  // `showIconView`). When enabled, the card shows its header and the stored
+  // icon (if any) instead of the attributes table — develop's icon view hid
+  // the rows even for objects whose class has no icon
+  // (`uml-object-name-component.tsx` renderIconView).
+  const iconViewActive = useSettingsStore((s) => s.showIconView)
+  const hasIcon = typeof icon === "string" && icon.trim() !== ""
+
+  // `showInstancedObjects` is a *palette composition*
+  // toggle in v3 (`object-preview.ts` gates which cards the sidebar
+  // composes) — it never hides rows on an already-rendered card.
+  // The palette gate now lives in `objectDiagramPalette.ts`
+  // (`getObjectDiagramPaletteEntries`), restoring the setting's
+  // original meaning; attribute rows render whenever present. Object
+  // instances never render a methods section — UML object diagrams
+  // show data values, not types.
+  const showAttributes = attributes.length > 0
+
+  const processElements = (elements: ClassNodeElement[]) =>
+    elements.map((el) => {
+      const score = assessments[el.id]?.score
+      return { ...el, score }
+    })
+
+  const processedAttributes = processElements(attributes)
+  const nodeScore = assessments[id]?.score
+
+  const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
+
+  return (
+    <svg
+      width={scaledWidth}
+      height={scaledHeight}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <g>
+        {/* Outer Rectangle */}
+        <StyledRect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          stroke={strokeColor}
+        />
+
+        {/* Header Section - Object name with underline, shown as
+            `name : ClassName` when the instance links a class (v3
+            `uml-object-name-component.tsx` displayLabel). Stereotype
+            band renders only when `data.stereotype` is set. The
+            HeaderSection prop expects ClassType, but v3 stored arbitrary
+            string stereotypes on object instances — cast through.
+            `align="start"` left-aligns the header instead of the
+            default centering: the object header concatenates
+            `name : ClassName` into one (often long) string, and a
+            centered + clipped label loses BOTH ends, showing only the
+            middle. Left-aligning keeps the start visible and truncates
+            only the end, matching how attribute rows already render. */}
+        <HeaderSection
+          showStereotype={hasStereotype}
+          stereotype={hasStereotype ? (stereotype as unknown as ClassType) : undefined}
+          name={resolveObjectHeaderLabel(data)}
+          width={width}
+          headerHeight={headerHeight}
+          isUnderlined={true}
+          fill={fillColor}
+          textColor={textColor}
+          align="start"
+        />
+
+        {/* Icon view replaces attributes/methods sections. */}
+        {iconViewActive && (
+          <SeparationLine
+            y={headerHeight}
+            width={width}
+            strokeColor={strokeColor}
+          />
+        )}
+        {iconViewActive && hasIcon && (
+          <IconImage
+            icon={icon as string}
+            x={0}
+            y={headerHeight + 4}
+            width={width}
+            height={Math.max(40, height - headerHeight - 8)}
+            color={textColor}
+          />
+        )}
+
+        {/* Attributes Section. object instances
+            don't render methods — UML object diagrams show data
+            values, not types. */}
+        {!iconViewActive && showAttributes && (
+          <>
+            {/* Separation Line After Header */}
+            <SeparationLine
+              y={headerHeight}
+              width={width}
+              strokeColor={strokeColor}
+            />
+            <RowBlockSection
+              items={processedAttributes}
+              padding={padding}
+              itemHeight={attributeHeight}
+              width={width}
+              offsetFromTop={headerHeight}
+              showAssessmentResults={showAssessmentResults}
+              itemElementType="attribute"
+            />
+          </>
+        )}
+
+        {showAssessmentResults && (
+          <AssessmentIcon score={nodeScore} x={width - 15} y={-15} />
+        )}
+      </g>
+    </svg>
+  )
+}

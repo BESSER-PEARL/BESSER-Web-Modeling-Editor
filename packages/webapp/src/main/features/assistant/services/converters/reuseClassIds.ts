@@ -7,12 +7,8 @@
 
 import { mapAssistantRelationshipType } from '../shared/relationshipMapping';
 
-const CLASSIFIER_TYPES = new Set(['Class', 'AbstractClass', 'Interface', 'Enumeration']);
 const NOT_ASSOCIATIONS = new Set(['ClassOCLLink', 'ClassLinkRel']);
-const MEMBER_LISTS = [
-  ['attributes', 'ClassAttribute'],
-  ['methods', 'ClassMethod'],
-] as const;
+const MEMBER_LISTS = ['attributes', 'methods'] as const;
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
@@ -44,7 +40,7 @@ function claim(item: any, id: string, claimed: Set<string>) {
 function dropSpecIds(classes: any[], relationships: any[]): number {
   const items = [
     ...classes,
-    ...classes.flatMap((cls) => MEMBER_LISTS.flatMap(([list]) => (Array.isArray(cls[list]) ? cls[list] : []))),
+    ...classes.flatMap((cls) => MEMBER_LISTS.flatMap((list) => (Array.isArray(cls[list]) ? cls[list] : []))),
     ...relationships,
   ];
   let dropped = 0;
@@ -57,24 +53,25 @@ function dropSpecIds(classes: any[], relationships: any[]): number {
   return dropped;
 }
 
-function matchClasses(classes: any[], elements: Record<string, any>, claimed: Set<string>) {
-  const existing = Object.values(elements).filter((e: any) => CLASSIFIER_TYPES.has(e?.type));
+function matchClasses(classes: any[], classNodes: any[], claimed: Set<string>) {
   for (const cls of classes) {
-    const match = findByName(existing, text(cls.className), (e) => text(e.name), claimed);
+    const match = findByName(classNodes, text(cls.className), (n) => text(n.data?.name), claimed);
     if (match) claim(cls, match.id, claimed);
   }
 }
 
 /** Attributes, enumeration literals and methods, matched within their (already matched) class. */
-function matchMembers(classes: any[], elements: Record<string, any>, claimed: Set<string>) {
+function matchMembers(classes: any[], classNodes: any[], claimed: Set<string>) {
+  const nodeById = new Map(classNodes.map((n) => [n.id, n]));
   for (const cls of classes) {
-    if (!cls.id) continue;
-    for (const [list, type] of MEMBER_LISTS) {
+    const node = cls.id ? nodeById.get(cls.id) : undefined;
+    if (!node) continue;
+    for (const list of MEMBER_LISTS) {
       if (!Array.isArray(cls[list])) continue;
-      const siblings = Object.values(elements).filter((e: any) => e?.type === type && e.owner === cls.id);
+      const siblings = Array.isArray(node.data?.[list]) ? node.data[list] : [];
       for (const member of cls[list]) {
         if (!member || typeof member !== 'object') continue;
-        const match = findByName(siblings, memberName(member.name), (e) => memberName(e.name), claimed);
+        const match = findByName(siblings, memberName(member.name), (row) => memberName(row.name), claimed);
         if (match) claim(member, match.id, claimed);
       }
     }
@@ -88,7 +85,7 @@ function matchMembers(classes: any[], elements: Record<string, any>, claimed: Se
 function matchRelationships(
   specRels: any[],
   classes: any[],
-  relationships: Record<string, any>,
+  edges: any[],
   claimed: Set<string>,
   guessRenames: boolean,
 ) {
@@ -100,48 +97,48 @@ function matchRelationships(
     const target = classIdByName.get(rel.targetClass || rel.target);
     return source && target ? pairKey(relationshipKind(rel.type), source, target) : null;
   };
-  const existingKey = (rel: any) => pairKey(relationshipKind(rel.type), rel.source.element, rel.target.element);
-  const existing = Object.values(relationships).filter(
-    (r: any) => r?.source?.element && r?.target?.element && !NOT_ASSOCIATIONS.has(r.type),
-  );
+  const existingKey = (edge: any) => pairKey(relationshipKind(edge.type), edge.source, edge.target);
+  const existing = edges.filter((e: any) => e?.source && e?.target && !NOT_ASSOCIATIONS.has(e.type));
 
   const unmatched: any[] = [];
   for (const rel of specRels) {
     const key = specKey(rel);
     const match = key
       ? existing.find(
-          (r: any) =>
-            !claimed.has(r.id) && existingKey(r) === key && text(r.name).toLowerCase() === text(rel.name).toLowerCase(),
+          (e: any) =>
+            !claimed.has(e.id) &&
+            existingKey(e) === key &&
+            text(e.data?.name).toLowerCase() === text(rel.name).toLowerCase(),
         )
       : undefined;
-    if (match) claim(rel, (match as any).id, claimed);
+    if (match) claim(rel, match.id, claimed);
     else unmatched.push(rel);
   }
   if (!guessRenames) return;
 
-  const free = existing.filter((r: any) => !claimed.has(r.id));
+  const free = existing.filter((e: any) => !claimed.has(e.id));
   for (const rel of unmatched) {
     const key = specKey(rel);
     if (!key) continue;
     const specSame = unmatched.filter((r) => specKey(r) === key);
-    const existingSame = free.filter((r) => existingKey(r) === key);
-    if (specSame.length === 1 && existingSame.length === 1) claim(rel, (existingSame[0] as any).id, claimed);
+    const existingSame = free.filter((e) => existingKey(e) === key);
+    if (specSame.length === 1 && existingSame.length === 1) claim(rel, existingSame[0].id, claimed);
   }
 }
 
 /**
  * Return a copy of ``systemSpec`` whose classes, members and relationships carry the ids of their
- * counterparts in ``currentModel``. No id is handed out twice; unmatched elements get none, so the
- * converter mints fresh ones. ``guessRenames`` is for replacing only: when merging, a renamed link
- * is a new link.
+ * counterparts in ``currentModel`` (v4 nodes / edges). No id is handed out twice; unmatched
+ * elements get none, so the converter mints fresh ones. ``guessRenames`` is for replacing only:
+ * when merging, a renamed link is a new link.
  */
 export function reuseExistingClassIds(
   systemSpec: any,
   currentModel: any,
   { guessRenames }: { guessRenames: boolean },
 ): any {
-  const elements: Record<string, any> = currentModel?.elements ?? {};
-  if (!systemSpec || !Array.isArray(systemSpec.classes) || Object.keys(elements).length === 0) {
+  const classNodes: any[] = (currentModel?.nodes ?? []).filter((n: any) => n?.type === 'class');
+  if (!systemSpec || !Array.isArray(systemSpec.classes) || classNodes.length === 0) {
     return systemSpec;
   }
 
@@ -157,8 +154,8 @@ export function reuseExistingClassIds(
   }
 
   const claimed = new Set<string>();
-  matchClasses(classes, elements, claimed);
-  matchMembers(classes, elements, claimed);
-  matchRelationships(specRels, classes, currentModel?.relationships ?? {}, claimed, guessRenames);
+  matchClasses(classes, classNodes, claimed);
+  matchMembers(classes, classNodes, claimed);
+  matchRelationships(specRels, classes, currentModel?.edges ?? [], claimed, guessRenames);
   return spec;
 }

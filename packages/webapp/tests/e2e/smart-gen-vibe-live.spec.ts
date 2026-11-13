@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createBlankProject } from './helpers/project';
 
 /**
  * Full E2E, no mocks: describe an app in plain words so the agent models a
@@ -38,16 +39,7 @@ test.describe('live: model from a description, then spec-driven free generation'
     await page.reload();
 
     // ---- create a project ------------------------------------------
-    const hub = page.getByRole('dialog');
-    await expect(hub.getByText('Create Blank')).toBeVisible({ timeout: 25_000 });
-    await hub.getByText('Create Blank').click();
-    await page.waitForTimeout(1500);
-    const nameField = page.getByLabel(/name/i);
-    if (await nameField.isVisible().catch(() => false)) {
-      await nameField.fill('E2E_Live').catch(() => {});
-      await page.getByRole('button', { name: /^create|next|continue/i }).first().click().catch(() => {});
-      await page.waitForTimeout(2000);
-    }
+    await createBlankProject(page, 'E2E_Live');
 
     // ---- 1) model from a description — dual path ---------------------
     // The fresh-context entry is inconsistent: sometimes a "Describe Your App"
@@ -69,9 +61,9 @@ test.describe('live: model from a description, then spec-driven free generation'
       await c.press('Enter');
     }
 
-    // The agent draws the class diagram on the canvas; a class renders as SVG
-    // text. Wait for it to appear.
-    await expect(page.locator('svg text').getByText('Book', { exact: false }).first()).toBeVisible({
+    // The agent draws the class diagram on the canvas; each class is a React
+    // Flow node carrying its name. Wait for it to appear.
+    await expect(page.locator('.react-flow__node').getByText('Book', { exact: false }).first()).toBeVisible({
       timeout: 180_000,
     });
 
