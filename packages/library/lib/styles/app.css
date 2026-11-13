@@ -1629,11 +1629,15 @@ svg.react-flow__connectionline {
 }
 .bp-lock-notice .bp-text-btn {
   align-self: center;
+  white-space: nowrap;
 }
 /* No box of its own; its fields stay readable but take no pointer input. */
 .bp-lock-fields {
   display: contents;
   pointer-events: none;
+}
+.bp-lock-fields > * {
+  opacity: 0.7;
 }
 .besser-properties-panel__body .bp-lock-fields > * + * {
   margin-top: 12px;
