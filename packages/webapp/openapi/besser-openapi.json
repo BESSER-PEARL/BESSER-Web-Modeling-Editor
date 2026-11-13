@@ -2123,7 +2123,7 @@
           "conversion"
         ],
         "summary": "Get Single Json Model",
-        "description": "Convert a BUML Python file to JSON format for single diagram import.\nThis endpoint handles both full project files and single diagram files.",
+        "description": "Convert a BUML Python file to JSON format for single diagram import.\nThis endpoint handles both full project files and single diagram files.\n\nWhen `existing_model` is provided (as a stringified v4 diagram JSON of the\ndiagram the file updates), the imported diagram is laid out like it:\nmatched elements keep their id, position and size, new ones are placed\nnext to a neighbour. `warnings` then reports what was kept, added and not\nin the file. Class, Agent and State Machine diagrams only.",
         "operationId": "get_single_json_model_besser_api_get_json_model_post",
         "requestBody": {
           "content": {
@@ -4162,6 +4162,10 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "Buml File"
+          },
+          "existing_model": {
+            "type": "string",
+            "title": "Existing Model"
           }
         },
         "type": "object",
