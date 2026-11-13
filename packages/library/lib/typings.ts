@@ -52,6 +52,8 @@ export type BesserNode = {
   }
   parentId?: string
   measured: { width: number; height: number }
+  /** Cannot be moved, resized, edited or deleted in the editor. */
+  locked?: boolean
 }
 
 export type BesserEdge = {
@@ -65,6 +67,8 @@ export type BesserEdge = {
     [key: string]: unknown
     points: IPoint[]
   }
+  /** Cannot be reconnected, edited or deleted in the editor. */
+  locked?: boolean
 }
 
 export type InteractiveElements = {
@@ -81,6 +85,8 @@ export type UMLModel = {
   edges: BesserEdge[]
   assessments: { [id: string]: Assessment }
   interactive?: InteractiveElements
+  /** The whole diagram is read-only in the editor. Editor state only: not B-UML. */
+  locked?: boolean
   /**
    * AgentDiagram only: off-canvas agent components (LLMs, intents + intent
    * bodies, RAG databases, tools, skills, workspaces, GUIs), keyed by id.

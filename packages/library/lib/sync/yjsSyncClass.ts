@@ -4,6 +4,7 @@ import { DiagramStore } from "@/store/diagramStore"
 import { MetadataStore } from "@/store/metadataStore"
 import {
   getAssessments,
+  getDiagramLock,
   getDiagramMetadata,
   getEdgesMap,
   getNodesMap,
@@ -120,6 +121,18 @@ export class YjsSyncClass {
       }
     }
 
+    const diagramLockObserver = (
+      _event: Y.YMapEvent<boolean>,
+      transaction: Y.Transaction
+    ) => {
+      if (
+        transaction.origin !== "store" &&
+        !this.isUndoRedoTransaction(transaction)
+      ) {
+        this.diagramStore.getState().updateDiagramLockFromYjs()
+      }
+    }
+
     const handleYjsUpdate = (
       _arg0: unknown,
       _arg1: unknown,
@@ -145,6 +158,7 @@ export class YjsSyncClass {
         this.diagramStore.getState().updateNodesFromYjs()
         this.diagramStore.getState().updateEdgesFromYjs()
         this.diagramStore.getState().updateAssessmentFromYjs()
+        this.diagramStore.getState().updateDiagramLockFromYjs()
         this.diagramStore.getState().updateUndoRedoState()
       }
     }
@@ -153,6 +167,7 @@ export class YjsSyncClass {
     getEdgesMap(this.ydoc).observe(edgesObserver)
     getAssessments(this.ydoc).observe(assessmentObserver)
     getDiagramMetadata(this.ydoc).observe(metadataObserver)
+    getDiagramLock(this.ydoc).observe(diagramLockObserver)
     this.ydoc.on("update", handleYjsUpdate)
 
     return () => {
@@ -160,6 +175,7 @@ export class YjsSyncClass {
       getEdgesMap(this.ydoc).unobserve(edgesObserver)
       getAssessments(this.ydoc).unobserve(assessmentObserver)
       getDiagramMetadata(this.ydoc).unobserve(metadataObserver)
+      getDiagramLock(this.ydoc).unobserve(diagramLockObserver)
       this.ydoc.off("update", handleYjsUpdate)
     }
   }

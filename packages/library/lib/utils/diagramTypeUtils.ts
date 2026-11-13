@@ -6,6 +6,7 @@ import {
   DiagramNodeType,
 } from "@/typings"
 import { type Node, type Edge } from "@xyflow/react"
+import { isLocked } from "./locks"
 const diagramTypeValues = new Set(Object.values(UMLDiagramType))
 
 const isDiagramType = (value: unknown): value is UMLDiagramType => {
@@ -35,6 +36,7 @@ export const mapFromReactFlowNodeToBesserNode = (node: Node): BesserNode => {
       width: node.measured?.width ?? 0,
       height: node.measured?.height ?? 0,
     },
+    ...(isLocked(node) && { locked: true }),
   }
 }
 
@@ -50,6 +52,7 @@ export const mapFromReactFlowEdgeToBesserEdge = (edge: Edge): BesserEdge => {
       ...edge.data,
       points: Array.isArray(edge.data?.points) ? edge.data.points : [],
     },
+    ...(isLocked(edge) && { locked: true }),
   }
 }
 

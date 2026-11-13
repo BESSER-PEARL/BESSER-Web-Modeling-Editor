@@ -177,9 +177,10 @@ export class BesserEditor {
       const nodes = options.model.nodes || []
       const edges = options.model.edges || []
       const assessments = options.model.assessments || {}
-      this.diagramStore.getState().setNodesAndEdges(nodes, edges)
+      this.diagramStore.getState().loadNodesAndEdges(nodes, edges)
       this.diagramStore.getState().setAssessments(assessments)
       this.diagramStore.getState().setInteractive(options.model.interactive)
+      this.diagramStore.getState().setDiagramLocked(!!options.model.locked)
     }
 
     if (options?.mode) {
@@ -304,7 +305,7 @@ export class BesserEditor {
 
   set diagramType(type: UMLDiagramType) {
     this.metadataStore.getState().updateDiagramType(type)
-    this.diagramStore.getState().setNodesAndEdges([], [])
+    this.diagramStore.getState().loadNodesAndEdges([], [])
     this.diagramStore.getState().setAssessments({})
   }
 
@@ -375,7 +376,7 @@ export class BesserEditor {
     model = normalizeAgentComponents(
       liftClassOCLConstraintRows(normalizeV4Model(hardenImportedModel(model)))
     )
-    diagramStore.getState().setNodesAndEdges(model.nodes, model.edges)
+    diagramStore.getState().loadNodesAndEdges(model.nodes, model.edges)
     diagramStore.getState().setAssessments(model.assessments)
     metadataStore
       .getState()
@@ -576,7 +577,8 @@ export class BesserEditor {
       if (
         state.nodes === prev.nodes &&
         state.edges === prev.edges &&
-        state.assessments === prev.assessments
+        state.assessments === prev.assessments &&
+        state.diagramLocked === prev.diagramLocked
       ) {
         return
       }
@@ -588,6 +590,7 @@ export class BesserEditor {
         nodes: model.nodes,
         edges: model.edges,
         assessments: model.assessments,
+        locked: model.locked,
       })
       if (serialized === lastSerialized) return
       lastSerialized = serialized
@@ -674,7 +677,8 @@ export class BesserEditor {
   }
 
   get model(): Besser.UMLModel {
-    const { nodes, edges, diagramId } = this.diagramStore.getState()
+    const { nodes, edges, diagramId, diagramLocked } =
+      this.diagramStore.getState()
     const { diagramTitle, diagramType } = this.metadataStore.getState()
     const interactive = this.getInteractiveForSerialization()
     return {
@@ -686,6 +690,7 @@ export class BesserEditor {
       edges: edges.map((edge) => mapFromReactFlowEdgeToBesserEdge(edge)),
       assessments: this.diagramStore.getState().assessments,
       ...(interactive && { interactive }),
+      ...(diagramLocked && { locked: true }),
       ...(this.migratedAgentComponents && {
         components: this.migratedAgentComponents,
       }),
@@ -708,9 +713,10 @@ export class BesserEditor {
     )
     const { nodes, edges, assessments, interactive } = normalized
 
-    this.diagramStore.getState().setNodesAndEdges(nodes, edges)
+    this.diagramStore.getState().loadNodesAndEdges(nodes, edges)
     this.diagramStore.getState().setAssessments(assessments)
     this.diagramStore.getState().setInteractive(interactive)
+    this.diagramStore.getState().setDiagramLocked(!!normalized.locked)
     this.metadataStore
       .getState()
       .updateMetaData(normalized.title, parseDiagramType(normalized.type))
@@ -726,7 +732,9 @@ export class BesserEditor {
    * Replaces the model as ONE undoable step, keeping the undo history (for
    * edits applied programmatically, e.g. by the assistant or a form). The
    * `model` setter is for loads: it starts a fresh history and fits the view.
-   * The viewport is kept unless the canvas was empty before.
+   * The viewport is kept unless the canvas was empty before. Element locks
+   * are taken from `model` as given and not enforced; the diagram lock is
+   * kept.
    */
   public applyModel(model: Besser.UMLModel): void {
     const normalized = this.prepareAgentModel(
@@ -740,7 +748,7 @@ export class BesserEditor {
     // Separate this step from the edits before and after it; the writes in
     // between fall within one capture window and merge into a single step.
     undoManager?.stopCapturing()
-    state.setNodesAndEdges(nodes, edges)
+    state.loadNodesAndEdges(nodes, edges)
     state.setAssessments(assessments)
     state.setInteractive(interactive)
     this.metadataStore

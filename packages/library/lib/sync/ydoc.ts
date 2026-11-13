@@ -10,6 +10,9 @@ export const getAssessments = (ydoc: Y.Doc) =>
   ydoc.getMap<Assessment>("assessments")
 export const getDiagramMetadata = (ydoc: Y.Doc) =>
   ydoc.getMap<string>("diagramMetadata")
+/** Holds `locked: true` while the whole diagram is read-only. */
+export const getDiagramLock = (ydoc: Y.Doc) =>
+  ydoc.getMap<boolean>("diagramLock")
 
 // Reconcile a Y.Map against the desired entries via a targeted diff: delete
 // keys no longer present, and set only keys whose value actually changed.

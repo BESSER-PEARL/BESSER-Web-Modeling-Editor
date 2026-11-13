@@ -15,9 +15,17 @@ import {
   getNodesMap,
   getEdgesMap,
   getAssessments,
+  getDiagramLock,
   reconcileYMap,
 } from "@/sync/ydoc"
 import { deepEqual } from "@/utils/storeUtils"
+import {
+  guardEdgeChanges,
+  guardEdgeEdit,
+  guardNodeChanges,
+  guardNodeEdit,
+  withLock,
+} from "@/utils/locks"
 import { Assessment, InteractiveElements } from "@/typings"
 import {
   getNestedNodeElementIds,
@@ -151,6 +159,7 @@ type InitialDiagramState = {
   canUndo: boolean
   canRedo: boolean
   undoManager: Y.UndoManager | null
+  diagramLocked: boolean
 }
 
 const initialDiagramState: InitialDiagramState = {
@@ -165,6 +174,7 @@ const initialDiagramState: InitialDiagramState = {
   canUndo: false,
   canRedo: false,
   undoManager: null,
+  diagramLocked: false,
 }
 
 export type DiagramStore = {
@@ -179,10 +189,18 @@ export type DiagramStore = {
   canUndo: boolean
   canRedo: boolean
   undoManager: Y.UndoManager | null
+  /** The whole diagram is read-only (persisted as `UMLModel.locked`). */
+  diagramLocked: boolean
   setDiagramId: (diagramId: string) => void
   setNodes: (payload: Node[] | ((nodes: Node[]) => Node[])) => void
   setEdges: (payload: Edge[] | ((edges: Edge[]) => Edge[])) => void
   setNodesAndEdges: (nodes: Node[], edges: Edge[]) => void
+  /** Replaces nodes and edges without the lock guards: model loads only. */
+  loadNodesAndEdges: (nodes: Node[], edges: Edge[]) => void
+  setDiagramLocked: (locked: boolean) => void
+  /** Locks or unlocks one node or edge, as its own undo step. */
+  setElementLocked: (elementId: string, locked: boolean) => void
+  updateDiagramLockFromYjs: () => void
   addEdge: (edge: Edge) => void
   addNode: (node: Node) => void
   onNodesChange: OnNodesChange
@@ -226,7 +244,7 @@ export const createDiagramStore = (
 
           // Create undo manager with all the maps you want to track
           const undoManager = new Y.UndoManager(
-            [nodesMap, edgesMap, assessmentsMap],
+            [nodesMap, edgesMap, assessmentsMap, getDiagramLock(ydoc)],
             {
               // Capture timeout - how long to wait before creating a new undo step
               captureTimeout: 500,
@@ -324,6 +342,46 @@ export const createDiagramStore = (
           if (!undoManager || !undoManager.canRedo()) return
 
           undoManager.redo()
+        },
+
+        setDiagramLocked: (diagramLocked) => {
+          if (get().diagramLocked === diagramLocked) return
+          const { undoManager } = get()
+          // Its own undo step, never merged with the edit before or after it.
+          undoManager?.stopCapturing()
+          ydoc.transact(() => {
+            if (diagramLocked) getDiagramLock(ydoc).set("locked", true)
+            else getDiagramLock(ydoc).delete("locked")
+          }, "store")
+          undoManager?.stopCapturing()
+          set({ diagramLocked }, undefined, "setDiagramLocked")
+        },
+
+        setElementLocked: (elementId, locked) => {
+          const { nodes, edges, undoManager } = get()
+          undoManager?.stopCapturing()
+          if (nodes.some((node) => node.id === elementId)) {
+            get().setNodes(
+              nodes.map((node) =>
+                node.id === elementId ? withLock(node, locked) : node
+              )
+            )
+          } else {
+            get().setEdges(
+              edges.map((edge) =>
+                edge.id === elementId ? withLock(edge, locked) : edge
+              )
+            )
+          }
+          undoManager?.stopCapturing()
+        },
+
+        updateDiagramLockFromYjs: () => {
+          set(
+            { diagramLocked: getDiagramLock(ydoc).get("locked") === true },
+            undefined,
+            "updateDiagramLockFromYjs"
+          )
         },
 
         setDiagramId: (diagramId) => {
@@ -425,6 +483,7 @@ export const createDiagramStore = (
             )
             return
           }
+          if (get().diagramLocked) return
           ydoc.transact(() => {
             getNodesMap(ydoc).set(node.id, stripRuntimeNodeFlags(node))
           }, "store")
@@ -432,6 +491,7 @@ export const createDiagramStore = (
         },
 
         addEdge: (edge) => {
+          if (get().diagramLocked) return
           ydoc.transact(() => {
             getEdgesMap(ydoc).set(edge.id, stripRuntimeEdgeFlags(edge))
           }, "store")
@@ -440,8 +500,13 @@ export const createDiagramStore = (
         setNodes: (payload) => {
           const rawNodes =
             typeof payload === "function" ? payload(get().nodes) : payload
-          // Scrub floating Agent body nodes.
-          const nodes = dropFloatingAgentBodies(rawNodes)
+          // Scrub floating Agent body nodes; locked content stays as it was.
+          const nodes = guardNodeEdit(
+            get().nodes,
+            dropFloatingAgentBodies(rawNodes),
+            get().edges,
+            get().diagramLocked
+          )
 
           if (deepEqual(get().nodes, nodes)) {
             return
@@ -478,7 +543,7 @@ export const createDiagramStore = (
           // class links live only in the store (see
           // `associationClassLink.ts`), so the store prunes them itself.
           const edges = pruneDanglingLinkRels(
-            rawEdges,
+            guardEdgeEdit(get().edges, rawEdges, get().nodes, get().diagramLocked),
             new Set(get().nodes.map((n) => n.id))
           )
 
@@ -517,6 +582,14 @@ export const createDiagramStore = (
         },
 
         setNodesAndEdges: (rawNodes, rawEdges) => {
+          const { nodes, edges, diagramLocked } = get()
+          get().loadNodesAndEdges(
+            guardNodeEdit(nodes, rawNodes, edges, diagramLocked),
+            guardEdgeEdit(edges, rawEdges, nodes, diagramLocked)
+          )
+        },
+
+        loadNodesAndEdges: (rawNodes, rawEdges) => {
           // Scrub floating Agent body nodes before
           // they reach the Yjs map / store.
           const nodes = dropFloatingAgentBodies(rawNodes)
@@ -594,8 +667,11 @@ export const createDiagramStore = (
           }
 
           // Select changes are handled previously
-          const filteredChanges = changes.filter(
-            (change) => change.type !== "select"
+          const filteredChanges = guardNodeChanges(
+            changes.filter((change) => change.type !== "select"),
+            get().nodes,
+            get().edges,
+            get().diagramLocked
           )
 
           if (filteredChanges.length === 0) return
@@ -790,8 +866,11 @@ export const createDiagramStore = (
             })
           }
 
-          const changesWithoutSelect = changes.filter(
-            (change) => change.type !== "select"
+          const changesWithoutSelect = guardEdgeChanges(
+            changes.filter((change) => change.type !== "select"),
+            get().edges,
+            get().nodes,
+            get().diagramLocked
           )
 
           if (changesWithoutSelect.length === 0) return
@@ -819,7 +898,7 @@ export const createDiagramStore = (
           }
 
           ydoc.transact(() => {
-            for (const change of changes) {
+            for (const change of changesWithoutSelect) {
               if (change.type === "add" || change.type === "replace") {
                 getEdgesMap(ydoc).set(
                   change.item.id,
