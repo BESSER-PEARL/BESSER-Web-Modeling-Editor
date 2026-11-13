@@ -901,8 +901,6 @@
       "openQuantumEditor": "Open the Quantum editor before generating Qiskit code.",
       "openNnEditor": "Open the NN Diagram editor before generating neural network code.",
       "openBpmnEditor": "Open a BPMN diagram before exporting BPMN 2.0 XML.",
-      "bpmnNoModel": "The active BPMN diagram has no model to export.",
-      "bpmnExportFailed": "BPMN export failed: {{error}}",
       "switchToUmlDiagram": "Switch to a UML diagram to use this generator.",
       "noUmlEditor": "No UML editor instance available. Open a UML diagram first.",
       "switchToObjectOrUserDiagram": "Switch to an Object Diagram or User Diagram to use the JSON Object generator.",

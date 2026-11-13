@@ -917,8 +917,6 @@
       "openUmlBeforeDeploy": "Ouvrez un diagramme UML avant de déployer.",
       "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées.",
       "openBpmnEditor": "Ouvrez un diagramme BPMN avant d'exporter en BPMN 2.0 XML.",
-      "bpmnNoModel": "Le diagramme BPMN actif n'a aucun modèle à exporter.",
-      "bpmnExportFailed": "Échec de l'export BPMN : {{error}}",
       "qualityCheckUnavailable": "La vérification de qualité n'est pas encore disponible pour cet éditeur."
     },
     "context": {

@@ -917,8 +917,6 @@
       "openUmlBeforeDeploy": "Maacht en UML-Diagramm op ier Dir deployt.",
       "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten.",
       "openBpmnEditor": "Maacht e BPMN-Diagramm op, ier Dir BPMN 2.0 XML exportéiert.",
-      "bpmnNoModel": "Dat aktivt BPMN-Diagramm huet kee Modell fir ze exportéieren.",
-      "bpmnExportFailed": "BPMN-Export ass feelgeschloen: {{error}}",
       "qualityCheckUnavailable": "D'Qualitéitskontroll ass fir dësen Editor nach net disponibel."
     },
     "context": {

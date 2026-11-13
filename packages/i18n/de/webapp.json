@@ -917,8 +917,6 @@
       "openUmlBeforeDeploy": "Öffnen Sie ein UML-Diagramm, bevor Sie bereitstellen.",
       "noValidPersonalizationMappings": "Keine gültigen Personalisierungszuordnungen gefunden. Erstellen Sie Zuordnungen und speichern Sie zuerst personalisierte Varianten.",
       "openBpmnEditor": "Öffnen Sie ein BPMN-Diagramm, bevor Sie BPMN 2.0 XML exportieren.",
-      "bpmnNoModel": "Das aktive BPMN-Diagramm enthält kein Modell zum Exportieren.",
-      "bpmnExportFailed": "BPMN-Export fehlgeschlagen: {{error}}",
       "qualityCheckUnavailable": "Die Qualitätsprüfung ist für diesen Editor noch nicht verfügbar."
     },
     "context": {
