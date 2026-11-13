@@ -3716,6 +3716,9 @@
       }
     },
     "loadingKgEditor": "Chargement de l'éditeur de graphe de connaissances...",
+    "userProfileForm": {
+      "locked": "Ce diagramme ou l'un de ses éléments est verrouillé. Déverrouillez-le sur le canevas pour modifier le profil ici."
+    },
     "legacyDiagram": {
       "openedReadOnly": "Le diagramme « {{title}} » n'a pas pu être converti au format actuel. Il est ouvert en lecture seule et votre version enregistrée reste inchangée.",
       "saveRefused": "Le diagramme « {{title}} » utilise un ancien format qui n'a pas pu être converti ; il ne peut donc pas être modifié.",

@@ -3716,6 +3716,9 @@
       }
     },
     "loadingKgEditor": "Cargando el editor de grafo de conocimiento...",
+    "userProfileForm": {
+      "locked": "Este diagrama o uno de sus elementos está bloqueado. Desbloquéalo en el lienzo para editar aquí el perfil."
+    },
     "legacyDiagram": {
       "openedReadOnly": "No se pudo convertir el diagrama «{{title}}» al formato actual. Se ha abierto en modo de solo lectura y tu versión guardada no se modifica.",
       "saveRefused": "El diagrama «{{title}}» tiene un formato antiguo que no se pudo convertir, por lo que no se puede modificar.",

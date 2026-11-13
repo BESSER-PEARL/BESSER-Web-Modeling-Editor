@@ -37,12 +37,18 @@ interface UseUserProfileForm {
   applyEdit: (updater: (prev: Instance) => Instance) => void;
   /** True once a metamodel + root instance are available. */
   ready: boolean;
+  /** The diagram or one of its boxes is locked: edits are ignored. */
+  locked: boolean;
 }
+
+const isLocked = (model: UMLModel): boolean => !!model.locked || model.nodes.some((node) => node.locked);
 
 export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefined): UseUserProfileForm => {
   const dispatch = useAppDispatch();
   const [tree, setTree] = useState<MetaTree | null>(null);
   const [formState, setFormState] = useState<Instance | null>(null);
+  const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
 
   const treeRef = useRef<MetaTree | null>(null);
   const formStateRef = useRef<Instance | null>(null);
@@ -50,6 +56,11 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
   const lastSigRef = useRef<string>('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const releaseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncLocked = useCallback((model: UMLModel) => {
+    lockedRef.current = isLocked(model);
+    setLocked(lockedRef.current);
+  }, []);
 
   // Read-only state update (open / external sync). Never writes to the editor.
   const commitState = useCallback((next: Instance | null) => {
@@ -92,7 +103,7 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
   const applyEdit = useCallback(
     (updater: (prev: Instance) => Instance) => {
       const prev = formStateRef.current;
-      if (!prev) return;
+      if (!prev || lockedRef.current) return;
       const next = updater(prev);
       if (next === prev) return; // updater declined the change
       formStateRef.current = next;
@@ -109,19 +120,21 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
     const t = buildMetamodelTree();
     treeRef.current = t;
     setTree(t);
+    if (editor) syncLocked(editor.model);
     if (!t.root) {
       commitState(null);
       return;
     }
     const parsed = (editor ? parseUserDiagramModel(editor.model, t) : null) ?? createEmptyInstance(t.root);
     commitState(parsed);
-  }, [open, editor, commitState]);
+  }, [open, editor, commitState, syncLocked]);
 
   // Canvas -> form: reflect external model changes while the drawer is open.
   // Read-only — never writes back.
   useEffect(() => {
     if (!open || !editor) return;
     const subId = editor.subscribeToModelChange((model: UMLModel) => {
+      syncLocked(model);
       if (suppressSyncRef.current) return; // ignore the echo of our own write
       const t = treeRef.current;
       if (!t?.root) return;
@@ -130,7 +143,7 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
       commitState(parsed);
     });
     return () => editor.unsubscribeFromModelChange(subId);
-  }, [open, editor, commitState]);
+  }, [open, editor, commitState, syncLocked]);
 
   // Reset transient state when the drawer closes.
   useEffect(() => {
@@ -140,5 +153,5 @@ export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefin
     suppressSyncRef.current = false;
   }, [open]);
 
-  return { tree, formState, applyEdit, ready: !!tree?.root && !!formState };
+  return { tree, formState, applyEdit, ready: !!tree?.root && !!formState, locked };
 };

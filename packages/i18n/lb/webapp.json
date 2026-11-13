@@ -3716,6 +3716,9 @@
       }
     },
     "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden...",
+    "userProfileForm": {
+      "locked": "Dësen Diagramm oder ee vu sengen Elementer ass gespaart. Spärt en op der Zeechefläch op, fir de Profil hei ze beaarbechten."
+    },
     "legacyDiagram": {
       "openedReadOnly": "D'Diagramm „{{title}}“ konnt net an dat aktuellt Format konvertéiert ginn. Et ass just ze liesen opgemaach an Är gespäichert Versioun bleift onverännert.",
       "saveRefused": "D'Diagramm „{{title}}“ ass an engem alen Format, dat net konvertéiert konnt ginn, dofir kann et net geännert ginn.",

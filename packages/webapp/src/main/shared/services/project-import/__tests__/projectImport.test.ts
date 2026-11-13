@@ -548,3 +548,44 @@ describe('importProjectFromJson: empty diagrams are re-created with the right mo
     expect(isKnowledgeGraphData(imported.diagrams.KnowledgeGraphDiagram[0].model)).toBe(true);
   });
 });
+
+describe('importProjectFromJson: element and diagram locks', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('keeps the locks of an exported project', async () => {
+    const project = createDefaultProject('P', '', 'me');
+    const model: AnyModel = {
+      version: '4.0.0',
+      id: 'm',
+      title: 'Class Diagram',
+      type: 'ClassDiagram',
+      locked: true,
+      nodes: [
+        {
+          id: 'A',
+          type: 'class',
+          position: { x: 0, y: 0 },
+          width: 160,
+          height: 100,
+          measured: { width: 160, height: 100 },
+          data: { name: 'A', attributes: [], methods: [] },
+          locked: true,
+        },
+      ],
+      edges: [],
+      assessments: {},
+    };
+    project.diagrams.ClassDiagram[0] = { ...project.diagrams.ClassDiagram[0], model: model as any };
+
+    const imported = await importProjectFromJson(
+      asFile(buildProjectExportEnvelope(project, undefined, { includePersonalization: false })),
+    );
+
+    const stored = ProjectStorageRepository.loadProject(imported.id)!.diagrams.ClassDiagram[0].model as AnyModel;
+    expect(stored.locked).toBe(true);
+    expect(stored.nodes[0].locked).toBe(true);
+  });
+});

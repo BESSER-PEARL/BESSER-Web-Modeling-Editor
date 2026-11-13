@@ -3716,6 +3716,9 @@
       }
     },
     "loadingKgEditor": "S'està carregant l'editor de graf de coneixement...",
+    "userProfileForm": {
+      "locked": "Aquest diagrama o un dels seus elements està bloquejat. Desbloqueja'l al llenç per editar-hi el perfil."
+    },
     "legacyDiagram": {
       "openedReadOnly": "No s'ha pogut convertir el diagrama «{{title}}» al format actual. S'ha obert en mode de només lectura i la versió desada no es modifica.",
       "saveRefused": "El diagrama «{{title}}» té un format antic que no s'ha pogut convertir, per tant no es pot modificar.",

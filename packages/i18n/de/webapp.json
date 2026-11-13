@@ -3716,6 +3716,9 @@
       }
     },
     "loadingKgEditor": "Knowledge-Graph-Editor wird geladen...",
+    "userProfileForm": {
+      "locked": "Dieses Diagramm oder eines seiner Elemente ist gesperrt. Entsperren Sie es auf der Arbeitsfläche, um das Profil hier zu bearbeiten."
+    },
     "legacyDiagram": {
       "openedReadOnly": "Das Diagramm „{{title}}“ konnte nicht in das aktuelle Format konvertiert werden. Es ist schreibgeschützt geöffnet und Ihre gespeicherte Version bleibt unverändert.",
       "saveRefused": "Das Diagramm „{{title}}“ liegt in einem alten Format vor, das nicht konvertiert werden konnte, daher kann es nicht geändert werden.",
