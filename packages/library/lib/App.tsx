@@ -47,7 +47,10 @@ import {
   useNodeDrag,
 } from "./hooks"
 import { diagramNodeTypes } from "./nodes"
-import { useDiagramModifiable } from "./hooks/useDiagramModifiable"
+import {
+  useBlockPinnedNodeDrag,
+  useDiagramModifiable,
+} from "./hooks/useDiagramModifiable"
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts"
 import { usePaneClicked } from "./hooks/usePaneClicked"
 import { BesserMode } from "./typings"
@@ -287,6 +290,7 @@ function useRevealEditedNode(enabled: boolean) {
 
 function App({ onReactFlowInit }: AppProps) {
   useKeyboardShortcuts()
+  useBlockPinnedNodeDrag()
   const narrowViewport = useSyncExternalStore(
     subscribeNarrowViewport,
     isNarrowViewport,

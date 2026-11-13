@@ -13,6 +13,7 @@ import { getInspector, InspectorKind } from "../inspectors/registry"
 // camelCase `node.type` → inspector key aliases (package, activity*, …).
 import "../inspectors/nodeTypeInspectorAliases"
 import { XIcon } from "../inspectors/_shared/icons"
+import { InspectorLockGate } from "../inspectors/_shared/InspectorLockGate"
 // Approach B — keep MUI primitives but theme them to
 // match the webapp's Tailwind/Radix design tokens. The override file
 // maps borderRadius, font, padding, and focus rings to the same look as
@@ -278,7 +279,13 @@ export const PropertiesPanel: React.FC = () => {
               overscrollBehavior: "contain",
             }}
           >
-            <InspectorComponent elementId={selectedId} />
+            {inspectorKind === "edit" ? (
+              <InspectorLockGate elementId={selectedId}>
+                <InspectorComponent elementId={selectedId} />
+              </InspectorLockGate>
+            ) : (
+              <InspectorComponent elementId={selectedId} />
+            )}
           </div>
         </aside>
       </div>

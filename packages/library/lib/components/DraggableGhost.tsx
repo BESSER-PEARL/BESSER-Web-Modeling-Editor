@@ -253,6 +253,8 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   dropElementConfig,
 }) => {
   const diagramId = useDiagramStore(useShallow((state) => state.diagramId))
+  // A locked diagram takes no new elements.
+  const disabled = useDiagramStore((state) => state.diagramLocked)
   const { locale } = useTranslation()
   // Hooks from react-flow and zustand store for node management
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow()
@@ -586,12 +588,13 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
     <>
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         aria-label={paletteLabel}
-        className="besser-palette-item"
-        onPointerDown={handlePointerDown}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
+        aria-disabled={disabled || undefined}
+        className={`besser-palette-item${disabled ? " besser-palette-item--disabled" : ""}`}
+        onPointerDown={disabled ? undefined : handlePointerDown}
+        onClick={disabled ? undefined : handleClick}
+        onKeyDown={disabled ? undefined : handleKeyDown}
         style={{
           touchAction: "none",
         }}

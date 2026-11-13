@@ -1,4 +1,7 @@
-import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import {
+  useDiagramModifiable,
+  useElementLock,
+} from "@/hooks/useDiagramModifiable"
 import { useHandleDelete } from "@/hooks/useHandleDelete"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
 import { usePopoverStore } from "@/store"
@@ -7,6 +10,7 @@ import { FC, type SyntheticEvent } from "react"
 import { useShallow } from "zustand/shallow"
 import { DeleteIcon, EditIcon } from "../Icon"
 import { AddAssociatedObjectButton } from "./AddAssociatedObjectButton"
+import { LockToggleButton } from "./LockToggleButton"
 import { ToolbarButton } from "./ToolbarButton"
 import { useTranslation } from "@/i18n"
 
@@ -36,6 +40,7 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
     (state) => state.popoverElementId === elementId
   )
   const handleDelete = useHandleDelete(elementId)
+  const { undeletable } = useElementLock(elementId)
 
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(elementId)
@@ -81,9 +86,13 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
             Object" (v3 updatable.tsx onAdd). Self-gating. */}
         <AddAssociatedObjectButton elementId={elementId} />
 
-        <ToolbarButton label={t("actions.delete", "Delete")} danger onClick={handleDelete}>
-          <DeleteIcon />
-        </ToolbarButton>
+        <LockToggleButton elementId={elementId} />
+
+        {!undeletable && (
+          <ToolbarButton label={t("actions.delete", "Delete")} danger onClick={handleDelete}>
+            <DeleteIcon />
+          </ToolbarButton>
+        )}
       </div>
     </ReactFlowNodeToolbar>
   )

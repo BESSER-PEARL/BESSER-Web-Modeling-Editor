@@ -24,7 +24,7 @@ import {
   getMarkerSegmentPath,
 } from "@/utils/edgeUtils"
 import { useEdgeState, useEdgeReconnection } from "../edges/GenericEdge"
-import { useDiagramModifiable } from "./useDiagramModifiable"
+import { useDiagramModifiable, useElementLock } from "./useDiagramModifiable"
 import { useHandleFinder } from "./useHandleFinder"
 import type { FloatingEdgeLayout } from "@/utils/floatingEdges"
 import {
@@ -103,7 +103,9 @@ export const useStepPathEdge = ({
   const finalPointsRef = useRef<IPoint[] | null>(null)
   const dragPointsRef = useRef<IPoint[]>([])
 
-  const isDiagramModifiable = useDiagramModifiable()
+  // A locked edge shows no reconnect or bend grips.
+  const { locked } = useElementLock(id)
+  const isDiagramModifiable = useDiagramModifiable() && !locked
   const { getNode, getNodes, screenToFlowPosition, getInternalNode } =
     useReactFlow()
 

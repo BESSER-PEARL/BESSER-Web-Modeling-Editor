@@ -10,6 +10,10 @@ import { render } from "@testing-library/react"
 
 vi.mock("@/hooks/useDiagramModifiable", () => ({
   useDiagramModifiable: () => true,
+  useElementLock: () => ({ locked: false, pinned: false, undeletable: false }),
+}))
+vi.mock("@/components/toolbars/LockToggleButton", () => ({
+  LockToggleButton: () => null,
 }))
 const selected = { value: false }
 vi.mock("@/hooks/useIsOnlyThisElementSelected", () => ({

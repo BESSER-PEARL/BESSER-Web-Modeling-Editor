@@ -1105,6 +1105,15 @@
     "style": "Stil",
     "pasteRefusedOtherType": "Elemente aus einem anderen Diagrammtyp können hier nicht eingefügt werden."
   },
+  "lock": {
+    "locked": "Gesperrt",
+    "lock": "Sperren",
+    "unlock": "Entsperren",
+    "lockDiagram": "Diagramm sperren",
+    "unlockDiagram": "Diagramm entsperren",
+    "elementLockedNotice": "Dieses Element ist gesperrt.",
+    "diagramLockedNotice": "Dieses Diagramm ist gesperrt."
+  },
   "zoomPane": {
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",

@@ -1105,6 +1105,15 @@
     "style": "Style",
     "pasteRefusedOtherType": "Les éléments copiés depuis un autre type de diagramme ne peuvent pas être collés ici."
   },
+  "lock": {
+    "locked": "Verrouillé",
+    "lock": "Verrouiller",
+    "unlock": "Déverrouiller",
+    "lockDiagram": "Verrouiller le diagramme",
+    "unlockDiagram": "Déverrouiller le diagramme",
+    "elementLockedNotice": "Cet élément est verrouillé.",
+    "diagramLockedNotice": "Ce diagramme est verrouillé."
+  },
   "zoomPane": {
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",

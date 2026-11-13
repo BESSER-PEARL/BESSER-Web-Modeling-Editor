@@ -148,6 +148,10 @@ html.dark .besser-editor {
   height: 16px;
   fill: currentColor;
 }
+.besser-toolbar-button[aria-pressed="true"] {
+  background-color: var(--besser-accent-soft);
+  color: var(--besser-accent);
+}
 @media (hover: hover) and (pointer: fine) {
   .besser-toolbar-button:hover {
     background-color: var(--besser-chrome-hover);
@@ -337,6 +341,13 @@ html.dark .besser-editor {
 .besser-palette-item:active {
   cursor: grabbing;
   transform: scale(0.97);
+}
+/* The diagram is locked. */
+.besser-palette-item.besser-palette-item--disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  box-shadow: none;
+  transform: none;
 }
 
 /* ---- Palette column ---------------------------------------------------- */
@@ -625,6 +636,37 @@ html.dark .besser-editor {
 .react-flow__node:hover .react-flow__resize-control,
 .react-flow__node.selected .react-flow__resize-control {
   opacity: 1;
+}
+
+/* A node that cannot move (locked, or inside a locked container): no drag
+   cursor and no resize grips. */
+.react-flow__node:has(.besser-node-lock) {
+  cursor: default;
+}
+.react-flow__node:has(.besser-node-lock) .react-flow__resize-control {
+  display: none;
+}
+
+/* Lock badge: on a locked node's top-left corner, beside a locked edge. */
+.besser-lock-badge,
+.besser-node-lock__badge {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--besser-chrome-border);
+  border-radius: 50%;
+  background-color: var(--besser-background, #ffffff);
+  box-shadow: var(--besser-chrome-shadow);
+  pointer-events: none;
+}
+.besser-node-lock__badge {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 5;
 }
 
 /* React Flow marks every connectable handle `.connectionindicator` and gives
@@ -1563,6 +1605,38 @@ svg.react-flow__connectionline {
 .bp-text-btn:focus-visible {
   outline: 2px solid var(--bp-ring);
   outline-offset: 1px;
+}
+
+/* ── Locked element or diagram (InspectorLockGate) ── */
+.bp-lock-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 8px 8px 10px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+  color: var(--bp-fg);
+  font-size: 12px;
+}
+.bp-lock-notice > svg {
+  flex-shrink: 0;
+  fill: var(--bp-muted);
+}
+.bp-lock-notice__text {
+  flex: 1 1 auto;
+}
+.bp-lock-notice .bp-text-btn {
+  align-self: center;
+}
+/* No box of its own; its fields stay readable but take no pointer input. */
+.bp-lock-fields {
+  display: contents;
+  pointer-events: none;
+}
+.besser-properties-panel__body .bp-lock-fields > * + * {
+  margin-top: 12px;
 }
 
 /* Resize handle: a hairline that lights up on hover. */

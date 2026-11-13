@@ -79,6 +79,7 @@ import {
   resolveElementInspector,
 } from "../inspectors/registry"
 import "../inspectors/nodeTypeInspectorAliases"
+import { InspectorLockGate } from "../inspectors/_shared/InspectorLockGate"
 import {
   ElementGiveFeedbackPopover,
   ElementSeeFeedbackPopover,
@@ -783,7 +784,13 @@ const OpenPopoverManager = ({
       maxHeight={500}
       maxWidth={isEditing ? 278 : 400}
     >
-      <Component elementId={elementId} />
+      {isEditing ? (
+        <InspectorLockGate elementId={elementId}>
+          <Component elementId={elementId} />
+        </InspectorLockGate>
+      ) : (
+        <Component elementId={elementId} />
+      )}
     </GenericPopover>
   ) : null
 }

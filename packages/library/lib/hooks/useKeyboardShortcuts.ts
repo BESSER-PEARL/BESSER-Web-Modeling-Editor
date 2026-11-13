@@ -14,7 +14,7 @@ import { useMetadataStore } from "@/store"
 import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
 import { useSelectionForCopyPaste } from "./useSelectionForCopyPaste"
-import { useDiagramModifiable } from "./useDiagramModifiable"
+import { useDiagramModifiable, useModellingView } from "./useDiagramModifiable"
 
 const ARROW_NUDGE_PX = 10
 const ARROW_NUDGE_SHIFT_PX = 50
@@ -86,9 +86,11 @@ export const useKeyboardShortcuts = () => {
     useReactFlow()
   const flowStoreApi = useStoreApi()
   const isDiagramModifiable = useDiagramModifiable()
+  // A locked diagram is still inspected, selected, copied and undone.
+  const modellingView = useModellingView()
   // Same gate as double-click (`useElementInteractions`).
   const canOpenPopover =
-    isDiagramModifiable || (mode === BesserMode.Assessment && !readonly)
+    modellingView || (mode === BesserMode.Assessment && !readonly)
   const {
     hasSelectedElements,
     selectAll,
@@ -306,7 +308,7 @@ export const useKeyboardShortcuts = () => {
 
       if (!modifier) return
 
-      if (!isDiagramModifiable) return
+      if (!modellingView) return
 
       switch (key) {
         case "z":
@@ -341,7 +343,7 @@ export const useKeyboardShortcuts = () => {
           break
 
         case "x":
-          if (!event.shiftKey && !event.altKey) {
+          if (isDiagramModifiable && !event.shiftKey && !event.altKey) {
             event.preventDefault()
             if (hasSelectedElements()) {
               pasteCountRef.current = 0
@@ -351,7 +353,7 @@ export const useKeyboardShortcuts = () => {
           break
 
         case "v":
-          if (!event.shiftKey && !event.altKey) {
+          if (isDiagramModifiable && !event.shiftKey && !event.altKey) {
             event.preventDefault()
             // Repeated pastes at the same spot cascade; moving the pointer
             // starts again at the pointer.
@@ -372,7 +374,7 @@ export const useKeyboardShortcuts = () => {
           // Cmd/Ctrl+D duplicates the selection (copy + immediate paste)
           // matching the v3 fork. Browsers default this to "bookmark
           // page" so preventDefault is mandatory.
-          if (!event.shiftKey && !event.altKey) {
+          if (isDiagramModifiable && !event.shiftKey && !event.altKey) {
             event.preventDefault()
             if (hasSelectedElements()) {
               pasteCountRef.current = 1
@@ -408,6 +410,7 @@ export const useKeyboardShortcuts = () => {
     duplicateSelectedElements,
     deleteSelectedElements,
     isDiagramModifiable,
+    modellingView,
     canOpenPopover,
     popoverElementId,
     setPopOverElementId,

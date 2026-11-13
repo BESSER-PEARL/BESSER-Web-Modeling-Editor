@@ -16,6 +16,7 @@ import {
   materializeClipboardData,
 } from "@/utils/copyPasteUtils"
 import { centerPastedOn, withUniqueCopyNames } from "@/utils/elementNaming"
+import { getLockIndex } from "@/utils/locks"
 import { CANVAS } from "@/constants"
 import { useTranslation } from "@/i18n"
 import { emitBesserError } from "@/services/errors"
@@ -260,7 +261,10 @@ export const useSelectionForCopyPaste = () => {
   )
 
   const deleteSelectedElements = useCallback(() => {
-    const { selectedElementIds: ids, nodes, edges } = storeApi.getState()
+    const { selectedElementIds, nodes, edges } = storeApi.getState()
+    // Locked content, and whatever it depends on, stays.
+    const { undeletable } = getLockIndex(nodes, edges)
+    const ids = selectedElementIds.filter((id) => !undeletable.has(id))
     if (ids.length === 0) {
       return false
     }

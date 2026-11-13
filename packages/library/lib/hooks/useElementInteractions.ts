@@ -9,11 +9,13 @@ import {
   EdgeMouseHandler,
 } from "@xyflow/react"
 import { useShallow } from "zustand/shallow"
-import { useDiagramModifiable } from "./useDiagramModifiable"
+import { useDiagramModifiable, useModellingView } from "./useDiagramModifiable"
 import { getAllDescendants } from "@/utils/copyPasteUtils"
 
 export const useElementInteractions = () => {
   const isDiagramModifiable = useDiagramModifiable()
+  // Locked elements and diagrams still open their (disabled) inspector.
+  const modellingView = useModellingView()
   const { mode, readonly } = useMetadataStore(
     useShallow((state) => ({
       mode: state.mode,
@@ -27,7 +29,7 @@ export const useElementInteractions = () => {
   )
   const allNodes = useDiagramStore(useShallow((state) => state.nodes))
   const canOpenAssessmentPopover = mode === BesserMode.Assessment && !readonly
-  const canOpenPopover = isDiagramModifiable || canOpenAssessmentPopover
+  const canOpenPopover = modellingView || canOpenAssessmentPopover
 
   // Expand the deletion set to include all descendants of any parent
   // that is being deleted (NNContainer, State, AgentIntent). React Flow's

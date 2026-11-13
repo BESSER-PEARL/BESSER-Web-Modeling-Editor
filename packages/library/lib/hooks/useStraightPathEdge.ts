@@ -9,7 +9,7 @@ import {
   adjustTargetCoordinates,
 } from "@/utils/edgeUtils"
 import { EDGES } from "@/constants"
-import { useDiagramModifiable } from "./useDiagramModifiable"
+import { useDiagramModifiable, useElementLock } from "./useDiagramModifiable"
 import { IPoint } from "../edges/Connection"
 import { useEdgeReconnection, BaseEdgeProps } from "../edges/GenericEdge"
 import { useHandleFinder } from "./useHandleFinder"
@@ -37,7 +37,9 @@ export const useStraightPathEdge = ({
   enableReconnection = true,
 }: Omit<BaseEdgeProps, "data"> & { enableReconnection?: boolean }) => {
   const pathRef = useRef<SVGPathElement | null>(null)
-  const isDiagramModifiable = useDiagramModifiable()
+  // A locked edge shows no reconnect or bend grips.
+  const { locked } = useElementLock(id)
+  const isDiagramModifiable = useDiagramModifiable() && !locked
   const { screenToFlowPosition } = useReactFlow()
   const [tempReconnectPath, setTempReconnectPath] = useState<string | null>(
     null

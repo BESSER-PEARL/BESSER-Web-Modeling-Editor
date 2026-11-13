@@ -1105,6 +1105,15 @@
     "style": "Estil",
     "pasteRefusedOtherType": "Els elements copiats d'un altre tipus de diagrama no es poden enganxar aquí."
   },
+  "lock": {
+    "locked": "Bloquejat",
+    "lock": "Bloqueja",
+    "unlock": "Desbloqueja",
+    "lockDiagram": "Bloqueja el diagrama",
+    "unlockDiagram": "Desbloqueja el diagrama",
+    "elementLockedNotice": "Aquest element està bloquejat.",
+    "diagramLockedNotice": "Aquest diagrama està bloquejat."
+  },
   "zoomPane": {
     "zoomIn": "Apropa",
     "zoomOut": "Allunya",

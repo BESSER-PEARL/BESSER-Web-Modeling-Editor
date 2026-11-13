@@ -1105,6 +1105,15 @@
     "style": "Stil",
     "pasteRefusedOtherType": "Elementer, déi aus engem aneren Diagrammtyp kopéiert goufen, kënnen hei net agefüügt ginn."
   },
+  "lock": {
+    "locked": "Gespaart",
+    "lock": "Spären",
+    "unlock": "Opspären",
+    "lockDiagram": "Diagramm spären",
+    "unlockDiagram": "Diagramm opspären",
+    "elementLockedNotice": "Dëst Element ass gespaart.",
+    "diagramLockedNotice": "Dësen Diagramm ass gespaart."
+  },
   "zoomPane": {
     "zoomIn": "Vergréisseren",
     "zoomOut": "Verklengeren",

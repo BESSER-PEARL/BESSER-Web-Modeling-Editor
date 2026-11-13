@@ -1,12 +1,16 @@
-import { DeleteIcon, EditIcon } from "@/components/Icon"
+import { DeleteIcon, EditIcon, LockIcon } from "@/components/Icon"
 import { ZINDEX } from "@/constants"
 import { IPoint } from "@/edges"
-import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import {
+  useDiagramModifiable,
+  useElementLock,
+} from "@/hooks/useDiagramModifiable"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
 import { useMemo, useRef } from "react"
 import { useTranslation } from "@/i18n"
 import { placeEdgeToolbar } from "@/utils/edgeUtils"
 import type { LayoutRect } from "@/utils/autoLayoutHandles"
+import { LockToggleButton } from "../LockToggleButton"
 import { ToolbarButton } from "../ToolbarButton"
 
 /** Default offset from the midpoint (below-right) before any placement. */
@@ -73,6 +77,8 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
   const { t } = useTranslation()
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(edgeId)
+  const { locked } = useElementLock(edgeId)
+  const attachAssociationClass = locked ? undefined : onAttachAssociationClass
 
   const showToolbar = useMemo(() => {
     return selected && isDiagramModifiable
@@ -80,7 +86,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
 
   // 28px buttons, 2px gaps, 3px padding + 1px border on each side.
   const actionCount =
-    1 + (showEdit ? 1 : 0) + (onAttachAssociationClass ? 1 : 0)
+    1 + (locked ? 0 : 1) + (showEdit ? 1 : 0) + (attachAssociationClass ? 1 : 0)
   const toolbarWidth = 28 * actionCount + 2 * (actionCount - 1) + 8
   const toolbarHeight = 36
 
@@ -137,28 +143,41 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
               <EditIcon />
             </ToolbarButton>
           )}
-          {onAttachAssociationClass && (
+          {attachAssociationClass && (
             <ToolbarButton
               label={t("toolbar.addAssociationClass", "Add association class")}
               onClick={(e) => {
                 e.stopPropagation()
-                onAttachAssociationClass()
+                attachAssociationClass()
               }}
             >
               <AssociationClassGlyph />
             </ToolbarButton>
           )}
-          <ToolbarButton
-            label={t("actions.delete", "Delete")}
-            danger
-            onClick={(e) => {
-              e.stopPropagation()
-              onDeleteClick(e)
-            }}
-          >
-            <DeleteIcon />
-          </ToolbarButton>
+          <LockToggleButton elementId={edgeId} />
+          {!locked && (
+            <ToolbarButton
+              label={t("actions.delete", "Delete")}
+              danger
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteClick(e)
+              }}
+            >
+              <DeleteIcon />
+            </ToolbarButton>
+          )}
         </div>
+      )}
+      {locked && !showToolbar && (
+        <span
+          className="besser-lock-badge"
+          role="img"
+          aria-label={t("lock.locked", "Locked")}
+          title={t("lock.locked", "Locked")}
+        >
+          <LockIcon width={12} height={12} aria-hidden="true" />
+        </span>
       )}
     </foreignObject>
   )

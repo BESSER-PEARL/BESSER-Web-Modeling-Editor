@@ -10,6 +10,7 @@ import { UndoIcon } from "./Icon/UndoIcon"
 import { RedoIcon } from "./Icon/RedoIcon"
 import { AutoLayoutIcon } from "./Icon/AutoLayoutIcon"
 import { MapIcon } from "./Icon/MapIcon"
+import { LockIcon, LockOpenIcon } from "./Icon/LockIcon"
 import { FitViewIcon, ZoomInIcon, ZoomOutIcon } from "./Icon/ZoomIcons"
 import { CustomMiniMap } from "./CustomMiniMap"
 import { ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material"
@@ -23,6 +24,10 @@ import {
   type AutoLayoutStrategy,
 } from "@/utils/autoLayout"
 import { useTranslation } from "@/i18n"
+import {
+  useDiagramModifiable,
+  useModellingView,
+} from "@/hooks/useDiagramModifiable"
 
 /** Last strategy picked per diagram type (session memory for the main button). */
 const lastStrategy = new Map<string, AutoLayoutStrategy>()
@@ -47,7 +52,17 @@ export const CustomControls = () => {
 
   // `hasNodes`, not the node list: the controls must not re-render on every
   // drag step. Auto-layout reads the live nodes/edges when it runs.
-  const { canUndo, canRedo, undo, redo, undoManagerExist, hasNodes, setNodesAndEdges } = useDiagramStore(
+  const {
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    undoManagerExist,
+    hasNodes,
+    setNodesAndEdges,
+    diagramLocked,
+    setDiagramLocked,
+  } = useDiagramStore(
     useShallow((state) => ({
       canUndo: state.canUndo,
       canRedo: state.canRedo,
@@ -56,8 +71,12 @@ export const CustomControls = () => {
       undoManagerExist: state.undoManager !== null,
       hasNodes: state.nodes.length > 0,
       setNodesAndEdges: state.setNodesAndEdges,
+      diagramLocked: state.diagramLocked,
+      setDiagramLocked: state.setDiagramLocked,
     }))
   )
+  const modellingView = useModellingView()
+  const canLayout = useDiagramModifiable() && hasNodes && !isLayouting
   const diagramStoreApi = useDiagramStoreApi()
   const diagramType = useMetadataStore(useShallow((state) => state.diagramType))
 
@@ -74,7 +93,7 @@ export const CustomControls = () => {
 
   const handleAutoLayout = async (strategy: AutoLayoutStrategy = currentStrategy) => {
     const before = diagramStoreApi.getState()
-    if (isLayouting || !hasNodes) return
+    if (!canLayout) return
     setIsLayouting(true)
     try {
       lastStrategy.set(diagramType, strategy)
@@ -181,6 +200,27 @@ export const CustomControls = () => {
             </Tooltip>
           </>
         )}
+        {/* Whole-diagram lock */}
+        {modellingView && (
+          <>
+            <span className="control-divider" aria-hidden="true" />
+            <Tooltip placement="left" title={t("lock.lockDiagram", "Lock diagram")}>
+              <button
+                type="button"
+                className="control-button"
+                aria-label={t("lock.lockDiagram", "Lock diagram")}
+                aria-pressed={diagramLocked}
+                onClick={() => setDiagramLocked(!diagramLocked)}
+              >
+                {diagramLocked ? (
+                  <LockIcon width={16} height={16} />
+                ) : (
+                  <LockOpenIcon width={16} height={16} />
+                )}
+              </button>
+            </Tooltip>
+          </>
+        )}
         {/* Auto-layout group */}
         <span className="control-divider" aria-hidden="true" />
         <Tooltip
@@ -196,16 +236,16 @@ export const CustomControls = () => {
         >
           <span>
             <button
-              className={`control-button ${isLayouting || !hasNodes ? "disabled" : ""}`}
+              className={`control-button ${canLayout ? "" : "disabled"}`}
               aria-label={t("toolbar.autoLayout", "Auto-layout diagram")}
               onClick={() => void handleAutoLayout()}
-              disabled={isLayouting || !hasNodes}
+              disabled={!canLayout}
             >
               <AutoLayoutIcon
                 width={16}
                 height={16}
                 fill={
-                  !isLayouting && hasNodes
+                  canLayout
                     ? "var(--besser-primary-contrast, #000000)"
                     : "var(--besser-secondary, #6c757d)"
                 }
@@ -218,11 +258,11 @@ export const CustomControls = () => {
             <Tooltip placement="left" title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
               <span>
                 <button
-                  className={`control-button control-button--caret ${isLayouting || !hasNodes ? "disabled" : ""}`}
+                  className={`control-button control-button--caret ${canLayout ? "" : "disabled"}`}
                   aria-haspopup="menu"
                   aria-label={t("toolbar.autoLayoutOptions", "Auto-layout options")}
                   onClick={(e: MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget)}
-                  disabled={isLayouting || !hasNodes}
+                  disabled={!canLayout}
                 >
                   <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden="true">
                     <path

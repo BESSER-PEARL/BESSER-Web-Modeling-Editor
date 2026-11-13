@@ -1105,6 +1105,15 @@
     "style": "Style",
     "pasteRefusedOtherType": "Elements copied from another diagram type can't be pasted here."
   },
+  "lock": {
+    "locked": "Locked",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "lockDiagram": "Lock diagram",
+    "unlockDiagram": "Unlock diagram",
+    "elementLockedNotice": "This element is locked.",
+    "diagramLockedNotice": "This diagram is locked."
+  },
   "zoomPane": {
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",

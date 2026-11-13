@@ -1105,6 +1105,15 @@
     "style": "Estilo",
     "pasteRefusedOtherType": "Los elementos copiados de otro tipo de diagrama no se pueden pegar aquí."
   },
+  "lock": {
+    "locked": "Bloqueado",
+    "lock": "Bloquear",
+    "unlock": "Desbloquear",
+    "lockDiagram": "Bloquear diagrama",
+    "unlockDiagram": "Desbloquear diagrama",
+    "elementLockedNotice": "Este elemento está bloqueado.",
+    "diagramLockedNotice": "Este diagrama está bloqueado."
+  },
   "zoomPane": {
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",

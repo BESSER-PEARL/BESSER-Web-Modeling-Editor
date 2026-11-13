@@ -36,6 +36,10 @@ const setPopOverElementId = vi.fn()
 
 vi.mock("@/hooks/useDiagramModifiable", () => ({
   useDiagramModifiable: () => true,
+  useElementLock: () => ({ locked: false, pinned: false, undeletable: false }),
+}))
+vi.mock("@/components/toolbars/LockToggleButton", () => ({
+  LockToggleButton: () => null,
 }))
 vi.mock("@/hooks/useIsOnlyThisElementSelected", () => ({
   useIsOnlyThisElementSelected: () => true,

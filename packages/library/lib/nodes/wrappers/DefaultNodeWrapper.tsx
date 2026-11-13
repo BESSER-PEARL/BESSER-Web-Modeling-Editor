@@ -1,7 +1,12 @@
 import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSelectableWrapper"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { NodeAssessmentBadge } from "@/components/wrapper/NodeAssessmentBadge"
-import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
+import {
+  useDiagramModifiable,
+  useElementLock,
+} from "@/hooks/useDiagramModifiable"
+import { LockIcon } from "@/components/Icon"
+import { useTranslation } from "@/i18n"
 import { Handle, Position, useReactFlow } from "@xyflow/react"
 import { useMetadataStore } from "@/store/context"
 import { FLOATING_PORT_DIAGRAMS } from "@/utils/floatingEdges"
@@ -72,6 +77,8 @@ export function DefaultNodeWrapper({
   const { getNode } = useReactFlow()
   const nodeType = getNode(elementId)?.type
   const isDiagramModifiable = useDiagramModifiable()
+  const { locked, pinned } = useElementLock(elementId)
+  const { t } = useTranslation()
   // Continuous ports: one outline band to connect from, the legacy handles
   // stay only as (invisible) anchors React Flow resolves stored
   // `sourceHandle` / `targetHandle` ids against.
@@ -292,6 +299,22 @@ export function DefaultNodeWrapper({
         )}
 
         {children}
+        {/* Marks a node that cannot move (app.css hides its resize grips);
+            the badge shows its own lock. */}
+        {pinned && (
+          <span className="besser-node-lock" data-export-skip>
+            {locked && (
+              <span
+                className="besser-node-lock__badge"
+                role="img"
+                aria-label={t("lock.locked", "Locked")}
+                title={t("lock.locked", "Locked")}
+              >
+                <LockIcon width={12} height={12} aria-hidden="true" />
+              </span>
+            )}
+          </span>
+        )}
         {/* Generic score icon for node types whose SVG draws none. */}
         <NodeAssessmentBadge elementId={elementId} nodeType={nodeType} />
       </FeedbackDropzone>
