@@ -878,6 +878,22 @@ svg.react-flow__connectionline {
   --bp-ease: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Phone width: the inspector lies over the editor instead of being pushed
+   past its right edge, where its close button could not be reached. */
+@media (max-width: 480px) {
+  .besser-properties-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    max-width: 100%;
+  }
+  .besser-properties-panel__container {
+    min-width: 0;
+  }
+}
+
 /* Scope-down the global `!important` overrides above for the inspector
    so the theme-driven colors in `inspector-theme.ts` take effect. */
 .besser-properties-panel .MuiOutlinedInput-notchedOutline {
