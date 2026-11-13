@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderKanban, Sparkles, Users } from 'lucide-react';
+import { FolderKanban, LayoutGrid, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
@@ -45,6 +45,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onGenerate,
   onOpenPersonalizeDialog,
   onOpenRecommendPersonalizationDialog,
+  onOpenPersonalizationOverview,
   onQualityCheck,
   qualityCheckState,
   showAgentVariantSelector,
@@ -195,18 +196,18 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             </Button>
           )}
           {activeDiagramType === 'GUINoCodeDiagram' && <GuiVariantSelector />}
-          {activeDiagramType === 'UserDiagram' && onOpenRecommendPersonalizationDialog && (
+          {activeDiagramType === 'UserDiagram' && onOpenPersonalizationOverview && (
             <Button
               variant="outline"
               className={outlineButtonClass}
               onClick={() => {
-                getPostHog()?.capture('recommend_personalization_opened', { diagram_type: activeDiagramType });
-                onOpenRecommendPersonalizationDialog();
+                getPostHog()?.capture('personalization_overview_opened', { diagram_type: activeDiagramType });
+                onOpenPersonalizationOverview();
               }}
-              title={t('recommendPersonalization.title')}
+              title={t('personalizationOverview.title')}
             >
-              <Sparkles className="size-4" />
-              <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('recommendPersonalization.title')}</span>
+              <LayoutGrid className="size-4" />
+              <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalizationOverview.title')}</span>
             </Button>
           )}
           <DeployMenu

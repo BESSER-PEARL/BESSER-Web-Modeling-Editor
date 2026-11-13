@@ -2433,6 +2433,27 @@
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
   },
+  "personalizationOverview": {
+    "title": "Personalization overview",
+    "description": "See your user models, your default agents and web UIs, and which personalizations have been applied.",
+    "step1": "1. User models",
+    "step2": "2. Default products and applied personalization",
+    "noProfiles": "No user profile found. Add a User element to a user diagram first.",
+    "settings_one": "{{count}} setting defined",
+    "settings_other": "{{count}} settings defined",
+    "noSettings": "Missing: no personalization rules",
+    "noSettingsHint": "Missing personalization rules: a user model is defined, but no rules say how to adapt agents and web UIs for it. Double-click a profile element or attribute to add rules, or use Recommend Personalization.",
+    "noTargets": "No agent or web UI in this project yet. Create one to personalize it.",
+    "defaultAgent": "Default agent",
+    "defaultWebUi": "Default web UI",
+    "open": "Open",
+    "applied": "personalized",
+    "notApplied": "not personalized yet",
+    "personalize": "Personalize",
+    "reapply": "Re-apply",
+    "howTo": "Clicking a button opens the agent or web UI editor; use its Personalize button to apply the selected profile.",
+    "close": "Close"
+  },
   "recommendPersonalization": {
     "title": "Recommend Personalization",
     "description": "Get recommended personalization settings based on the user profile model.",

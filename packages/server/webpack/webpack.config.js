@@ -53,5 +53,10 @@ module.exports = {
   externals: {
     'utf-8-validate': 'utf-8-validate',
   },
-  plugins: [],
+  plugins: [
+    // Prebuilt default museum website, served at /study-default/ in study mode.
+    new CopyPlugin({
+      patterns: [{ from: path.resolve(__dirname, '../study-default-site'), to: path.resolve(__dirname, '../../../build/server/study-default') }],
+    }),
+  ],
 };

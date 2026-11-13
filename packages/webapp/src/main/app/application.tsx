@@ -66,6 +66,9 @@ const PersonalizeAgentDialog = React.lazy(() =>
 const RecommendPersonalizationDialog = React.lazy(() =>
   import('../features/editors/uml/RecommendPersonalizationDialog').then((m) => ({ default: m.RecommendPersonalizationDialog })),
 );
+const PersonalizationOverviewDialog = React.lazy(() =>
+  import('../features/editors/uml/PersonalizationOverviewDialog').then((m) => ({ default: m.PersonalizationOverviewDialog })),
+);
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
@@ -78,6 +81,7 @@ function AppContentInner() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPersonalizeDialog, setShowPersonalizeDialog] = useState(false);
   const [showRecommendPersonalizationDialog, setShowRecommendPersonalizationDialog] = useState(false);
+  const [showPersonalizationOverview, setShowPersonalizationOverview] = useState(false);
 
   const location = useLocation();
 
@@ -139,6 +143,7 @@ function AppContentInner() {
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
         onOpenPersonalizeDialog={() => setShowPersonalizeDialog(true)}
         onOpenRecommendPersonalizationDialog={() => { void handleOpenRecommendPersonalizationDialog(); }}
+        onOpenPersonalizationOverview={() => setShowPersonalizationOverview(true)}
         onQualityCheck={() => handleQualityCheck()}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
@@ -175,6 +180,14 @@ function AppContentInner() {
         <PersonalizeAgentDialog
           open={showPersonalizeDialog}
           onOpenChange={setShowPersonalizeDialog}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <PersonalizationOverviewDialog
+          open={showPersonalizationOverview}
+          onOpenChange={setShowPersonalizationOverview}
+          onRecommend={() => { void handleOpenRecommendPersonalizationDialog(); }}
         />
       </Suspense>
 
