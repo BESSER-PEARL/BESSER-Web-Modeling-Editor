@@ -612,3 +612,32 @@ describe("getNodeOverflowBoundsFromDOM", () => {
     expect(getNodeOverflowBoundsFromDOM(container)).toBeUndefined()
   })
 })
+
+// Diagrams wider than the 4000 px export mount are zoomed out to fit; their
+// SVG/PNG export lost the right and bottom edge of the last nodes.
+describe("getNodeBoundsFromDOM under a zoomed-out export view", () => {
+  const { getNodeBoundsFromDOM } = __testing
+
+  const renderNode = (zoom: number) => {
+    const container = document.createElement("div")
+    container.innerHTML =
+      '<div class="react-flow__node" style="transform: translate(4200px, 100px)">' +
+      '<svg viewBox="0 0 220 110" width="220" height="110"></svg></div>'
+    const svg = container.querySelector("svg")!
+    svg.getBoundingClientRect = () =>
+      ({ width: 220 * zoom, height: 110 * zoom, left: 0, top: 0, right: 0, bottom: 0 }) as DOMRect
+    ;(svg as unknown as SVGGraphicsElement).getBBox = () =>
+      ({ x: 0, y: 0, width: 220, height: 110 }) as DOMRect
+    return container
+  }
+
+  it.each([1, 0.8])("keeps the node's full size at zoom %s", (zoom) => {
+    const reactFlow = { getZoom: () => zoom } as never
+    expect(getNodeBoundsFromDOM(renderNode(zoom), reactFlow)).toEqual({
+      x: 4200,
+      y: 100,
+      width: 220,
+      height: 110,
+    })
+  })
+})

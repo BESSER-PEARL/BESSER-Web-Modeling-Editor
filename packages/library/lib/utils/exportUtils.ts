@@ -1091,6 +1091,8 @@ function getNodeBoundsFromDOM(
   reactFlow?: ReactFlowInstance<Node, Edge>
 ): Rect | undefined {
   const nodeElements = container.querySelectorAll(".react-flow__node")
+  // Screen rects scale with the viewport zoom; node positions do not.
+  const zoom = reactFlow?.getZoom() || 1
 
   let minX = Infinity
   let minY = Infinity
@@ -1117,12 +1119,12 @@ function getNodeBoundsFromDOM(
         const viewBoxParts = viewBox.split(/[\s,]+/).map(Number)
         if (viewBoxParts.length >= 4) {
           const [vbX, vbY, vbW, vbH] = viewBoxParts
-          const svgWidth =
-            renderedSvgRect?.width ??
-            parseFloat(svgElement.getAttribute("width") ?? `${vbW}`)
-          const svgHeight =
-            renderedSvgRect?.height ??
-            parseFloat(svgElement.getAttribute("height") ?? `${vbH}`)
+          const svgWidth = renderedSvgRect
+            ? renderedSvgRect.width / zoom
+            : parseFloat(svgElement.getAttribute("width") ?? `${vbW}`)
+          const svgHeight = renderedSvgRect
+            ? renderedSvgRect.height / zoom
+            : parseFloat(svgElement.getAttribute("height") ?? `${vbH}`)
 
           if (
             Number.isFinite(svgWidth) &&
@@ -1191,8 +1193,12 @@ function getNodeBoundsFromDOM(
       }
     }
 
-    const width = renderedSvgRect?.width ?? parseFloat(styles.width ?? "")
-    const height = renderedSvgRect?.height ?? parseFloat(styles.height ?? "")
+    const width = renderedSvgRect
+      ? renderedSvgRect.width / zoom
+      : parseFloat(styles.width ?? "")
+    const height = renderedSvgRect
+      ? renderedSvgRect.height / zoom
+      : parseFloat(styles.height ?? "")
 
     if (!Number.isFinite(width) || !Number.isFinite(height)) {
       return
