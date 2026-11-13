@@ -37,11 +37,12 @@ interface UseUserProfileForm {
   applyEdit: (updater: (prev: Instance) => Instance) => void;
   /** True once a metamodel + root instance are available. */
   ready: boolean;
-  /** The diagram or one of its boxes is locked: edits are ignored. */
+  /** The diagram or one of its boxes or links is locked: edits are ignored. */
   locked: boolean;
 }
 
-const isLocked = (model: UMLModel): boolean => !!model.locked || model.nodes.some((node) => node.locked);
+const isLocked = (model: UMLModel): boolean =>
+  !!model.locked || model.nodes.some((node) => node.locked) || model.edges.some((edge) => edge.locked);
 
 export const useUserProfileForm = (open: boolean, editor: BesserEditor | undefined): UseUserProfileForm => {
   const dispatch = useAppDispatch();

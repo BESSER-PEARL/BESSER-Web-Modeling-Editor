@@ -96,4 +96,18 @@ describe('useUserProfileForm while locked', () => {
     const { result } = renderHook(() => useUserProfileForm(true, editor as unknown as BesserEditor));
     expect(result.current.locked).toBe(true);
   });
+
+  // Unticking a section removed a locked link together with its end box.
+  it('treats a locked link as a lock on the form', async () => {
+    const lockedLink = { id: 'e1', source: 'n1', target: 'n2', type: 'UserModelLink', data: { points: [] }, locked: true };
+    const { editor } = fakeEditor(userModel({ edges: [lockedLink] as unknown as UMLModel['edges'] }));
+    const { result } = renderHook(() => useUserProfileForm(true, editor as unknown as BesserEditor));
+    expect(result.current.locked).toBe(true);
+
+    act(() => result.current.applyEdit(setAge));
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(editor.applyModel).not.toHaveBeenCalled();
+  });
 });
