@@ -14,7 +14,7 @@ import type {
   UserPersonalizationSpec,
   UserPresentationSpec,
 } from '@besser/wme';
-import { EXPLANATION_STYLE_OPTIONS, EXPLANATION_STYLE_HELP, isPersonalizationSpecEmpty } from '@besser/wme';
+import { ArPersonalizationFields, EXPLANATION_STYLE_OPTIONS, EXPLANATION_STYLE_HELP, isPersonalizationSpecEmpty } from '@besser/wme';
 import { ChevronRight, Info, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -161,6 +161,8 @@ const ColorPicker: React.FC<{ value?: string; onChange: (v: string | undefined) 
 
 const clean = (spec: UserPersonalizationSpec): UserPersonalizationSpec | undefined => {
   const next: UserPersonalizationSpec = {
+    gui: spec.gui,
+    ar: spec.ar,
     presentation: prune(spec.presentation),
     modality: prune(spec.modality),
     content: prune(spec.content),
@@ -229,6 +231,10 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
 
       <CollapsibleContent>
         <div className="mt-1.5 space-y-2.5 rounded-md border border-border/50 bg-muted/20 p-2">
+          <section aria-label="AR personalization" className="rounded-md border border-border/50 p-2">
+            <p className={sectionTitleClass}>AR</p>
+            <ArPersonalizationFields value={spec.ar} onChange={(ar) => onChange(clean({ ...spec, ar }))} />
+          </section>
           {/* Presentation (language/style/complexity/sentence + interface styling) */}
           <div className="space-y-0.5">
             <p className={sectionTitleClass}>Presentation</p>

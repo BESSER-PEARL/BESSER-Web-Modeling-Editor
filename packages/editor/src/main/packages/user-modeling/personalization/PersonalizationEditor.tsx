@@ -13,6 +13,7 @@ import {
   EXPLANATION_STYLE_HELP,
   isPersonalizationSpecEmpty,
 } from '../personalization-spec';
+import { ArPersonalizationFields } from './ArPersonalizationFields';
 import { ALL_PERSONALIZATION_FIELDS, PersonalizationFieldKey } from './personalization-field-config';
 
 /**
@@ -398,7 +399,12 @@ const clean = (spec: UserPersonalizationSpec): UserPersonalizationSpec | undefin
   const guiPresentation = prune(spec.gui?.presentation);
   const guiContent = prune(spec.gui?.content);
   const guiModality = prune(spec.gui?.modality);
+  const arContent = prune(spec.ar?.content);
+  const arPresentation = prune(spec.ar?.presentation);
+  const arBehavior = prune(spec.ar?.behavior);
+  const arModality = prune(spec.ar?.modality);
   const next: UserPersonalizationSpec = {
+    ...(arContent || arPresentation || arBehavior || arModality ? { ar: { content: arContent, presentation: arPresentation, behavior: arBehavior, modality: arModality } } : {}),
     presentation: prune(spec.presentation),
     modality: prune(spec.modality),
     content: prune(spec.content),
@@ -684,7 +690,7 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
         type="button"
         active={active}
         onClick={() => setOpen((o) => !o)}
-        title="Configure agent and GUI personalization for this user group"
+        title="Configure personalization for this user group"
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ opacity: 0.9, fontSize: 18, lineHeight: 1 }}>✦</span>
@@ -905,6 +911,10 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 {showAll ? '▲ Show recommended only' : '▼ Show all options'}
               </ShowAllToggle>
             )}
+          </TargetSection>
+          <TargetSection aria-label="AR personalization">
+            <TargetTitle>AR</TargetTitle>
+            <ArPersonalizationFields value={spec.ar} onChange={(ar) => onChange(clean({ ...spec, ar }))} />
           </TargetSection>
           <TargetSection aria-label="GUI personalization">
             <TargetTitle>GUI</TargetTitle>

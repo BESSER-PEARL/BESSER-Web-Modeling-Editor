@@ -87,6 +87,14 @@ export interface UserGuiPersonalizationSpec {
   modality?: { readAloud?: boolean };
 }
 
+/** Classical AR settings, independent of agent and GUI personalization. */
+export interface UserArPersonalizationSpec {
+  content?: { language?: UserPresentationSpec['language']; simplifyInstructions?: boolean };
+  presentation?: { instructionScale?: number; contrast?: 'high'; augmentationScale?: number; augmentationColor?: 'highContrast' | 'custom'; customAugmentationColor?: string };
+  behavior?: { stepConfirmation?: boolean };
+  modality?: { audioInstructions?: boolean; preferredInteraction?: 'click' | 'voice' | 'detect' };
+}
+
 export interface UserPersonalizationSpec {
   // Existing top-level dimensions belong to the agent. Keep their storage
   // paths compatible with saved profiles and the agent generation pipeline.
@@ -94,6 +102,7 @@ export interface UserPersonalizationSpec {
   modality?: UserModalitySpec;
   content?: UserContentSpec;
   gui?: UserGuiPersonalizationSpec;
+  ar?: UserArPersonalizationSpec;
 }
 
 /** Runtime guard used by element serialize/deserialize and the aggregation. */
@@ -103,6 +112,6 @@ export const isUserPersonalizationSpec = (value: unknown): value is UserPersonal
 /** True when a spec actually carries at least one set field (ignores empty objects). */
 export const isPersonalizationSpecEmpty = (spec?: UserPersonalizationSpec | null): boolean => {
   if (!spec) return true;
-  const dims = [spec.presentation, spec.modality, spec.content, spec.gui?.presentation, spec.gui?.content, spec.gui?.modality];
+  const dims = [spec.presentation, spec.modality, spec.content, spec.gui?.presentation, spec.gui?.content, spec.gui?.modality, spec.ar?.content, spec.ar?.presentation, spec.ar?.behavior, spec.ar?.modality];
   return dims.every((dim) => !dim || Object.values(dim).every((v) => v === undefined || v === '' || v === null));
 };

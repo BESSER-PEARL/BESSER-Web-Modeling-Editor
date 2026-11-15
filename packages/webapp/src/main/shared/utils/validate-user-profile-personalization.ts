@@ -83,6 +83,13 @@ function extractLeafFields(spec: UserPersonalizationSpec): Map<FieldPath, Normal
     }
   }
 
+  for (const [dimension, values] of Object.entries(spec.ar ?? {})) {
+    for (const [field, value] of Object.entries(values ?? {})) {
+      if (value !== undefined && value !== null && value !== '' && value !== 'original') {
+        set(`ar.${dimension}.${field}`, value);
+      }
+    }
+  }
   return fields;
 }
 

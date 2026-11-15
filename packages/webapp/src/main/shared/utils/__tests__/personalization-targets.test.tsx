@@ -218,3 +218,52 @@ describe('agent tone and explanation presentation', () => {
     });
   }
 });
+
+describe('classical AR personalization', () => {
+  for (const editor of ['canvas', 'form']) {
+    it(`edits six AR settings independently and preserves them in the ${editor} editor`, () => {
+      function Editor() {
+        const [spec, setSpec] = useState<UserPersonalizationSpec | undefined>({ presentation: { language: 'english' }, gui: { presentation: { size: 24 } } });
+        return <ThemeProvider theme={{ color: { graylight: '#ccc' } }}>
+          {editor === 'canvas' ? <PersonalizationEditor value={spec} onChange={setSpec} defaultOpen /> : <PersonalizationFields value={spec} onChange={setSpec} />}
+          <output data-testid="ar-spec">{JSON.stringify(spec) ?? 'unset'}</output>
+        </ThemeProvider>;
+      }
+      render(<Editor />);
+      const ar = within(screen.getByRole('region', { name: 'AR personalization' }));
+      fireEvent.change(ar.getByLabelText('Instruction language (AI)'), { target: { value: 'french' } });
+      fireEvent.click(ar.getByLabelText('Simplify instructions (AI)'));
+      fireEvent.change(ar.getByLabelText('Instruction size'), { target: { value: '1.5' } });
+      fireEvent.change(ar.getByLabelText('Instruction contrast'), { target: { value: 'high' } });
+      fireEvent.click(ar.getByLabelText('Confirm each step'));
+      fireEvent.click(ar.getByLabelText('Offer audio instructions'));
+      fireEvent.change(ar.getByLabelText('Augmentation size'), { target: { value: '1.25' } });
+      fireEvent.change(ar.getByLabelText('Augmentation colors'), { target: { value: 'custom' } });
+      fireEvent.change(ar.getByLabelText('Custom augmentation color'), { target: { value: '#123456' } });
+      fireEvent.change(ar.getByLabelText('Preferred interaction'), { target: { value: 'voice' } });
+      const saved = JSON.parse(screen.getByTestId('ar-spec').textContent!);
+      expect(saved.ar).toEqual({ content: { language: 'french', simplifyInstructions: true }, presentation: { instructionScale: 1.5, contrast: 'high', augmentationScale: 1.25, augmentationColor: 'custom', customAugmentationColor: '#123456' }, behavior: { stepConfirmation: true }, modality: { audioInstructions: true, preferredInteraction: 'voice' } });
+      expect(saved.gui.presentation.size).toBe(24);
+      expect(saved.presentation.language).toBe('english');
+      const element = new UMLUserModelName({ className: 'User', personalization: saved });
+      expect(new UMLUserModelName(JSON.parse(JSON.stringify(element.serialize()))).serialize().personalization).toEqual(saved);
+      expect(aggregateProfilePersonalization({ elements: { user: element.serialize() } } as any).configuration).toEqual({ agentLanguage: 'english' });
+      fireEvent.change(ar.getByLabelText('Instruction language (AI)'), { target: { value: 'original' } });
+      fireEvent.click(ar.getByLabelText('Simplify instructions (AI)'));
+      fireEvent.change(ar.getByLabelText('Instruction size'), { target: { value: '' } });
+      fireEvent.change(ar.getByLabelText('Instruction contrast'), { target: { value: '' } });
+      fireEvent.click(ar.getByLabelText('Confirm each step'));
+      fireEvent.click(ar.getByLabelText('Offer audio instructions'));
+      fireEvent.change(ar.getByLabelText('Augmentation size'), { target: { value: '' } });
+      fireEvent.change(ar.getByLabelText('Augmentation colors'), { target: { value: 'highContrast' } });
+      expect(JSON.parse(screen.getByTestId('ar-spec').textContent!).ar.presentation.customAugmentationColor).toBeUndefined();
+      fireEvent.change(ar.getByLabelText('Augmentation colors'), { target: { value: '' } });
+      fireEvent.change(ar.getByLabelText('Preferred interaction'), { target: { value: '' } });
+      expect(JSON.parse(screen.getByTestId('ar-spec').textContent!).ar).toBeUndefined();
+    });
+  }
+  it('recognizes AR-only settings as active', () => {
+    expect(isPersonalizationSpecEmpty({ ar: { content: { simplifyInstructions: true } } })).toBe(false);
+    expect(isPersonalizationSpecEmpty({ ar: { content: {} } })).toBe(true);
+  });
+});

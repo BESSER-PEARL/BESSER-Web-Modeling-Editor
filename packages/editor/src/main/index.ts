@@ -95,3 +95,5 @@ export {
   EXPLANATION_STYLE_HELP,
   isPersonalizationSpecEmpty,
 } from './packages/user-modeling/personalization-spec';
+
+export { ArPersonalizationFields } from './packages/user-modeling/personalization/ArPersonalizationFields';
