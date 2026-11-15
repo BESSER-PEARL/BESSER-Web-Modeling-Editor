@@ -1081,7 +1081,7 @@
       "github": {
         "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
         "continue": "Fortsetzen",
-        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code. Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
+        "description": "Wähle ein Repository zum Importieren. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Das Projekt bleibt mit dem Repository verknüpft. Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
         "errors": {
           "generic": "Fortsetzen aus diesem Repository nicht möglich.",
           "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",

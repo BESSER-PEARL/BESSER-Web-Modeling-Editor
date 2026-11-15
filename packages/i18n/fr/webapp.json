@@ -1081,7 +1081,7 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+        "description": "Choisissez un dépôt à importer. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. Le projet reste lié au dépôt. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
