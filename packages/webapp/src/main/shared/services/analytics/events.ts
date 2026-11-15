@@ -369,7 +369,7 @@ export interface AnalyticsEvents {
 
   // ── Settings ──
   /** A setting changed; `value` only when it is an enum, boolean or number. */
-  settings_changed: { area: 'project' | 'display' | 'perspective' | 'kg'; setting: string; value?: string | boolean | number };
+  settings_changed: { area: 'project' | 'display' | 'perspective' | 'kg' | 'github'; setting: string; value?: string | boolean | number };
   settings_change_failed: { area: 'project' | 'display' | 'perspective' | 'kg'; setting: string } & Partial<ErrorProperties>;
 }
 

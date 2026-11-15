@@ -1630,6 +1630,24 @@
       "linkPlaceholder": "Paste a link: github.com/owner/repo",
       "linkLabel": "Repository link",
       "open": "Open"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "This project is linked to {{repo}} on {{branch}}.",
+      "label": "Autosave to GitHub",
+      "hint": "Commits your model a few seconds after you stop editing, at most once a minute. It pauses when someone else pushed, so their work is never overwritten.",
+      "signInHint": "Connect GitHub in this tab to autosave to the repository.",
+      "commitMessage": "Autosave the model from the BESSER editor",
+      "status": {
+        "saving": "Autosaving to GitHub…",
+        "saved": "Autosaved to GitHub at {{time}}",
+        "on": "Autosave to GitHub is on",
+        "pausedRemote": "Autosave paused: there are new commits on GitHub. Get latest or Save and merge to resume.",
+        "pausedConflict": "Autosave paused: a save could not be merged. Resolve its pull request, or stop tracking it, to resume.",
+        "pausedAuth": "Autosave paused: reconnect GitHub to resume.",
+        "pausedMissing": "Autosave paused: the repository or branch was not found on GitHub.",
+        "error": "Autosave could not reach GitHub. It tries again at {{time}}."
+      }
     }
   },
   "assistant": {

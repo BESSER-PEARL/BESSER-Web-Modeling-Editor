@@ -1630,6 +1630,24 @@
       "linkPlaceholder": "Link afügen: github.com/owner/repo",
       "open": "Opmaachen",
       "title": "Mat engem GitHub-Repository ufänken"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Dëse Projet ass mat {{repo}} op {{branch}} verlinkt.",
+      "label": "Automatesch op GitHub späicheren",
+      "hint": "Commit däi Modell e puer Sekonnen nodeems du ophals ze änneren, héchstens eemol pro Minutt. Huet een anere gepusht, gëtt et pauséiert, fir datt seng Aarbecht ni iwwerschriwwe gëtt.",
+      "signInHint": "Verbann GitHub an dësem Tab, fir automatesch am Repository ze späicheren.",
+      "commitMessage": "Modell aus dem BESSER-Editor automatesch späicheren",
+      "status": {
+        "saving": "Gëtt automatesch op GitHub gespäichert…",
+        "saved": "Um {{time}} automatesch op GitHub gespäichert",
+        "on": "Automatescht Späicheren op GitHub ass aktiv",
+        "pausedRemote": "Automatescht Späicheren pauséiert: Et gëtt nei Commits op GitHub. „Neist Versioun huelen“ oder „Späicheren a fusionéieren“, fir weiderzemaachen.",
+        "pausedConflict": "Automatescht Späicheren pauséiert: E Späicheren konnt net fusionéiert ginn. Léis säi Pull Request op oder verfolleg en net méi, fir weiderzemaachen.",
+        "pausedAuth": "Automatescht Späicheren pauséiert: Verbann GitHub nei, fir weiderzemaachen.",
+        "pausedMissing": "Automatescht Späicheren pauséiert: De Repository oder de Branch gouf op GitHub net fonnt.",
+        "error": "Automatescht Späicheren konnt GitHub net erreechen. Neie Versuch um {{time}}."
+      }
     }
   },
   "assistant": {

@@ -1630,6 +1630,24 @@
       "linkPlaceholder": "Link einfügen: github.com/owner/repo",
       "open": "Öffnen",
       "title": "Mit einem GitHub-Repository beginnen"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Dieses Projekt ist mit {{repo}} auf {{branch}} verknüpft.",
+      "label": "Automatisch auf GitHub speichern",
+      "hint": "Committet dein Modell einige Sekunden, nachdem du aufhörst zu bearbeiten, höchstens einmal pro Minute. Hat jemand anderes gepusht, pausiert es, damit dessen Arbeit nie überschrieben wird.",
+      "signInHint": "Verbinde GitHub in diesem Tab, um automatisch im Repository zu speichern.",
+      "commitMessage": "Modell aus dem BESSER-Editor automatisch speichern",
+      "status": {
+        "saving": "Wird automatisch auf GitHub gespeichert…",
+        "saved": "Um {{time}} automatisch auf GitHub gespeichert",
+        "on": "Automatisches Speichern auf GitHub ist aktiv",
+        "pausedRemote": "Automatisches Speichern pausiert: Es gibt neue Commits auf GitHub. „Neueste Version holen“ oder „Speichern und zusammenführen“, um fortzufahren.",
+        "pausedConflict": "Automatisches Speichern pausiert: Ein Speichern konnte nicht zusammengeführt werden. Löse seinen Pull Request auf oder verfolge ihn nicht mehr, um fortzufahren.",
+        "pausedAuth": "Automatisches Speichern pausiert: Verbinde GitHub erneut, um fortzufahren.",
+        "pausedMissing": "Automatisches Speichern pausiert: Das Repository oder der Branch wurde auf GitHub nicht gefunden.",
+        "error": "Automatisches Speichern konnte GitHub nicht erreichen. Nächster Versuch um {{time}}."
+      }
     }
   },
   "assistant": {
