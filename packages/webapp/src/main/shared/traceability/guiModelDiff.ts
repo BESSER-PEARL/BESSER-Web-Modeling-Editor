@@ -58,7 +58,7 @@ const INPUT_TYPES = new Set(['input', 'textarea', 'select', 'checkbox', 'radio']
 const NAME_ATTRIBUTES = ['chart-title', 'metric-title', 'title', 'agent-title', 'button-label', 'field-name'];
 
 /** A table column's `columnType` -> B-UML metaclass. */
-const COLUMN_METACLASSES: Record<string, string> = {
+export const COLUMN_METACLASSES: Record<string, string> = {
   field: 'FieldColumn',
   lookup: 'LookupColumn',
   expression: 'ExpressionColumn',

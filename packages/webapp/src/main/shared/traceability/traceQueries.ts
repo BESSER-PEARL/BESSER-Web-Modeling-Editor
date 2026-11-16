@@ -1,3 +1,4 @@
+import { isTraceableType } from './diagramModelDiff';
 import type {
   CodeArtifact,
   ModelArtifact,
@@ -344,6 +345,18 @@ export interface CoverageMatrix {
  * Members (attributes, literals) get no row: their code is part of their element's, and
  * changing a member makes its element's code out of date.
  */
+/**
+ * The rows of a diagram in the coverage: its top-level elements code can be generated from. An element the backend
+ * builds no element for (`isTraceableType`: a qubit, an LLM wrapper, a fork node) is no row, as it could never be
+ * generated; the traceable elements it holds are rows in its place (a circuit's gates, held by their qubit).
+ */
+function traceableRowsUnder(index: TraceIndex, artifactId: string, depth = 0): ModelArtifact[] {
+  return modelChildren(index, artifactId).flatMap((child) => {
+    if (isTraceableType(child.elementType)) return [child];
+    return depth < MAX_PARENT_DEPTH ? traceableRowsUnder(index, child.id, depth + 1) : [];
+  });
+}
+
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
   // Runs compacted by retention have no links left: they say nothing about coverage.
   const generations = index.trace.operations
@@ -361,7 +374,7 @@ export function coverageMatrix(index: TraceIndex, maxGenerations: number): Cover
   };
   const groups = diagramsOf(index).map((diagram) => ({
     diagram: row(diagram),
-    elements: modelChildren(index, diagram.id).map(row),
+    elements: traceableRowsUnder(index, diagram.id).map(row),
   }));
   return { generations, groups };
 }

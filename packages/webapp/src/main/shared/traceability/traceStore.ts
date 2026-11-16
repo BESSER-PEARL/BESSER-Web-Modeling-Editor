@@ -8,7 +8,8 @@ import type { BesserProject, ElementLineageMap, ProjectDiagram, SupportedDiagram
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { RequirementArtifact, TraceFile } from '../types/traceability';
 import type { ClassModelLike } from './classModelDiff';
-import { DIAGRAM_MODEL_TYPES, diffDiagramModel, snapshotDiagramModel } from './diagramModelDiff';
+import { alignDiagramArtifacts, DIAGRAM_MODEL_TYPES, snapshotDiagramModel } from './diagramModelDiff';
+import { diffSnapshots } from './modelDiff';
 import { diffGuiModel, guiBindings, pageSources } from './guiModelDiff';
 import type { GuiModelLike } from './guiModelDiff';
 import type { ElementChange } from './modelDiff';
@@ -613,7 +614,9 @@ export function recordDiagramUpdate(
     return;
   }
   if (!isTraceabilityEnabled(project)) return;
-  const changes = diffDiagramModel(diagramType, previousModel, nextModel, diagram.id);
+  const before = snapshotDiagramModel(diagramType, previousModel, diagram.id);
+  const after = snapshotDiagramModel(diagramType, nextModel, diagram.id);
+  const changes = diffSnapshots(before, after);
   if (changes.length === 0) return;
   const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
   const generator = isGeneratorSource(source) ? source : undefined;
@@ -647,7 +650,8 @@ export function recordDiagramUpdate(
       ctx.boundModel = { id: derivedFrom.id, title: derivedFrom.title, modelType: DIAGRAM_MODEL_TYPES[derivedFromType] };
       ctx.bindingRule = generator.rule ?? DERIVATION_RULE;
     }
-    recordElementChanges(trace, changes, ctx);
+    // What an earlier version recorded differently is brought in line with this edit (`alignDiagramArtifacts`).
+    recordElementChanges(trace, [...changes, ...alignDiagramArtifacts(trace, diagram.id, after, before)], ctx);
   });
 }
 

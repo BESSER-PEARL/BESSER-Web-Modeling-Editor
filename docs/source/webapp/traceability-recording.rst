@@ -44,6 +44,39 @@ model, named by their B-UML metaclass (``Class``, ``State``, ``Task``, ``Conv2D`
 * quantum circuits and knowledge graphs: their own builders in the same file (a gate is known by its
   cell, so moving it is a deletion and a creation).
 
+What is recorded follows what the backend's ``json_to_buml`` processors build, since a generation's trace refers
+to model elements by the editor's element id and B-UML metaclass:
+
+* an agent state whose ``stateType`` is ``reasoning`` is a ``ReasoningState``; its actions and fallback actions,
+  which the backend builds into one id-less ``Body`` each, are list features of the state (``actions``,
+  ``fallbackActions``), so editing an action is a change of the state, which code is linked to;
+* a transition from an initial node is no transition: its target state gets ``initial`` (one to a state machine's
+  final node marks its source ``final``); a state machine state's bodies (references to code blocks) are features
+  of the state; a code block is the ``Body``;
+* BPMN: ``data association`` flows are ``DataAssociation``; an ``isAgentic`` task, gateway or lane is an
+  ``AgenticTask``, ``AgenticGateway`` or ``AgenticLane``;
+* deployment: an association between two nodes is a ``CommunicationPath``, one from an artifact or component to a
+  node a ``DeploymentRelation``; component: the stereotype makes a component a ``Skill``, ``Tool``, ``LLM``,
+  ``Database``, ``RAG`` or ``AgenticComponent`` and a dependency an ``AgenticEdge``, read as the backend reads it;
+* quantum: a gate over several wires (a swap, a two-qubit rotation, a function gate of some height) is one gate,
+  at its first wire's cell (``<diagramId>:gate:<column>:<wire>``, the cell the backend keys it on), with the
+  backend's gate class (``SGate``, ``QFTGate``, ``ComparisonGate``, ...; ``CustomGate`` for an unknown symbol); the
+  controls of a column are a ``controls`` feature of its gates.
+
+Some elements have no backend counterpart, so code can never be linked to them: an agent's LLM
+(``LLMWrapper``), fork, merge, action and object nodes, an NN ``Configuration`` and ``NNReference``, NN edges,
+qubits, GUI table columns. They are marked ``traceable: false`` in ``APOLLON_TABLES`` and listed in
+``UNTRACEABLE_METACLASSES``; they are recorded as history (the Diagrams and Timeline views show their changes), but
+the Coverage view has no row for them (the gates a qubit holds are rows in its place), so they never show as
+elements without code. Requirements are realized by class-diagram elements, all traceable.
+
+A trace recorded by an earlier version, under the old metaclasses and ids, is brought in line with a diagram's
+next recorded edit (``alignDiagramArtifacts``): an artifact whose element is still recorded takes its current
+metaclass (a relabelling, not a change), and one the editor recorded that the current recording no longer has
+(an agent action recorded as a ``Body``, the transition from an initial node, a control cell, the second wire of a
+two-wire gate) is recorded as deleted in that edit's session. Artifacts a generation's trace brought are left
+as they are. There is never a second artifact for one element id.
+
 An element that keeps its id but changes metaclass (a class toggled to an enumeration, its attributes then
 literals) is one update of its ``elementType`` feature (old and new metaclass), not a deletion and a
 creation: it stays the live element it is, its artifact takes the new metaclass, and the code generated from

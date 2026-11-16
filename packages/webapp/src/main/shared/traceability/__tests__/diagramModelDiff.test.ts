@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   diffDiagramModel,
   elementsMatchedByName,
+  isTraceableType,
   snapshotApollonModel,
   snapshotDiagramModel,
   snapshotKnowledgeGraph,
@@ -56,12 +57,12 @@ describe('the generic Apollon snapshot', () => {
       [rel('t1', 'StateTransition', 's1', 's2', { name: 'go' })],
     );
     const changes = diffDiagramModel('StateMachineDiagram', before, after, 'sm');
+    // A state's body names a code block: it is part of the state (the backend builds no element for it).
     expect(changes.map((c) => [c.kind, c.elementType, c.elementId, c.feature ?? null, c.newValue ?? null])).toEqual([
-      ['CREATED', 'Body', 'b1', null, 'print()'],
       ['UPDATED', 'State', 's1', 'name', 'Waiting'],
+      ['UPDATED', 'State', 's2', 'body', 'print()'],
       ['UPDATED', 'Transition', 't1', 'name', 'go'],
     ]);
-    expect(changes[0].parent).toEqual({ elementType: 'State', name: 'Busy' });
   });
 
   it('folds agent intent training sentences into their intent, and reads off-canvas components', () => {
@@ -96,8 +97,12 @@ describe('the generic Apollon snapshot', () => {
     expect(summary(snapshotApollonModel('BPMN', bpmn)).map((s) => s[1])).toEqual(['Task', 'Participant', 'MessageFlow']);
     const components = model([el('c', 'Component', 'API'), el('i', 'ComponentInterface', 'REST')], [rel('p', 'ComponentInterfaceProvided', 'c', 'i')]);
     expect(summary(snapshotApollonModel('ComponentDiagram', components)).map((s) => s[1])).toEqual(['Component', 'Interface', 'InterfaceProvided']);
-    const deployment = model([el('n', 'DeploymentNode', 'Server'), el('a', 'DeploymentArtifact', 'app.jar')], [rel('x', 'DeploymentAssociation', 'n', 'a')]);
-    expect(summary(snapshotApollonModel('DeploymentDiagram', deployment)).map((s) => s[1])).toEqual(['Node', 'Artifact', 'CommunicationPath']);
+    const deployment = model(
+      [el('n', 'DeploymentNode', 'Server'), el('m', 'DeploymentNode', 'DB'), el('a', 'DeploymentArtifact', 'app.jar')],
+      [rel('x', 'DeploymentAssociation', 'n', 'm'), rel('y', 'DeploymentAssociation', 'a', 'n')],
+    );
+    expect(summary(snapshotApollonModel('DeploymentDiagram', deployment)).map((s) => s[1]))
+      .toEqual(['Node', 'Node', 'Artifact', 'CommunicationPath', 'DeploymentRelation']);
     const user = model([el('u', 'UserModelName', 'me : User'), el('ua', 'UserModelAttribute', 'age = 3', { owner: 'u' })]);
     expect(summary(snapshotApollonModel('UserDiagram', user)).map((s) => s[1])).toEqual(['Object', 'AttributeLink']);
   });
@@ -109,19 +114,103 @@ describe('the generic Apollon snapshot', () => {
   });
 });
 
+describe('metaclasses as the backend builds them', () => {
+  const types = (diagramType: Parameters<typeof snapshotApollonModel>[0], m: ApollonModelLike) =>
+    Object.fromEntries([...snapshotApollonModel(diagramType, m)].map(([id, s]) => [id, s.elementType]));
+
+  it('types an agent’s reasoning state, folds its actions into it, and marks the initial state', () => {
+    const agent = model(
+      [
+        el('init', 'StateInitialNode'), el('s', 'AgentState', 'Greet'), el('r', 'AgentState', 'Think', { stateType: 'reasoning' }),
+        el('r2', 'AgentReasoningState', 'Plan'),
+        el('b1', 'AgentStateBody', 'Hello', { owner: 's', replyType: 'text' }),
+        el('f1', 'AgentStateFallbackBody', 'Sorry', { owner: 's', replyType: 'text' }),
+      ],
+      [rel('t0', 'AgentStateTransitionInit', 'init', 's'), rel('t1', 'AgentStateTransition', 's', 'r')],
+    );
+    expect(types('AgentDiagram', agent)).toEqual({ s: 'AgentState', r: 'ReasoningState', r2: 'ReasoningState', t1: 'Transition' });
+    const greet = snapshotApollonModel('AgentDiagram', agent).get('s')!;
+    expect(greet.features.actions.key).toBe('Hello (replyType=text)');
+    expect(greet.features.fallbackActions.key).toBe('Sorry (replyType=text)');
+    expect(greet.features.initial.key).toBe('true');
+    // Editing an action is a change of its state, which is what code is linked to.
+    const edited = model(
+      [...Object.values(agent.elements!).filter((e) => e.id !== 'b1') as Row[], el('b1', 'AgentStateBody', 'Hi there', { owner: 's', replyType: 'text' })],
+      Object.values(agent.relationships!) as Row[],
+    );
+    expect(diffDiagramModel('AgentDiagram', agent, edited, 'ag').map((c) => [c.kind, c.elementId, c.feature])).toEqual([['UPDATED', 's', 'actions']]);
+  });
+
+  it('marks a state machine’s initial and final states instead of recording the pseudo-states', () => {
+    const sm = model(
+      [el('i', 'StateInitialNode'), el('a', 'State', 'A'), el('f', 'StateFinalNode'), el('k', 'StateForkNode', 'fork')],
+      [rel('t0', 'StateTransition', 'i', 'a'), rel('t1', 'StateTransition', 'a', 'f')],
+    );
+    const snapshots = snapshotApollonModel('StateMachineDiagram', sm);
+    expect(types('StateMachineDiagram', sm)).toEqual({ a: 'State', k: 'ForkNode' });
+    expect([snapshots.get('a')!.features.initial.key, snapshots.get('a')!.features.final.key]).toEqual(['true', 'true']);
+  });
+
+  it('types agentic BPMN elements and data associations', () => {
+    const bpmn = model(
+      [el('t', 'BPMNTask', 'Review', { isAgentic: true }), el('g', 'BPMNGateway', 'Decide', { isAgentic: true }),
+        el('l', 'BPMNSwimlane', 'Bots', { isAgentic: true }), el('p', 'BPMNTask', 'Pay'), el('d', 'BPMNDataObject', 'Order')],
+      [rel('a', 'BPMNFlow', 'd', 'p', { flowType: 'data association' })],
+    );
+    expect(types('BPMN', bpmn)).toEqual({ t: 'AgenticTask', g: 'AgenticGateway', l: 'AgenticLane', p: 'Task', d: 'DataObject', a: 'DataAssociation' });
+  });
+
+  it('types agentic components and edges by their stereotype, as the backend reads it', () => {
+    const components = model(
+      [el('a', 'Component', 'Planner', { stereotype: '«supervision»' }), el('s', 'Component', 'Search', { stereotype: 'skill' }),
+        el('d', 'Component', 'Store', { stereotype: '«db»' }), el('c', 'Component', 'API', { stereotype: '«component»' })],
+      [rel('e', 'ComponentDependency', 'a', 's', { stereotype: 'has {permission: repo:read}' }), rel('u', 'ComponentDependency', 'c', 'd', { stereotype: '«use»' })],
+    );
+    expect(types('ComponentDiagram', components)).toEqual({ a: 'AgenticComponent', s: 'Skill', d: 'Database', c: 'Component', e: 'AgenticEdge', u: 'ComponentDependency' });
+  });
+
+  it('knows which metaclasses can never be linked to code', () => {
+    for (const untraceable of ['LLMWrapper', 'Qubit', 'Configuration', 'NNReference', 'LayerOrder', 'NNAssociation', 'ForkNode', 'FieldColumn', 'ControlState']) {
+      expect(isTraceableType(untraceable)).toBe(false);
+    }
+    for (const traceable of ['Class', 'AgentState', 'ReasoningState', 'HadamardGate', 'NN', 'Task', 'Association']) expect(isTraceableType(traceable)).toBe(true);
+  });
+});
+
 describe('the quantum circuit snapshot', () => {
-  it('records qubits and gates by their cell', () => {
+  it('records qubits and gates by their cell, with the column’s controls as a feature of its gates', () => {
     const circuit = { cols: [['H', 1], ['•', 'X']], gates: [], initialStates: ['0', '1'] };
     const snapshots = snapshotQuantumModel(circuit, 'qc');
     expect(summary(snapshots)).toEqual([
       ['qc:qubit:0', 'Qubit', 'q0', null],
       ['qc:qubit:1', 'Qubit', 'q1', null],
       ['qc:gate:0:0', 'HadamardGate', 'H', 'qc:qubit:0'],
-      ['qc:gate:1:0', 'ControlState', '•', 'qc:qubit:0'],
       ['qc:gate:1:1', 'PauliXGate', 'X', 'qc:qubit:1'],
     ]);
+    expect(snapshots.get('qc:gate:1:1')!.features.controls.key).toBe('q0 •');
     const changes = diffDiagramModel('QuantumCircuitDiagram', circuit, { ...circuit, cols: [['H', 'Z'], ['•', 'X']] }, 'qc');
     expect(changes.map((c) => [c.kind, c.elementType])).toEqual([['CREATED', 'PauliZGate']]);
+    // Adding a control changes the gate it controls.
+    const controlled = diffDiagramModel('QuantumCircuitDiagram', circuit, { ...circuit, cols: [['H', 1], ['◦', 'X']] }, 'qc');
+    expect(controlled.map((c) => [c.kind, c.elementId, c.feature])).toEqual([['UPDATED', 'qc:gate:1:1', 'controls']]);
+  });
+
+  it('records a gate over several wires once, at its first wire, under the backend’s metaclass', () => {
+    const circuit = {
+      cols: [['Swap', 'Swap', 'S'], ['RZZ', 1, 'RZZ'], ['__FUNC__f', '__FUNC__f', 'Measure'], ['QFT', 'Rx(0.5)', 'mystery']],
+      gateMetadata: { '2_0': { label: 'f', isFunctionGate: true, height: 2, nestedCircuit: { cols: [] } } },
+    };
+    expect(summary(snapshotQuantumModel(circuit, 'qc')).filter((s) => s[1] !== 'Qubit').map((s) => [s[0], s[1]])).toEqual([
+      ['qc:gate:0:0', 'SwapGate'],
+      ['qc:gate:0:2', 'SGate'],
+      ['qc:gate:1:0', 'RZZGate'],
+      ['qc:gate:2:0', 'FunctionGate'],
+      ['qc:gate:2:2', 'Measurement'],
+      ['qc:gate:3:0', 'QFTGate'],
+      ['qc:gate:3:1', 'RXGate'],
+      ['qc:gate:3:2', 'CustomGate'],
+    ]);
+    expect(snapshotQuantumModel(circuit, 'qc').get('qc:gate:0:0')!.features.wires.key).toBe('q0, q1');
   });
 });
 
