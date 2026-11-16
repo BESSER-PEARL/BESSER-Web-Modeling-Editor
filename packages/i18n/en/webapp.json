@@ -4430,9 +4430,8 @@
       "from": "From",
       "to": "To",
       "clearFilters": "Clear filters",
-      "matching_one": "{{count}} of {{total}} operation",
-      "matching_other": "{{count}} of {{total}} operations",
-      "unknownModels": "its source models"
+      "unknownModels": "its source models",
+      "matching": "{{shown}} of {{total}} shown"
     },
     "elements": {
       "search": "Search diagrams and elements…",
