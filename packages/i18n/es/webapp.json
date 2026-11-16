@@ -65,7 +65,9 @@
       "validated": "Validado",
       "issues": "Problemas",
       "needsRecheck": "Requiere revisión",
-      "notValidated": "No validado"
+      "notValidated": "No validado",
+      "syntacticCheck": "Comprobación sintáctica",
+      "semanticCheck": "Comprobación semántica"
     },
     "more": "Más",
     "linkToGithub": "Vincular con GitHub",
@@ -145,7 +147,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Datos",
-        "kgConvert": "Convertir a B-UML"
+        "kgConvert": "Convertir a B-UML",
+        "formalMethods": "Métodos formales"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -160,7 +163,8 @@
         "userProfileJson": "JSON de perfil de usuario",
         "qiskitCode": "Código Qiskit",
         "forecaster": "Previsión de series temporales",
-        "kgToClassDiagram": "Diagrama de clases"
+        "kgToClassDiagram": "Diagrama de clases",
+        "alloySpecification": "Especificación Alloy"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
@@ -1081,7 +1085,7 @@
       "github": {
         "connectHint": "Conecta tu cuenta de GitHub para elegir uno de tus repositorios. Volverás aquí después de iniciar sesión.",
         "continue": "Continuar",
-        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
+        "description": "Elige un repositorio para importar. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. El proyecto queda vinculado al repositorio. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
         "errors": {
           "generic": "No se pudo continuar desde este repositorio.",
           "noModel": "Este repositorio no tiene un modelo de BESSER: no lo creó BESSER, así que aún no hay nada desde donde continuar.",
@@ -2468,6 +2472,14 @@
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
+      "generateFromConstraints": "Generación semántica",
+      "generateFromConstraintsTooltip": "Reemplaza este diagrama de objetos por una instancia del diagrama de clases referenciado que cumpla sus restricciones OCL.",
+      "searchingInstance": "Buscando una instancia que cumpla las restricciones…",
+      "replaceConfirmTitle": "¿Reemplazar el diagrama de objetos?",
+      "replaceConfirmDescription": "La instancia generada reemplaza los objetos y enlaces de este diagrama.",
+      "replaceConfirmAction": "Reemplazar",
+      "payloadMissing": "Se encontró una instancia, pero el servidor no envió su diagrama de objetos.",
+      "generationDiscarded": "Generación semántica detenida: cambió de diagrama.",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
@@ -4036,6 +4048,15 @@
       "more_other": "…y {{count}} más.",
       "confirm": "Generar de todos modos",
       "cancel": "Corregir primero el modelo"
+    },
+    "semantic": {
+      "searching": "Buscando una instancia del diagrama de clases…",
+      "connectionLost": "Se perdió la conexión con el servidor durante la comprobación semántica.",
+      "noResult": "La comprobación semántica terminó sin resultado.",
+      "alreadyRunning": "Ya hay una comprobación semántica en curso.",
+      "failed": "Falló la comprobación semántica: {{error}}",
+      "errorsLabel": "Errores:",
+      "warningsLabel": "Advertencias:"
     }
   },
   "quantum": {

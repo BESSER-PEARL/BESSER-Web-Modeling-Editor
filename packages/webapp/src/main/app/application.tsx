@@ -54,9 +54,6 @@ const ProjectHubDialog = React.lazy(() =>
   import('../features/project/ProjectHubDialog').then((m) => ({ default: m.ProjectHubDialog })),
 );
 // The assistant store stays out of the entry chunk: it is loaded when a repo is opened.
-const postRepoSummaryToAssistant = (summary: string) => {
-  void import('../features/assistant/hooks/assistantConversationStore').then((m) => m.postAssistantMessage(summary));
-};
 const TemplateLibraryDialog = React.lazy(() =>
   import('../features/project/TemplateLibraryDialog').then((m) => ({ default: m.TemplateLibraryDialog })),
 );
@@ -147,6 +144,7 @@ function AppContentInner() {
     handleGenerateRequest,
     handleAssistantGenerate,
     handleQualityCheck,
+    handleSemanticCheck,
     configState,
     isLocalEnvironment,
   } = useGeneratorExecution(editor);
@@ -185,6 +183,7 @@ function AppContentInner() {
         onExportProject={handleExport}
         onGenerate={onGenerate}
         onQualityCheck={onQualityCheck}
+        onSemanticCheck={handleSemanticCheck}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating || kgFlows.isConverting}
@@ -210,7 +209,6 @@ function AppContentInner() {
             open={showProjectHub}
             onOpenChange={handleProjectHubOpenChange}
             initialStep={hubInitialStep}
-            onRepoOpened={postRepoSummaryToAssistant}
           />
         </Suspense>
       )}

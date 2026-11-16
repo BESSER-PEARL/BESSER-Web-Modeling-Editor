@@ -4,8 +4,10 @@
  * The one path behind the Project Hub's "Continue from GitHub", the chat's
  * `trigger_github_import` action and the agentic "Start from a GitHub repo":
  * import the repo as a modify seed, load its model into a fresh project, link
- * that project to the repo at the imported commit, and prime the modify base
- * so the next Spec-Driven request edits that repo's code.
+ * that project to the repo at the imported commit, and (agentic entrances
+ * only) prime the modify base so the next Spec-Driven request edits that repo's
+ * code. The hub's import passes `primeNextRun: false`: it only imports and
+ * links, and a later run starts from the linked repo (`resolveLinkedRepoBase`).
  *
  * A repo BESSER did not create has no model. BESSER reads its code instead
  * and proposes one (`analysis` + `proposed_diagram`); the project then opens
@@ -166,8 +168,14 @@ export async function continueFromGithubRepo(args: {
   githubSession: string;
   /** Which button started it; callers should pass their own. */
   source?: RepoOpenSource;
+  /**
+   * Make the import the base of the next Spec-Driven run (default). False for a
+   * plain import: no run is recorded and no `runId` returned.
+   */
+  primeNextRun?: boolean;
 }): Promise<ContinueFromGithubResult> {
   const source = args.source ?? 'hub';
+  const primeNextRun = args.primeNextRun ?? true;
   try {
     // A repo a local project already links to opens in that project: a second
     // copy would diverge from it, each with its own base commit.
@@ -220,7 +228,7 @@ export async function continueFromGithubRepo(args: {
     }
 
     // Prime the modify base: the next Spec-Driven request edits the repo's code.
-    writeProjectLastRun(imported.id, response.run_id, Date.now());
+    if (primeNextRun) writeProjectLastRun(imported.id, response.run_id, Date.now());
 
     // Research telemetry: a completed continue-from-repo import is a delivery
     // action. Fire-and-forget, no-op unless telemetry is active.
@@ -238,7 +246,7 @@ export async function continueFromGithubRepo(args: {
     return {
       ok: true,
       projectId: imported.id,
-      runId: response.run_id,
+      ...(primeNextRun ? { runId: response.run_id } : {}),
       owner: response.owner,
       repo: response.repo,
       branch: response.branch,

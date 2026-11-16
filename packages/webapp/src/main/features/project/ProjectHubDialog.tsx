@@ -61,11 +61,9 @@ import {
   writeContinueFromGithubIntent,
 } from '../../shared/services/storage/githubStorage';
 import { useImportDiagramToProject } from '../import';
-import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
 import { RepoBrowser, type RepoChoice } from '../../shared/components/github/RepoBrowser';
-import { continueFromGithubRepo, describeOpenedRepo } from '../../shared/services/github/continueFromGithub';
-import { setLastRunForProject } from '../spec-driven';
+import { continueFromGithubRepo } from '../../shared/services/github/continueFromGithub';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
 export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';
@@ -79,8 +77,6 @@ interface ProjectHubDialogProps {
    * auto-open first-run path (which shows the 'welcome' chooser).
    */
   initialStep?: ProjectHubOpenStep;
-  /** Called with a summary of the repository "Continue from GitHub" opened, for the assistant chat. */
-  onRepoOpened?: (summary: string) => void;
 }
 
 type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
@@ -148,7 +144,7 @@ const readableFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep, onRepoOpened }) => {
+export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep }) => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
@@ -179,7 +175,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // ── "Continue from GitHub" picker state ──────────────────────────────
   const [githubError, setGithubError] = useState<string | null>(null);
 
-  const dispatch = useAppDispatch();
   const {
     isAuthenticated: isGithubAuthenticated,
     isChecking: isGithubChecking,
@@ -345,7 +340,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return {
         title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
         description: t('project.hub.github.description', {
-          defaultValue: 'Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it sends a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
+          defaultValue: 'Pick a repository to import. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The project stays linked to the repository. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.',
         }),
         badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
@@ -707,9 +702,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     setStep('github');
   };
 
-  // Open a BESSER-created repo: its model becomes a project linked to the repo,
-  // and the next Spec-Driven Agent run edits that repo's code and pushes back.
-  // A repo a local project already links to is pulled into that project.
+  // Import a repo's model into a project linked to the repo; a repo a local
+  // project already links to is pulled into that project. Nothing else starts:
+  // the Spec-Driven Agent reads the linked repo when a run is first asked for
+  // (`resolveLinkedRepoBase`), so the import neither primes it nor posts to the chat.
   const handleContinueGithubRepo = async ({ owner, repo, branch }: RepoChoice) => {
     setGithubError(null);
     if (!githubSession) {
@@ -719,7 +715,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     try {
       setIsBusy(true);
-      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession, source: 'hub' });
+      const result = await continueFromGithubRepo({ owner, repo, branch, githubSession, source: 'hub', primeNextRun: false });
       if (!result.ok || !result.projectId) {
         track('project_creation_failed', { via: 'github', reason: 'request' });
         setGithubError(result.error ?? t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' }));
@@ -730,10 +726,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       if (!result.reused) {
         const opened = ProjectStorageRepository.loadProject(result.projectId);
         trackProjectCreated(opened?.settings?.preferredInterface ?? 'model', 'github');
-      }
-      onRepoOpened?.(describeOpenedRepo(result));
-      if (result.runId) {
-        dispatch(setLastRunForProject({ projectId: result.projectId, runId: result.runId, at: Date.now() }));
       }
 
       refreshProjects();

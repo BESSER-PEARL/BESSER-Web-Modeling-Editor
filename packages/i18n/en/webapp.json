@@ -65,7 +65,9 @@
       "validated": "Validated",
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
-      "notValidated": "Not validated"
+      "notValidated": "Not validated",
+      "syntacticCheck": "Syntactic check",
+      "semanticCheck": "Semantic check"
     },
     "more": "More",
     "repoState": {
@@ -145,7 +147,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Data",
-        "kgConvert": "Convert to B-UML"
+        "kgConvert": "Convert to B-UML",
+        "formalMethods": "Formal Methods"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -160,7 +163,8 @@
         "userProfileJson": "User Profile JSON",
         "qiskitCode": "Qiskit Code",
         "forecaster": "Time-Series Forecaster",
-        "kgToClassDiagram": "Class Diagram"
+        "kgToClassDiagram": "Class Diagram",
+        "alloySpecification": "Alloy Specification"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -1081,7 +1085,7 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+        "description": "Pick a repository to import. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The project stays linked to the repository. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
@@ -2468,6 +2472,14 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
+      "generateFromConstraints": "Semantic generation",
+      "generateFromConstraintsTooltip": "Replace this object diagram with an instance of the referenced class diagram that satisfies its OCL constraints.",
+      "searchingInstance": "Searching for an instance that satisfies the constraints…",
+      "replaceConfirmTitle": "Replace the object diagram?",
+      "replaceConfirmDescription": "The generated instance replaces the objects and links of this diagram.",
+      "replaceConfirmAction": "Replace",
+      "payloadMissing": "An instance was found, but the server did not send its object diagram.",
+      "generationDiscarded": "Semantic generation stopped: you switched diagrams.",
       "noClassDiagramsAvailable": "No Class Diagrams available",
       "tablistLabel": "Diagrams",
       "editAsForm": "Edit as form",
@@ -4036,6 +4048,15 @@
       "more_other": "…and {{count}} more.",
       "confirm": "Generate anyway",
       "cancel": "Fix the model first"
+    },
+    "semantic": {
+      "searching": "Searching for an instance of the class diagram…",
+      "connectionLost": "The connection to the server was lost during the semantic check.",
+      "noResult": "The semantic check ended without a result.",
+      "alreadyRunning": "A semantic check is already running.",
+      "failed": "Semantic check failed: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Warnings:"
     }
   },
   "quantum": {
