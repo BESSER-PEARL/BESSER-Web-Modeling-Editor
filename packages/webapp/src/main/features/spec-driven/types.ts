@@ -201,6 +201,8 @@ export interface DoneEvent {
   /** Output exists, but the run stopped early or left unresolved blockers. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** True exactly when a request to stop the run was honoured; absent from older backends. */
+  cancelled?: boolean;
   /** Number of unresolved blocker-severity issues left by a run whose
    * loop COMPLETED (0 for runs that were genuinely cut short). Drives
    * "finished with N unresolved issues" framing instead of the

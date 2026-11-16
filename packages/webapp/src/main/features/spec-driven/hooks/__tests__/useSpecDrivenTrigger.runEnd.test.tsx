@@ -110,9 +110,12 @@ afterEach(() => {
   cleanup();
 });
 
-const FRAMED =
+/** Instructions as the assistant frames the user's request. */
+const framed = (request: string) =>
   "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n" +
-  "## The user's original request, verbatim\n\nThis is the authority.\n\nBuild a task board.";
+  `## The user's original request, verbatim\n\nThis is the authority.\n\n${request}`;
+
+const FRAMED = framed('Build a task board.');
 
 describe('the request a run is started with', () => {
   it("is kept in the user's words from the run's start, before it ends", async () => {
@@ -168,14 +171,24 @@ describe('a run the user stopped', () => {
   const PREVIOUS = 'e'.repeat(32);
   const STOPPED = 'f'.repeat(32);
   const BUDGET_STOP = '1'.repeat(32);
+  const LATE_STOP = '2a'.repeat(16);
+  const REPLAYED = '3b'.repeat(16);
+  const NOT_HONOURED = '4c'.repeat(16);
+  const COMPLETE = '5d'.repeat(16);
+  const STOPPED_REASON = 'The run was cancelled before the customization loop finished.';
+
+  /** The server's answer to a stop request. */
+  const answerStop = (status: 'cancelled' | 'not_found') =>
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ status }), { status: 200 }))));
 
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true } as Response)));
+    answerStop('cancelled');
     writeProjectLastRun(PROJECT_ID, PREVIOUS, 1_000);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('does not become the base of the next run, even when it ends with output', async () => {
@@ -183,9 +196,9 @@ describe('a run the user stopped', () => {
       [
         start(STOPPED),
         () => cancelSpecDrivenRun(STOPPED),
-        done({ incomplete: true, incompleteReason: 'The run was cancelled before the customization loop finished.' }, STOPPED),
+        done({ incomplete: true, incompleteReason: STOPPED_REASON }, STOPPED),
       ],
-      'Build a task board with labels.',
+      framed('Build a task board with labels.'),
       STOPPED,
     );
     expect(readProjectLastRun(PROJECT_ID)).toEqual({ runId: PREVIOUS, at: 1_000 });
@@ -194,10 +207,46 @@ describe('a run the user stopped', () => {
     expect(readLastGeneration(PROJECT_ID)).toMatchObject({ runId: PREVIOUS, request: 'Build a task board with labels.' });
   });
 
+  it('is recorded and announced when it had already finished as Stop was clicked', async () => {
+    answerStop('not_found');
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => 'hidden');
+    document.title = 'BESSER';
+    await runWith([start(LATE_STOP), () => cancelSpecDrivenRun(LATE_STOP), done({}, LATE_STOP)], FRAMED, LATE_STOP);
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(LATE_STOP);
+    expect(document.title).toBe('(Done) BESSER');
+  });
+
+  it('is recorded when it completes although the stop was accepted', async () => {
+    await runWith([start(COMPLETE), () => cancelSpecDrivenRun(COMPLETE), done({}, COMPLETE)], FRAMED, COMPLETE);
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(COMPLETE);
+  });
+
+  it('is told apart by the server even without a stop request from this tab (a replay after a reload)', async () => {
+    await runWith(
+      [start(REPLAYED), done({ incomplete: true, incompleteReason: STOPPED_REASON, cancelled: true }, REPLAYED)],
+      FRAMED,
+      REPLAYED,
+    );
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(PREVIOUS);
+  });
+
+  it("follows the server when it says the stop was not honoured", async () => {
+    await runWith(
+      [
+        start(NOT_HONOURED),
+        () => cancelSpecDrivenRun(NOT_HONOURED),
+        done({ incomplete: true, incompleteReason: 'The run hit its cost cap.', cancelled: false }, NOT_HONOURED),
+      ],
+      FRAMED,
+      NOT_HONOURED,
+    );
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(NOT_HONOURED);
+  });
+
   it('a run that stopped on its own budget still becomes the base', async () => {
     await runWith(
       [start(BUDGET_STOP), done({ incomplete: true, incompleteReason: 'The run hit its cost cap.' }, BUDGET_STOP)],
-      'Build a task board.',
+      FRAMED,
       BUDGET_STOP,
     );
     expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(BUDGET_STOP);

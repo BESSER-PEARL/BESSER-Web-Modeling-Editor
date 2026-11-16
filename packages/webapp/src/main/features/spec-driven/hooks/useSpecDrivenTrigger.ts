@@ -63,7 +63,7 @@ import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, ty
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { cancelSpecDrivenRun, isSpecDrivenRunCancelRequested } from '../../../shared/api/specDriven';
+import { cancelSpecDrivenRun, wasSpecDrivenRunCancelAccepted } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
@@ -168,6 +168,16 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   status: 'running',
 });
 
+/**
+ * Whether the user's Stop ended the run, so its output is partial: the server
+ * says so on `done`; an older server only tells by this tab's accepted stop
+ * request together with an incomplete result.
+ */
+export function wasStoppedByUser(event: Extract<SpecDrivenEvent, { event: 'done' }>, runId: string | undefined): boolean {
+  if (typeof event.cancelled === 'boolean') return event.cancelled;
+  return !!runId && wasSpecDrivenRunCancelAccepted(runId) && event.incomplete === true;
+}
+
 /** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
 function currentRunTier(): { tier: SpecRunTier; provider: string } {
   const choice = readRunTier(false);
@@ -193,6 +203,8 @@ export interface SpecDrivenRunResult {
    * report the outcome honestly instead of an unqualified success. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** The user's Stop ended the run (see `wasStoppedByUser`). */
+  stoppedByUser?: boolean;
   /** Unresolved blocker-severity issues left by a run whose loop
    * COMPLETED (0 / undefined for genuinely cut-short runs). Lets the
    * agent report "finished with N unresolved issues" instead of the
@@ -281,7 +293,7 @@ export function useSpecDrivenTrigger(
     trackRunFinished(runAnalyticsRef.current, result, details);
     runAnalyticsRef.current = null;
     // A run the user stopped needs no announcement.
-    if (result.errorCode !== 'CANCELLED' && !(result.runId && isSpecDrivenRunCancelRequested(result.runId))) {
+    if (result.errorCode !== 'CANCELLED' && !result.stoppedByUser) {
       announceRunFinished(
         runProjectNameRef.current,
         result.ok ? (result.incomplete ? 'incomplete' : 'success') : 'failed',
@@ -632,14 +644,15 @@ export function useSpecDrivenTrigger(
             : undefined;
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          const stoppedByUser = wasStoppedByUser(event, doneRunId);
           const finishedAt = Date.now();
           // Record this output as the base for a future
           // incremental modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
-          // A run this tab stopped is not a base: the previous record stays.
-          if (doneRunId && run.projectId && !isSpecDrivenRunCancelRequested(doneRunId)) {
+          // A run the user stopped is not a base: the previous record stays.
+          if (doneRunId && run.projectId && !stoppedByUser) {
             dispatch(
               setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at: finishedAt }),
             );
@@ -736,6 +749,7 @@ export function useSpecDrivenTrigger(
             generatorUsed,
             incomplete,
             incompleteReason: event.incompleteReason,
+            stoppedByUser,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
             verificationCounts,
           }, {

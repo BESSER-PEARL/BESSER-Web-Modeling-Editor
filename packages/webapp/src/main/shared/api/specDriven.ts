@@ -42,31 +42,30 @@ export const downloadSpecDrivenOutput = (runId: string) =>
  */
 export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?: boolean } = {}): Promise<boolean> {
   const url = cancelSpecDrivenUrl(runId);
-  // Recorded before the answer: the run's `done` can arrive before it.
-  cancelRequestedRunIds.add(runId);
-  const settle = (accepted: boolean) => {
-    if (!accepted) cancelRequestedRunIds.delete(runId);
-    return accepted;
-  };
   try {
     if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      return Promise.resolve(settle(navigator.sendBeacon(url)));
+      return Promise.resolve(navigator.sendBeacon(url));
     }
     return fetch(url, { method: 'POST', keepalive: true }).then(
-      (response) => settle(response.ok),
-      () => settle(false),
+      async (response) => {
+        if (!response.ok) return false;
+        // `not_found` means the run had already ended: nothing was stopped.
+        const body = await Promise.resolve()
+          .then(() => response.json() as Promise<{ status?: string } | null>)
+          .catch(() => null);
+        if (body?.status === 'cancelled') acceptedCancelRunIds.add(runId);
+        return true;
+      },
+      () => false,
     );
   } catch {
-    return Promise.resolve(settle(false));
+    return Promise.resolve(false);
   }
 }
 
-const cancelRequestedRunIds = new Set<string>();
+const acceptedCancelRunIds = new Set<string>();
 
-/**
- * Whether this tab asked the server to stop `runId`. A stopped run that had
- * already produced files still ends with `done` (marked incomplete).
- */
-export function isSpecDrivenRunCancelRequested(runId: string): boolean {
-  return cancelRequestedRunIds.has(runId);
+/** Whether the server stopped `runId` on this tab's request (it was still running). */
+export function wasSpecDrivenRunCancelAccepted(runId: string): boolean {
+  return acceptedCancelRunIds.has(runId);
 }
