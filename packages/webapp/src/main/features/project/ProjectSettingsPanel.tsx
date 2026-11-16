@@ -32,6 +32,7 @@ import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../a
 import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { readLlmKey } from '../../shared/services/llmKeyStorage';
 import { setApiKeyPresent } from '../spec-driven';
+import { GitHubAutosaveSetting } from '../github';
 
 // Same nav.diagram.* labels the workspace sidebar uses (app/shell/workspace-navigation.tsx).
 const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {
@@ -396,6 +397,9 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* GitHub autosave — only once the project is linked to a repository. */}
+            <GitHubAutosaveSetting />
           </div>
 
           {/* Right column — Diagrams + Modeling Perspectives */}

@@ -1634,6 +1634,24 @@
       "linkPlaceholder": "Collez un lien : github.com/owner/repo",
       "open": "Ouvrir",
       "title": "Partir d’un dépôt GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Ce projet est lié à {{repo}} sur {{branch}}.",
+      "label": "Enregistrement automatique sur GitHub",
+      "hint": "Commite votre modèle quelques secondes après la fin de vos modifications, au plus une fois par minute. Il se met en pause quand quelqu’un d’autre a poussé, pour ne jamais écraser son travail.",
+      "signInHint": "Connectez GitHub dans cet onglet pour enregistrer automatiquement dans le dépôt.",
+      "commitMessage": "Enregistrement automatique du modèle depuis l’éditeur BESSER",
+      "status": {
+        "saving": "Enregistrement automatique sur GitHub…",
+        "saved": "Enregistré automatiquement sur GitHub à {{time}}",
+        "on": "L’enregistrement automatique sur GitHub est activé",
+        "pausedRemote": "Enregistrement automatique en pause : il y a de nouveaux commits sur GitHub. Récupérez la dernière version ou enregistrez et fusionnez pour reprendre.",
+        "pausedConflict": "Enregistrement automatique en pause : un enregistrement n’a pas pu être fusionné. Résolvez sa pull request, ou cessez de la suivre, pour reprendre.",
+        "pausedAuth": "Enregistrement automatique en pause : reconnectez GitHub pour reprendre.",
+        "pausedMissing": "Enregistrement automatique en pause : le dépôt ou la branche est introuvable sur GitHub.",
+        "error": "L’enregistrement automatique n’a pas pu joindre GitHub. Nouvel essai à {{time}}."
+      }
     }
   },
   "assistant": {

@@ -1634,6 +1634,24 @@
       "linkPlaceholder": "Pega un enlace: github.com/owner/repo",
       "open": "Abrir",
       "title": "Empezar desde un repositorio de GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Este proyecto está vinculado a {{repo}} en {{branch}}.",
+      "label": "Guardado automático en GitHub",
+      "hint": "Hace commit de tu modelo unos segundos después de que dejes de editar, como mucho una vez por minuto. Se pausa cuando otra persona ha hecho push, para no sobrescribir nunca su trabajo.",
+      "signInHint": "Conecta GitHub en esta pestaña para guardar automáticamente en el repositorio.",
+      "commitMessage": "Guardado automático del modelo desde el editor de BESSER",
+      "status": {
+        "saving": "Guardando automáticamente en GitHub…",
+        "saved": "Guardado automáticamente en GitHub a las {{time}}",
+        "on": "El guardado automático en GitHub está activado",
+        "pausedRemote": "Guardado automático en pausa: hay commits nuevos en GitHub. Obtén lo último o guarda y combina para reanudarlo.",
+        "pausedConflict": "Guardado automático en pausa: un guardado no se pudo combinar. Resuelve su pull request, o deja de seguirlo, para reanudarlo.",
+        "pausedAuth": "Guardado automático en pausa: vuelve a conectar GitHub para reanudarlo.",
+        "pausedMissing": "Guardado automático en pausa: no se encontró el repositorio o la rama en GitHub.",
+        "error": "El guardado automático no pudo contactar con GitHub. Lo volverá a intentar a las {{time}}."
+      }
     }
   },
   "assistant": {

@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  clearProjectGitHubLink,
   getProjectGitHubLink,
   modelFingerprint,
   setProjectGitHubLink,
@@ -123,6 +124,27 @@ describe('useRepoSync', () => {
 
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(SAVED);
     expect(result.current.state).toBe('in-sync');
+  });
+
+  // An autosave runs in the background: an Unlink clicked while it is in
+  // flight must stay unlinked, not be written back when the save returns.
+  it('does not bring back a link removed while a save was running', async () => {
+    api.getSyncStatus.mockResolvedValue(status());
+    let answerSave: (value: Awaited<ReturnType<typeof api.saveModel>>) => void = () => undefined;
+    api.saveModel.mockReturnValue(new Promise((resolve) => (answerSave = resolve)));
+    const { result } = renderHook(() => useRepoSync());
+
+    let saving: Promise<unknown> = Promise.resolve();
+    act(() => {
+      saving = result.current.save('Autosave');
+    });
+    clearProjectGitHubLink('p1');
+    await act(async () => {
+      answerSave({ success: true, commit_sha: SAVED, message: '', status: 'pushed', conflict_branch: null });
+      await saving;
+    });
+
+    expect(getProjectGitHubLink('p1')).toBeNull();
   });
 
   it('checks GitHub once for every component showing the repo, also on focus (review repro)', async () => {

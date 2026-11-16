@@ -211,12 +211,19 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
         // The old sidebar's model file: this save commit deletes it.
         ...(link.legacyFilePath ? { legacy_file_path: link.legacyFilePath } : {}),
       });
+      // An autosave runs in the background: the user may have unlinked or
+      // relinked meanwhile, and writing `link` back would undo that.
+      const current = getProjectGitHubLink(projectId);
+      if (!current || current.owner !== link.owner || current.repo !== link.repo || current.branch !== link.branch) {
+        await refresh();
+        return result;
+      }
       if (result.status === 'merged') {
         // The branch now holds both sides: load it so the editor shows the merge.
-        await pullInto(link, projectId);
+        await pullInto(current, projectId);
         forgetLegacyFile(projectId);
       } else if (result.status === 'pushed') {
-        markSynced(link, project, result.commit_sha);
+        markSynced(current, project, result.commit_sha);
         forgetLegacyFile(projectId);
         const attribution = Object.fromEntries(parseRecords(result.attribution));
         if (Object.keys(attribution).length) {

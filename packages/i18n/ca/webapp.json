@@ -1634,6 +1634,24 @@
       "linkPlaceholder": "Enganxa un enllaç: github.com/owner/repo",
       "open": "Obre",
       "title": "Comença des d’un repositori de GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Aquest projecte està vinculat a {{repo}} a {{branch}}.",
+      "label": "Desament automàtic a GitHub",
+      "hint": "Fa commit del teu model uns segons després que deixis d’editar, com a màxim un cop per minut. Es posa en pausa quan algú altre ha fet push, perquè la seva feina no se sobreescrigui mai.",
+      "signInHint": "Connecta GitHub en aquesta pestanya per desar automàticament al repositori.",
+      "commitMessage": "Desament automàtic del model des de l’editor de BESSER",
+      "status": {
+        "saving": "S’està desant automàticament a GitHub…",
+        "saved": "Desat automàticament a GitHub a les {{time}}",
+        "on": "El desament automàtic a GitHub està activat",
+        "pausedRemote": "Desament automàtic en pausa: hi ha commits nous a GitHub. Obtén l’última versió o desa i combina per reprendre’l.",
+        "pausedConflict": "Desament automàtic en pausa: un desament no s’ha pogut combinar. Resol la seva pull request, o deixa de seguir-la, per reprendre’l.",
+        "pausedAuth": "Desament automàtic en pausa: torna a connectar GitHub per reprendre’l.",
+        "pausedMissing": "Desament automàtic en pausa: no s’ha trobat el repositori o la branca a GitHub.",
+        "error": "El desament automàtic no ha pogut contactar amb GitHub. Ho tornarà a provar a les {{time}}."
+      }
     }
   },
   "assistant": {

@@ -20,6 +20,11 @@
  * `newFromRepo` holds the elements pulls brought in, shown as new until the user
  * clears them. It lives here, in this browser, so it never reaches the model.
  *
+ * `autoSave` is the user's "Autosave to GitHub" choice for this project, off
+ * unless turned on. It is kept here, in this browser, and not in the project's
+ * settings, so it never reaches the repo and a teammate's editor never starts
+ * committing because of it.
+ *
  * `legacyFilePath` is the model file the old GitHub sidebar saved (e.g.
  * `models/shop.json`); the next save sends it so the commit that writes
  * `buml/diagrams.json` deletes it, and then forgets it.
@@ -82,6 +87,8 @@ export interface ProjectGitHubLink {
   /** The classes and members the repo held at the last sync: what a pull adds beyond these is new. */
   syncedElements?: string[];
   newFromRepo?: string[];
+  /** Commit the model on its own after edits (useGitHubAutosave). */
+  autoSave?: boolean;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -145,6 +152,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
         ...(Array.isArray(value.newFromRepo)
           ? { newFromRepo: value.newFromRepo.filter((id: unknown) => typeof id === 'string') as string[] }
           : {}),
+        ...(value.autoSave === true ? { autoSave: true } : {}),
       };
     }
   } catch {
@@ -225,6 +233,14 @@ export function setPendingGitHubChange(projectId: string, pending: PendingGitHub
   if (!link) return;
   const { pendingChange: _old, ...rest } = link;
   setProjectGitHubLink(projectId, pending ? { ...rest, pendingChange: pending } : rest);
+}
+
+/** Turn "Autosave to GitHub" on or off for a project's link. */
+export function setProjectGitHubAutoSave(projectId: string, enabled: boolean): void {
+  const link = getProjectGitHubLink(projectId);
+  if (!link) return;
+  const { autoSave: _old, ...rest } = link;
+  setProjectGitHubLink(projectId, enabled ? { ...rest, autoSave: true } : rest);
 }
 
 export function clearProjectGitHubLink(projectId: string): void {
