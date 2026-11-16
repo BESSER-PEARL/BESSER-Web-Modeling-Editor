@@ -2004,6 +2004,7 @@
           "conversion"
         ],
         "summary": "Export Project As Buml",
+        "description": "The project as a B-UML file, with its trace when that keeps it importable.\n\nWhen the trace is left out (``project_code_with_trace``), the ``X-BESSER-Warning`` header says so.",
         "operationId": "export_project_as_buml_besser_api_export_project_as_buml_post",
         "requestBody": {
           "content": {

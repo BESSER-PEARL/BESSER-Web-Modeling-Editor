@@ -681,7 +681,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Export Project As Buml */
+        /**
+         * Export Project As Buml
+         * @description The project as a B-UML file, with its trace when that keeps it importable.
+         *
+         *     When the trace is left out (``project_code_with_trace``), the ``X-BESSER-Warning`` header says so.
+         */
         post: operations["export_project_as_buml_besser_api_export_project_as_buml_post"];
         delete?: never;
         options?: never;
