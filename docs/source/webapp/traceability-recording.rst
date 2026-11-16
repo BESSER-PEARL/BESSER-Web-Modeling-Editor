@@ -130,6 +130,13 @@ the generation's and is reported as is, without generating a second time; a 500 
 the backend answers a failure building the trace with the same generic 500 as a generator crash. The file is
 delivered before its trace is recorded, and a trace that cannot be recorded never fails the generation.
 
+Two server-side generations are **not** recorded: *Deploy locally* (``POST /deploy-app``, which answers with
+no body) and *Deploy to GitHub* (``POST /github/deploy-webapp``, which answers with the repository, its links
+and a count of files uploaded). Neither response says which diagrams the generator read or which files it
+wrote (no paths, no hashes), so the editor cannot record the run without guessing; the trace has no operation
+for them, and code deployed this way has no trace links. Generate the code from the Generate menu to have it
+traced. Closing the gap needs a traced variant of these endpoints in the backend.
+
 A Spec-Driven run is recorded from the ``trace`` its ``done`` event carries; the requirements sent with
 the run are RequirementArtifact ids, so its requirement-to-code links join them. A backend that sends
 no trace still leaves the run in the trace: one operation built from the stream's events
