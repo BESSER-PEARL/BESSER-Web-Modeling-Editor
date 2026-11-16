@@ -57,6 +57,21 @@ const push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
   else map.set(key, [value]);
 };
 
+const indexes = new WeakMap<TraceFile, TraceIndex>();
+
+/**
+ * The index of `trace`, built once per trace object and kept with it. The trace store publishes a new trace object
+ * with every update, so a trace object stands for one revision; do not use this on a trace being changed in place.
+ */
+export function traceIndexOf(trace: TraceFile): TraceIndex {
+  let index = indexes.get(trace);
+  if (!index) {
+    index = indexTrace(trace);
+    indexes.set(trace, index);
+  }
+  return index;
+}
+
 export function indexTrace(trace: TraceFile): TraceIndex {
   const artifacts = new Map(trace.artifacts.map((a) => [a.id, a]));
   const operations = new Map(trace.operations.map((o) => [o.id, o]));

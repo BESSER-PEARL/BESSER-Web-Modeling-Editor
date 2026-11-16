@@ -223,6 +223,19 @@ describe('focus', () => {
     expect(findFocusArtifacts(indexTrace(trace), names)).toHaveLength(5);
   });
 
+  it('matches names of several words, with punctuation, or not starting with a letter', () => {
+    const trace = library();
+    trace.artifacts.push(
+      model('oi', 'order-item', 'Class', 'cd'), model('ls', 'Loan Service', 'Class', 'cd'), model('cpp', 'C++', 'Class', 'cd'),
+      model('st', '<<Store>>', 'Class', 'cd'),
+    );
+    const found = (message: string) => findFocusArtifacts(indexTrace(trace), message).map((a) => a.id);
+    expect(found('where is the ORDER-ITEM?')).toEqual(['oi']);
+    expect(found('the loan service and c++')).toEqual(['ls', 'cpp']);
+    expect(found('the loan services')).toEqual([]);
+    expect(found('is <<store>> used')).toEqual(['st']);
+  });
+
   it('is empty when the message names nothing or is empty', () => {
     expect(ids('what is out of date?')).toEqual([]);
     expect(ids('')).toEqual([]);

@@ -1,10 +1,10 @@
-import type { CodeArtifact, TraceArtifact, TraceEvidence, TraceFile, TraceOperation } from '../types/traceability';
+import type { CodeArtifact, ModelArtifact, TraceArtifact, TraceEvidence, TraceFile, TraceOperation } from '../types/traceability';
 import { changesOf, isCodeArtifact, isModelArtifact, isPromptArtifact, isRequirementArtifact, toolIdsOf } from '../types/traceability';
 import { lineageOf } from './lineage';
 import { requirementCoverage } from './requirementCoverage';
 import type { TraceIndex } from './traceQueries';
 import {
-  generatedFrom, historyOf, isDeleted, isDiagram, outOfDate, qualifiedName, withDescendants,
+  generatedFrom, historyOf, isDeleted, isDiagram, MAX_PARENT_DEPTH, outOfDate, qualifiedName, withDescendants,
 } from './traceQueries';
 import { traceSummary } from './traceSummary';
 
@@ -181,14 +181,103 @@ function evidenceText(evidence: TraceEvidence[]): string | undefined {
 
 /* ---------------------------------------------------------------- focus */
 
-const WORD = '[\\p{L}\\p{N}_]';
+const WORD_CHAR = /[\p{L}\p{N}_]/u;
+const WORDS = /[\p{L}\p{N}_]+/gu;
+const isWordChar = (char: string | undefined): boolean => char !== undefined && WORD_CHAR.test(char);
 
 /** The index in `message` where `phrase` appears as a whole word (case-insensitive), or -1. */
 export function wholeWordIndex(message: string, phrase: string): number {
   if (!phrase.trim()) return -1;
-  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = new RegExp(`(?<!${WORD})${escaped}(?!${WORD})`, 'iu').exec(message);
-  return match ? match.index : -1;
+  return wholeWordIndexLower(message.toLowerCase(), phrase.toLowerCase());
+}
+
+/** {@link wholeWordIndex} on text already lowercased: a plain search with a check of the characters around. */
+function wholeWordIndexLower(message: string, phrase: string): number {
+  for (let at = message.indexOf(phrase); at >= 0; at = message.indexOf(phrase, at + 1)) {
+    // A phrase that starts (ends) with a word character must not continue a word before (after) it.
+    const before = isWordChar(phrase[0]) && isWordChar(message[at - 1]);
+    const after = isWordChar(phrase[phrase.length - 1]) && isWordChar(message[at + phrase.length]);
+    if (!before && !after) return at;
+  }
+  return -1;
+}
+
+/** Names with at most this many words are found by the message's words; longer ones by a plain search. */
+const MAX_NAME_WORDS = 32;
+
+/**
+ * What the focus is looked up in, built once per trace index (one per trace revision) and kept with it: every model
+ * artifact a message can name, by its lowercased name and, for a member, its lowercased `Owner.member` name.
+ */
+interface FocusLookup {
+  /** Lowercased name -> artifacts of that name (elements and members alike). */
+  byName: Map<string, ModelArtifact[]>;
+  /** Lowercased `Owner.member` name -> members of that name. */
+  byQualified: Map<string, ModelArtifact[]>;
+  /** The member's owner, for each member. */
+  ownerOf: Map<string, ModelArtifact>;
+  /** The most words a name of `byName` / `byQualified` has. */
+  maxWords: number;
+  /** Names that do not start and end with a word character, or with too many words: searched for one by one. */
+  odd: string[];
+}
+
+const focusLookups = new WeakMap<TraceIndex, FocusLookup>();
+
+function focusLookupOf(index: TraceIndex): FocusLookup {
+  let lookup = focusLookups.get(index);
+  if (lookup) return lookup;
+  lookup = { byName: new Map(), byQualified: new Map(), ownerOf: new Map(), maxWords: 1, odd: [] };
+  const { byName, byQualified, ownerOf, odd } = lookup;
+  const oddSet = new Set<string>();
+  const add = (map: Map<string, ModelArtifact[]>, phrase: string, artifact: ModelArtifact) => {
+    const key = phrase.toLowerCase();
+    const list = map.get(key);
+    if (list) list.push(artifact);
+    else map.set(key, [artifact]);
+    const words = key.match(WORDS)?.length ?? 0;
+    if (!isWordChar(key[0]) || !isWordChar(key[key.length - 1]) || words > MAX_NAME_WORDS) {
+      if (!oddSet.has(key)) {
+        oddSet.add(key);
+        odd.push(key);
+      }
+    } else if (words > lookup!.maxWords) {
+      lookup!.maxWords = words;
+    }
+  };
+  for (const artifact of index.trace.artifacts) {
+    if (!isModelArtifact(artifact) || artifact.name.trim().length < 2) continue;
+    const parent = artifact.parentId ? index.artifacts.get(artifact.parentId) : undefined;
+    add(byName, artifact.name, artifact);
+    if (isModelArtifact(parent) && !isDiagram(parent)) {
+      ownerOf.set(artifact.id, parent);
+      add(byQualified, `${parent.name}.${artifact.name}`, artifact);
+    }
+  }
+  focusLookups.set(index, lookup);
+  return lookup;
+}
+
+/** Where each phrase of `lookup` first appears in the (lowercased) message as a whole word. */
+function phrasesIn(lookup: FocusLookup, message: string): Map<string, number> {
+  const found = new Map<string, number>();
+  const note = (phrase: string, at: number) => {
+    const known = lookup.byName.has(phrase) || lookup.byQualified.has(phrase);
+    const earlier = found.get(phrase);
+    if (known && (earlier === undefined || at < earlier)) found.set(phrase, at);
+  };
+  // Every run of 1 to `maxWords` consecutive words of the message, with what lies between them, is a candidate.
+  const words = [...message.matchAll(WORDS)].map((m) => ({ start: m.index!, end: m.index! + m[0].length }));
+  for (let first = 0; first < words.length; first += 1) {
+    for (let last = first; last < words.length && last - first < lookup.maxWords; last += 1) {
+      note(message.slice(words[first].start, words[last].end), words[first].start);
+    }
+  }
+  for (const phrase of lookup.odd) {
+    const at = wholeWordIndexLower(message, phrase);
+    if (at >= 0) note(phrase, at);
+  }
+  return found;
 }
 
 /**
@@ -197,32 +286,43 @@ export function wholeWordIndex(message: string, phrase: string): number {
  * like `name` or `id` are common words. A matched member beats its owner (and a matched element its diagram).
  * Names of one letter never match. A deleted artifact gives way to a live one of the same name; two live
  * artifacts of one name are both kept (the question is ambiguous). Ordered by where the message names them.
+ *
+ * The message is split into words once and its runs of words looked up in names indexed once per trace index, so
+ * the cost is that of the message, not of the trace.
  */
 export function findFocusArtifacts(index: TraceIndex, message: string, max: number = TRACE_DIGEST_CAPS.focus): TraceArtifact[] {
   if (!message.trim()) return [];
-  const matched = new Map<string, { artifact: TraceArtifact; at: number; key: string; deleted: boolean }>();
-  for (const artifact of index.trace.artifacts) {
-    if (!isModelArtifact(artifact) || artifact.name.trim().length < 2) continue;
-    const parent = artifact.parentId ? index.artifacts.get(artifact.parentId) : undefined;
-    const isMember = isModelArtifact(parent) && !isDiagram(parent);
-    let at = -1;
-    if (isMember) {
-      at = wholeWordIndex(message, qualifiedName(index, artifact));
-      if (at < 0 && wholeWordIndex(message, parent.name) >= 0) at = wholeWordIndex(message, artifact.name);
-    } else {
-      at = wholeWordIndex(message, artifact.name);
-    }
-    if (at >= 0) matched.set(artifact.id, { artifact, at, key: qualifiedName(index, artifact).toLowerCase(), deleted: isDeleted(index, artifact.id) });
+  const lookup = focusLookupOf(index);
+  const found = phrasesIn(lookup, message.toLowerCase());
+  const at = new Map<string, number>();
+  const candidate = (artifact: ModelArtifact, position: number) => {
+    const earlier = at.get(artifact.id);
+    if (earlier === undefined || position < earlier) at.set(artifact.id, position);
+  };
+  for (const [phrase, position] of found) {
+    for (const member of lookup.byQualified.get(phrase) ?? []) candidate(member, position);
   }
+  for (const [phrase, position] of found) {
+    for (const artifact of lookup.byName.get(phrase) ?? []) {
+      const owner = lookup.ownerOf.get(artifact.id);
+      if (!owner) candidate(artifact, position);
+      // A member named alone, with its owner named too; its qualified name, when named, came first.
+      else if (!at.has(artifact.id) && found.has(owner.name.toLowerCase())) candidate(artifact, position);
+    }
+  }
+  const matched = [...at].map(([id, position]) => {
+    const artifact = index.artifacts.get(id)!;
+    return { artifact, at: position, key: qualifiedName(index, artifact).toLowerCase(), deleted: isDeleted(index, id) };
+  });
   // A matched part beats what holds it.
   const holders = new Set<string>();
-  for (const { artifact } of matched.values()) {
-    for (let id = artifact.parentId, steps = 0; id && steps <= index.artifacts.size; steps += 1) {
+  for (const { artifact } of matched) {
+    for (let id = artifact.parentId, steps = 0; id && steps < MAX_PARENT_DEPTH; steps += 1) {
       holders.add(id);
       id = index.artifacts.get(id)?.parentId;
     }
   }
-  const candidates = [...matched.values()].filter(({ artifact }) => !holders.has(artifact.id));
+  const candidates = matched.filter(({ artifact }) => !holders.has(artifact.id));
   const liveKeys = new Set(candidates.filter((c) => !c.deleted).map((c) => c.key));
   return candidates
     .filter((c) => !c.deleted || !liveKeys.has(c.key))
@@ -295,10 +395,8 @@ function focusEntry(index: TraceIndex, artifact: TraceArtifact): TraceDigestFocu
 
 /* --------------------------------------------------------------- sections */
 
-function recentOperations(index: TraceIndex, options: TraceDigestOptions): TraceDigestOperation[] {
-  return [...index.trace.operations]
-    .sort(byNewest((o) => o.startedAt))
-    .slice(0, TRACE_DIGEST_CAPS.recentOperations)
+function recentOperations(index: TraceIndex, newest: TraceOperation[], options: TraceDigestOptions): TraceDigestOperation[] {
+  return newest
     .map((operation): TraceDigestOperation => {
       const by = actorsOf(index, operation);
       const tools = toolNamesOf(index, operation);
@@ -358,40 +456,27 @@ function generationsOf(index: TraceIndex): TraceDigestGeneration[] {
 
 /* ----------------------------------------------------------------- digest */
 
-/**
- * The digest of `trace` for a user message: counts, the newest operations, the current requirements with what
- * realizes them, the links that may be out of date, the newest generations, and, for the artifacts the message
- * names, their history, what they were derived from and what was derived from them.
- *
- * The serialized result is at most `options.maxChars` (default 12,000) characters. Beyond the per-string and
- * per-list caps, lists are shortened from their end, the least valuable first: recent operations, generations,
- * requirements, out-of-date links, and last the focus (whose own history, sources and code are cut before an
- * entry is dropped).
- */
-export function buildTraceDigest(
-  trace: TraceFile,
-  index: TraceIndex,
-  message: string,
-  options: TraceDigestOptions = {},
-): TraceDigest {
-  const maxChars = options.maxChars ?? TRACE_DIGEST_MAX_CHARS;
+/** The part of the digest that does not depend on the message, computed once per trace index (one per trace
+ *  revision): the lineage, summary and sections cost a pass over the whole trace each. */
+interface DigestBase {
+  counts: TraceDigest['counts'];
+  newestOperations: TraceOperation[];
+  requirements: TraceDigestRequirement[];
+  outOfDate: TraceDigestOutOfDate[];
+  generations: TraceDigestGeneration[];
+}
+
+const digestBases = new WeakMap<TraceIndex, DigestBase>();
+
+function digestBaseOf(trace: TraceFile, index: TraceIndex): DigestBase {
+  const cached = digestBases.get(index);
+  if (cached) return cached;
   const lineage = lineageOf(index, null, { history: false });
   const summary = traceSummary(index, lineage);
   const operations = Object.fromEntries(OPERATION_TYPES.map((type) => [type, 0])) as Record<TraceDigestOperationType, number>;
   for (const operation of trace.operations) operations[operation.type] += 1;
 
-  const digest: TraceDigest = {
-    schemaVersion: TRACE_DIGEST_SCHEMA_VERSION,
-    recording: options.recording ?? true,
-    counts: { artifacts: summary.artifacts, links: summary.links, outOfDateLinks: summary.outOfDateLinks, operations },
-  };
-
-  const recent = recentOperations(index, options);
-  if (recent.length > 0) digest.recentOperations = recent;
-  const requirements = requirementsOf(index);
-  if (requirements.length > 0) digest.requirements = requirements;
-
-  const stale = lineage.edges
+  const outOfDate = lineage.edges
     .filter((edge) => edge.outOfDate.length > 0)
     .flatMap((edge) => {
       const source = index.artifacts.get(edge.link.sourceId);
@@ -414,10 +499,48 @@ export function buildTraceDigest(
         ...(generation ? { generation: name(generation) } : {}),
       };
     });
-  if (stale.length > 0) digest.outOfDate = stale;
 
-  const generations = generationsOf(index);
-  if (generations.length > 0) digest.generations = generations;
+  const base: DigestBase = {
+    counts: { artifacts: summary.artifacts, links: summary.links, outOfDateLinks: summary.outOfDateLinks, operations },
+    newestOperations: [...trace.operations].sort(byNewest((o) => o.startedAt)).slice(0, TRACE_DIGEST_CAPS.recentOperations),
+    requirements: requirementsOf(index),
+    outOfDate,
+    generations: generationsOf(index),
+  };
+  digestBases.set(index, base);
+  return base;
+}
+
+/**
+ * The digest of `trace` for a user message: counts, the newest operations, the current requirements with what
+ * realizes them, the links that may be out of date, the newest generations, and, for the artifacts the message
+ * names, their history, what they were derived from and what was derived from them.
+ *
+ * The serialized result is at most `options.maxChars` (default 12,000) characters. Beyond the per-string and
+ * per-list caps, lists are shortened from their end, the least valuable first: recent operations, generations,
+ * requirements, out-of-date links, and last the focus (whose own history, sources and code are cut before an
+ * entry is dropped).
+ */
+export function buildTraceDigest(
+  trace: TraceFile,
+  index: TraceIndex,
+  message: string,
+  options: TraceDigestOptions = {},
+): TraceDigest {
+  const maxChars = options.maxChars ?? TRACE_DIGEST_MAX_CHARS;
+  const base = digestBaseOf(trace, index);
+  const digest: TraceDigest = {
+    schemaVersion: TRACE_DIGEST_SCHEMA_VERSION,
+    recording: options.recording ?? true,
+    counts: { ...base.counts, operations: { ...base.counts.operations } },
+  };
+
+  const recent = recentOperations(index, base.newestOperations, options);
+  if (recent.length > 0) digest.recentOperations = recent;
+  // Copies: fitting the digest shortens its lists.
+  if (base.requirements.length > 0) digest.requirements = [...base.requirements];
+  if (base.outOfDate.length > 0) digest.outOfDate = [...base.outOfDate];
+  if (base.generations.length > 0) digest.generations = [...base.generations];
 
   const focus = findFocusArtifacts(index, message).map((artifact) => focusEntry(index, artifact));
   if (focus.length > 0) digest.focus = focus;

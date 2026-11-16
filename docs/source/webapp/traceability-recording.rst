@@ -90,7 +90,10 @@ The assistant can answer questions about the trace ("why does Book have an isbn?
 cross-repo traceability contract). It is sent **only when the project records traces and its trace holds at
 least one operation**; otherwise the field is left out and the assistant answers that nothing is recorded and
 how to turn recording on. A voice message carries the digest too, with an empty focus (its transcript is not
-known when the context is sent).
+known when the context is sent). The digest is built on the main thread, so its cost per message is kept to the
+message: the trace's index and the parts that do not depend on the message are computed once per trace revision
+(``traceIndexOf``), and the focus is found by looking the message's runs of words up in the model's names,
+indexed once per revision, rather than by searching the message for every name.
 
 The digest is a bounded summary, at most about 12,000 characters, never the trace itself:
 

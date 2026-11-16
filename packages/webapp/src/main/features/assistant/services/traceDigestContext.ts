@@ -1,7 +1,7 @@
 import i18n from '../../../shared/i18n';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildTraceDigest, type TraceDigest } from '../../../shared/traceability/traceDigest';
-import { indexTrace } from '../../../shared/traceability/traceQueries';
+import { traceIndexOf } from '../../../shared/traceability/traceQueries';
 import { getProjectTrace, isTraceabilityEnabled } from '../../../shared/traceability/traceStore';
 import { operationSummary } from '../../traceability';
 
@@ -10,6 +10,10 @@ import { operationSummary } from '../../traceability';
  * field out: the project does not record traces, its trace is not loaded yet, or nothing is recorded in it. The
  * agent then answers a question about the trace that nothing is recorded. `message` picks the focus artifacts;
  * without it (a voice message, whose transcript is not known yet) the focus is empty.
+ *
+ * Built on the main thread with every message: the trace's index and the message-independent part of the digest
+ * are computed once per trace revision (`traceIndexOf`, kept with the trace object the store publishes), so a send
+ * costs only the focus lookup.
  */
 export function buildAssistantTraceDigest(project: BesserProject | null | undefined, message?: string): TraceDigest | undefined {
   if (!project || !isTraceabilityEnabled(project)) return undefined;
@@ -17,7 +21,7 @@ export function buildAssistantTraceDigest(project: BesserProject | null | undefi
   if (!trace || trace.operations.length === 0) return undefined;
   try {
     const english = i18n.getFixedT('en');
-    return buildTraceDigest(trace, indexTrace(trace), message ?? '', {
+    return buildTraceDigest(trace, traceIndexOf(trace), message ?? '', {
       recording: true,
       summarize: (operation, index) => operationSummary(english, operation, index),
     });
