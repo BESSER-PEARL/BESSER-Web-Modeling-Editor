@@ -10,7 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { store } from '@/main/app/store/store';
 import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
-import { readProjectLastRun } from '@/main/features/spec-driven/storage';
+import { readProjectLastRun, writeProjectLastRun } from '@/main/features/spec-driven/storage';
+import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
 import { sessionStorageLlmApiKey, sessionStorageLlmProvider } from '@/main/shared/constants/constant';
@@ -54,15 +55,20 @@ function Surface({ apiRef }: { apiRef: { current: TriggerFn | null } }) {
   return null;
 }
 
-/** Start a run whose stream yields `events`, and wait until it has ended. */
-async function runWith(events: SpecDrivenEvent[], instructions: string) {
+type Step = SpecDrivenEvent | (() => Promise<unknown>);
+
+/** Start run `runId` whose stream yields `steps` (a function runs in between), and wait until it has ended. */
+async function runWith(steps: Step[], instructions: string, runId: string = RUN) {
   vi.mocked(sseClient.startSpecDrivenRun).mockImplementation((params) => {
-    params.onRunAccepted?.(RUN);
+    params.onRunAccepted?.(runId);
     return {
       controller: new AbortController(),
       abort: () => {},
       events: (async function* () {
-        for (const event of events) yield event;
+        for (const step of steps) {
+          if (typeof step === 'function') await step();
+          else yield step;
+        }
       })(),
     } as ReturnType<typeof sseClient.startSpecDrivenRun>;
   });
@@ -78,10 +84,12 @@ async function runWith(events: SpecDrivenEvent[], instructions: string) {
   await waitFor(() => expect(store.getState().specDriven.runStatus).toBe('idle'));
 }
 
-const done = (overrides: Partial<Extract<SpecDrivenEvent, { event: 'done' }>> = {}): SpecDrivenEvent => ({
+const start = (runId: string = RUN) => ({ event: 'start', runId, provider: 'anthropic' }) as SpecDrivenEvent;
+
+const done = (overrides: Partial<Extract<SpecDrivenEvent, { event: 'done' }>> = {}, runId: string = RUN): SpecDrivenEvent => ({
   event: 'done',
-  runId: RUN,
-  downloadUrl: `/spec-driven/download/${RUN}`,
+  runId,
+  downloadUrl: `/spec-driven/download/${runId}`,
   fileName: 'app.zip',
   isZip: true,
   ...overrides,
@@ -103,11 +111,49 @@ afterEach(() => {
 describe('the last-run record of a finished run', () => {
   it("keeps the user's request without the assistant's notes", async () => {
     await runWith(
-      [{ event: 'start', runId: RUN, provider: 'anthropic' } as SpecDrivenEvent, done()],
+      [start(), done()],
       "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n## The user's original request, verbatim\n\nBuild a task board.",
     );
     const record = readProjectLastRun(PROJECT_ID);
     expect(record?.runId).toBe(RUN);
     expect(record?.request).toBe("## The user's original request, verbatim\n\nBuild a task board.");
+  });
+});
+
+describe('a run the user stopped', () => {
+  const PREVIOUS = 'e'.repeat(32);
+  const STOPPED = 'f'.repeat(32);
+  const BUDGET_STOP = '1'.repeat(32);
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true } as Response)));
+    writeProjectLastRun(PROJECT_ID, PREVIOUS, 1_000, 'Build a task board.');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('does not become the base of the next run, even when it ends with output', async () => {
+    await runWith(
+      [
+        start(STOPPED),
+        () => cancelSpecDrivenRun(STOPPED),
+        done({ incomplete: true, incompleteReason: 'The run was cancelled before the customization loop finished.' }, STOPPED),
+      ],
+      'Build a task board.',
+      STOPPED,
+    );
+    expect(readProjectLastRun(PROJECT_ID)).toEqual({ runId: PREVIOUS, at: 1_000, request: 'Build a task board.' });
+    expect(store.getState().specDriven.lastRunByProject[PROJECT_ID]?.runId).not.toBe(STOPPED);
+  });
+
+  it('a run that stopped on its own budget still becomes the base', async () => {
+    await runWith(
+      [start(BUDGET_STOP), done({ incomplete: true, incompleteReason: 'The run hit its cost cap.' }, BUDGET_STOP)],
+      'Build a task board.',
+      BUDGET_STOP,
+    );
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(BUDGET_STOP);
   });
 });

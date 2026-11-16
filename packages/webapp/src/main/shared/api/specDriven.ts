@@ -42,15 +42,31 @@ export const downloadSpecDrivenOutput = (runId: string) =>
  */
 export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?: boolean } = {}): Promise<boolean> {
   const url = cancelSpecDrivenUrl(runId);
+  // Recorded before the answer: the run's `done` can arrive before it.
+  cancelRequestedRunIds.add(runId);
+  const settle = (accepted: boolean) => {
+    if (!accepted) cancelRequestedRunIds.delete(runId);
+    return accepted;
+  };
   try {
     if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      return Promise.resolve(navigator.sendBeacon(url));
+      return Promise.resolve(settle(navigator.sendBeacon(url)));
     }
     return fetch(url, { method: 'POST', keepalive: true }).then(
-      (response) => response.ok,
-      () => false,
+      (response) => settle(response.ok),
+      () => settle(false),
     );
   } catch {
-    return Promise.resolve(false);
+    return Promise.resolve(settle(false));
   }
+}
+
+const cancelRequestedRunIds = new Set<string>();
+
+/**
+ * Whether this tab asked the server to stop `runId`. A stopped run that had
+ * already produced files still ends with `done` (marked incomplete).
+ */
+export function isSpecDrivenRunCancelRequested(runId: string): boolean {
+  return cancelRequestedRunIds.has(runId);
 }
