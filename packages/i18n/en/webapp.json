@@ -4371,7 +4371,9 @@
     "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
     "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modeling edits and code generation.",
     "toggle": {
-      "label": "Record traces for this project"
+      "label": "Record traces for this project",
+      "on": "On",
+      "off": "Off"
     },
     "clear": {
       "button": "Clear",
@@ -4383,7 +4385,9 @@
       "timeline": "Timeline",
       "elements": "Diagrams",
       "coverage": "Coverage",
-      "lineage": "Lineage"
+      "lineage": "Lineage",
+      "requirements": "Requirements",
+      "label": "Traceability views"
     },
     "timeline": {
       "filters": {
@@ -4393,7 +4397,7 @@
         "extraction": "Requirements",
         "conversation": "Conversations"
       },
-      "search": "Search changes…",
+      "search": "Search changes, messages, requirements, files…",
       "empty": "No operations match.",
       "changeCount_one": "{{count}} change",
       "changeCount_other": "{{count}} changes",
@@ -4417,7 +4421,17 @@
       "files": "Files",
       "tracedElements": "Traced elements",
       "compacted": "An older run: only the files it generated and their hashes are kept (the newest 5 runs of each generator keep their trace links).",
-      "models": "Diagrams"
+      "models": "Diagrams",
+      "kindFilter": "Kind of operation",
+      "actor": "Actor",
+      "allActors": "All actors",
+      "agent": "assistant",
+      "from": "From",
+      "to": "To",
+      "clearFilters": "Clear filters",
+      "matching_one": "{{count}} of {{total}} operation",
+      "matching_other": "{{count}} of {{total}} operations",
+      "unknownModels": "its source models"
     },
     "elements": {
       "search": "Search diagrams and elements…",
@@ -4437,7 +4451,8 @@
       "noHistory": "No edits recorded (the element existed before recording started).",
       "contentNotKept": "Only this file's hash is kept, not its content: the file was over the size limit, or newer generations replaced it.",
       "evidence": "Evidence: template rule {{rule}} · confidence {{confidence}}",
-      "outOfDateHelp": "This code may no longer match the element: it, or something it was derived from, changed after the code was generated. Regenerate to bring the code up to date."
+      "outOfDateHelp": "This code may no longer match the element: it, or something it was derived from, changed after the code was generated. Regenerate to bring the code up to date.",
+      "noMatch": "Nothing matches the search."
     },
     "lineage": {
       "show": "Show lineage",
@@ -4449,7 +4464,11 @@
         "models": "Models",
         "prompts": "Prompts",
         "requirements": "Requirements",
-        "code": "Generated code"
+        "code": "Generated code",
+        "search": "Search models, prompts, requirements, files…",
+        "noMatch": "Nothing matches the search.",
+        "more_one": "{{count}} more: refine the search",
+        "more_other": "{{count}} more: refine the search"
       },
       "empty": "No trace links yet. Generate code from a diagram, or derive one diagram from another, to see its lineage.",
       "history": "Show history",
@@ -4511,8 +4530,13 @@
         "rule": "Rule",
         "ai": "AI",
         "outOfDate": "Out of date",
-        "upstreamChanged": "Upstream changed"
-      }
+        "upstreamChanged": "Upstream changed",
+        "aiLabelled": "AI decision (its pill says “AI”)",
+        "width": "Thicker: more confident"
+      },
+      "connectors": "Connectors ({{count}})",
+      "derivedTo": "Derived into",
+      "derivedFrom": "Derived from"
     },
     "coverage": {
       "element": "Diagram / element",
@@ -4521,7 +4545,9 @@
         "generated": "Generated, unchanged since",
         "outOfDate": "Out of date (changed after generation)",
         "none": "Not in this generation"
-      }
+      },
+      "search": "Search diagrams and elements…",
+      "noMatch": "No diagram or element matches the search."
     },
     "status": {
       "outOfDate": "Out of date",
@@ -4532,7 +4558,8 @@
       "assistant": "Modeling session with the assistant",
       "generation": "Generated {{generator}}",
       "extraction": "Requirements extracted by the assistant",
-      "conversation": "Conversation with the assistant"
+      "conversation": "Conversation with the assistant",
+      "generationUnknown": "Code generation"
     },
     "changes": {
       "created": "Created {{type}} {{name}}",
@@ -4619,6 +4646,91 @@
       "importedTraceUnusable": "The project was imported without its trace: {{problem}}",
       "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}",
       "storageUnavailable": "The browser's storage for traces could not be opened: traces are kept for this session only."
+    },
+    "unknownActor": "Unknown",
+    "dismiss": "Dismiss",
+    "unknownTarget": "The link pointed to something this project's trace does not hold (it may have been cleared, or belong to another project), so the default view is shown.",
+    "executionStatus": {
+      "PENDING": "Pending",
+      "RUNNING": "Running",
+      "SUCCEEDED": "Succeeded",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled",
+      "TIMED_OUT": "Timed out"
+    },
+    "requirementKinds": {
+      "data": "data",
+      "uniqueness": "uniqueness",
+      "validation": "validation",
+      "rule": "business rule",
+      "computed": "computed value",
+      "transition": "state transition",
+      "action": "action",
+      "ui": "user interface",
+      "integration": "integration",
+      "quality": "quality",
+      "technical": "technical"
+    },
+    "summary": {
+      "label": "Trace summary",
+      "operations_one": "operation recorded",
+      "operations_other": "operations recorded",
+      "artifacts_one": "artifact",
+      "artifacts_other": "artifacts",
+      "links_one": "current trace link",
+      "links_other": "current trace links",
+      "linksHint": "The links of the project as it is now: the newest run of each generator, without deleted elements.",
+      "outOfDate_one": "link may be out of date",
+      "outOfDate_other": "links may be out of date",
+      "staleFiles_one": "{{generator}}: {{count}} file out of date",
+      "staleFiles_other": "{{generator}}: {{count}} files out of date",
+      "regenerate": "regenerate to bring the code generated on {{time}} up to date",
+      "unknownGenerator": "A generator",
+      "showCoverage": "View coverage"
+    },
+    "recordingOff": {
+      "title": "Trace recording is off",
+      "description": "What is shown was recorded earlier. New edits, conversations and generations of this project are not recorded until recording is turned back on.",
+      "turnOn": "Turn recording on"
+    },
+    "loadError": {
+      "title": "The stored trace could not be loaded",
+      "storageUnavailable": "The browser's storage for traces could not be opened. What is shown was recorded in this session only, and will not be kept after it.",
+      "unusable": "The stored trace of this project could not be read (it may be damaged, or written by a newer version). What is shown was recorded in this session only; clear the trace to start a new one."
+    },
+    "requirements": {
+      "empty": "No requirements recorded yet. Describe an application to the assistant: the requirements it extracts appear here, with the model elements and the code that realize them.",
+      "statusFilter": "Coverage",
+      "filters": {
+        "all": "All ({{count}})",
+        "uncovered": "Not covered ({{count}})",
+        "modeled": "Modeled only ({{count}})",
+        "generated": "Generated ({{count}})"
+      },
+      "search": "Search requirements, elements, files…",
+      "noMatch": "No requirement matches.",
+      "extractedAt": "Requirements extracted {{time}}",
+      "current": "Current",
+      "earlier": "Earlier request",
+      "columns": {
+        "requirement": "Requirement",
+        "elements": "Realized by",
+        "code": "Generated code",
+        "verdict": "Verdict"
+      },
+      "status": {
+        "generated": "Realized and generated",
+        "modeled": "Modeled, no code yet",
+        "uncovered": "Not covered"
+      },
+      "noElements": "No model element",
+      "noCode": "No generated code",
+      "noVerdict": "No verdict",
+      "showLineage": "Show the lineage of {{name}}"
+    },
+    "entry": {
+      "showTraceability": "Show traceability",
+      "viewTrace": "View trace"
     }
   }
 }

@@ -44,8 +44,9 @@ const ProjectSettingsPanel = React.lazy(() =>
 const KnowledgeGraphSettingsPanel = React.lazy(() =>
   import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
 );
+// The page itself, not the feature's index: the index holds what eager code imports (links into the page).
 const TraceabilityPage = React.lazy(() =>
-  import('../features/traceability').then((m) => ({ default: m.TraceabilityPage })),
+  import('../features/traceability/TraceabilityPage').then((m) => ({ default: m.TraceabilityPage })),
 );
 
 const AgentSimulationPage = React.lazy(() =>
