@@ -9,6 +9,7 @@ import {
 } from '../diagramModelDiff';
 import { diffSnapshots } from '../modelDiff';
 import type { Snapshot } from '../modelDiff';
+import type { ApollonModelLike } from '../diagramModelDiff';
 
 const el = (id: string, type: string, name = '', extra: Record<string, unknown> = {}) => ({
   id, type, name, owner: null as string | null, bounds: { x: 0, y: 0, width: 10, height: 10 }, ...extra,
@@ -17,10 +18,11 @@ const rel = (id: string, type: string, source: string, target: string, extra: Re
   id, type, name: '', source: { element: source, direction: 'Up' }, target: { element: target, direction: 'Down' },
   path: [{ x: 0, y: 0 }], bounds: { x: 0, y: 0, width: 0, height: 0 }, ...extra,
 });
-const model = (elements: ReturnType<typeof el>[], relationships: ReturnType<typeof rel>[] = []) => ({
+type Row = { id: string } & Record<string, unknown>;
+const model = (elements: Row[], relationships: Row[] = []): ApollonModelLike => ({
   elements: Object.fromEntries(elements.map((e) => [e.id, e])),
   relationships: Object.fromEntries(relationships.map((r) => [r.id, r])),
-});
+}) as ApollonModelLike;
 const summary = (snapshots: Map<string, Snapshot>) =>
   [...snapshots].map(([id, s]) => [id, s.elementType, s.name, s.parentElementId]);
 
@@ -66,7 +68,7 @@ describe('the generic Apollon snapshot', () => {
     const agent = {
       ...model([el('i1', 'AgentIntent', 'greet'), el('b2', 'AgentIntentBody', 'hi', { owner: 'i1' }), el('b1', 'AgentIntentBody', 'hello', { owner: 'i1' })]),
       components: { r1: el('r1', 'AgentRagElement', 'docs') },
-    };
+    } as ApollonModelLike;
     const snapshots = snapshotApollonModel('AgentDiagram', agent);
     expect(snapshots.get('i1')).toMatchObject({ elementType: 'Intent' });
     expect(snapshots.get('i1')!.features.trainingSentences.key).toBe('hello\nhi'); // ordered by id
