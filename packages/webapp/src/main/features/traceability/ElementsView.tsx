@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import type { ModelArtifact } from '../../shared/types/traceability';
 import { isModelArtifact } from '../../shared/types/traceability';
 import type { TraceIndex, GeneratedFragment } from '../../shared/traceability/traceQueries';
+import { MAX_PARENT_DEPTH } from '../../shared/traceability/traceQueries';
 import {
   diagramsOf,
   fragmentLines,
@@ -54,7 +55,7 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
   useEffect(() => {
     const ancestors: ModelArtifact[] = [];
     let current = selectedId ? index.artifacts.get(selectedId) : undefined;
-    while (current?.parentId) {
+    for (let steps = 0; current?.parentId && steps < MAX_PARENT_DEPTH; steps += 1) {
       current = index.artifacts.get(current.parentId);
       if (isModelArtifact(current)) ancestors.push(current);
     }

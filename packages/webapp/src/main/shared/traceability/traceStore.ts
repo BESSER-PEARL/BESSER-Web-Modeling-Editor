@@ -28,6 +28,8 @@ import {
 } from './traceRecorder';
 import type { DerivedElement, LlmUsage, RecordContext, SpecDrivenRunSummary } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
+import { sanitizeTraceFile } from './traceSanitize';
+import type { SanitizeOptions } from './traceSanitize';
 import { reportTraceLoadProblem } from './traceLoadStatus';
 import { latestRequirements } from './traceQueries';
 import { readAssistantRequirements, requestStating } from './assistantRequirements';
@@ -218,16 +220,37 @@ export function traceFileProblem(value: unknown, projectId?: string): string | n
   return null;
 }
 
+/**
+ * A trace from outside this tab's recording (stored, imported, a backend fragment) as a usable trace file: migrated,
+ * checked at the top level ({@link traceFileProblem}) and item by item (`sanitizeTraceFile`: malformed items,
+ * dangling references and parent cycles dropped, a too large trace refused). Never throws.
+ */
+export function readTraceFile(
+  value: unknown, options: { projectId?: string } & SanitizeOptions = {},
+): { trace: TraceFile; problem?: undefined } | { problem: string } {
+  let migrated: unknown;
+  try {
+    migrated = migrateTraceFile(value);
+  } catch (error) {
+    console.warn('A trace could not be migrated.', error);
+    return { problem: i18n.t('traceability.errors.notATrace') };
+  }
+  const problem = traceFileProblem(migrated, options.projectId);
+  if (problem) return { problem };
+  const result = sanitizeTraceFile(migrated as TraceFile, options);
+  if ('tooLarge' in result) {
+    const { list, count, max } = result.tooLarge;
+    return { problem: i18n.t('traceability.errors.tooLarge', { list, count, max }) };
+  }
+  if (result.dropped > 0) console.warn(`Left out ${result.dropped} malformed or dangling item(s) of a trace.`);
+  return { trace: result.trace };
+}
+
 /** A stored trace as a usable trace file (migrated, checked), or undefined (logged) when it cannot be used. */
 function usableStoredTrace(projectId: string, stored: unknown): TraceFile | undefined {
-  try {
-    const parsed = migrateTraceFile(withoutStoreRevision(stored));
-    const problem = traceFileProblem(parsed, projectId);
-    if (!problem) return parsed as TraceFile;
-    console.warn(`Stored trace of project ${projectId} is unusable (${problem}).`);
-  } catch (error) {
-    console.warn(`Stored trace of project ${projectId} could not be read.`, error);
-  }
+  const read = readTraceFile(withoutStoreRevision(stored), { projectId });
+  if (read.problem === undefined) return read.trace;
+  console.warn(`Stored trace of project ${projectId} is unusable (${read.problem}).`);
   return undefined;
 }
 
@@ -450,14 +473,13 @@ export function importProjectTrace(projectId: string, imported: unknown): boolea
  * that fails to import leaves no trace behind. Undefined (with a warning) when it cannot be used.
  */
 export function readImportedTrace(imported: unknown): TraceFile | undefined {
-  const value = migrateTraceFile(imported);
-  const problem = traceFileProblem(value);
-  if (problem) {
-    console.warn(`The imported project's trace is unusable (${problem}); importing the project without it.`);
-    toast.warn(i18n.t('traceability.toasts.importedTraceUnusable', { problem }));
+  const read = readTraceFile(imported);
+  if (read.problem !== undefined) {
+    console.warn(`The imported project's trace is unusable (${read.problem}); importing the project without it.`);
+    toast.warn(i18n.t('traceability.toasts.importedTraceUnusable', { problem: read.problem }));
     return undefined;
   }
-  return value as TraceFile;
+  return read.trace;
 }
 
 export function deleteProjectTrace(projectId: string): void {
@@ -931,21 +953,14 @@ export function recordSpecDrivenOutcome(
 export function readGenerationTrace(received: unknown): TraceFile | undefined {
   // The backend may run an older version than the editor: its fragment is migrated like a stored trace,
   // and one that still cannot be used is left out rather than merged in a shape the views cannot read.
-  let problem: string | null;
-  let fragment: unknown;
-  try {
-    fragment = migrateTraceFile(received);
-    problem = traceFileProblem(fragment);
-  } catch (error) {
-    console.warn('The trace of this generation could not be read.', error);
-    problem = i18n.t('traceability.errors.notATrace');
-  }
-  if (problem) {
-    console.warn(`The trace of this generation is unusable (${problem}); it was not recorded.`);
-    toast.warn(i18n.t('traceability.toasts.generationTraceUnusable', { problem }));
+  // Its references may name the project trace's own artifacts.
+  const read = readTraceFile(received, { externalReferences: true });
+  if (read.problem !== undefined) {
+    console.warn(`The trace of this generation is unusable (${read.problem}); it was not recorded.`);
+    toast.warn(i18n.t('traceability.toasts.generationTraceUnusable', { problem: read.problem }));
     return undefined;
   }
-  return fragment as TraceFile;
+  return read.trace;
 }
 
 /**

@@ -17,7 +17,7 @@ import type {
 import { isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
 import type { AssistantRequirements } from './assistantRequirements';
 import { findNamedElement } from './classModelDiff';
-import { turnExtractionId, turnPromptId } from './traceQueries';
+import { MAX_PARENT_DEPTH, turnExtractionId, turnPromptId } from './traceQueries';
 import type { ClassModelLike } from './classModelDiff';
 import type { ElementChange } from './modelDiff';
 import type { BoundElement } from './guiModelDiff';
@@ -783,7 +783,8 @@ export function linkDerivedElements(
   const sourceRoot = ensureModelArtifact(trace, ctx.sourceModel.id, ctx.sourceModel.modelType, ctx.sourceModel.title, undefined, ctx.now);
   const artifactsById = new Map(trace.artifacts.map((a) => [a.id, a]));
   const inDiagram = (artifactId: string): boolean => {
-    for (let a = artifactsById.get(artifactId); a; a = a.parentId ? artifactsById.get(a.parentId) : undefined) {
+    let steps = 0;
+    for (let a = artifactsById.get(artifactId); a && steps <= MAX_PARENT_DEPTH; a = a.parentId ? artifactsById.get(a.parentId) : undefined, steps += 1) {
       if (a.id === diagram.id) return true;
     }
     return false;

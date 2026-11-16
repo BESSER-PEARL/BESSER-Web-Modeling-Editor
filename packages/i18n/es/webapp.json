@@ -4639,7 +4639,8 @@
       "notATrace": "Este no es un archivo de traza de BESSER.",
       "schemaVersion": "Versión {{found}} del archivo de traza no admitida (se esperaba {{expected}}).",
       "otherProject": "Este archivo de traza pertenece a otro proyecto.",
-      "newerSchemaVersion": "Esta traza la escribió una versión más reciente de BESSER (archivo de traza versión {{found}}; este editor lee hasta la {{expected}}). Actualiza el editor para usarla."
+      "newerSchemaVersion": "Esta traza la escribió una versión más reciente de BESSER (archivo de traza versión {{found}}; este editor lee hasta la {{expected}}). Actualiza el editor para usarla.",
+      "tooLarge": "Esta traza es demasiado grande para cargarla: tiene {{count}} {{list}} (como máximo {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "No se pudo leer la traza guardada de este proyecto; se empezó una nueva.",

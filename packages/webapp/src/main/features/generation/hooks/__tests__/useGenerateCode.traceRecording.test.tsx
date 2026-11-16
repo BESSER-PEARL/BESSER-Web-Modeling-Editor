@@ -67,6 +67,19 @@ describe('a generation whose trace cannot be recorded', () => {
     expect(unhandled).not.toHaveBeenCalled();
     // Nothing half-merged: the broken operation is not in the trace.
     expect(getProjectTrace(project.id)!.operations.some((o) => !Array.isArray(o.toolCalls))).toBe(false);
+  });
+
+  it('warns that the trace was not recorded when the fragment is not a trace', async () => {
+    const project = createDefaultProject('Library', '', 'Ada');
+    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(project);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(responseWith({ schemaVersion: 6, artifacts: 'nope' })));
+    const { result } = renderHook(() => useGenerateCode());
+    let outcome: GenerationResult | undefined;
+    await act(async () => {
+      outcome = await result.current(null, 'python', 'Library', undefined, undefined, MODEL as never);
+    });
+    expect(outcome).toEqual({ ok: true, filename: 'classes.py' });
+    expect(download).toHaveBeenCalledTimes(1);
     expect(toast.warn).toHaveBeenCalled();
   });
 });

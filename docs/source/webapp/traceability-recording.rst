@@ -17,6 +17,15 @@ backend refuses the version of a trace in a B-UML export, the export is sent aga
 written as version 5 (``downgradeTraceFile``); when an older backend leaves the trace out of the file,
 the user is told.
 
+Every trace that comes from outside the tab's own recording (the stored trace, an imported project's, a
+generation's fragment from the backend) is also checked item by item (``sanitizeTraceFile`` in
+``traceSanitize.ts``): an item of the wrong shape or with an id already used is dropped, a reference to an
+item the trace does not have is dropped (a backend fragment may name the project trace's own items), and a
+``parentId`` that closes a cycle is removed. A trace with more items than ``TRACE_LIMITS`` allows (300,000
+artifacts, 100,000 operations, 600,000 links) is refused with a message saying so; a file content over
+8 MB is dropped (its hash kept) and other texts are cut at 1 MB. Every walk up an artifact's parents is
+also capped (``MAX_PARENT_DEPTH``).
+
 Model edits
 -----------
 

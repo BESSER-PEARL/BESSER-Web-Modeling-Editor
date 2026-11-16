@@ -4639,7 +4639,8 @@
       "notATrace": "Ce n'est pas un fichier de trace BESSER.",
       "schemaVersion": "Version {{found}} du fichier de trace non prise en charge (attendue : {{expected}}).",
       "otherProject": "Ce fichier de trace appartient à un autre projet.",
-      "newerSchemaVersion": "Cette trace a été écrite par une version plus récente de BESSER (fichier de trace version {{found}} ; cet éditeur lit jusqu'à la version {{expected}}). Mettez à jour l'éditeur pour l'utiliser."
+      "newerSchemaVersion": "Cette trace a été écrite par une version plus récente de BESSER (fichier de trace version {{found}} ; cet éditeur lit jusqu'à la version {{expected}}). Mettez à jour l'éditeur pour l'utiliser.",
+      "tooLarge": "Cette trace est trop volumineuse pour être chargée : elle contient {{count}} {{list}} (au plus {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "La trace enregistrée de ce projet n'a pas pu être lue ; une nouvelle a été commencée.",

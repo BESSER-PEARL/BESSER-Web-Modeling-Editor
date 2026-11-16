@@ -4639,7 +4639,8 @@
       "notATrace": "Dëst ass keng BESSER-Trace-Datei.",
       "schemaVersion": "Net ënnerstëtzt Versioun {{found}} vun der Trace-Datei (erwaart: {{expected}}).",
       "otherProject": "Dës Trace-Datei gehéiert zu engem anere Projet.",
-      "newerSchemaVersion": "Dësen Trace gouf vun enger méi neier BESSER-Versioun geschriwwen (Trace-Datei-Versioun {{found}}; dësen Editor liest bis {{expected}}). Aktualiséier den Editor, fir en ze benotzen."
+      "newerSchemaVersion": "Dësen Trace gouf vun enger méi neier BESSER-Versioun geschriwwen (Trace-Datei-Versioun {{found}}; dësen Editor liest bis {{expected}}). Aktualiséier den Editor, fir en ze benotzen.",
+      "tooLarge": "Dësen Trace ass ze grouss fir ze lueden: en huet {{count}} {{list}} (héchstens {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "De gespäichterten Trace vun dësem Projet konnt net gelies ginn; en neien ass ugefaange ginn.",

@@ -4639,7 +4639,8 @@
       "notATrace": "Dies ist keine BESSER-Trace-Datei.",
       "schemaVersion": "Nicht unterstützte Version {{found}} der Trace-Datei (erwartet: {{expected}}).",
       "otherProject": "Diese Trace-Datei gehört zu einem anderen Projekt.",
-      "newerSchemaVersion": "Dieser Trace wurde von einer neueren BESSER-Version geschrieben (Version {{found}} der Trace-Datei; dieser Editor liest bis {{expected}}). Aktualisiere den Editor, um ihn zu verwenden."
+      "newerSchemaVersion": "Dieser Trace wurde von einer neueren BESSER-Version geschrieben (Version {{found}} der Trace-Datei; dieser Editor liest bis {{expected}}). Aktualisiere den Editor, um ihn zu verwenden.",
+      "tooLarge": "Dieser Trace ist zu groß zum Laden: Er enthält {{count}} {{list}} (höchstens {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden; ein neuer wurde begonnen.",

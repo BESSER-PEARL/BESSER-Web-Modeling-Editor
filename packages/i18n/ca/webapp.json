@@ -4639,7 +4639,8 @@
       "notATrace": "Aquest no és un fitxer de traça de BESSER.",
       "schemaVersion": "Versió {{found}} del fitxer de traça no admesa (s'esperava {{expected}}).",
       "otherProject": "Aquest fitxer de traça pertany a un altre projecte.",
-      "newerSchemaVersion": "Aquesta traça l'ha escrit una versió més recent de BESSER (fitxer de traça versió {{found}}; aquest editor llegeix fins a la {{expected}}). Actualitza l'editor per utilitzar-la."
+      "newerSchemaVersion": "Aquesta traça l'ha escrit una versió més recent de BESSER (fitxer de traça versió {{found}}; aquest editor llegeix fins a la {{expected}}). Actualitza l'editor per utilitzar-la.",
+      "tooLarge": "Aquesta traça és massa gran per carregar-la: té {{count}} {{list}} (com a màxim {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "No s'ha pogut llegir la traça desada d'aquest projecte; se n'ha començat una de nova.",

@@ -152,9 +152,17 @@ export function historyOf(index: TraceIndex, artifactId: string): LocatedChange[
     .sort((a, b) => a.change.timestamp.localeCompare(b.change.timestamp));
 }
 
+/**
+ * The most parents a walk up an artifact's parents takes. Loaded traces have no parent cycle (`sanitizeTraceFile`);
+ * the cap keeps a walk finite on a trace that never went through it, and is far above any real nesting (a diagram,
+ * an element, a member, a line range of a file).
+ */
+export const MAX_PARENT_DEPTH = 64;
+
 /** Whether the artifact was deleted, itself or with what holds it (an element of a deleted diagram). */
 export function isDeleted(index: TraceIndex, artifactId: string): boolean {
-  for (let id: string | undefined = artifactId; id; id = index.artifacts.get(id)?.parentId) {
+  let steps = 0;
+  for (let id: string | undefined = artifactId; id && steps <= MAX_PARENT_DEPTH; id = index.artifacts.get(id)?.parentId, steps += 1) {
     const lifecycle = (index.changesByArtifact.get(id) ?? []).filter((c) => c.change.kind !== 'UPDATED');
     if (lifecycle.length > 0 && lifecycle[lifecycle.length - 1].change.kind === 'DELETED') return true;
   }
@@ -238,7 +246,7 @@ export function modelChildren(index: TraceIndex, artifactId: string): ModelArtif
 /** The top-level element an artifact belongs to: itself, or the element directly under its diagram. */
 export function topLevelOf(index: TraceIndex, artifact: TraceArtifact): TraceArtifact {
   let current = artifact;
-  while (current.parentId) {
+  for (let steps = 0; current.parentId && steps < MAX_PARENT_DEPTH; steps += 1) {
     const parent = index.artifacts.get(current.parentId);
     if (!isModelArtifact(parent) || isDiagram(parent)) break;
     current = parent;
@@ -249,8 +257,8 @@ export function topLevelOf(index: TraceIndex, artifact: TraceArtifact): TraceArt
 /** The diagram a model artifact belongs to (itself for a diagram); undefined for code. */
 export function diagramOf(index: TraceIndex, artifact: TraceArtifact): ModelArtifact | undefined {
   let current: TraceArtifact | undefined = artifact;
-  while (current?.parentId) current = index.artifacts.get(current.parentId);
-  return isModelArtifact(current) ? current : undefined;
+  for (let steps = 0; current?.parentId && steps < MAX_PARENT_DEPTH; steps += 1) current = index.artifacts.get(current.parentId);
+  return isModelArtifact(current) && !current.parentId ? current : undefined;
 }
 
 /** The diagrams an operation worked on: those it changed and those it read (a generator can read several). */

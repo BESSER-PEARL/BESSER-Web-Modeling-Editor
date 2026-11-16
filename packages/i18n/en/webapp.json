@@ -4639,7 +4639,8 @@
       "notATrace": "This is not a BESSER trace file.",
       "schemaVersion": "Unsupported trace file version {{found}} (expected {{expected}}).",
       "otherProject": "This trace file belongs to another project.",
-      "newerSchemaVersion": "This trace was written by a newer version of BESSER (trace file version {{found}}; this editor reads up to {{expected}}). Update the editor to use it."
+      "newerSchemaVersion": "This trace was written by a newer version of BESSER (trace file version {{found}}; this editor reads up to {{expected}}). Update the editor to use it.",
+      "tooLarge": "This trace is too large to load: it has {{count}} {{list}} (at most {{max}})."
     },
     "toasts": {
       "storedTraceUnusable": "The stored trace of this project could not be read; a new one was started.",
