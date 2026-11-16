@@ -71,7 +71,7 @@ export function useGitHubAutosave({ sync, flushEditor }: { sync: RepoSync; flush
       },
       save: async () => {
         if (!sameProject()) throw new AutosaveCheckError('unreachable');
-        const result = await latest.current.sync.save(latest.current.commitMessage);
+        const result = await latest.current.sync.save(latest.current.commitMessage, () => latest.current.flushEditor());
         return result.status === 'conflict' ? 'conflict' : 'saved';
       },
       onStatus: (status) => setAutosaveStatus(projectId, status),

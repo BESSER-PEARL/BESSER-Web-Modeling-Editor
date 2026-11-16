@@ -194,9 +194,12 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     await refresh();
   }, [link, projectId, pullInto, refresh]);
 
-  /** Commit the project's model to the linked repo; newer commits are merged, never reverted. */
+  /**
+   * Commit the project's model to the linked repo; newer commits are merged, never reverted.
+   * `flushEditor` writes the open editor's latest edits to the project before a merge is loaded.
+   */
   const save = useCallback(
-    async (commitMessage: string): Promise<SaveModelResult> => trackGitHubAction('save_model', async () => {
+    async (commitMessage: string, flushEditor?: () => void): Promise<SaveModelResult> => trackGitHubAction('save_model', async () => {
       if (!link || !projectId || !githubSession) throw new Error('No linked repository.');
       const project = ProjectStorageRepository.loadProject(projectId);
       if (!project) throw new Error('Could not read the project.');
@@ -219,8 +222,13 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
         return result;
       }
       if (result.status === 'merged') {
-        // The branch now holds both sides: load it so the editor shows the merge.
-        await pullInto(current, projectId);
+        // The branch now holds both sides: load it so the editor shows the merge,
+        // unless the model was edited while the save ran (an autosave). Loading
+        // would drop those edits; the branch stays ahead instead, and Get latest
+        // or Save and merge brings both together.
+        flushEditor?.();
+        const latest = ProjectStorageRepository.loadProject(projectId);
+        if (!latest || modelFingerprint(latest) === modelFingerprint(project)) await pullInto(current, projectId);
         forgetLegacyFile(projectId);
       } else if (result.status === 'pushed') {
         markSynced(current, project, result.commit_sha);
