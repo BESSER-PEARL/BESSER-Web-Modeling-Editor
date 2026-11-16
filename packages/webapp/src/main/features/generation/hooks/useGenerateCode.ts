@@ -223,31 +223,42 @@ const isTraceFallbackError = (error: unknown): boolean => error instanceof ApiEr
  * traces), recording the run's trace fragment, else through the plain one. A traced request that fails in a way
  * the plain endpoint may not ({@link isTraceFallbackError}) is repeated on the plain endpoint, so the user still
  * gets the file, and is told the trace of this run was not recorded.
+ *
+ * The file is delivered before its trace is recorded, and recording never throws: a trace that cannot be
+ * recorded (the user is warned) never costs the user a generation that succeeded.
  */
 async function runGenerationRequest(
   project: BesserProject | null,
   traced: (() => Promise<TracedGenerationResponse>) | null,
   plain: () => Promise<{ blob: Blob; headers: Headers }>,
-  deliver: (blob: Blob, filename: string, traced: boolean) => GenerationResult,
+  deliver: (blob: Blob, filename: string) => GenerationResult,
+  announce: (traced: boolean) => void,
   t: TFunction,
   opts?: GenerationOptions,
 ): Promise<GenerationResult> {
   let traceLost = false;
   if (traced && project) {
+    let received: { response: TracedGenerationResponse; blob: Blob } | null = null;
     try {
       const response = await traced();
-      const recorded = recordGenerationTrace(project.id, { ...response.trace, projectId: project.id });
-      return deliver(tracedFileBlob(response), response.fileName, recorded);
+      received = { response, blob: tracedFileBlob(response) };
     } catch (error) {
       if (!isTraceFallbackError(error)) return reportGenerationFailure(error, t, opts);
       console.warn('The traced generation failed; generating without a trace.', error);
       traceLost = true;
     }
+    if (received) {
+      const result = deliver(received.blob, received.response.fileName);
+      announce(recordGenerationTrace(project.id, { ...received.response.trace, projectId: project.id }));
+      return result;
+    }
   }
   try {
     const { blob, headers } = await plain();
     if (traceLost) toast.warn(t('generation.toasts.traceNotRecorded'));
-    return deliver(blob, fileNameOf(headers), false);
+    const result = deliver(blob, fileNameOf(headers));
+    announce(false);
+    return result;
   } catch (error) {
     return reportGenerationFailure(error, t, opts);
   }
@@ -322,14 +333,16 @@ export const useGenerateCode = () => {
         currentProject,
         traced,
         () => generateFromProject(projectWithSettings, requestTimeoutMs),
-        (blob, filename, traced) => {
+        (blob, filename) => {
           // Deferred download (assistant flow): return the blob so the caller
           // can render a result card with a manual Download button instead of
           // auto-saving. The menu path leaves autoDownload at its default (true).
           if (opts?.autoDownload === false) return { ok: true, filename, blob };
           downloadFile({ file: blob, filename });
-          announceGenerated(t, traced ? { tab: 'lineage' } : null);
           return { ok: true, filename };
+        },
+        (traced) => {
+          if (opts?.autoDownload !== false) announceGenerated(t, traced ? { tab: 'lineage' } : null);
         },
         t,
         opts,
@@ -443,11 +456,13 @@ export const useGenerateCode = () => {
         project,
         traced,
         () => generateFromDiagram(body, 300000),
-        (blob, filename, traced) => {
+        (blob, filename) => {
           if (opts?.autoDownload === false) return { ok: true, filename, blob };
           downloadFile({ file: blob, filename });
-          announceGenerated(t, traced ? { tab: 'lineage', root: diagramId } : null);
           return { ok: true, filename };
+        },
+        (traced) => {
+          if (opts?.autoDownload !== false) announceGenerated(t, traced ? { tab: 'lineage', root: diagramId } : null);
         },
         t,
         opts,

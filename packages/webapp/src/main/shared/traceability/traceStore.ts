@@ -924,17 +924,37 @@ export function recordSpecDrivenOutcome(
   );
 }
 
-/** Merge the trace fragment of a generation run into the project trace; false when it was left out. */
-export function recordGenerationTrace(projectId: string, received: unknown): boolean {
+/**
+ * The trace fragment of a generation run, migrated and checked, or undefined (the user is warned) when it cannot be
+ * recorded. Never throws.
+ */
+export function readGenerationTrace(received: unknown): TraceFile | undefined {
   // The backend may run an older version than the editor: its fragment is migrated like a stored trace,
   // and one that still cannot be used is left out rather than merged in a shape the views cannot read.
-  const fragment = migrateTraceFile(received);
-  const problem = traceFileProblem(fragment);
+  let problem: string | null;
+  let fragment: unknown;
+  try {
+    fragment = migrateTraceFile(received);
+    problem = traceFileProblem(fragment);
+  } catch (error) {
+    console.warn('The trace of this generation could not be read.', error);
+    problem = i18n.t('traceability.errors.notATrace');
+  }
   if (problem) {
     console.warn(`The trace of this generation is unusable (${problem}); it was not recorded.`);
     toast.warn(i18n.t('traceability.toasts.generationTraceUnusable', { problem }));
-    return false;
+    return undefined;
   }
-  void updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment as TraceFile));
+  return fragment as TraceFile;
+}
+
+/**
+ * Merge the trace fragment of a generation run into the project trace; false when it was left out. Never throws:
+ * a fragment that fails to merge is left out with a warning ({@link updateProjectTrace}).
+ */
+export function recordGenerationTrace(projectId: string, received: unknown): boolean {
+  const fragment = readGenerationTrace(received);
+  if (!fragment) return false;
+  void updateProjectTrace(projectId, (trace) => mergeTraceFragment(trace, fragment));
   return true;
 }

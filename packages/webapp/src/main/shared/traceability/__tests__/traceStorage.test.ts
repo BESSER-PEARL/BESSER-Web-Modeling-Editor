@@ -71,6 +71,16 @@ describe('trace storage', () => {
     expect((await loadProjectTrace('p1')).actors.map((a) => a.id)).toEqual(['ada', 'second', 'third']);
   });
 
+  it('leaves out an update that throws, without rejecting, and keeps the updates around it', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await expect(updateProjectTrace('p2', () => { throw new Error('boom'); })).resolves.toBeUndefined();
+    await updateProjectTrace('p2', (trace) => { trace.actors.push(ada); });
+    await expect(updateProjectTrace('p2', (trace) => { trace.actors.push({ ...ada, id: 'half' }); throw new Error('halfway'); })).resolves.toBeUndefined();
+    await flushTraceSaves();
+    await vi.waitFor(() => expect(getProjectTrace('p2')!.actors.map((a) => a.id)).toEqual(['ada']));
+    vi.restoreAllMocks();
+  });
+
   it('moves a trace kept in localStorage by an earlier version into the storage', async () => {
     const { storage } = spyStorage();
     setTraceStorage(storage);
