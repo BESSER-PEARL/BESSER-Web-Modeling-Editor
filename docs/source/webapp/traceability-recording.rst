@@ -69,6 +69,35 @@ turn): the turn is then filed under that model with its tokens, and the latest t
 that does not report it leaves the turn under a tool named "unknown model (not reported by the
 assistant)".
 
+Asking the assistant about the trace
+------------------------------------
+
+The assistant can answer questions about the trace ("why does Book have an isbn?", "what is out of date?",
+"which requirements are not covered?"). With each user message the editor sends a *trace digest*
+(``context.traceDigest``, built by ``shared/traceability/traceDigest.ts``; the wire format is section 3 of the
+cross-repo traceability contract). It is sent **only when the project records traces and its trace holds at
+least one operation**; otherwise the field is left out and the assistant answers that nothing is recorded and
+how to turn recording on. A voice message carries the digest too, with an empty focus (its transcript is not
+known when the context is sent).
+
+The digest is a bounded summary, at most about 12,000 characters, never the trace itself:
+
+* counts of artifacts, links, out-of-date links and operations by type;
+* the 15 newest operations (who, with which tools, a one-line summary), the current requirements (at most 40,
+  with what realizes them and whether the model covers them), the links that may be out of date (at most 30),
+  and the 10 newest generations (files and out-of-date files);
+* a *focus* of at most 5 model elements whose name, or qualified ``Owner.member`` name, the message mentions as
+  a whole word: their change history, what they were derived from (requirements, prompts, models, with the kind
+  of evidence) and the code derived from them (path, lines, why it may be out of date).
+
+Generated file contents and prompt texts are never sent; a requirement's statement and quote are cut at 500
+characters. When the digest is too large, lists are shortened from their end, the least valuable first: recent
+operations, generations, requirements, out-of-date links, and last the focus.
+
+A trace answer can end with a button (the agent's ``show_trace`` action) that opens the Traceability page on the
+lineage, coverage or timeline view, on the artifact the question was about. It is shown under the answer like a
+suggested action and never navigates by itself; an unknown view is ignored.
+
 Generation runs
 ---------------
 
