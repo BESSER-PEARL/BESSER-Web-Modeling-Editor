@@ -98,7 +98,11 @@ describe('useGitHubAutosave', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(flushEditor).toHaveBeenCalled();
     expect(repo.refreshRepoSync).toHaveBeenCalledWith('p1', 'session');
-    expect(sync.save).toHaveBeenCalledWith('Autosave the model from the BESSER editor');
+    expect(sync.save).toHaveBeenCalledWith('Autosave the model from the BESSER editor', expect.any(Function));
+    // The save flushes the editor again before it decides whether to load a merge.
+    flushEditor.mockClear();
+    vi.mocked(sync.save).mock.calls[0][1]?.();
+    expect(flushEditor).toHaveBeenCalledTimes(1);
     expect(getAutosaveStatus('p1')).toMatchObject({ phase: 'idle', lastSavedAt: Date.now() });
   });
 
