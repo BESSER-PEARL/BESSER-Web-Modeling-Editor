@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import type { DiagramInput } from './generation';
 import type { TraceFile } from '../types/traceability';
+import type { components } from './generated/besser-openapi';
 
 /**
  * API layer for traceability (`/besser_api/traceability/...`).
@@ -21,13 +22,11 @@ export type TracedGenerationRequest = DiagramInput & {
   actorName: string;
 };
 
-export interface TracedGenerationResponse {
-  fileName: string;
-  mediaType: string;
-  contentBase64: string;
-  /** The trace fragment of the run (its `projectId` is null). It may read several models. */
+/** The backend's `TracedGenerationResponse`, its free `trace` dict narrowed to the trace fragment of the run (its
+ *  `projectId` is null; it may read several models). It is still checked and migrated before it is merged. */
+export type TracedGenerationResponse = Omit<components['schemas']['TracedGenerationResponse'], 'trace'> & {
   trace: TraceFile;
-}
+};
 
 /** `POST /traceability/generate-output`: one diagram in, the generated file (the bytes `/generate-output`
  *  delivers) and the trace of the run out. */
