@@ -1911,6 +1911,12 @@
         "failed": "{{project}}: de Laf ass feelgeschloen. Maacht den Tab op fir d'Detailer."
       },
       "untitledProject": "Äre Projet"
+    },
+    "generateAgain": {
+      "title": "Applikatioun nach eng Kéier generéieren?",
+      "fromRequest": "Si gëtt aus dem Modell an der ursprénglecher Ufro nei gebaut. De Laf benotzt: {{key}}.",
+      "askAssistant": "Den Assistent gëtt gefrot, se nach eng Kéier ze generéieren. De Laf benotzt: {{key}}.",
+      "unknownKey": "de Schlëssel oder déi gratis Stuf, déi fir Generatiounen agestallt ass"
     }
   },
   "deploy": {

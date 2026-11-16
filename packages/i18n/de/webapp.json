@@ -1911,6 +1911,12 @@
         "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
       },
       "untitledProject": "Ihr Projekt"
+    },
+    "generateAgain": {
+      "title": "Anwendung erneut generieren?",
+      "fromRequest": "Sie wird aus dem Modell und der ursprünglichen Anfrage neu erstellt. Der Lauf verwendet: {{key}}.",
+      "askAssistant": "Der Assistent wird gebeten, sie erneut zu generieren. Der Lauf verwendet: {{key}}.",
+      "unknownKey": "den für Generierungen eingerichteten Schlüssel oder die kostenlose Stufe"
     }
   },
   "deploy": {

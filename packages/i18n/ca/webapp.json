@@ -1911,6 +1911,12 @@
         "failed": "{{project}}: l'execució ha fallat. Obre la pestanya per veure'n els detalls."
       },
       "untitledProject": "El teu projecte"
+    },
+    "generateAgain": {
+      "title": "Vols tornar a generar l'aplicació?",
+      "fromRequest": "Es reconstrueix a partir del model i de la petició original. L'execució fa servir: {{key}}.",
+      "askAssistant": "Es demana a l'assistent que la torni a generar. L'execució fa servir: {{key}}.",
+      "unknownKey": "la clau o el nivell gratuït configurat per a les generacions"
     }
   },
   "deploy": {

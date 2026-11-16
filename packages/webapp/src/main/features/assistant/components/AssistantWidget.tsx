@@ -147,6 +147,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     scrollMessagesToBottom,
     handleSubmit,
     generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     reportIssue,
@@ -220,13 +221,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     // the status badge is added only when the message has one.
     // Opening the push dialog is a pure dispatch — it's mounted
     // app-level (SpecDrivenPushDialogHost) and Redux-driven.
-    if (!meta?.badge) return { onPushToGithub: handlePushToGithub, onGenerateAgain: generateAgain };
+    const onGenerateAgain = message.specDriven?.runId === latestRunId ? generateAgain : undefined;
+    if (!meta?.badge) return { onPushToGithub: handlePushToGithub, onGenerateAgain };
     return {
       onPushToGithub: handlePushToGithub,
-      onGenerateAgain: generateAgain,
+      onGenerateAgain,
       status: <MessageBadge badge={meta.badge} label={meta.badgeLabel} />,
     };
-  }, [messageMeta, handlePushToGithub, generateAgain]);
+  }, [messageMeta, handlePushToGithub, generateAgain, latestRunId]);
 
   /* ---- Compute last assistant message for QuickActions ---- */
   const lastAssistantMsg = messages.length > 0

@@ -11,6 +11,7 @@ import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette,
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Kbd } from '@/components/ui/kbd';
@@ -261,6 +262,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     scrollMessagesToBottom,
     handleSubmit,
     generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     requestNewChat,
@@ -367,9 +369,12 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // dialog is a pure dispatch — the dialog is mounted app-level
   // (SpecDrivenPushDialogHost) and driven by Redux.
   const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
-  const messageOptions = useMemo(
-    () => ({ onPushToGithub: handlePushToGithub, onGenerateAgain: generateAgain }),
-    [handlePushToGithub, generateAgain],
+  const messageOptions = useCallback(
+    (message: ChatKitMessage) => ({
+      onPushToGithub: handlePushToGithub,
+      onGenerateAgain: message.specDriven?.runId === latestRunId ? generateAgain : undefined,
+    }),
+    [handlePushToGithub, generateAgain, latestRunId],
   );
   const closeOverview = useCallback(() => setOverviewOpen(false), []);
 

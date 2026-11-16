@@ -1911,6 +1911,12 @@
         "failed": "{{project}} : l'exécution a échoué. Ouvrez l'onglet pour les détails."
       },
       "untitledProject": "Votre projet"
+    },
+    "generateAgain": {
+      "title": "Générer à nouveau l'application ?",
+      "fromRequest": "Elle est reconstruite à partir du modèle et de la demande d'origine. L'exécution utilise : {{key}}.",
+      "askAssistant": "L'assistant est invité à la générer à nouveau. L'exécution utilise : {{key}}.",
+      "unknownKey": "la clé ou l'offre gratuite configurée pour les générations"
     }
   },
   "deploy": {

@@ -1911,6 +1911,12 @@
         "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
       },
       "untitledProject": "Tu proyecto"
+    },
+    "generateAgain": {
+      "title": "¿Generar la aplicación de nuevo?",
+      "fromRequest": "Se reconstruye a partir del modelo y de la petición original. La ejecución usa: {{key}}.",
+      "askAssistant": "Se pide al asistente que la genere de nuevo. La ejecución usa: {{key}}.",
+      "unknownKey": "la clave o el nivel gratuito configurado para las generaciones"
     }
   },
   "deploy": {

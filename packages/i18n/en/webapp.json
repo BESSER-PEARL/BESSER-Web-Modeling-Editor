@@ -1911,6 +1911,12 @@
         "failed": "{{project}}: the run failed. Open the tab for details."
       },
       "untitledProject": "Your project"
+    },
+    "generateAgain": {
+      "title": "Generate the application again?",
+      "fromRequest": "It is built again from the model and the original request. The run uses: {{key}}.",
+      "askAssistant": "The assistant is asked to generate it again. The run uses: {{key}}.",
+      "unknownKey": "the key or free tier set up for generations"
     }
   },
   "deploy": {
