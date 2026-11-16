@@ -12,7 +12,7 @@ import { DIAGRAM_MODEL_TYPES, diffDiagramModel, snapshotDiagramModel } from './d
 import { diffGuiModel, guiBindings, pageSources } from './guiModelDiff';
 import type { GuiModelLike } from './guiModelDiff';
 import type { ElementChange } from './modelDiff';
-import { indexedDbTraceStorage, memoryTraceStorage } from './traceDatabase';
+import { indexedDbTraceStorage, memoryTraceStorage, isRevisionConflict, storedRevisionOf, withoutStoreRevision } from './traceDatabase';
 import type { TraceStorage } from './traceDatabase';
 import {
   endConversation,
@@ -58,6 +58,18 @@ const loading = new Map<string, Promise<TraceFile>>();
 const unsaved = new Map<string, ReturnType<typeof setTimeout>>();
 const listeners = new Set<() => void>();
 
+/** An update of a project trace (see {@link updateProjectTrace}). */
+type TraceUpdate = (trace: TraceFile) => void | false;
+
+/** The stored revision each loaded trace was read at or last saved as: a save names it, and is refused when another
+ *  tab saved since (see `traceDatabase.ts`). */
+const revisions = new Map<string, number>();
+/** The updates applied to each loaded trace since it was last saved: on a refused save they are applied again on top
+ *  of the trace the other tab stored, so neither tab's records are lost. */
+const pendingUpdates = new Map<string, TraceUpdate[]>();
+/** Saves and reloads of a project trace run one after the other. */
+const busy = new Map<string, Promise<void>>();
+
 function defaultStorage(): TraceStorage {
   if (typeof indexedDB !== 'undefined') return indexedDbTraceStorage();
   console.warn('This browser has no IndexedDB: project traces are kept for this session only.');
@@ -71,10 +83,118 @@ export function setTraceStorage(next: TraceStorage): void {
   loading.clear();
   unsaved.forEach(clearTimeout);
   unsaved.clear();
+  revisions.clear();
+  pendingUpdates.clear();
+  busy.clear();
   guiBaselines.clear();
 }
 
 const notify = () => listeners.forEach((listener) => listener());
+
+const pendingOf = (projectId: string): TraceUpdate[] => {
+  let pending = pendingUpdates.get(projectId);
+  if (!pending) pendingUpdates.set(projectId, (pending = []));
+  return pending;
+};
+
+/** Run `task` after the save or reload of the project trace under way, if any. */
+function serial(projectId: string, task: () => Promise<void>): Promise<void> {
+  const previous = busy.get(projectId) ?? Promise.resolve();
+  const next = previous.then(task, task);
+  busy.set(projectId, next);
+  void next.finally(() => {
+    if (busy.get(projectId) === next) busy.delete(projectId);
+  });
+  return next;
+}
+
+/**
+ * Other tabs with a project open are told when one of them saved its trace, so they read it again (with their own
+ * updates not yet saved applied on top) and their views show the other tab's records.
+ */
+const CHANNEL_NAME = 'besser_traces';
+interface TraceSavedMessage {
+  projectId: string;
+  /** The revision just stored; absent when the trace was deleted. */
+  revision?: number;
+}
+const channel: BroadcastChannel | null = (() => {
+  if (typeof BroadcastChannel === 'undefined') return null;
+  try {
+    const opened = new BroadcastChannel(CHANNEL_NAME);
+    (opened as unknown as { unref?: () => void }).unref?.(); // Node (tests): do not keep the process alive
+    opened.onmessage = (event: MessageEvent) => onTraceSavedElsewhere(event.data);
+    return opened;
+  } catch {
+    return null;
+  }
+})();
+
+function announce(message: TraceSavedMessage): void {
+  try {
+    channel?.postMessage(message);
+  } catch (error) {
+    console.warn('Other tabs could not be told about a saved trace.', error);
+  }
+}
+
+function onTraceSavedElsewhere(data: unknown): void {
+  if (!data || typeof data !== 'object') return;
+  const { projectId, revision } = data as Partial<TraceSavedMessage>;
+  if (typeof projectId !== 'string' || !cache.has(projectId)) return;
+  if (revision === undefined) {
+    // Deleted in another tab, with its project.
+    clearTimeout(unsaved.get(projectId));
+    unsaved.delete(projectId);
+    cache.delete(projectId);
+    revisions.delete(projectId);
+    pendingUpdates.delete(projectId);
+    notify();
+    return;
+  }
+  if (typeof revision !== 'number' || revisions.get(projectId) === revision) return;
+  void serial(projectId, () => reloadTrace(projectId));
+}
+
+/**
+ * Read the project trace again from storage and apply this tab's updates not yet saved on top of it: another tab
+ * saved the trace in between, or an update failed halfway. A trace that cannot be read leaves the one in memory
+ * as it is.
+ */
+async function reloadTrace(projectId: string): Promise<void> {
+  const from = storage;
+  let stored: unknown;
+  try {
+    stored = await storage.read(projectId);
+  } catch (error) {
+    console.warn(`The trace of project ${projectId} could not be read again.`, error);
+    return;
+  }
+  if (from !== storage || !cache.has(projectId)) return;
+  const revision = storedRevisionOf(stored);
+  const parsed = stored === undefined ? emptyTraceFile(projectId) : usableStoredTrace(projectId, stored);
+  if (!parsed) {
+    // Unusable (written by a newer editor, damaged): this tab's trace replaces it on its next save.
+    revisions.set(projectId, revision);
+    return;
+  }
+  const pending = pendingOf(projectId);
+  pendingUpdates.set(projectId, pending.filter((update) => applySafely(parsed, update) !== false));
+  cache.set(projectId, parsed);
+  revisions.set(projectId, revision);
+  if (pendingUpdates.get(projectId)!.length > 0 && !unsaved.has(projectId)) scheduleSave(projectId);
+  notify();
+}
+
+/** Apply `update`, returning `false` when it changed nothing or failed (logged). */
+function applySafely(trace: TraceFile, update: TraceUpdate): void | false {
+  try {
+    return update(trace);
+  } catch (error) {
+    console.error('A change could not be recorded in the project trace.', error);
+    return false;
+  }
+}
 
 export const isTraceabilityEnabled = (project: BesserProject | null | undefined): boolean =>
   project?.settings?.traceabilityEnabled === true;
@@ -98,8 +218,21 @@ export function traceFileProblem(value: unknown, projectId?: string): string | n
   return null;
 }
 
-/** The stored trace, or one moved over from `localStorage`, checked; a new one when there is none. */
-async function readStored(projectId: string): Promise<TraceFile> {
+/** A stored trace as a usable trace file (migrated, checked), or undefined (logged) when it cannot be used. */
+function usableStoredTrace(projectId: string, stored: unknown): TraceFile | undefined {
+  try {
+    const parsed = migrateTraceFile(withoutStoreRevision(stored));
+    const problem = traceFileProblem(parsed, projectId);
+    if (!problem) return parsed as TraceFile;
+    console.warn(`Stored trace of project ${projectId} is unusable (${problem}).`);
+  } catch (error) {
+    console.warn(`Stored trace of project ${projectId} could not be read.`, error);
+  }
+  return undefined;
+}
+
+/** The stored trace and its revision, or one moved over from `localStorage`, checked; a new one when there is none. */
+async function readStored(projectId: string): Promise<{ trace: TraceFile; revision: number }> {
   let stored: unknown;
   try {
     stored = await storage.read(projectId);
@@ -107,28 +240,36 @@ async function readStored(projectId: string): Promise<TraceFile> {
     console.warn(`The trace of project ${projectId} could not be read; starting a new one for this session.`, error);
     toast.warn(i18n.t('traceability.toasts.storageUnavailable'));
     reportTraceLoadProblem(projectId, 'storageUnavailable');
-    return emptyTraceFile(projectId);
+    return { trace: emptyTraceFile(projectId), revision: 0 };
   }
+  const revision = storedRevisionOf(stored);
   // A trace kept in `localStorage` before IndexedDB is moved over.
   const legacy = stored === undefined ? readLegacyTrace(projectId) : null;
-  if (stored === undefined && legacy === null) return emptyTraceFile(projectId);
-  try {
-    const parsed = migrateTraceFile(legacy !== null ? JSON.parse(legacy) : stored);
-    const problem = traceFileProblem(parsed, projectId);
-    if (!problem) {
-      if (legacy !== null) {
-        await storage.write(projectId, parsed as TraceFile);
-        removeLegacyTrace(projectId);
-      }
-      return parsed as TraceFile;
+  if (stored === undefined && legacy === null) return { trace: emptyTraceFile(projectId), revision };
+  let parsedLegacy: unknown = undefined;
+  if (legacy !== null) {
+    try {
+      parsedLegacy = JSON.parse(legacy);
+    } catch (error) {
+      console.warn(`The trace of project ${projectId} kept in localStorage could not be read.`, error);
     }
-    console.warn(`Stored trace of project ${projectId} is unusable (${problem}); starting a new one.`);
-  } catch (error) {
-    console.warn(`Stored trace of project ${projectId} could not be read; starting a new one.`, error);
   }
+  const trace = usableStoredTrace(projectId, legacy !== null ? parsedLegacy : stored);
+  if (trace) {
+    if (legacy === null) return { trace, revision };
+    try {
+      const moved = await storage.write(projectId, trace, revision);
+      removeLegacyTrace(projectId);
+      return { trace, revision: moved };
+    } catch (error) {
+      console.warn(`The trace of project ${projectId} could not be moved from localStorage; it is kept there.`, error);
+      return { trace, revision };
+    }
+  }
+  console.warn(`Stored trace of project ${projectId} is unusable; starting a new one.`);
   toast.warn(i18n.t('traceability.toasts.storedTraceUnusable'));
   reportTraceLoadProblem(projectId, 'unusable');
-  return emptyTraceFile(projectId);
+  return { trace: emptyTraceFile(projectId), revision };
 }
 
 /** Load a project's trace (once per session) and return it. */
@@ -138,8 +279,11 @@ export function loadProjectTrace(projectId: string): Promise<TraceFile> {
   let pending = loading.get(projectId);
   if (!pending) {
     const from = storage;
-    pending = readStored(projectId).then((trace) => {
-      if (from === storage && !cache.has(projectId)) cache.set(projectId, trace);
+    pending = readStored(projectId).then(({ trace, revision }) => {
+      if (from === storage && !cache.has(projectId)) {
+        cache.set(projectId, trace);
+        revisions.set(projectId, revision);
+      }
       loading.delete(projectId);
       notify();
       return cache.get(projectId) ?? trace;
@@ -154,26 +298,74 @@ export function getProjectTrace(projectId: string): TraceFile | undefined {
   return cache.get(projectId);
 }
 
-async function save(projectId: string): Promise<void> {
+/** Whether a failed write failed because the storage is full (IndexedDB's quota). */
+const isQuotaError = (error: unknown): boolean =>
+  !!error && typeof error === 'object' && (error as { name?: unknown }).name === 'QuotaExceededError';
+
+/** Keep only the newest stored content per generated file path (the trace no longer fits in the storage). */
+const pruneContents: TraceUpdate = (trace) => (pruneStoredContents(trace, 1) > 0 ? undefined : false);
+
+/** Save the project trace, unless another save or reload of it is under way (it then saves after it). */
+function save(projectId: string): Promise<void> {
+  clearTimeout(unsaved.get(projectId));
   unsaved.delete(projectId);
-  const trace = cache.get(projectId);
-  if (!trace) return;
-  try {
-    await storage.write(projectId, trace);
-  } catch (error) {
-    // Storage full: keep only the newest file content per path and try again.
-    const dropped = pruneStoredContents(trace, 1);
+  return serial(projectId, () => saveNow(projectId));
+}
+
+const MAX_SAVE_ATTEMPTS = 5;
+
+async function saveNow(projectId: string): Promise<void> {
+  let pruned = 0;
+  for (let attempt = 0; attempt < MAX_SAVE_ATTEMPTS; attempt += 1) {
+    if (!cache.has(projectId)) return; // deleted meanwhile
+    const from = storage;
+    let sent = 0;
     try {
-      await storage.write(projectId, trace);
-      if (dropped > 0) {
-        console.warn(`Trace storage was full; dropped the stored content of ${dropped} older generated files.`, error);
-        toast.warn(i18n.t('traceability.toasts.storagePruned', { count: dropped }));
+      const revision = await storage.write(
+        projectId,
+        // Taken when the write happens: the updates made until then are in it.
+        () => {
+          sent = pendingOf(projectId).length;
+          return cache.get(projectId) ?? emptyTraceFile(projectId);
+        },
+        revisions.get(projectId) ?? 0,
+      );
+      if (from !== storage) return;
+      revisions.set(projectId, revision);
+      pendingOf(projectId).splice(0, sent);
+      announce({ projectId, revision });
+      if (pruned > 0) toast.warn(i18n.t('traceability.toasts.storagePruned', { count: pruned }));
+      return;
+    } catch (error) {
+      if (from !== storage) return;
+      if (isRevisionConflict(error)) {
+        // Another tab saved in between: take its trace, with this tab's updates on top, and save that.
+        await reloadTrace(projectId);
+        continue;
       }
-    } catch (retryError) {
-      console.warn('Trace storage is full; the latest changes were not saved.', retryError);
-      reportError(i18n.t('traceability.toasts.storageFull'), { error: retryError });
+      const trace = cache.get(projectId);
+      if (isQuotaError(error) && pruned === 0 && trace) {
+        // Storage full: keep only the newest file content per path and try again.
+        pruned = pruneStoredContents(trace, 1);
+        if (pruned > 0) {
+          pendingOf(projectId).push(pruneContents);
+          cache.set(projectId, { ...trace }); // a new reference, so views show the dropped contents
+          notify();
+          console.warn(`Trace storage was full; dropping the stored content of ${pruned} older generated files.`, error);
+          continue;
+        }
+      }
+      if (isQuotaError(error)) {
+        console.warn('Trace storage is full; the latest changes were not saved.', error);
+        reportError(i18n.t('traceability.toasts.storageFull'), { error });
+      } else {
+        console.warn('The project trace could not be saved; the latest changes are kept in this tab.', error);
+        reportError(i18n.t('traceability.toasts.saveFailed'), { error });
+      }
+      return;
     }
   }
+  console.warn(`The trace of project ${projectId} kept being saved by another tab; it is saved again with the next change.`);
 }
 
 function scheduleSave(projectId: string): void {
@@ -183,9 +375,8 @@ function scheduleSave(projectId: string): void {
 
 /** Save every trace with updates not yet saved; resolves when they are written. */
 export function flushTraceSaves(): Promise<void> {
-  const pending = [...unsaved.entries()];
-  pending.forEach(([, timer]) => clearTimeout(timer));
-  return Promise.all(pending.map(([projectId]) => save(projectId))).then(() => undefined);
+  const pending = [...unsaved.keys()];
+  return Promise.all([...pending.map((projectId) => save(projectId)), ...busy.values()]).then(() => undefined);
 }
 
 if (typeof window !== 'undefined') {
@@ -199,11 +390,26 @@ if (typeof window !== 'undefined') {
 /**
  * Apply `update` to the project trace (in place), save it and notify subscribers. It runs at once
  * when the trace is loaded, else as soon as it is, in the order updates were made. An update that
- * returns `false` changed nothing: nothing is saved.
+ * returns `false` changed nothing: nothing is saved. An update that throws is not recorded (the user is
+ * warned) and never rejects: recording a trace must not break what it records.
+ *
+ * Updates are kept until saved: when another tab saved the trace meanwhile, they are applied again on top
+ * of its trace, so an update must only depend on the trace it is given and on what it captured.
  */
-export function updateProjectTrace(projectId: string, update: (trace: TraceFile) => void | false): Promise<void> {
+export function updateProjectTrace(projectId: string, update: TraceUpdate): Promise<void> {
   const apply = (trace: TraceFile) => {
-    if (update(trace) === false) return;
+    let result: void | false;
+    try {
+      result = update(trace);
+    } catch (error) {
+      console.error('A change could not be recorded in the project trace.', error);
+      toast.warn(i18n.t('traceability.toasts.recordFailed'));
+      // It may have changed part of the trace: rebuild it from what is stored and the updates not yet saved.
+      void serial(projectId, () => reloadTrace(projectId));
+      return;
+    }
+    if (result === false) return;
+    pendingOf(projectId).push(update);
     // A new reference, so subscribers re-render.
     cache.set(projectId, { ...trace });
     scheduleSave(projectId);
@@ -214,7 +420,10 @@ export function updateProjectTrace(projectId: string, update: (trace: TraceFile)
     apply(cached);
     return Promise.resolve();
   }
-  return loadProjectTrace(projectId).then(() => apply(cache.get(projectId)!));
+  return loadProjectTrace(projectId).then(() => {
+    const loaded = cache.get(projectId);
+    if (loaded) apply(loaded);
+  });
 }
 
 export function replaceProjectTrace(projectId: string, trace: TraceFile): Promise<void> {
@@ -255,8 +464,15 @@ export function deleteProjectTrace(projectId: string): void {
   clearTimeout(unsaved.get(projectId));
   unsaved.delete(projectId);
   cache.delete(projectId);
+  revisions.delete(projectId);
+  pendingUpdates.delete(projectId);
   removeLegacyTrace(projectId);
-  storage.remove(projectId).catch((error) => console.warn(`The trace of project ${projectId} could not be deleted.`, error));
+  void serial(projectId, () =>
+    storage.remove(projectId).then(
+      () => announce({ projectId }),
+      (error) => console.warn(`The trace of project ${projectId} could not be deleted.`, error),
+    ),
+  );
   notify();
 }
 

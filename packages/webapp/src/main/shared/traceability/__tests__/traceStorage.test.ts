@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   flushTraceSaves,
+  getProjectTrace,
   loadProjectTrace,
   setTraceStorage,
   updateProjectTrace,
@@ -24,7 +25,7 @@ function spyStorage(delayReads = false) {
   const storage: TraceStorage & { writes: number } = {
     writes: 0,
     read: async (id) => { if (delayReads) await gate; return inner.read(id); },
-    write: async (id, trace) => { storage.writes += 1; return inner.write(id, trace); },
+    write: async (id, trace, expected) => { storage.writes += 1; return inner.write(id, trace, expected); },
     remove: (id) => inner.remove(id),
   };
   return { storage, release };
@@ -77,6 +78,99 @@ describe('trace storage', () => {
     expect((await loadProjectTrace('p1')).actors).toEqual([ada]);
     expect(localStorage.getItem(`${localStorageLegacyTracePrefix}p1`)).toBeNull();
     expect(await storage.read('p1')).toMatchObject({ actors: [ada] });
+  });
+});
+
+describe('two tabs on one project', () => {
+  /** A second copy of the store module: what another tab runs, on the same storage. */
+  async function otherTab() {
+    vi.resetModules();
+    return import('../traceStore');
+  }
+  const actor = (id: string) => ({ ...ada, id, name: id });
+
+  it('keeps the records of both tabs when each saves', async () => {
+    const shared = memoryTraceStorage();
+    const tabA = await otherTab();
+    const tabB = await otherTab();
+    tabA.setTraceStorage(shared);
+    tabB.setTraceStorage(shared);
+    await tabA.loadProjectTrace('p');
+    await tabB.loadProjectTrace('p');
+    await tabA.updateProjectTrace('p', (trace) => { trace.actors.push(actor('A')); });
+    await tabA.flushTraceSaves();
+    await tabB.updateProjectTrace('p', (trace) => { trace.actors.push(actor('B')); });
+    await tabB.flushTraceSaves();
+    const stored = (await shared.read('p')) as TraceFile;
+    expect(stored.actors.map((a) => a.id)).toEqual(['A', 'B']);
+    expect(tabB.getProjectTrace('p')!.actors.map((a) => a.id)).toEqual(['A', 'B']);
+  });
+
+  it('shows another tab’s saved records without a reload', async () => {
+    const shared = memoryTraceStorage();
+    const tabA = await otherTab();
+    const tabB = await otherTab();
+    tabA.setTraceStorage(shared);
+    tabB.setTraceStorage(shared);
+    await tabA.loadProjectTrace('p');
+    await tabB.loadProjectTrace('p');
+    const seen = vi.fn();
+    const { result } = await import('@testing-library/react').then(({ renderHook }) =>
+      renderHook(() => { const trace = tabB.useProjectTrace('p'); seen(trace?.actors.length); return trace; }));
+    await tabA.updateProjectTrace('p', (trace) => { trace.actors.push(actor('A')); });
+    await tabA.flushTraceSaves();
+    await vi.waitFor(() => expect(result.current?.actors.map((a) => a.id)).toEqual(['A']));
+  });
+
+  it('applies its unsaved updates on top of what another tab saved meanwhile', async () => {
+    const shared = memoryTraceStorage();
+    setTraceStorage(shared);
+    await loadProjectTrace('p');
+    await updateProjectTrace('p', (trace) => { trace.actors.push(actor('mine')); });
+    // Another tab saves first (straight into the storage, as this tab has not heard of it yet).
+    const elsewhere = (await shared.read('p')) ?? { ...emptyTraceFile('p') };
+    await shared.write('p', { ...(elsewhere as TraceFile), actors: [actor('theirs')] }, 0);
+    await flushTraceSaves();
+    expect(((await shared.read('p')) as TraceFile).actors.map((a) => a.id)).toEqual(['theirs', 'mine']);
+  });
+});
+
+describe('a failing save', () => {
+  const generated = (id: string, minute: number) =>
+    ({ id, type: 'CodeArtifact' as const, name: 'app.py', path: 'app.py', contentHash: id, content: 'code', timestamp: at(minute) });
+
+  async function traceWithTwoContents(storage: TraceStorage) {
+    setTraceStorage(storage);
+    await updateProjectTrace('p1', (trace) => { trace.artifacts.push(generated('old', 1), generated('new', 2)); });
+  }
+
+  it('drops older file contents only when the storage is full, and publishes the pruned trace', async () => {
+    const inner = memoryTraceStorage();
+    let fail = true;
+    const storage: TraceStorage = {
+      ...inner,
+      write: async (id, trace, expected) => {
+        if (fail) { fail = false; throw new DOMException('full', 'QuotaExceededError'); }
+        return inner.write(id, trace, expected);
+      },
+    };
+    await traceWithTwoContents(storage);
+    const before = getProjectTrace('p1');
+    await flushTraceSaves();
+    const after = getProjectTrace('p1')!;
+    expect(after).not.toBe(before);
+    expect(after.artifacts.find((a) => a.id === 'old')).not.toHaveProperty('content');
+    expect(((await inner.read('p1')) as TraceFile).artifacts.find((a) => a.id === 'new')).toHaveProperty('content', 'code');
+  });
+
+  it('keeps every file content on another write error', async () => {
+    const inner = memoryTraceStorage();
+    const storage: TraceStorage = { ...inner, write: async () => { throw new DOMException('gone', 'InvalidStateError'); } };
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await traceWithTwoContents(storage);
+    await flushTraceSaves();
+    expect(getProjectTrace('p1')!.artifacts.find((a) => a.id === 'old')).toHaveProperty('content', 'code');
+    vi.restoreAllMocks();
   });
 });
 

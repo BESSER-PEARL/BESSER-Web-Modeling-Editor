@@ -4649,7 +4649,9 @@
       "importedTraceUnusable": "El proyecto se importó sin su traza: {{problem}}",
       "generationTraceUnusable": "El código se generó, pero no se pudo registrar su traza: {{problem}}",
       "exportedTraceDroppedByBackend": "El backend no conservó la traza del proyecto (es una versión anterior de BESSER): el archivo B-UML se exportó sin ella.",
-      "storageUnavailable": "No se pudo abrir el almacenamiento del navegador para las trazas: las trazas se conservan solo durante esta sesión."
+      "storageUnavailable": "No se pudo abrir el almacenamiento del navegador para las trazas: las trazas se conservan solo durante esta sesión.",
+      "saveFailed": "No se pudo guardar la traza del proyecto: los últimos cambios se conservan en esta pestaña y se guardarán con el próximo cambio.",
+      "recordFailed": "No se pudo registrar un cambio en la traza del proyecto; se ha omitido."
     },
     "unknownActor": "Desconocido",
     "dismiss": "Descartar",

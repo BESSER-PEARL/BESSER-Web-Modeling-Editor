@@ -53,7 +53,12 @@ handles read/write operations:
   is kept apart from the project in the browser's IndexedDB (database ``besser_traces``,
   one record per project id), which holds far more than ``localStorage``. It is written by
   ``shared/traceability/traceStore.ts`` (loaded once per session, kept in memory, saved in
-  the background and when the page is hidden) and deleted with the project. A trace an
+  the background and when the page is hidden) and deleted with the project. Each stored record carries a
+  revision (``storeRevision``, storage bookkeeping, not part of the trace format): a save names the revision
+  it was made from and, when another tab saved in between, re-reads the stored trace and applies its own
+  unsaved changes on top of it; every save is announced on the ``besser_traces`` ``BroadcastChannel`` so the
+  other tabs read the trace again. When the storage is full, the stored content of older generated files is
+  dropped (one per path is kept) and the save tried again; other write errors drop nothing. A trace an
   earlier version kept in ``localStorage`` (``besser_traces_<projectId>``) is moved over
   when first read. Each generator keeps the trace links of its newest 5 runs, the operation and
   file hashes of up to 20, and no older ones. The *Export Project* dialog can bundle it into a project export

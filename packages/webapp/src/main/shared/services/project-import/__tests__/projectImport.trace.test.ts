@@ -25,7 +25,7 @@ describe('importing a project with its trace', () => {
     localStorage.clear();
     writes = [];
     const inner = memoryTraceStorage();
-    const storage: TraceStorage = { ...inner, write: (id, trace) => { writes.push(id); return inner.write(id, trace); } };
+    const storage: TraceStorage = { ...inner, write: (id, trace, expected) => { writes.push(id); return inner.write(id, trace, expected); } };
     setTraceStorage(storage);
   });
   afterEach(() => vi.restoreAllMocks());

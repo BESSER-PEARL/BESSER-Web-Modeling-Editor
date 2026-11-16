@@ -4649,7 +4649,9 @@
       "importedTraceUnusable": "Le projet a été importé sans sa trace : {{problem}}",
       "generationTraceUnusable": "Le code a été généré, mais sa trace n'a pas pu être enregistrée : {{problem}}",
       "exportedTraceDroppedByBackend": "Le backend n'a pas conservé la trace du projet (c'est une version plus ancienne de BESSER) : le fichier B-UML a été exporté sans elle.",
-      "storageUnavailable": "Le stockage du navigateur pour les traces n'a pas pu être ouvert : les traces ne sont conservées que pour cette session."
+      "storageUnavailable": "Le stockage du navigateur pour les traces n'a pas pu être ouvert : les traces ne sont conservées que pour cette session.",
+      "saveFailed": "La trace du projet n'a pas pu être enregistrée : les dernières modifications restent dans cet onglet et seront enregistrées avec la prochaine modification.",
+      "recordFailed": "Une modification n'a pas pu être enregistrée dans la trace du projet ; elle a été ignorée."
     },
     "unknownActor": "Inconnu",
     "dismiss": "Fermer",

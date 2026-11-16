@@ -250,7 +250,8 @@ session id, and assistant UI state. `localStorage` holds projects (`besser_proje
 `besser_project_<id>`), preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery pointer (no key, prompt
 or content). Project traces are in **IndexedDB** (database `besser_traces`, one record per project id), not
 `localStorage`: they outgrow its ~5 MB. `shared/traceability/traceStore.ts` loads a trace once per session, keeps it in
-memory and saves it in the background; a trace an older version left at `besser_traces_<id>` is moved over when first
+memory and saves it in the background (each record has a revision: a save made from a stale revision re-reads the
+trace and replays its unsaved updates, and saves are announced to other tabs on the `besser_traces` BroadcastChannel); a trace an older version left at `besser_traces_<id>` is moved over when first
 read. Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
 (the v3 storage migration deletes the old `besser_systemConfig`). Project storage format:
 `docs/source/webapp/local-projects.rst`.
