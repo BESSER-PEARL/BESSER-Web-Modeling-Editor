@@ -64,7 +64,11 @@ export function describeRow(t: TFunction, index: TraceIndex, row: LineageRow, lo
 
 export function describeEvidence(t: TFunction, evidence: TraceEvidence): string {
   const count = evidence.logIds?.length ?? 0;
-  if (evidence.type === 'AIEvidence') return t('traceability.lineage.evidenceKinds.ai', { algorithm: evidence.algorithm, count });
+  if (evidence.type === 'AIEvidence') {
+    return count > 0
+      ? t('traceability.lineage.evidenceKinds.ai', { algorithm: evidence.algorithm, count })
+      : t('traceability.lineage.evidenceKinds.aiAlone', { algorithm: evidence.algorithm });
+  }
   const rule = t('traceability.lineage.evidenceKinds.rule', { rule: evidence.rule });
   return count > 0 ? `${rule} ${t('traceability.lineage.evidenceKinds.logs', { count })}` : rule;
 }

@@ -173,7 +173,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={searchPlaceholder}
-              className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="h-9 w-full border-0 bg-transparent text-sm shadow-none outline-none ring-0 placeholder:text-muted-foreground focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
             />
           </div>
           <ul ref={list} id={`${id}-list`} role="listbox" aria-label={label} className="max-h-[min(60vh,26rem)] overflow-y-auto p-1">

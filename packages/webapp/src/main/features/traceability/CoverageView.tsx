@@ -102,7 +102,7 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement
                         {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                       </button>
                     }
-                    className="bg-muted/30 font-semibold"
+                    className="bg-muted/30 [&>th]:font-semibold"
                   />
                   {open &&
                     elements.map((row) => (
@@ -131,7 +131,7 @@ const CoverageTableRow: React.FC<CoverageTableRowProps> = ({ row, onOpen, lead, 
   const { element, deleted, cells } = row;
   return (
     <tr className={`border-t border-border ${className}`}>
-      <th scope="row" className="px-3 py-1.5 text-left font-[inherit]">
+      <th scope="row" className="px-3 py-1.5 text-left font-normal">
         {lead}
         <button
           type="button"

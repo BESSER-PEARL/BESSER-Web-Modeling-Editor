@@ -55,8 +55,13 @@ export const OverviewDetail: React.FC<{
                     onClick={() => onSelectEdge(look.link.id)}
                     className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <ArrowRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate" title={describe(bundle)}>{describe(bundle)}</span>
+                    <span className="sr-only">{describe(bundle)}</span>
+                    {/* Both ends stay readable: each is cut short on its own, the whole text is the tooltip. */}
+                    <span aria-hidden className="flex min-w-0 flex-1 items-center gap-1" title={describe(bundle)}>
+                      <span className="w-[45%] shrink-0 truncate text-muted-foreground">{subjectLabel(bundle.sourceId)}</span>
+                      <ArrowRight className="size-3 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{subjectLabel(bundle.targetId)}</span>
+                    </span>
                     {bundle.edges.length > 1 && <span className="shrink-0 tabular-nums text-muted-foreground">×{bundle.edges.length}</span>}
                     {stale && (
                       <AlertTriangle className="size-3 shrink-0 text-amber-500" role="img" aria-label={t('traceability.status.outOfDate')} />

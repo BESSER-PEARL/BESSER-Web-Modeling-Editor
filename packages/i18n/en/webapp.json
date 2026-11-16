@@ -4518,7 +4518,8 @@
         "ai_one": "AI ({{algorithm}}), based on {{count}} log record",
         "ai_other": "AI ({{algorithm}}), based on {{count}} log records",
         "logs_one": "(based on {{count}} log record)",
-        "logs_other": "(based on {{count}} log records)"
+        "logs_other": "(based on {{count}} log records)",
+        "aiAlone": "AI ({{algorithm}})"
       },
       "outOfDate": {
         "upToDate": "Up to date: neither end changed since the link was made, nor anything its source was derived from.",
