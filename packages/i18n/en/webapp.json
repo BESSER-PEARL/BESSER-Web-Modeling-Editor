@@ -1871,6 +1871,13 @@
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "default model",
+      "free": "Free model",
+      "none": "No API key",
+      "title": "Next generation: {{label}}. Click to change."
     }
   },
   "deploy": {
@@ -2388,6 +2395,16 @@
       "offlineMessage": "You are offline. Some features may not work.",
       "backOnline": "Back online.",
       "dismiss": "Dismiss offline warning"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Key saved. Generations will use {{provider}} with {{model}}.",
+        "keySavedReconnect": "Key saved. Generations will use {{provider}} with {{model}}. The assistant is not connected right now and will use the key once it reconnects.",
+        "defaultModel": "the default model",
+        "freeSelected": "Free tier selected. Generations will use {{model}}.",
+        "freeDefaultModel": "the included free model",
+        "keyRemoved": "API key removed from this tab."
+      }
     }
   },
   "shell": {

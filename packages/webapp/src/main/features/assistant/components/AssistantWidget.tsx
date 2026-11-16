@@ -31,6 +31,7 @@ import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../h
 import { isAssistantApplicableTo } from '../services/assistantSupport';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
+import { GenerationKeyChip } from './GenerationKeyChip';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
 import { readAssistantDrawerOpen } from '../../../shared/services/storage/assistantStorage';
@@ -297,7 +298,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 <p className="mt-1 text-[11px] font-medium text-muted-foreground">{t('assistant.byBesser')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <GenerationKeyChip onClick={() => setByokOpen(true)} className="max-w-[10rem]" />
               <Button
                 type="button"
                 variant="ghost"

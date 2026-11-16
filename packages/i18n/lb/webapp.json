@@ -1871,6 +1871,13 @@
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Gratis Modell",
+      "none": "Keen API-Schlëssel",
+      "title": "Nächst Generatioun: {{label}}. Klickt fir z'änneren."
     }
   },
   "deploy": {
@@ -2388,6 +2395,16 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}.",
+        "keySavedReconnect": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}. Den Assistent ass grad net verbonnen a benotzt de Schlëssel, soubal e sech nees verbënnt.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Gratis Stuf gewielt. Generatioune benotzen {{model}}.",
+        "freeDefaultModel": "dat abegraffent gratis Modell",
+        "keyRemoved": "API-Schlëssel aus dësem Tab ewechgeholl."
+      }
     }
   },
   "shell": {

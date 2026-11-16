@@ -107,7 +107,6 @@ import {
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
-  readLlmKey,
   writeFreeTierSelected,
 } from '../../../shared/services/llmKeyStorage';
 import {
@@ -120,8 +119,8 @@ import {
   resolveFreeRunModel,
 } from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
+import { readRunTier } from '../generationKey';
 import type { RunModeDecision } from '../runModeDecision';
-import { getDemoToken } from '@/main/shared/services/demoMode';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
@@ -170,9 +169,10 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
 
 /** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
 function currentRunTier(): { tier: SpecRunTier; provider: string } {
-  if (getDemoToken()) return { tier: 'sponsored', provider: 'sponsored' };
-  if (readFreeTierSelected()) return { tier: 'free', provider: 'free' };
-  return { tier: 'own_key', provider: readLlmKey()?.provider ?? 'unknown' };
+  const choice = readRunTier(false);
+  if (choice.tier === 'sponsored') return { tier: 'sponsored', provider: 'sponsored' };
+  if (choice.tier === 'free') return { tier: 'free', provider: 'free' };
+  return { tier: 'own_key', provider: choice.tier === 'own_key' ? choice.key.provider : 'unknown' };
 }
 
 /**
@@ -1011,10 +1011,11 @@ export function useSpecDrivenTrigger(
       // A demo tab (`?demo=<token>`) runs on the server-paid tier, so it
       // authorises a run on its own — same as the keyless free tier, but the
       // spend is ours. Checked first so it wins over a stale stored key.
-      const demoToken = getDemoToken();
-      const freeSelected = readFreeTierSelected();
-      const key = readLlmKey();
-      if (!demoToken && !freeSelected && !key) {
+      const tierChoice = readRunTier(false);
+      const demoToken = tierChoice.tier === 'sponsored' ? tierChoice.demoToken : null;
+      const freeSelected = tierChoice.tier === 'free';
+      const key = tierChoice.tier === 'own_key' ? tierChoice.key : null;
+      if (tierChoice.tier === 'none') {
         track('spec_run_blocked', { reason: 'needs_key' });
         dispatch(openByokDialog(payload));
         return;
@@ -1472,7 +1473,8 @@ export function useSpecDrivenTrigger(
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
       // here because there is no separate plan-review step.
-      if (readLlmKey() || readFreeTierSelected()) {
+      const stored = readRunTier(false).tier;
+      if (stored === 'own_key' || stored === 'free') {
         await startRun({ ...payload, planApproved: true });
         return;
       }

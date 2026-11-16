@@ -1871,6 +1871,13 @@
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "modelo predeterminado",
+      "free": "Modelo gratuito",
+      "none": "Sin clave API",
+      "title": "Próxima generación: {{label}}. Haz clic para cambiar."
     }
   },
   "deploy": {
@@ -2388,6 +2395,16 @@
       "offlineMessage": "Estás sin conexión. Es posible que algunas funciones no funcionen.",
       "backOnline": "De nuevo en línea.",
       "dismiss": "Descartar aviso de sin conexión"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}.",
+        "keySavedReconnect": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}. El asistente no está conectado ahora y usará la clave en cuanto se vuelva a conectar.",
+        "defaultModel": "el modelo predeterminado",
+        "freeSelected": "Nivel gratuito seleccionado. Las generaciones usarán {{model}}.",
+        "freeDefaultModel": "el modelo gratuito incluido",
+        "keyRemoved": "Clave API eliminada de esta pestaña."
+      }
     }
   },
   "shell": {

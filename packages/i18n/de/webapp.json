@@ -1871,6 +1871,13 @@
         "showAll": "Alle {{count}} anzeigen",
         "more": "und {{count}} weitere"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Kostenloses Modell",
+      "none": "Kein API-Schlüssel",
+      "title": "Nächste Generierung: {{label}}. Zum Ändern klicken."
     }
   },
   "deploy": {
@@ -2388,6 +2395,16 @@
       "offlineMessage": "Sie sind offline. Einige Funktionen könnten nicht verfügbar sein.",
       "backOnline": "Wieder online.",
       "dismiss": "Offline-Warnung schließen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}.",
+        "keySavedReconnect": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}. Der Assistent ist gerade nicht verbunden und verwendet den Schlüssel, sobald er sich wieder verbindet.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Kostenlose Stufe gewählt. Generierungen verwenden {{model}}.",
+        "freeDefaultModel": "das enthaltene kostenlose Modell",
+        "keyRemoved": "API-Schlüssel aus diesem Tab entfernt."
+      }
     }
   },
   "shell": {

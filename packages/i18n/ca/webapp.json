@@ -1871,6 +1871,13 @@
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "model predeterminat",
+      "free": "Model gratuït",
+      "none": "Sense clau API",
+      "title": "Propera generació: {{label}}. Fes clic per canviar-ho."
     }
   },
   "deploy": {
@@ -2388,6 +2395,16 @@
       "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}.",
+        "keySavedReconnect": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}. L'assistent no està connectat ara mateix i farà servir la clau quan es torni a connectar.",
+        "defaultModel": "el model predeterminat",
+        "freeSelected": "Nivell gratuït seleccionat. Les generacions faran servir {{model}}.",
+        "freeDefaultModel": "el model gratuït inclòs",
+        "keyRemoved": "Clau API eliminada d'aquesta pestanya."
+      }
     }
   },
   "shell": {

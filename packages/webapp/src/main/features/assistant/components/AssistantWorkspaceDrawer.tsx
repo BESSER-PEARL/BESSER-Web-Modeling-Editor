@@ -21,6 +21,7 @@ import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantL
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
+import { GenerationKeyChip } from './GenerationKeyChip';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -1023,9 +1024,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 pb-14 pt-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                       <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
+                      <GenerationKeyChip onClick={() => setByokOpen(true)} />
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Button
