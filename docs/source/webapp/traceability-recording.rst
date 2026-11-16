@@ -111,7 +111,16 @@ The digest is a bounded summary, at most about 12,000 characters, never the trac
   of evidence) and the code derived from them (path, lines, why it may be out of date).
 
 Generated file contents and prompt texts are never sent; a requirement's statement and quote are cut at 500
-characters. When the digest is too large, lists are shortened from their end, the least valuable first: recent
+characters.
+
+**Privacy.** Recording is on by default for a project created in the editor, so by default every message to
+the assistant carries the digest. It names who made each change (``Person:<owner>``, the project owner's name
+as entered, or ``anonymous``; ``Agent:...`` for the assistant) and carries the old and new values of the changes in
+the focus history, which include longer values such as a method's code or a constraint's expression (each cut
+at 500 characters). Turning recording off for the project stops sending it; the user guide says the same
+(:doc:`../user-guide/ai-assistant`, *Privacy*).
+
+When the digest is too large, lists are shortened from their end, the least valuable first: recent
 operations, generations, requirements, out-of-date links, and last the focus.
 
 A trace answer can end with a button (the agent's ``show_trace`` action) that opens the Traceability page on the
