@@ -2881,6 +2881,76 @@
         }
       }
     },
+    "/besser_api/semantic-consistency-check": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Semantic Consistency Check",
+        "description": "Searches for an instance of a class diagram and its OCL invariants with the Alloy Analyzer.\n\nThe search tries increasingly larger scopes (objects per class) and streams its progress as\nServer-Sent Events. A search that finds nothing says in its ``message`` what it searched and\nwhy it stopped: \"No instance within N objects per class, integers in [a, b], ...\", \"Timed out\nsearching within ...\" or \"Too large to search within ...\". While the Alloy Analyzer runs, SSE\ncomment lines are sent as heartbeats. Answers 503, without a stream, while\n``BESSER_ALLOY_MAX_CONCURRENT_CHECKS`` checks are running.",
+        "operationId": "semantic_consistency_check_besser_api_semantic_consistency_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagramInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/generate-object-diagram": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Generate Object Diagram Endpoint",
+        "description": "Generates an object diagram of a class diagram that satisfies its OCL invariants.\n\nSearches as ``/semantic-consistency-check`` does; the event of the instance found carries it\nas an object diagram, in ``object_model``.",
+        "operationId": "generate_object_diagram_endpoint_besser_api_generate_object_diagram_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagramInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/deploy-app": {
       "post": {
         "tags": [
