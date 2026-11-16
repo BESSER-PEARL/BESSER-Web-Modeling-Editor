@@ -72,15 +72,18 @@ describe('diagram renames and deletions in the trace', () => {
     expect(isDeleted(index, bookArtifact.id)).toBe(true);
   });
 
-  it('records nothing while recording is off, or for a diagram the trace does not know', async () => {
+  it('records nothing while recording is off', async () => {
     const { store, projectId, diagramId } = await tracedProject(false);
     await store.dispatch(renameDiagramThunk({ diagramType: 'ClassDiagram', index: 0, newTitle: 'Renamed' })).unwrap();
     expect((await diagramChanges(projectId, diagramId))).toEqual([]);
 
     await store.dispatch(setTraceabilityEnabledThunk(true)).unwrap();
-    await store.dispatch(addDiagramThunk({ diagramType: 'ClassDiagram', title: 'Never edited' })).unwrap();
-    const before = (await loadProjectTrace(projectId)).operations.length;
+    // A diagram added while recording is known to the trace from its creation: a rename right after it is folded
+    // into the creation, as for any element.
+    const added = await store.dispatch(addDiagramThunk({ diagramType: 'ClassDiagram', title: 'Never edited' })).unwrap();
     await store.dispatch(renameDiagramThunk({ diagramType: 'ClassDiagram', index: 1, newTitle: 'Still never edited' })).unwrap();
-    expect((await loadProjectTrace(projectId)).operations).toHaveLength(before);
+    expect((await diagramChanges(projectId, added.diagram.id)).map((c) => [c.kind, c.newValue])).toEqual([
+      ['CREATED', 'Still never edited'],
+    ]);
   });
 });
