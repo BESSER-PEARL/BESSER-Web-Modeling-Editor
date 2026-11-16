@@ -182,7 +182,8 @@ describe('buildTraceDigest', () => {
     expect(d.focus!.length).toBeGreaterThan(0);
     expect(d.focus![0].history!.length).toBeLessThanOrEqual(TRACE_DIGEST_CAPS.focusHistory);
     // The newest change is the one kept.
-    expect(d.focus![0].history!.at(-1)!.at).toBe(at(49));
+    const history = d.focus![0].history!;
+    expect(history[history.length - 1].at).toBe(at(49));
   });
 });
 
