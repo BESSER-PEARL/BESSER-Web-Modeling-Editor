@@ -2,12 +2,14 @@ import type {
   CodeArtifact,
   ModelArtifact,
   RequirementArtifact,
+  TraceActor,
   TraceArtifact,
   TraceChangeEvent,
   TraceFile,
   TraceLink,
   TraceLogRecord,
   TraceOperation,
+  TraceTool,
 } from '../types/traceability';
 import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact } from '../types/traceability';
 
@@ -39,6 +41,14 @@ export interface TraceIndex {
   /** Every log record by id: an evidence may rest on the records of another operation (the edits
    *  an assistant made rest on the messages of its conversation). */
   logs: Map<string, TraceLogRecord>;
+  actorsById: Map<string, TraceActor>;
+  toolsById: Map<string, TraceTool>;
+  /** The links each operation made, in recording order. */
+  linksByOperation: Map<string, TraceLink[]>;
+  /** The model artifact of each editor element id (the recorder keeps one per element). */
+  artifactsByElementId: Map<string, ModelArtifact>;
+  /** The first operation that wrote each artifact (a generation run for a generated file). */
+  writerOf: Map<string, TraceOperation>;
 }
 
 const push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
@@ -62,14 +72,27 @@ export function indexTrace(trace: TraceFile): TraceIndex {
   for (const list of changesByArtifact.values()) list.sort((a, b) => a.change.timestamp.localeCompare(b.change.timestamp));
   const linksBySource = new Map<string, TraceLink[]>();
   const linksByTarget = new Map<string, TraceLink[]>();
+  const linksByOperation = new Map<string, TraceLink[]>();
   for (const link of trace.traceLinks) {
     push(linksBySource, link.sourceId, link);
     push(linksByTarget, link.targetId, link);
+    push(linksByOperation, link.operationId, link);
   }
   const logs = new Map(trace.operations.flatMap((o) => o.toolCalls.flatMap((call) => call.logs.map((log) => [log.id, log] as const))));
+  const artifactsByElementId = new Map<string, ModelArtifact>();
+  for (const artifact of trace.artifacts) {
+    if (isModelArtifact(artifact) && !artifactsByElementId.has(artifact.elementId)) artifactsByElementId.set(artifact.elementId, artifact);
+  }
+  const writerOf = new Map<string, TraceOperation>();
+  for (const operation of trace.operations) {
+    for (const id of operation.writes) if (!writerOf.has(id)) writerOf.set(id, operation);
+  }
   return {
     trace, artifacts, operations, children, changesByArtifact, linksBySource, linksByTarget,
     latestChangeBelow: latestChangeBelow(artifacts, changesByArtifact), logs,
+    actorsById: new Map(trace.actors.map((a) => [a.id, a])),
+    toolsById: new Map(trace.tools.map((tool) => [tool.id, tool])),
+    linksByOperation, artifactsByElementId, writerOf,
   };
 }
 
@@ -96,6 +119,17 @@ function latestChangeBelow(
     }
   }
   return latest;
+}
+
+/**
+ * The trace artifact an id names: a trace artifact id as it is, or the editor element id of a model element
+ * (a diagram id, a class id) mapped to its artifact. Null when the trace has neither, so a stale link degrades
+ * to the page's default.
+ */
+export function resolveArtifactId(index: TraceIndex, id: string | null | undefined): string | null {
+  if (!id) return null;
+  if (index.artifacts.has(id)) return id;
+  return index.artifactsByElementId.get(id)?.id ?? null;
 }
 
 /** The artifact and all its fragments, recursively. */
@@ -289,9 +323,8 @@ export interface CoverageMatrix {
  */
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
   // Runs compacted by retention have no links left: they say nothing about coverage.
-  const linked = new Set(index.trace.traceLinks.map((link) => link.operationId));
   const generations = index.trace.operations
-    .filter((o) => o.type === 'CodeGeneration' && linked.has(o.id))
+    .filter((o) => o.type === 'CodeGeneration' && index.linksByOperation.has(o.id))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .slice(0, maxGenerations);
   const row = (element: ModelArtifact): CoverageRow => {
@@ -324,8 +357,7 @@ export const turnExtractionId = (callId: string): string => `${callId}:extractio
  * requirements, and a model rebuilt since without an extraction (from a short request, from a file, by hand)
  * deleted those elements: a generation run must not be judged against requirements of another application.
  */
-export function latestRequirements(trace: TraceFile): RequirementArtifact[] {
-  const index = indexTrace(trace);
+export function latestRequirements(trace: TraceFile, index: TraceIndex = indexTrace(trace)): RequirementArtifact[] {
   const turnPrompts = new Map<string, string>();
   for (const operation of trace.operations) {
     if (operation.type !== 'Conversation') continue;
