@@ -814,7 +814,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       // A typed custom id is never sent; a preset is a catalog id.
       model: modelSource === 'preset' ? modelChoice : undefined,
       surface,
-      armed_assistant: Boolean(client) && isAssistantKeyProvider(provider),
+      // Sent to an assistant connection, by the given client or the arm request.
+      armed_assistant: armed !== 'none' && isAssistantKeyProvider(provider),
       budget_set: showRunBudget,
     });
     onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel, baseUrl: effectiveBaseUrl });
