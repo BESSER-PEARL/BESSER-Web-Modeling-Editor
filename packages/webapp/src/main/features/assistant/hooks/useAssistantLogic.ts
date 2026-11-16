@@ -111,6 +111,9 @@ import {
 
 export type { ConnectionStatus } from './useWebSocketConnection';
 
+/** What the agent's "Generate the application" chip sends. */
+export const GENERATE_AGAIN_PROMPT = 'generate the application';
+
 /** The key the assistant would send, by provider only (analytics). */
 function keyProperties(): { uses_own_key: boolean; provider?: string } {
   const key = readLlmKey();
@@ -1805,6 +1808,22 @@ export function useAssistantLogic({
     };
   }, [dispatch, store]);
 
+  // "Generate again" on a run card whose result expired: the project's last
+  // request through the normal run start (the user's key and tier apply), else
+  // the generate request the agent's suggestion chips send.
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+  const handleTriggerRef = useRef(specDriven.handleTrigger);
+  handleTriggerRef.current = specDriven.handleTrigger;
+  const generateAgain = useCallback(() => {
+    const request = readLastGeneration(currentProjectRef.current?.id)?.request;
+    if (request) {
+      void handleTriggerRef.current({ action: 'trigger_smart_generator', instructions: request });
+      return;
+    }
+    void handleSubmitRef.current(undefined, { overrideText: GENERATE_AGAIN_PROMPT });
+  }, [currentProjectRef]);
+
   /* ================================================================ */
   /*  Public API (unchanged)                                           */
   /* ================================================================ */
@@ -1825,6 +1844,7 @@ export function useAssistantLogic({
     showScrollToBottom,
     scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,

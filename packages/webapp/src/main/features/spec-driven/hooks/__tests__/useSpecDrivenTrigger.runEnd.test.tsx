@@ -119,6 +119,13 @@ describe('the last-run record of a finished run', () => {
     expect(record?.runId).toBe(RUN);
     expect(record?.request).toBe("## The user's original request, verbatim\n\nBuild a task board.");
   });
+
+  it('stamps the finished card with the time the record holds, for its download lifetime', async () => {
+    await runWith([start(), done()], 'Build a task board.');
+    const card = conversationStore.getMessages().find((m) => m.specDriven)?.specDriven;
+    expect(card?.status).toBe('done');
+    expect(card?.finishedAt).toBe(readProjectLastRun(PROJECT_ID)?.at);
+  });
 });
 
 describe('a run the user stopped', () => {

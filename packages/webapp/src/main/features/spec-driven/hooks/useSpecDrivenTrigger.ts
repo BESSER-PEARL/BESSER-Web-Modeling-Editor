@@ -466,13 +466,14 @@ export function useSpecDrivenTrigger(
     (
       liveKey: string,
       messageId: string,
-      opts: { statusIfRunning?: 'done' | 'error' } = {},
+      opts: { statusIfRunning?: 'done' | 'error'; finishedAt?: number } = {},
     ) => {
       const live = dispatch(readLiveSpecDrivenRun(liveKey));
       if (!live) return;
       dispatch(liveRunEnded({ key: liveKey }));
       const snapshot: SpecDrivenMessageState = {
         ...live,
+        ...(opts.finishedAt ? { finishedAt: opts.finishedAt } : {}),
         liveKey: undefined,
         status:
           live.status === 'running'
@@ -631,6 +632,7 @@ export function useSpecDrivenTrigger(
             : undefined;
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          const finishedAt = Date.now();
           // Record this output as the base for a future
           // incremental modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
@@ -638,11 +640,10 @@ export function useSpecDrivenTrigger(
           // within the download TTL, sends `mode:'modify'` + base_run_id.
           // A run this tab stopped is not a base: the previous record stays.
           if (doneRunId && run.projectId && !isSpecDrivenRunCancelRequested(doneRunId)) {
-            const at = Date.now();
             dispatch(
-              setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at }),
+              setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at: finishedAt }),
             );
-            writeProjectLastRun(run.projectId, doneRunId, at, run.request);
+            writeProjectLastRun(run.projectId, doneRunId, finishedAt, run.request);
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
@@ -650,7 +651,7 @@ export function useSpecDrivenTrigger(
           // Download button instead, and the backend keeps the file for
           // ~30 min. Snapshot the finished card into the chat message
           // and drop the live entry.
-          finalizeLiveRun(run.liveKey, run.streamingId);
+          finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt });
           {
             // Concrete "what was generated" summary from the backend done
             // event: how many files, which generator, and the top-level

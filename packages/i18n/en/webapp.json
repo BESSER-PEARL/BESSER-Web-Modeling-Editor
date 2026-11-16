@@ -1881,7 +1881,14 @@
     },
     "runCard": {
       "notifyMe": "Notify me when it is done",
-      "notifyOn": "You will be notified when it is done"
+      "notifyOn": "You will be notified when it is done",
+      "availableUntil": "Available until {{time}}: download or save to GitHub before then.",
+      "expired": "This result is no longer available: generated files are kept for {{lifetime}}. Generate again to get a new copy.",
+      "lifetimeMinutes_one": "{{count}} minute",
+      "lifetimeMinutes_other": "{{count}} minutes",
+      "lifetimeHours_one": "{{count}} hour",
+      "lifetimeHours_other": "{{count}} hours",
+      "generateAgain": "Generate again"
     },
     "runFinished": {
       "titleMarker": {

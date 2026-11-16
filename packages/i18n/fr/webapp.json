@@ -1881,7 +1881,14 @@
     },
     "runCard": {
       "notifyMe": "Me prévenir à la fin",
-      "notifyOn": "Vous serez prévenu à la fin"
+      "notifyOn": "Vous serez prévenu à la fin",
+      "availableUntil": "Disponible jusqu'à {{time}} : téléchargez-le ou enregistrez-le sur GitHub avant.",
+      "expired": "Ce résultat n'est plus disponible : les fichiers générés sont conservés {{lifetime}}. Relancez la génération pour en obtenir une nouvelle copie.",
+      "lifetimeMinutes_one": "{{count}} minute",
+      "lifetimeMinutes_other": "{{count}} minutes",
+      "lifetimeHours_one": "{{count}} heure",
+      "lifetimeHours_other": "{{count}} heures",
+      "generateAgain": "Générer à nouveau"
     },
     "runFinished": {
       "titleMarker": {

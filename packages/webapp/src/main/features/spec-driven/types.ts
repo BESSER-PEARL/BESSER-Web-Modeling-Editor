@@ -444,11 +444,8 @@ export interface SpecDrivenMessageState {
     cacheRead: number;
     total: number;
   };
-  /**
-   * Generation succeeded but the browser download failed. The artifact
-   * stays on the server (~30 min TTL) so "Download again" can retry.
-   */
-  downloadFailed?: boolean;
+  /** Epoch ms at which a successful run finished; the server keeps its output for the download lifetime from then. */
+  finishedAt?: number;
   /**
    * Generation succeeded and the artifact is ready, but it has NOT been
    * saved to the user's disk yet. The run no longer auto-downloads —

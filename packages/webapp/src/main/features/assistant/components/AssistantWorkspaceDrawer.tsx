@@ -260,6 +260,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     showScrollToBottom,
     scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
     sendVoiceMessage,
     stopGenerating,
     requestNewChat,
@@ -366,7 +367,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // dialog is a pure dispatch — the dialog is mounted app-level
   // (SpecDrivenPushDialogHost) and driven by Redux.
   const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
-  const messageOptions = useMemo(() => ({ onPushToGithub: handlePushToGithub }), [handlePushToGithub]);
+  const messageOptions = useMemo(
+    () => ({ onPushToGithub: handlePushToGithub, onGenerateAgain: generateAgain }),
+    [handlePushToGithub, generateAgain],
+  );
   const closeOverview = useCallback(() => setOverviewOpen(false), []);
 
   // A "Your model" row: close the sheet and select the element on the class

@@ -56,6 +56,7 @@ import {
   writeSpecDrivenPushIntent,
 } from '../../../shared/services/storage/githubStorage';
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
+import { markSpecDrivenRunExpired } from '../../../shared/utils/specDrivenExpiry';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
@@ -440,6 +441,7 @@ export function useSpecDrivenGithubPush(
         return { ok: true, result: res };
       } catch (error) {
         const { code, message } = describePushError(error);
+        if (code === 'expired') markSpecDrivenRunExpired(id);
         track('github_push_failed', { code, new_repo: !config.useExisting, ...errorProperties(error) });
         reportError(message, { error });
         return { ok: false, code, message };

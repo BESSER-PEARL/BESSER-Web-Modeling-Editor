@@ -1881,7 +1881,14 @@
     },
     "runCard": {
       "notifyMe": "Benachrichtigen, wenn fertig",
-      "notifyOn": "Sie werden benachrichtigt, wenn es fertig ist"
+      "notifyOn": "Sie werden benachrichtigt, wenn es fertig ist",
+      "availableUntil": "Verfügbar bis {{time}}: vorher herunterladen oder auf GitHub speichern.",
+      "expired": "Dieses Ergebnis ist nicht mehr verfügbar: Generierte Dateien werden {{lifetime}} aufbewahrt. Generieren Sie erneut, um eine neue Kopie zu erhalten.",
+      "lifetimeMinutes_one": "{{count}} Minute",
+      "lifetimeMinutes_other": "{{count}} Minuten",
+      "lifetimeHours_one": "{{count}} Stunde",
+      "lifetimeHours_other": "{{count}} Stunden",
+      "generateAgain": "Erneut generieren"
     },
     "runFinished": {
       "titleMarker": {

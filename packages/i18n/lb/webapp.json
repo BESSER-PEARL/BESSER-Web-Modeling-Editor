@@ -1881,7 +1881,14 @@
     },
     "runCard": {
       "notifyMe": "Mech informéieren, wann et fäerdeg ass",
-      "notifyOn": "Dir gitt informéiert, wann et fäerdeg ass"
+      "notifyOn": "Dir gitt informéiert, wann et fäerdeg ass",
+      "availableUntil": "Disponibel bis {{time}}: virdrun eroflueden oder op GitHub späicheren.",
+      "expired": "Dëst Resultat ass net méi disponibel: generéiert Fichiere ginn {{lifetime}} gehalen. Generéiert nach eng Kéier fir eng nei Kopie.",
+      "lifetimeMinutes_one": "{{count}} Minutt",
+      "lifetimeMinutes_other": "{{count}} Minutten",
+      "lifetimeHours_one": "{{count}} Stonn",
+      "lifetimeHours_other": "{{count}} Stonnen",
+      "generateAgain": "Nach eng Kéier generéieren"
     },
     "runFinished": {
       "titleMarker": {

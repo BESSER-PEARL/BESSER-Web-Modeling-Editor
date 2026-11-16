@@ -15,6 +15,7 @@
 import { downloadSpecDrivenOutput } from '../api/specDriven';
 import { emitDeliveryEvent } from '../services/telemetry/pilotTelemetry';
 import { downloadFile } from './download';
+import { isExpiredRunError, markSpecDrivenRunExpired } from './specDrivenExpiry';
 
 export type SpecDrivenDownloadResult =
   | { ok: true; sizeBytes: number }
@@ -45,6 +46,7 @@ export async function fetchAndSaveSpecDrivenArtifact(
     ({ blob, headers } = await downloadSpecDrivenOutput(runId));
   } catch (err) {
     console.error('[specDrivenDownload] download failed', err);
+    if (isExpiredRunError(err)) markSpecDrivenRunExpired(runId);
     return { ok: false };
   }
   // For explicit zip results, trust the backend's flag over the
@@ -71,6 +73,7 @@ export async function fetchSpecDrivenArtifactBlob(runId: string): Promise<Blob |
     return (await downloadSpecDrivenOutput(runId)).blob;
   } catch (err) {
     console.error('[specDrivenDownload] view fetch failed', err);
+    if (isExpiredRunError(err)) markSpecDrivenRunExpired(runId);
     return null;
   }
 }
