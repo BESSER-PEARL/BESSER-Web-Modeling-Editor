@@ -208,6 +208,8 @@ export interface UseAssistantLogicReturn {
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList; overrideText?: string },
   ) => Promise<void>;
+  /** New run for the project after its result expired (the run card's "Generate again"). */
+  generateAgain: () => void;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
