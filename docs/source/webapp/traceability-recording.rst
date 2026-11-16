@@ -128,7 +128,14 @@ delivered, and the user is told the trace of this run was not recorded.
 A Spec-Driven run is recorded from the ``trace`` its ``done`` event carries; the requirements sent with
 the run are RequirementArtifact ids, so its requirement-to-code links join them. A backend that sends
 no trace still leaves the run in the trace: one operation built from the stream's events
-(``recordSpecDrivenRun``).
+(``recordSpecDrivenRun``), marked as a stream summary by its first log record
+(``SPEC_DRIVEN_STREAM_SUMMARY``, so the mark survives export and import). Both can reach one run id (a
+resumed run, ``POST /spec-driven/resume/{run_id}``, keeps its id; a reattach or another tab can deliver the
+backend's trace after the summary was recorded): the backend's trace always wins. It replaces a stream summary
+in place, and the actors and tools only the summary used are dropped; a summary arriving after the backend's
+trace is left out. A later ``done.trace`` of the same run (a resumed run's) supersedes the earlier one with what
+it wrote and its links, since the backend builds it from the run's whole, append-only run log; an earlier one
+arriving late is left out.
 
 Retention
 ---------

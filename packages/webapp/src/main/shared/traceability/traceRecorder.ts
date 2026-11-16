@@ -14,7 +14,7 @@ import type {
   TraceTool,
   TraceToolCall,
 } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
 import type { AssistantRequirements } from './assistantRequirements';
 import { findNamedElement } from './classModelDiff';
 import { MAX_PARENT_DEPTH, turnExtractionId, turnPromptId } from './traceQueries';
@@ -595,10 +595,20 @@ function linkRequirements(
  *   run, a prompt) is that artifact: the fragment's links join it rather than duplicate it.
  * - Code artifacts are new, since each run writes new output; operations and links already in the trace (a
  *   fragment merged again, after a run was reattached) are not added twice.
+ * - An operation the trace already has is replaced in place, with what it wrote and its links, when the trace's
+ *   one is a Spec-Driven stream summary ({@link isStreamSummary}: the backend's trace always beats it) or a
+ *   Spec-Driven run that ended earlier than the incoming one: a resumed Spec-Driven run keeps its id, and the backend builds each `done.trace`
+ *   from the run's whole, append-only run log, so the later fragment holds everything the earlier one did. An
+ *   incoming Spec-Driven run that ended no later is the one already merged: when every operation of the fragment
+ *   is, the fragment is left out whole (an older fragment arriving late adds no orphan files).
  *
  * The cost is linear in the fragment plus one pass over the trace to index it.
  */
 export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void {
+  const replaced = supersededOperations(trace, fragment);
+  if (replaced === null) return;
+  for (const old of replaced.values()) removeOperationOutput(trace, old);
+
   const idMap = new Map<string, string>();
   const mapped = (id: string): string => idMap.get(id) ?? id;
   const byId = new Map(trace.artifacts.map((a) => [a.id, a]));
@@ -631,7 +641,7 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
   }
   const operationIds = new Set(trace.operations.map((o) => o.id));
   for (const op of fragment.operations ?? []) {
-    if (operationIds.has(op.id)) continue;
+    if (operationIds.has(op.id) && !replaced.has(op.id)) continue;
     const merged: TraceOperation = {
       ...op,
       performedBy: op.performedBy.map(mapped),
@@ -640,8 +650,11 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
       writes: [...new Set(op.writes.map(mapped))],
     };
     if (merged.type === 'ModelingSession') merged.changes = merged.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) }));
-    trace.operations.push(merged);
+    const position = replaced.has(op.id) ? trace.operations.findIndex((o) => o.id === op.id) : -1;
+    if (position >= 0) trace.operations[position] = merged; // where the run was, in the history
+    else trace.operations.push(merged);
   }
+  if (replaced.size > 0) dropUnusedActorsAndTools(trace, [...replaced.values()]);
   const linkIds = new Set(trace.traceLinks.map((l) => l.id));
   for (const link of fragment.traceLinks ?? []) {
     if (linkIds.has(link.id)) continue;
@@ -650,6 +663,71 @@ export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void 
   const compacted = pruneOldGenerations(trace);
   if (compacted > 0) console.info(`Compacted or removed ${compacted} older generation run(s) of the project trace.`);
   pruneStoredContents(trace);
+}
+
+/**
+ * The operations of `trace` the fragment replaces, by id (see {@link mergeTraceFragment}); null when the fragment
+ * holds only Spec-Driven runs already merged as they are or later, and is left out whole.
+ */
+function supersededOperations(trace: TraceFile, fragment: TraceFile): Map<string, TraceOperation> | null {
+  const replaced = new Map<string, TraceOperation>();
+  const incoming = fragment.operations ?? [];
+  if (incoming.length === 0) return replaced;
+  const existing = new Map(trace.operations.map((o) => [o.id, o]));
+  const linked = new Set(trace.traceLinks.map((link) => link.operationId));
+  const ended = (o: TraceOperation) => ms(o.endedAt ?? o.startedAt);
+  let skipped = 0;
+  for (const op of incoming) {
+    const old = existing.get(op.id);
+    if (!old) continue;
+    // Only a Spec-Driven run reuses its id (a resumed run); another generation's id is new each run.
+    const resumed = old.id.startsWith(specDrivenOperationId('')) && ended(op) > ended(old);
+    if (isStreamSummary(old, linked) || resumed) replaced.set(op.id, old);
+    else if (old.id.startsWith(specDrivenOperationId(''))) skipped += 1;
+  }
+  return skipped === incoming.length ? null : replaced;
+}
+
+/** Remove from `trace` what `operation` wrote and nothing else uses, other than model artifacts, and its links. */
+function removeOperationOutput(trace: TraceFile, operation: TraceOperation): void {
+  const usedElsewhere = new Set(
+    trace.operations.filter((o) => o.id !== operation.id).flatMap((o) => [...o.reads, ...o.writes, ...changesOf(o).map((c) => c.artifactId)]),
+  );
+  const removed = new Set(operation.writes.filter((id) => !usedElsewhere.has(id)));
+  for (const artifact of trace.artifacts) {
+    if (isModelArtifact(artifact)) removed.delete(artifact.id);
+  }
+  // A line range of a removed file goes with it.
+  for (let grew = removed.size > 0; grew; ) {
+    grew = false;
+    for (const artifact of trace.artifacts) {
+      if (artifact.parentId && removed.has(artifact.parentId) && !isModelArtifact(artifact) && !removed.has(artifact.id)) {
+        removed.add(artifact.id);
+        grew = true;
+      }
+    }
+  }
+  trace.artifacts = trace.artifacts.filter((a) => !removed.has(a.id));
+  for (const artifact of trace.artifacts) {
+    if (isCodeArtifact(artifact) && artifact.revisionOfId && removed.has(artifact.revisionOfId)) delete artifact.revisionOfId;
+  }
+  trace.traceLinks = trace.traceLinks.filter(
+    (link) => link.operationId !== operation.id && !removed.has(link.sourceId) && !removed.has(link.targetId),
+  );
+  for (const other of trace.operations) {
+    if (other.id === operation.id) continue;
+    other.reads = other.reads.filter((id) => !removed.has(id));
+  }
+}
+
+/** Drop the actors and tools only the replaced operations used. */
+function dropUnusedActorsAndTools(trace: TraceFile, replaced: TraceOperation[]): void {
+  const usedTools = new Set(trace.operations.flatMap((o) => o.toolCalls.map((c) => c.toolId)));
+  const usedActors = new Set(trace.operations.flatMap((o) => o.performedBy));
+  const formerTools = new Set(replaced.flatMap((o) => o.toolCalls.map((c) => c.toolId)));
+  const formerActors = new Set(replaced.flatMap((o) => o.performedBy));
+  trace.tools = trace.tools.filter((t) => usedTools.has(t.id) || !formerTools.has(t.id));
+  trace.actors = trace.actors.filter((a) => usedActors.has(a.id) || !formerActors.has(a.id));
 }
 
 /** The generation runs of `trace`, by generator (the tools their calls invoked), newest first. */
@@ -850,6 +928,24 @@ export interface SpecDrivenRunSummary {
 export const specDrivenOperationId = (runId: string): string => `spec-driven:${runId}`;
 
 /**
+ * The first message of a Spec-Driven run recorded from its stream ({@link recordSpecDrivenRun}): it marks the
+ * operation as a stream summary, which the backend's trace of the run replaces whenever it arrives. A log record,
+ * so the mark is part of the trace file and survives export and import.
+ */
+export const SPEC_DRIVEN_STREAM_SUMMARY = 'Recorded from the Spec-Driven run\'s stream: the backend sent no trace of this run.';
+
+/**
+ * Whether `operation` is a Spec-Driven run recorded from its stream: marked {@link SPEC_DRIVEN_STREAM_SUMMARY}, or,
+ * recorded before the mark, a Spec-Driven run that wrote nothing and has no link (`linked`: the ids of the operations
+ * that have links), which the backend's trace of a run never is.
+ */
+export function isStreamSummary(operation: TraceOperation, linked: Set<string>): boolean {
+  if (operation.type !== 'CodeGeneration' || !operation.id.startsWith(specDrivenOperationId(''))) return false;
+  if (operation.toolCalls.some((call) => call.logs.some((log) => log.content === SPEC_DRIVEN_STREAM_SUMMARY))) return true;
+  return operation.writes.length === 0 && !linked.has(operation.id);
+}
+
+/**
  * Record a Spec-Driven run from the events its stream carried, when the backend sent no trace of it: one
  * CodeGeneration operation, by the user and the Spec-Driven Agent, that reads the project's diagrams and the
  * requirements sent with it and calls the deterministic generator (when one ran) and the LLM (with the run's
@@ -880,6 +976,7 @@ export function recordSpecDrivenRun(trace: TraceFile, run: SpecDrivenRunSummary)
     id: newId(), toolId: llmTool.id, sequenceNumber: toolCalls.length, status: run.status, startedAt: run.startedAt, endedAt: run.endedAt, logs: [],
   };
   toolCalls.push(llmCall);
+  log(llmCall, SPEC_DRIVEN_STREAM_SUMMARY);
   if (run.tokensUsed !== undefined) log(llmCall, `Tokens used (input and output together): ${run.tokensUsed}`);
   if (run.costUsd !== undefined) log(llmCall, `Cost: ${run.costUsd.toFixed(4)} USD`);
   if (run.changedFiles.length > 0) {

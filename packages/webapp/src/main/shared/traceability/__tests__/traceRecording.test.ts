@@ -27,6 +27,8 @@ import {
   recordConversationReply,
   recordConversationRequest,
   recordSpecDrivenRun,
+  isStreamSummary,
+  SPEC_DRIVEN_STREAM_SUMMARY,
   SPEC_DRIVEN_AGENT_NAME,
   specDrivenOperationId,
   UNKNOWN_ASSISTANT_LLM_NAME,
@@ -294,6 +296,78 @@ describe('Spec-Driven runs', () => {
     expect((await traceOf(project)).operations.map((o) => o.id)).toEqual(['op']);
     recordSpecDrivenOutcome(project, undefined, summary);
     expect((await traceOf(project)).operations.map((o) => o.id)).toEqual(['op', specDrivenOperationId('r1')]);
+  });
+});
+
+describe('a Spec-Driven run recorded from its stream, then by the backend', () => {
+  const summary = {
+    runId: 'R', status: 'FAILED' as const, startedAt: at(0), endedAt: at(5), llm: { model: 'stream-llm', provider: 'openai' },
+    changedFiles: [], verification: [], diagrams: [{ id: 'cd', title: 'Library', modelType: 'DomainModel' }], requirementIds: [],
+  };
+  const opId = specDrivenOperationId('R');
+  /** The backend's trace of run R, ended at minute `end`, writing `file`. */
+  const rich = (end: number, file: string): TraceFile => ({
+    ...emptyTraceFile('x'), projectId: null,
+    actors: [{ id: 'a1', type: 'Agent', name: SPEC_DRIVEN_AGENT_NAME, timestamp: at(0) }],
+    tools: [{ id: 't1', type: 'LLM', name: 'claude-x', provider: 'anthropic', timestamp: at(0) }],
+    artifacts: [
+      { id: 'cd-art', type: 'ModelArtifact', name: 'Library', elementId: 'cd', elementType: 'DomainModel', timestamp: at(0) },
+      { id: 'p1', type: 'PromptArtifact', name: 'p', content: 'x', contentHash: 'h', timestamp: at(0) },
+      { id: file, type: 'CodeArtifact', name: 'app.py', path: 'app.py', contentHash: file, timestamp: at(end) },
+      { id: `${file}-lines`, type: 'CodeArtifact', name: 'Book', path: 'app.py', contentHash: 'x', startLine: 1, endLine: 2, parentId: file, timestamp: at(end) },
+    ],
+    operations: [{ id: opId, type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: at(0), endedAt: at(end), performedBy: ['a1'],
+      toolCalls: [{ id: `c-${end}`, toolId: 't1', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(0), endedAt: at(end), logs: [] }],
+      reads: ['cd-art', 'p1'], writes: [file, `${file}-lines`] }],
+    traceLinks: [{ id: `l-${file}`, sourceId: 'cd-art', targetId: `${file}-lines`, operationId: opId, timestamp: at(end), evidence: [] }],
+  });
+
+  function traceWithFallback(): TraceFile {
+    const trace = emptyTraceFile('p');
+    trace.operations.push({ id: 'earlier', type: 'ModelingSession', status: 'SUCCEEDED', startedAt: at(0), performedBy: [], toolCalls: [], reads: [], writes: [], changes: [] });
+    recordSpecDrivenRun(trace, { ...summary, actorName: 'Ada' });
+    trace.operations.push({ id: 'later', type: 'ModelingSession', status: 'SUCCEEDED', startedAt: at(9), performedBy: [], toolCalls: [], reads: [], writes: [], changes: [] });
+    return trace;
+  }
+
+  it('marks the stream summary, in the trace file itself', () => {
+    const trace = traceWithFallback();
+    const run = trace.operations.find((o) => o.id === opId)!;
+    expect(run.toolCalls.flatMap((c) => c.logs).map((l) => l.content)).toContain(SPEC_DRIVEN_STREAM_SUMMARY);
+    expect(isStreamSummary(run, new Set())).toBe(true);
+  });
+
+  it('replaces the stream summary with the backend’s trace, in place, dropping what only the summary used', () => {
+    const trace = traceWithFallback();
+    mergeTraceFragment(trace, rich(30, 'f1'));
+    expect(trace.operations.map((o) => o.id)).toEqual(['earlier', opId, 'later']);
+    const run = trace.operations[1];
+    expect(run).toMatchObject({ status: 'SUCCEEDED', writes: ['f1', 'f1-lines'] });
+    expect(toolNamesOf(trace, run)).toEqual(['claude-x']);
+    expect(trace.tools.map((t) => t.name)).not.toContain('stream-llm');
+    expect(trace.traceLinks.map((l) => l.id)).toEqual(['l-f1']);
+    // A summary arriving after the backend's trace is left out.
+    expect(recordSpecDrivenRun(trace, { ...summary, actorName: 'Ada' })).toBe(false);
+  });
+
+  it('replaces a summary recorded before the mark existed (no writes, no links)', () => {
+    const trace = traceWithFallback();
+    for (const call of trace.operations[1].toolCalls) call.logs = call.logs.filter((l) => l.content !== SPEC_DRIVEN_STREAM_SUMMARY);
+    mergeTraceFragment(trace, rich(30, 'f1'));
+    expect(trace.operations[1]).toMatchObject({ status: 'SUCCEEDED', writes: ['f1', 'f1-lines'] });
+  });
+
+  it('lets a resumed run’s later trace supersede the earlier one, and ignores an earlier one arriving late', () => {
+    const trace = emptyTraceFile('p');
+    mergeTraceFragment(trace, rich(30, 'f1'));
+    mergeTraceFragment(trace, rich(60, 'f2')); // resumed: the same run id, the whole run log again
+    expect(trace.operations).toHaveLength(1);
+    expect(trace.operations[0]).toMatchObject({ endedAt: at(60), writes: ['f2', 'f2-lines'] });
+    expect(trace.artifacts.map((a) => a.id).filter((id) => id.startsWith('f'))).toEqual(['f2', 'f2-lines']);
+    expect(trace.traceLinks.map((l) => l.id)).toEqual(['l-f2']);
+    mergeTraceFragment(trace, rich(30, 'f1')); // the first one again (another tab reattached late)
+    expect(trace.artifacts.map((a) => a.id).filter((id) => id.startsWith('f'))).toEqual(['f2', 'f2-lines']);
+    expect(trace.operations[0]).toMatchObject({ endedAt: at(60) });
   });
 });
 
