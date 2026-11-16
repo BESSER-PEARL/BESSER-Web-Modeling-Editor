@@ -71,6 +71,7 @@ export function setTraceStorage(next: TraceStorage): void {
   loading.clear();
   unsaved.forEach(clearTimeout);
   unsaved.clear();
+  guiBaselines.clear();
 }
 
 const notify = () => listeners.forEach((listener) => listener());

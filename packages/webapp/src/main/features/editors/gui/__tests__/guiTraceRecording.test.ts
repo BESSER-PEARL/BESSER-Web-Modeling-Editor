@@ -96,4 +96,28 @@ describe('recording a GUI editor in the project trace', () => {
     expect(trace.tools.find((t) => t.id === run.toolCalls[0].toolId)?.type).toBe('ModelGenerator');
     expect(run.type === 'ModelingSession' && run.changes.map((c) => c.kind)).toEqual(['CREATED', 'CREATED', 'DELETED']);
   });
+
+  it('reads the project through the reader given later, when a save made the recorder first', async () => {
+    const table = new FakeComponent({ type: 'table', id: 't1' });
+    const editor = fakeEditor([table]);
+    guiTraceRecorderOf(editor).record(project, diagram, editor.getProjectData()); // before the load handler ran
+    const recorder = guiTraceRecorderOf(editor, () => project);
+    recorder.start();
+    expect(table.getAttributes()).toEqual({ id: 't1' }); // the reader is used: tracing is on
+  });
+
+  it('records what the editor holds when the generator ends, so a later debounced save is not the user’s', async () => {
+    const components: FakeComponent[] = [];
+    const editor = fakeEditor(components);
+    const recorder = guiTraceRecorderOf(editor, () => project);
+    recorder.start();
+    recorder.beginDerivation();
+    components.push(new FakeComponent({ type: 'table', id: 't9' }));
+    recorder.endDerivation(); // no save reached the recorder during the run
+    recorder.record(project, diagram, editor.getProjectData()); // the auto-save, debounced past the run
+    await flushTraceSaves();
+    const trace = await loadProjectTrace(project.id);
+    expect(trace.operations).toHaveLength(1);
+    expect(trace.tools.find((t) => t.id === trace.operations[0].toolCalls[0].toolId)?.type).toBe('ModelGenerator');
+  });
 });
