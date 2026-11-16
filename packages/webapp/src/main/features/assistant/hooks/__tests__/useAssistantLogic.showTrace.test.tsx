@@ -146,7 +146,7 @@ const emitAction = (payload: AssistantActionPayload) =>
   act(async () => {
     _client.actionHandlers.forEach((h) => h(payload));
   });
-const chips = (api: SurfaceAPI) => Object.values(api.meta()).flatMap((m) => m.suggestedActions ?? []);
+const chips = (api: { current: SurfaceAPI | null }) => Object.values(api.current!.meta()).flatMap((m) => m.suggestedActions ?? []);
 
 beforeEach(() => {
   conversationStore.clear();
@@ -165,7 +165,7 @@ describe('show_trace', () => {
       await drawer.current!.submit('what is out of date?');
     });
     emitMessage({ message: 'Two files are out of date.' });
-    return drawer.current!;
+    return drawer;
   };
 
   it('attaches a button to the answer, labelled with the action\'s message, and does not navigate or edit the model', async () => {
