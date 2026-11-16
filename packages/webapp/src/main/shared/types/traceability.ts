@@ -8,8 +8,11 @@
  * ISO 8601 UTC strings (`Date.toISOString()`), optional fields are omitted.
  */
 
-/** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. */
-export const TRACE_SCHEMA_VERSION = 5;
+/** Mirrors `TRACE_SCHEMA_VERSION` in the backend's `constants.py`. 6 added code revisions (`revisionOfId`). */
+export const TRACE_SCHEMA_VERSION = 6;
+/** The oldest version a trace may have and still be read: older ones are migrated (`traceMigration.ts`). A trace
+ *  newer than {@link TRACE_SCHEMA_VERSION} (a backend ahead of the editor) cannot be read. */
+export const OLDEST_TRACE_SCHEMA_VERSION = 1;
 
 /** How an execution went: an operation, or one of its tool calls. */
 export type ExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
@@ -69,6 +72,9 @@ export interface CodeArtifact extends ArtifactBase {
   content?: string;
   startLine?: number;
   endLine?: number;
+  /** The file version this one changed (an LLM editing a generated file): a new version of the same path, written
+   *  by a later operation (`prov:wasRevisionOf`). Since version 6. */
+  revisionOfId?: string;
 }
 
 /** A message given to an agent, kept as an artifact because something was derived from it. */

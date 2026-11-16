@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { diffClassModel } from '../classModelDiff';
 import type { ClassModelLike } from '../classModelDiff';
 import {
-  ASSISTANT_LLM_NAME,
-  ASSISTANT_LLM_PROVIDER,
+  UNKNOWN_ASSISTANT_LLM_NAME,
   endConversation,
   MAX_LOGGED_MESSAGE_CHARS,
   recordConversationReply,
@@ -45,7 +44,7 @@ describe('conversations with the assistant', () => {
     const [chat] = conversations(trace);
     expect(chat.status).toBe('RUNNING'); // the conversation goes on
     expect(trace.actors.map((a) => a.type)).toEqual(['Person', 'Agent']);
-    expect(trace.tools).toEqual([expect.objectContaining({ type: 'LLM', name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER })]);
+    expect(trace.tools).toEqual([expect.objectContaining({ type: 'LLM', name: UNKNOWN_ASSISTANT_LLM_NAME })]);
     const [turn] = chat.toolCalls;
     expect(turn).toMatchObject({ toolId: trace.tools[0].id, sequenceNumber: 0, status: 'SUCCEEDED', endedAt: at(2000) });
     expect(turn.logs.map((l) => [l.sequenceNumber, l.logType, l.content])).toEqual([
@@ -109,7 +108,7 @@ describe('conversations with the assistant', () => {
     const targets = trace.traceLinks.map((l) => trace.artifacts.find((a) => a.id === l.targetId)!.name).sort();
     expect(targets).toEqual(['Author', 'Volume']);
     expect(trace.traceLinks.every((l) => l.sourceId === prompt.id && l.operationId === session.id && !l.confidence)).toBe(true);
-    expect(trace.traceLinks[0].evidence).toEqual([expect.objectContaining({ type: 'AIEvidence', algorithm: ASSISTANT_LLM_NAME, logIds: [logId] })]);
+    expect(trace.traceLinks[0].evidence).toEqual([expect.objectContaining({ type: 'AIEvidence', algorithm: UNKNOWN_ASSISTANT_LLM_NAME, logIds: [logId] })]);
   });
 });
 

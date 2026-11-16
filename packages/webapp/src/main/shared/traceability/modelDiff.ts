@@ -2,7 +2,8 @@ import type { ChangeKind } from '../types/traceability';
 
 /**
  * What changed between two versions of a model, element by element, whatever the model's notation:
- * each notation's diff (`classModelDiff.ts`, `guiModelDiff.ts`) reduces a version to a snapshot of
+ * each notation's diff (`classModelDiff.ts`, `guiModelDiff.ts`, `diagramModelDiff.ts` for the other
+ * diagram types) reduces a version to a snapshot of
  * its elements, and two snapshots are compared here. Element types are B-UML metaclass names, the
  * same names the backend's trace uses.
  */
@@ -46,6 +47,9 @@ export const value = (raw: unknown, absent: unknown = ''): FeatureValue => {
   return { key: text, display: text };
 };
 
+/** The value of a feature an element does not have. */
+const NO_VALUE: FeatureValue = { key: '', display: '' };
+
 /** The changes that turn the `before` snapshot into the `after` one. */
 export function diffSnapshots(before: Map<string, Snapshot>, after: Map<string, Snapshot>): ElementChange[] {
   const created: ElementChange[] = [];
@@ -68,9 +72,12 @@ export function diffSnapshots(before: Map<string, Snapshot>, after: Map<string, 
       created.push({ ...base, kind: 'CREATED', newValue: now.name });
       continue;
     }
-    for (const [feature, current] of Object.entries(now.features)) {
-      const previousValue = old.features[feature];
-      if (previousValue && previousValue.key !== current.key) {
+    // A feature one version has and the other does not (a value set for the first time, or cleared) is
+    // compared with an empty value: it changed unless the present value is empty too.
+    for (const feature of new Set([...Object.keys(old.features), ...Object.keys(now.features)])) {
+      const previousValue = old.features[feature] ?? NO_VALUE;
+      const current = now.features[feature] ?? NO_VALUE;
+      if (previousValue.key !== current.key) {
         updated.push({ ...base, kind: 'UPDATED', feature, oldValue: previousValue.display, newValue: current.display });
       }
     }

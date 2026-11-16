@@ -3,12 +3,12 @@ import { toast } from 'react-toastify';
 import i18n from '../i18n';
 import { reportError } from '../services/errors/reportError';
 import { readLegacyTrace, removeLegacyTrace } from '../services/storage/legacyTraceStorage';
-import { getReferencedDiagram } from '../types/project';
-import type { BesserProject, ProjectDiagram } from '../types/project';
+import { ALL_DIAGRAM_TYPES, getReferencedDiagram } from '../types/project';
+import type { BesserProject, ElementLineageMap, ProjectDiagram, SupportedDiagramType } from '../types/project';
 import { emptyTraceFile, TRACE_SCHEMA_VERSION } from '../types/traceability';
 import type { RequirementArtifact, TraceFile } from '../types/traceability';
-import { diffClassModel } from './classModelDiff';
 import type { ClassModelLike } from './classModelDiff';
+import { DIAGRAM_MODEL_TYPES, diffDiagramModel, snapshotDiagramModel } from './diagramModelDiff';
 import { diffGuiModel, guiBindings, pageSources } from './guiModelDiff';
 import type { GuiModelLike } from './guiModelDiff';
 import type { ElementChange } from './modelDiff';
@@ -17,13 +17,16 @@ import type { TraceStorage } from './traceDatabase';
 import {
   endConversation,
   findModelArtifact,
+  linkDerivedElements,
   mergeTraceFragment,
   pruneStoredContents,
   recordConversationReply,
   recordConversationRequest,
   recordElementChanges,
+  recordSpecDrivenRun,
   GUI_GENERATOR_NAME,
 } from './traceRecorder';
+import type { DerivedElement, LlmUsage, RecordContext, SpecDrivenRunSummary } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
 import { latestRequirements } from './traceQueries';
 import { readAssistantRequirements, requestStating } from './assistantRequirements';
@@ -80,6 +83,10 @@ export const traceActorName = (project: BesserProject): string => project.owner?
 export function traceFileProblem(value: unknown, projectId?: string): string | null {
   if (!value || typeof value !== 'object') return i18n.t('traceability.errors.notATrace');
   const trace = value as Partial<TraceFile>;
+  if (typeof trace.schemaVersion === 'number' && trace.schemaVersion > TRACE_SCHEMA_VERSION) {
+    // Written by a newer backend or editor: this editor cannot know what its new fields mean.
+    return i18n.t('traceability.errors.newerSchemaVersion', { found: String(trace.schemaVersion), expected: TRACE_SCHEMA_VERSION });
+  }
   if (trace.schemaVersion !== TRACE_SCHEMA_VERSION) {
     return i18n.t('traceability.errors.schemaVersion', { found: String(trace.schemaVersion), expected: TRACE_SCHEMA_VERSION });
   }
@@ -218,15 +225,26 @@ export function replaceProjectTrace(projectId: string, trace: TraceFile): Promis
  * An unusable trace is left out, with a warning: the project itself still imports.
  */
 export function importProjectTrace(projectId: string, imported: unknown): boolean {
+  const trace = readImportedTrace(imported);
+  if (!trace) return false;
+  void replaceProjectTrace(projectId, { ...trace, projectId });
+  return true;
+}
+
+/**
+ * The trace a project file brought along, migrated and checked, without storing it: an import checks the trace
+ * with the project and stores it ({@link importProjectTrace}) only once the project itself is saved, so a project
+ * that fails to import leaves no trace behind. Undefined (with a warning) when it cannot be used.
+ */
+export function readImportedTrace(imported: unknown): TraceFile | undefined {
   const value = migrateTraceFile(imported);
   const problem = traceFileProblem(value);
   if (problem) {
     console.warn(`The imported project's trace is unusable (${problem}); importing the project without it.`);
     toast.warn(i18n.t('traceability.toasts.importedTraceUnusable', { problem }));
-    return false;
+    return undefined;
   }
-  void replaceProjectTrace(projectId, { ...(value as TraceFile), projectId });
-  return true;
+  return value as TraceFile;
 }
 
 export function deleteProjectTrace(projectId: string): void {
@@ -252,50 +270,236 @@ export function useProjectTrace(projectId: string | undefined): TraceFile | null
   return trace;
 }
 
+/** A model generator that wrote a diagram, rather than the user in the editor or the assistant: a template
+ *  loaded, a file or a picture imported, a model derived from another one. Its changes are one session of the
+ *  generator (a `ModelGenerator` tool), performed for the user; `source` names the model it was derived from,
+ *  with each derived element's source element (`elements`: derived element id -> source element id). */
+export interface ModelGeneratorSource {
+  generator: string;
+  source?: { diagramId: string; elements?: ElementLineageMap };
+  /** Why a derived element's link holds; {@link DERIVATION_RULE} when unset. */
+  rule?: string;
+}
+
+/** Who made a diagram's changes: the user, the assistant, or a model generator. */
+export type DiagramChangeSource = ModelingSource | ModelGeneratorSource;
+
+/** The model generators of the editor itself, by what they do (the names the trace records). */
+export const MODEL_GENERATORS = {
+  template: 'BESSER template library',
+  fileImport: 'BESSER diagram import',
+  pictureImport: 'BESSER image-to-model import',
+  agentVariant: 'BESSER agent personalization',
+  kgToClass: 'BESSER knowledge graph to class diagram converter',
+  bpmnToComponent: 'BESSER BPMN to component diagram derivation',
+  componentToDeployment: 'BESSER component to deployment diagram derivation',
+  laneToAgent: 'BESSER BPMN lane to agent derivation',
+} as const;
+
+/** Why a derived element is linked from the element it was derived from. */
+export const DERIVATION_RULE = 'element derived from the source element by the model generator';
+
+const isGeneratorSource = (source: DiagramChangeSource | 'derivation'): source is ModelGeneratorSource =>
+  typeof source === 'object' && source !== null;
+
+/** The diagram type `diagram` belongs to in `project`, or undefined when the project does not hold it. */
+export function diagramTypeOf(project: BesserProject, diagramId: string): SupportedDiagramType | undefined {
+  return ALL_DIAGRAM_TYPES.find((type) => (project.diagrams[type] ?? []).some((d) => d.id === diagramId));
+}
+
+function findDiagram(project: BesserProject, diagramId: string): ProjectDiagram | undefined {
+  for (const type of ALL_DIAGRAM_TYPES) {
+    const found = (project.diagrams[type] ?? []).find((d) => d.id === diagramId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** The pending assistant request an assistant's edit answers, or undefined (no turn under way, or it ended too long
+ *  ago for this edit to be part of it). */
+function requestAnswered(projectId: string, now: string): PendingRequest | undefined {
+  if (pendingRequest?.projectId !== projectId) return undefined;
+  if (pendingRequest.endedAt !== undefined && Date.parse(now) - Date.parse(pendingRequest.endedAt) > TURN_GRACE_MS) {
+    pendingRequest = null; // the turn is over: a later edit is not its answer
+    return undefined;
+  }
+  return pendingRequest;
+}
+
+/** The derived elements of `mapping` (derived element id -> source element id) that both models trace. */
+function derivedElements(
+  sourceType: SupportedDiagramType, source: ProjectDiagram, mapping: ElementLineageMap,
+): DerivedElement[] {
+  const snapshots = snapshotDiagramModel(sourceType, source.model, source.id);
+  const result: DerivedElement[] = [];
+  for (const [derivedId, sourceId] of Object.entries(mapping)) {
+    const found = snapshots.get(sourceId);
+    if (!found) continue;
+    const owner = found.parentElementId ? snapshots.get(found.parentElementId) : undefined;
+    result.push({
+      elementId: derivedId,
+      source: {
+        elementId: sourceId, elementType: found.elementType, name: found.name,
+        ...(owner && found.parentElementId ? { parent: { elementId: found.parentElementId, elementType: owner.elementType, name: owner.name } } : {}),
+      },
+    });
+  }
+  return result;
+}
+
+/**
+ * Record the changes between two versions of a diagram of any type, when the project records traces: a modeling
+ * session of the user or the assistant (an assistant's edits are linked from the request they answer, and a class
+ * diagram's from the requirements it extracted), or one session of a model generator. A GUI goes through
+ * {@link recordGuiDiagramUpdate}, with its bindings.
+ */
+export function recordDiagramUpdate(
+  project: BesserProject,
+  diagramType: SupportedDiagramType,
+  diagram: ProjectDiagram,
+  previousModel: unknown,
+  nextModel: unknown,
+  source: DiagramChangeSource,
+): void {
+  if (diagramType === 'GUINoCodeDiagram') {
+    recordGuiDiagramUpdate(project, diagram, previousModel, nextModel, source);
+    return;
+  }
+  if (!isTraceabilityEnabled(project)) return;
+  const changes = diffDiagramModel(diagramType, previousModel, nextModel, diagram.id);
+  if (changes.length === 0) return;
+  const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
+  const generator = isGeneratorSource(source) ? source : undefined;
+  const derivedFrom = generator?.source ? findDiagram(project, generator.source.diagramId) : undefined;
+  const derivedFromType = derivedFrom && diagramTypeOf(project, derivedFrom.id);
+  void updateProjectTrace(project.id, (trace) => {
+    // Read when the update applies, after the request it answers has been recorded.
+    const pending = source === 'assistant' ? requestAnswered(project.id, now) : undefined;
+    const requirements = diagramType === 'ClassDiagram' ? pending?.requirements : undefined;
+    if (pending && requirements) {
+      pending.requirements = undefined; // recorded with the first edits that answer the request
+      // Every edit of the turn was built from the request stating them, the later ones too.
+      pending.requirementsRequest = requestStating(requirements, recentRequestsOf(project.id));
+    }
+    const ctx: RecordContext = {
+      diagramId: diagram.id,
+      diagramTitle: diagram.title,
+      modelType: DIAGRAM_MODEL_TYPES[diagramType],
+      actorName: traceActorName(project),
+      source: source === 'assistant' ? 'assistant' : 'user',
+      now,
+      request: pending?.request,
+      requirements,
+      requirementsRequest: pending?.requirementsRequest,
+      ...(diagramType === 'ClassDiagram' ? { model: nextModel as ClassModelLike } : {}),
+      ...(generator ? { generatorName: generator.generator } : {}),
+    };
+    if (derivedFrom && derivedFromType && generator?.source?.elements) {
+      // Each derived element is linked from the element it was derived from, by the generator's session.
+      ctx.bindings = new Map(derivedElements(derivedFromType, derivedFrom, generator.source.elements).map((d) => [d.elementId, [d.source]]));
+      ctx.boundModel = { id: derivedFrom.id, title: derivedFrom.title, modelType: DIAGRAM_MODEL_TYPES[derivedFromType] };
+      ctx.bindingRule = generator.rule ?? DERIVATION_RULE;
+    }
+    recordElementChanges(trace, changes, ctx);
+  });
+}
+
 /** Record the edits between two versions of a class diagram, when the project records traces. */
 export function recordClassDiagramUpdate(
   project: BesserProject,
   diagram: ProjectDiagram,
   previousModel: unknown,
   nextModel: unknown,
-  source: ModelingSource,
+  source: DiagramChangeSource,
 ): void {
-  if (!isTraceabilityEnabled(project)) return;
-  const changes = diffClassModel(previousModel as ClassModelLike, nextModel as ClassModelLike);
-  if (changes.length === 0) return;
-  const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
-  void updateProjectTrace(project.id, (trace) => {
-    // Read when the update applies, after the request it answers has been recorded.
-    const pending = source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest : undefined;
-    const requirements = pending?.requirements;
-    if (pending && requirements) {
-      pending.requirements = undefined; // recorded with the first edits that answer the request
-      // Every edit of the turn was built from the request stating them, the later ones too.
-      pending.requirementsRequest = requestStating(requirements, recentRequestsOf(project.id));
-    }
-    recordElementChanges(trace, changes, {
-      diagramId: diagram.id,
-      diagramTitle: diagram.title,
-      actorName: traceActorName(project),
-      source,
-      now,
-      request: pending?.request,
-      requirements,
-      requirementsRequest: pending?.requirementsRequest,
-      model: nextModel as ClassModelLike,
-    });
-  });
+  recordDiagramUpdate(project, 'ClassDiagram', diagram, previousModel, nextModel, source);
 }
 
-/** Who made a GUI diagram's changes: the user, the assistant, or the GUI generator deriving it from the class
- *  diagram (for the user). */
-export type GuiChangeSource = ModelingSource | 'derivation';
+/**
+ * Record that a diagram was added to the project (empty, or with the model it was created with, which is then
+ * recorded as its first changes, by `source`).
+ */
+export function recordDiagramCreated(
+  project: BesserProject,
+  diagramType: SupportedDiagramType,
+  diagram: ProjectDiagram,
+  source: DiagramChangeSource = 'user',
+): void {
+  if (!isTraceabilityEnabled(project)) return;
+  const now = new Date().toISOString();
+  const generator = isGeneratorSource(source) ? source : undefined;
+  void updateProjectTrace(project.id, (trace) => {
+    if (findModelArtifact(trace, diagram.id)) return false; // already known (a replayed creation)
+    recordElementChanges(
+      trace,
+      [{ kind: 'CREATED', elementId: diagram.id, elementType: DIAGRAM_MODEL_TYPES[diagramType], name: diagram.title, parentElementId: null, newValue: diagram.title }],
+      {
+        diagramId: diagram.id, diagramTitle: diagram.title, modelType: DIAGRAM_MODEL_TYPES[diagramType],
+        actorName: traceActorName(project), source: source === 'assistant' ? 'assistant' : 'user', now,
+        ...(generator ? { generatorName: generator.generator } : {}),
+      },
+    );
+  });
+  if (diagram.model !== undefined) recordDiagramUpdate(project, diagramType, diagram, undefined, diagram.model, source);
+}
+
+/**
+ * Feed a derived diagram's element lineage (`project.elementLineage[derivedDiagramId]`: derived element id ->
+ * source element id, written by the inter-diagram derivations) into the trace: each derived element is linked from
+ * its source element by the generator session that wrote the derived diagram (see `linkDerivedElements`).
+ */
+export function recordElementLineage(
+  project: BesserProject,
+  derivedDiagramId: string,
+  mapping: ElementLineageMap,
+  generator: string,
+  sourceDiagramId?: string,
+): void {
+  if (!isTraceabilityEnabled(project)) return;
+  const derived = findDiagram(project, derivedDiagramId);
+  const derivedType = derived && diagramTypeOf(project, derived.id);
+  const sourceId = sourceDiagramId ?? derived?.derivedFrom?.sourceDiagramId;
+  const source = sourceId ? findDiagram(project, sourceId) : undefined;
+  const sourceType = source && diagramTypeOf(project, source.id);
+  if (!derived || !derivedType || !source || !sourceType) return;
+  const elements = derivedElements(sourceType, source, mapping);
+  if (elements.length === 0) return;
+  const now = new Date().toISOString();
+  void updateProjectTrace(project.id, (trace) =>
+    linkDerivedElements(trace, elements, {
+      diagramId: derived.id, diagramTitle: derived.title, modelType: DIAGRAM_MODEL_TYPES[derivedType],
+      sourceModel: { id: source.id, title: source.title, modelType: DIAGRAM_MODEL_TYPES[sourceType] },
+      generatorName: generator, rule: DERIVATION_RULE, actorName: traceActorName(project), now,
+    }) ? undefined : false,
+  );
+}
+
+/** Who made a GUI diagram's changes: the user, the assistant, the GUI generator deriving it from the class
+ *  diagram (for the user), or another model generator. */
+export type GuiChangeSource = DiagramChangeSource | 'derivation';
+
+/**
+ * The GUI each GUI diagram was last recorded at, by diagram id: what its next change is compared with. Kept here,
+ * not in the GUI editor, so the editor's saves and the assistant's writes (through the store, possibly while the
+ * editor is closed) are compared with one another: a GUI recorded by one is not recorded again by the other, and
+ * the assistant's changes are never attributed to the user's next save.
+ */
+const guiBaselines = new Map<string, unknown>();
+
+/** Whether a GUI diagram has a recorded baseline (see {@link setGuiBaseline}). */
+export const hasGuiBaseline = (diagramId: string): boolean => guiBaselines.has(diagramId);
+
+/** Take `model` as what a GUI diagram's next change is compared with (the GUI as the editor loaded it). */
+export function setGuiBaseline(diagramId: string, model: unknown): void {
+  guiBaselines.set(diagramId, model);
+}
 
 /**
  * Record the changes between two versions of a GUI diagram, when the project records traces: a modeling
  * session of the user or the assistant, or the one session of a GUI generator run. Each changed element is
  * linked to the class-diagram elements it is bound to (the diagram the GUI references); an assistant's edits are
- * linked from the request they answer, as for a class diagram.
+ * linked from the request they answer, as for a class diagram. The changes are taken from the GUI last recorded
+ * for this diagram ({@link setGuiBaseline}), else from `previousModel` (undefined: from nothing).
  */
 export function recordGuiDiagramUpdate(
   project: BesserProject,
@@ -304,45 +508,59 @@ export function recordGuiDiagramUpdate(
   nextModel: unknown,
   source: GuiChangeSource,
 ): void {
-  if (!isTraceabilityEnabled(project)) return;
+  if (!isTraceabilityEnabled(project)) {
+    guiBaselines.delete(diagram.id); // edits made while off are not attributed to the next recorded one
+    return;
+  }
+  const previous = guiBaselines.has(diagram.id) ? guiBaselines.get(diagram.id) : previousModel;
+  guiBaselines.set(diagram.id, nextModel);
   const classDiagram = getReferencedDiagram(project, diagram, 'ClassDiagram');
   const classModel = classDiagram?.model as ClassModelLike | undefined;
-  const changes = diffGuiModel(previousModel as GuiModelLike, nextModel as GuiModelLike, classModel);
+  const changes = diffGuiModel(previous as GuiModelLike, nextModel as GuiModelLike, classModel);
   if (changes.length === 0) return;
   const now = new Date().toISOString(); // when the edit happened, not when the trace finished loading
+  const derived = source === 'derivation';
+  const generator = derived ? GUI_GENERATOR_NAME : isGeneratorSource(source) ? source.generator : undefined;
   // A generator run also derives each page from the classes it shows: the page is generated for them.
   const bindings = new Map([
     ...guiBindings(nextModel as GuiModelLike, classModel),
-    ...(source === 'derivation' ? pageSources(nextModel as GuiModelLike, classModel) : []),
+    ...(derived ? pageSources(nextModel as GuiModelLike, classModel) : []),
   ]);
   void updateProjectTrace(project.id, (trace) => {
-    const pending = source === 'assistant' && pendingRequest?.projectId === project.id ? pendingRequest : undefined;
-    const ctx = {
+    const pending = source === 'assistant' ? requestAnswered(project.id, now) : undefined;
+    const ctx: RecordContext = {
       diagramId: diagram.id,
       diagramTitle: diagram.title,
       modelType: 'GUIModel',
       actorName: traceActorName(project),
-      source: source === 'derivation' ? ('user' as const) : source,
+      source: source === 'assistant' ? 'assistant' : 'user',
       now,
       request: pending?.request,
       bindings,
       ...(classDiagram ? { boundModel: { id: classDiagram.id, title: classDiagram.title, modelType: 'DomainModel' } } : {}),
-      ...(source === 'derivation' ? { generatorName: GUI_GENERATOR_NAME } : {}),
+      ...(generator ? { generatorName: generator } : {}),
     };
     recordElementChanges(trace, changes, ctx);
   });
 }
 
-/** The last request to the assistant: the edits it leads to are linked from it, and from the
- *  requirements the assistant extracted from it. One at a time, as the assistant answers one request
- *  at a time. */
-let pendingRequest: {
+/** An assistant edit this long after its turn's last terminal reply is not part of the turn any more. */
+export const TURN_GRACE_MS = 30 * 1000;
+
+interface PendingRequest {
   projectId: string;
   request: AssistantRequest;
   requirements?: AssistantRequirements;
   /** The request stating the turn's requirements, once they are recorded. */
   requirementsRequest?: AssistantRequest;
-} | null = null;
+  /** When the turn's last answer or error came; edits come with it or right after it. */
+  endedAt?: string;
+}
+
+/** The last request to the assistant: the edits it leads to are linked from it, and from the
+ *  requirements the assistant extracted from it. One at a time, as the assistant answers one request
+ *  at a time; it no longer answers once its turn has been over for {@link TURN_GRACE_MS}. */
+let pendingRequest: PendingRequest | null = null;
 
 /** Requests to the assistant kept to find the one a reply's requirements were extracted from: on a confirmed
  *  replace or an "Update model + generate", the assistant rebuilds the model from the application request of
@@ -400,11 +618,35 @@ export async function projectRequirements(project: BesserProject): Promise<Requi
   return latestRequirements(await loadProjectTrace(project.id));
 }
 
-/** Record what the assistant sent back: progress, its answer, or an error. */
-export function recordAssistantReply(project: BesserProject | null | undefined, kind: AssistantReplyKind, text: string): void {
-  if (!project || !isTraceabilityEnabled(project) || !text.trim()) return;
+/**
+ * Record what the assistant sent back: progress, its answer, or an error. `usage` (`llmUsage` of a terminal
+ * reply: the model and tokens of the turn) files the turn under the model that really ran.
+ */
+export function recordAssistantReply(
+  project: BesserProject | null | undefined, kind: AssistantReplyKind, text: string, usage?: LlmUsage,
+): void {
+  if (!project || !isTraceabilityEnabled(project) || (!text.trim() && !usage)) return;
   const now = new Date().toISOString();
-  void updateProjectTrace(project.id, (trace) => (recordConversationReply(trace, kind, text, now) ? undefined : false));
+  if (kind !== 'progress' && pendingRequest?.projectId === project.id) pendingRequest.endedAt = now;
+  void updateProjectTrace(project.id, (trace) => (recordConversationReply(trace, kind, text, now, usage) ? undefined : false));
+}
+
+/** The `llmUsage` a reply of the modeling agent carries, checked field by field (the reply is untrusted), or
+ *  undefined when it carries none that can be used. */
+export function readLlmUsage(raw: unknown): LlmUsage | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const usage = raw as Record<string, unknown>;
+  const model = typeof usage.model === 'string' ? usage.model.trim().slice(0, 200) : '';
+  if (!model) return undefined;
+  const provider = typeof usage.provider === 'string' && usage.provider.trim() ? usage.provider.trim().slice(0, 100) : undefined;
+  const tokens = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) && n >= 0 ? Math.round(n) : undefined);
+  const [inputTokens, outputTokens] = [tokens(usage.inputTokens), tokens(usage.outputTokens)];
+  return {
+    model,
+    ...(provider ? { provider } : {}),
+    ...(inputTokens !== undefined ? { inputTokens } : {}),
+    ...(outputTokens !== undefined ? { outputTokens } : {}),
+  };
 }
 
 /** End the conversation under way: the user starts a new chat. */
@@ -445,6 +687,21 @@ export function recordDiagramRenamed(project: BesserProject, diagramId: string, 
 
 export function recordDiagramDeleted(project: BesserProject, diagramId: string, title: string): void {
   recordDiagramChange(project, diagramId, title, { kind: 'DELETED', oldValue: title });
+}
+
+/**
+ * Record a Spec-Driven run: the trace fragment its `done` event carried, merged like a generation's; else, for a
+ * backend that sends none, the operation the stream's own events describe (`recordSpecDrivenRun`), so a run is
+ * never missing from the trace.
+ */
+export function recordSpecDrivenOutcome(
+  project: BesserProject | null | undefined, fragment: unknown, summary: Omit<SpecDrivenRunSummary, 'actorName'>,
+): void {
+  if (!project || !isTraceabilityEnabled(project)) return;
+  if (fragment !== undefined && fragment !== null && recordGenerationTrace(project.id, { ...(fragment as object), projectId: project.id })) return;
+  void updateProjectTrace(project.id, (trace) =>
+    recordSpecDrivenRun(trace, { ...summary, actorName: traceActorName(project) }) ? undefined : false,
+  );
 }
 
 /** Merge the trace fragment of a generation run into the project trace; false when it was left out. */

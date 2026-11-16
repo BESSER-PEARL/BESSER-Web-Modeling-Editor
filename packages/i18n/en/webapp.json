@@ -891,6 +891,7 @@
       "unknownDeploymentError": "Unknown error occurred during deployment",
       "noProjectAvailable": "No project available for code generation",
       "codeGenerationCompleted": "Code generation completed successfully",
+      "traceNotRecorded": "The code was generated, but its trace was not recorded: the backend could not trace this generation.",
       "requestTimedOut": "Request timed out. Please try again.",
       "unknownError": "Unknown error occurred",
       "createOrLoadProject": "Create or load a project before generating code.",
@@ -4636,7 +4637,8 @@
     "errors": {
       "notATrace": "This is not a BESSER trace file.",
       "schemaVersion": "Unsupported trace file version {{found}} (expected {{expected}}).",
-      "otherProject": "This trace file belongs to another project."
+      "otherProject": "This trace file belongs to another project.",
+      "newerSchemaVersion": "This trace was written by a newer version of BESSER (trace file version {{found}}; this editor reads up to {{expected}}). Update the editor to use it."
     },
     "toasts": {
       "storedTraceUnusable": "The stored trace of this project could not be read; a new one was started.",
@@ -4645,6 +4647,7 @@
       "storageFull": "Trace storage is full and the latest change was not recorded. Export the project with its trace, then clear the trace to continue.",
       "importedTraceUnusable": "The project was imported without its trace: {{problem}}",
       "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}",
+      "exportedTraceDroppedByBackend": "The backend did not keep the project trace (it is an older BESSER version): the B-UML file was exported without it.",
       "storageUnavailable": "The browser's storage for traces could not be opened: traces are kept for this session only."
     },
     "unknownActor": "Unknown",

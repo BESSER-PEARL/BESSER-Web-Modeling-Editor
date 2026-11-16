@@ -1,6 +1,11 @@
 import type { TraceFile, TraceLogRecord, TraceOperation, TraceTool, TraceToolCall } from '../types/traceability';
 import { TRACE_SCHEMA_VERSION } from '../types/traceability';
-import { ASSISTANT_LLM_NAME, ASSISTANT_LLM_PROVIDER } from './traceRecorder';
+
+/** The LLM a version 2 trace's assistant messages are filed under. Version 2 did not record the assistant's model,
+ *  and the editor then assumed the modeling agent's default; the name is kept as it was so a version 2 trace
+ *  migrates to the same version 3 one whenever it is read (a newer editor records the model the agent reports). */
+export const V2_ASSISTANT_LLM_NAME = 'gpt-6-luna';
+export const V2_ASSISTANT_LLM_PROVIDER = 'openai';
 
 /**
  * Brings a trace written by an older version up to {@link TRACE_SCHEMA_VERSION}, so traces already
@@ -12,11 +17,12 @@ import { ASSISTANT_LLM_NAME, ASSISTANT_LLM_PROVIDER } from './traceRecorder';
  * and its `logs` moved into the calls of the tools they named. Version 4 renamed what an operation
  * `consumes` and `produces` to what it `reads` and `writes`, and the `Modeling` operation to `ModelingSession`.
  * Version 5 added requirement artifacts: a version 4 trace has none, so it is already a valid version 5 one.
+ * Version 6 added code revisions (`revisionOfId`, optional): a version 5 trace is already a valid version 6 one.
  */
 export function migrateTraceFile(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   let trace = value as { schemaVersion?: unknown; operations?: unknown };
-  if (!Array.isArray(trace.operations) || ![1, 2, 3, 4].includes(trace.schemaVersion as number)) return value;
+  if (!Array.isArray(trace.operations) || ![1, 2, 3, 4, 5].includes(trace.schemaVersion as number)) return value;
   if (trace.schemaVersion === 1) {
     trace = { ...(trace as object), schemaVersion: 2, operations: (trace.operations as Record<string, unknown>[]).map(operationV1toV2) };
   }
@@ -46,9 +52,9 @@ type V2Trace = Omit<TraceFile, 'operations'> & { operations: V2Operation[] };
 function traceV2toV3(trace: V2Trace): V3Trace {
   const tools: TraceTool[] = [...(trace.tools ?? [])];
   const assistantLlm = (startedAt: string): TraceTool => {
-    let tool = tools.find((t) => t.type === 'LLM' && t.name === ASSISTANT_LLM_NAME);
+    let tool = tools.find((t) => t.type === 'LLM' && t.name === V2_ASSISTANT_LLM_NAME);
     if (!tool) {
-      tool = { id: 'assistant-llm', type: 'LLM', name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER, timestamp: startedAt };
+      tool = { id: 'assistant-llm', type: 'LLM', name: V2_ASSISTANT_LLM_NAME, provider: V2_ASSISTANT_LLM_PROVIDER, timestamp: startedAt };
       tools.push(tool);
     }
     return tool;
@@ -78,4 +84,23 @@ function traceV3toV4(trace: V3Trace): TraceFile {
   const operations = trace.operations.map(({ type, consumes = [], produces = [], ...rest }) =>
     ({ ...rest, type: type === 'Modeling' ? 'ModelingSession' : type, reads: consumes, writes: produces }) as TraceOperation);
   return { ...trace, schemaVersion: 4, operations };
+}
+
+/**
+ * `trace` as an older reader expects it: version `version`, for a backend that does not read
+ * {@link TRACE_SCHEMA_VERSION} yet (the contract lets the editor run ahead of the backend). Only what the older
+ * version cannot hold is dropped (version 5 has no code revisions). Undefined for a version it cannot be written as.
+ */
+export function downgradeTraceFile(trace: TraceFile, version: number): TraceFile | undefined {
+  if (version === TRACE_SCHEMA_VERSION) return trace;
+  if (version !== 5 || TRACE_SCHEMA_VERSION !== 6) return undefined;
+  return {
+    ...trace,
+    schemaVersion: 5,
+    artifacts: trace.artifacts.map((artifact) => {
+      if (artifact.type !== 'CodeArtifact' || artifact.revisionOfId === undefined) return artifact;
+      const { revisionOfId: _dropped, ...rest } = artifact;
+      return rest;
+    }),
+  };
 }

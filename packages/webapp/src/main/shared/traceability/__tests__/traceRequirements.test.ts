@@ -4,8 +4,7 @@ import type { AssistantRequirements } from '../assistantRequirements';
 import { diffClassModel, findNamedElement } from '../classModelDiff';
 import type { ClassModelLike } from '../classModelDiff';
 import {
-  ASSISTANT_LLM_NAME,
-  ASSISTANT_LLM_PROVIDER,
+  UNKNOWN_ASSISTANT_LLM_NAME,
   recordConversationRequest,
   recordElementChanges,
   REQUIREMENT_QUOTE_RULE,
@@ -248,7 +247,8 @@ describe('recording the requirements of an assistant edit', () => {
     const { trace } = record(readAssistantRequirements(STATED)!);
     const [extraction] = operations(trace, 'RequirementExtraction');
     const llm = trace.tools.find((tool) => tool.id === extraction.toolCalls[0].toolId);
-    expect(llm).toMatchObject({ name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER });
+    expect(llm).toMatchObject({ name: UNKNOWN_ASSISTANT_LLM_NAME });
+    expect(llm?.provider).toBeUndefined();
   });
 
   it('links each requirement to the elements that realize it, through the edits’ session', () => {
@@ -264,7 +264,7 @@ describe('recording the requirements of an assistant edit', () => {
     expect(session.reads).toEqual(expect.arrayContaining([`${callId}:R1`, `${callId}:R2`]));
     expect(session.reads).not.toContain(`${callId}:R3`); // realized by no element: not modeled
     const link = trace.traceLinks.find((l) => l.sourceId === `${callId}:R1`)!;
-    expect(link).toMatchObject({ operationId: session.id, evidence: [{ type: 'AIEvidence', algorithm: ASSISTANT_LLM_NAME, logIds: [logId] }] });
+    expect(link).toMatchObject({ operationId: session.id, evidence: [{ type: 'AIEvidence', algorithm: UNKNOWN_ASSISTANT_LLM_NAME, logIds: [logId] }] });
     warn.mockRestore();
   });
 

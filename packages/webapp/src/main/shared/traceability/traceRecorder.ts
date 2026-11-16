@@ -21,6 +21,7 @@ import { turnExtractionId, turnPromptId } from './traceQueries';
 import type { ClassModelLike } from './classModelDiff';
 import type { ElementChange } from './modelDiff';
 import type { BoundElement } from './guiModelDiff';
+import type { TraceArtifact } from '../types/traceability';
 
 /**
  * Writes what happened into a project trace. Every function here updates the
@@ -42,14 +43,18 @@ export const KEPT_CONTENTS_PER_PATH = 3;
  *  its files' hashes (what was generated, by whom, when), so the trace stops growing with every run;
  *  its links were superseded by the newer runs' anyway. */
 export const KEPT_GENERATIONS_PER_GENERATOR = 5;
+/** Generation runs per generator kept at all. A run older than these is removed with the files it wrote, so the
+ *  operations and file artifacts of generation stop growing too (see {@link pruneOldGenerations}). */
+export const KEPT_GENERATION_RECORDS_PER_GENERATOR = 20;
 
 export const EDITOR_TOOL_NAME = 'BESSER Web Modeling Editor';
 export const ASSISTANT_AGENT_NAME = 'BESSER modeling assistant';
-/** The LLM the assistant answers with. The assistant does not report the model it ran, so the trace
- *  assumes the modeling agent's default for class diagrams and its classifier (`MODEL_GENERATION_SMALL`
- *  and `MODEL_CLASSIFIER` in its `model_config.py`); a deployment or a user's own key can change it. */
-export const ASSISTANT_LLM_NAME = 'gpt-6-luna';
-export const ASSISTANT_LLM_PROVIDER = 'openai';
+/** The LLM a turn of the assistant is filed under until the agent reports the model it ran (`llmUsage` on a
+ *  terminal reply, see {@link recordConversationReply}); it stays when the agent never reports it (an older
+ *  agent). It names no real model on purpose: the deployment, or the user's own key, decides which one ran. */
+export const UNKNOWN_ASSISTANT_LLM_NAME = 'unknown model (not reported by the assistant)';
+/** The Spec-Driven Agent, an agent of its own in the trace. */
+export const SPEC_DRIVEN_AGENT_NAME = 'BESSER Spec-Driven Agent';
 /** A conversation message longer than this is cut in the trace (a pasted document would otherwise fill it). */
 export const MAX_LOGGED_MESSAGE_CHARS = 10_000;
 /** How much of a request names its prompt artifact. */
@@ -75,6 +80,8 @@ export interface RecordContext {
   bindings?: Map<string, BoundElement[]>;
   /** The diagram holding the bound elements. */
   boundModel?: { id: string; title: string; modelType: string };
+  /** Why a bound element's link holds (the evidence's rule); {@link GUI_BINDING_RULE} when unset. */
+  bindingRule?: string;
   /** The model generator that derived these changes in one run (a GUI generated from its class diagram), when
    *  they were not made in the editor: their session calls it, and is never merged with another. */
   generatorName?: string;
@@ -124,10 +131,12 @@ function ensureActor(trace: TraceFile, type: TraceActor['type'], name: string, n
   return actor;
 }
 
+/** The tool of this type, name, version and provider, made on first use: the same model name served by two
+ *  providers is two tools. */
 function ensureTool(
   trace: TraceFile, type: TraceTool['type'], name: string, now: string, version?: string, provider?: string,
 ): TraceTool {
-  let tool = trace.tools.find((t) => t.type === type && t.name === name && t.version === version);
+  let tool = trace.tools.find((t) => t.type === type && t.name === name && t.version === version && t.provider === provider);
   if (!tool) {
     tool = { id: newId(), type, name, timestamp: now, ...(version ? { version } : {}), ...(provider ? { provider } : {}) };
     trace.tools.push(tool);
@@ -277,7 +286,7 @@ function linkBindings(trace: TraceFile, operation: TraceOperation, changes: Elem
         : undefined;
       const source = ensureModelArtifact(trace, bound.elementId, bound.elementType, bound.name, (owner ?? boundModel).id, ctx.now);
       if (!operation.reads.includes(source.id)) operation.reads.push(source.id);
-      const evidence = [{ id: newId(), type: 'RuleEvidence' as const, rule: GUI_BINDING_RULE, timestamp: ctx.now }];
+      const evidence = [{ id: newId(), type: 'RuleEvidence' as const, rule: ctx.bindingRule ?? GUI_BINDING_RULE, timestamp: ctx.now }];
       const existing = trace.traceLinks.find((link) => link.sourceId === source.id && link.targetId === target.id);
       if (existing && ctx.generatorName) {
         // A generator run that derives the element again makes the link again: it holds from this run on.
@@ -351,7 +360,7 @@ export function recordConversationRequest(
     trace.operations.push(conversation);
   }
   cancelUnanswered(conversation);
-  const llm = ensureTool(trace, 'LLM', ASSISTANT_LLM_NAME, ctx.now, undefined, ASSISTANT_LLM_PROVIDER);
+  const llm = ensureTool(trace, 'LLM', UNKNOWN_ASSISTANT_LLM_NAME, ctx.now);
   const log = { id: newId(), content: capped(text), sequenceNumber: 0, logType: 'INPUT_REQUEST' as const, timestamp: ctx.now };
   const call: TraceToolCall = {
     id: newId(), toolId: llm.id, sequenceNumber: conversation.toolCalls.length, status: 'RUNNING', startedAt: ctx.now, logs: [log],
@@ -361,18 +370,63 @@ export function recordConversationRequest(
 }
 
 /** Record what the assistant sent back in the last turn; an answer or an error ends the turn (a later
- *  reply of the same turn, such as the message after an edit, is still added to it). */
-export function recordConversationReply(trace: TraceFile, kind: AssistantReplyKind, text: string, now: string): boolean {
+ *  reply of the same turn, such as the message after an edit, is still added to it). `usage`, which a terminal
+ *  reply may carry, is the turn's LLM and token totals: see {@link recordTurnUsage}. */
+export function recordConversationReply(
+  trace: TraceFile, kind: AssistantReplyKind, text: string, now: string, usage?: LlmUsage,
+): boolean {
   const calls = openConversation(trace)?.toolCalls ?? [];
   const call = calls[calls.length - 1];
   // A reply before any request (a greeting when the assistant connects) belongs to no turn.
   if (!call) return false;
-  call.logs.push({ id: newId(), content: capped(text), sequenceNumber: call.logs.length, logType: REPLY_LOG_TYPES[kind], timestamp: now });
+  if (text.trim()) {
+    call.logs.push({ id: newId(), content: capped(text), sequenceNumber: call.logs.length, logType: REPLY_LOG_TYPES[kind], timestamp: now });
+  }
   if (kind !== 'progress') {
     call.status = kind === 'error' ? 'FAILED' : 'SUCCEEDED';
     call.endedAt = now;
   }
+  if (usage) recordTurnUsage(trace, call, usage, now);
   return true;
+}
+
+/** The LLM and the tokens of a turn, as the modeling agent reports them (`llmUsage`: the totals of the turn's
+ *  LLM calls). */
+export interface LlmUsage {
+  model: string;
+  provider?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+/**
+ * File a turn under the LLM the agent reports, with its token totals (the latest report of the turn wins: each
+ * carries the totals so far). The AI evidence of the links the turn made names the reported model from then on,
+ * and the placeholder tool is dropped once no call uses it.
+ */
+function recordTurnUsage(trace: TraceFile, call: TraceToolCall, usage: LlmUsage, now: string): void {
+  const previous = trace.tools.find((t) => t.id === call.toolId);
+  const llm = ensureTool(trace, 'LLM', usage.model, now, undefined, usage.provider);
+  call.toolId = llm.id;
+  if (usage.inputTokens !== undefined) call.inputTokens = usage.inputTokens;
+  if (usage.outputTokens !== undefined) call.outputTokens = usage.outputTokens;
+  if (!previous || previous.id === llm.id) return;
+  const turnLogs = new Set(call.logs.map((log) => log.id));
+  for (const link of trace.traceLinks) {
+    for (const evidence of link.evidence) {
+      if (evidence.type === 'AIEvidence' && evidence.algorithm === previous.name && evidence.logIds?.some((id) => turnLogs.has(id))) {
+        evidence.algorithm = llm.name;
+      }
+    }
+  }
+  const stillUsed = trace.operations.some((operation) => operation.toolCalls.some((c) => c.toolId === previous.id));
+  if (!stillUsed) trace.tools.splice(trace.tools.indexOf(previous), 1);
+}
+
+/** The name of the LLM `request`'s turn is filed under (the reported one, else the placeholder). */
+function turnLlmName(trace: TraceFile, request: AssistantRequest): string {
+  const call = conversationOf(trace, request)?.toolCalls.find((c) => c.id === request.callId);
+  return trace.tools.find((t) => t.id === call?.toolId)?.name ?? UNKNOWN_ASSISTANT_LLM_NAME;
 }
 
 /** End the conversation under way (a new chat starts). */
@@ -438,7 +492,7 @@ function linkRequest(
     if (trace.traceLinks.some((link) => link.sourceId === promptId && link.targetId === target.id)) continue;
     trace.traceLinks.push({
       id: newId(), sourceId: promptId, targetId: target.id, operationId: session.id, timestamp: now,
-      evidence: [{ id: newId(), type: 'AIEvidence', algorithm: ASSISTANT_LLM_NAME, logIds: [request.logId], timestamp: now }],
+      evidence: [{ id: newId(), type: 'AIEvidence', algorithm: turnLlmName(trace, request), logIds: [request.logId], timestamp: now }],
     });
   }
 }
@@ -455,9 +509,11 @@ function ensureExtraction(
   const id = turnExtractionId(request.callId);
   const existing = trace.operations.find((o): o is RequirementExtractionOperation => o.id === id && o.type === 'RequirementExtraction');
   if (existing) return existing;
-  // An agent that does not name the model ran the one the whole conversation is assumed to run.
-  const model = stated.model ?? { name: ASSISTANT_LLM_NAME, provider: ASSISTANT_LLM_PROVIDER };
-  const llm = ensureTool(trace, 'LLM', model.name, now, undefined, model.provider);
+  // An agent that does not name the extraction's model ran the one its turn is filed under.
+  const turnCall = conversation.toolCalls.find((call) => call.id === request.callId);
+  const llm = stated.model
+    ? ensureTool(trace, 'LLM', stated.model.name, now, undefined, stated.model.provider)
+    : trace.tools.find((t) => t.id === turnCall?.toolId) ?? ensureTool(trace, 'LLM', UNKNOWN_ASSISTANT_LLM_NAME, now);
   const startedAt = conversation.toolCalls.find((call) => call.id === request.callId)!.startedAt;
   const extraction: RequirementExtractionOperation = {
     id, type: 'RequirementExtraction', status: 'SUCCEEDED', startedAt, endedAt: now,
@@ -523,97 +579,159 @@ function linkRequirements(
       if (trace.traceLinks.some((link) => link.sourceId === sourceId && link.targetId === target.id)) continue;
       if (!session.reads.includes(sourceId)) session.reads.push(sourceId);
       trace.traceLinks.push({
-        id: newId(), sourceId, targetId: target.id, operationId: session.id, evidence: aiEvidence(ASSISTANT_LLM_NAME), timestamp: now,
+        id: newId(), sourceId, targetId: target.id, operationId: session.id, evidence: aiEvidence(turnLlmName(trace, request)), timestamp: now,
       });
     }
   }
 }
 
 /**
- * Merge the trace fragment of a generation run (from the backend) into the project trace.
+ * Merge a trace fragment (a generation run's from the backend, or a Spec-Driven run's) into the project trace.
  *
- * Actors and tools are matched by type and name, model artifacts by element id
- * (so the generated code links to the elements the editor recorded); code
- * artifacts are new, since each run writes new output.
+ * - Actors are matched by type and name, tools by type, name, version and provider.
+ * - A model artifact is matched by element id, so generated code links to the elements the editor recorded; a
+ *   fragment may read several models of any diagram type (one root per diagram, its id as `elementId`).
+ * - Any other artifact whose id the trace already has (a RequirementArtifact the editor sent to a Spec-Driven
+ *   run, a prompt) is that artifact: the fragment's links join it rather than duplicate it.
+ * - Code artifacts are new, since each run writes new output; operations and links already in the trace (a
+ *   fragment merged again, after a run was reattached) are not added twice.
+ *
+ * The cost is linear in the fragment plus one pass over the trace to index it.
  */
 export function mergeTraceFragment(trace: TraceFile, fragment: TraceFile): void {
   const idMap = new Map<string, string>();
   const mapped = (id: string): string => idMap.get(id) ?? id;
-
-  for (const actor of fragment.actors) idMap.set(actor.id, ensureActor(trace, actor.type, actor.name, actor.timestamp).id);
-  for (const tool of fragment.tools) {
-    idMap.set(tool.id, ensureTool(trace, tool.type, tool.name, tool.timestamp, tool.version).id);
-  }
-  for (const artifact of fragment.artifacts) {
-    const existing = isModelArtifact(artifact) ? findModelArtifact(trace, artifact.elementId) : undefined;
-    if (existing) {
-      idMap.set(artifact.id, existing.id);
-    } else {
-      trace.artifacts.push({ ...artifact });
-    }
-  }
+  const byId = new Map(trace.artifacts.map((a) => [a.id, a]));
+  const byElementId = new Map<string, ModelArtifact>();
   for (const artifact of trace.artifacts) {
-    if (artifact.parentId && idMap.has(artifact.parentId)) artifact.parentId = mapped(artifact.parentId);
+    if (isModelArtifact(artifact) && !byElementId.has(artifact.elementId)) byElementId.set(artifact.elementId, artifact);
   }
-  for (const op of fragment.operations) {
+
+  for (const actor of fragment.actors ?? []) idMap.set(actor.id, ensureActor(trace, actor.type, actor.name, actor.timestamp).id);
+  for (const tool of fragment.tools ?? []) {
+    idMap.set(tool.id, ensureTool(trace, tool.type, tool.name, tool.timestamp, tool.version, tool.provider).id);
+  }
+  const added: TraceArtifact[] = [];
+  for (const artifact of fragment.artifacts ?? []) {
+    const existing = isModelArtifact(artifact) ? byElementId.get(artifact.elementId) : byId.get(artifact.id);
+    if (existing && existing.type === artifact.type) {
+      idMap.set(artifact.id, existing.id);
+      continue;
+    }
+    const copy = { ...artifact };
+    trace.artifacts.push(copy);
+    added.push(copy);
+    byId.set(copy.id, copy);
+    if (isModelArtifact(copy)) byElementId.set(copy.elementId, copy);
+  }
+  // Only the fragment's own artifacts can refer to its ids.
+  for (const artifact of added) {
+    if (artifact.parentId) artifact.parentId = mapped(artifact.parentId);
+    if (isCodeArtifact(artifact) && artifact.revisionOfId) artifact.revisionOfId = mapped(artifact.revisionOfId);
+  }
+  const operationIds = new Set(trace.operations.map((o) => o.id));
+  for (const op of fragment.operations ?? []) {
+    if (operationIds.has(op.id)) continue;
     const merged: TraceOperation = {
       ...op,
       performedBy: op.performedBy.map(mapped),
       toolCalls: op.toolCalls.map((call) => ({ ...call, toolId: mapped(call.toolId) })),
-      reads: op.reads.map(mapped),
-      writes: op.writes.map(mapped),
+      reads: [...new Set(op.reads.map(mapped))],
+      writes: [...new Set(op.writes.map(mapped))],
     };
     if (merged.type === 'ModelingSession') merged.changes = merged.changes.map((c) => ({ ...c, artifactId: mapped(c.artifactId) }));
     trace.operations.push(merged);
   }
-  for (const link of fragment.traceLinks) {
+  const linkIds = new Set(trace.traceLinks.map((l) => l.id));
+  for (const link of fragment.traceLinks ?? []) {
+    if (linkIds.has(link.id)) continue;
     trace.traceLinks.push({ ...link, sourceId: mapped(link.sourceId), targetId: mapped(link.targetId) });
   }
   const compacted = pruneOldGenerations(trace);
-  if (compacted > 0) console.info(`Kept ${compacted} older generation run(s) as operation and file hashes only.`);
+  if (compacted > 0) console.info(`Compacted or removed ${compacted} older generation run(s) of the project trace.`);
   pruneStoredContents(trace);
 }
 
-/**
- * Compact the generation runs older than the newest `keep` of each generator: drop their trace links
- * and their line-range fragments, and the content of their files. Their operation and their files
- * (with hashes) stay. Returns how many runs were compacted (each once).
- */
-export function pruneOldGenerations(trace: TraceFile, keep: number = KEPT_GENERATIONS_PER_GENERATOR): number {
+/** The generation runs of `trace`, by generator (the tools their calls invoked), newest first. */
+function generationRunsByGenerator(trace: TraceFile): TraceOperation[][] {
   const runsByGenerator = new Map<string, TraceOperation[]>();
   for (const operation of trace.operations) {
     if (operation.type !== 'CodeGeneration') continue;
     const generator = toolIdsOf(operation).join(',');
     runsByGenerator.set(generator, [...(runsByGenerator.get(generator) ?? []), operation]);
   }
+  const runs = [...runsByGenerator.values()];
+  for (const list of runs) list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  return runs;
+}
+
+/**
+ * Bound what generation runs keep, per generator (the tools a run called):
+ *
+ * 1. the newest `keep` runs ({@link KEPT_GENERATIONS_PER_GENERATOR}) keep everything: their trace links, the line
+ *    ranges they link, and their files (whose content {@link pruneStoredContents} bounds per path);
+ * 2. the runs after them, up to `keepRecords` in all ({@link KEPT_GENERATION_RECORDS_PER_GENERATOR}), are
+ *    compacted: their links and line ranges go, their operation and their whole files stay, with hashes but no
+ *    content (what was generated, by whom, when);
+ * 3. older runs are removed: their operation and every file they wrote. A later file that was a revision of one
+ *    removed no longer names it, and no operation reads it any more.
+ *
+ * So a project keeps at most `keepRecords` runs per generator. Returns how many runs were compacted or removed
+ * (a run compacted earlier is not counted again).
+ */
+export function pruneOldGenerations(
+  trace: TraceFile,
+  keep: number = KEPT_GENERATIONS_PER_GENERATOR,
+  keepRecords: number = Math.max(keep, KEPT_GENERATION_RECORDS_PER_GENERATOR),
+): number {
   const linked = new Set(trace.traceLinks.map((link) => link.operationId));
-  const old = new Set<string>();
-  for (const runs of runsByGenerator.values()) {
-    runs.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-    for (const run of runs.slice(keep)) if (linked.has(run.id)) old.add(run.id);
+  const compact = new Set<string>();
+  const remove = new Set<string>();
+  for (const runs of generationRunsByGenerator(trace)) {
+    runs.slice(keep, keepRecords).forEach((run) => {
+      if (linked.has(run.id)) compact.add(run.id);
+    });
+    runs.slice(keepRecords).forEach((run) => remove.add(run.id));
   }
-  if (old.size === 0) return 0;
+  if (compact.size === 0 && remove.size === 0) return 0;
 
   const artifacts = new Map(trace.artifacts.map((a) => [a.id, a]));
   const dropped = new Set<string>();
   for (const operation of trace.operations) {
-    if (!old.has(operation.id)) continue;
+    const removed = remove.has(operation.id);
+    if (!removed && !compact.has(operation.id)) continue;
     for (const id of operation.writes) {
       const artifact = artifacts.get(id);
       if (!isCodeArtifact(artifact)) continue;
-      if (artifact.parentId) dropped.add(id); // a line range: only its links gave it meaning
+      // A line range only means something through its links; a removed run takes its files along.
+      if (removed || artifact.parentId) dropped.add(id);
       else delete artifact.content;
     }
   }
+  // A line range of a dropped file goes with it.
+  for (const artifact of trace.artifacts) {
+    if (artifact.parentId && dropped.has(artifact.parentId)) dropped.add(artifact.id);
+  }
   trace.traceLinks = trace.traceLinks.filter(
-    (link) => !old.has(link.operationId) && !dropped.has(link.sourceId) && !dropped.has(link.targetId),
+    (link) => !compact.has(link.operationId) && !remove.has(link.operationId) && !dropped.has(link.sourceId) && !dropped.has(link.targetId),
   );
   trace.artifacts = trace.artifacts.filter((a) => !dropped.has(a.id));
+  for (const artifact of trace.artifacts) {
+    if (isCodeArtifact(artifact) && artifact.revisionOfId && dropped.has(artifact.revisionOfId)) delete artifact.revisionOfId;
+  }
+  trace.operations = trace.operations.filter((o) => !remove.has(o.id));
   for (const operation of trace.operations) {
     operation.writes = operation.writes.filter((id) => !dropped.has(id));
     operation.reads = operation.reads.filter((id) => !dropped.has(id));
   }
-  return old.size;
+  // Actors and tools only the removed runs used go with them.
+  const usedTools = new Set(trace.operations.flatMap((o) => o.toolCalls.map((c) => c.toolId)));
+  const usedActors = new Set(trace.operations.flatMap((o) => o.performedBy));
+  if (remove.size > 0) {
+    trace.tools = trace.tools.filter((t) => usedTools.has(t.id));
+    trace.actors = trace.actors.filter((a) => usedActors.has(a.id));
+  }
+  return compact.size + remove.size;
 }
 
 /** Keep the content of the newest `KEPT_CONTENTS_PER_PATH` files per path; older ones keep their hash only.
@@ -634,4 +752,143 @@ export function pruneStoredContents(trace: TraceFile, keep: number = KEPT_CONTEN
     }
   }
   return dropped;
+}
+
+/* ------------------------------------------------------------------ model generators */
+
+/** One element a model generator derived, and the element of the source model it was derived from. */
+export interface DerivedElement {
+  /** The derived element (in the diagram being recorded). */
+  elementId: string;
+  source: BoundElement;
+}
+
+/**
+ * Link derived elements to the source elements they were derived from (`project.elementLineage`: a component
+ * diagram derived from a BPMN, a deployment from components, an agent from a lane), under the model generator's
+ * session that wrote `diagramId`: the newest ModelGenerator session that changed an element of it, else a new
+ * session of `generatorName`. The session reads the source elements; the evidence is `rule`. A link already there
+ * is not repeated. Returns whether anything was recorded.
+ */
+export function linkDerivedElements(
+  trace: TraceFile,
+  derived: DerivedElement[],
+  ctx: {
+    diagramId: string; diagramTitle: string; modelType: string;
+    sourceModel: { id: string; title: string; modelType: string };
+    generatorName: string; rule: string; actorName: string; now: string;
+  },
+): boolean {
+  const diagram = ensureModelArtifact(trace, ctx.diagramId, ctx.modelType, ctx.diagramTitle, undefined, ctx.now);
+  const sourceRoot = ensureModelArtifact(trace, ctx.sourceModel.id, ctx.sourceModel.modelType, ctx.sourceModel.title, undefined, ctx.now);
+  const artifactsById = new Map(trace.artifacts.map((a) => [a.id, a]));
+  const inDiagram = (artifactId: string): boolean => {
+    for (let a = artifactsById.get(artifactId); a; a = a.parentId ? artifactsById.get(a.parentId) : undefined) {
+      if (a.id === diagram.id) return true;
+    }
+    return false;
+  };
+  const generatorTools = new Set(trace.tools.filter((t) => t.type === 'ModelGenerator').map((t) => t.id));
+  let session = [...trace.operations].reverse().find(
+    (o): o is ModelingSessionOperation =>
+      isModelingSession(o) && toolIdsOf(o).some((id) => generatorTools.has(id)) && o.changes.some((c) => inDiagram(c.artifactId)),
+  );
+  if (!session) {
+    const tool = ensureTool(trace, 'ModelGenerator', ctx.generatorName, ctx.now);
+    session = {
+      id: newId(), type: 'ModelingSession', status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now,
+      performedBy: [ensureActor(trace, 'Person', ctx.actorName, ctx.now).id], reads: [], writes: [], changes: [],
+      toolCalls: [{ id: newId(), toolId: tool.id, sequenceNumber: 0, status: 'SUCCEEDED', startedAt: ctx.now, endedAt: ctx.now, logs: [] }],
+    };
+    trace.operations.push(session);
+  }
+  let recorded = false;
+  for (const { elementId, source } of derived) {
+    const target = findModelArtifact(trace, elementId) ?? undefined;
+    if (!target) continue;
+    const owner = source.parent
+      ? ensureModelArtifact(trace, source.parent.elementId, source.parent.elementType, source.parent.name, sourceRoot.id, ctx.now)
+      : undefined;
+    const from = ensureModelArtifact(trace, source.elementId, source.elementType, source.name, (owner ?? sourceRoot).id, ctx.now);
+    if (!session.reads.includes(from.id)) session.reads.push(from.id);
+    if (trace.traceLinks.some((link) => link.sourceId === from.id && link.targetId === target.id)) continue;
+    trace.traceLinks.push({
+      id: newId(), sourceId: from.id, targetId: target.id, operationId: session.id, timestamp: ctx.now,
+      evidence: [{ id: newId(), type: 'RuleEvidence', rule: ctx.rule, timestamp: ctx.now }],
+    });
+    recorded = true;
+  }
+  return recorded;
+}
+
+/* ------------------------------------------------------------------ Spec-Driven runs without a trace */
+
+/** What the stream of a Spec-Driven run carried, for a backend whose `done` event has no `trace`. */
+export interface SpecDrivenRunSummary {
+  runId: string;
+  status: TraceOperation['status'];
+  startedAt: string;
+  endedAt: string;
+  actorName: string;
+  /** The LLM that served the run (the start event's, the outage fallback's, or the provider-reported one). */
+  llm?: { model: string; provider?: string };
+  /** Total tokens the run used, input and output together (the stream does not split them). */
+  tokensUsed?: number;
+  costUsd?: number;
+  /** The deterministic generator the run started from (`recipe.generator_used`). */
+  generator?: string;
+  changedFiles: string[];
+  changedFileCount?: number;
+  verification: Array<{ state: 'verified' | 'notVerified' | 'shippedUnenforced'; kind: string; id: string; what: string; detail?: string }>;
+  /** The diagrams the run read: id, title and B-UML model type. */
+  diagrams: Array<{ id: string; title: string; modelType: string }>;
+  /** The RequirementArtifact ids sent with the run. */
+  requirementIds: string[];
+}
+
+export const specDrivenOperationId = (runId: string): string => `spec-driven:${runId}`;
+
+/**
+ * Record a Spec-Driven run from the events its stream carried, when the backend sent no trace of it: one
+ * CodeGeneration operation, by the user and the Spec-Driven Agent, that reads the project's diagrams and the
+ * requirements sent with it and calls the deterministic generator (when one ran) and the LLM (with the run's
+ * outcome, cost, changed files and verification report as its messages). It writes no file artifact: the stream
+ * reports paths, not contents or hashes. Recording the same run twice records it once.
+ */
+export function recordSpecDrivenRun(trace: TraceFile, run: SpecDrivenRunSummary): boolean {
+  const id = specDrivenOperationId(run.runId);
+  if (trace.operations.some((o) => o.id === id)) return false;
+  const performedBy = [
+    ensureActor(trace, 'Person', run.actorName, run.startedAt).id,
+    ensureActor(trace, 'Agent', SPEC_DRIVEN_AGENT_NAME, run.startedAt).id,
+  ];
+  const reads = run.diagrams.map((d) => ensureModelArtifact(trace, d.id, d.modelType, d.title, undefined, run.startedAt).id);
+  const known = new Set(trace.artifacts.map((a) => a.id));
+  reads.push(...run.requirementIds.filter((rid) => known.has(rid)));
+  const toolCalls: TraceToolCall[] = [];
+  const log = (call: TraceToolCall, content: string, logType: LogType = 'INFO') =>
+    call.logs.push({ id: newId(), content: capped(content), sequenceNumber: call.logs.length, logType, timestamp: run.endedAt });
+  if (run.generator) {
+    const tool = ensureTool(trace, 'CodeGenerator', run.generator, run.startedAt);
+    toolCalls.push({ id: newId(), toolId: tool.id, sequenceNumber: toolCalls.length, status: 'SUCCEEDED', startedAt: run.startedAt, endedAt: run.endedAt, logs: [] });
+  }
+  const llmTool = ensureTool(trace, 'LLM', run.llm?.model ?? UNKNOWN_ASSISTANT_LLM_NAME, run.startedAt, undefined, run.llm?.provider);
+  const llmCall: TraceToolCall = {
+    id: newId(), toolId: llmTool.id, sequenceNumber: toolCalls.length, status: run.status, startedAt: run.startedAt, endedAt: run.endedAt, logs: [],
+  };
+  toolCalls.push(llmCall);
+  if (run.tokensUsed !== undefined) log(llmCall, `Tokens used (input and output together): ${run.tokensUsed}`);
+  if (run.costUsd !== undefined) log(llmCall, `Cost: ${run.costUsd.toFixed(4)} USD`);
+  if (run.changedFiles.length > 0) {
+    const more = (run.changedFileCount ?? run.changedFiles.length) - run.changedFiles.length;
+    log(llmCall, `Files written or edited:\n${run.changedFiles.join('\n')}${more > 0 ? `\n… and ${more} more` : ''}`, 'TOOL_RESULT');
+  }
+  for (const item of run.verification) {
+    log(llmCall, `${item.state} ${item.kind}${item.id ? ` ${item.id}` : ''}: ${item.what}${item.detail ? ` (${item.detail})` : ''}`);
+  }
+  trace.operations.push({
+    id, type: 'CodeGeneration', status: run.status, startedAt: run.startedAt, endedAt: run.endedAt,
+    performedBy, toolCalls, reads: [...new Set(reads)], writes: [],
+  });
+  return true;
 }
