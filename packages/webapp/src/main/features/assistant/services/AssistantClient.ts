@@ -356,10 +356,11 @@ export class AssistantClient {
   private connectingPromise: Promise<void> | null = null;
   private reconnectAttempts = 0;
   private readonly baseReconnectDelay = 2000;
+  /** The backoff's cap, and the retry interval after it: the client never stops
+   *  retrying, so a tab recovers from an agent restart (about 4 min) of any length. */
   private readonly maxReconnectDelay = 30000;
-  private readonly maxReconnectAttempts = 8;
-  /** Analytics: the give-up is reported once, until the next successful connect. */
-  private gaveUpReported = false;
+  /** Failed reconnects reported to analytics; later ones repeat the same fact. */
+  private readonly trackedReconnectFailures = 8;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -492,7 +493,6 @@ export class AssistantClient {
             state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
             attempt: this.reconnectAttempts,
           });
-          this.gaveUpReported = false;
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -1171,20 +1171,21 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
-    if (this.shouldReconnect && this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpReported) {
-      this.gaveUpReported = true;
-      track('assistant_connection', { state: 'gave_up', attempt: this.reconnectAttempts });
-    }
-    if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
+    if (!this.shouldReconnect || this.reconnectTimeout) {
       return;
     }
     this.reconnectAttempts += 1;
-    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+    // The socket's error handler schedules the next attempt before this one's
+    // catch runs, so the counter has moved on by then.
+    const attempt = this.reconnectAttempts;
+    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, attempt - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect().catch((error) => {
         console.error('Assistant reconnect failed', error);
-        track('assistant_connection', { state: 'reconnect_failed', attempt: this.reconnectAttempts });
+        if (attempt <= this.trackedReconnectFailures) {
+          track('assistant_connection', { state: 'reconnect_failed', attempt });
+        }
       });
     }, delay);
   }

@@ -153,7 +153,7 @@ export interface AnalyticsEvents {
   /** The client gave up on a reply: malformed payload or the hard timeout. */
   assistant_client_error: { kind: 'protocol' | 'timeout' };
   /** WebSocket state changes; `attempt` counts reconnects. */
-  assistant_connection: { state: 'connected' | 'reconnected' | 'disconnected' | 'reconnect_failed' | 'gave_up'; attempt: number };
+  assistant_connection: { state: 'connected' | 'reconnected' | 'disconnected' | 'reconnect_failed'; attempt: number };
   assistant_new_chat: { had_spec_run: boolean; message_count: number };
   assistant_issue_reported: { logs_truncated: boolean };
   assistant_issue_report_failed: { reason: 'popup_blocked' | 'exception' } & Partial<ErrorProperties>;
