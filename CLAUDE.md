@@ -262,7 +262,8 @@ A project that records traces (`settings.traceabilityEnabled`) records into its 
 `docs/source/webapp/traceability-recording.rst`):
 - **Edits of every diagram type**, diffed by B-UML metaclass: class (`classModelDiff.ts`), GUI (`guiModelDiff.ts`),
   every other Apollon type through one table-driven builder (`APOLLON_TABLES` in `diagramModelDiff.ts`; a new
-  element type that reaches B-UML needs a row there), quantum and KG builders in the same file. Code that writes a
+  element type that reaches B-UML needs a row there, with the metaclass the backend's `json_to_buml` processor
+  builds; one the backend gives no id is `traceable: false`, history only), quantum and KG builders in the same file. Code that writes a
   diagram model outside `updateDiagramModelThunk` must call `recordDiagramUpdate` itself.
 - **Who**: `traceSource` on `updateDiagramModelThunk`/`addDiagramThunk` is `'user'` (default), `'assistant'`, or
   `{ generator }` (`MODEL_GENERATORS` in `traceStore.ts`) for anything the editor writes that the user did not
