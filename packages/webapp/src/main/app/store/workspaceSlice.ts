@@ -24,12 +24,13 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { track, trackFailure } from '../../shared/services/analytics/events';
 import { DeepPartial } from '../../shared/utils/types';
 import {
-  recordClassDiagramUpdate,
+  recordDiagramCreated,
   recordDiagramDeleted,
-  recordGuiDiagramUpdate,
   recordDiagramRenamed,
+  recordDiagramUpdate,
+  recordElementLineage,
 } from '../../shared/traceability/traceStore';
-import type { ModelingSource } from '../../shared/traceability/traceRecorder';
+import type { DiagramChangeSource } from '../../shared/traceability/traceStore';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -284,8 +285,9 @@ export const openDiagramThunk = createAsyncThunk(
 );
 
 export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>> & {
-  /** Who made the change, for the project trace: the user on the canvas (default) or the assistant. */
-  traceSource?: ModelingSource;
+  /** Who made the change, for the project trace: the user on the canvas (default), the assistant, or a model
+   *  generator (a template, an import, a derivation from another diagram). */
+  traceSource?: DiagramChangeSource;
 };
 
 export const updateDiagramModelThunk = createAsyncThunk(
@@ -326,12 +328,10 @@ export const updateDiagramModelThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update diagram');
-    if (activeDiagramType === 'ClassDiagram' && updates.model) {
-      recordClassDiagramUpdate(project, updated, current.model, updated.model, traceSource);
-    }
-    // The GUI editor records its own saves; an assistant's GUI written while it is closed is recorded here.
-    if (activeDiagramType === 'GUINoCodeDiagram' && updates.model && traceSource === 'assistant') {
-      recordGuiDiagramUpdate(project, updated, current.model, updated.model, traceSource);
+    // Every diagram type is recorded, except the user's GUI edits, which the GUI editor records from its own saves
+    // (an assistant's or a generator's GUI written here is compared with the same baseline, so none is recorded twice).
+    if (updates.model && !(activeDiagramType === 'GUINoCodeDiagram' && traceSource === 'user')) {
+      recordDiagramUpdate(project, activeDiagramType, updated, current.model, updated.model, traceSource);
     }
     if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
     return updated;
@@ -357,7 +357,10 @@ export const setTraceabilityEnabledThunk = createAsyncThunk(
 
 export const updateQuantumDiagramThunk = createAsyncThunk(
   'workspace/updateQuantumDiagram',
-  async ({ model }: { model: QuantumCircuitData }, { getState }) => {
+  async (
+    { model, traceSource = 'user' }: { model: QuantumCircuitData; traceSource?: DiagramChangeSource },
+    { getState },
+  ) => {
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
@@ -383,6 +386,7 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update quantum diagram');
+    recordDiagramUpdate(project, 'QuantumCircuitDiagram', updated, current.model, model, traceSource);
     return updated;
   },
 );
@@ -552,11 +556,14 @@ export const addDiagramThunk = createAsyncThunk(
       diagramType,
       title,
       derivedFrom,
+      traceSource = 'user',
     }: {
       diagramType: SupportedDiagramType;
       title?: string;
       /** Lineage metadata set by inter-diagram derivation hooks. */
       derivedFrom?: DiagramLineage;
+      /** Who added the diagram, for the project trace (the user by default). */
+      traceSource?: DiagramChangeSource;
     },
     { getState },
   ) => {
@@ -582,6 +589,7 @@ export const addDiagramThunk = createAsyncThunk(
     if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    recordDiagramCreated(project, diagramType, diagram, traceSource);
     return { diagramType, index: newIndex, diagram };
   },
 );
@@ -594,19 +602,36 @@ export const addDiagramThunk = createAsyncThunk(
 export const setElementLineageThunk = createAsyncThunk(
   'workspace/setElementLineage',
   async (
-    { derivedDiagramId, mapping }: { derivedDiagramId: string; mapping: ElementLineageMap },
+    {
+      derivedDiagramId,
+      mapping,
+      generator,
+      sourceDiagramId,
+    }: {
+      derivedDiagramId: string;
+      mapping: ElementLineageMap;
+      /** The diagram the mapping's source elements are in, when the derived diagram has no `derivedFrom`. */
+      sourceDiagramId?: string;
+      /** The model generator that derived the diagram (`MODEL_GENERATORS`), recorded in the project trace. */
+      generator?: string;
+    },
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    let saved: BesserProject | null = null;
     ProjectStorageRepository.withoutNotify(() => {
       const p = ProjectStorageRepository.loadProject(project.id);
       if (!p) return;
       p.elementLineage = { ...(p.elementLineage ?? {}), [derivedDiagramId]: mapping };
       ProjectStorageRepository.saveProject(p);
+      saved = p;
     });
+    // The lineage is also the trace's: each derived element is linked from its source element.
+    const savedProject = saved as BesserProject | null;
+    if (savedProject && generator) recordElementLineage(savedProject, derivedDiagramId, mapping, generator, sourceDiagramId);
 
     return { derivedDiagramId, mapping };
   },

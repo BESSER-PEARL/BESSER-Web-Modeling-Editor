@@ -10,6 +10,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useProject } from '../../../app/hooks/useProject';
+import { recordDiagramUpdate } from '../../../shared/traceability/traceStore';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { setProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
@@ -47,8 +48,11 @@ export const ModelProposalBanner: React.FC<{ className?: string }> = ({ classNam
       ? project?.diagrams.ClassDiagram?.find((candidate) => candidate.id === proposal.diagramId)
       : undefined;
     if (project && diagram?.model) {
+      const proposed = diagram.model;
       diagram.model = createEmptyDiagram(diagram.title, UMLDiagramType.ClassDiagram).model;
       ProjectStorageRepository.saveProject(project);
+      // The user discarded the proposal: its classes are deleted by the user.
+      recordDiagramUpdate(project, 'ClassDiagram', diagram, proposed, diagram.model, 'user');
     }
     settle();
     await loadProject(currentProject.id);

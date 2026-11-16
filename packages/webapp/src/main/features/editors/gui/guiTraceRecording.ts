@@ -1,18 +1,25 @@
 import type { Editor } from 'grapesjs';
+import { getActiveDiagram } from '../../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../../shared/types/project';
 import { isTracedComponent } from '../../../shared/traceability/guiModelDiff';
 import type { GuiComponentLike } from '../../../shared/traceability/guiModelDiff';
-import { isTraceabilityEnabled, recordGuiDiagramUpdate } from '../../../shared/traceability/traceStore';
+import {
+  hasGuiBaseline,
+  isTraceabilityEnabled,
+  recordGuiDiagramUpdate,
+  setGuiBaseline,
+} from '../../../shared/traceability/traceStore';
 import type { GuiChangeSource } from '../../../shared/traceability/traceStore';
 
 /**
  * Records a GUI editor's saves in the project trace (`recordGuiDiagramUpdate`).
  *
  * The trace knows a component by its persistent id (`attributes.id`), so every traced component gets one when
- * it is added or the project loads. Each save is compared with the last one recorded (the baseline, kept in
- * memory): the first is the model as it loaded, ids included, so components that existed before are not
- * recorded as created. A save is the user's unless the assistant loaded the model. While the GUI generator derives
- * the GUI from the class diagram, its saves are held: the last one is recorded when the run ends, compared with
+ * it is added or the project loads. Each save is compared with the GUI last recorded for the diagram (the baseline,
+ * kept by the trace store, `setGuiBaseline`, and shared with the assistant's writes through the workspace store):
+ * the first is the model as it loaded, ids included, so components that existed before are not recorded as
+ * created. A save is the user's unless the assistant loaded the model. While the GUI generator derives the GUI
+ * from the class diagram, its saves are held: what the editor holds when the run ends is recorded, compared with
  * the GUI before it, as one session of the generator.
  */
 export interface GuiTraceRecorder {
@@ -30,6 +37,8 @@ export interface GuiTraceRecorder {
 }
 
 const recorders = new WeakMap<Editor, GuiTraceRecorder>();
+/** Where each editor's recorder reads the project the editor is open on. */
+const projectReaders = new WeakMap<Editor, () => BesserProject | null>();
 
 /** The part of a GrapesJS component read and written here. */
 interface TracedIdTarget {
@@ -53,23 +62,34 @@ function ensureAllTracedIds(editor: Editor): void {
   }
 }
 
-/** The recorder of `editor`, made on first use; `projectOf` reads the project the editor is open on. */
-export function guiTraceRecorderOf(editor: Editor, projectOf: () => BesserProject | null = () => null): GuiTraceRecorder {
+/**
+ * The recorder of `editor`, made on first use. `projectOf` reads the project the editor is open on; a call that
+ * passes one sets it for the recorder, whichever call made the recorder first (a save or an assistant load may
+ * reach the recorder before the editor's `load` handler does).
+ */
+export function guiTraceRecorderOf(editor: Editor, projectOf?: () => BesserProject | null): GuiTraceRecorder {
   let recorder = recorders.get(editor);
-  if (recorder) return recorder;
-  let baseline: unknown;
+  if (recorder) {
+    if (projectOf) projectReaders.set(editor, projectOf);
+    return recorder;
+  }
+  projectReaders.set(editor, projectOf ?? (() => null));
+  const currentProject = () => projectReaders.get(editor)?.() ?? null;
   let deriving = 0;
   /** The generator run's last save, recorded when the run ends. */
-  let derived: { project: BesserProject; diagram: ProjectDiagram; model: unknown } | undefined;
+  let derived: { project: BesserProject; diagram: ProjectDiagram } | undefined;
   recorder = {
     start() {
-      const project = projectOf();
+      const project = currentProject();
       if (!project || !isTraceabilityEnabled(project)) return;
       ensureAllTracedIds(editor);
-      baseline = editor.getProjectData();
+      const diagram = getActiveDiagram(project, 'GUINoCodeDiagram');
+      // The GUI as it loaded is what the next save is compared with, unless the store already holds a newer
+      // recorded one (an assistant's GUI recorded while the editor was closed is the same model).
+      if (diagram && !hasGuiBaseline(diagram.id)) setGuiBaseline(diagram.id, editor.getProjectData());
     },
     added(component) {
-      const project = projectOf();
+      const project = currentProject();
       if (project && isTraceabilityEnabled(project)) ensureTracedId(component);
     },
     recordLoaded(project, diagram, source) {
@@ -80,22 +100,30 @@ export function guiTraceRecorderOf(editor: Editor, projectOf: () => BesserProjec
     record(project, diagram, model, source) {
       if (!isTraceabilityEnabled(project)) return;
       if (deriving > 0 && source === undefined) {
-        derived = { project, diagram, model };
+        derived = { project, diagram };
         return;
       }
       // Without a baseline (the editor never loaded with tracing on) there is nothing to compare with yet.
-      if (baseline !== undefined) recordGuiDiagramUpdate(project, diagram, baseline, model, source ?? 'user');
-      baseline = model;
+      if (!hasGuiBaseline(diagram.id)) {
+        setGuiBaseline(diagram.id, model);
+        return;
+      }
+      recordGuiDiagramUpdate(project, diagram, undefined, model, source ?? 'user');
     },
     beginDerivation() {
       deriving += 1;
     },
     endDerivation() {
       deriving = Math.max(0, deriving - 1);
-      if (deriving > 0 || !derived) return;
-      const { project, diagram, model } = derived;
+      if (deriving > 0) return;
+      const project = derived?.project ?? currentProject();
+      const diagram = derived?.diagram ?? (project ? getActiveDiagram(project, 'GUINoCodeDiagram') : undefined);
       derived = undefined;
-      this.record(project, diagram, model, 'derivation');
+      if (!project || !diagram || !isTraceabilityEnabled(project)) return;
+      // What the editor holds now is the generator's result, saved or not: an auto-save debounced past the run's
+      // end then finds nothing new, instead of recording the generator's work as the user's.
+      ensureAllTracedIds(editor);
+      recordGuiDiagramUpdate(project, diagram, undefined, editor.getProjectData(), 'derivation');
     },
   };
   recorders.set(editor, recorder);

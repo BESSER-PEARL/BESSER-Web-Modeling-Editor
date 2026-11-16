@@ -24,6 +24,7 @@ import {
   selectActiveDiagramType,
   bumpEditorRevision,
 } from '../../app/store/workspaceSlice';
+import { MODEL_GENERATORS, recordDiagramUpdate } from '../../shared/traceability/traceStore';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
   toSupportedDiagramType,
@@ -40,6 +41,9 @@ import {
   SoftwarePatternTemplate,
   SoftwarePatternType,
 } from './create-diagram-from-template-modal/software-pattern/software-pattern-types';
+
+/** A template's diagram is written by the template library: a model generator, in the project trace. */
+const TEMPLATE_SOURCE = { generator: MODEL_GENERATORS.template };
 
 /**
  * Shifts all element and relationship bounds so their combined bounding box is
@@ -253,9 +257,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           // memory and storage stay in sync (writing storage directly left the tab blank).
           await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
           await dispatch(switchDiagramIndexThunk({ diagramType: qType, index: addResult.index }));
-          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
+          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData, traceSource: TEMPLATE_SOURCE }));
         } else {
-          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
+          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData, traceSource: TEMPLATE_SOURCE }));
           await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
         }
 
@@ -278,16 +282,20 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           // memory and storage stay in sync (writing storage directly left the tab blank).
           await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
           await dispatch(switchDiagramIndexThunk({ diagramType: supportedType, index: addResult.index }));
-          await dispatch(updateDiagramModelThunk({ model: centeredModel }));
+          await dispatch(updateDiagramModelThunk({ model: centeredModel, traceSource: TEMPLATE_SOURCE }));
         } else if (currentProject) {
           // Replace the active diagram
           const existingDiagram = getActiveDiagram(currentProject, supportedType);
-          ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
+          const replaced = {
             ...existingDiagram,
             title: selectedTemplate.type,
             model: centeredModel,
             lastUpdate: new Date().toISOString(),
-          });
+          };
+          if (ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, replaced) && existingDiagram) {
+            // The template library wrote the diagram, not the user.
+            recordDiagramUpdate(currentProject, supportedType, { ...existingDiagram, ...replaced }, existingDiagram.model, centeredModel, TEMPLATE_SOURCE);
+          }
           await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
         }
 

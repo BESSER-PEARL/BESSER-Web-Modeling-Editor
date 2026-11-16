@@ -5,6 +5,7 @@ import { ProjectDiagram, isUMLModel, toSupportedDiagramType, MAX_DIAGRAMS_PER_TY
 import { bumpEditorRevision, loadProjectThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
+import { MODEL_GENERATORS, recordDiagramCreated } from '../../shared/traceability/traceStore';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { useBumlToDiagram, isBumlFile, isJsonFile, isBpmnXmlFile } from './useBumlToDiagram';
 import { useImportBpmnXml } from './useImportBpmnXml';
@@ -169,6 +170,8 @@ export const useImportDiagramToProject = () => {
 
         // Save to localStorage and reload the project into Redux to keep them in sync
         ProjectStorageRepository.saveProject(updatedProject);
+        // An imported diagram is created by the import, with everything in it, not edited in by the user.
+        recordDiagramCreated(updatedProject, diagramType, newDiagram, { generator: MODEL_GENERATORS.fileImport });
         await dispatch(loadProjectThunk(currentProject.id));
 
         // If importing a Class Diagram, update the diagram bridge for Object Diagram compatibility

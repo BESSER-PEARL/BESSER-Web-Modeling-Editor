@@ -22,6 +22,8 @@ import {
   switchDiagramTypeThunk,
 } from '../../../app/store/workspaceSlice';
 import { displayError } from '../../../app/store/errorManagementSlice';
+import { MODEL_GENERATORS, recordDiagramUpdate } from '../../../shared/traceability/traceStore';
+import { elementsMatchedByName } from '../../../shared/traceability/diagramModelDiff';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { isKnowledgeGraphData, type ConsistencyReport, type SupportedDiagramType } from '../../../shared/types/project';
 import { getActiveKgDiagram } from '../activeKgDiagram';
@@ -107,16 +109,19 @@ export const useKgToUmlConversion = () => {
           addDiagramThunk({ diagramType: TARGET_DIAGRAM_TYPE, title: newTitle }),
         ).unwrap();
 
-        ProjectStorageRepository.updateDiagram(
-          project.id,
-          TARGET_DIAGRAM_TYPE,
-          {
-            ...addResult.diagram,
-            model: data.model,
-            lastUpdate: new Date().toISOString(),
-          },
-          addResult.index,
-        );
+        const converted = { ...addResult.diagram, model: data.model, lastUpdate: new Date().toISOString() };
+        if (ProjectStorageRepository.updateDiagram(project.id, TARGET_DIAGRAM_TYPE, converted, addResult.index)) {
+          // The converter's session in the project trace: each class and property linked from the graph's node
+          // of the same name (the conversion reports no element mapping).
+          const elements = elementsMatchedByName(
+            { diagramType: 'KnowledgeGraphDiagram', model: kgDiagram.model, id: kgDiagram.id },
+            { diagramType: TARGET_DIAGRAM_TYPE, model: data.model, id: converted.id },
+          );
+          recordDiagramUpdate(project, TARGET_DIAGRAM_TYPE, converted, addResult.diagram.model, data.model, {
+            generator: MODEL_GENERATORS.kgToClass,
+            source: { diagramId: kgDiagram.id, elements },
+          });
+        }
 
         await dispatch(switchDiagramTypeThunk({ diagramType: TARGET_DIAGRAM_TYPE }));
         await dispatch(switchDiagramIndexThunk({ diagramType: TARGET_DIAGRAM_TYPE, index: addResult.index }));

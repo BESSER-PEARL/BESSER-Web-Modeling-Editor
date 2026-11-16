@@ -701,7 +701,9 @@ export function useModelInjection({
       if (editor) {
         editor.model = snapshot.model;
       }
-      dispatch(updateDiagramModelThunk({ model: snapshot.model, traceSource: 'assistant' }));
+      // The user undoes the assistant's edit: the reverting changes are the user's, not the assistant's, and they
+      // answer no request.
+      dispatch(updateDiagramModelThunk({ model: snapshot.model, traceSource: 'user' }));
 
       setMessages((prev) => [...prev, toKitMessage('assistant', `Undone: ${snapshot.description}`)]);
     } catch (error) {

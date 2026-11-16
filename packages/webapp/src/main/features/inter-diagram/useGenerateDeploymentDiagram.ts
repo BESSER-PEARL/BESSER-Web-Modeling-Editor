@@ -9,6 +9,7 @@ import {
   switchDiagramTypeThunk,
   updateDiagramModelThunk,
 } from '../../app/store/workspaceSlice';
+import { MODEL_GENERATORS } from '../../shared/traceability/traceStore';
 import type { DiagramLineage } from '../../shared/types/project';
 import { componentModelToDeploymentModel } from './component-to-deployment';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
@@ -54,12 +55,13 @@ export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivati
       sourceModelHash: hashUmlModel(activeDiagram.model as UMLModel),
     };
 
+    const generator = MODEL_GENERATORS.componentToDeployment;
     const added = await dispatch(addDiagramThunk({ diagramType: 'DeploymentDiagram', title, derivedFrom })).unwrap();
     await dispatch(switchDiagramTypeThunk({ diagramType: 'DeploymentDiagram' })).unwrap();
-    await dispatch(updateDiagramModelThunk({ model: result.model })).unwrap();
-    // element-level lineage sidecar.
+    await dispatch(updateDiagramModelThunk({ model: result.model, traceSource: { generator } })).unwrap();
+    // element-level lineage sidecar (also linked in the project trace).
     await dispatch(
-      setElementLineageThunk({ derivedDiagramId: added.diagram.id, mapping: result.elementMapping }),
+      setElementLineageThunk({ derivedDiagramId: added.diagram.id, mapping: result.elementMapping, generator }),
     ).unwrap();
     // bump revision so the editor picks
     // up the populated model immediately. updateDiagramModelThunk is
