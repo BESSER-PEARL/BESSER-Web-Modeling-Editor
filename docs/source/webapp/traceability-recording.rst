@@ -122,8 +122,13 @@ the model in the trace) and ``/traceability/generate-output-from-project`` for t
 Each returns the same file as the plain endpoint plus a trace fragment, merged into the project trace
 (``mergeTraceFragment``): models are matched by element id, artifacts the trace already has (a
 requirement) by id, actors by name and tools by name, version and provider; a fragment merged twice is
-merged once. When the traced request fails, the plain endpoint is called so the file is still
-delivered, and the user is told the trace of this run was not recorded.
+merged once. When the traced endpoint itself is the problem, the plain endpoint is called so the file is
+still delivered, and the user is told the trace of this run was not recorded: an older backend without it
+(404, 405, 501), or a refusal only it makes (a 400 or 422 about a diagram without the id the trace refers to
+it by, or about ``actorName``; the owner's name is cut to the backend's 200 characters). Any other failure is
+the generation's and is reported as is, without generating a second time; a 500 is not retried either, since
+the backend answers a failure building the trace with the same generic 500 as a generator crash. The file is
+delivered before its trace is recorded, and a trace that cannot be recorded never fails the generation.
 
 A Spec-Driven run is recorded from the ``trace`` its ``done`` event carries; the requirements sent with
 the run are RequirementArtifact ids, so its requirement-to-code links join them. A backend that sends

@@ -104,13 +104,44 @@ describe('traced generation', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('reports the plain endpoint’s error when both fail', async () => {
-    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ detail: 'The model has no classes' }), { status: 400 }));
+  it.each([
+    [405, 'Method Not Allowed'],
+    [501, 'Not Implemented'],
+    [400, 'A traced generation needs the diagram id: the trace refers to the model by it.'],
+    [400, 'A traced generation needs the id of every diagram it reads: the trace refers to each model by it. Without an id: GUI.'],
+    [422, 'actorName: String should have at most 200 characters'],
+  ])('falls back on %s %s, which only the traced endpoint answers', async (status, detail) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail }), { status }))
+      .mockResolvedValueOnce(plainResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const outcome = await generate('python');
+    expect(outcome).toMatchObject({ ok: true });
+    expect(urls(fetchMock)).toEqual(['/traceability/generate-output', '/generate-output']);
+  });
+
+  it.each([
+    [400, 'The model has no classes'],
+    [500, 'Generation failed: template error'],
+    [500, 'Internal server error'],
+    [429, 'Too many requests'],
+  ])('does not generate twice on %s %s: the generation failed, not the trace', async (status, detail) => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ detail }), { status }));
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const outcome = await generate('sql');
-    expect(outcome).toMatchObject({ ok: false, error: 'The model has no classes' });
+    expect(outcome).toMatchObject({ ok: false });
+    expect(urls(fetchMock)).toEqual(['/traceability/generate-output']);
     expect(toast.warn).not.toHaveBeenCalled();
+  });
+
+  it('cuts an owner name to what the traced endpoint accepts', async () => {
+    project = { ...project, owner: 'A'.repeat(250) };
+    const fetchMock = vi.fn().mockResolvedValue(tracedResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    await generate('python');
+    expect(bodyOf(fetchMock, 0).actorName).toHaveLength(200);
   });
 
   it('uses the plain endpoint alone when the project does not record traces', async () => {

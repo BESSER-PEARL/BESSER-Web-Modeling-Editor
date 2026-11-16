@@ -201,7 +201,12 @@ function applySafely(trace: TraceFile, update: TraceUpdate): void | false {
 export const isTraceabilityEnabled = (project: BesserProject | null | undefined): boolean =>
   project?.settings?.traceabilityEnabled === true;
 
-export const traceActorName = (project: BesserProject): string => project.owner?.trim() || ANONYMOUS_ACTOR;
+/** The longest actor name a traced generation accepts (`TRACE_MAX_ACTOR_NAME_LENGTH` in the backend's constants):
+ *  the owner's name is cut to it, so the editor and the backend record the same actor. */
+export const MAX_ACTOR_NAME_LENGTH = 200;
+
+export const traceActorName = (project: BesserProject): string =>
+  project.owner?.trim().slice(0, MAX_ACTOR_NAME_LENGTH).trim() || ANONYMOUS_ACTOR;
 
 /** Why a trace file cannot be used (for `projectId`, when given), or null when it can. */
 export function traceFileProblem(value: unknown, projectId?: string): string | null {

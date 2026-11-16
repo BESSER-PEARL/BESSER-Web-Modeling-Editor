@@ -210,13 +210,28 @@ function fileNameOf(headers: Headers): string {
   return 'generated_code.txt';
 }
 
+/** Statuses that say the backend has no traced endpoint (an older BESSER): 404, 405, 501. */
+const NO_TRACED_ENDPOINT_STATUSES = new Set([404, 405, 501]);
+
 /**
- * Whether a failed traced request is worth repeating on the plain endpoint: any error the server answered (an
- * older backend without the traced endpoint, or one that cannot trace this generator, answers 404 or 400; a
- * failure building the trace, 500). Not a time-out, an abort or a network failure (the plain request would wait
- * or fail the same way), nor a rate limit.
+ * A refusal only the traced endpoint makes: a diagram without the id the trace refers to it by (BESSER's
+ * `traced_generation.py`: "A traced generation needs the diagram id..." / "...the id of every diagram it reads"),
+ * or a request field only it has (`actorName`).
  */
-const isTraceFallbackError = (error: unknown): boolean => error instanceof ApiError && error.status !== 429;
+const TRACE_ONLY_REFUSAL = /\btraced generation\b[^]*\bid\b|\bactorName\b/i;
+
+/**
+ * Whether a failed traced request is worth repeating on the plain endpoint: only when the traced endpoint itself is
+ * the problem, never when the generation failed (it would fail again, and a failing web app can take minutes):
+ * the backend has no traced endpoint ({@link NO_TRACED_ENDPOINT_STATUSES}), or refused what only a traced request
+ * carries ({@link TRACE_ONLY_REFUSAL}, a 400 or 422). A 500 is not retried: the backend answers a failure building
+ * the trace with the same generic 500 as a generator crash, so the two cannot be told apart.
+ */
+function isTraceFallbackError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  if (NO_TRACED_ENDPOINT_STATUSES.has(error.status)) return true;
+  return (error.status === 400 || error.status === 422) && TRACE_ONLY_REFUSAL.test(`${error.detail ?? ''}\n${error.message}`);
+}
 
 /**
  * Run a generation and deliver its file: through the traced endpoint when `traced` is given (the project records
