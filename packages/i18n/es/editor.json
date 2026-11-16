@@ -241,7 +241,8 @@
     "addTarget": "Añadir un destino…",
     "lineage": "Procedencia",
     "lineageSource": "Origen:",
-    "lineageDerivedFrom": "Derivado de"
+    "lineageDerivedFrom": "Derivado de",
+    "showTraceability": "Mostrar trazabilidad"
   },
   "assessment": {
     "assessment": "Evaluación de",

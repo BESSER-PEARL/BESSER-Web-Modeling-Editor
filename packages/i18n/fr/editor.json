@@ -241,7 +241,8 @@
     "addTarget": "Ajouter une cible…",
     "lineage": "Provenance",
     "lineageSource": "Source :",
-    "lineageDerivedFrom": "Dérivé de"
+    "lineageDerivedFrom": "Dérivé de",
+    "showTraceability": "Afficher la traçabilité"
   },
   "assessment": {
     "assessment": "Évaluation pour",
