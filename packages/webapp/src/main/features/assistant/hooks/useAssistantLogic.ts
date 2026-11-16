@@ -1256,7 +1256,10 @@ export function useAssistantLogic({
       // A transcribed voice message is the user's request; an error ends the turn. The assistant's other
       // messages are recorded from the action handler, which also sees those that are not displayed.
       if (message.isUser) void recordAssistantRequest(currentProjectRef.current, toAssistantText(message.message));
-      else if (message.action === 'agent_error') recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message));
+      else if (message.action === 'agent_error') {
+        const usage = readLlmUsage((message as unknown as { llmUsage?: unknown }).llmUsage);
+        recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message), usage);
+      }
 
       if (message.isUser && voicePlaceholderIdRef.current) {
         const placeholderId = voicePlaceholderIdRef.current;
