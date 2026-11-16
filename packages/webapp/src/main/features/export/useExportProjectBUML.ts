@@ -15,6 +15,17 @@ import type { ExportOutcome } from './exportOutcome';
 /** The banner of the B-UML file's trace section (`TRACE_SECTION_KEYWORD` in the backend's `trace_model_builder.py`). */
 const TRACE_SECTION_KEYWORD = 'TRACEABILITY';
 
+/** The text of `blob` (`Blob.text` where the environment has it, else a FileReader). */
+function blobText(blob: Blob): Promise<string> {
+  if (typeof blob.text === 'function') return blob.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
 /** The backend's refusal of a trace whose version it does not read (`trace_processor.py`). */
 const UNSUPPORTED_TRACE_VERSION = /Unsupported trace schemaVersion/i;
 
@@ -57,7 +68,7 @@ export async function exportProjectAsSingleBUMLFile(
   try {
     const { blob, headers } = await exportWithTrace(projectToExport);
     const sentTrace = projectToExport.trace as TraceFile | undefined;
-    if (sentTrace && sentTrace.artifacts.length > 0 && typeof blob.text === 'function' && !(await blob.text()).includes(TRACE_SECTION_KEYWORD)) {
+    if (sentTrace && sentTrace.artifacts.length > 0 && !(await blobText(blob)).includes(TRACE_SECTION_KEYWORD)) {
       // An older backend without traceability ignores the field: the file is exported, without the trace.
       console.warn('The backend exported the project without its trace section.');
       toast.warn(i18n.t('traceability.toasts.exportedTraceDroppedByBackend'));
