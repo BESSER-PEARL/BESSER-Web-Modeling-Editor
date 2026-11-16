@@ -902,10 +902,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         // class diagram — so generate from the STORED class diagram instead of
         // bouncing the user with "Switch to a UML diagram".
         // The class-diagram generators of the Generate menu (`CLASS_GENERATORS` in generator-menu-config.ts),
-        // but the web app, which reads the whole project.
+        // but the web app, which reads the whole project, plus `rest_api` and `rdf`, which are not in the menu
+        // but which the modeling agent requests (`GENERATOR_PREREQUISITES` in its generation_signals.py).
         const CLASS_MODEL_GENERATORS = [
           'django', 'spring', 'backend', 'sql', 'supabase', 'sqlalchemy', 'python', 'java',
-          'test_case', 'pydantic', 'jsonschema', 'smartdata',
+          'test_case', 'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf',
         ];
         if ((isQuantumContext || isGuiContext || !editor)
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {
@@ -951,7 +952,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await runGen(editor, 'django', activeDiagramTitle, config as DjangoConfig);
             break;
           case 'spring':
-            result = await generateCode(editor, 'spring', activeDiagramTitle, config as SpringConfig);
+            result = await runGen(editor, 'spring', activeDiagramTitle, config as SpringConfig);
             break;
           case 'sql':
             result = await runGen(editor, 'sql', activeDiagramTitle, config as SQLConfig);
