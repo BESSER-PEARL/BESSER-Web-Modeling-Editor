@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
-import type { TraceArtifact, TraceChangeEvent, TraceOperation, TraceTool } from '../../shared/types/traceability';
+import type {
+  ExecutionStatus, RequirementKind, TraceArtifact, TraceChangeEvent, TraceOperation, TraceTool,
+} from '../../shared/types/traceability';
 import { isModelArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { qualifiedName } from '../../shared/traceability/traceQueries';
@@ -24,27 +26,52 @@ export const operationKind = (operation: TraceOperation): OperationKind => OPERA
 
 /** Whether an agent (the assistant) is among the operation's actors. */
 export const byAgent = (operation: TraceOperation, index: TraceIndex): boolean =>
-  operation.performedBy.some((id) => index.trace.actors.find((a) => a.id === id)?.type === 'Agent');
+  operation.performedBy.some((id) => index.actorsById.get(id)?.type === 'Agent');
 
 /** The model generator that derived a modeling session's changes in one run, or undefined when they were made
  *  in the editor. */
 export const derivedBy = (operation: TraceOperation, index: TraceIndex): TraceTool | undefined =>
   operation.type === 'ModelingSession'
-    ? toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)).find((tool) => tool?.type === 'ModelGenerator')
+    ? toolIdsOf(operation).map((id) => index.toolsById.get(id)).find((tool) => tool?.type === 'ModelGenerator')
     : undefined;
 
 export const operationLabel = (t: TFunction, operation: TraceOperation, index: TraceIndex): string => {
   if (operation.type === 'CodeGeneration') {
-    const generator = toolIdsOf(operation).map((id) => index.trace.tools.find((tool) => tool.id === id)?.name).find(Boolean);
-    return t('traceability.operations.generation', { generator: generator ?? '?' });
+    const generator = toolIdsOf(operation).map((id) => index.toolsById.get(id)?.name).find(Boolean);
+    return generator
+      ? t('traceability.operations.generation', { generator })
+      : t('traceability.operations.generationUnknown');
   }
   if (operation.type === 'RequirementExtraction') return t('traceability.operations.extraction');
   if (operation.type === 'Conversation') return t('traceability.operations.conversation');
   return t(byAgent(operation, index) ? 'traceability.operations.assistant' : 'traceability.operations.modeling');
 };
 
-export const actorNames = (operation: TraceOperation, index: TraceIndex): string =>
-  operation.performedBy.map((id) => index.trace.actors.find((a) => a.id === id)?.name ?? '?').join(', ');
+export const actorNames = (operation: TraceOperation, index: TraceIndex, t: TFunction): string =>
+  operation.performedBy
+    .map((id) => index.actorsById.get(id)?.name ?? t('traceability.unknownActor'))
+    .join(', ');
+
+/** The tools an operation's calls invoked, each with its version: "sqlalchemy 8.5.0, gpt-6-luna". */
+export const toolNames = (operation: TraceOperation, index: TraceIndex): string =>
+  toolIdsOf(operation)
+    .flatMap((id) => {
+      const tool = index.toolsById.get(id);
+      return tool ? [tool.version ? `${tool.name} ${tool.version}` : tool.name] : [];
+    })
+    .join(', ');
+
+/** How an operation went, translated ("Failed", "Timed out"). */
+export const statusLabel = (t: TFunction, status: ExecutionStatus): string =>
+  t(`traceability.executionStatus.${status}`, { defaultValue: status });
+
+/** What a requirement asks for, translated ("uniqueness", "user interface"). */
+export const requirementKindLabel = (t: TFunction, kind: RequirementKind): string =>
+  t(`traceability.requirementKinds.${kind}`, { defaultValue: kind });
+
+/** "uniqueness requirement". */
+export const requirementLabel = (t: TFunction, kind: RequirementKind): string =>
+  t('traceability.lineage.requirement', { kind: requirementKindLabel(t, kind) });
 
 /** "Renamed attribute Book.title to name", "Created class Book", ... */
 export function describeChange(t: TFunction, change: TraceChangeEvent, index: TraceIndex): string {

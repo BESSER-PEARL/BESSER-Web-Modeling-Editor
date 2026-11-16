@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, GitFork } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   modelChildren,
 } from '../../shared/traceability/traceQueries';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
+import { CodeLines } from './components/CodeLines';
+import { toggledIn } from './components/toggleSet';
 
 interface ElementsViewProps {
   index: TraceIndex;
@@ -32,8 +34,21 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
   // Nodes whose open state the user flipped: diagrams start open, everything else closed.
   const [toggled, setToggled] = useState<Set<string>>(new Set());
   const diagrams = useMemo(() => diagramsOf(index), [index]);
+  // Each model artifact's fragments, sorted once per trace rather than at every render of every node.
+  const childrenOf = useMemo(() => {
+    const map = new Map<string, ModelArtifact[]>();
+    const visit = (artifact: ModelArtifact) => {
+      const children = modelChildren(index, artifact.id);
+      map.set(artifact.id, children);
+      children.forEach(visit);
+    };
+    diagrams.forEach(visit);
+    return map;
+  }, [index, diagrams]);
   const selected = (selectedId && index.artifacts.get(selectedId)) || null;
-  const needle = query.trim().toLowerCase();
+  // Typing stays responsive on a large trace: the tree filters with the deferred text.
+  const needle = useDeferredValue(query.trim().toLowerCase());
+  const visible = useMemo(() => matchingIds(diagrams, childrenOf, needle), [diagrams, childrenOf, needle]);
 
   // Open the ancestors of an element selected from another view, so it shows in the tree.
   useEffect(() => {
@@ -58,22 +73,25 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
     index,
     selectedId,
     onSelect,
-    needle,
-    isOpen: (artifact) => needle !== '' || isDiagram(artifact) !== toggled.has(artifact.id),
-    toggle: (id) =>
-      setToggled((previous) => {
-        const next = new Set(previous);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      }),
+    childrenOf,
+    visible,
+    isOpen: (artifact) => visible !== null || isDiagram(artifact) !== toggled.has(artifact.id),
+    toggle: (id) => setToggled((previous) => toggledIn(previous, id)),
   };
 
   return (
     <div className="grid min-h-[420px] gap-4 md:grid-cols-[280px_1fr]">
       <div className="space-y-2">
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('traceability.elements.search')} className="h-8" />
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t('traceability.elements.search')}
+          aria-label={t('traceability.elements.search')}
+          className="h-8"
+        />
         {diagrams.length === 0 && <p className="text-sm text-muted-foreground">{t('traceability.elements.empty')}</p>}
+        {diagrams.length > 0 && visible?.size === 0 && <p className="text-sm text-muted-foreground">{t('traceability.elements.noMatch')}</p>}
         <ul role="tree" className="max-h-[60vh] space-y-0.5 overflow-y-auto">
           {diagrams.map((diagram) => (
             <TreeNode key={diagram.id} artifact={diagram} tree={tree} />
@@ -93,26 +111,33 @@ interface TreeContext {
   index: TraceIndex;
   selectedId: string | null;
   onSelect: (artifactId: string) => void;
-  /** The lower-cased search text; empty when not searching. */
-  needle: string;
+  childrenOf: Map<string, ModelArtifact[]>;
+  /** The ids of what matches the search, or holds something that does; null when not searching. */
+  visible: Set<string> | null;
   isOpen: (artifact: ModelArtifact) => boolean;
   toggle: (artifactId: string) => void;
 }
 
-/** Whether the artifact or one of its fragments matches the search. */
-function matches(index: TraceIndex, artifact: ModelArtifact, needle: string): boolean {
-  return (
-    !needle ||
-    artifact.name.toLowerCase().includes(needle) ||
-    modelChildren(index, artifact.id).some((child) => matches(index, child, needle))
-  );
+/** The artifacts that match the search or hold one that does, in one walk of the tree; null without a search. */
+function matchingIds(diagrams: ModelArtifact[], childrenOf: Map<string, ModelArtifact[]>, needle: string): Set<string> | null {
+  if (!needle) return null;
+  const result = new Set<string>();
+  const visit = (artifact: ModelArtifact): boolean => {
+    // Every child is visited (no short-circuit), so each matching one is kept.
+    const below = (childrenOf.get(artifact.id) ?? []).map(visit).some(Boolean);
+    const match = below || artifact.name.toLowerCase().includes(needle);
+    if (match) result.add(artifact.id);
+    return match;
+  };
+  diagrams.forEach(visit);
+  return result;
 }
 
 const TreeNode: React.FC<{ artifact: ModelArtifact; tree: TreeContext }> = ({ artifact, tree }) => {
   const { t } = useTranslation();
-  const { index, selectedId, onSelect, needle } = tree;
-  if (!matches(index, artifact, needle)) return null;
-  const children = modelChildren(index, artifact.id);
+  const { index, selectedId, onSelect, visible } = tree;
+  if (visible && !visible.has(artifact.id)) return null;
+  const children = tree.childrenOf.get(artifact.id) ?? [];
   const open = children.length > 0 && tree.isOpen(artifact);
   const diagram = isDiagram(artifact);
   const deleted = isDeleted(index, artifact.id);
@@ -206,7 +231,7 @@ const ElementDetail: React.FC<{ index: TraceIndex; artifactId: string; onShowLin
             <li key={change.id} className="flex flex-wrap items-baseline gap-x-2">
               <span>{describeChange(t, change, index)}</span>
               <span className="text-xs text-muted-foreground">
-                {formatTime(change.timestamp, i18n.language)} · {operationLabel(t, operation, index)} · {actorNames(operation, index)}
+                {formatTime(change.timestamp, i18n.language)} · {operationLabel(t, operation, index)} · {actorNames(operation, index, t)}
               </span>
             </li>
           ))}
@@ -237,12 +262,12 @@ const CodeFragment: React.FC<{ entry: GeneratedFragment; index: TraceIndex; loca
         <span className="ml-auto flex items-center gap-1">
           {entry.outOfDate.length > 0 ? (
             <Badge variant="destructive" size="sm" title={t('traceability.elements.outOfDateHelp')}>
-              <AlertTriangle className="mr-1 size-3" />
+              <AlertTriangle className="mr-1 size-3" aria-hidden />
               {t('traceability.status.outOfDate')}
             </Badge>
           ) : (
             <Badge variant="soft" size="sm">
-              <CheckCircle2 className="mr-1 size-3" />
+              <CheckCircle2 className="mr-1 size-3" aria-hidden />
               {t('traceability.status.upToDate')}
             </Badge>
           )}
@@ -258,14 +283,7 @@ const CodeFragment: React.FC<{ entry: GeneratedFragment; index: TraceIndex; loca
         </button>
       )}
       {lines && unfolded ? (
-        <pre className="max-h-72 overflow-auto bg-background p-0 text-xs leading-5">
-          {lines.map((line, i) => (
-            <div key={i} className="flex">
-              <span className="w-12 shrink-0 select-none pr-3 text-right text-muted-foreground">{(entry.fragment.startLine ?? 1) + i}</span>
-              <code className="whitespace-pre">{line}</code>
-            </div>
-          ))}
-        </pre>
+        <CodeLines lines={lines} firstLine={entry.fragment.startLine ?? 1} />
       ) : (
         !lines && <p className="px-3 py-2 text-xs text-muted-foreground">{t('traceability.elements.contentNotKept')}</p>
       )}
