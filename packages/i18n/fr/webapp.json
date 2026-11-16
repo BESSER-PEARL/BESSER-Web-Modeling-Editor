@@ -4372,6 +4372,7 @@
     "noProject": "Ouvrez un projet pour voir ses traces.",
     "emptyEnabled": "Rien n'a encore été enregistré. Modifiez un diagramme de classes ou générez du code SQLAlchemy et les traces apparaissent ici.",
     "emptyDisabled": "L'enregistrement des traces est désactivé pour ce projet. Activez-le ci-dessus pour enregistrer les modifications de modélisation et la génération de code.",
+    "redactedCodeNote": "Les secrets sont masqués dans la copie conservée de ce code.",
     "toggle": {
       "label": "Enregistrer les traces de ce projet",
       "on": "Activé",

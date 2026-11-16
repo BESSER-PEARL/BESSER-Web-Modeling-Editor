@@ -4372,6 +4372,7 @@
     "noProject": "Abre un proyecto para ver sus trazas.",
     "emptyEnabled": "Todavía no se ha registrado nada. Edita un diagrama de clases o genera código SQLAlchemy y las trazas aparecerán aquí.",
     "emptyDisabled": "El registro de trazas está desactivado para este proyecto. Actívalo arriba para registrar las ediciones de modelado y la generación de código.",
+    "redactedCodeNote": "Los secretos están ocultados en la copia guardada de este código.",
     "toggle": {
       "label": "Registrar trazas de este proyecto",
       "on": "Activado",

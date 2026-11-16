@@ -4372,6 +4372,7 @@
     "noProject": "Obre un projecte per veure'n les traces.",
     "emptyEnabled": "Encara no s'ha registrat res. Edita un diagrama de classes o genera codi SQLAlchemy i les traces apareixeran aquí.",
     "emptyDisabled": "El registre de traces està desactivat per a aquest projecte. Activa'l a dalt per registrar les edicions de modelatge i la generació de codi.",
+    "redactedCodeNote": "Els secrets estan ocultats a la còpia desada d'aquest codi.",
     "toggle": {
       "label": "Registra les traces d'aquest projecte",
       "on": "Activat",

@@ -29,13 +29,13 @@ import type {
  *   (a generated file's content is dropped, its hash kept).
  */
 
-/** The most items a trace may hold; a bigger one is refused rather than slowing or crashing the page. */
+/** The most items a trace may hold (the backend refuses more than 250,000 of each list on a B-UML export); a bigger one is refused rather than slowing or crashing the page. */
 export const TRACE_LIMITS = {
   actors: 10_000,
   tools: 10_000,
-  artifacts: 300_000,
+  artifacts: 250_000,
   operations: 100_000,
-  traceLinks: 600_000,
+  traceLinks: 250_000,
   /** Tool calls, changes, logs and evidence of one item. */
   perItem: 100_000,
 } as const;

@@ -4372,6 +4372,7 @@
     "noProject": "Open a project to see its traces.",
     "emptyEnabled": "Nothing recorded yet. Edit a class diagram or generate SQLAlchemy code and the traces appear here.",
     "emptyDisabled": "Trace recording is off for this project. Turn it on above to record modeling edits and code generation.",
+    "redactedCodeNote": "Secrets are redacted in the stored copy of this code.",
     "toggle": {
       "label": "Record traces for this project",
       "on": "On",

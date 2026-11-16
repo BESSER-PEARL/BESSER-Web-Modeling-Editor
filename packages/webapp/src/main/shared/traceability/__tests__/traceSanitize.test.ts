@@ -18,6 +18,14 @@ const model = (id: string, parentId?: string): TraceArtifact =>
   ({ id, type: 'ModelArtifact', name: id, elementId: `e-${id}`, elementType: 'Class', timestamp: now, ...(parentId ? { parentId } : {}) });
 const withItems = (items: Partial<Record<keyof TraceFile, unknown[]>>): TraceFile => ({ ...emptyTraceFile('p'), ...items } as TraceFile);
 
+describe('TRACE_LIMITS', () => {
+  it('are not above the 250,000 items per list the backend accepts on a B-UML export', () => {
+    for (const list of ['actors', 'tools', 'artifacts', 'operations', 'traceLinks'] as const) {
+      expect(TRACE_LIMITS[list]).toBeLessThanOrEqual(250_000);
+    }
+  });
+});
+
 describe('sanitizeTraceFile', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);

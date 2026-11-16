@@ -4372,6 +4372,7 @@
     "noProject": "Öffne ein Projekt, um seine Traces zu sehen.",
     "emptyEnabled": "Noch nichts aufgezeichnet. Bearbeite ein Klassendiagramm oder generiere SQLAlchemy-Code, dann erscheinen hier die Traces.",
     "emptyDisabled": "Die Trace-Aufzeichnung ist für dieses Projekt ausgeschaltet. Schalte sie oben ein, um Modellierungsänderungen und Codegenerierung aufzuzeichnen.",
+    "redactedCodeNote": "Geheimnisse sind in der gespeicherten Kopie dieses Codes geschwärzt.",
     "toggle": {
       "label": "Traces für dieses Projekt aufzeichnen",
       "on": "An",

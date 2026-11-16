@@ -4372,6 +4372,7 @@
     "noProject": "Maach e Projet op, fir seng Traces ze gesinn.",
     "emptyEnabled": "Nach näischt opgeholl. Änner e Klassendiagramm oder generéier SQLAlchemy-Code, an d'Traces erschéngen hei.",
     "emptyDisabled": "D'Opnam vun Traces ass fir dëse Projet ausgeschalt. Schalt se uewen un, fir Modelléierungsännerungen an d'Codegeneréierung opzehuelen.",
+    "redactedCodeNote": "Geheimnisser sinn an der gespäicherter Kopie vun dësem Code ewechgeholl.",
     "toggle": {
       "label": "Traces fir dëse Projet opuehmen",
       "on": "Un",
