@@ -822,8 +822,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     ): Promise<GenerationResult> => {
       // The assistant flow defers the browser download so the result renders as
       // a card with a manual Download button; the menu path auto-downloads.
-      const runGen: typeof generateCode = (editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg) =>
+      const runGen: typeof generateCode = (editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, optsArg) =>
         generateCode(editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, {
+          ...optsArg,
           autoDownload: !options?.deferDownload,
         });
       if (!currentProject) {
@@ -900,9 +901,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         // is irrelevant to the request — the assistant knows the project has a
         // class diagram — so generate from the STORED class diagram instead of
         // bouncing the user with "Switch to a UML diagram".
+        // The class-diagram generators of the Generate menu (`CLASS_GENERATORS` in generator-menu-config.ts),
+        // but the web app, which reads the whole project.
         const CLASS_MODEL_GENERATORS = [
-          'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
-          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+          'django', 'spring', 'backend', 'sql', 'supabase', 'sqlalchemy', 'python', 'java',
+          'test_case', 'pydantic', 'jsonschema', 'smartdata',
         ];
         if ((isQuantumContext || isGuiContext || !editor)
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {
@@ -921,6 +924,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               isSmartData ? { mode: 'smart_data' } : (config as any),
               undefined,
               storedModel,
+              // The trace names the stored diagram the model was read from, not the open tab's.
+              { traceDiagramId: storedClassDiagram?.id },
             );
             if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
             return overrideResult.ok ? { ...overrideResult, fromStoredModel: true } : overrideResult;

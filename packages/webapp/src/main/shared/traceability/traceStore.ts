@@ -28,6 +28,7 @@ import {
 } from './traceRecorder';
 import type { DerivedElement, LlmUsage, RecordContext, SpecDrivenRunSummary } from './traceRecorder';
 import { migrateTraceFile } from './traceMigration';
+import { reportTraceLoadProblem } from './traceLoadStatus';
 import { latestRequirements } from './traceQueries';
 import { readAssistantRequirements, requestStating } from './assistantRequirements';
 import type { AssistantRequirements } from './assistantRequirements';
@@ -104,6 +105,7 @@ async function readStored(projectId: string): Promise<TraceFile> {
   } catch (error) {
     console.warn(`The trace of project ${projectId} could not be read; starting a new one for this session.`, error);
     toast.warn(i18n.t('traceability.toasts.storageUnavailable'));
+    reportTraceLoadProblem(projectId, 'storageUnavailable');
     return emptyTraceFile(projectId);
   }
   // A trace kept in `localStorage` before IndexedDB is moved over.
@@ -124,6 +126,7 @@ async function readStored(projectId: string): Promise<TraceFile> {
     console.warn(`Stored trace of project ${projectId} could not be read; starting a new one.`, error);
   }
   toast.warn(i18n.t('traceability.toasts.storedTraceUnusable'));
+  reportTraceLoadProblem(projectId, 'unusable');
   return emptyTraceFile(projectId);
 }
 

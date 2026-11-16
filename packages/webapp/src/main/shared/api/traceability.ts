@@ -1,43 +1,48 @@
 import { apiClient } from './api-client';
+import type { DiagramInput } from './generation';
 import type { TraceFile } from '../types/traceability';
 
 /**
  * API layer for traceability (`/besser_api/traceability/...`).
  *
  * Mirrors the backend's `backend/models/traceability.py`; a change there is a
- * change here.
+ * change here. Every generator the plain endpoints accept is accepted by the
+ * traced ones (no allowlist): a project that records traces sends every
+ * generation through them.
  */
 
-/** Generators whose output carries trace links. Mirrors `TRACED_GENERATORS` in
- *  the backend's `constants.py`. */
-export const TRACED_GENERATORS: ReadonlySet<string> = new Set(['sqlalchemy', 'backend']);
-
 /** Same deadline as a plain `/generate-output` call. */
-const GENERATION_TIMEOUT_MS = 300_000;
+export const GENERATION_TIMEOUT_MS = 300_000;
 
-export interface TracedGenerationRequest {
-  /** The diagram id: the trace refers to the model by it. */
+/** A `/generate-output` request plus what the trace needs: the diagram id (the trace refers to the model by it)
+ *  and the project owner (blank is recorded as anonymous). */
+export type TracedGenerationRequest = DiagramInput & {
   id: string;
-  title: string;
-  model: unknown;
-  generator: string;
-  config?: unknown;
-  /** The project owner; blank is recorded as anonymous. */
   actorName: string;
-}
+};
 
 export interface TracedGenerationResponse {
   fileName: string;
   mediaType: string;
   contentBase64: string;
-  /** The trace fragment of the run (its `projectId` is null). */
+  /** The trace fragment of the run (its `projectId` is null). It may read several models. */
   trace: TraceFile;
 }
 
-export const generateWithTrace = (body: TracedGenerationRequest): Promise<TracedGenerationResponse> =>
-  apiClient.post<TracedGenerationResponse>('/traceability/generate-output', body, {
-    timeout: GENERATION_TIMEOUT_MS,
-  });
+/** `POST /traceability/generate-output`: one diagram in, the generated file (the bytes `/generate-output`
+ *  delivers) and the trace of the run out. */
+export const generateWithTrace = (body: TracedGenerationRequest, timeout: number = GENERATION_TIMEOUT_MS): Promise<TracedGenerationResponse> =>
+  apiClient.post<TracedGenerationResponse>('/traceability/generate-output', body, { timeout });
+
+/**
+ * `POST /traceability/generate-output-from-project`: the `/generate-output-from-project` payload (a plain
+ * record, see `buildProjectPayloadForBackend`) plus `actorName`, for the generators that read several diagrams
+ * (web app, docker compose, quantum, neural networks, ...). Same response as {@link generateWithTrace}.
+ */
+export const generateFromProjectWithTrace = (
+  project: Record<string, unknown>, actorName: string, timeout: number = GENERATION_TIMEOUT_MS,
+): Promise<TracedGenerationResponse> =>
+  apiClient.post<TracedGenerationResponse>('/traceability/generate-output-from-project', { ...project, actorName }, { timeout });
 
 /** The generated file of a traced generation, as a download blob. */
 export function tracedFileBlob(response: TracedGenerationResponse): Blob {
