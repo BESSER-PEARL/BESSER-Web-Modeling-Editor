@@ -7,6 +7,7 @@
  *   whether the canvas changed since and must not be replaced silently.
  */
 import { localStorageSpecDrivenLastRunPrefix, localStorageSpecDrivenRunSeedModels } from '../../constants/constant';
+import { llmKeyRedactor } from '../llmKeyStorage';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
 const RUN_ID_RE = /^[a-f0-9]{32}$/i;
@@ -21,6 +22,25 @@ export interface LastRunRecord {
   runId: string;
   /** Epoch ms at which the run completed. */
   at: number;
+  /** The user's request the run was started with; absent on older records and imports. */
+  request?: string;
+}
+
+/** Longest request text kept with a run record. */
+export const MAX_RUN_REQUEST_LENGTH = 4000;
+
+const ORIGINAL_REQUEST_HEADING = "## The user's original request, verbatim";
+
+/**
+ * The user's own words in a run's instructions. The assistant frames them as
+ * "## Assistant's notes ..." followed by the original request and any later
+ * requests; the notes are dropped, both request sections kept. Cut to
+ * MAX_RUN_REQUEST_LENGTH.
+ */
+export function runRequestFromInstructions(instructions: string): string {
+  const text = instructions.trim();
+  const start = text.startsWith("## Assistant's notes") ? text.indexOf(ORIGINAL_REQUEST_HEADING) : -1;
+  return (start > 0 ? text.slice(start) : text).slice(0, MAX_RUN_REQUEST_LENGTH);
 }
 
 const lastRunKey = (projectId: string): string => `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
@@ -39,17 +59,26 @@ export function readProjectLastRun(projectId: string): LastRunRecord | null {
     const parsed = JSON.parse(raw) as Partial<LastRunRecord> | null;
     if (!parsed || !isValidRunId(parsed.runId)) return null;
     const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0;
-    return { runId: parsed.runId, at };
+    const request =
+      typeof parsed.request === 'string' && parsed.request ? parsed.request.slice(0, MAX_RUN_REQUEST_LENGTH) : undefined;
+    return request ? { runId: parsed.runId, at, request } : { runId: parsed.runId, at };
   } catch {
     return null;
   }
 }
 
-/** Persist the last successful run for a project. No-op on failure. */
-export function writeProjectLastRun(projectId: string, runId: string, at: number): void {
+/**
+ * Persist the last successful run for a project, with the user's request when
+ * known (cut to MAX_RUN_REQUEST_LENGTH, a pasted key removed). No-op on failure.
+ */
+export function writeProjectLastRun(projectId: string, runId: string, at: number, request?: string): void {
   if (!projectId || !isValidRunId(runId)) return;
+  const kept = request ? llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH) : '';
   try {
-    window.localStorage.setItem(lastRunKey(projectId), JSON.stringify({ runId, at }));
+    window.localStorage.setItem(
+      lastRunKey(projectId),
+      JSON.stringify(kept ? { runId, at, request: kept } : { runId, at }),
+    );
   } catch {
     /* ignore */
   }

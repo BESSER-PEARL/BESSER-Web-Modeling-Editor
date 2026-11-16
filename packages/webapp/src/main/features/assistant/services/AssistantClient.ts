@@ -213,6 +213,8 @@ const mergeContexts = (
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
     githubRepo: override?.githubRepo || base?.githubRepo,
+    generationKey: override?.generationKey || base?.generationKey,
+    lastGeneration: override?.lastGeneration || base?.lastGeneration,
   };
 };
 

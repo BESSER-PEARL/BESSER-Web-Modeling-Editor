@@ -67,7 +67,7 @@ import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
-import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
+import { recordRunSeedModel, runRequestFromInstructions } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
   SseStallError,
@@ -485,7 +485,7 @@ export function useSpecDrivenTrigger(
   const handleSseEvent = useCallback(
     async (
       event: SpecDrivenEvent,
-      run: { liveKey: string; streamingId: string; projectId: string },
+      run: { liveKey: string; streamingId: string; projectId: string; request?: string },
     ): Promise<void> => {
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
@@ -631,7 +631,7 @@ export function useSpecDrivenTrigger(
             dispatch(
               setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at }),
             );
-            writeProjectLastRun(run.projectId, doneRunId, at);
+            writeProjectLastRun(run.projectId, doneRunId, at, run.request);
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
@@ -1317,7 +1317,12 @@ export function useSpecDrivenTrigger(
 
       abortRef.current = handle.abort;
 
-      const runCtx = { liveKey, streamingId, projectId: runProject.id };
+      const runCtx = {
+        liveKey,
+        streamingId,
+        projectId: runProject.id,
+        request: runRequestFromInstructions(payload.instructions),
+      };
       let terminalEventSeen = false;
       let eventsReceived = 0;
       try {

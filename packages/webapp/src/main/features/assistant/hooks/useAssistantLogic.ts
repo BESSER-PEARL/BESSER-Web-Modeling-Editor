@@ -81,7 +81,14 @@ import type { GenerationResult } from '../../generation';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
-import { useSpecDrivenTrigger, openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven';
+import {
+  useSpecDrivenTrigger,
+  openByokDialog,
+  readGenerationKey,
+  readLastGeneration,
+  setLastRunForProject,
+  selectHasLiveSpecDrivenRun,
+} from '../../spec-driven';
 import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
   continueFromGithubRepo,
@@ -770,6 +777,8 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
+      generationKey: readGenerationKey(),
+      lastGeneration: readLastGeneration(project?.id),
     };
   }
 

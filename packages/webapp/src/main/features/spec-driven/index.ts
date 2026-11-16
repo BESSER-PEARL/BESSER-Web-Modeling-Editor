@@ -10,4 +10,5 @@ export {
 } from './state/specDrivenSlice';
 export { useSpecDrivenTrigger } from './hooks/useSpecDrivenTrigger';
 export { readGenerationKey, useGenerationKey, type GenerationKey } from './generationKey';
+export { readLastGeneration, type LastGeneration } from './lastGeneration';
 export type { TriggerSpecDrivenPayload } from './types';
