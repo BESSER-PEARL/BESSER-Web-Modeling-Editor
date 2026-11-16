@@ -4,7 +4,7 @@ import type { NamedElementRef } from './classModelDiff';
 /**
  * The requirements the modeling assistant extracted from a request, the LLM that extracted them, and the
  * class-diagram elements that realize each one, as its `inject_complete_system` reply carries them
- * (`requirements`, `requirementsModel`, `realizations`; the agent's `diagram_handlers/core/requirements.py`,
+ * (`requirements`, `requirementsModel`, `realizations`; the agent's `src/diagram_handlers/types/class_diagram_requirements.py`,
  * described in its `websocket_protocol.rst`).
  *
  * The reply is untrusted input: it is read field by field, and an item that is malformed is left out.

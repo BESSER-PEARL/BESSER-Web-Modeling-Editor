@@ -8,7 +8,32 @@ import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportU
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../shared/utils/download';
 import { loadProjectTrace } from '../../shared/traceability/traceStore';
+import { downgradeTraceFile } from '../../shared/traceability/traceMigration';
+import type { TraceFile } from '../../shared/types/traceability';
 import type { ExportOutcome } from './exportOutcome';
+
+/** The banner of the B-UML file's trace section (`TRACE_SECTION_KEYWORD` in the backend's `trace_model_builder.py`). */
+const TRACE_SECTION_KEYWORD = 'TRACEABILITY';
+
+/** The backend's refusal of a trace whose version it does not read (`trace_processor.py`). */
+const UNSUPPORTED_TRACE_VERSION = /Unsupported trace schemaVersion/i;
+
+/**
+ * Export the project; when the backend refuses the trace's version (a backend one version behind the editor),
+ * export again with the trace written in the version before, which the contract has every backend read.
+ */
+async function exportWithTrace(payload: Record<string, unknown>): Promise<{ blob: Blob; headers: Headers }> {
+  try {
+    return await exportProjectAsBuml(payload);
+  } catch (error) {
+    const trace = payload.trace as TraceFile | undefined;
+    const refused = error instanceof ApiError && UNSUPPORTED_TRACE_VERSION.test(`${error.detail ?? ''} ${error.message}`);
+    const older = refused && trace ? downgradeTraceFile(trace, trace.schemaVersion - 1) : undefined;
+    if (!older) throw error;
+    console.warn(`The backend does not read trace version ${trace!.schemaVersion}; exporting it as version ${older.schemaVersion}.`);
+    return exportProjectAsBuml({ ...payload, trace: older });
+  }
+}
 
 export async function exportProjectAsSingleBUMLFile(
   project: BesserProject,
@@ -30,7 +55,13 @@ export async function exportProjectAsSingleBUMLFile(
   const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes, { includeTrace });
 
   try {
-    const { blob, headers } = await exportProjectAsBuml(projectToExport);
+    const { blob, headers } = await exportWithTrace(projectToExport);
+    const sentTrace = projectToExport.trace as TraceFile | undefined;
+    if (sentTrace && sentTrace.artifacts.length > 0 && typeof blob.text === 'function' && !(await blob.text()).includes(TRACE_SECTION_KEYWORD)) {
+      // An older backend without traceability ignores the field: the file is exported, without the trace.
+      console.warn('The backend exported the project without its trace section.');
+      toast.warn(i18n.t('traceability.toasts.exportedTraceDroppedByBackend'));
+    }
 
     // Get the filename from the response headers
     const contentDisposition = headers.get('Content-Disposition');
