@@ -14,7 +14,8 @@ import {
   readLlmKey,
   type LlmKey,
 } from '../../shared/services/llmKeyStorage';
-import { getSpecDrivenConfig, peekSpecDrivenConfig } from '../../shared/services/specDrivenConfig';
+import { getSpecDrivenConfig, peekServerSpecDrivenConfig } from '../../shared/services/specDrivenConfig';
+import { readLastGeneration, type LastGeneration } from './lastGeneration';
 
 export type RunTierChoice =
   | { tier: 'sponsored'; demoToken: string }
@@ -44,9 +45,15 @@ export interface GenerationKey {
   model?: string | null;
 }
 
-/** What the next run would use, by the run start's rule. A demo link's server-paid tier counts as free. */
-export function readGenerationKey(): GenerationKey {
-  const choice = readRunTier(peekSpecDrivenConfig()?.free_tier.available ?? false);
+/**
+ * What the next run would use, by the run start's rule. A demo link's
+ * server-paid tier counts as free. Undefined while only the server's config
+ * (is the free tier offered?) could decide.
+ */
+export function readGenerationKey(): GenerationKey | undefined {
+  const config = peekServerSpecDrivenConfig();
+  const choice = readRunTier(config?.free_tier.available ?? false);
+  if (choice.tier === 'none' && !config) return undefined;
   switch (choice.tier) {
     case 'own_key':
       return { tier: 'own', provider: choice.key.provider, model: choice.key.model ?? null };
@@ -59,8 +66,17 @@ export function readGenerationKey(): GenerationKey {
   }
 }
 
+/** The two fields every user message carries; asks for the server's config again while it is unknown. */
+export function readGenerationContext(projectId: string | undefined): {
+  generationKey?: GenerationKey;
+  lastGeneration?: LastGeneration;
+} {
+  if (!peekServerSpecDrivenConfig()) void getSpecDrivenConfig();
+  return { generationKey: readGenerationKey(), lastGeneration: readLastGeneration(projectId) };
+}
+
 /** `readGenerationKey`, kept current as the key, the free-tier choice or the server config change. */
-export function useGenerationKey(): GenerationKey {
+export function useGenerationKey(): GenerationKey | undefined {
   const [, refresh] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
     let active = true;

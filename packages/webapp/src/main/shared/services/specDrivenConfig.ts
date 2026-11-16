@@ -291,6 +291,15 @@ export function archiveTtlSeconds(config: SpecDrivenConfig): number {
 }
 
 /**
+ * The server's own config, or null while it is unknown (not loaded yet, the
+ * load failed, or the payload was unusable). For values the fallback must not
+ * stand in for.
+ */
+export function peekServerSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig && _loadedConfig !== FALLBACK_SMART_GEN_CONFIG ? _loadedConfig : null;
+}
+
+/**
  * The config from the last successful load, or null before one. Lets a dialog
  * render the server's lists on its first frame instead of the fallback.
  */

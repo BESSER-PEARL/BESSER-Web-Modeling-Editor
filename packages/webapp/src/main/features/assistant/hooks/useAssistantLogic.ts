@@ -84,7 +84,7 @@ import { useModelInjection } from './useModelInjection';
 import {
   useSpecDrivenTrigger,
   openByokDialog,
-  readGenerationKey,
+  readGenerationContext,
   readLastGeneration,
   setLastRunForProject,
   selectHasLiveSpecDrivenRun,
@@ -782,8 +782,7 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
-      generationKey: readGenerationKey(),
-      lastGeneration: readLastGeneration(project?.id),
+      ...readGenerationContext(project?.id),
     };
   }
 

@@ -9,6 +9,7 @@ import { GenerationKeyChip } from '../GenerationKeyChip';
 import {
   FALLBACK_SMART_GEN_CONFIG,
   getSpecDrivenConfig,
+  peekServerSpecDrivenConfig,
   peekSpecDrivenConfig,
   type SpecDrivenConfig,
 } from '../../../../shared/services/specDrivenConfig';
@@ -16,7 +17,7 @@ import { writeFreeTierSelected, writeLlmKey } from '../../../../shared/services/
 
 vi.mock('../../../../shared/services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../../../../shared/services/specDrivenConfig')>();
-  return { ...mod, getSpecDrivenConfig: vi.fn(), peekSpecDrivenConfig: vi.fn() };
+  return { ...mod, getSpecDrivenConfig: vi.fn(), peekSpecDrivenConfig: vi.fn(), peekServerSpecDrivenConfig: vi.fn() };
 });
 
 const config = (freeOffered: boolean): SpecDrivenConfig => ({
@@ -27,6 +28,7 @@ const config = (freeOffered: boolean): SpecDrivenConfig => ({
 
 const useConfig = (freeOffered: boolean) => {
   vi.mocked(peekSpecDrivenConfig).mockReturnValue(config(freeOffered));
+  vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(config(freeOffered));
   vi.mocked(getSpecDrivenConfig).mockResolvedValue(config(freeOffered));
 };
 
@@ -79,5 +81,13 @@ describe('GenerationKeyChip', () => {
     expect(chip.textContent).toBe('OpenAI (GPT) · gpt-test-large');
     fireEvent.click(chip);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows nothing while only the unknown server config could tell', async () => {
+    vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(null);
+    vi.mocked(getSpecDrivenConfig).mockReturnValue(new Promise(() => {}));
+    render(<GenerationKeyChip onClick={vi.fn()} />);
+    await act(async () => {});
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

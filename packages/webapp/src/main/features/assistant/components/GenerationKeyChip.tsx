@@ -25,6 +25,8 @@ export function generationKeyLabel(key: GenerationKey, t: TFunction): string {
 export const GenerationKeyChip: React.FC<{ onClick: () => void; className?: string }> = ({ onClick, className }) => {
   const { t } = useTranslation();
   const key = useGenerationKey();
+  // Unknown until the server says whether the free tier is offered.
+  if (!key) return null;
   const label = generationKeyLabel(key, t);
   const Icon = key.tier === 'free' ? Sparkles : KeyRound;
   return (

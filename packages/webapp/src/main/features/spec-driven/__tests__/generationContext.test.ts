@@ -5,11 +5,12 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { readGenerationKey } from '../generationKey';
+import { readGenerationContext, readGenerationKey } from '../generationKey';
 import { readLastGeneration } from '../lastGeneration';
 import {
   FALLBACK_SMART_GEN_CONFIG,
-  peekSpecDrivenConfig,
+  getSpecDrivenConfig,
+  peekServerSpecDrivenConfig,
   type SpecDrivenConfig,
 } from '../../../shared/services/specDrivenConfig';
 import { writeFreeTierModel, writeFreeTierSelected, writeLlmKey } from '../../../shared/services/llmKeyStorage';
@@ -18,7 +19,7 @@ import { getDemoToken } from '../../../shared/services/demoMode';
 
 vi.mock('../../../shared/services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../../../shared/services/specDrivenConfig')>();
-  return { ...mod, peekSpecDrivenConfig: vi.fn() };
+  return { ...mod, peekServerSpecDrivenConfig: vi.fn(), getSpecDrivenConfig: vi.fn(() => new Promise(() => {})) };
 });
 
 vi.mock('../../../shared/services/demoMode', () => ({ getDemoToken: vi.fn(() => null) }));
@@ -32,11 +33,15 @@ const config = (overrides: Partial<SpecDrivenConfig> = {}): SpecDrivenConfig => 
 
 const RUN = 'b'.repeat(32);
 
+/** Instructions as the assistant frames the user's request. */
+const framedRequest = (request: string) =>
+  "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n## The user's original request, verbatim\n\n" + request;
+
 beforeEach(() => {
   window.sessionStorage.clear();
   window.localStorage.clear();
   vi.mocked(getDemoToken).mockReturnValue(null);
-  vi.mocked(peekSpecDrivenConfig).mockReturnValue(config());
+  vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(config());
 });
 
 describe('readGenerationKey', () => {
@@ -64,7 +69,7 @@ describe('readGenerationKey', () => {
   });
 
   it('is none when there is no key and no free tier', () => {
-    vi.mocked(peekSpecDrivenConfig).mockReturnValue(config({ free_tier: FALLBACK_SMART_GEN_CONFIG.free_tier }));
+    vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(config({ free_tier: FALLBACK_SMART_GEN_CONFIG.free_tier }));
     expect(readGenerationKey()).toEqual({ tier: 'none' });
   });
 
@@ -83,7 +88,7 @@ describe('readLastGeneration', () => {
 
   it('carries the request and is not expired within the download lifetime', () => {
     writeProjectLastRun('p1', RUN, 1_000_000);
-    recordProjectRunRequest('p1', 'Build a task board.');
+    recordProjectRunRequest('p1', framedRequest('Build a task board.'));
     expect(readLastGeneration('p1', 1_000_000 + 3_599_000)).toEqual({
       runId: RUN, at: 1_000_000, expired: false, request: 'Build a task board.',
     });
@@ -95,7 +100,39 @@ describe('readLastGeneration', () => {
   });
 
   it('still carries the request when no run of the project finished', () => {
-    recordProjectRunRequest('p1', 'Build a task board.');
+    recordProjectRunRequest('p1', framedRequest('Build a task board.'));
     expect(readLastGeneration('p1')).toEqual({ request: 'Build a task board.' });
+  });
+});
+
+describe('while the server config is unknown', () => {
+  beforeEach(() => {
+    vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(null);
+    vi.mocked(getSpecDrivenConfig).mockClear();
+  });
+
+  it('sends no generation key that only the config could decide', () => {
+    expect(readGenerationKey()).toBeUndefined();
+  });
+
+  it('still sends a stored key or a chosen free tier, which need no config', () => {
+    writeLlmKey('openai', 'sk-secret');
+    expect(readGenerationKey()).toEqual({ tier: 'own', provider: 'openai', model: null });
+    writeFreeTierSelected(true);
+    expect(readGenerationKey()).toEqual({ tier: 'free', provider: 'free', model: null });
+  });
+
+  it('leaves out whether the last run expired', () => {
+    writeProjectLastRun('p1', RUN, 1_000_000);
+    recordProjectRunRequest('p1', framedRequest('Build a task board.'));
+    expect(readLastGeneration('p1', 1_000_000 + 7_200_000)).toEqual({
+      runId: RUN, at: 1_000_000, request: 'Build a task board.',
+    });
+  });
+
+  it('asks for the config again with each message', () => {
+    readGenerationContext('p1');
+    readGenerationContext('p1');
+    expect(getSpecDrivenConfig).toHaveBeenCalledTimes(2);
   });
 });
