@@ -3,7 +3,7 @@
  * Central export point for all services used by the AssistantWorkspaceDrawer
  */
 
-export { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE } from './AssistantClient';
+export { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE } from './AssistantClient';
 export type {
   AssistantWorkspaceContext,
   AssistantActionPayload,

@@ -74,7 +74,10 @@ The assistant's model
 
 Each turn with the assistant is a call to an LLM in a *conversation* operation. A terminal reply of the
 modeling agent carries ``llmUsage`` (model, provider, input and output tokens; running totals of the
-turn): the turn is then filed under that model with its tokens, and the latest totals win. An agent
+turn): the turn is then filed under that model with its tokens, and the latest totals win. An ``agent_error``
+from the agent is recorded as the turn's error, with its message and, when it carries one, its ``llmUsage``;
+the client's own notices (a reply it could not read is an error, the "still running" notice is not recorded)
+carry no usage. An agent
 that does not report it leaves the turn under a tool named "unknown model (not reported by the
 assistant)".
 

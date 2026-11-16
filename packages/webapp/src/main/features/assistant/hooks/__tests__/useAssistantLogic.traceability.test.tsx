@@ -109,7 +109,7 @@ vi.mock('../../../../shared/services/analytics/events', () => ({
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';
-import { INJECTION_FALLBACK_MESSAGE } from '../../services';
+import { INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE } from '../../services';
 import { conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
 
 interface SurfaceAPI {
@@ -199,12 +199,34 @@ describe('useAssistantLogic records the conversation in the trace', () => {
     await waitFor(() => expect(drawer.current).not.toBeNull());
 
     emitMessage({ action: 'user_message', message: 'add a Book class', isUser: true });
-    emitMessage({ action: 'agent_error', message: 'The assistant is taking too long to respond. Please try again.' });
+    // A reply the client could not read: its own error message, which ends the turn in error.
+    emitMessage({ action: 'agent_error', message: 'Received a malformed response from the assistant. Please try again.' });
+    // The "still running" notice is not a failure: the reply can still come.
+    emitMessage({ action: 'agent_error', message: RESPONSE_STILL_RUNNING_MESSAGE });
     act(() => drawer.current!.clear());
 
     expect(trace.recordAssistantRequest.mock.calls.map(([, text]) => text)).toEqual(['add a Book class']);
-    expect(replies()).toEqual([['error', 'The assistant is taking too long to respond. Please try again.']]);
+    expect(replies()).toEqual([['error', 'Received a malformed response from the assistant. Please try again.']]);
     expect(trace.endAssistantConversation).toHaveBeenCalledTimes(1);
+  });
+
+  it('records the agent’s own agent_error as an error of the turn, with its model and tokens', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+
+    const llmUsage = { model: 'claude-x', provider: 'anthropic', inputTokens: 5, outputTokens: 1 };
+    await emitAction({ action: 'agent_error', message: 'The model failed: provider error', llmUsage } as AssistantActionPayload);
+    await emitAction({ action: 'agent_error', message: 'Second failure without usage' } as AssistantActionPayload);
+
+    await waitFor(() =>
+      expect(trace.recordAssistantReply.mock.calls.map(([, kind, text, usage]) => [kind, text, usage])).toEqual([
+        ['error', 'The model failed: provider error', llmUsage],
+        ['error', 'Second failure without usage', undefined],
+      ]),
+    );
   });
 
   it('passes the turn’s reported model and tokens (`llmUsage`) with its terminal replies, checked', async () => {

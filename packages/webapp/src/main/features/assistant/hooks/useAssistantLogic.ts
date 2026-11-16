@@ -41,7 +41,7 @@ import {
   autoFixRemainingMessage,
   autoFixResolvedMessage,
 } from './autoFixMessages';
-import { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, type AssistantActionPayload } from '../services';
+import { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE, type AssistantActionPayload } from '../services';
 import {
   autoFixRef,
   conversationStore,
@@ -830,7 +830,8 @@ export function useAssistantLogic({
   /*  handleAction                                                     */
   /* ================================================================ */
 
-  /** Record an agent reply in the project trace: a progress step, or an answer (a message or a finished stream). */
+  /** Record an agent reply in the project trace: a progress step, an answer (a message or a finished stream), or the
+   *  agent's error (an `agent_error` frame comes only as an action), each with the turn's model and tokens. */
   const recordReply = (payload: AssistantActionPayload) => {
     const project = currentProjectRef.current;
     if (payload.action === 'progress' && typeof payload.message === 'string') {
@@ -841,6 +842,9 @@ export function useAssistantLogic({
       recordAssistantReply(project, 'answer', payload.message, readLlmUsage(payload.llmUsage));
     } else if (payload.action === 'stream_done' && typeof payload.fullText === 'string') {
       recordAssistantReply(project, 'answer', payload.fullText, readLlmUsage(payload.llmUsage));
+    } else if (payload.action === 'agent_error') {
+      const message = typeof payload.message === 'string' && payload.message.trim() ? payload.message : t('assistant.errors.genericAgentError');
+      recordAssistantReply(project, 'error', message, readLlmUsage(payload.llmUsage));
     } else if (payload.llmUsage !== undefined) {
       // Another terminal reply of the turn (a generation, an export) with the turn's model and tokens.
       recordAssistantReply(project, 'answer', '', readLlmUsage(payload.llmUsage));
@@ -1284,12 +1288,13 @@ export function useAssistantLogic({
       // in place with the real transcribed text instead of appending a second
       // user bubble (which would leave a duplicate). This keeps exactly ONE
       // user bubble for the voice message.
-      // A transcribed voice message is the user's request; an error ends the turn. The assistant's other
-      // messages are recorded from the action handler, which also sees those that are not displayed.
+      // A transcribed voice message is the user's request. The agent's replies, its errors included, are recorded
+      // from the action handler, which also sees those that are not displayed; an `agent_error` that comes as a
+      // message is the client's own (a reply it could not read): it ends the turn in error, and carries no usage.
+      // The "still running" notice is not a failure: the reply can still come.
       if (message.isUser) void recordAssistantRequest(currentProjectRef.current, toAssistantText(message.message));
-      else if (message.action === 'agent_error') {
-        const usage = readLlmUsage((message as unknown as { llmUsage?: unknown }).llmUsage);
-        recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message), usage);
+      else if (message.action === 'agent_error' && message.message !== RESPONSE_STILL_RUNNING_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message));
       }
 
       if (message.isUser && voicePlaceholderIdRef.current) {
