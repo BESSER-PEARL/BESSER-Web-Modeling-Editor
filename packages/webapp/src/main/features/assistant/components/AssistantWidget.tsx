@@ -138,7 +138,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     setInputValue,
     isGenerating,
     connectionStatus,
-    rateLimitStatus,
     messageMeta,
     progressSteps,
     lastSentMessage,
@@ -270,13 +269,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   /* ---- Render ---- */
 
   if (!isOnEditorPage || !isAssistantApplicable || drawerOpen) return null;
-
-  const rateLimitColor =
-    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
-      ? 'text-red-500'
-      : rateLimitStatus.requestsLastMinute >= 6
-        ? 'text-amber-500'
-        : 'text-muted-foreground';
 
   return (
     <>
@@ -451,12 +443,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                 <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
               </div>
-              <span
-                className={cn('font-mono text-[11px] tracking-wide', rateLimitColor)}
-                title={t('assistant.rateLimitTooltip', { limit: 8 })}
-              >
-                {rateLimitStatus.requestsLastMinute}/8
-              </span>
             </div>
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
               {({ files, setFiles }) => (

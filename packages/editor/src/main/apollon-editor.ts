@@ -252,6 +252,16 @@ export class ApollonEditor {
     );
   }
 
+  /**
+   * Selects one element or relationship and scrolls the canvas so it is in view.
+   * @param id id of the element (a class, an attribute, ...) or relationship
+   */
+  focusElement(id: string) {
+    this.select({ elements: { [id]: true }, relationships: {} });
+    const node = this.container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    node?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+  }
+
   _getNewSubscriptionId(subscribers: { [key: number]: any }): number {
     // largest key + 1
     if (Object.keys(subscribers).length === 0) return 0;

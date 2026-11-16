@@ -7,6 +7,7 @@ import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
+import { consumeElementFocusRequest } from '../../../shared/utils/elementFocusSignal';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
@@ -279,6 +280,17 @@ export const ApollonEditorComponent: React.FC = () => {
       // If a lineage click-through requested a source-element
       // selection, apply it now that the new editor is mounted and the
       // model is loaded.
+      // A "Your model" click raises the same kind of request from outside.
+      const focusId = consumeElementFocusRequest();
+      if (focusId) {
+        setTimeout(() => {
+          try {
+            nextEditor.focusElement(focusId);
+          } catch (error) {
+            console.warn('[model overview] focusing the element failed:', error);
+          }
+        }, 50);
+      }
       if (pendingSelectionRef.current) {
         const elementId = pendingSelectionRef.current;
         pendingSelectionRef.current = null;
