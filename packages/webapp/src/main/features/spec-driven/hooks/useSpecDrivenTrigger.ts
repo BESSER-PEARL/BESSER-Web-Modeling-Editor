@@ -66,7 +66,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { projectRequirements } from '../../../shared/traceability/traceStore';
+import { isTraceabilityEnabled, projectRequirements, traceActorName } from '../../../shared/traceability/traceStore';
 import { newRunTraceState, noteRunEvent, recordRunInTrace, type RunTraceState } from '../runTrace';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
@@ -1286,6 +1286,7 @@ export function useSpecDrivenTrigger(
         project: normalisedProject,
         instructions: payload.instructions,
         requirements,
+        ...(isTraceabilityEnabled(project) ? { actorName: traceActorName(project) } : {}),
         provider,
         apiKey: demoToken || freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,

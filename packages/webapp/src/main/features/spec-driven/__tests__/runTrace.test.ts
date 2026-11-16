@@ -46,6 +46,30 @@ describe('what the trace records of a Spec-Driven run', () => {
     expect(trace.operations.map((o) => o.id)).toEqual([specDrivenOperationId('r1')]);
   });
 
+  it('carries a requirement item’s traceRef into the summary', () => {
+    const item = { kind: 'requirement' as const, id: 'R1', traceRef: 'r1:R1', what: 'Books have titles', how: 'pytest' };
+    const summary = runSummary(newRunTraceState(), 'r1', done({ verification: { ...done().verification!, verified: [item] } }), []);
+    expect(summary.verification[0]).toMatchObject({ id: 'R1', traceRef: 'r1:R1' });
+  });
+
+  it('records the run once when done.trace arrives after the fallback has recorded it', async () => {
+    const project = createDefaultProject('Shop', '', 'Ada');
+    vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
+    const fragment = { ...emptyTraceFile('x'), projectId: null, operations: [{ id: specDrivenOperationId('r1'), type: 'CodeGeneration',
+      status: 'SUCCEEDED', startedAt: '2026-01-01T00:00:00.000Z', performedBy: [], toolCalls: [], reads: [], writes: [] }] };
+    recordRunInTrace(project.id, 'r1', newRunTraceState(), done()); // the stream fallback
+    recordRunInTrace(project.id, 'r1', newRunTraceState(), done({ trace: fragment })); // the backend's trace, later
+    await flushTraceSaves();
+    expect((await loadProjectTrace(project.id)).operations.map((o) => o.id)).toEqual([specDrivenOperationId('r1')]);
+    // ... and the other way round.
+    const other = createDefaultProject('Shop2', '', 'Ada');
+    vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(other);
+    recordRunInTrace(other.id, 'r1', newRunTraceState(), done({ trace: fragment }));
+    recordRunInTrace(other.id, 'r1', newRunTraceState(), done());
+    await flushTraceSaves();
+    expect((await loadProjectTrace(other.id)).operations.map((o) => o.id)).toEqual([specDrivenOperationId('r1')]);
+  });
+
   it('merges the trace the done event carries', async () => {
     const project = createDefaultProject('Shop', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);

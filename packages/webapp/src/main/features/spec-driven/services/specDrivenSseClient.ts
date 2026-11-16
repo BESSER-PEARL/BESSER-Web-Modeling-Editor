@@ -106,6 +106,8 @@ export interface StartSpecDrivenRunParams {
   instructions: string;
   /** The assistant's requirements: the run judges these instead of extracting its own. */
   requirements?: RequirementInput[];
+  /** Who ran it, for the run's trace (the project owner, as for the traced generation endpoints). Sent only when the project records traces. */
+  actorName?: string;
   provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
@@ -556,6 +558,8 @@ export function startSpecDrivenRun(
     provider: wireProvider,
   };
   if (params.requirements?.length) body.requirements = params.requirements;
+  // The backend caps the name at 200 characters.
+  if (params.actorName?.trim()) body.actorName = params.actorName.trim().slice(0, 200);
   if (!isServerPaid) body.api_key = params.apiKey;
   if (!isServerPaid && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
   // The demo secret travels with the tier it unlocks, and nowhere else.

@@ -141,6 +141,8 @@ export interface SpecDrivenVerificationItem {
   kind: SpecDrivenVerificationKind;
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the run's trace (`done.trace`); `id` keeps `R<n>`. */
+  traceRef?: string;
   /** What the thing is, in the user's terms. */
   what: string;
   /** Set on a VERIFIED item: what was actually run or re-checked. */
@@ -339,6 +341,8 @@ export interface SpecDrivenVerificationItemView {
   kind: 'requirement' | 'ocl_constraint' | 'api_workflow' | 'check';
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the project trace. */
+  traceRef?: string;
   what: string;
   /** VERIFIED items: what was actually run or re-checked. */
   how?: string;

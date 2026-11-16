@@ -65,6 +65,7 @@ export function runSummary(
     verification: VERIFICATION_STATES.flatMap((verificationState) =>
       (done?.verification?.[verificationState] ?? []).map((item) => ({
         state: verificationState, kind: item.kind, id: item.id ?? '', what: item.what,
+        ...(item.traceRef ? { traceRef: item.traceRef } : {}),
         ...(item.how || item.why ? { detail: (item.how || item.why)! } : {}),
       })),
     ),

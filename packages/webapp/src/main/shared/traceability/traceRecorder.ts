@@ -839,7 +839,7 @@ export interface SpecDrivenRunSummary {
   generator?: string;
   changedFiles: string[];
   changedFileCount?: number;
-  verification: Array<{ state: 'verified' | 'notVerified' | 'shippedUnenforced'; kind: string; id: string; what: string; detail?: string }>;
+  verification: Array<{ state: 'verified' | 'notVerified' | 'shippedUnenforced'; kind: string; id: string; traceRef?: string; what: string; detail?: string }>;
   /** The diagrams the run read: id, title and B-UML model type. */
   diagrams: Array<{ id: string; title: string; modelType: string }>;
   /** The RequirementArtifact ids sent with the run. */
@@ -864,7 +864,9 @@ export function recordSpecDrivenRun(trace: TraceFile, run: SpecDrivenRunSummary)
   ];
   const reads = run.diagrams.map((d) => ensureModelArtifact(trace, d.id, d.modelType, d.title, undefined, run.startedAt).id);
   const known = new Set(trace.artifacts.map((a) => a.id));
-  reads.push(...run.requirementIds.filter((rid) => known.has(rid)));
+  // The run's own requirements, and the artifacts its verification items name (`traceRef`).
+  const refs = run.verification.flatMap((v) => (v.traceRef ? [v.traceRef] : []));
+  reads.push(...[...run.requirementIds, ...refs].filter((rid) => known.has(rid)));
   const toolCalls: TraceToolCall[] = [];
   const log = (call: TraceToolCall, content: string, logType: LogType = 'INFO') =>
     call.logs.push({ id: newId(), content: capped(content), sequenceNumber: call.logs.length, logType, timestamp: run.endedAt });
