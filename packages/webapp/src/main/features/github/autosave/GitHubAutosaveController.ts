@@ -151,8 +151,11 @@ export class GitHubAutosaveController {
       const result = await this.steps.save();
       this.failures = 0;
       this.retryAt = 0;
-      if (result === 'conflict') this.pause = 'conflict';
-      else this.lastSavedAt = this.now();
+      if (result === 'conflict') {
+        // Still unsaved: saved once the conflict is resolved and the pause lifts.
+        this.pause = 'conflict';
+        this.dirty = true;
+      } else this.lastSavedAt = this.now();
     } catch (error) {
       this.dirty = true;
       const reason = failureReason(error);

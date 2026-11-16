@@ -133,6 +133,19 @@ describe('GitHubAutosaveController', () => {
     expect(steps.save).toHaveBeenCalledTimes(1);
   });
 
+  // The conflicted save's edits are still unsaved: once the conflict is
+  // resolved they go out without waiting for another edit.
+  it('saves the unsaved model when a conflict pause lifts, without a new edit', async () => {
+    const { controller, steps } = setup();
+    steps.save.mockResolvedValueOnce('conflict');
+    controller.setEnabled(true);
+    controller.notifyChange();
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+    controller.setPaused(null);
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_MIN_INTERVAL_MS);
+    expect(steps.save).toHaveBeenCalledTimes(2);
+  });
+
   it('backs off after failures instead of retrying on every edit', async () => {
     const { controller, steps, last } = setup();
     const triedAt: number[] = [];
