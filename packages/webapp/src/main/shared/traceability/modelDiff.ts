@@ -47,6 +47,9 @@ export const value = (raw: unknown, absent: unknown = ''): FeatureValue => {
   return { key: text, display: text };
 };
 
+/** The feature of the update recording an element's change of metaclass (old and new metaclass as values). */
+export const RETYPE_FEATURE = 'elementType';
+
 /** The value of a feature an element does not have. */
 const NO_VALUE: FeatureValue = { key: '', display: '' };
 
@@ -67,14 +70,24 @@ export function diffSnapshots(before: Map<string, Snapshot>, after: Map<string, 
       elementId: id, elementType: now.elementType, name: now.name, parentElementId: now.parentElementId,
       ...ownerOf(now.parentElementId, after),
     };
-    if (!old || old.elementType !== now.elementType) {
-      if (old) deleted.push({ ...base, kind: 'DELETED', name: old.name, elementType: old.elementType, oldValue: old.name });
+    if (!old) {
       created.push({ ...base, kind: 'CREATED', newValue: now.name });
       continue;
     }
+    const retyped = old.elementType !== now.elementType;
+    if (retyped) {
+      // The same element under another metaclass (a class made an enumeration, an attribute a literal): one
+      // update of its metaclass, so it stays the live element it is, and the links from it go out of date.
+      updated.push({ ...base, kind: 'UPDATED', feature: RETYPE_FEATURE, oldValue: old.elementType, newValue: now.elementType });
+      if (old.name !== now.name) updated.push({ ...base, kind: 'UPDATED', feature: 'name', oldValue: old.name, newValue: now.name });
+    }
     // A feature one version has and the other does not (a value set for the first time, or cleared) is
-    // compared with an empty value: it changed unless the present value is empty too.
-    for (const feature of new Set([...Object.keys(old.features), ...Object.keys(now.features)])) {
+    // compared with an empty value: it changed unless the present value is empty too. After a retype, only the
+    // features both metaclasses have are compared.
+    const features = retyped
+      ? Object.keys(now.features).filter((feature) => feature in old.features && feature !== 'name') // the name: above
+      : [...new Set([...Object.keys(old.features), ...Object.keys(now.features)])];
+    for (const feature of features) {
       const previousValue = old.features[feature] ?? NO_VALUE;
       const current = now.features[feature] ?? NO_VALUE;
       if (previousValue.key !== current.key) {

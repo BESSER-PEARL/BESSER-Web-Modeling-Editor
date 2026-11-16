@@ -44,6 +44,11 @@ model, named by their B-UML metaclass (``Class``, ``State``, ``Task``, ``Conv2D`
 * quantum circuits and knowledge graphs: their own builders in the same file (a gate is known by its
   cell, so moving it is a deletion and a creation).
 
+An element that keeps its id but changes metaclass (a class toggled to an enumeration, its attributes then
+literals) is one update of its ``elementType`` feature (old and new metaclass), not a deletion and a
+creation: it stays the live element it is, its artifact takes the new metaclass, and the code generated from
+it is marked out of date.
+
 The workspace store (``updateDiagramModelThunk``, ``updateQuantumDiagramThunk``) records every type;
 the GUI, circuit and knowledge-graph editors, which save straight to storage, record their own saves.
 Adding a diagram is recorded as its creation.

@@ -19,6 +19,7 @@ import {
   generatedFrom,
   historyOf,
   indexTrace,
+  isDeleted,
   outOfDate,
   modelChildren,
 } from '../traceQueries';
@@ -141,6 +142,23 @@ describe('recordElementChanges', () => {
     expect(changesOf(trace.operations[0])).toEqual([expect.objectContaining({ feature: 'name', oldValue: 'Book', newValue: 'Bo' })]);
     record(trace, v('Bo'), v('Book'), base + 2 * COALESCE_MS - 2);
     expect(trace.operations).toHaveLength(0);
+  });
+
+  it('records a retype under the same id (class made an enumeration) as an update of the live element', () => {
+    const trace = emptyTraceFile('p1');
+    const base = CREATION_FOLD_MS + 1000; // the class existed before recording
+    const before = model([cls('c1', 'Status'), attr('a1', 'c1', 'OPEN')]);
+    const after = model([cls('c1', 'Status', { type: 'Enumeration' }), { id: 'a1', type: 'ClassAttribute', name: 'OPEN', owner: 'c1' }]);
+    record(trace, before, after, base);
+    const index = indexTrace(trace);
+    const status = trace.artifacts.find((a): a is ModelArtifact => a.type === 'ModelArtifact' && a.elementId === 'c1')!;
+    expect(status.elementType).toBe('Enumeration');
+    expect(isDeleted(index, status.id)).toBe(false);
+    const literal = trace.artifacts.find((a): a is ModelArtifact => a.type === 'ModelArtifact' && a.elementId === 'a1')!;
+    expect(isDeleted(index, literal.id)).toBe(false);
+    expect(changesOf(trace.operations[0]).filter((c) => c.artifactId === status.id).map((c) => [c.kind, c.feature, c.oldValue, c.newValue]))
+      .toEqual([['UPDATED', 'elementType', 'Class', 'Enumeration']]);
+    expect(changesOf(trace.operations[0]).some((c) => c.kind !== 'UPDATED')).toBe(false);
   });
 
   it('keeps a creation followed by a deletion', () => {

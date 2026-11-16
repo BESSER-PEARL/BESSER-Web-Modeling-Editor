@@ -240,6 +240,8 @@ export function recordElementChanges(trace: TraceFile, changes: ElementChange[],
       trace, change.elementId, change.elementType, change.name, (parent ?? model).id, ctx.now,
     );
     if (change.kind !== 'DELETED' && change.name) artifact.name = change.name;
+    // The artifact has the element's current metaclass (it changes when the element is retyped).
+    if (change.kind !== 'DELETED' && change.elementType && artifact.elementType !== change.elementType) artifact.elementType = change.elementType;
     if (change.feature === 'owner' && parent) artifact.parentId = parent.id;
     if (change.kind === 'UPDATED' && foldUpdate(session, artifact.id, change, ctx.now)) continue;
     session.changes.push({
