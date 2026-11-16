@@ -1554,7 +1554,7 @@ export interface paths {
          * @description Download the output produced by a completed run.
          *
          *     Re-downloadable until the TTL sweep expires the entry
-         *     (``BESSER_LLM_DOWNLOAD_TTL_SECONDS``, default 30 min) — a transient network
+         *     (``BESSER_LLM_ARCHIVE_TTL_SECONDS``, default 24 hours) — a transient network
          *     failure during the blob fetch must not permanently lose an artifact
          *     the user paid minutes and dollars to produce. Cleanup is owned
          *     entirely by ``SmartRunRegistry.periodic_sweep``; this endpoint no
@@ -3630,7 +3630,7 @@ export interface components {
             download_ttl_seconds: number;
             /**
              * Archive Ttl Seconds
-             * @description How long a finished run's download stays available; never shorter than download_ttl_seconds.
+             * @description How long a finished run's download stays available: at least download_ttl_seconds, at most 24 hours.
              */
             archive_ttl_seconds: number;
             /** Cost Emitter Interval Seconds */
