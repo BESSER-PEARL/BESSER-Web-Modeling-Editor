@@ -8,6 +8,7 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -61,9 +62,11 @@ describe('AssistantWorkspaceDrawer welcome entrance', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
     const tree = (open: boolean) => (
-      <Provider store={store}>
-        <AssistantWorkspaceDrawer open={open} onOpenChange={() => {}} />
-      </Provider>
+      <MemoryRouter>
+        <Provider store={store}>
+          <AssistantWorkspaceDrawer open={open} onOpenChange={() => {}} />
+        </Provider>
+      </MemoryRouter>
     );
 
     // Query the DOM directly: the closed sheet is aria-hidden, and the bug is
@@ -87,9 +90,11 @@ describe('AssistantWorkspaceDrawer welcome entrance', () => {
   it('offers no repository entry in the welcome view; repositories open from the project hub', () => {
     const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
     const { container } = render(
-      <Provider store={store}>
-        <AssistantWorkspaceDrawer open onOpenChange={() => {}} />
-      </Provider>,
+      <MemoryRouter>
+        <Provider store={store}>
+          <AssistantWorkspaceDrawer open onOpenChange={() => {}} />
+        </Provider>
+      </MemoryRouter>,
     );
 
     expect(container.textContent).not.toContain('Start from a GitHub repository');

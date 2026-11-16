@@ -29,7 +29,8 @@ import type { GeneratorType } from '../../../shared/types/workspace-types';
 import type { GenerationResult } from '../../generation';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
 import { isAssistantApplicableTo } from '../services/assistantSupport';
-import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { useOpenTraceability } from '../../traceability';
+import { shouldOpenGuiTab, isReviewSpecAction, traceTargetOf, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
@@ -162,7 +163,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   }, [handleSubmit]);
 
   /* ---- Suggested-action chip handler: route "modify the GUI" to the GUI tab ---- */
+  const openTraceability = useOpenTraceability();
   const handleSuggestedAction = useCallback((action: GuiActionRouteInput) => {
+    // The agent's answer about the trace: open the Traceability page on that view (the user clicked it).
+    const traceTarget = traceTargetOf(action);
+    if (traceTarget) {
+      openTraceability(traceTarget);
+      return;
+    }
     // "Review the spec" hides the widget so the diagram on the canvas is
     // visible — it's a UI-only action, never relayed to the agent.
     if (isReviewSpecAction(action)) {
@@ -174,7 +182,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
       return;
     }
     handleSubmit(undefined, { overrideText: action.prompt ?? '' });
-  }, [handleSubmit]);
+  }, [handleSubmit, openTraceability]);
 
   /* ---- Keyboard shortcuts on input ---- */
   // Escape is handled by the composer (blur, keeping the draft) and the

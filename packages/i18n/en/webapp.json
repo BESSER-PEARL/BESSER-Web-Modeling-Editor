@@ -1747,7 +1747,8 @@
       "apiKeySet": "API key set",
       "useOwnApiKey": "Use your own API key",
       "reportIssue": "Report issue",
-      "addApiKey": "Add your API key"
+      "addApiKey": "Add your API key",
+      "openTrace": "Open the trace"
     },
     "rateLimitTooltip": "Requests sent in the last minute (limit {{limit}})",
     "generatedFiles": {

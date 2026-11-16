@@ -1,11 +1,13 @@
 import React from 'react';
-import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate, RefreshCw, Layers, FilePlus, Wand2 } from 'lucide-react';
+import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate, RefreshCw, Layers, FilePlus, Wand2, GitBranch } from 'lucide-react';
 
 interface QuickAction {
   label: string;
   prompt: string;
   /** Optional explicit routing hint (e.g. 'open-gui'); consumed by the handler. */
   action?: string;
+  traceView?: string;
+  traceArtifactId?: string;
 }
 
 interface QuickActionsProps {
@@ -52,7 +54,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction })
           onClick={() => onAction(action)}
           className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground/80 transition-[color,background-color,border-color,transform] hover:border-brand/40 hover:bg-brand/5 hover:text-foreground active:scale-[0.97]"
         >
-          {getIcon(action.label)}
+          {action.action === 'show-trace' ? <GitBranch className="size-3" /> : getIcon(action.label)}
           {action.label}
           <ArrowRight className="size-3 opacity-40" />
         </button>

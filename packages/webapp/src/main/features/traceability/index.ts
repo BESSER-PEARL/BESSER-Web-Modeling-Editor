@@ -12,3 +12,4 @@ export {
 export type { TraceabilityTab, TraceabilityTarget } from './navigation';
 export { toastTraced } from './TracedToast';
 export { useTraceabilityProvider } from './useTraceabilityProvider';
+export { operationSummary } from './traceLabels';

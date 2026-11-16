@@ -94,3 +94,19 @@ export function describeChange(t: TFunction, change: TraceChangeEvent, index: Tr
 
 export const formatTime = (iso: string, locale?: string): string =>
   new Date(iso).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+
+/** At most this many changes are spelled out in the one-line summary of a modeling session. */
+const SUMMARY_CHANGES = 3;
+
+/**
+ * One line about an operation, for the assistant's trace digest: its label, and for a modeling session its first
+ * changes ("Modeling session: Created class Book; Created attribute Book.isbn (+4 more)"). Pass the English `t`:
+ * the assistant answers in the user's language.
+ */
+export function operationSummary(t: TFunction, operation: TraceOperation, index: TraceIndex): string {
+  const label = operationLabel(t, operation, index);
+  if (operation.type !== 'ModelingSession' || operation.changes.length === 0) return label;
+  const shown = operation.changes.slice(0, SUMMARY_CHANGES).map((change) => describeChange(t, change, index));
+  const more = operation.changes.length - shown.length;
+  return `${label}: ${shown.join('; ')}${more > 0 ? ` (+${more} more)` : ''}`;
+}

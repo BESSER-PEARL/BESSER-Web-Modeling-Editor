@@ -17,6 +17,9 @@ export interface GuiActionRouteInput {
   prompt?: string;
   /** Optional explicit routing hint the backend can send (e.g. 'open-gui'). */
   action?: string;
+  /** `show-trace` chips: the Traceability view to open and, optionally, the artifact to start from. */
+  traceView?: string;
+  traceArtifactId?: string;
 }
 
 /**
@@ -71,4 +74,54 @@ export function shouldOpenGuiTab(input: GuiActionRouteInput | null | undefined):
   if (GENERATE_RE.test(label) || GENERATE_RE.test(prompt)) return false;
 
   return GUI_OPEN_RE.test(label) || GUI_OPEN_RE.test(prompt);
+}
+
+/** The `action` of a chip that opens the Traceability page (the agent's `show_trace` reply). */
+export const SHOW_TRACE_CHIP_ACTION = 'show-trace';
+
+/** The views the agent may ask for; each is a tab of the Traceability page. */
+export const TRACE_VIEWS = ['lineage', 'coverage', 'timeline'] as const;
+export type TraceView = (typeof TRACE_VIEWS)[number];
+
+const MAX_TRACE_LABEL_CHARS = 120;
+const MAX_TRACE_ID_CHARS = 200;
+
+export interface ShowTraceChip {
+  label: string;
+  prompt: '';
+  action: typeof SHOW_TRACE_CHIP_ACTION;
+  traceView: TraceView;
+  traceArtifactId?: string;
+}
+
+/**
+ * The chip a `show_trace` reply of the agent stands for, or null when the payload is not usable: an unknown
+ * `view`, or no label and no fallback. The payload is untrusted: only a known view, a short label and an id
+ * string get through. It never navigates by itself; the user clicks the chip.
+ */
+export function readShowTrace(payload: Record<string, unknown>, fallbackLabel: string): ShowTraceChip | null {
+  const view = payload.view;
+  if (typeof view !== 'string' || !(TRACE_VIEWS as readonly string[]).includes(view)) return null;
+  const message = typeof payload.message === 'string' ? payload.message.replace(/\s+/g, ' ').trim() : '';
+  const label = (message || fallbackLabel).slice(0, MAX_TRACE_LABEL_CHARS);
+  if (!label) return null;
+  const id = typeof payload.artifactId === 'string' ? payload.artifactId.trim() : '';
+  return {
+    label,
+    prompt: '',
+    action: SHOW_TRACE_CHIP_ACTION,
+    traceView: view as TraceView,
+    ...(id && id.length <= MAX_TRACE_ID_CHARS ? { traceArtifactId: id } : {}),
+  };
+}
+
+/** Where a chip leads in the Traceability page, or null when it is not a (valid) `show-trace` chip. */
+export function traceTargetOf(
+  input: GuiActionRouteInput | null | undefined,
+): { tab: TraceView; root?: string } | null {
+  if (!input || input.action !== SHOW_TRACE_CHIP_ACTION) return null;
+  const view = input.traceView;
+  if (typeof view !== 'string' || !(TRACE_VIEWS as readonly string[]).includes(view)) return null;
+  const id = typeof input.traceArtifactId === 'string' ? input.traceArtifactId : '';
+  return { tab: view as TraceView, ...(id ? { root: id } : {}) };
 }

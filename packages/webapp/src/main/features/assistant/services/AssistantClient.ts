@@ -151,6 +151,8 @@ const KNOWN_ACTIONS = new Set([
   'stream_start',
   'stream_chunk',
   'stream_done',
+  // A button that opens the Traceability page; never a side effect (the user clicks it).
+  'show_trace',
 ]);
 
 // Actions with real side effects: they mutate the user's model or start a
@@ -208,6 +210,7 @@ const mergeContexts = (
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
     githubRepo: override?.githubRepo || base?.githubRepo,
+    traceDigest: override?.traceDigest || base?.traceDigest,
   };
 };
 
@@ -408,7 +411,7 @@ export class AssistantClient {
   // Mutable so a shared (singleton) client can be re-pointed at the live
   // workspace context by whichever surface is currently mounted, instead of
   // going stale when the creating surface unmounts.
-  private contextProvider?: () => AssistantWorkspaceContext | undefined;
+  private contextProvider?: (message?: string) => AssistantWorkspaceContext | undefined;
   // The conversation before the message being sent. The agent keeps its memory
   // in its own process, so a restart or an idle expiry loses it; the first
   // message on each new socket carries the recent turns so the agent can
@@ -467,7 +470,7 @@ export class AssistantClient {
   }
 
   /** Re-point the (possibly shared) client at the live workspace-context source. */
-  setContextProvider(provider: () => AssistantWorkspaceContext | undefined): void {
+  setContextProvider(provider: (message?: string) => AssistantWorkspaceContext | undefined): void {
     this.contextProvider = provider;
   }
 
@@ -851,7 +854,7 @@ export class AssistantClient {
     contextOverride?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
   ): Record<string, any> {
-    const baseContext = this.contextProvider?.();
+    const baseContext = this.contextProvider?.(message);
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );

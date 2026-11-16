@@ -78,6 +78,8 @@ import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../.
 import {
   endAssistantConversation,
   expectAssistantRequirements,
+  isTraceabilityEnabled,
+  loadProjectTrace,
   readLlmUsage,
   recordAssistantReply,
   recordAssistantRequest,
@@ -85,6 +87,8 @@ import {
 import type { GeneratorType } from '../../../shared/types/workspace-types';
 import type { GenerationResult } from '../../generation';
 
+import { readShowTrace } from './suggestedActionRouting';
+import { buildAssistantTraceDigest } from '../services/traceDigestContext';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
@@ -137,6 +141,9 @@ export interface SuggestedAction {
    * a label/prompt regex fallback even without this field.
    */
   action?: string;
+  /** `show-trace` chips (the agent's `show_trace` reply): the Traceability view and artifact to open. */
+  traceView?: string;
+  traceArtifactId?: string;
 }
 
 export interface MessageMeta {
@@ -433,6 +440,12 @@ export function useAssistantLogic({
       ),
     );
   }, []);
+
+  // The digest is built synchronously from the loaded trace: load it as soon as a recording project is open.
+  useEffect(() => {
+    const project = currentProjectRef.current;
+    if (project && isTraceabilityEnabled(project)) void loadProjectTrace(project.id);
+  }, [currentProjectId, currentProjectRef]);
 
   /* ---- singleton services ---- */
 
@@ -736,7 +749,7 @@ export function useAssistantLogic({
 
   /* ---- workspace context builder ---- */
 
-  function buildWorkspaceContext() {
+  function buildWorkspaceContext(message?: string) {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || 'ClassDiagram';
     const diagrams = project?.diagrams?.[activeType as keyof typeof project.diagrams];
@@ -778,6 +791,8 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
+      // Only when the project records traces and has recorded something; left out otherwise.
+      traceDigest: buildAssistantTraceDigest(project, message),
     };
   }
 
@@ -872,6 +887,22 @@ export function useAssistantLogic({
       payload.action === 'inject_complete_system' ||
       payload.action === 'modify_model'
     ) {
+      return;
+    }
+
+    // The agent's answer about the trace comes with a button that opens the Traceability page. It is shown
+    // under the answer like any suggested action and never navigates by itself. Not a model edit.
+    if (payload.action === 'show_trace') {
+      const chip = readShowTrace(payload as Record<string, unknown>, t('assistant.chat.openTrace'));
+      if (!chip) return;
+      const lastAssistant = [...conversationStore.getMessages()].reverse().find((m) => m.role === 'assistant');
+      if (!lastAssistant) return;
+      setMessageMeta((prev) => {
+        const existing = prev[lastAssistant.id]?.suggestedActions ?? [];
+        const same = (a: SuggestedAction) => a.action === chip.action && a.traceView === chip.traceView && a.traceArtifactId === chip.traceArtifactId;
+        if (existing.some(same)) return prev; // a replayed reply
+        return { ...prev, [lastAssistant.id]: { ...prev[lastAssistant.id], suggestedActions: [...existing, chip] } };
+      });
       return;
     }
 
