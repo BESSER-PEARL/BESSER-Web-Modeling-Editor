@@ -14,8 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AssistantActionPayload, ChatMessage, InjectionCommand, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { specDrivenReducer } from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
 
 const _client = vi.hoisted(() => ({
   messageHandlers: [] as Array<(m: ChatMessage) => void>,
@@ -92,7 +92,7 @@ vi.mock('../useModelInjection', () => ({
 
 const trace = vi.hoisted(() => ({
   recordAssistantRequest: vi.fn(async (_project: unknown, _text: string) => {}),
-  recordAssistantReply: vi.fn((_project: unknown, _kind: string, _text: string) => {}),
+  recordAssistantReply: vi.fn((_project: unknown, _kind: string, _text: string, _usage?: unknown) => {}),
   endAssistantConversation: vi.fn((_project: unknown) => {}),
 }));
 vi.mock('../../../../shared/traceability/traceStore', async (importOriginal) => ({
@@ -205,5 +205,30 @@ describe('useAssistantLogic records the conversation in the trace', () => {
     expect(trace.recordAssistantRequest.mock.calls.map(([, text]) => text)).toEqual(['add a Book class']);
     expect(replies()).toEqual([['error', 'The assistant is taking too long to respond. Please try again.']]);
     expect(trace.endAssistantConversation).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the turn’s reported model and tokens (`llmUsage`) with its terminal replies, checked', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+
+    const llmUsage = { model: 'claude-x', provider: 'anthropic', inputTokens: 1200, outputTokens: 300 };
+    await emitAction({ action: 'stream_done', streamId: 's1', fullText: 'Done.', llmUsage });
+    await act(async () => {
+      _client.injectionHandlers.forEach((h) =>
+        h({ action: 'modify_model', message: 'Added Book.', llmUsage: { model: '', inputTokens: -1 } } as InjectionCommand),
+      );
+    });
+    await emitAction({ action: 'trigger_export', llmUsage: { ...llmUsage, outputTokens: 350 } });
+
+    await waitFor(() =>
+      expect(trace.recordAssistantReply.mock.calls.map(([, kind, text, usage]) => [kind, text, usage])).toEqual([
+        ['answer', 'Done.', llmUsage],
+        ['answer', 'Added Book.', undefined], // a usage without a model is not one
+        ['answer', '', { ...llmUsage, outputTokens: 350 }],
+      ]),
+    );
   });
 });

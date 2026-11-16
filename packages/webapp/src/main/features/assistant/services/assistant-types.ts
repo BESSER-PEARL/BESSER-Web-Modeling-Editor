@@ -75,7 +75,18 @@ export interface AssistantActionPayload {
   turnId?: string;
   /** Per-turn frame sequence number, set alongside turnId. */
   replySeq?: number;
+  /** On a terminal reply of a turn: the totals of the turn's LLM calls. Untrusted; read by `readLlmUsage`. */
+  llmUsage?: AssistantLlmUsage | unknown;
   [key: string]: unknown;
+}
+
+/** The LLM a turn ran and the tokens it used, as the modeling agent reports them on a terminal reply
+ *  (`llmUsage`; the cross-repo traceability contract, section 3). Recorded on the turn in the project trace. */
+export interface AssistantLlmUsage {
+  model: string;
+  provider: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export interface ChatMessage {
@@ -113,6 +124,8 @@ export interface InjectionCommand {
   requirementsModel?: unknown;
   /** Echo of the user_message's turnId (agents that support turn-scoped replay). */
   turnId?: string;
+  /** The turn's LLM and tokens (see {@link AssistantLlmUsage}). Untrusted. */
+  llmUsage?: unknown;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

@@ -78,6 +78,7 @@ import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../.
 import {
   endAssistantConversation,
   expectAssistantRequirements,
+  readLlmUsage,
   recordAssistantReply,
   recordAssistantRequest,
 } from '../../../shared/traceability/traceStore';
@@ -822,9 +823,12 @@ export function useAssistantLogic({
       const label = typeof step === 'number' && typeof total === 'number' ? `[${step}/${total}] ${payload.message}` : payload.message;
       recordAssistantReply(project, 'progress', label);
     } else if (payload.action === 'assistant_message' && typeof payload.message === 'string') {
-      recordAssistantReply(project, 'answer', payload.message);
+      recordAssistantReply(project, 'answer', payload.message, readLlmUsage(payload.llmUsage));
     } else if (payload.action === 'stream_done' && typeof payload.fullText === 'string') {
-      recordAssistantReply(project, 'answer', payload.fullText);
+      recordAssistantReply(project, 'answer', payload.fullText, readLlmUsage(payload.llmUsage));
+    } else if (payload.llmUsage !== undefined) {
+      // Another terminal reply of the turn (a generation, an export) with the turn's model and tokens.
+      recordAssistantReply(project, 'answer', '', readLlmUsage(payload.llmUsage));
     }
   };
 
@@ -1313,8 +1317,11 @@ export function useAssistantLogic({
     };
 
     const onInjection = (command: InjectionCommand) => {
+      const usage = readLlmUsage(command.llmUsage);
       if (typeof command.message === 'string' && command.message !== INJECTION_FALLBACK_MESSAGE) {
-        recordAssistantReply(currentProjectRef.current, 'answer', command.message);
+        recordAssistantReply(currentProjectRef.current, 'answer', command.message, usage);
+      } else if (usage) {
+        recordAssistantReply(currentProjectRef.current, 'answer', '', usage);
       }
       // Before the edits apply: they are recorded with the requirements they realize.
       if (command.action === 'inject_complete_system') expectAssistantRequirements(currentProjectRef.current, command);
