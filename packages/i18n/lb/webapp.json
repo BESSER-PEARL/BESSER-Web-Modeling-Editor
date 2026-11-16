@@ -4650,6 +4650,7 @@
       "importedTraceUnusable": "De Projet gouf ouni säin Trace importéiert: {{problem}}",
       "generationTraceUnusable": "De Code gouf generéiert, awer säin Trace konnt net opgeholl ginn: {{problem}}",
       "exportedTraceDroppedByBackend": "De Backend huet de Projet-Trace net behalen (et ass eng eeler BESSER-Versioun): D'B-UML-Datei gouf ouni en exportéiert.",
+      "exportedTraceLeftOut": "De Trace gouf aus der B-UML-Datei ausgelooss: {{reason}}",
       "storageUnavailable": "De Browser-Späicher fir Traces konnt net opgemaach ginn: Traces ginn nëmme fir dës Sessioun behalen.",
       "saveFailed": "De Projet-Trace konnt net gespäichert ginn: déi lescht Ännerunge bleiwen an dësem Tab a ginn mat der nächster Ännerung nach eng Kéier gespäichert.",
       "recordFailed": "Eng Ännerung konnt net am Projet-Trace opgeholl ginn; si gouf ausgelooss."

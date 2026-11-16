@@ -4650,6 +4650,7 @@
       "importedTraceUnusable": "El projecte s'ha importat sense la seva traça: {{problem}}",
       "generationTraceUnusable": "El codi s'ha generat, però no s'ha pogut registrar la seva traça: {{problem}}",
       "exportedTraceDroppedByBackend": "El backend no ha conservat la traça del projecte (és una versió anterior de BESSER): el fitxer B-UML s'ha exportat sense ella.",
+      "exportedTraceLeftOut": "La traça s'ha deixat fora del fitxer B-UML: {{reason}}",
       "storageUnavailable": "No s'ha pogut obrir l'emmagatzematge del navegador per a les traces: les traces es conserven només durant aquesta sessió.",
       "saveFailed": "No s'ha pogut desar la traça del projecte: els darrers canvis es conserven en aquesta pestanya i es desaran amb el proper canvi.",
       "recordFailed": "No s'ha pogut registrar un canvi a la traça del projecte; s'ha omès."

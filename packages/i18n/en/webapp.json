@@ -4650,6 +4650,7 @@
       "importedTraceUnusable": "The project was imported without its trace: {{problem}}",
       "generationTraceUnusable": "The code was generated, but its trace could not be recorded: {{problem}}",
       "exportedTraceDroppedByBackend": "The backend did not keep the project trace (it is an older BESSER version): the B-UML file was exported without it.",
+      "exportedTraceLeftOut": "The trace was left out of the B-UML file: {{reason}}",
       "storageUnavailable": "The browser's storage for traces could not be opened: traces are kept for this session only.",
       "saveFailed": "The project trace could not be saved: the latest changes are kept in this tab and saved again with the next change.",
       "recordFailed": "A change could not be recorded in the project trace; it was left out."

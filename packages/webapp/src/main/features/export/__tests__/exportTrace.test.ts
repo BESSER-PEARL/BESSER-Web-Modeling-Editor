@@ -82,4 +82,30 @@ describe('exporting a project with its trace', () => {
     expect(await exportProjectAsSingleBUMLFile(project, undefined, true)).toEqual({ ok: true });
     expect(toast.warn).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the reason the backend gives when it left the trace out, once', async () => {
+    const { project } = await tracedProject();
+    vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
+    const reason = 'the file with the trace would be over 2 MiB';
+    conversion.exportProjectAsBuml.mockResolvedValueOnce({
+      blob: new Blob([`# BESSER: trace left out: ${reason}`]),
+      headers: new Headers({ 'x-besser-warning': reason }),
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    expect(await exportProjectAsSingleBUMLFile(project, undefined, true)).toEqual({ ok: true });
+    expect(toast.warn).toHaveBeenCalledTimes(1);
+    expect(toast.warn).toHaveBeenCalledWith(expect.stringContaining(reason));
+  });
+
+  it('shows the backend message when it refuses a trace that is too large', async () => {
+    const { project } = await tracedProject();
+    vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
+    const message = 'The trace holds 250001 artifacts, more than the 250000 a trace may hold.';
+    conversion.exportProjectAsBuml.mockRejectedValueOnce(new ApiError(400, 'Bad Request', message));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    expect(await exportProjectAsSingleBUMLFile(project, undefined, true)).toMatchObject({ ok: false, reason: 'request' });
+    expect(vi.mocked(toast.error).mock.calls.flat().join(' ')).toContain(message);
+  });
 });

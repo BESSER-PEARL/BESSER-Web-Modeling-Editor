@@ -15,6 +15,9 @@ import type { ExportOutcome } from './exportOutcome';
 /** The banner of the B-UML file's trace section (`TRACE_SECTION_KEYWORD` in the backend's `trace_model_builder.py`). */
 const TRACE_SECTION_KEYWORD = 'TRACEABILITY';
 
+/** The response header with the reason the backend left the trace out of the file (exposed by its CORS settings). */
+const TRACE_WARNING_HEADER = 'X-BESSER-Warning';
+
 /** The text of `blob` (`Blob.text` where the environment has it, else a FileReader). */
 function blobText(blob: Blob): Promise<string> {
   if (typeof blob.text === 'function') return blob.text();
@@ -68,7 +71,12 @@ export async function exportProjectAsSingleBUMLFile(
   try {
     const { blob, headers } = await exportWithTrace(projectToExport);
     const sentTrace = projectToExport.trace as TraceFile | undefined;
-    if (sentTrace && sentTrace.artifacts.length > 0 && !(await blobText(blob)).includes(TRACE_SECTION_KEYWORD)) {
+    // The backend names why it left the trace out (too large for the import cap); its reason is shown as sent.
+    const leftOutReason = headers.get(TRACE_WARNING_HEADER)?.trim();
+    if (leftOutReason) {
+      console.warn(`The backend left the trace out of the B-UML file: ${leftOutReason}`);
+      toast.warn(i18n.t('traceability.toasts.exportedTraceLeftOut', { reason: leftOutReason }));
+    } else if (sentTrace && sentTrace.artifacts.length > 0 && !(await blobText(blob)).includes(TRACE_SECTION_KEYWORD)) {
       // An older backend without traceability ignores the field: the file is exported, without the trace.
       console.warn('The backend exported the project without its trace section.');
       toast.warn(i18n.t('traceability.toasts.exportedTraceDroppedByBackend'));
@@ -103,7 +111,9 @@ export async function exportProjectAsSingleBUMLFile(
     console.error('Error exporting project as BUML file:', error);
     const message =
       error instanceof ApiError
-        ? `HTTP error! status: ${error.status} - ${error.message}`
+        ? error.detail && error.status === 400
+          ? error.detail // the backend's own refusal, e.g. a trace over the size it may hold
+          : `HTTP error! status: ${error.status} - ${error.message}`
         : error instanceof Error
           ? error.message
           : i18n.t('export.toasts.unknownError');
