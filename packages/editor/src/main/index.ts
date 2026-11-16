@@ -108,6 +108,10 @@ export type { ElementPickerProvider, PickableElement } from './components/elemen
 // `LineageProvider` and passes it to `editor.setLineageProvider`.
 export type { LineageProvider, ResolvedSource } from './components/lineage/LineageContext';
 
+// Public type for the traceability provider; the host implements `TraceabilityProvider` and passes it to
+// `editor.setTraceabilityProvider` so element popups link to the element's traceability.
+export type { TraceabilityProvider } from './components/traceability/TraceabilityContext';
+
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions
 export type { UMLModelCompat } from './compat';

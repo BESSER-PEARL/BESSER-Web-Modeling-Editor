@@ -11,3 +11,4 @@ export {
 } from './navigation';
 export type { TraceabilityTab, TraceabilityTarget } from './navigation';
 export { toastTraced } from './TracedToast';
+export { useTraceabilityProvider } from './useTraceabilityProvider';
