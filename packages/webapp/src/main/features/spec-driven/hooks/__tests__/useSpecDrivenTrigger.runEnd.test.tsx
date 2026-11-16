@@ -1,7 +1,7 @@
 /**
- * What the end of a run leaves behind: the project's last-run record (the base
- * of the next modify run, with the request it was started with) and, for a
- * user who left the tab, a sign that it ended.
+ * What a run leaves behind: the request it was started with (from its start,
+ * whatever its end), the project's last-run record (the base of the next
+ * modify run) and, for a user who left the tab, a sign that it ended.
  */
 import React from 'react';
 import { Provider } from 'react-redux';
@@ -12,6 +12,7 @@ import { store } from '@/main/app/store/store';
 import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { readProjectLastRun, writeProjectLastRun } from '@/main/features/spec-driven/storage';
+import { readLastGeneration } from '@/main/features/spec-driven/lastGeneration';
 import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
@@ -109,15 +110,50 @@ afterEach(() => {
   cleanup();
 });
 
-describe('the last-run record of a finished run', () => {
-  it("keeps the user's request without the assistant's notes", async () => {
+const FRAMED =
+  "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n" +
+  "## The user's original request, verbatim\n\nThis is the authority.\n\nBuild a task board.";
+
+describe('the request a run is started with', () => {
+  it("is kept in the user's words from the run's start, before it ends", async () => {
+    let atStart: unknown;
     await runWith(
-      [start(), done()],
-      "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n## The user's original request, verbatim\n\nBuild a task board.",
+      [
+        start(),
+        async () => {
+          atStart = readLastGeneration(PROJECT_ID);
+        },
+        done(),
+      ],
+      FRAMED,
     );
-    const record = readProjectLastRun(PROJECT_ID);
-    expect(record?.runId).toBe(RUN);
-    expect(record?.request).toBe("## The user's original request, verbatim\n\nBuild a task board.");
+    expect(atStart).toEqual({ request: 'Build a task board.' });
+    expect(readLastGeneration(PROJECT_ID)).toMatchObject({ runId: RUN, request: 'Build a task board.' });
+  });
+
+  it('is kept when the run fails', async () => {
+    const id = '7'.repeat(32);
+    await runWith(
+      [start(id), { event: 'error', code: 'UPSTREAM_LLM', message: 'Provider unavailable' } as SpecDrivenEvent],
+      FRAMED,
+      id,
+    );
+    expect(readLastGeneration(PROJECT_ID)).toEqual({ request: 'Build a task board.' });
+  });
+
+  it('is not replaced by a run started with words that describe nothing', async () => {
+    const id = '8'.repeat(32);
+    await runWith([start(id), done({}, id)], FRAMED, id);
+    const again = '9'.repeat(32);
+    await runWith([start(again), done({}, again)], 'regenerate with fixes.', again);
+    expect(readLastGeneration(PROJECT_ID)).toMatchObject({ runId: again, request: 'Build a task board.' });
+  });
+});
+
+describe('the last-run record of a finished run', () => {
+  it('records the run as the base of the next one', async () => {
+    await runWith([start(), done()], FRAMED);
+    expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(RUN);
   });
 
   it('stamps the finished card with the time the record holds, for its download lifetime', async () => {
@@ -135,7 +171,7 @@ describe('a run the user stopped', () => {
 
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true } as Response)));
-    writeProjectLastRun(PROJECT_ID, PREVIOUS, 1_000, 'Build a task board.');
+    writeProjectLastRun(PROJECT_ID, PREVIOUS, 1_000);
   });
 
   afterEach(() => {
@@ -149,11 +185,13 @@ describe('a run the user stopped', () => {
         () => cancelSpecDrivenRun(STOPPED),
         done({ incomplete: true, incompleteReason: 'The run was cancelled before the customization loop finished.' }, STOPPED),
       ],
-      'Build a task board.',
+      'Build a task board with labels.',
       STOPPED,
     );
-    expect(readProjectLastRun(PROJECT_ID)).toEqual({ runId: PREVIOUS, at: 1_000, request: 'Build a task board.' });
+    expect(readProjectLastRun(PROJECT_ID)).toEqual({ runId: PREVIOUS, at: 1_000 });
     expect(store.getState().specDriven.lastRunByProject[PROJECT_ID]?.runId).not.toBe(STOPPED);
+    // Its request is still the best description of the application the editor has.
+    expect(readLastGeneration(PROJECT_ID)).toMatchObject({ runId: PREVIOUS, request: 'Build a task board with labels.' });
   });
 
   it('a run that stopped on its own budget still becomes the base', async () => {
@@ -218,7 +256,7 @@ describe('a run whose previous result expired', () => {
     conversationStore.getMessages().find((m) => m.specDriven)?.specDriven?.warnings ?? [];
 
   it('says on its card that the app is rebuilt, not edited in place', async () => {
-    writeProjectLastRun(PROJECT_ID, '4'.repeat(32), Date.now() - 48 * 3_600_000, 'Build a task board.');
+    writeProjectLastRun(PROJECT_ID, '4'.repeat(32), Date.now() - 48 * 3_600_000);
     const id = '5'.repeat(32);
     await runWith([start(id), done({}, id)], 'Build a task board.', id);
 

@@ -3,10 +3,15 @@
  * the spec-driven and GitHub features alike:
  *
  * - the project's last successful run, the base of the next modify run;
+ * - the request the project's latest run was started with, in the user's words;
  * - the model each run started from (`runSeedModel`), so a later push can tell
  *   whether the canvas changed since and must not be replaced silently.
  */
-import { localStorageSpecDrivenLastRunPrefix, localStorageSpecDrivenRunSeedModels } from '../../constants/constant';
+import {
+  localStorageSpecDrivenLastRunPrefix,
+  localStorageSpecDrivenRunRequestPrefix,
+  localStorageSpecDrivenRunSeedModels,
+} from '../../constants/constant';
 import { llmKeyRedactor } from '../llmKeyStorage';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
@@ -22,25 +27,78 @@ export interface LastRunRecord {
   runId: string;
   /** Epoch ms at which the run completed. */
   at: number;
-  /** The user's request the run was started with; absent on older records and imports. */
-  request?: string;
 }
 
-/** Longest request text kept with a run record. */
+/** Longest request text kept for a project. */
 export const MAX_RUN_REQUEST_LENGTH = 4000;
 
 const ORIGINAL_REQUEST_HEADING = "## The user's original request, verbatim";
 
+/** Paragraphs the assistant adds to frame the user's words; not the user's. */
+const FRAMING_PARAGRAPH = /^(## |This is the authority\b|This later request takes precedence\b)/;
+
 /**
  * The user's own words in a run's instructions. The assistant frames them as
- * "## Assistant's notes ..." followed by the original request and any later
- * requests; the notes are dropped, both request sections kept. Cut to
- * MAX_RUN_REQUEST_LENGTH.
+ * "## Assistant's notes ...", then "## The user's original request, verbatim"
+ * with the original description and any "## Subsequent user request,
+ * verbatim" sections it appended. The notes, that heading and its one framing
+ * sentence are dropped, so what is kept is what the assistant remembers as the
+ * application's request. Cut to MAX_RUN_REQUEST_LENGTH.
  */
 export function runRequestFromInstructions(instructions: string): string {
   const text = instructions.trim();
   const start = text.startsWith("## Assistant's notes") ? text.indexOf(ORIGINAL_REQUEST_HEADING) : -1;
-  return (start > 0 ? text.slice(start) : text).slice(0, MAX_RUN_REQUEST_LENGTH);
+  if (start < 0) return text.slice(0, MAX_RUN_REQUEST_LENGTH);
+  const [first, ...rest] = text.slice(start + ORIGINAL_REQUEST_HEADING.length).trim().split(/\n\s*\n/);
+  const body = FRAMING_PARAGRAPH.test(first) ? rest : [first, ...rest];
+  return body.join('\n\n').trim().slice(0, MAX_RUN_REQUEST_LENGTH);
+}
+
+/** Words that ask for a run without describing anything ("regenerate with fixes", "try again"). */
+const CONTENT_FREE_WORDS = new Set([
+  'a', 'again', 'all', 'an', 'and', 'anyway', 'app', 'application', 'build', 'code', 'continue', 'current',
+  'do', 'fix', 'fixed', 'fixes', 'for', 'generate', 'generation', 'go', 'it', 'model', 'my', 'now', 'ok',
+  'okay', 'one', 'please', 'rebuild', 'redo', 'regenerate', 'rerun', 'restart', 'retry', 'run', 'same',
+  'start', 'that', 'the', 'this', 'time', 'to', 'try', 'with', 'yes',
+]);
+
+/** True when the user's words in `request` describe nothing about the application. */
+export function isContentFreeRequest(request: string): boolean {
+  const words = request
+    .split(/\n\s*\n/)
+    .filter((paragraph) => !FRAMING_PARAGRAPH.test(paragraph.trim()))
+    .join(' ')
+    .toLowerCase()
+    .match(/[\p{L}\p{N}]+/gu) ?? [];
+  return words.every((word) => CONTENT_FREE_WORDS.has(word));
+}
+
+const runRequestKey = (projectId: string): string => `${localStorageSpecDrivenRunRequestPrefix}${projectId}`;
+
+/** The request the project's latest run was started with, or null. */
+export function readProjectRunRequest(projectId: string): string | null {
+  if (!projectId) return null;
+  try {
+    const request = window.localStorage.getItem(runRequestKey(projectId));
+    return request ? request.slice(0, MAX_RUN_REQUEST_LENGTH) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remember the request a run is started with, as the user's words (see
+ * `runRequestFromInstructions`), a pasted key removed. Instructions that
+ * describe nothing leave the previous request in place.
+ */
+export function recordProjectRunRequest(projectId: string, instructions: string): void {
+  const request = runRequestFromInstructions(instructions);
+  if (!projectId || isContentFreeRequest(request)) return;
+  try {
+    window.localStorage.setItem(runRequestKey(projectId), llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH));
+  } catch {
+    /* ignore */
+  }
 }
 
 const lastRunKey = (projectId: string): string => `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
@@ -59,26 +117,17 @@ export function readProjectLastRun(projectId: string): LastRunRecord | null {
     const parsed = JSON.parse(raw) as Partial<LastRunRecord> | null;
     if (!parsed || !isValidRunId(parsed.runId)) return null;
     const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0;
-    const request =
-      typeof parsed.request === 'string' && parsed.request ? parsed.request.slice(0, MAX_RUN_REQUEST_LENGTH) : undefined;
-    return request ? { runId: parsed.runId, at, request } : { runId: parsed.runId, at };
+    return { runId: parsed.runId, at };
   } catch {
     return null;
   }
 }
 
-/**
- * Persist the last successful run for a project, with the user's request when
- * known (cut to MAX_RUN_REQUEST_LENGTH, a pasted key removed). No-op on failure.
- */
-export function writeProjectLastRun(projectId: string, runId: string, at: number, request?: string): void {
+/** Persist the last successful run for a project. No-op on failure. */
+export function writeProjectLastRun(projectId: string, runId: string, at: number): void {
   if (!projectId || !isValidRunId(runId)) return;
-  const kept = request ? llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH) : '';
   try {
-    window.localStorage.setItem(
-      lastRunKey(projectId),
-      JSON.stringify(kept ? { runId, at, request: kept } : { runId, at }),
-    );
+    window.localStorage.setItem(lastRunKey(projectId), JSON.stringify({ runId, at }));
   } catch {
     /* ignore */
   }

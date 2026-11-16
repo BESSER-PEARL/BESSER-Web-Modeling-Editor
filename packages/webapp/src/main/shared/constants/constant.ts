@@ -172,6 +172,10 @@ export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assista
 // as long as the run is still within the backend's download TTL. Stored in
 // localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
 export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+// The request (the user's own words) the project's latest run was started
+// with, so a later request that says only "try again" still has the
+// application's description. Content, never sent to analytics. Suffix: `<projectId>`.
+export const localStorageSpecDrivenRunRequestPrefix = localStoragePrefix + 'smartgen_request_';
 // Minimal pointer to a currently-running durable generation. Versioned so a
 // future schema change never misreads old recovery data. Contains no API key,
 // prompt, model payload, or generated content.

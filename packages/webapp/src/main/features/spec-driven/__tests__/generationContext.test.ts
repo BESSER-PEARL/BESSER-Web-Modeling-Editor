@@ -13,7 +13,7 @@ import {
   type SpecDrivenConfig,
 } from '../../../shared/services/specDrivenConfig';
 import { writeFreeTierModel, writeFreeTierSelected, writeLlmKey } from '../../../shared/services/llmKeyStorage';
-import { writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
+import { recordProjectRunRequest, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
 import { getDemoToken } from '../../../shared/services/demoMode';
 
 vi.mock('../../../shared/services/specDrivenConfig', async (importOriginal) => {
@@ -82,7 +82,8 @@ describe('readLastGeneration', () => {
   });
 
   it('carries the request and is not expired within the download lifetime', () => {
-    writeProjectLastRun('p1', RUN, 1_000_000, 'Build a task board.');
+    writeProjectLastRun('p1', RUN, 1_000_000);
+    recordProjectRunRequest('p1', 'Build a task board.');
     expect(readLastGeneration('p1', 1_000_000 + 3_599_000)).toEqual({
       runId: RUN, at: 1_000_000, expired: false, request: 'Build a task board.',
     });
@@ -91,5 +92,10 @@ describe('readLastGeneration', () => {
   it('is expired once the configured lifetime has passed', () => {
     writeProjectLastRun('p1', RUN, 1_000_000);
     expect(readLastGeneration('p1', 1_000_000 + 3_600_000)).toEqual({ runId: RUN, at: 1_000_000, expired: true });
+  });
+
+  it('still carries the request when no run of the project finished', () => {
+    recordProjectRunRequest('p1', 'Build a task board.');
+    expect(readLastGeneration('p1')).toEqual({ request: 'Build a task board.' });
   });
 });

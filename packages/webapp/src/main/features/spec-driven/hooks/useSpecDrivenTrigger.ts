@@ -67,7 +67,7 @@ import { cancelSpecDrivenRun, isSpecDrivenRunCancelRequested } from '../../../sh
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
-import { recordRunSeedModel, runRequestFromInstructions } from '../../../shared/services/storage/specDrivenRunRecords';
+import { recordProjectRunRequest, recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
   SseStallError,
@@ -496,7 +496,7 @@ export function useSpecDrivenTrigger(
   const handleSseEvent = useCallback(
     async (
       event: SpecDrivenEvent,
-      run: { liveKey: string; streamingId: string; projectId: string; request?: string },
+      run: { liveKey: string; streamingId: string; projectId: string },
     ): Promise<void> => {
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
@@ -643,7 +643,7 @@ export function useSpecDrivenTrigger(
             dispatch(
               setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at: finishedAt }),
             );
-            writeProjectLastRun(run.projectId, doneRunId, finishedAt, run.request);
+            writeProjectLastRun(run.projectId, doneRunId, finishedAt);
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
@@ -1316,6 +1316,10 @@ export function useSpecDrivenTrigger(
       };
       track('spec_run_started', runAnalyticsRef.current.properties);
 
+      // Kept from the start, so a run that fails, is stopped or outlives the
+      // tab still leaves the application's description behind.
+      recordProjectRunRequest(project.id, payload.instructions);
+
       let handle;
       try {
         handle = startSpecDrivenRun(runParams);
@@ -1340,12 +1344,7 @@ export function useSpecDrivenTrigger(
 
       abortRef.current = handle.abort;
 
-      const runCtx = {
-        liveKey,
-        streamingId,
-        projectId: runProject.id,
-        request: runRequestFromInstructions(payload.instructions),
-      };
+      const runCtx = { liveKey, streamingId, projectId: runProject.id };
       let terminalEventSeen = false;
       let eventsReceived = 0;
       try {
