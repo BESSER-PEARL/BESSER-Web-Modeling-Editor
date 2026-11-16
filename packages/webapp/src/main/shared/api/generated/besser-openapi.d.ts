@@ -3623,8 +3623,16 @@ export interface components {
          */
         SpecDrivenConfigResponse: {
             caps: components["schemas"]["SpecDrivenCapsResponse"];
-            /** Download Ttl Seconds */
+            /**
+             * Download Ttl Seconds
+             * @description How long a finished run can be modified, pushed or resumed (its workspace).
+             */
             download_ttl_seconds: number;
+            /**
+             * Archive Ttl Seconds
+             * @description How long a finished run's download stays available; never shorter than download_ttl_seconds.
+             */
+            archive_ttl_seconds: number;
             /** Cost Emitter Interval Seconds */
             cost_emitter_interval_seconds: number;
             concurrency: components["schemas"]["SpecDrivenConcurrencyResponse"];

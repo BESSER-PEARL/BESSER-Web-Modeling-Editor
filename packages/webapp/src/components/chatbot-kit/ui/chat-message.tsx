@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
-import { useDownloadTtlSeconds } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
 import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
@@ -1539,14 +1539,19 @@ function SpecDrivenCard({
     status === "done" &&
     typeof runId === "string" &&
     typeof fileName === "string"
-  // The server keeps a run's output for the configured lifetime from its end;
-  // past it, or once a fetch says it is gone, nothing can be fetched any more.
-  const ttlSeconds = useDownloadTtlSeconds()
-  const expiresAt = serverResult && typeof finishedAt === "number" ? finishedAt + ttlSeconds * 1000 : undefined
+  // From the run's end the server serves its download for the archive
+  // lifetime, and can push it to GitHub for the (shorter or equal) workspace
+  // lifetime. Past those, or once a fetch says it is gone, they cannot work.
+  const { workspaceSeconds, archiveSeconds } = useRunLifetimes()
+  const finished = serverResult && typeof finishedAt === "number" ? finishedAt : undefined
+  const expiresAt = finished !== undefined ? finished + archiveSeconds * 1000 : undefined
+  const pushEndsAt = finished !== undefined ? finished + workspaceSeconds * 1000 : undefined
   const expiredByClock = useExpired(expiresAt)
+  const pushExpired = useExpired(pushEndsAt)
   const expiredOnServer = useSpecDrivenRunExpired(serverResult ? runId : undefined)
   const resultExpired = serverResult && (expiredByClock || expiredOnServer)
   const canRedownload = serverResult && !resultExpired
+  const canPush = canRedownload && !pushExpired
   const showFooter = showMeter || showStop || canRedownload
   const canViewFiles = canRedownload || canDetDownload
 
@@ -1667,9 +1672,16 @@ function SpecDrivenCard({
               />
             </button>
           ) : null}
-          {canRedownload && expiresAt !== undefined ? (
+          {canRedownload && expiresAt !== undefined && pushEndsAt !== undefined ? (
             <span className="text-[11px] text-muted-foreground">
-              {t("assistant.runCard.availableUntil", { time: formatExpiry(expiresAt) })}
+              {!onPushToGithub || pushExpired
+                ? t("assistant.runCard.downloadUntil", { time: formatExpiry(expiresAt) })
+                : pushEndsAt >= expiresAt
+                  ? t("assistant.runCard.availableUntil", { time: formatExpiry(expiresAt) })
+                  : t("assistant.runCard.downloadAndGithubUntil", {
+                      download: formatExpiry(expiresAt),
+                      github: formatExpiry(pushEndsAt),
+                    })}
             </span>
           ) : null}
           <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
@@ -1711,7 +1723,7 @@ function SpecDrivenCard({
                 {isFirstSave ? "Download" : "Download again"}
               </Button>
             ) : null}
-            {canRedownload && onPushToGithub && runId ? (
+            {canPush && onPushToGithub && runId ? (
               <Button
                 type="button"
                 size="xs"
@@ -1869,7 +1881,7 @@ function SpecDrivenCard({
         <SpecDrivenNoticeList warnings={warnings} />
 
         {resultExpired ? (
-          <ResultExpiredNote ttlSeconds={ttlSeconds} onGenerateAgain={onGenerateAgain} />
+          <ResultExpiredNote ttlSeconds={archiveSeconds} onGenerateAgain={onGenerateAgain} />
         ) : null}
 
         {viewerUsed && canViewFiles ? (
@@ -2031,7 +2043,7 @@ function SpecDrivenCard({
                 )
               })()
             ) : null}
-            {canRedownload && onPushToGithub && runId ? (
+            {canPush && onPushToGithub && runId ? (
               <Button
                 type="button"
                 size="xs"

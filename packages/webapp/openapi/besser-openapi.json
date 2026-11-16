@@ -8240,7 +8240,13 @@
           },
           "download_ttl_seconds": {
             "type": "integer",
-            "title": "Download Ttl Seconds"
+            "title": "Download Ttl Seconds",
+            "description": "How long a finished run can be modified, pushed or resumed (its workspace)."
+          },
+          "archive_ttl_seconds": {
+            "type": "integer",
+            "title": "Archive Ttl Seconds",
+            "description": "How long a finished run's download stays available; never shorter than download_ttl_seconds."
           },
           "cost_emitter_interval_seconds": {
             "type": "number",
@@ -8281,6 +8287,7 @@
         "required": [
           "caps",
           "download_ttl_seconds",
+          "archive_ttl_seconds",
           "cost_emitter_interval_seconds",
           "concurrency",
           "features",

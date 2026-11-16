@@ -1889,7 +1889,9 @@
       "lifetimeHours_one": "{{count}} hour",
       "lifetimeHours_other": "{{count}} hours",
       "generateAgain": "Generate again",
-      "rebuildAfterExpiry": "The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request."
+      "rebuildAfterExpiry": "The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request.",
+      "downloadUntil": "Download available until {{time}}.",
+      "downloadAndGithubUntil": "Download available until {{download}}; save to GitHub until {{github}}."
     },
     "runFinished": {
       "titleMarker": {

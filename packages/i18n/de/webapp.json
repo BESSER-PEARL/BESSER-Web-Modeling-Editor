@@ -1889,7 +1889,9 @@
       "lifetimeHours_one": "{{count}} Stunde",
       "lifetimeHours_other": "{{count}} Stunden",
       "generateAgain": "Erneut generieren",
-      "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt."
+      "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt.",
+      "downloadUntil": "Download verfügbar bis {{time}}.",
+      "downloadAndGithubUntil": "Download verfügbar bis {{download}}; auf GitHub speichern bis {{github}}."
     },
     "runFinished": {
       "titleMarker": {

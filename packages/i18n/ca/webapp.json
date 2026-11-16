@@ -1889,7 +1889,9 @@
       "lifetimeHours_one": "{{count}} hora",
       "lifetimeHours_other": "{{count}} hores",
       "generateAgain": "Torna a generar",
-      "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original."
+      "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original.",
+      "downloadUntil": "Baixada disponible fins a les {{time}}.",
+      "downloadAndGithubUntil": "Baixada disponible fins a les {{download}}; desar a GitHub fins a les {{github}}."
     },
     "runFinished": {
       "titleMarker": {
