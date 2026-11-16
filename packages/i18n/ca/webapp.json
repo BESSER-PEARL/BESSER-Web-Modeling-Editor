@@ -1085,7 +1085,7 @@
       "github": {
         "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
         "continue": "Continua",
-        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+        "description": "Tria un repositori per importar. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. El projecte queda vinculat al repositori. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
         "errors": {
           "generic": "No s’ha pogut continuar des d’aquest repositori.",
           "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",

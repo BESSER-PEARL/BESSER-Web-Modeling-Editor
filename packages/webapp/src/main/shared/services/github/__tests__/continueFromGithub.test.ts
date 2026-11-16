@@ -107,6 +107,21 @@ describe('continueFromGithubRepo', () => {
     expect(readProjectLastRun('p-new')?.runId).toBe(RUN);
   });
 
+  it('a plain import links the repo but leaves the next Spec-Driven run unprimed', async () => {
+    importRepoAsRun.mockResolvedValue({
+      run_id: RUN, project: { project: {} }, has_model: true, has_code: true,
+      owner: 'me', repo: 'app', branch: 'main', commit_sha: HEAD,
+    });
+
+    const result = await continueFromGithubRepo({ owner: 'me', repo: 'app', githubSession: 's', source: 'hub', primeNextRun: false });
+
+    expect(result).toMatchObject({ ok: true, projectId: 'p-new' });
+    expect(result.runId).toBeUndefined();
+    // The link is what lets a later run start from the repo (resolveLinkedRepoBase).
+    expect(getProjectGitHubLink('p-new')).toMatchObject({ owner: 'me', repo: 'app', baseCommitSha: HEAD, hasCode: true });
+    expect(readProjectLastRun('p-new')).toBeNull();
+  });
+
   it('opens a repo without a BESSER model with the model BESSER read from its code, as a proposal', async () => {
     const model = { elements: { a: { name: 'Book' } }, relationships: {}, type: 'ClassDiagram' };
     importRepoAsRun.mockResolvedValue({
