@@ -117,6 +117,17 @@ export function writeProjectLastRun(projectId: string, runId: string, at: number
   }
 }
 
+/** Forget a deleted project's last run and request (the request is the user's content). */
+export function clearProjectRunRecords(projectId: string): void {
+  if (!projectId) return;
+  try {
+    window.localStorage.removeItem(lastRunKey(projectId));
+    window.localStorage.removeItem(runRequestKey(projectId));
+  } catch {
+    /* ignore */
+  }
+}
+
 // Pushes come from recent run cards; older runs fall back to asking the user.
 const MAX_RUN_SEED_MODELS = 20;
 
