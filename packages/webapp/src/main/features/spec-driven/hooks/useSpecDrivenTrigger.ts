@@ -67,6 +67,7 @@ import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { projectRequirements } from '../../../shared/traceability/traceStore';
+import { newRunTraceState, noteRunEvent, recordRunInTrace, type RunTraceState } from '../runTrace';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
 import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
@@ -261,6 +262,8 @@ export function useSpecDrivenTrigger(
   // Latest runId / cost observed on the stream, for terminal reports.
   const currentRunIdRef = useRef<string | undefined>(undefined);
   const lastCostRef = useRef<number | undefined>(undefined);
+  /** What the project trace records of the run under way (see `runTrace.ts`). */
+  const runTraceRef = useRef<RunTraceState>(newRunTraceState());
   const activeRunStartedAtRef = useRef<number>(0);
   const lastSequenceRef = useRef<number>(0);
   // The active run's live key + card message id, so `abortActive` can
@@ -523,6 +526,21 @@ export function useSpecDrivenTrigger(
       }
 
       if (event.event === 'start') currentRunIdRef.current = event.runId;
+      noteRunEvent(runTraceRef.current, event);
+      // A run that ended is recorded in the project trace: from the trace its `done` event carries, else from
+      // what its stream said. A warning (COST_CAP, TIMEOUT, INCOMPLETE) is not an end.
+      if (event.event === 'done' || (event.event === 'error' && !['COST_CAP', 'TIMEOUT', 'INCOMPLETE'].includes(event.code))) {
+        const endedRunId =
+          (event.event === 'done' ? event.runId || extractSpecDrivenRunId(event.downloadUrl) : undefined) ||
+          currentRunIdRef.current;
+        if (endedRunId && run.projectId) {
+          try {
+            recordRunInTrace(run.projectId, endedRunId, runTraceRef.current, event);
+          } catch (traceError) {
+            console.warn('[useSpecDrivenTrigger] the run could not be recorded in the project trace', traceError);
+          }
+        }
+      }
       if (
         typeof event.sequence === 'number' &&
         Number.isFinite(event.sequence) &&
@@ -1261,7 +1279,9 @@ export function useSpecDrivenTrigger(
       const ownership: { claim?: Promise<(() => void) | null> } = {};
       // The requirements the assistant extracted (recorded in the project trace): the run judges these,
       // so its verdicts name the same requirements the trace links to the model.
+      // Their ids are the RequirementArtifact ids, so the run's requirement -> code links join them in the trace.
       const requirements = (await projectRequirements(project)).map((r) => ({ id: r.id, text: r.name, kind: r.kind }));
+      runTraceRef.current = newRunTraceState(requirements.map((r) => r.id));
       const runParams: StartSpecDrivenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,

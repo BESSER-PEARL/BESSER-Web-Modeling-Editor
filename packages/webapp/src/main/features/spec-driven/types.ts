@@ -218,6 +218,11 @@ export interface DoneEvent {
   changedFileCount?: number;
   /** How the model differs from the one the base app was built from (modify runs). */
   modelChanges?: string[];
+  /** The trace of the run (a trace file fragment, `projectId` null): its generator and LLM calls, the files the
+   *  LLM wrote, and requirement -> code links whose requirements are the RequirementArtifact ids the editor sent.
+   *  Absent from an older backend; untrusted, checked and migrated before it is merged (cross-repo traceability
+   *  contract, section 2). */
+  trace?: unknown;
 }
 
 export interface SpecDrivenErrorEvent {
