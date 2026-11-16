@@ -164,7 +164,7 @@ describe('recording the requirements of an assistant edit', () => {
   };
 
   it('records each requirement as written by an extraction from the prompt', () => {
-    const { trace, callId, logId } = record(readAssistantRequirements(REPLY)!);
+    const { trace, callId } = record(readAssistantRequirements(REPLY)!);
     const requirements = trace.artifacts.filter(isRequirementArtifact);
     expect(requirements.map((r) => [r.id, r.name, r.kind])).toEqual([
       [`${callId}:R1`, 'A room is identified by its number', 'uniqueness'],

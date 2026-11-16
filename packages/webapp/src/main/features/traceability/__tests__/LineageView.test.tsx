@@ -145,7 +145,7 @@ describe('LineageView', () => {
   });
 
   it('expands and collapses everything, and goes full screen', () => {
-    const { container, rowLabels, button } = view(trace());
+    const { rowLabels, button } = view(trace());
     fireEvent.click(button('Expand all'));
     expect(rowLabels()).toContain('Book · lines 2–3');
     fireEvent.click(button('Collapse all'));

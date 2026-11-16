@@ -107,7 +107,6 @@ vi.mock('../../../../shared/services/analytics/events', () => ({
 }));
 
 import { useAssistantLogic } from '../useAssistantLogic';
-import { INJECTION_FALLBACK_MESSAGE } from '../../services';
 import { conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
 
 interface SurfaceAPI {
