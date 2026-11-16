@@ -16,8 +16,8 @@ const AGENT_SUPPORTED_PROVIDERS = ['openai', 'anthropic', 'mistral', 'nebius'];
 const sorted = (list: readonly string[]) => [...list].sort();
 
 describe('LLM provider allowlists', () => {
-  it("assistant: the agent's SUPPORTED_PROVIDERS plus its catalog gateway 'pia' and 'local' (sent as openai)", () => {
-    expect(sorted(ASSISTANT_KEY_PROVIDERS)).toEqual(sorted([...AGENT_SUPPORTED_PROVIDERS, 'pia', 'local']));
+  it("assistant: the agent's SUPPORTED_PROVIDERS plus its catalog gateways and 'local' (sent as openai)", () => {
+    expect(sorted(ASSISTANT_KEY_PROVIDERS)).toEqual(sorted([...AGENT_SUPPORTED_PROVIDERS, 'pia', 'gateway', 'local']));
   });
 
   it("knowledge graph: the backend's KGLLMProvider, read from the committed OpenAPI schema", () => {

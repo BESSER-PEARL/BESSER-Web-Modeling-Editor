@@ -119,6 +119,17 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
   });
 
+  it('keeps the typed key out of the DOM, where injected CSS could read it', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const field = document.getElementById('llm-key-api-key') as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: 'sk-ant-test-key' } });
+
+    expect(field.value).toBe('sk-ant-test-key');
+    expect(field.hasAttribute('value')).toBe(false);
+    expect(document.querySelector('input[value^="sk-"]')).toBeNull();
+  });
+
   it('shows quality/speed/cost guidance near the model selector (#6)', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     // Helper note that explains the trade-off so users choose well.
@@ -428,6 +439,64 @@ describe('LlmKeyDialog — remove key and error announcement', () => {
   });
 });
 
+describe('LlmKeyDialog — changing only the model (BESSER#743)', () => {
+  const seedKey = () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-5-5');
+  };
+  const saveButton = () => screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
+  const pickModel = (value: string) =>
+    fireEvent.change(document.getElementById('llm-key-model') as HTMLSelectElement, { target: { value } });
+
+  it('saves a new model with the stored key when the key field is left empty', () => {
+    seedKey();
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    expect(saveButton().disabled).toBe(false);
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-haiku-4-5');
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-ant-stored', provider: 'anthropic', model: 'claude-haiku-4-5' }),
+    );
+  });
+
+  it('keeps the latest stored key when it was replaced while the dialog stayed mounted', () => {
+    seedKey();
+    const { rerender } = render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    rerender(<LlmKeyDialog open={false} onOpenChange={() => {}} />);
+    // Another surface saves a new key for the same provider.
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-newer');
+    rerender(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    pickModel('claude-haiku-4-5');
+    fireEvent.click(saveButton());
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-newer');
+  });
+
+  it('still needs a key for another provider', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it('does not reuse the stored key once its removal is staged', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    fireEvent.click(saveButton());
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
+  });
+});
+
 describe('LlmKeyDialog — model pickers', () => {
   function modelOptions(provider: string): string[] {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
@@ -581,6 +650,41 @@ describe('LlmKeyDialog — model catalog', () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
 
     expect(providerValues()).not.toContain('pia');
+    expect(providerValues()).not.toContain('gateway');
+  });
+
+  it('offers a second gateway with its name and models from the catalog, sent with no base URL', () => {
+    const withSecond = {
+      ...CATALOG_CONFIG,
+      providers: [
+        ...CATALOG,
+        {
+          id: 'gateway', label: 'Second gateway', hint: 'Your key for it.', key_prefix: null,
+          models: models(['vendor/model-a', 'Model A', true]),
+        },
+      ],
+    };
+    vi.mocked(peekSpecDrivenConfig).mockReturnValue(withSecond);
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue(withSecond);
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toContain('Second gateway');
+    fireEvent.change(select, { target: { value: 'gateway' } });
+    expect(screen.getByText('Your key for it.')).toBeTruthy();
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe('vendor/model-a');
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'any-shape-of-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('gateway');
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'gateway', apiKey: 'any-shape-of-key', baseUrl: undefined }),
+    );
   });
 
   it('falls back to the vendors with default and custom models when the config is unreadable', async () => {

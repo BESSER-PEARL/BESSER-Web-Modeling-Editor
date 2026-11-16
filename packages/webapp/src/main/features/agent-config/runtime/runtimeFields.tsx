@@ -2,6 +2,7 @@ import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { AgentConfigFormData } from '../AgentConfigYamlEditor';
@@ -85,18 +86,32 @@ export function TextField({ id, label, description, value, onChange, placeholder
 }) {
   return (
     <Field id={id} label={label} description={description}>
-      <Input
-        id={id}
-        name={id}
-        type={secret ? 'password' : 'text'}
-        autoComplete={secret ? 'new-password' : 'off'}
-        spellCheck={false}
-        inputMode={inputMode}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-7 text-sm font-mono"
-      />
+      {secret ? (
+        <SecretInput
+          id={id}
+          name={id}
+          autoComplete="new-password"
+          spellCheck={false}
+          inputMode={inputMode}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-7 text-sm font-mono"
+        />
+      ) : (
+        <Input
+          id={id}
+          name={id}
+          type="text"
+          autoComplete="off"
+          spellCheck={false}
+          inputMode={inputMode}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-7 text-sm font-mono"
+        />
+      )}
     </Field>
   );
 }

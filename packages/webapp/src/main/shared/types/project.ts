@@ -305,6 +305,12 @@ export type ElementLineageMap = Record<string, string>;
 
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
 
+/** Who added a class or member of the model; see `BesserProject.attribution`. */
+export interface ElementAttribution {
+  addedBy: string;
+  addedAt: string;
+}
+
 // New centralized project structure
 export interface BesserProject {
   id: string;
@@ -346,6 +352,26 @@ export interface BesserProject {
    *  by the inter-diagram derivation hooks after the derived diagram
    *  is added. Survives import/export. */
   elementLineage?: Record<string, ElementLineageMap>;
+  /** Element id → who added it. Sidecar; stamped by the backend on a save
+   *  to GitHub, read by no converter. */
+  attribution?: Record<string, ElementAttribution>;
+  /** The modeling assistant's conversation, so the user's specification is
+   *  kept with the project and saved to its GitHub repo (BESSER#745). Sidecar,
+   *  read by no converter and left out of generation requests. Optional, so no
+   *  schema bump. */
+  assistantConversation?: ProjectConversation;
+}
+
+/** One turn of the assistant conversation stored on a project. */
+export interface ProjectConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** The assistant conversation stored on a project: its latest turns. */
+export interface ProjectConversation {
+  turns: ProjectConversationTurn[];
+  updatedAt: string;
 }
 
 /** The two ways into the editor, chosen on the first-run landing. */
@@ -650,6 +676,22 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 };
 
 // Default project factory
+/**
+ * The text the create-project form used to pre-fill as the description. It was a value, not a
+ * hint, so many saved projects still carry it; it must not reach a repository or a README.
+ */
+export const LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION = 'Modern workspace project for UML, GUI and quantum modeling.';
+
+/** `description` as the user wrote it: '' when it is missing or the legacy pre-filled text. */
+export const userProjectDescription = (description: string | null | undefined): string =>
+  !description || description.trim() === LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION ? '' : description;
+
+/** `project` itself, or a shallow copy with an empty description when it holds the legacy pre-filled text. */
+export const withoutPlaceholderDescription = <T extends { description?: unknown }>(project: T): T =>
+  typeof project.description === 'string' && userProjectDescription(project.description) !== project.description
+    ? { ...project, description: '' }
+    : project;
+
 export const createDefaultProject = (
   name: string,
   description: string,
@@ -704,22 +746,26 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // KnowledgeGraphDiagram, NNDiagram and UserDiagram are back-filled by
-  // ensureProjectMigrated when missing, so they are not required here.
+  // Every type ensureProjectMigrated back-fills when missing (QuantumCircuitDiagram,
+  // BPMN, NNDiagram, UserDiagram, KnowledgeGraphDiagram, ComponentDiagram,
+  // DeploymentDiagram) is not required here: projects saved before those types
+  // existed must still open.
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram &&
-    obj.diagrams.BPMN;
+    obj.diagrams.GUINoCodeDiagram;
 
   return !!hasRequiredDiagrams;
 };
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
+  // A v1 project has no currentDiagramIndices; the back-fills below write into it
+  // before migrateProjectToV2 runs.
+  obj.currentDiagramIndices ??= defaultDiagramIndices();
+
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];

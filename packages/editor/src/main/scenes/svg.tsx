@@ -120,7 +120,7 @@ const getInitialState = ({ model, options }: Props): State => {
 
   const elements = Object.values(apollonElements)
     .filter((element) => !element.owner)
-    .reduce<UMLElement[]>((acc, val) => [...acc, ...deserialize(val)], []);
+    .flatMap((element) => deserialize(element));
 
   const relationships = Object.values(apollonRelationships).map<UMLRelationship>((apollonRelationship) => {
     const relationship = new UMLRelationships[apollonRelationship.type]();
@@ -128,9 +128,8 @@ const getInitialState = ({ model, options }: Props): State => {
     return relationship;
   });
 
-  const elementState = [...elements, ...relationships].reduce<{ [id: string]: UMLElement }>(
-    (acc, val) => ({ ...acc, [val.id]: val }),
-    {},
+  const elementState: { [id: string]: UMLElement } = Object.fromEntries(
+    [...elements, ...relationships].map((element) => [element.id, element]),
   );
   const roots = Object.values(elementState).filter((element) => !element.owner);
 

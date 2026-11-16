@@ -49,3 +49,23 @@ describe('AssistantClient — loading indicator survives progress frames', () =>
     (client as unknown as { clearResponseTimer(): void }).clearResponseTimer();
   });
 });
+
+describe('AssistantClient — hard response timeout (BESSER#744)', () => {
+  it('says the request is still running, not that it failed, since its reply can still arrive', () => {
+    const client = new AssistantClient('ws://never-connect.invalid');
+    const messages: { message?: unknown }[] = [];
+    client.onMessage((m) => messages.push(m as { message?: unknown }));
+    const internals = client as unknown as {
+      responseStartedAt: number;
+      responseHardTimeoutMs: number;
+      onResponseTick(): void;
+    };
+    internals.responseStartedAt = Date.now() - internals.responseHardTimeoutMs - 1;
+
+    internals.onResponseTick();
+
+    const text = String(messages[messages.length - 1]?.message ?? '');
+    expect(text).toMatch(/still running/i);
+    expect(text).not.toMatch(/try again/i);
+  });
+});

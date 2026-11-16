@@ -6,7 +6,7 @@
 import { apiClient } from './api-client';
 import type { components, operations } from './generated/besser-openapi';
 import { BACKEND_URL } from '../constants/constant';
-import type { BesserProject } from '../types/project';
+import { type BesserProject, userProjectDescription, withoutPlaceholderDescription } from '../types/project';
 import type { ProjectExportEnvelope } from '../utils/projectExportUtils';
 import { getDemoToken } from '../services/demoMode';
 
@@ -44,6 +44,9 @@ export type RepoAnalysis = components['schemas']['CodeAnalysisResponse'];
  * user agreed); `model_path`: where `project` was read.
  */
 export type ImportedRun = components['schemas']['ImportGitHubRunResponse'];
+
+/** What was done on a repo's app and where it stands; every value is text from the repository. */
+export type RepoRecap = components['schemas']['RepoRecap'];
 
 /** The GitHub topic BESSER sets on every repo it pushes to. */
 export const BESSER_TOPIC = 'besser';
@@ -106,7 +109,12 @@ export const saveModel = (
     /** A model file the old GitHub sidebar saved (e.g. `models/shop.json`); the save commit deletes it. */
     legacy_file_path?: string;
   },
-) => apiClient.post<SaveModelResult>('/github/project/save', body, { ...session(githubSession), timeout: 60_000 });
+) =>
+  apiClient.post<SaveModelResult>(
+    '/github/project/save',
+    { ...body, project_data: withoutPlaceholderDescription(body.project_data) },
+    { ...session(githubSession), timeout: 60_000 },
+  );
 
 /** The repo's model file as stored (a V2 envelope or a legacy project) and the head it was read at. */
 export const loadModel = (githubSession: string, owner: string, repo: string, branch: string) =>
@@ -135,15 +143,12 @@ export const createRepoForProject = (
 ) =>
   apiClient.post<components['schemas']['CreateRepoForProjectResponse']>(
     '/github/project/create-repo',
-    body,
+    {
+      ...body,
+      description: userProjectDescription(body.description),
+      project_data: withoutPlaceholderDescription(body.project_data),
+    },
     { ...session(githubSession), timeout: 60_000 },
-  );
-
-export const createGist = (githubSession: string, project: BesserProject, description: string, isPublic: boolean) =>
-  apiClient.post<components['schemas']['CreateGistResponse']>(
-    '/github/gist/create',
-    { project_data: project, description, is_public: isPublic },
-    session(githubSession),
   );
 
 /**
@@ -156,7 +161,7 @@ export const importRepoAsRun = (
   owner: string,
   repo: string,
   branch?: string,
-  { allowAiReading = false, modelPath }: { allowAiReading?: boolean; modelPath?: string } = {},
+  { allowAiReading = false, modelPath, signal }: { allowAiReading?: boolean; modelPath?: string; signal?: AbortSignal } = {},
 ) =>
   apiClient.post<ImportedRun>(
     '/spec-driven/import-github-run',
@@ -166,7 +171,7 @@ export const importRepoAsRun = (
       allow_ai_reading: allowAiReading, model_path: modelPath,
     },
     // The AI fallback reader can take up to 90 s on top of the download.
-    { ...session(githubSession), timeout: 150_000 },
+    { ...session(githubSession), timeout: 150_000, signal },
   );
 
 /** `POST /github/deploy-webapp` takes the project with `deploy_config` and `projectExport` as an open object. */
@@ -175,7 +180,7 @@ export type DeployToGitHubBody =
 
 /** Generate the project's web app (or agent) and commit it to a new or existing repo. */
 export const deployToGitHub = (githubSession: string, body: DeployToGitHubBody) =>
-  apiClient.post<components['schemas']['DeployToGitHubResponse']>('/github/deploy-webapp', body, {
+  apiClient.post<components['schemas']['DeployToGitHubResponse']>('/github/deploy-webapp', withoutPlaceholderDescription(body), {
     ...session(githubSession),
     // Several GitHub API calls plus code generation, observed up to ~37 s.
     timeout: 120_000,
@@ -193,6 +198,23 @@ export const pushRunToGitHub = (githubSession: string, body: PushRunBody) =>
     // Code generation plus several GitHub API calls, as for a deploy.
     timeout: 120_000,
   });
+
+/**
+ * `POST /spec-driven/import-generated-code`: store a deterministic generator's
+ * output (the ZIP or single file `/generate-output` returned) as a run, which
+ * `pushRunToGitHub` then pushes. Resolves to the run id.
+ */
+export const importGeneratedCode = async (githubSession: string, file: Blob, fileName: string): Promise<string> => {
+  const form = new FormData();
+  form.append('file', file, fileName);
+  const { run_id } = await apiClient.upload<components['schemas']['ImportGeneratedCodeResponse']>(
+    '/spec-driven/import-generated-code',
+    form,
+    // Up to the server's 50 MB request limit.
+    { ...session(githubSession), timeout: 120_000 },
+  );
+  return run_id;
+};
 
 /** `changed` is false when the repo already held these exact deploy files. */
 export type GoLiveResult = components['schemas']['GoLiveResponse'];
@@ -218,6 +240,7 @@ export const goLive = (githubSession: string, owner: string, repo: string, branc
 
 /** Fired on `window` to open the top bar's GitHub menu (or start sign-in) from anywhere, e.g. the chat's repo header. */
 export const OPEN_GITHUB_PANEL_EVENT = 'wme:open-github-panel';
+export const OPEN_GITHUB_SAVE_EVENT = 'wme:open-github-save';
 
 // Raw `fetch` stays where apiClient cannot send the same request: it adds
 // `Content-Type: application/json` to every call and rejects a non-2xx answer,

@@ -6,6 +6,7 @@ import { settingsService } from '../../../services/settings/settings-service';
 import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
 import { UserModelElementType } from '../../user-modeling';
+import { sanitizeSvg } from '../../../utils/sanitize-svg';
 
 interface OwnProps {
   element: UMLClassifierMember;
@@ -64,10 +65,12 @@ const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({
   }
   
   // Check if the icon content is valid before processing
-  const iconContent = (element as any).icon;
-  if (!iconContent || typeof iconContent !== 'string' || iconContent.trim() === '') {
+  const rawIcon = (element as any).icon;
+  if (!rawIcon || typeof rawIcon !== 'string' || rawIcon.trim() === '') {
     return null;
   }
+  // The icon comes from the model, and so from a file anyone with write access to a repository can edit.
+  const iconContent = sanitizeSvg(rawIcon);
   
   // Set your icon width here, or extract it from the SVG if dynamic
   const iconWidth = getIconWidth(iconContent);

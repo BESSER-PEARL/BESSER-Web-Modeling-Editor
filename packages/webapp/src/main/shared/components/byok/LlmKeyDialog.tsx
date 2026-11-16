@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -160,11 +161,17 @@ const PROVIDER_COPY: Record<KeyProvider, ProviderCopy> = {
       'modeling assistant keeps using its default model. No fixed key prefix.',
     expectedPrefix: '',
   },
-  // A gateway whose endpoint, models and wording come from the server's model
-  // catalog; offered only where the server lists it.
+  // Gateways whose endpoint, models and wording come from the server's model
+  // catalog; offered only where the server lists them.
   pia: {
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
+    hint: 'Your personal gateway key.',
+    expectedPrefix: '',
+  },
+  gateway: {
+    label: 'Gateway',
+    placeholder: 'Your API key',
     hint: 'Your personal gateway key.',
     expectedPrefix: '',
   },
@@ -209,12 +216,12 @@ const LOCAL_BACKEND_NOTE: Partial<Record<LlmProvider, string>> = {
 };
 
 /**
- * pia/local are OpenAI-compatible endpoints with no server-side default model
- * and keys of any shape. pia's endpoint is resolved by the server from its
- * model catalog; local's is the user's.
+ * pia/gateway/local are OpenAI-compatible endpoints with no server-side default
+ * model and keys of any shape. A gateway's endpoint is resolved by the server
+ * from its model catalog; local's is the user's.
  */
 function _isCustomEndpoint(provider: LlmProvider): boolean {
-  return provider === 'pia' || provider === 'local';
+  return provider === 'pia' || provider === 'gateway' || provider === 'local';
 }
 
 /**
@@ -254,6 +261,7 @@ const FALLBACK_MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   mistral: [],
   nebius: [],
   pia: [],
+  gateway: [],
   local: [{ value: 'qwen2.5-coder:7b', label: 'qwen2.5-coder:7b' }],
   free: [{ value: DEFAULT_MODEL_VALUE, label: 'Server default (no key required)' }],
 };
@@ -293,7 +301,7 @@ function _providerOptions(catalog: readonly SpecDrivenCatalogProvider[]): Provid
           expectedPrefix: entry.key_prefix ?? known.expectedPrefix,
         }];
       })
-    : PROVIDER_OPTIONS.filter((p) => p.value !== 'pia');
+    : PROVIDER_OPTIONS.filter((p) => p.value !== 'pia' && p.value !== 'gateway');
   return _isLocalDeployment() ? options : options.filter((p) => p.value !== 'local');
 }
 
@@ -303,6 +311,7 @@ const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   mistral: 'e.g. mistral-medium-latest',
   nebius: 'e.g. Qwen/Qwen3-235B-A22B-Instruct-2507',
   pia: 'e.g. claude-opus-4-8',
+  gateway: 'e.g. vendor/model-name',
   local: 'e.g. qwen2.5-coder:14b',
   free: '',
 } as const;
@@ -548,7 +557,19 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   // more than one entry (primary + configured fallback).
   const freeModels = freeTier.models;
 
-  const trimmedKey = apiKey.trim();
+  const typedKey = apiKey.trim();
+  // The stored key is never put back in the field, so an empty field on the
+  // provider it belongs to means "keep it": changing only the model is saved
+  // with the stored key. A staged removal or another provider needs a new key.
+  // Read on every render, not memoised: the dialog stays mounted between
+  // openings, and another save can replace the stored key meanwhile.
+  const storedKeyForProvider = (() => {
+    if (!keyPresent || removePending) return '';
+    const stored = readLlmKey();
+    return stored?.provider === provider ? stored.apiKey : '';
+  })();
+  const keepsStoredKey = typedKey.length === 0 && storedKeyForProvider.length > 0;
+  const trimmedKey = keepsStoredKey ? storedKeyForProvider : typedKey;
   // The free tier needs no key, so it is always saveable when selected.
   const canSave = isFreeProvider || trimmedKey.length > 0 || removePending;
 
@@ -561,9 +582,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   );
 
   const formatLooksWrong =
-    trimmedKey.length > 0 && !trimmedKey.startsWith(selectedProvider.expectedPrefix);
+    typedKey.length > 0 && !typedKey.startsWith(selectedProvider.expectedPrefix);
 
-  const inferredProvider = _inferProviderFromKey(trimmedKey);
+  const inferredProvider = _inferProviderFromKey(typedKey);
   // Don't second-guess pia/local: a PIA key legitimately starts with sk- (which
   // would otherwise infer 'openai'), and 'local' keys are arbitrary. 'free'
   // has no key at all, so there is nothing to infer against.
@@ -803,7 +824,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             {inferredProvider !== null &&
               !providerLockedByUser &&
               inferredProvider === provider &&
-              trimmedKey.length > 0 &&
+              typedKey.length > 0 &&
               !_isCustomEndpoint(provider) && (
                 <p className="text-xs text-muted-foreground">Provider auto-selected from the key prefix.</p>
               )}
@@ -879,9 +900,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           {!isFreeProvider && (
           <div className="space-y-1.5">
             <Label htmlFor="llm-key-api-key">API Key</Label>
-            <Input
+            <SecretInput
               id="llm-key-api-key"
-              type="password"
               value={apiKey}
               onChange={(event) => {
                 setApiKey(event.target.value);
@@ -903,6 +923,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               <p id="llm-key-mismatch" role="alert" className="text-xs font-medium text-destructive">
                 This key looks like a {_providerLabel(inferredProvider, providerOptions)} key, but Provider is set to{' '}
                 {selectedProvider.label}. Change one so they match — otherwise the API will reject the key.
+              </p>
+            )}
+            {keepsStoredKey && (
+              <p className="text-xs text-muted-foreground">
+                Your saved key is kept. Leave this empty to change only the model.
               </p>
             )}
             {!providerMismatch && formatLooksWrong && (

@@ -100,9 +100,15 @@ It reads only two variables at runtime:
    ``build/webapp/*.js`` on start-up, and tags the Sentry environment.
 
 ``SENTRY_DSN``
-   Optional DSN for server-side error reporting.
+   Optional DSN for server-side error reporting. Its origin also goes into the
+   Content-Security-Policy, so set the same DSN here as for the webapp build.
 
 The listening port is hardcoded to ``8080`` in ``packages/server/src/main/server.ts``.
+
+The server also sends the security headers (Content-Security-Policy, HSTS, ``X-Frame-Options``), from
+``packages/server/src/main/security-headers.ts``. Its webpack bundle bakes in ``BACKEND_URL``, ``UML_BOT_WS_URL``
+and ``POSTHOG_HOST`` (from the environment, then ``packages/webapp/.env``), so the policy allows what the webapp was
+built with. ``localhost`` ports are allowed only when none of these URLs is known to be remote.
 
 .. note::
    Earlier versions of this page documented ``APOLLON_REDIS_URL``,

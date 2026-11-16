@@ -1558,6 +1558,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/spec-driven/import-generated-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Generated Code Run
+         * @description Store the output of a deterministic generator as a run, to push it to GitHub.
+         *
+         *     ``/generate-output`` keeps nothing on the server, so its output (a ZIP or
+         *     a single file, such as the SQL generator's ``.sql``) has no run for
+         *     ``/spec-driven/push-to-github`` to push. The editor uploads the file it
+         *     received; the returned ``run_id`` is then pushed like any other run.
+         *     Only a session signed in to GitHub, the one thing the run is for, may
+         *     store one.
+         */
+        post: operations["import_generated_code_run_besser_api_spec_driven_import_generated_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/besser_api/spec-driven/import-github-run": {
         parameters: {
             query?: never;
@@ -1869,6 +1896,11 @@ export interface components {
         Body_get_svg_besser_api_get_svg_post: {
             /** Buml File */
             buml_file: string;
+        };
+        /** Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post */
+        Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post: {
+            /** File */
+            file: string;
         };
         /** Body_import_owl_besser_api_kg_import_owl_post */
         Body_import_owl_besser_api_kg_import_owl_post: {
@@ -2209,6 +2241,13 @@ export interface components {
             message: string;
             /** Author */
             author: string;
+            /** Author Login */
+            author_login: string | null;
+            /**
+             * Is Merge
+             * @default false
+             */
+            is_merge: boolean;
             /** Date */
             date: string;
             /** Html Url */
@@ -2359,6 +2398,14 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * ImportGeneratedCodeResponse
+         * @description Response of ``POST /besser_api/spec-driven/import-generated-code``.
+         */
+        ImportGeneratedCodeResponse: {
+            /** Run Id */
+            run_id: string;
+        };
+        /**
          * ImportGitHubRunRequest
          * @description Body of ``POST /besser_api/spec-driven/import-github-run``.
          *
@@ -2438,6 +2485,12 @@ export interface components {
              * @default false
              */
             ai_reading_offered: boolean;
+            /**
+             * Has Code
+             * @default false
+             */
+            has_code: boolean;
+            recap: components["schemas"]["RepoRecap"] | null;
         };
         /**
          * KGActionResponse
@@ -2790,6 +2843,13 @@ export interface components {
             message: string;
             /** Author */
             author: string;
+            /** Author Login */
+            author_login: string | null;
+            /**
+             * Is Merge
+             * @default false
+             */
+            is_merge: boolean;
             /** Date */
             date: string;
             /** Html Url */
@@ -2965,6 +3025,49 @@ export interface components {
             project_export: {
                 [key: string]: unknown;
             } | null;
+            recap: components["schemas"]["RepoRecap"] | null;
+        };
+        /**
+         * RecapCommit
+         * @description A commit the repo gained after the last run.
+         */
+        RecapCommit: {
+            /** Sha */
+            sha: string;
+            /** Message */
+            message: string;
+            /** Author */
+            author: string;
+        };
+        /**
+         * RecapOpenItem
+         * @description Something the last run left open.
+         */
+        RecapOpenItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "rolled_back" | "missing" | "not_checked" | "left_out";
+            /** Text */
+            text: string;
+        };
+        /**
+         * RecapRun
+         * @description One earlier run on the app, as ``run_recap.build_recap`` reads it.
+         */
+        RecapRun: {
+            /** Request */
+            request: string;
+            /** Date */
+            date: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "create" | "modify";
+            /** File Count */
+            file_count: number;
         };
         /**
          * RenamedElementResponse
@@ -2975,6 +3078,24 @@ export interface components {
             from: string;
             /** To */
             to: string;
+        };
+        /**
+         * RepoRecap
+         * @description What was done on a repo's app and where it stands (``run_recap.build_recap``).
+         *
+         *     The editor's chat shows it; every value is text from the repository.
+         */
+        RepoRecap: {
+            /** Runs */
+            runs: components["schemas"]["RecapRun"][];
+            /** Open Items */
+            open_items: components["schemas"]["RecapOpenItem"][];
+            /** Open Item Count */
+            open_item_count: number;
+            /** Commits Since Run */
+            commits_since_run: components["schemas"]["RecapCommit"][];
+            /** Commit Count */
+            commit_count: number;
         };
         /**
          * RepoSummaryResponse
@@ -3076,6 +3197,15 @@ export interface components {
              * @default []
              */
             warnings: string[];
+            /**
+             * Attribution
+             * @default {}
+             */
+            attribution: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
         };
         /**
          * SdmxImportRequest
@@ -3254,7 +3384,7 @@ export interface components {
              * @default anthropic
              * @enum {string}
              */
-            provider: "anthropic" | "openai" | "mistral" | "nebius" | "free" | "sponsored" | "pia";
+            provider: "anthropic" | "openai" | "mistral" | "nebius" | "free" | "sponsored" | "pia" | "gateway";
             /** Llm Model */
             llm_model?: string | null;
             /** Base Url */
@@ -5688,6 +5818,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PushSmartToGitHubResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_generated_code_run_besser_api_spec_driven_import_generated_code_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportGeneratedCodeResponse"];
                 };
             };
             /** @description Validation Error */

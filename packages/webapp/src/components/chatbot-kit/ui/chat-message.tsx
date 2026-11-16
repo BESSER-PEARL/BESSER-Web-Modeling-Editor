@@ -40,6 +40,7 @@ import {
   fetchSpecDrivenArtifactBlob,
 } from "@/main/shared/utils/specDrivenDownload"
 import { emitDeliveryEvent } from "@/main/shared/services/telemetry/pilotTelemetry"
+import { storeGeneratedCodeForPush } from "@/main/shared/services/github/saveGeneratedCode"
 import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
@@ -1397,6 +1398,19 @@ function SpecDrivenCard({
     }
   }
   const canDetDownload = status === "done" && deterministic === true && deterministicBlob instanceof Blob
+  // A deterministic run has no server run to push: store its file as one
+  // first, then open the same "Save to GitHub" dialog a Spec-Driven run gets.
+  const [preparingPush, setPreparingPush] = useState(false)
+  const handleDeterministicPush = async () => {
+    if (!deterministicBlob || !onPushToGithub || preparingPush) return
+    setPreparingPush(true)
+    try {
+      const pushRunId = await storeGeneratedCodeForPush(deterministicBlob, fileName || "generated_code.zip")
+      if (pushRunId) onPushToGithub(pushRunId)
+    } finally {
+      setPreparingPush(false)
+    }
+  }
 
   // The "generator wrote it, then the LLM refined it" middle bucket. The
   // backend done event doesn't always carry generator_llm_modified_pct, which
@@ -1589,6 +1603,17 @@ function SpecDrivenCard({
                 onClick={() => onPushToGithub(runId)}
               >
                 <Github />
+                Save to GitHub
+              </Button>
+            ) : canDetDownload && onPushToGithub ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => void handleDeterministicPush()}
+                disabled={preparingPush}
+              >
+                {preparingPush ? <Loader2 className="animate-spin" /> : <Github />}
                 Save to GitHub
               </Button>
             ) : null}

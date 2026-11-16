@@ -18,6 +18,7 @@ export * from './typings';
 // Export the main editor component and its related functionality
 // This is the primary entry point for users who want to embed the UML editor
 export * from './apollon-editor';
+export { sanitizeSvg } from './utils/sanitize-svg';
 
 // Export the headless ELK auto-layout helper (pure model -> laid-out model)
 export { layoutModel } from './services/layouter/model-layout';

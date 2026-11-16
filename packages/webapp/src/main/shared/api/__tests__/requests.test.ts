@@ -38,15 +38,20 @@ import {
 } from '../specDriven';
 import { checkRateLimit, resetRateLimit } from '../rateLimit';
 import {
+  createRepoForProject,
   deployToGitHub,
   fetchRawGitHubFile,
   getGitHubAuthStatus,
   getStarStatus,
+  importGeneratedCode,
   logOutOfGitHub,
   pushRunToGitHub,
+  saveModel,
   setStarred,
 } from '../github';
+import { createDefaultProject } from '../../types/project';
 import { getApiInfo } from '../apiInfo';
+import { GITHUB_SESSION_REJECTED_EVENT } from '../api-client';
 
 const fetchMock = vi.fn();
 
@@ -389,6 +394,32 @@ describe('github deploy and push', () => {
     ]);
   });
 
+  it('never sends the description the create form used to pre-fill', async () => {
+    const legacy = 'Modern workspace project for UML, GUI and quantum modeling.';
+    const project = { ...createDefaultProject('Shop', legacy, 'me') };
+    const projectExport = {} as Parameters<typeof createRepoForProject>[1]['project_export'];
+
+    await createRepoForProject('sess', {
+      repo_name: 'shop', description: legacy, is_private: true, project_data: project, project_export: projectExport,
+    });
+    const created = JSON.parse(lastCall()[1]?.body as string);
+    expect(created.description).toBe('');
+    expect(created.project_data.description).toBe('');
+
+    await saveModel('sess', {
+      owner: 'me', repo: 'shop', branch: 'main', commit_message: 'm', project_data: project, project_export: projectExport,
+    });
+    expect(JSON.parse(lastCall()[1]?.body as string).project_data.description).toBe('');
+
+    await deployToGitHub('sess', { name: 'shop', description: ` ${legacy} ` });
+    expect(JSON.parse(lastCall()[1]?.body as string).description).toBe('');
+
+    // The caller's project is not changed, and a description the user wrote is sent as is.
+    expect(project.description).toBe(legacy);
+    await deployToGitHub('sess', { name: 'shop', description: 'An online shop' });
+    expect(JSON.parse(lastCall()[1]?.body as string).description).toBe('An online shop');
+  });
+
   it('posts a finished run to /spec-driven/push-to-github', async () => {
     const body = {
       run_id: 'r1',
@@ -400,6 +431,35 @@ describe('github deploy and push', () => {
       `${BACKEND_URL}/spec-driven/push-to-github`,
       { method: 'POST', headers: SESSION_JSON, body: JSON.stringify(body), signal: SIGNAL },
     ]);
+  });
+});
+
+describe('generated code to push', () => {
+  it('uploads a generator output as file to /spec-driven/import-generated-code and returns the run id', async () => {
+    fetchMock.mockImplementation(async () => new Response('{"run_id":"r2"}'));
+    const sql = new Blob(['CREATE TABLE t (id INTEGER);'], { type: 'application/sql' });
+
+    await expect(importGeneratedCode('sess', sql, 'library.sql')).resolves.toBe('r2');
+
+    const [url, init] = lastCall();
+    expect(url).toBe(`${BACKEND_URL}/spec-driven/import-generated-code`);
+    expect(init?.method).toBe('POST');
+    expect(init?.headers).toEqual({ 'X-GitHub-Session': 'sess' });
+    const [[name, file]] = formEntries(init);
+    expect(name).toBe('file');
+    expect((file as File).name).toBe('library.sql');
+  });
+
+  it('reports a rejected GitHub session, like the JSON requests', async () => {
+    fetchMock.mockImplementation(async () => new Response('{"detail":"GitHub session expired."}', { status: 401 }));
+    const rejected = vi.fn();
+    window.addEventListener(GITHUB_SESSION_REJECTED_EVENT, rejected);
+    try {
+      await expect(importGeneratedCode('sess', new Blob(['x']), 'a.sql')).rejects.toMatchObject({ status: 401 });
+    } finally {
+      window.removeEventListener(GITHUB_SESSION_REJECTED_EVENT, rejected);
+    }
+    expect(rejected).toHaveBeenCalledTimes(1);
   });
 });
 

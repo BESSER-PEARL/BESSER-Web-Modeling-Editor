@@ -81,6 +81,7 @@ vi.mock('../../services', async (importOriginal) => {
     disconnect() {}
     resetSession() {}
     setContextProvider() {}
+    setHistoryProvider() {}
     sendMessage(): SendStatus {
       return 'sent';
     }

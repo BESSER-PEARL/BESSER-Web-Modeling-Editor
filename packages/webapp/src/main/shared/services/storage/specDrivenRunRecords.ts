@@ -58,11 +58,21 @@ export function writeProjectLastRun(projectId: string, runId: string, at: number
 // Pushes come from recent run cards; older runs fall back to asking the user.
 const MAX_RUN_SEED_MODELS = 20;
 
-const readRunSeedModels = (): [string, string][] => {
+/** What a run started from, beyond the model's exact fingerprint. */
+export interface RunSeedContext {
+  /** The commit the project's link was at. */
+  baseCommitSha?: string;
+  /** `modelContentFingerprint` of the model. */
+  content?: string;
+}
+
+type RunSeedEntry = [string, string, RunSeedContext?];
+
+const readRunSeedModels = (): RunSeedEntry[] => {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(localStorageSpecDrivenRunSeedModels) || '[]');
     return Array.isArray(parsed)
-      ? parsed.filter((e): e is [string, string] => Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string')
+      ? parsed.filter((e): e is RunSeedEntry => Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string')
       : [];
   } catch {
     return [];
@@ -70,10 +80,10 @@ const readRunSeedModels = (): [string, string][] => {
 };
 
 /** Remember the fingerprint (`modelFingerprint`) of the model run `runId` started from. */
-export function recordRunSeedModel(runId: string, fingerprint: string): void {
+export function recordRunSeedModel(runId: string, fingerprint: string, context?: RunSeedContext): void {
   if (!isValidRunId(runId)) return;
   const entries = readRunSeedModels().filter(([id]) => id !== runId);
-  entries.push([runId, fingerprint]);
+  entries.push(context ? [runId, fingerprint, context] : [runId, fingerprint]);
   try {
     window.localStorage.setItem(localStorageSpecDrivenRunSeedModels, JSON.stringify(entries.slice(-MAX_RUN_SEED_MODELS)));
   } catch {
@@ -84,4 +94,9 @@ export function recordRunSeedModel(runId: string, fingerprint: string): void {
 /** The fingerprint of the model run `runId` started from, or null when it is not known. */
 export function readRunSeedModel(runId: string): string | null {
   return readRunSeedModels().find(([id]) => id === runId)?.[1] ?? null;
+}
+
+/** What run `runId` started from, besides its fingerprint; empty when it is not known. */
+export function readRunSeed(runId: string): RunSeedContext {
+  return readRunSeedModels().find(([id]) => id === runId)?.[2] ?? {};
 }

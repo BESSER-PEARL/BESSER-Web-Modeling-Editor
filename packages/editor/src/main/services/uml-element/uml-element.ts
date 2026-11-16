@@ -1,3 +1,4 @@
+import { safeColor } from '../../utils/safe-color';
 import { DeepPartial } from 'redux';
 import { UMLDiagramType } from '../../packages/diagram-type';
 import { UMLElementType } from '../../packages/uml-element-type';
@@ -165,9 +166,9 @@ export abstract class UMLElement implements IUMLElement, ILayoutable {
     this.owner = values.owner || null;
     this.bounds = { ...values.bounds };
     this.highlight = values.highlight;
-    this.fillColor = values.fillColor;
-    this.strokeColor = values.strokeColor;
-    this.textColor = values.textColor;
+    this.fillColor = safeColor(values.fillColor);
+    this.strokeColor = safeColor(values.strokeColor);
+    this.textColor = safeColor(values.textColor);
     this.description = values.description;
     this.uri = values.uri;
     this.icon = values.icon;

@@ -92,4 +92,15 @@ describe('trackGeneration', () => {
     trackGeneration('django', { ok: false, error: 'Component unmounted', reason: 'unmounted' }, context);
     expect(captureEvent).not.toHaveBeenCalled();
   });
+
+  it('counts a run declined over validation warnings as blocked, not failed', () => {
+    trackGeneration('sql', { ok: false, error: 'declined', reason: 'warnings_declined' }, context);
+    expect(captureEvent).toHaveBeenCalledTimes(1);
+    expect(captureEvent).toHaveBeenCalledWith('generator_blocked', {
+      generator_type: 'sql',
+      diagram_type: 'ClassDiagram',
+      source: 'menu',
+      reason: 'warnings_declined',
+    });
+  });
 });

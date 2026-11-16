@@ -28,7 +28,7 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
       ref={ref}
       className={cn(
         dialogContentBaseClass,
-        'grid max-w-3xl gap-4',
+        'grid grid-cols-[minmax(0,1fr)] max-w-3xl gap-4',
         className,
       )}
       {...props}

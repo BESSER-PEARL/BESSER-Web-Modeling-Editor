@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { ArrowRight, Check, Github } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,9 +43,15 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
 }) => {
   const { t } = useTranslation();
   const [remember, setRemember] = useState(defaultRemember);
+  const samplePrompt = t('project.landing.agent.samplePrompt');
 
   return (
-    <div className="frl relative flex max-h-[92vh] flex-col overflow-y-auto overflow-x-hidden bg-background">
+    <div
+      className="frl relative flex max-h-[92vh] flex-col overflow-y-auto overflow-x-hidden bg-background"
+      // The typing animation reveals the sample prompt one character per step, so its
+      // width and step count follow the length of the translated prompt.
+      style={{ '--frl-typed-len': samplePrompt.length } as React.CSSProperties}
+    >
       <style>{`
         .frl-rise{opacity:0;translate:0 12px;animation:frlRise .7s cubic-bezier(.2,.7,.2,1) forwards}
         .frl-d1{animation-delay:.04s}.frl-d2{animation-delay:.12s}.frl-d3{animation-delay:.22s}
@@ -53,27 +59,27 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
         @keyframes frlRise{to{opacity:1;translate:none}}
         .frl-edge{stroke-dasharray:150;stroke-dashoffset:150;animation:frlDraw 1.1s .5s cubic-bezier(.6,0,.2,1) forwards}
         @keyframes frlDraw{to{stroke-dashoffset:0}}
-        .frl-typed{white-space:nowrap;overflow:hidden;border-right:2px solid hsl(var(--brand));width:19ch;max-width:100%;
-          animation:frlType 1.9s .5s steps(19) both, frlCaret .8s steps(1) 5 .5s}
-        @keyframes frlType{from{width:0}to{width:19ch}}
+        .frl-typed{white-space:nowrap;overflow:hidden;border-right:2px solid hsl(var(--brand));width:calc(var(--frl-typed-len)*1ch);max-width:100%;
+          animation:frlType 1.9s .5s steps(var(--frl-typed-len)) both, frlCaret .8s steps(1) 5 .5s}
+        @keyframes frlType{from{width:0}to{width:calc(var(--frl-typed-len)*1ch)}}
         @keyframes frlCaret{50%{border-color:transparent}}
         .frl-built{opacity:0;animation:frlPop .5s 2.3s forwards}
         @keyframes frlPop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
         @media (prefers-reduced-motion:no-preference){
           .frl-card-model:hover .frl-edge,.frl-card-model:focus-visible .frl-edge{animation:frlDraw .9s cubic-bezier(.6,0,.2,1) forwards}
-          .frl-card-agent:hover .frl-typed,.frl-card-agent:focus-visible .frl-typed{animation:frlType 1.3s steps(19) both, frlCaret .8s steps(1) 3}
+          .frl-card-agent:hover .frl-typed,.frl-card-agent:focus-visible .frl-typed{animation:frlType 1.3s steps(var(--frl-typed-len)) both, frlCaret .8s steps(1) 3}
           .frl-card-agent:hover .frl-built,.frl-card-agent:focus-visible .frl-built{animation:frlPop .4s 1.3s forwards}
         }
         @media (prefers-reduced-motion:reduce){
           .frl-rise{opacity:1;translate:none;animation:none}
           .frl-edge{stroke-dashoffset:0;animation:none}
-          .frl-typed{width:19ch;border-right-color:transparent;animation:none}
+          .frl-typed{width:calc(var(--frl-typed-len)*1ch);border-right-color:transparent;animation:none}
           .frl-built{opacity:1;animation:none}
         }
       `}</style>
 
       {/* Radix requires a title for the dialog; the visible hero is the heading. */}
-      <DialogTitle className="sr-only">Choose how you want to build</DialogTitle>
+      <DialogTitle className="sr-only">{t('project.landing.dialogTitle')}</DialogTitle>
 
       {/* ambient teal glow + grain, matching the app's welcome surfaces */}
       <div
@@ -85,16 +91,16 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
 
       <div className="relative z-[1] px-6 py-7 sm:px-9 sm:py-9">
         <p className="frl-rise frl-d1 font-mono text-[0.7rem] uppercase tracking-[0.28em] text-brand">
-          Welcome to BESSER
+          {t('project.landing.eyebrow')}
         </p>
         <h1
           className="frl-rise frl-d2 mt-3 font-display text-4xl leading-[1.02] tracking-tight text-foreground sm:text-5xl"
           style={{ textWrap: 'balance' }}
         >
-          How do you want to <em className="text-primary">build</em>?
+          <Trans i18nKey="project.landing.heading" components={{ em: <em className="text-primary" /> }} />
         </h1>
         <p className="frl-rise frl-d3 mt-3 max-w-[46ch] text-muted-foreground">
-          Two ways into the same editor. Choose one to begin — you can switch anytime.
+          {t('project.landing.subtitle')}
         </p>
 
         {/* ---- the two portals ---- */}
@@ -117,14 +123,14 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
               }}
             />
             <span className="ui-kicker relative text-brand">
-              Low-code · Visual
+              {t('project.landing.model.kicker')}
             </span>
             <div aria-hidden className="relative my-4 h-[120px]">
-              <svg className="h-full w-full overflow-visible" viewBox="0 0 300 130" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A UML class diagram">
+              <svg className="h-full w-full overflow-visible" viewBox="0 0 300 130" preserveAspectRatio="xMidYMid meet" role="img" aria-label={t('project.landing.model.illustration')}>
                 <g>
                   <rect className="fill-muted stroke-border" strokeWidth={1.4} x="4" y="20" width="104" height="78" rx="6" />
                   <path className="fill-brand/20" d="M4 26a6 6 0 0 1 6-6h92a6 6 0 0 1 6 6v10H4z" />
-                  <text className="fill-foreground font-mono" style={{ fontSize: 8.5, fontWeight: 600 }} x="16" y="33">Book</text>
+                  <text className="fill-foreground font-mono" style={{ fontSize: 8.5, fontWeight: 600 }} x="16" y="33">{t('project.landing.model.sampleClassA')}</text>
                   <line className="stroke-border" x1="4" y1="52" x2="108" y2="52" />
                   <rect className="fill-muted-foreground/50" x="16" y="60" width="60" height="4" rx="2" />
                   <rect className="fill-muted-foreground/50" x="16" y="72" width="74" height="4" rx="2" />
@@ -133,7 +139,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
                 <g>
                   <rect className="fill-muted stroke-border" strokeWidth={1.4} x="192" y="34" width="104" height="78" rx="6" />
                   <path className="fill-brand/20" d="M192 40a6 6 0 0 1 6-6h92a6 6 0 0 1 6 6v10h-104z" />
-                  <text className="fill-foreground font-mono" style={{ fontSize: 8.5, fontWeight: 600 }} x="204" y="47">Loan</text>
+                  <text className="fill-foreground font-mono" style={{ fontSize: 8.5, fontWeight: 600 }} x="204" y="47">{t('project.landing.model.sampleClassB')}</text>
                   <line className="stroke-border" x1="192" y1="66" x2="296" y2="66" />
                   <rect className="fill-muted-foreground/50" x="204" y="74" width="66" height="4" rx="2" />
                   <rect className="fill-muted-foreground/50" x="204" y="86" width="52" height="4" rx="2" />
@@ -146,13 +152,13 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
                 <text className="fill-primary font-mono" style={{ fontSize: 8 }} x="181" y="68">*</text>
               </svg>
             </div>
-            <h2 className="relative text-2xl font-semibold tracking-tight text-foreground">Model it</h2>
+            <h2 className="relative text-2xl font-semibold tracking-tight text-foreground">{t('project.landing.model.title')}</h2>
             <p className="relative mt-2 max-w-[34ch] text-sm text-muted-foreground">
-              Draw your system precisely — classes, relationships, screens. Deterministic output, exact every run.
+              {t('project.landing.model.description')}
             </p>
             <div className="relative mt-auto flex items-center justify-end gap-3 pt-5">
               <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-primary">
-                Start modelling
+                {t('project.landing.model.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             </div>
@@ -176,7 +182,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
               }}
             />
             <span className="ui-kicker relative text-brand">
-              Agentic · Natural language
+              {t('project.landing.agent.kicker')}
             </span>
             <div aria-hidden className="relative my-4 flex h-[120px] flex-col justify-center gap-3.5">
               <div className="flex min-h-[40px] items-center gap-2.5 rounded-xl border border-border bg-muted px-3.5 py-2.5 font-mono text-[0.8rem] text-foreground">
@@ -184,25 +190,25 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
                   className="size-[7px] shrink-0 rounded-full bg-brand"
                   style={{ boxShadow: '0 0 0 4px hsl(var(--brand)/0.2)' }}
                 />
-                <span className="frl-typed">a hotel booking app</span>
+                <span className="frl-typed">{samplePrompt}</span>
               </div>
               <div className="frl-built flex items-center gap-2">
                 <span className="h-[22px] w-[52px] rounded-md border border-brand/30 bg-brand/15" />
                 <span className="h-[22px] w-[38px] rounded-md border border-brand/30 bg-brand/15" />
                 <span className="h-[22px] w-[64px] rounded-md border border-brand/30 bg-brand/15" />
-                <span className="font-mono text-[0.8rem] text-muted-foreground">→ app</span>
+                <span className="font-mono text-[0.8rem] text-muted-foreground">→ {t('project.landing.agent.sampleResult')}</span>
               </div>
             </div>
-            <h2 className="relative text-2xl font-semibold tracking-tight text-foreground">Describe it</h2>
+            <h2 className="relative text-2xl font-semibold tracking-tight text-foreground">{t('project.landing.agent.title')}</h2>
             <p className="relative mt-2 max-w-[34ch] text-sm text-muted-foreground">
-              Say what you want in plain words. BESSER builds the model and the code — you refine by chatting.
+              {t('project.landing.agent.description')}
             </p>
             <div className="relative mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
               <span className="whitespace-nowrap rounded-full border border-brand/20 bg-accent px-2.5 py-1 font-mono text-[0.68rem] tracking-wide text-primary">
-                Free · hosted model
+                {t('project.landing.agent.badge')}
               </span>
               <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-primary">
-                Start describing
+                {t('project.landing.agent.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             </div>
@@ -249,14 +255,14 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
             >
               <Check className={cn('size-3 text-primary-foreground transition-opacity', remember ? 'opacity-100' : 'opacity-0')} />
             </span>
-            Remember my choice and skip this next time
+            {t('project.landing.remember')}
           </label>
           <button
             type="button"
             onClick={onMoreOptions}
             className="text-sm font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            More options
+            {t('project.landing.moreOptions')}
           </button>
         </div>
       </div>

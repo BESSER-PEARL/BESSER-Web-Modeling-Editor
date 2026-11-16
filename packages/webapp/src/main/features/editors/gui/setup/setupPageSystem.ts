@@ -614,6 +614,12 @@ function createAndAppendPagesPanel(editor: Editor) {
         </svg>
         <span>${i18n.t('editors.gui.pages.addPage')}</span>
       </button>
+      <button id="gjs-pages-map-btn" class="gjs-pages-map-btn" title="${i18n.t('editors.gui.navigationMap.open')}" aria-label="${i18n.t('editors.gui.navigationMap.open')}">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;">
+          <rect x="3" y="3" width="6" height="6" rx="1" /><rect x="15" y="3" width="6" height="6" rx="1" /><rect x="9" y="15" width="6" height="6" rx="1" /><path d="M9 6h6M6 9v3a3 3 0 0 0 3 3M18 9v3a3 3 0 0 1-3 3" />
+        </svg>
+        <span>${i18n.t('editors.gui.navigationMap.button')}</span>
+      </button>
     </div>
     <div id="gjs-pages-list" class="gjs-pages-list"></div>
   `;
@@ -623,6 +629,10 @@ function createAndAppendPagesPanel(editor: Editor) {
   // Setup event listeners
   document.getElementById('gjs-add-page-btn')?.addEventListener('click', () => {
     editor.runCommand('add-page');
+  });
+
+  document.getElementById('gjs-pages-map-btn')?.addEventListener('click', () => {
+    editor.runCommand('open-navigation-map');
   });
   
   document.getElementById('gjs-page-search')?.addEventListener('input', (e) => {
@@ -1160,8 +1170,31 @@ function addPagesPanelCSS() {
     }
     
     .gjs-pages-actions {
+      display: flex;
+      gap: 6px;
       padding: 8px 12px;
       border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .gjs-pages-map-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 10px;
+      background: transparent;
+      border: 1px solid hsl(var(--border));
+      border-radius: 4px;
+      color: hsl(var(--foreground));
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .gjs-pages-map-btn:hover {
+      border-color: hsl(var(--brand));
+      color: hsl(var(--brand));
     }
     
     .gjs-pages-add-btn {

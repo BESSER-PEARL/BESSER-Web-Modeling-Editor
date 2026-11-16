@@ -1,12 +1,13 @@
 /**
  * What the browser keeps for the modeling assistant: drawer UI state and
- * one-shot hand-off flags (tab-scoped), the persisted conversation, the
+ * one-shot hand-off flags (tab-scoped), each project's conversation, the
  * per-tab session id, the per-browser user id and the rate limiter's history.
  *
  * Functions that end in a "best effort" comment never throw; the identity and
  * rate-limiter ones throw like `Storage` does, because their callers decide.
  */
 import {
+  localStorageAssistantConversationPrefix,
   localStorageAssistantRateLimiterProbe,
   localStorageAssistantRateLimiterState,
   localStorageAssistantUserId,
@@ -93,30 +94,111 @@ export function clearPendingAssistantPrompt(): void {
   }
 }
 
-/* ---- Conversation (sessionStorage, best effort) ---- */
+/* ---- Conversation per project (localStorage, best effort) ---- */
 
-/** The serialized conversation, or null when none or storage is unavailable. */
-export function readStoredConversation(): string | null {
+/** Conversations kept; writing one more drops the least recently saved. */
+export const MAX_STORED_CONVERSATIONS = 20;
+/** All stored conversations together, in UTF-16 code units (about 2 MB): the
+ * projects share the origin's quota, so conversations stay well under it. */
+export const MAX_STORED_CONVERSATION_CHARS = 1_000_000;
+
+/** The key of a project's conversation; a `storage` event with it means another tab changed it. */
+export const conversationStorageKey = (projectId: string): string =>
+  `${localStorageAssistantConversationPrefix}${projectId}`;
+
+/** The project's serialized conversation, or null when none or storage is unavailable. */
+export function readStoredConversation(projectId: string): string | null {
   try {
-    return sessionStorage.getItem(sessionStorageAssistantConversation);
+    return localStorage.getItem(conversationStorageKey(projectId));
   } catch {
     return null;
   }
 }
 
-export function writeStoredConversation(payload: string): void {
+function storedConversationKeys(): string[] {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(localStorageAssistantConversationPrefix)) keys.push(key);
+  }
+  return keys;
+}
+
+const savedAtOf = (raw: string): number => {
   try {
-    sessionStorage.setItem(sessionStorageAssistantConversation, payload);
+    const savedAt = (JSON.parse(raw) as { savedAt?: unknown } | null)?.savedAt;
+    return typeof savedAt === 'number' ? savedAt : 0;
   } catch {
-    // quota exceeded or unavailable: keep the last good copy
+    return 0;
+  }
+};
+
+/** Drop the least recently saved conversations (never `keep`) until one of `incoming` chars fits both limits. */
+function makeRoom(keep: string, incoming: number): void {
+  const others = storedConversationKeys()
+    .filter((key) => key !== keep)
+    .map((key) => ({ key, raw: localStorage.getItem(key) ?? '' }));
+  let total = incoming + others.reduce((sum, o) => sum + o.key.length + o.raw.length, 0);
+  let count = others.length + 1;
+  if (total <= MAX_STORED_CONVERSATION_CHARS && count <= MAX_STORED_CONVERSATIONS) return;
+  const oldestFirst = others
+    .map((o) => ({ ...o, savedAt: savedAtOf(o.raw) }))
+    .sort((a, b) => a.savedAt - b.savedAt);
+  for (const o of oldestFirst) {
+    if (total <= MAX_STORED_CONVERSATION_CHARS && count <= MAX_STORED_CONVERSATIONS) break;
+    localStorage.removeItem(o.key);
+    total -= o.key.length + o.raw.length;
+    count -= 1;
   }
 }
 
-export function clearStoredConversation(): void {
+export function writeStoredConversation(projectId: string, payload: string): void {
+  const key = conversationStorageKey(projectId);
   try {
-    sessionStorage.removeItem(sessionStorageAssistantConversation);
+    makeRoom(key, key.length + payload.length);
+    localStorage.setItem(key, payload);
+  } catch {
+    // Full anyway (the projects fill the quota): drop the other conversations and try once more.
+    try {
+      clearStoredConversations(key);
+      localStorage.setItem(key, payload);
+    } catch {
+      // keep the last good copy
+    }
+  }
+}
+
+export function clearStoredConversation(projectId: string): void {
+  try {
+    localStorage.removeItem(conversationStorageKey(projectId));
   } catch {
     // best effort
+  }
+}
+
+/**
+ * Remove every stored conversation but the one under `exceptKey`, to free space
+ * when storage is full. A project's text copy (`assistantConversation`) still
+ * restores its chat.
+ */
+export function clearStoredConversations(exceptKey?: string): void {
+  try {
+    storedConversationKeys()
+      .filter((key) => key !== exceptKey)
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // best effort
+  }
+}
+
+/** The conversation this tab kept before v8.9.3, when it was per tab, once: reading removes it. */
+export function takeLegacyTabConversation(): string | null {
+  try {
+    const raw = sessionStorage.getItem(sessionStorageAssistantConversation);
+    if (raw !== null) sessionStorage.removeItem(sessionStorageAssistantConversation);
+    return raw;
+  } catch {
+    return null;
   }
 }
 

@@ -51,8 +51,8 @@ packages via npm workspaces.
 
 .. note::
    There is **no ``test`` script at the workspace root**. Tests live in the
-   webapp package — see below, or run them with
-   ``npm run test --workspace=webapp``.
+   webapp and server packages — see below, or run them with
+   ``npm run test --workspace=webapp`` and ``npm run test --workspace=server``.
 
 Package-specific scripts
 ------------------------

@@ -120,7 +120,7 @@ export const LinkRepositoryDialog: React.FC<LinkRepositoryDialogProps> = ({ open
           </div>
         )}
         {choice ? (
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button variant="ghost" onClick={() => setChoice(null)} disabled={isLinking}>
               {t('common.cancel')}
             </Button>

@@ -182,7 +182,7 @@ def step_cookie(context):
 
 @when('I choose the "{label}" natural-language option')
 def step_choose_agentic(context, label):
-    # On the "How do you want to build?" modal, pick the agentic /
+    # On the "How do you want to start?" modal, pick the agentic /
     # natural-language card. Clicking its heading opens the create-project form.
     context.page.get_by_text(label, exact=False).first.click(timeout=15_000)
     context.page.wait_for_timeout(1000)

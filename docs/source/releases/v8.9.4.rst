@@ -1,0 +1,49 @@
+Version 8.9.4
+=============
+
+This patch release opens browser projects saved by older editors again, stops
+filling in a project description nobody wrote, tells the assistant why a
+generation was declined, and settles the assistant's auto-fix line when the
+repair brings back no model.
+It goes with BESSER v8.9.4 and Modeling Agent v8.1.2.
+
+Fixes
+-----
+
+* **Old browser projects open again.** A project stored in the browser before
+  the quantum circuit and BPMN diagram types was refused on load, although
+  the editor adds both types right after the check. It now opens with every
+  diagram type.
+* **The project description is a hint, not a value.** The create-project
+  forms pre-filled "Modern workspace project for UML, GUI and quantum
+  modeling." as the description and used it again when the field was cleared,
+  so it ended up in GitHub repository descriptions and READMEs. The field now
+  starts empty with a translated hint, and an empty description stays empty.
+  A project saved with that text keeps it in the browser, but it is no longer
+  sent to the backend or to GitHub.
+* **The assistant knows why a generation was declined.** When you decline a
+  generation over validation warnings, the editor now tells the assistant the
+  reason (``warnings_declined``) instead of only that it failed.
+* **The auto-fix line no longer keeps spinning.** When the assistant answered
+  the editor's repair request with a message or an error instead of a model,
+  or sent a model the editor could not apply, "Validation found N issue(s) in
+  the diagram — fixing them now…" never settled. It is now replaced with "The
+  assistant could not fix N validation issue(s) automatically:" and the
+  issues. Only replies to the repair's own turn settle it, and a message you
+  send during a repair settles it to the plain list of issues
+  (`#276 <https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/pull/276>`_).
+
+Under the hood
+--------------
+
+* The themed diagram shapes declare their colour props, and the assistant's
+  modification types include the class and attribute flags the agent sends.
+  The type check reports 83 errors instead of 350, and CI's baseline is 83.
+
+Upgrade notes
+-------------
+
+Deploy with BESSER v8.9.4 and Modeling Agent v8.1.2. No backend or protocol
+change is needed for these fixes. With Modeling Agent v8.1.2 a failed repair
+replies "The diagram is unchanged…" and the editor lists the open issues, so
+they appear once.

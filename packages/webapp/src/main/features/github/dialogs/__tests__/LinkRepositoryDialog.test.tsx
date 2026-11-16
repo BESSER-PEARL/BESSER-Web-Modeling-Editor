@@ -52,6 +52,12 @@ describe('LinkRepositoryDialog — a repository that holds a model', () => {
     expect(sync.pullInto).not.toHaveBeenCalled();
   });
 
+  it('lets its three buttons wrap, so a longer label stays inside the dialog', () => {
+    openAndPick();
+    const row = screen.getByRole('button', { name: /Keep my model and link/ }).parentElement!;
+    expect(row).toHaveClass('sm:flex-wrap');
+  });
+
   it('links nothing on Cancel, and goes back to the repositories', async () => {
     openAndPick();
     await act(async () => {

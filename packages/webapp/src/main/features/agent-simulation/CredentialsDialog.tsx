@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronRight, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SecretInput } from '@/components/ui/secret-input';
 import {
   Dialog,
   DialogContent,
@@ -139,14 +140,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                   <label htmlFor="sim-cred-openai" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.openAiLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-openai"
                     name="sim-cred-openai"
-                    type="password"
                     value={openAiKey}
                     onChange={(e) => setOpenAiKey(e.target.value)}
                     placeholder={t('agentSimulation.credentials.openAiPlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>
@@ -156,14 +156,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                     {t('agentSimulation.credentials.huggingFaceLabel')}{' '}
                     <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-huggingface"
                     name="sim-cred-huggingface"
-                    type="password"
                     value={huggingFaceToken}
                     onChange={(e) => setHuggingFaceToken(e.target.value)}
                     placeholder={t('agentSimulation.credentials.huggingFacePlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>
@@ -172,14 +171,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                   <label htmlFor="sim-cred-replicate" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.replicateLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
-                  <input
+                  <SecretInput
                     id="sim-cred-replicate"
                     name="sim-cred-replicate"
-                    type="password"
                     value={replicateKey}
                     onChange={(e) => setReplicateKey(e.target.value)}
                     placeholder={t('agentSimulation.credentials.replicatePlaceholder')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-auto rounded-md py-1.5 placeholder:text-muted-foreground/60"
                     autoComplete="off"
                   />
                 </div>

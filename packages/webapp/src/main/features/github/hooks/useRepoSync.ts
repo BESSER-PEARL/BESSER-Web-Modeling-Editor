@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAppDispatch } from '../../../app/store/hooks';
+import { setProjectAttribution } from '../../../app/store/workspaceSlice';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
@@ -25,6 +26,7 @@ import {
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
+import { parseRecords } from '../../../shared/services/github/modelAttribution';
 import { pullRepoIntoProject } from '../../../shared/services/github/pullRepoIntoProject';
 import {
   getRepoSyncSnapshot,
@@ -177,7 +179,9 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
     async (target: ProjectGitHubLink, intoProjectId: string): Promise<BesserProject> => {
       if (!githubSession) throw new Error('Connect GitHub first.');
       const imported = await pullRepoIntoProject(githubSession, target, intoProjectId);
-      dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      if (imported.has_code !== false) {
+        dispatch(setLastRunForProject({ projectId: intoProjectId, runId: imported.run_id, at: Date.now() }));
+      }
       await loadProject(intoProjectId);
       return ProjectStorageRepository.loadProject(intoProjectId) as BesserProject;
     },
@@ -214,6 +218,15 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       } else if (result.status === 'pushed') {
         markSynced(link, project, result.commit_sha);
         forgetLegacyFile(projectId);
+        const attribution = Object.fromEntries(parseRecords(result.attribution));
+        if (Object.keys(attribution).length) {
+          // What this save credited, so hovering what was just saved says who added it.
+          ProjectStorageRepository.withoutNotify(() => {
+            const latest = ProjectStorageRepository.loadProject(projectId);
+            if (latest) ProjectStorageRepository.saveProject({ ...latest, attribution });
+          });
+          dispatch(setProjectAttribution({ projectId, attribution }));
+        }
       } else if (result.status === 'conflict' && result.conflict_branch) {
         setPendingGitHubChange(projectId, {
           kind: 'conflict', branch: result.conflict_branch, title: commitMessage, createdAt: new Date().toISOString(),
@@ -222,7 +235,7 @@ export function useRepoSync({ checkRemote = true }: { checkRemote?: boolean } = 
       await refresh();
       return result;
     }, (result) => ({ status: result.status, warnings_count: result.warnings?.length ?? 0 })),
-    [link, projectId, githubSession, pullInto, markSynced, refresh],
+    [link, projectId, githubSession, pullInto, markSynced, refresh, dispatch],
   );
 
   /** Open (or find) the pull request of the pending change; returns its URL. `title` when the change has none. */

@@ -45,9 +45,10 @@ import {
   setPendingGitHubChange,
   setProjectGitHubLink,
   type ProjectGitHubLink,
+  modelContentFingerprint,
 } from '../../../shared/services/storage/projectGitHubLink';
 import { storeRepoModelAsProject } from '../../../shared/services/project-import/projectImport';
-import { readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
+import { readRunSeed, readRunSeedModel, writeProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import {
   clearSpecDrivenPushIntent,
@@ -143,12 +144,26 @@ export function describePushError(error: unknown): { code: SpecDrivenPushErrorCo
 }
 
 /**
- * Whether the run's model may replace the project's: yes while the project
- * still holds the model run `runId` started from, else only if the user says so.
+ * Whether the run's model may replace the project's: yes while the project still
+ * holds the model run `runId` started from. The editor rewrites a pulled model,
+ * so the exact fingerprint can differ with nothing edited; that also counts when
+ * the link has settled on this model, no save moved it since the run started and
+ * its content is the same. Otherwise only if the user says so.
  */
 export async function mayReplaceWithRunModel(runId: string, project: BesserProject): Promise<boolean> {
   const seed = readRunSeedModel(runId);
   if (seed && seed === modelFingerprint(project)) return true;
+  const link = getProjectGitHubLink(project.id);
+  const started = readRunSeed(runId);
+  if (
+    link?.syncedModel
+    && !link.baselinePending
+    && link.syncedModel === modelFingerprint(project)
+    && started.baseCommitSha === link.baseCommitSha
+    && started.content === modelContentFingerprint(project)
+  ) {
+    return true;
+  }
   return globalConfirm({
     title: i18n.t('github.push.modelChoice.title', { defaultValue: "Keep your model or take the run's?" }),
     description: i18n.t('github.push.modelChoice.description', {
@@ -336,6 +351,10 @@ export function useSpecDrivenGithubPush(
           owner: res.owner,
           repo: res.repo_name,
           branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
+          // A pull request or a conflict leaves the branch as it was.
+          ...(res.status === 'pushed' || res.status === 'merged'
+            ? { hasCode: true, recap: res.recap ?? undefined }
+            : {}),
         };
         // The run changed the model; it replaces the canvas only if the canvas
         // still holds the model the run started from, or the user agrees.

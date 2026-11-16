@@ -70,9 +70,9 @@ describe('writeLlmKey ↔ free-tier flag', () => {
 describe('provider lists', () => {
   it('knows every provider once, and a key carries all but the server-paid tiers', () => {
     expect(LLM_PROVIDERS).toEqual([
-      'anthropic', 'openai', 'mistral', 'nebius', 'pia', 'local', 'free', 'sponsored',
+      'anthropic', 'openai', 'mistral', 'nebius', 'pia', 'gateway', 'local', 'free', 'sponsored',
     ]);
-    expect(KEY_PROVIDERS).toEqual(['anthropic', 'openai', 'mistral', 'nebius', 'pia', 'local']);
+    expect(KEY_PROVIDERS).toEqual(['anthropic', 'openai', 'mistral', 'nebius', 'pia', 'gateway', 'local']);
     expect(isLlmProviderId('sponsored')).toBe(true);
     expect(isLlmProviderId('gemini')).toBe(false);
     expect(isKeyProvider('free')).toBe(false);

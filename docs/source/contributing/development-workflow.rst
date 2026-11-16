@@ -56,6 +56,9 @@ backend at http://localhost:9000/besser_api in development mode.
    * - ``npm run test --workspace=webapp``
      - Runs unit tests with Vitest
      - webapp
+   * - ``npm run test --workspace=server``
+     - Runs the security-header tests with Vitest
+     - server
    * - ``npm run test:e2e --workspace=webapp``
      - Runs end-to-end tests with Playwright
      - webapp

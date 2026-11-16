@@ -3454,6 +3454,66 @@
         }
       }
     },
+    "/besser_api/spec-driven/import-generated-code": {
+      "post": {
+        "tags": [
+          "spec-driven"
+        ],
+        "summary": "Import Generated Code Run",
+        "description": "Store the output of a deterministic generator as a run, to push it to GitHub.\n\n``/generate-output`` keeps nothing on the server, so its output (a ZIP or\na single file, such as the SQL generator's ``.sql``) has no run for\n``/spec-driven/push-to-github`` to push. The editor uploads the file it\nreceived; the returned ``run_id`` is then pushed like any other run.\nOnly a session signed in to GitHub, the one thing the run is for, may\nstore one.",
+        "operationId": "import_generated_code_run_besser_api_spec_driven_import_generated_code_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportGeneratedCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/spec-driven/import-github-run": {
       "post": {
         "tags": [
@@ -4123,6 +4183,20 @@
           "buml_file"
         ],
         "title": "Body_get_svg_besser_api_get_svg_post"
+      },
+      "Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_generated_code_run_besser_api_spec_driven_import_generated_code_post"
       },
       "Body_import_owl_besser_api_kg_import_owl_post": {
         "properties": {
@@ -4893,6 +4967,22 @@
             "type": "string",
             "title": "Author"
           },
+          "author_login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Login"
+          },
+          "is_merge": {
+            "type": "boolean",
+            "title": "Is Merge",
+            "default": false
+          },
           "date": {
             "type": "string",
             "title": "Date"
@@ -4918,6 +5008,8 @@
           "sha",
           "message",
           "author",
+          "author_login",
+          "is_merge",
           "date",
           "html_url",
           "origin"
@@ -5284,6 +5376,20 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ImportGeneratedCodeResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id"
+        ],
+        "title": "ImportGeneratedCodeResponse",
+        "description": "Response of ``POST /besser_api/spec-driven/import-generated-code``."
+      },
       "ImportGitHubRunRequest": {
         "properties": {
           "owner": {
@@ -5435,6 +5541,21 @@
             "type": "boolean",
             "title": "Ai Reading Offered",
             "default": false
+          },
+          "has_code": {
+            "type": "boolean",
+            "title": "Has Code",
+            "default": false
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepoRecap"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5450,7 +5571,9 @@
           "analysis",
           "proposed_diagram",
           "message",
-          "ai_reading_offered"
+          "ai_reading_offered",
+          "has_code",
+          "recap"
         ],
         "title": "ImportGitHubRunResponse",
         "description": "Response of ``POST /besser_api/spec-driven/import-github-run``."
@@ -6289,6 +6412,22 @@
             "type": "string",
             "title": "Author"
           },
+          "author_login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Login"
+          },
+          "is_merge": {
+            "type": "boolean",
+            "title": "Is Merge",
+            "default": false
+          },
           "date": {
             "type": "string",
             "title": "Date"
@@ -6321,6 +6460,8 @@
           "sha",
           "message",
           "author",
+          "author_login",
+          "is_merge",
           "date",
           "html_url",
           "origin",
@@ -6712,6 +6853,16 @@
               }
             ],
             "title": "Project Export"
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepoRecap"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6730,10 +6881,93 @@
           "pull_request_branch",
           "base_run_id",
           "warnings",
-          "project_export"
+          "project_export",
+          "recap"
         ],
         "title": "PushSmartToGitHubResponse",
         "description": "Response of ``POST /besser_api/spec-driven/push-to-github``."
+      },
+      "RecapCommit": {
+        "properties": {
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sha",
+          "message",
+          "author"
+        ],
+        "title": "RecapCommit",
+        "description": "A commit the repo gained after the last run."
+      },
+      "RecapOpenItem": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "rolled_back",
+              "missing",
+              "not_checked",
+              "left_out"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "RecapOpenItem",
+        "description": "Something the last run left open."
+      },
+      "RecapRun": {
+        "properties": {
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "create",
+              "modify"
+            ],
+            "title": "Mode"
+          },
+          "file_count": {
+            "type": "integer",
+            "title": "File Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request",
+          "date",
+          "mode",
+          "file_count"
+        ],
+        "title": "RecapRun",
+        "description": "One earlier run on the app, as ``run_recap.build_recap`` reads it."
       },
       "RenamedElementResponse": {
         "properties": {
@@ -6753,6 +6987,49 @@
         ],
         "title": "RenamedElementResponse",
         "description": "A class (\"Room\") or attribute (\"Room.floor\") kept under a new name."
+      },
+      "RepoRecap": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RecapRun"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "open_items": {
+            "items": {
+              "$ref": "#/components/schemas/RecapOpenItem"
+            },
+            "type": "array",
+            "title": "Open Items"
+          },
+          "open_item_count": {
+            "type": "integer",
+            "title": "Open Item Count"
+          },
+          "commits_since_run": {
+            "items": {
+              "$ref": "#/components/schemas/RecapCommit"
+            },
+            "type": "array",
+            "title": "Commits Since Run"
+          },
+          "commit_count": {
+            "type": "integer",
+            "title": "Commit Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "open_items",
+          "open_item_count",
+          "commits_since_run",
+          "commit_count"
+        ],
+        "title": "RepoRecap",
+        "description": "What was done on a repo's app and where it stands (``run_recap.build_recap``).\n\nThe editor's chat shows it; every value is text from the repository."
       },
       "RepoSummaryResponse": {
         "properties": {
@@ -6965,6 +7242,17 @@
             "type": "array",
             "title": "Warnings",
             "default": []
+          },
+          "attribution": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Attribution",
+            "default": {}
           }
         },
         "type": "object",
@@ -6974,7 +7262,8 @@
           "message",
           "status",
           "conflict_branch",
-          "warnings"
+          "warnings",
+          "attribution"
         ],
         "title": "SaveProjectResponse",
         "description": "Response for project save."
@@ -7375,7 +7664,8 @@
               "nebius",
               "free",
               "sponsored",
-              "pia"
+              "pia",
+              "gateway"
             ],
             "title": "Provider",
             "default": "anthropic"

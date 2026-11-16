@@ -70,6 +70,14 @@ const getConnectionLabelKey = (status: ConnectionStatus): string => {
   }
 };
 
+/** The chips of the empty bubble: modeling requests only, since the bubble is the
+ * in-editor modeling assistant (BESSER-PEARL/BESSER#747). */
+export const WELCOME_SUGGESTION_KEYS = [
+  'assistant.welcome.suggestions.library',
+  'assistant.welcome.suggestions.payment',
+  'assistant.welcome.suggestions.stateMachine',
+] as const;
+
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
 /* ------------------------------------------------------------------ */
@@ -360,11 +368,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 </div>
                 {/* Same chip style as the drawer's starter prompts. */}
                 <div className="flex max-w-sm flex-wrap justify-center gap-2">
-                  {[
-                    t('assistant.welcome.suggestions.library'),
-                    t('assistant.welcome.suggestions.payment'),
-                    t('assistant.welcome.suggestions.django'),
-                  ].map((suggestion) => (
+                  {WELCOME_SUGGESTION_KEYS.map((key) => t(key)).map((suggestion) => (
                     <button
                       key={suggestion}
                       type="button"

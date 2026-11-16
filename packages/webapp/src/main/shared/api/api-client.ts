@@ -175,6 +175,9 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && carriesGitHubSession(fetchOptions.headers)) {
+          window.dispatchEvent(new Event(GITHUB_SESSION_REJECTED_EVENT));
+        }
         throw await errorFromResponse(response, 'Upload failed');
       }
 

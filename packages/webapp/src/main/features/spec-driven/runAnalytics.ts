@@ -4,6 +4,7 @@ import {
   type SpecRunProperties,
   type SpecRunStage,
   type SpecRunTier,
+  type SpecRunStopReason,
 } from '../../shared/services/analytics/events';
 import type { SpecDrivenConfig } from '../../shared/services/specDrivenConfig';
 import type { SpecDrivenRunResult } from './hooks/useSpecDrivenTrigger';
@@ -19,7 +20,7 @@ export interface RunFinishDetails {
   stage?: SpecRunStage;
   error?: unknown;
   /** Set by the server's CANCELLED event: `abandoned` = stopped after the client disconnected. */
-  cancelReason?: 'user' | 'abandoned';
+  cancelReason?: 'user' | 'abandoned' | SpecRunStopReason;
   eventsReceived?: number;
   /** From the `done` event. */
   stats?: { fileCount?: number; changedFileCount?: number; tokensUsed?: number; isZip?: boolean };

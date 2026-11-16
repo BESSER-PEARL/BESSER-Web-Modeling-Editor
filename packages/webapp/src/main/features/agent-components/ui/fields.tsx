@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { SecretInput } from '@/components/ui/secret-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,9 +26,11 @@ export function Field({ id, label, description, children }: FieldBaseProps & { c
   );
 }
 
-export function TextField({ id, label, description, value, onChange, placeholder, multiline, inputMode }: FieldBaseProps & {
+export function TextField({ id, label, description, value, onChange, placeholder, multiline, inputMode, secret }: FieldBaseProps & {
   value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  /** Mask the value (passwords, API keys, tokens). */
+  secret?: boolean;
 }) {
   return (
     <Field id={id} label={label} description={description}>
@@ -39,6 +42,17 @@ export function TextField({ id, label, description, value, onChange, placeholder
           placeholder={placeholder}
           rows={3}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+        />
+      ) : secret ? (
+        <SecretInput
+          id={id}
+          name={id}
+          autoComplete="new-password"
+          spellCheck={false}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-8 text-sm"
         />
       ) : (
         <Input

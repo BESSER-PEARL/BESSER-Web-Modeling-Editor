@@ -78,6 +78,18 @@ describe('Dialog', () => {
     expect(cls).not.toContain('overflow-y-auto');
   });
 
+  it('bounds its column, so nowrap content truncates instead of scrolling the dialog sideways', () => {
+    // Live: a long repository description made "Link a repository" 1027px wide inside a 574px dialog.
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Link</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+    expect(screen.getByRole('dialog').className).toContain('grid-cols-[minmax(0,1fr)]');
+  });
+
   it('ConfirmDialog footer uses gap, not space-x', () => {
     render(<ConfirmDialog open title="Delete?" description="Gone for good." onConfirm={() => {}} onCancel={() => {}} />);
     const footer = screen.getByRole('button', { name: 'Confirm' }).parentElement!;
