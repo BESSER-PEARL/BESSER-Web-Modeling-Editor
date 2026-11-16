@@ -33,44 +33,28 @@ export interface LastRunRecord {
 export const MAX_RUN_REQUEST_LENGTH = 4000;
 
 const ORIGINAL_REQUEST_HEADING = "## The user's original request, verbatim";
-
-/** Paragraphs the assistant adds to frame the user's words; not the user's. */
-const FRAMING_PARAGRAPH = /^(## |This is the authority\b|This later request takes precedence\b)/;
+const FOLLOW_UP_HEADING = '## Subsequent user request, verbatim';
 
 /**
- * The user's own words in a run's instructions. The assistant frames them as
- * "## Assistant's notes ...", then "## The user's original request, verbatim"
- * with the original description and any "## Subsequent user request,
- * verbatim" sections it appended. The notes, that heading and its one framing
- * sentence are dropped, so what is kept is what the assistant remembers as the
- * application's request. Cut to MAX_RUN_REQUEST_LENGTH.
+ * The user's own words in a run's instructions, or null when the assistant
+ * framed none. It frames them as "## Assistant's notes ...", then the original
+ * request after one framing sentence, then any "## Subsequent user request,
+ * verbatim" sections. Kept are the original request and those sections, as
+ * the assistant remembers them; its notes and any other section it adds are
+ * dropped. The assistant decides what is content-free and never frames such
+ * a follow-up as verbatim.
  */
-export function runRequestFromInstructions(instructions: string): string {
+export function runRequestFromInstructions(instructions: string): string | null {
   const text = instructions.trim();
   const start = text.startsWith("## Assistant's notes") ? text.indexOf(ORIGINAL_REQUEST_HEADING) : -1;
-  if (start < 0) return text.slice(0, MAX_RUN_REQUEST_LENGTH);
-  const [first, ...rest] = text.slice(start + ORIGINAL_REQUEST_HEADING.length).trim().split(/\n\s*\n/);
-  const body = FRAMING_PARAGRAPH.test(first) ? rest : [first, ...rest];
-  return body.join('\n\n').trim().slice(0, MAX_RUN_REQUEST_LENGTH);
-}
-
-/** Words that ask for a run without describing anything ("regenerate with fixes", "try again"). */
-const CONTENT_FREE_WORDS = new Set([
-  'a', 'again', 'all', 'an', 'and', 'anyway', 'app', 'application', 'build', 'code', 'continue', 'current',
-  'do', 'fix', 'fixed', 'fixes', 'for', 'generate', 'generation', 'go', 'it', 'model', 'my', 'now', 'ok',
-  'okay', 'one', 'please', 'rebuild', 'redo', 'regenerate', 'rerun', 'restart', 'retry', 'run', 'same',
-  'start', 'that', 'the', 'this', 'time', 'to', 'try', 'with', 'yes',
-]);
-
-/** True when the user's words in `request` describe nothing about the application. */
-export function isContentFreeRequest(request: string): boolean {
-  const words = request
-    .split(/\n\s*\n/)
-    .filter((paragraph) => !FRAMING_PARAGRAPH.test(paragraph.trim()))
-    .join(' ')
-    .toLowerCase()
-    .match(/[\p{L}\p{N}]+/gu) ?? [];
-  return words.every((word) => CONTENT_FREE_WORDS.has(word));
+  if (start < 0) return null;
+  const [original, ...sections] = text
+    .slice(start + ORIGINAL_REQUEST_HEADING.length)
+    .split(/\n(?=## Subsequent user request\b)/);
+  const paragraphs = original.trim().split(/\n\s*\n/);
+  if (/^This is the authority\b/.test(paragraphs[0] ?? '')) paragraphs.shift();
+  const followUps = sections.filter((section) => section.startsWith(FOLLOW_UP_HEADING)).map((section) => section.trim());
+  return [paragraphs.join('\n\n').trim(), ...followUps].filter(Boolean).join('\n\n') || null;
 }
 
 const runRequestKey = (projectId: string): string => `${localStorageSpecDrivenRunRequestPrefix}${projectId}`;
@@ -88,12 +72,12 @@ export function readProjectRunRequest(projectId: string): string | null {
 
 /**
  * Remember the request a run is started with, as the user's words (see
- * `runRequestFromInstructions`), a pasted key removed. Instructions that
- * describe nothing leave the previous request in place.
+ * `runRequestFromInstructions`): a pasted key removed, then cut to
+ * MAX_RUN_REQUEST_LENGTH. Instructions without them keep the previous request.
  */
 export function recordProjectRunRequest(projectId: string, instructions: string): void {
   const request = runRequestFromInstructions(instructions);
-  if (!projectId || isContentFreeRequest(request)) return;
+  if (!projectId || !request) return;
   try {
     window.localStorage.setItem(runRequestKey(projectId), llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH));
   } catch {
