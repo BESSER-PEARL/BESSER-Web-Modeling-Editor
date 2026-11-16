@@ -264,6 +264,32 @@ describe('retention of generation runs', () => {
   });
 });
 
+describe('retention of Spec-Driven runs', () => {
+  it('counts the runs of one deterministic generator against one cap, whatever LLM served each', () => {
+    const trace: TraceFile = {
+      ...emptyTraceFile('p'),
+      tools: [{ id: 'web', type: 'CodeGenerator', name: 'web_app', timestamp: at(0) }],
+      artifacts: [{ id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', timestamp: at(0) }],
+    };
+    const total = KEPT_GENERATION_RECORDS_PER_GENERATOR + 5;
+    for (let run = 0; run < total; run += 1) {
+      trace.tools.push({ id: `llm${run}`, type: 'LLM', name: `model-${run}`, timestamp: at(run) });
+      trace.artifacts.push({ id: `f${run}`, type: 'CodeArtifact', name: 'app.py', path: 'app.py', contentHash: `h${run}`, content: 'x'.repeat(10), timestamp: at(run) });
+      trace.operations.push({ id: specDrivenOperationId(`r${run}`), type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: at(run), performedBy: [],
+        toolCalls: [
+          { id: `g${run}`, toolId: 'web', sequenceNumber: 0, status: 'SUCCEEDED', startedAt: at(run), logs: [] },
+          { id: `l${run}`, toolId: `llm${run}`, sequenceNumber: 1, status: 'SUCCEEDED', startedAt: at(run), logs: [] },
+        ],
+        reads: ['book'], writes: [`f${run}`] });
+      trace.traceLinks.push({ id: `k${run}`, sourceId: 'book', targetId: `f${run}`, operationId: specDrivenOperationId(`r${run}`), timestamp: at(run), evidence: [] });
+    }
+    pruneOldGenerations(trace);
+    expect(trace.operations).toHaveLength(KEPT_GENERATION_RECORDS_PER_GENERATOR);
+    expect(trace.traceLinks).toHaveLength(KEPT_GENERATIONS_PER_GENERATOR);
+    expect(trace.tools.map((t) => t.name)).not.toContain('model-0'); // the LLM only a removed run used goes with it
+  });
+});
+
 describe('Spec-Driven runs', () => {
   const summary = {
     runId: 'r1', status: 'SUCCEEDED' as const, startedAt: at(0), endedAt: at(30), llm: { model: 'gpt-x', provider: 'openai' },

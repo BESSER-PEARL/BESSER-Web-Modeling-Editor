@@ -730,12 +730,20 @@ function dropUnusedActorsAndTools(trace: TraceFile, replaced: TraceOperation[]):
   trace.actors = trace.actors.filter((a) => usedActors.has(a.id) || !formerActors.has(a.id));
 }
 
-/** The generation runs of `trace`, by generator (the tools their calls invoked), newest first. */
+/**
+ * The generation runs of `trace`, by generator, newest first. A generator is the set of tools a run's calls invoked,
+ * except for a Spec-Driven run: the LLM serving it changes from run to run (the user's model, a fallback), so its
+ * runs are grouped by the deterministic generator they started from alone, and all count against one cap.
+ */
 function generationRunsByGenerator(trace: TraceFile): TraceOperation[][] {
+  const codeGenerators = new Set(trace.tools.filter((t) => t.type === 'CodeGenerator').map((t) => t.id));
   const runsByGenerator = new Map<string, TraceOperation[]>();
   for (const operation of trace.operations) {
     if (operation.type !== 'CodeGeneration') continue;
-    const generator = toolIdsOf(operation).join(',');
+    const tools = toolIdsOf(operation);
+    const generator = operation.id.startsWith(specDrivenOperationId(''))
+      ? specDrivenOperationId(tools.filter((id) => codeGenerators.has(id)).join(','))
+      : tools.join(',');
     runsByGenerator.set(generator, [...(runsByGenerator.get(generator) ?? []), operation]);
   }
   const runs = [...runsByGenerator.values()];
@@ -744,7 +752,8 @@ function generationRunsByGenerator(trace: TraceFile): TraceOperation[][] {
 }
 
 /**
- * Bound what generation runs keep, per generator (the tools a run called):
+ * Bound what generation runs keep, per generator (the tools a run called; a Spec-Driven run's deterministic
+ * generator, whatever LLM served it):
  *
  * 1. the newest `keep` runs ({@link KEPT_GENERATIONS_PER_GENERATOR}) keep everything: their trace links, the line
  *    ranges they link, and their files (whose content {@link pruneStoredContents} bounds per path);

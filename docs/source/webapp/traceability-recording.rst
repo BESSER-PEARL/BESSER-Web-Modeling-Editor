@@ -141,7 +141,8 @@ Retention
 ---------
 
 The trace must fit in the browser, so generation runs are bounded per generator (the tools a run
-called; ``pruneOldGenerations``):
+called; for a Spec-Driven run, the deterministic generator it started from, whatever LLM served it, so runs on
+different models share one cap; ``pruneOldGenerations``):
 
 #. the newest 5 runs keep everything: links, line ranges and files;
 #. runs 6 to 20 keep their operation and their whole files, with hashes but no content; their links
