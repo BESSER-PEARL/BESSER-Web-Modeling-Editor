@@ -55,11 +55,12 @@ handles read/write operations:
   ``shared/traceability/traceStore.ts`` (loaded once per session, kept in memory, saved in
   the background and when the page is hidden) and deleted with the project. A trace an
   earlier version kept in ``localStorage`` (``besser_traces_<projectId>``) is moved over
-  when first read. Each generator keeps the trace links of its newest 5 runs; older runs
-  keep their operation and their files' hashes. The *Export Project* dialog can bundle it into a project export
-  (``trace`` of the JSON envelope, or a ``TRACEABILITY`` section of the B-UML file);
-  importing that file stores it under the new project id (``importProjectTrace``). Its format mirrors the backend traceability metamodel
-  (``shared/types/traceability.ts``).
+  when first read. Each generator keeps the trace links of its newest 5 runs, the operation and
+  file hashes of up to 20, and no older ones. The *Export Project* dialog can bundle it into a project export
+  (``trace`` of the JSON envelope, or a ``TRACEABILITY`` section of the B-UML file; an export of some diagram
+  types bundles only their part of the trace); importing that file stores it under the new project id once
+  the project itself is stored. Its format mirrors the backend traceability metamodel
+  (``shared/types/traceability.ts``). What is recorded: :doc:`traceability-recording`.
 * ``besser_github_link_<projectId>`` is the project's one GitHub repository
   (``shared/services/storage/projectGitHubLink.ts``): owner, repo and branch,
   the commit last synced (``baseCommitSha``) with a fingerprint of the model at

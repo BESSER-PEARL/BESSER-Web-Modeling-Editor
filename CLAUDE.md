@@ -255,6 +255,23 @@ read. Agent runtime config lives on `AgentDiagram.config`, not in a top-level ke
 (the v3 storage migration deletes the old `besser_systemConfig`). Project storage format:
 `docs/source/webapp/local-projects.rst`.
 
+### Traceability (recording)
+A project that records traces (`settings.traceabilityEnabled`) records into its trace file
+(`shared/traceability/`, format in `shared/types/traceability.ts`, schema version 6; full description in
+`docs/source/webapp/traceability-recording.rst`):
+- **Edits of every diagram type**, diffed by B-UML metaclass: class (`classModelDiff.ts`), GUI (`guiModelDiff.ts`),
+  every other Apollon type through one table-driven builder (`APOLLON_TABLES` in `diagramModelDiff.ts`; a new
+  element type that reaches B-UML needs a row there), quantum and KG builders in the same file. Code that writes a
+  diagram model outside `updateDiagramModelThunk` must call `recordDiagramUpdate` itself.
+- **Who**: `traceSource` on `updateDiagramModelThunk`/`addDiagramThunk` is `'user'` (default), `'assistant'`, or
+  `{ generator }` (`MODEL_GENERATORS` in `traceStore.ts`) for anything the editor writes that the user did not
+  draw (templates, imports, derivations: pass `generator` to `setElementLineageThunk` so the lineage becomes trace
+  links). An undo of an assistant edit is the user's.
+- **Generations**: every generator goes through the traced endpoints when recording is on (no allowlist); a failed
+  traced request falls back to the plain endpoint. Spec-Driven runs merge `done.trace`, else are recorded from the
+  stream. The assistant's model comes from `llmUsage` on its terminal replies.
+- Retention is bounded per generator (`pruneOldGenerations`: 5 runs whole, 20 at most).
+
 ### Display settings (settingsService)
 `packages/editor/src/main/services/settings/settings-service.ts` stores display preferences under
 `besser-standalone-settings` (incl. `classNotation: 'UML' | 'ER'`, rendering only). Components read it
