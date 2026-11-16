@@ -3457,6 +3457,10 @@ export interface components {
          *         user's request. When given, the requirements ledger is built from
          *         them instead of extracting its own, and each verdict names its
          *         requirement's trace id. Left out, the run extracts them.
+         *     actorName
+         *         Optional name of the person starting the run (the project owner), the
+         *         Person the run's trace (``done.trace``) records besides the agent.
+         *         Left out, the trace names only the Spec-Driven Agent.
          */
         SmartGenerateRequest: {
             project: components["schemas"]["ProjectInput"];
@@ -3464,6 +3468,8 @@ export interface components {
             instructions: string;
             /** Requirements */
             requirements?: components["schemas"]["RequirementInput"][] | null;
+            /** Actorname */
+            actorName?: string | null;
             /** Api Key */
             api_key?: string | null;
             /**
