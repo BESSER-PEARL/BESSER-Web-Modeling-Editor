@@ -16,18 +16,28 @@ import { ApiError } from '@/main/shared/api/api-client';
 import { downloadSpecDrivenOutput } from '@/main/shared/api/specDriven';
 import { markSpecDrivenRunExpired } from '@/main/shared/utils/specDrivenExpiry';
 
-const lifetimes = vi.hoisted(() => ({ archive: undefined as number | undefined }));
+const lifetimes = vi.hoisted(() => ({
+  archive: undefined as number | undefined,
+  /** How the config load ends: the server's values, the fallback after a failure, or not yet. */
+  load: 'server' as 'server' | 'failed' | 'pending',
+}));
 
 vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/main/shared/services/specDrivenConfig')>();
   return {
     ...mod,
     getSpecDrivenConfig: vi.fn(() =>
-      Promise.resolve({
-        ...mod.FALLBACK_SMART_GEN_CONFIG,
-        download_ttl_seconds: 3600,
-        ...(lifetimes.archive ? { archive_ttl_seconds: lifetimes.archive } : {}),
-      }),
+      lifetimes.load === 'pending'
+        ? new Promise(() => {})
+        : Promise.resolve(
+            lifetimes.load === 'failed'
+              ? mod.FALLBACK_SMART_GEN_CONFIG
+              : {
+                  ...mod.FALLBACK_SMART_GEN_CONFIG,
+                  download_ttl_seconds: 3600,
+                  ...(lifetimes.archive ? { archive_ttl_seconds: lifetimes.archive } : {}),
+                },
+          ),
     ),
   };
 });
@@ -87,6 +97,7 @@ const offersNothingToFetch = () => {
 beforeEach(() => {
   vi.mocked(downloadSpecDrivenOutput).mockReset();
   lifetimes.archive = undefined;
+  lifetimes.load = 'server';
 });
 
 afterEach(() => {
@@ -189,6 +200,35 @@ describe('a finished run card with a longer archive than workspace', () => {
         'This result is no longer available: generated files are kept for 3 hours. Generate again to get a new copy.',
       ),
     ).toBeTruthy();
+    offersNothingToFetch();
+  });
+});
+
+describe('a finished run card while the server lifetimes are unknown', () => {
+  it.each(['failed', 'pending'] as const)(
+    'keeps every action and expires nothing by the clock when the config load is %s',
+    async (load) => {
+      lifetimes.load = load;
+      await renderCard(finished(freshRunId(), Date.now() - 2 * HOUR), () => {});
+      expect(screen.queryByText(/no longer available/)).toBeNull();
+      expect(screen.queryByText(/available until/i)).toBeNull();
+      expect(screen.getByRole('button', { name: /^download$/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /save to github/i })).toBeTruthy();
+    },
+  );
+
+  it('turns expired when the download finds the run gone, without naming a lifetime', async () => {
+    lifetimes.load = 'failed';
+    vi.mocked(downloadSpecDrivenOutput).mockRejectedValue(new ApiError(404, 'Unknown or expired run ID'));
+    await renderCard(finished(freshRunId(), Date.now() - 2 * HOUR), () => {});
+
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('This result is no longer available on the server. Generate again to get a new copy.'),
+      ).toBeTruthy(),
+    );
     offersNothingToFetch();
   });
 });

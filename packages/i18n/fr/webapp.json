@@ -1891,7 +1891,8 @@
       "generateAgain": "Générer à nouveau",
       "rebuildAfterExpiry": "L'exécution précédente ne peut plus être modifiée sur place : l'application est donc reconstruite à partir du modèle et de la demande d'origine.",
       "downloadUntil": "Téléchargement disponible jusqu'à {{time}}.",
-      "downloadAndGithubUntil": "Téléchargement disponible jusqu'à {{download}} ; enregistrement sur GitHub jusqu'à {{github}}."
+      "downloadAndGithubUntil": "Téléchargement disponible jusqu'à {{download}} ; enregistrement sur GitHub jusqu'à {{github}}.",
+      "expiredNoLifetime": "Ce résultat n'est plus disponible sur le serveur. Relancez la génération pour en obtenir une nouvelle copie."
     },
     "runFinished": {
       "titleMarker": {

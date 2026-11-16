@@ -4,6 +4,7 @@ import {
   archiveTtlSeconds,
   FALLBACK_SMART_GEN_CONFIG,
   getSpecDrivenConfig,
+  peekServerSpecDrivenConfig,
   type SpecDrivenConfig,
 } from "@/main/shared/services/specDrivenConfig"
 
@@ -16,21 +17,20 @@ export interface RunLifetimes {
   archiveSeconds: number
 }
 
-const lifetimes = (cfg: SpecDrivenConfig): RunLifetimes => ({
-  workspaceSeconds: cfg.download_ttl_seconds,
-  archiveSeconds: archiveTtlSeconds(cfg),
-})
+const lifetimes = (cfg: SpecDrivenConfig | null): RunLifetimes | null =>
+  cfg ? { workspaceSeconds: cfg.download_ttl_seconds, archiveSeconds: archiveTtlSeconds(cfg) } : null
 
 /**
  * The server-owned lifetimes of a finished run (`download_ttl_seconds`,
- * `archive_ttl_seconds`); the fallback shows until the config loads.
+ * `archive_ttl_seconds`), or null while the server has not said: a fallback
+ * guess would expire results the server still serves.
  */
-export function useRunLifetimes(): RunLifetimes {
-  const [value, setValue] = useState(() => lifetimes(FALLBACK_SMART_GEN_CONFIG))
+export function useRunLifetimes(): RunLifetimes | null {
+  const [value, setValue] = useState(() => lifetimes(peekServerSpecDrivenConfig()))
   useEffect(() => {
     let cancelled = false
     void getSpecDrivenConfig().then((cfg) => {
-      if (!cancelled) setValue(lifetimes(cfg))
+      if (!cancelled) setValue(lifetimes(cfg === FALLBACK_SMART_GEN_CONFIG ? null : cfg))
     })
     return () => {
       cancelled = true
@@ -39,7 +39,7 @@ export function useRunLifetimes(): RunLifetimes {
   return value
 }
 
-/** How long the download is served, in whole minutes (at least 1). */
+/** How long the download is served, in whole minutes (at least 1); the fallback until the server says. */
 export function useDownloadTtlMinutes(): number {
-  return toMinutes(useRunLifetimes().archiveSeconds)
+  return toMinutes(useRunLifetimes()?.archiveSeconds ?? archiveTtlSeconds(FALLBACK_SMART_GEN_CONFIG))
 }

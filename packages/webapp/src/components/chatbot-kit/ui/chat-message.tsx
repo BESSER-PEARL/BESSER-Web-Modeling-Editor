@@ -1306,7 +1306,7 @@ function useExpired(expiresAt: number | undefined): boolean {
 }
 
 /** The server no longer holds the run's output: say so and offer a new run. */
-function ResultExpiredNote({ ttlSeconds, onGenerateAgain }: { ttlSeconds: number; onGenerateAgain?: () => void }) {
+function ResultExpiredNote({ ttlSeconds, onGenerateAgain }: { ttlSeconds?: number; onGenerateAgain?: () => void }) {
   const { t } = useTranslation()
   return (
     <div
@@ -1315,7 +1315,9 @@ function ResultExpiredNote({ ttlSeconds, onGenerateAgain }: { ttlSeconds: number
     >
       <AlertTriangle className="h-3 w-3 shrink-0" />
       <span className="min-w-0 flex-1">
-        {t("assistant.runCard.expired", { lifetime: lifetimeText(t, ttlSeconds) })}
+        {ttlSeconds === undefined
+          ? t("assistant.runCard.expiredNoLifetime")
+          : t("assistant.runCard.expired", { lifetime: lifetimeText(t, ttlSeconds) })}
       </span>
       {onGenerateAgain ? (
         <Button type="button" size="xs" onClick={onGenerateAgain}>
@@ -1542,10 +1544,11 @@ function SpecDrivenCard({
   // From the run's end the server serves its download for the archive
   // lifetime, and can push it to GitHub for the (shorter or equal) workspace
   // lifetime. Past those, or once a fetch says it is gone, they cannot work.
-  const { workspaceSeconds, archiveSeconds } = useRunLifetimes()
+  // Unknown lifetimes (config not loaded) expire nothing by the clock: only a fetch that finds the run gone does.
+  const lifetimes = useRunLifetimes()
   const finished = serverResult && typeof finishedAt === "number" ? finishedAt : undefined
-  const expiresAt = finished !== undefined ? finished + archiveSeconds * 1000 : undefined
-  const pushEndsAt = finished !== undefined ? finished + workspaceSeconds * 1000 : undefined
+  const expiresAt = finished !== undefined && lifetimes ? finished + lifetimes.archiveSeconds * 1000 : undefined
+  const pushEndsAt = finished !== undefined && lifetimes ? finished + lifetimes.workspaceSeconds * 1000 : undefined
   const expiredByClock = useExpired(expiresAt)
   const pushExpired = useExpired(pushEndsAt)
   const expiredOnServer = useSpecDrivenRunExpired(serverResult ? runId : undefined)
@@ -1881,7 +1884,7 @@ function SpecDrivenCard({
         <SpecDrivenNoticeList warnings={warnings} />
 
         {resultExpired ? (
-          <ResultExpiredNote ttlSeconds={archiveSeconds} onGenerateAgain={onGenerateAgain} />
+          <ResultExpiredNote ttlSeconds={lifetimes?.archiveSeconds} onGenerateAgain={onGenerateAgain} />
         ) : null}
 
         {viewerUsed && canViewFiles ? (
