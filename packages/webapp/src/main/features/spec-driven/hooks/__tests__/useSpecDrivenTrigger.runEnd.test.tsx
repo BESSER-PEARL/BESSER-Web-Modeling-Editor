@@ -212,3 +212,30 @@ describe('the end of a run, seen from a hidden tab', () => {
     expect(document.title).toBe('(Failed) BESSER');
   });
 });
+
+describe('a run whose previous result expired', () => {
+  const notices = () =>
+    conversationStore.getMessages().find((m) => m.specDriven)?.specDriven?.warnings ?? [];
+
+  it('says on its card that the app is rebuilt, not edited in place', async () => {
+    writeProjectLastRun(PROJECT_ID, '4'.repeat(32), Date.now() - 48 * 3_600_000, 'Build a task board.');
+    const id = '5'.repeat(32);
+    await runWith([start(id), done({}, id)], 'Build a task board.', id);
+
+    expect(vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0].mode).toBe('generate');
+    expect(notices()).toEqual([
+      {
+        code: 'BASE_EXPIRED',
+        severity: 'info',
+        message:
+          'The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request.',
+      },
+    ]);
+  });
+
+  it('says nothing on a first run', async () => {
+    const id = '6'.repeat(32);
+    await runWith([start(id), done({}, id)], 'Build a task board.', id);
+    expect(notices()).toEqual([]);
+  });
+});

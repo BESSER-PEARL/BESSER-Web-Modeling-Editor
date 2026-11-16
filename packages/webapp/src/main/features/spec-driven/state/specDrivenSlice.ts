@@ -32,6 +32,7 @@ import type {
   SpecDrivenPhase,
   SpecDrivenProvider,
   SpecDrivenVerificationItem,
+  SpecDrivenWarningView,
   TriggerSpecDrivenPayload,
 } from '../types';
 
@@ -532,8 +533,10 @@ const specDrivenSlice = createSlice({
      * is appended, so the card's store subscription finds it on first
      * paint. Keyed by the client-generated run key the message carries.
      */
-    liveRunStarted(state, action: PayloadAction<{ key: string }>) {
-      state.runs[action.payload.key] = { ...EMPTY_CARD };
+    /** `notice` is shown on the card from its first paint (how the run was set up). */
+    liveRunStarted(state, action: PayloadAction<{ key: string; notice?: SpecDrivenWarningView }>) {
+      const { key, notice } = action.payload;
+      state.runs[key] = { ...EMPTY_CARD, warnings: notice ? [notice] : [] };
     },
     /**
      * Apply ONE SSE event (or a synthetic terminal event from the trigger

@@ -1888,7 +1888,8 @@
       "lifetimeMinutes_other": "{{count}} Minuten",
       "lifetimeHours_one": "{{count}} Stunde",
       "lifetimeHours_other": "{{count}} Stunden",
-      "generateAgain": "Erneut generieren"
+      "generateAgain": "Erneut generieren",
+      "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt."
     },
     "runFinished": {
       "titleMarker": {

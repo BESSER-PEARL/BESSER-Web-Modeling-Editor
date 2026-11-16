@@ -1216,7 +1216,16 @@ export function useSpecDrivenTrigger(
       // entry first so the card's store subscription finds it on its
       // very first paint.
       const liveKey = createMessageId();
-      dispatch(liveRunStarted({ key: liveKey }));
+      dispatch(
+        liveRunStarted({
+          key: liveKey,
+          // Said on the run card rather than as a chat line, so it never
+          // repeats what the assistant's own confirmation already said.
+          notice: runDecision.baseExpired
+            ? { code: 'BASE_EXPIRED', severity: 'info', message: i18n.t('assistant.runCard.rebuildAfterExpiry') }
+            : undefined,
+        }),
+      );
       const streamingId = appendAssistantMessage('', {
         isStreaming: true,
         specDriven: emptyCard(liveKey),

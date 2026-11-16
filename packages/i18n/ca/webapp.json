@@ -1888,7 +1888,8 @@
       "lifetimeMinutes_other": "{{count}} minuts",
       "lifetimeHours_one": "{{count}} hora",
       "lifetimeHours_other": "{{count}} hores",
-      "generateAgain": "Torna a generar"
+      "generateAgain": "Torna a generar",
+      "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original."
     },
     "runFinished": {
       "titleMarker": {

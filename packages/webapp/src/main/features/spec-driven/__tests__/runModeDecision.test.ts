@@ -64,13 +64,13 @@ describe('decideRunMode — automatic heuristic', () => {
     expect(decision).toEqual({ mode: 'modify', baseRunId: RUN_A });
   });
 
-  it('falls back to generate when the last run is past the TTL', () => {
+  it('rebuilds, and says the base expired, when the last run is past the TTL', () => {
     const decision = decideRunMode({
       lastRun: { runId: RUN_A, at: NOW - (TTL * 1000 + 1) }, // just expired
       nowMs: NOW,
       ttlSeconds: TTL,
     });
-    expect(decision).toEqual({ mode: 'generate' });
+    expect(decision).toEqual({ mode: 'generate', baseExpired: true });
   });
 
   it('treats the exact TTL boundary as expired (strict <)', () => {
@@ -78,6 +78,16 @@ describe('decideRunMode — automatic heuristic', () => {
       lastRun: { runId: RUN_A, at: NOW - TTL * 1000 },
       nowMs: NOW,
       ttlSeconds: TTL,
+    });
+    expect(decision).toEqual({ mode: 'generate', baseExpired: true });
+  });
+
+  it('flags no expired base when the agent asked for a fresh build', () => {
+    const decision = decideRunMode({
+      lastRun: { runId: RUN_A, at: NOW - 2 * TTL * 1000 },
+      nowMs: NOW,
+      ttlSeconds: TTL,
+      explicitMode: 'generate',
     });
     expect(decision).toEqual({ mode: 'generate' });
   });
