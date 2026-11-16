@@ -180,6 +180,8 @@ export const localStorageSpecDrivenActiveRunV1 = localStoragePrefix + 'smartgen_
 // runs in different tabs/projects from overwriting a single global record.
 export const localStorageSpecDrivenActiveRunV2Prefix =
   localStoragePrefix + 'smartgen_active:v2:';
+// '1' when the user asked for a browser notification when a run finishes.
+export const localStorageSpecDrivenNotifyOnFinish = localStoragePrefix + 'smartgen_notify_on_finish';
 
 // Spec-Driven Agent "Push to GitHub" connect-first intent.
 // When the user clicks "Push to GitHub" on a finished spec-driven run card but

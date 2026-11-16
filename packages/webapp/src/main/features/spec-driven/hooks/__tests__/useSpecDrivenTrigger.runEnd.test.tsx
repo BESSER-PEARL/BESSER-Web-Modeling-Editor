@@ -1,6 +1,7 @@
 /**
- * What a finished run leaves in the project's last-run record: the base of the
- * next modify run, and the request it was started with.
+ * What the end of a run leaves behind: the project's last-run record (the base
+ * of the next modify run, with the request it was started with) and, for a
+ * user who left the tab, a sign that it ended.
  */
 import React from 'react';
 import { Provider } from 'react-redux';
@@ -155,5 +156,52 @@ describe('a run the user stopped', () => {
       BUDGET_STOP,
     );
     expect(readProjectLastRun(PROJECT_ID)?.runId).toBe(BUDGET_STOP);
+  });
+});
+
+describe('the end of a run, seen from a hidden tab', () => {
+  let visibility: DocumentVisibilityState = 'visible';
+
+  beforeEach(() => {
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    document.title = 'BESSER';
+  });
+
+  afterEach(() => {
+    visibility = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.restoreAllMocks();
+  });
+
+  it('marks the tab title when a run finishes while the user is away', async () => {
+    const id = '2'.repeat(32);
+    await runWith(
+      [
+        start(id),
+        async () => {
+          visibility = 'hidden';
+        },
+        done({}, id),
+      ],
+      'Build a task board.',
+      id,
+    );
+    expect(document.title).toBe('(Done) BESSER');
+  });
+
+  it('marks a failed run too', async () => {
+    const id = '3'.repeat(32);
+    await runWith(
+      [
+        start(id),
+        async () => {
+          visibility = 'hidden';
+        },
+        { event: 'error', code: 'UPSTREAM_LLM', message: 'Provider unavailable' } as SpecDrivenEvent,
+      ],
+      'Build a task board.',
+      id,
+    );
+    expect(document.title).toBe('(Failed) BESSER');
   });
 });

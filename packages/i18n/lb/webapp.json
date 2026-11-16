@@ -1878,6 +1878,28 @@
       "free": "Gratis Modell",
       "none": "Keen API-Schlëssel",
       "title": "Nächst Generatioun: {{label}}. Klickt fir z'änneren."
+    },
+    "runCard": {
+      "notifyMe": "Mech informéieren, wann et fäerdeg ass",
+      "notifyOn": "Dir gitt informéiert, wann et fäerdeg ass"
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fäerdeg)",
+        "incomplete": "(Onvollstänneg)",
+        "failed": "(Feeler)"
+      },
+      "notificationTitle": {
+        "success": "Generatioun fäerdeg",
+        "incomplete": "Generatioun onvollstänneg",
+        "failed": "Generatioun feelgeschloen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: d'Applikatioun ass prett fir erofzelueden.",
+        "incomplete": "{{project}}: de Laf ass ze fréi gestoppt. D'Resultat kann iwwerpréift ginn.",
+        "failed": "{{project}}: de Laf ass feelgeschloen. Maacht den Tab op fir d'Detailer."
+      },
+      "untitledProject": "Äre Projet"
     }
   },
   "deploy": {

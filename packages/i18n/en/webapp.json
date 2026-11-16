@@ -1878,6 +1878,28 @@
       "free": "Free model",
       "none": "No API key",
       "title": "Next generation: {{label}}. Click to change."
+    },
+    "runCard": {
+      "notifyMe": "Notify me when it is done",
+      "notifyOn": "You will be notified when it is done"
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Done)",
+        "incomplete": "(Incomplete)",
+        "failed": "(Failed)"
+      },
+      "notificationTitle": {
+        "success": "Generation finished",
+        "incomplete": "Generation incomplete",
+        "failed": "Generation failed"
+      },
+      "notificationBody": {
+        "success": "{{project}}: the application is ready to download.",
+        "incomplete": "{{project}}: the run stopped early. Its output is ready to inspect.",
+        "failed": "{{project}}: the run failed. Open the tab for details."
+      },
+      "untitledProject": "Your project"
     }
   },
   "deploy": {

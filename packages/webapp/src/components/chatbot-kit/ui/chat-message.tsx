@@ -4,6 +4,8 @@ import { motion } from "framer-motion"
 import {
   AlertTriangle,
   Ban,
+  Bell,
+  BellRing,
   CheckCircle2,
   ChevronRight,
   Code2,
@@ -27,6 +29,11 @@ import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import {
+  canOfferRunNotification,
+  isRunNotificationOn,
+  turnOnRunNotification,
+} from "@/main/features/spec-driven/runFinishNotice"
 import type {
   SpecDrivenMessageState,
   SpecDrivenPhaseView,
@@ -1216,6 +1223,42 @@ function renderRunCost(costUsd?: number) {
   )
 }
 
+/**
+ * "Notify me when it is done" on a running card: asks the browser's permission
+ * on click; hidden where notifications are unsupported or refused.
+ */
+function RunNotifyControl() {
+  const { t } = useTranslation()
+  const [on, setOn] = useState(isRunNotificationOn)
+  const [offered, setOffered] = useState(canOfferRunNotification)
+  if (on) {
+    return (
+      <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+        <BellRing className="h-3 w-3" />
+        {t("assistant.runCard.notifyOn")}
+      </span>
+    )
+  }
+  if (!offered) return null
+  return (
+    <Button
+      type="button"
+      size="xs"
+      variant="ghost"
+      className="ml-auto text-[11px] text-muted-foreground"
+      onClick={() => {
+        void turnOnRunNotification().then((granted) => {
+          setOn(granted)
+          setOffered(canOfferRunNotification())
+        })
+      }}
+    >
+      <Bell />
+      {t("assistant.runCard.notifyMe")}
+    </Button>
+  )
+}
+
 /** The artifact stays on the server for its (server-owned) TTL after a failed save. */
 function DownloadFailedNote() {
   const minutes = useDownloadTtlMinutes()
@@ -1839,6 +1882,7 @@ function SpecDrivenCard({
               it's running.
             </span>
           ) : null}
+          <RunNotifyControl />
           {lastAction ? (
             <span className="flex w-full min-w-0 gap-2 font-mono text-[11px] text-muted-foreground">
               <span className="shrink-0 font-medium text-brand">{lastAction.verb}</span>

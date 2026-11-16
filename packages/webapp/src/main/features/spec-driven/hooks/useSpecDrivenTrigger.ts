@@ -120,6 +120,7 @@ import {
 } from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
 import { readRunTier } from '../generationKey';
+import { announceRunFinished } from '../runFinishNotice';
 import type { RunModeDecision } from '../runModeDecision';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
@@ -271,12 +272,21 @@ export function useSpecDrivenTrigger(
 
   // The run's analytics set-up, for its one terminal event.
   const runAnalyticsRef = useRef<RunAnalytics | null>(null);
+  // The run's project name, for the finish notification.
+  const runProjectNameRef = useRef<string | undefined>(undefined);
 
   const reportRunFinished = useCallback((result: SpecDrivenRunResult, details?: RunFinishDetails) => {
     if (runFinishedReportedRef.current) return;
     runFinishedReportedRef.current = true;
     trackRunFinished(runAnalyticsRef.current, result, details);
     runAnalyticsRef.current = null;
+    // A run the user stopped needs no announcement.
+    if (result.errorCode !== 'CANCELLED' && !(result.runId && isSpecDrivenRunCancelRequested(result.runId))) {
+      announceRunFinished(
+        runProjectNameRef.current,
+        result.ok ? (result.incomplete ? 'incomplete' : 'success') : 'failed',
+      );
+    }
     try {
       onRunFinishedRef.current?.(result);
     } catch (err) {
@@ -885,6 +895,7 @@ export function useSpecDrivenTrigger(
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = saved.runId;
       activeRunStartedAtRef.current = saved.startedAt;
+      runProjectNameRef.current = currentProjectRef.current?.name;
       // After a reload only the tab's current tier choice is known, not the run's own set-up.
       const tier = currentRunTier();
       runAnalyticsRef.current = {
@@ -1216,6 +1227,7 @@ export function useSpecDrivenTrigger(
       currentRunIdRef.current = undefined;
       lastCostRef.current = undefined;
       activeRunStartedAtRef.current = Date.now();
+      runProjectNameRef.current = runProject.name;
       lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       // The run card is the progress surface from here on — CLEAR the

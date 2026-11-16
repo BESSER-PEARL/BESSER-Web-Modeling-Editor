@@ -1878,6 +1878,28 @@
       "free": "Modèle gratuit",
       "none": "Aucune clé API",
       "title": "Prochaine génération : {{label}}. Cliquez pour modifier."
+    },
+    "runCard": {
+      "notifyMe": "Me prévenir à la fin",
+      "notifyOn": "Vous serez prévenu à la fin"
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Terminé)",
+        "incomplete": "(Incomplet)",
+        "failed": "(Échec)"
+      },
+      "notificationTitle": {
+        "success": "Génération terminée",
+        "incomplete": "Génération incomplète",
+        "failed": "Échec de la génération"
+      },
+      "notificationBody": {
+        "success": "{{project}} : l'application est prête à être téléchargée.",
+        "incomplete": "{{project}} : l'exécution s'est arrêtée avant la fin. Son résultat peut être examiné.",
+        "failed": "{{project}} : l'exécution a échoué. Ouvrez l'onglet pour les détails."
+      },
+      "untitledProject": "Votre projet"
     }
   },
   "deploy": {

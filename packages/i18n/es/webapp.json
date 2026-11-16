@@ -1878,6 +1878,28 @@
       "free": "Modelo gratuito",
       "none": "Sin clave API",
       "title": "Próxima generación: {{label}}. Haz clic para cambiar."
+    },
+    "runCard": {
+      "notifyMe": "Avisarme cuando termine",
+      "notifyOn": "Te avisaremos cuando termine"
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Listo)",
+        "incomplete": "(Incompleto)",
+        "failed": "(Error)"
+      },
+      "notificationTitle": {
+        "success": "Generación terminada",
+        "incomplete": "Generación incompleta",
+        "failed": "La generación falló"
+      },
+      "notificationBody": {
+        "success": "{{project}}: la aplicación está lista para descargar.",
+        "incomplete": "{{project}}: la ejecución se detuvo antes de tiempo. Su resultado se puede revisar.",
+        "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
+      },
+      "untitledProject": "Tu proyecto"
     }
   },
   "deploy": {

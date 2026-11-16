@@ -1878,6 +1878,28 @@
       "free": "Kostenloses Modell",
       "none": "Kein API-Schlüssel",
       "title": "Nächste Generierung: {{label}}. Zum Ändern klicken."
+    },
+    "runCard": {
+      "notifyMe": "Benachrichtigen, wenn fertig",
+      "notifyOn": "Sie werden benachrichtigt, wenn es fertig ist"
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fertig)",
+        "incomplete": "(Unvollständig)",
+        "failed": "(Fehlgeschlagen)"
+      },
+      "notificationTitle": {
+        "success": "Generierung abgeschlossen",
+        "incomplete": "Generierung unvollständig",
+        "failed": "Generierung fehlgeschlagen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: Die Anwendung steht zum Herunterladen bereit.",
+        "incomplete": "{{project}}: Der Lauf wurde vorzeitig beendet. Das Ergebnis kann geprüft werden.",
+        "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
+      },
+      "untitledProject": "Ihr Projekt"
     }
   },
   "deploy": {
