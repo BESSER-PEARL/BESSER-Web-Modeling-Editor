@@ -166,7 +166,7 @@ export const TraceabilityPage: React.FC = () => {
                 {url.tab === 'elements' && (
                   <ElementsView index={index} selectedId={element} onSelect={selectElement} onShowLineage={showLineage} />
                 )}
-                {url.tab === 'coverage' && <CoverageView index={index} onOpenElement={openElement} />}
+                {url.tab === 'coverage' && <CoverageView index={index} onOpenElement={openElement} highlightId={element} />}
                 {url.tab === 'lineage' && (
                   <LineageView
                     index={index}

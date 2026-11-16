@@ -115,13 +115,20 @@ export function readShowTrace(payload: Record<string, unknown>, fallbackLabel: s
   };
 }
 
-/** Where a chip leads in the Traceability page, or null when it is not a (valid) `show-trace` chip. */
+/**
+ * Where a chip leads in the Traceability page, or null when it is not a (valid) `show-trace` chip. The artifact the
+ * answer is about is the lineage's root; for the timeline it is the element's own history (the Diagrams view with
+ * it selected), not the project's; for the coverage, the element whose row is shown and highlighted.
+ */
 export function traceTargetOf(
   input: GuiActionRouteInput | null | undefined,
-): { tab: TraceView; root?: string } | null {
+): { tab: TraceView | 'elements'; root?: string; element?: string } | null {
   if (!input || input.action !== SHOW_TRACE_CHIP_ACTION) return null;
   const view = input.traceView;
   if (typeof view !== 'string' || !(TRACE_VIEWS as readonly string[]).includes(view)) return null;
   const id = typeof input.traceArtifactId === 'string' ? input.traceArtifactId : '';
-  return { tab: view as TraceView, ...(id ? { root: id } : {}) };
+  if (!id) return { tab: view as TraceView };
+  if (view === 'timeline') return { tab: 'elements', element: id };
+  if (view === 'coverage') return { tab: 'coverage', element: id };
+  return { tab: view as TraceView, root: id };
 }

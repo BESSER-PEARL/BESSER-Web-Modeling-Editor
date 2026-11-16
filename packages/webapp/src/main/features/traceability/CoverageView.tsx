@@ -1,9 +1,9 @@
-import React, { useDeferredValue, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { CoverageCell, CoverageRow, TraceIndex } from '../../shared/traceability/traceQueries';
-import { coverageMatrix } from '../../shared/traceability/traceQueries';
+import { coverageMatrix, topLevelOf } from '../../shared/traceability/traceQueries';
 import { elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 import { toggledIn } from './components/toggleSet';
 
@@ -20,15 +20,27 @@ const CELL_SYMBOLS: Record<CoverageCell, string> = { generated: '✓', outOfDate
 interface CoverageViewProps {
   index: TraceIndex;
   onOpenElement: (artifactId: string) => void;
+  /** An artifact to point out (a link from the assistant's answer): the row of its top-level element is
+   *  highlighted, its diagram unfolded and the row scrolled into view. */
+  highlightId?: string | null;
 }
 
 /**
  * Diagrams and their elements × generation runs: generated, generated but out of date since,
  * or not generated. A diagram's own row covers the whole files read from it.
  */
-export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement }) => {
+export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement, highlightId = null }) => {
   const { t, i18n } = useTranslation();
   const matrix = useMemo(() => coverageMatrix(index, MAX_GENERATION_COLUMNS), [index]);
+  // The row of the highlighted artifact: its own, or its top-level element's (a member has no row).
+  const highlighted = useMemo(() => {
+    const artifact = highlightId ? index.artifacts.get(highlightId) : undefined;
+    return artifact ? topLevelOf(index, artifact).id : null;
+  }, [index, highlightId]);
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
+  useEffect(() => {
+    highlightRef.current?.scrollIntoView?.({ block: 'center' });
+  }, [highlighted]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const toggle = (id: string) => setCollapsed((previous) => toggledIn(previous, id));
   const [query, setQuery] = useState('');
@@ -83,12 +95,15 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement
           </thead>
           <tbody>
             {groups.map(({ diagram, elements }) => {
-              const open = needle !== '' || !collapsed.has(diagram.element.id);
+              const open = needle !== '' || !collapsed.has(diagram.element.id)
+                || (highlighted !== null && elements.some((row) => row.element.id === highlighted));
               return (
                 <React.Fragment key={diagram.element.id}>
                   <CoverageTableRow
                     row={diagram}
                     onOpen={onOpenElement}
+                    highlighted={diagram.element.id === highlighted}
+                    rowRef={diagram.element.id === highlighted ? highlightRef : undefined}
                     lead={
                       <button
                         type="button"
@@ -106,7 +121,14 @@ export const CoverageView: React.FC<CoverageViewProps> = ({ index, onOpenElement
                   />
                   {open &&
                     elements.map((row) => (
-                      <CoverageTableRow key={row.element.id} row={row} onOpen={onOpenElement} className="[&>th:first-child]:pl-10" />
+                      <CoverageTableRow
+                        key={row.element.id}
+                        row={row}
+                        onOpen={onOpenElement}
+                        highlighted={row.element.id === highlighted}
+                        rowRef={row.element.id === highlighted ? highlightRef : undefined}
+                        className="[&>th:first-child]:pl-10"
+                      />
                     ))}
                 </React.Fragment>
               );
@@ -123,14 +145,21 @@ interface CoverageTableRowProps {
   onOpen: (artifactId: string) => void;
   /** Shown before the name (the diagram rows' fold button). */
   lead?: React.ReactNode;
+  /** The row pointed out by a link (see `CoverageViewProps.highlightId`). */
+  highlighted?: boolean;
+  rowRef?: React.Ref<HTMLTableRowElement>;
   className?: string;
 }
 
-const CoverageTableRow: React.FC<CoverageTableRowProps> = ({ row, onOpen, lead, className = '' }) => {
+const CoverageTableRow: React.FC<CoverageTableRowProps> = ({ row, onOpen, lead, highlighted = false, rowRef, className = '' }) => {
   const { t } = useTranslation();
   const { element, deleted, cells } = row;
   return (
-    <tr className={`border-t border-border ${className}`}>
+    <tr
+      ref={rowRef}
+      aria-current={highlighted ? 'true' : undefined}
+      className={`border-t border-border ${highlighted ? 'bg-brand/10 ring-1 ring-inset ring-brand/40' : ''} ${className}`}
+    >
       <th scope="row" className="px-3 py-1.5 text-left font-normal">
         {lead}
         <button

@@ -115,7 +115,9 @@ characters. When the digest is too large, lists are shortened from their end, th
 operations, generations, requirements, out-of-date links, and last the focus.
 
 A trace answer can end with a button (the agent's ``show_trace`` action) that opens the Traceability page on the
-lineage, coverage or timeline view, on the artifact the question was about. It is shown under the answer like a
+lineage, coverage or timeline view, on the artifact the question was about: the lineage starts at it, the coverage
+highlights its row (a member's, its element's) and scrolls to it, and the timeline of an artifact opens its own
+history (the Diagrams view with it selected) rather than the project's. It is shown under the answer like a
 suggested action and never navigates by itself; an unknown view is ignored.
 
 Generation runs

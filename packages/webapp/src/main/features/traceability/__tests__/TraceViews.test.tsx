@@ -109,6 +109,22 @@ describe('CoverageView search', () => {
   });
 });
 
+describe('CoverageView highlight', () => {
+  it('points out the row of the artifact a link names, a member by its element’s row', () => {
+    const t = trace();
+    t.artifacts.push({ id: 'isbn', type: 'ModelArtifact', name: 'isbn', elementId: 'a1', elementType: 'Property', parentId: 'book', timestamp: at(1) });
+    const current = (highlightId: string) => {
+      const { container, unmount } = render(<CoverageView index={indexTrace(t)} onOpenElement={() => {}} highlightId={highlightId} />);
+      const row = container.querySelector('tr[aria-current="true"] th button:not([aria-label])')?.textContent;
+      unmount();
+      return row;
+    };
+    expect(current('book')).toBe('Book');
+    expect(current('isbn')).toBe('Book');
+    expect(current('unknown')).toBeUndefined();
+  });
+});
+
 describe('RequirementsView', () => {
   it('shows each requirement with its elements and code, uncovered ones marked, and jumps to lineage', () => {
     const onShowLineage = vi.fn();

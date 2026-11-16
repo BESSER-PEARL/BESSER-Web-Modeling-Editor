@@ -35,6 +35,10 @@ describe('traceTargetOf', () => {
   it('maps a show-trace chip to the page target and nothing else', () => {
     expect(traceTargetOf({ action: 'show-trace', traceView: 'lineage', traceArtifactId: 'book' })).toEqual({ tab: 'lineage', root: 'book' });
     expect(traceTargetOf({ action: 'show-trace', traceView: 'timeline' })).toEqual({ tab: 'timeline' });
+    // "Open the history of Book": the element's own history, not the project's timeline.
+    expect(traceTargetOf({ action: 'show-trace', traceView: 'timeline', traceArtifactId: 'book' })).toEqual({ tab: 'elements', element: 'book' });
+    expect(traceTargetOf({ action: 'show-trace', traceView: 'coverage', traceArtifactId: 'book' })).toEqual({ tab: 'coverage', element: 'book' });
+    expect(traceTargetOf({ action: 'show-trace', traceView: 'coverage' })).toEqual({ tab: 'coverage' });
     expect(traceTargetOf({ action: 'show-trace', traceView: 'bogus' })).toBeNull(); // e.g. a stored chip, tampered with
     expect(traceTargetOf({ action: 'open-gui' })).toBeNull();
     expect(traceTargetOf({ label: 'x', prompt: 'y' })).toBeNull();
