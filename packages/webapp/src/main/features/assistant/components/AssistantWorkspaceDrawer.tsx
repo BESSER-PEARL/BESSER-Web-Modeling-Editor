@@ -26,7 +26,7 @@ import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors';
-import { clearElementFocusRequest, requestElementFocusOnNextSetup } from '../../../shared/utils/elementFocusSignal';
+import { clearElementFocusRequest, focusElementOnCanvas, requestElementFocusOnNextSetup } from '../../../shared/utils/elementFocusSignal';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven';
 import {
   claimAssistantHandleHint,
@@ -375,7 +375,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   const focusModelElement = useCallback(async (elementId: string) => {
     onOpenChange(false);
     if (editor && activeDiagramType === 'ClassDiagram') {
-      editor.focusElement(elementId);
+      focusElementOnCanvas(editor, elementId);
       return;
     }
     requestElementFocusOnNextSetup(elementId);

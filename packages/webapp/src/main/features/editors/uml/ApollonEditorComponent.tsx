@@ -7,7 +7,7 @@ import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
-import { consumeElementFocusRequest } from '../../../shared/utils/elementFocusSignal';
+import { consumeElementFocusRequest, focusElementOnCanvas } from '../../../shared/utils/elementFocusSignal';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
@@ -285,7 +285,7 @@ export const ApollonEditorComponent: React.FC = () => {
       if (focusId) {
         setTimeout(() => {
           try {
-            nextEditor.focusElement(focusId);
+            focusElementOnCanvas(nextEditor, focusId);
           } catch (error) {
             console.warn('[model overview] focusing the element failed:', error);
           }

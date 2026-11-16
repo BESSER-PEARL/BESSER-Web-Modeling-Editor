@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { GitPullRequestArrow, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useProject } from '../../../app/hooks/useProject';
 import { setProjectGitHubLink } from '../../../shared/services/storage/projectGitHubLink';
 import {
@@ -65,7 +66,7 @@ function screenRect(node: Element): Pick<DOMRect, 'left' | 'top' | 'width' | 'he
 }
 
 /** A relationship's line within its box, read from what the editor drew: it re-routes a saved path on load. */
-function relationshipLine(id: string, box: Box): { x: number; y: number }[] | null {
+export function relationshipLine(id: string, box: Box): { x: number; y: number }[] | null {
   const line = elementNode(id)?.querySelector('polyline');
   const matrix = line?.getScreenCTM?.();
   if (!line?.points?.length || !matrix) return null;
@@ -167,6 +168,22 @@ export const Chip: React.FC<{ label: string; color: string; style: React.CSSProp
   </span>
 );
 
+/** An element tinted in `color` with a ring around it, over the box the editor draws. */
+export const ElementMark: React.FC<{ box: Box; color: string; testId: string; className?: string }> = ({ box, color, testId, className }) => (
+  <div
+    data-testid={testId}
+    className={cn('absolute rounded-[2px]', className)}
+    style={{
+      left: box.left,
+      top: box.top,
+      width: box.width,
+      height: box.height,
+      backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`,
+      boxShadow: `0 0 0 2px ${color}`,
+    }}
+  />
+);
+
 /** A relationship in its author's colour, over the line the editor draws, with their login on it. */
 export const RelationshipMark: React.FC<{
   points: { x: number; y: number }[];
@@ -241,18 +258,7 @@ export const ModelAttributionLayer: React.FC = () => {
         const isMember = !!elements.get(id)?.ownerId;
         return (
           <React.Fragment key={id}>
-            <div
-              data-testid="new-element-tint"
-              className="absolute rounded-[2px]"
-              style={{
-                left: box.left,
-                top: box.top,
-                width: box.width,
-                height: box.height,
-                backgroundColor: `${authorColor(login)}26`,
-                boxShadow: `0 0 0 2px ${authorColor(login)}`,
-              }}
-            />
+            <ElementMark testId="new-element-tint" color={authorColor(login)} box={box} />
             <Chip
               label={`@${login}`}
               color={authorColor(login)}

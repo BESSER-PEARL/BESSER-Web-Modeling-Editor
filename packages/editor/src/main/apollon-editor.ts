@@ -253,11 +253,10 @@ export class ApollonEditor {
   }
 
   /**
-   * Selects one element or relationship and scrolls the canvas so it is in view.
+   * Scrolls the canvas so an element or relationship is in the middle of the view.
    * @param id id of the element (a class, an attribute, ...) or relationship
    */
-  focusElement(id: string) {
-    this.select({ elements: { [id]: true }, relationships: {} });
+  scrollToElement(id: string) {
     const node = this.container.querySelector(`[data-id="${CSS.escape(id)}"]`);
     node?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
   }
