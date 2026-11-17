@@ -12,6 +12,12 @@ import { useRepoSync } from '../hooks/useRepoSync';
 
 const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+/** Turns "Autosave to GitHub" on or off for a linked project: from the project settings or the GitHub menu. */
+export function setGitHubAutosave(projectId: string, enabled: boolean): void {
+  setProjectGitHubAutoSave(projectId, enabled);
+  track('settings_changed', { area: 'github', setting: 'autosave', value: enabled });
+}
+
 /** One quiet line on how autosave stands for the project, or null when it is off. */
 export function useAutosaveStatusText(projectId: string | null | undefined): string | null {
   const { t } = useTranslation();
@@ -61,10 +67,7 @@ export const GitHubAutosaveSetting: React.FC = () => {
   if (!currentProject || !link) return null;
 
   const checked = !!link.autoSave;
-  const onChange = (next: boolean) => {
-    setProjectGitHubAutoSave(currentProject.id, next);
-    track('settings_changed', { area: 'github', setting: 'autosave', value: next });
-  };
+  const onChange = (next: boolean) => setGitHubAutosave(currentProject.id, next);
 
   return (
     <Card data-testid="github-autosave-setting">
