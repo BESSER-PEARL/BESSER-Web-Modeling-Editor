@@ -7894,6 +7894,11 @@
             ],
             "title": "Actorname"
           },
+          "traceabilityEnabled": {
+            "type": "boolean",
+            "title": "Traceabilityenabled",
+            "default": false
+          },
           "api_key": {
             "anyOf": [
               {
@@ -8066,7 +8071,7 @@
           "instructions"
         ],
         "title": "SmartGenerateRequest",
-        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap.\nrequirements\n    Optional requirements the modeling assistant extracted from the\n    user's request. When given, the requirements ledger is built from\n    them instead of extracting its own, and each verdict names its\n    requirement's trace id. Left out, the run extracts them.\nactorName\n    Optional name of the person starting the run (the project owner), the\n    Person the run's trace (``done.trace``) records besides the agent.\n    Left out, the trace names only the Spec-Driven Agent."
+        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap.\nrequirements\n    Optional requirements the modeling assistant extracted from the\n    user's request. When given, the requirements ledger is built from\n    them instead of extracting its own, and each verdict names its\n    requirement's trace id. Left out, the run extracts them.\nactorName\n    Optional name of the person starting the run (the project owner), the\n    Person the run's trace (``done.trace``) records besides the agent.\n    Left out, the trace names only the Spec-Driven Agent.\ntraceabilityEnabled\n    Whether the project records traces (opt-in, off by default). Only\n    then does the run build its trace, send it as ``done.trace`` and ship\n    it in the ZIP."
       },
       "SmartPreviewModelSummaryResponse": {
         "properties": {

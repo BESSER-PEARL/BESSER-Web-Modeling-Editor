@@ -3516,6 +3516,10 @@ export interface components {
          *         Optional name of the person starting the run (the project owner), the
          *         Person the run's trace (``done.trace``) records besides the agent.
          *         Left out, the trace names only the Spec-Driven Agent.
+         *     traceabilityEnabled
+         *         Whether the project records traces (opt-in, off by default). Only
+         *         then does the run build its trace, send it as ``done.trace`` and ship
+         *         it in the ZIP.
          */
         SmartGenerateRequest: {
             project: components["schemas"]["ProjectInput"];
@@ -3525,6 +3529,11 @@ export interface components {
             requirements?: components["schemas"]["RequirementInput"][] | null;
             /** Actorname */
             actorName?: string | null;
+            /**
+             * Traceabilityenabled
+             * @default false
+             */
+            traceabilityEnabled: boolean;
             /** Api Key */
             api_key?: string | null;
             /**
