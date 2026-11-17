@@ -661,7 +661,7 @@ export function useAssistantLogic({
         const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
         autoFixRef.current.progressMessageId = progressMessage.id;
         setMessages((prev) => [...prev, progressMessage]);
-        const context = buildWorkspaceContext();
+        const context = workspaceContextWithoutDigest();
         const repairRequest =
           '[auto-fix] The last change left the diagram with validation errors. ' +
           'Fix exactly these, changing only what is necessary:\n' +
@@ -767,7 +767,16 @@ export function useAssistantLogic({
 
   /* ---- workspace context builder ---- */
 
+  /** The workspace context the client sends with a message (its context provider), with the trace digest built
+   *  from that message (its focus); the digest is left out unless the project records traces and has recorded
+   *  something. */
   function buildWorkspaceContext(message?: string) {
+    return { ...workspaceContextWithoutDigest(), traceDigest: buildAssistantTraceDigest(currentProjectRef.current, message) };
+  }
+
+  /** The context a send passes as its override: without the digest, which the client's provider builds once, from the
+   *  message being sent (also when a queued message is sent later); an override's digest would replace it. */
+  function workspaceContextWithoutDigest() {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || 'ClassDiagram';
     const diagrams = project?.diagrams?.[activeType as keyof typeof project.diagrams];
@@ -809,8 +818,6 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
-      // Only when the project records traces and has recorded something; left out otherwise.
-      traceDigest: buildAssistantTraceDigest(project, message),
       traceabilityEnabled: isTraceabilityEnabled(project),
       ...readGenerationContext(project?.id),
     };
@@ -1539,7 +1546,7 @@ export function useAssistantLogic({
         }
       }
 
-      const context = buildWorkspaceContext();
+      const context = workspaceContextWithoutDigest();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
@@ -1614,7 +1621,7 @@ export function useAssistantLogic({
       voicePlaceholderIdRef.current = voicePlaceholder.id;
       setMessages((prev) => [...prev, voicePlaceholder]);
 
-      const context = buildWorkspaceContext();
+      const context = workspaceContextWithoutDigest();
       const mimeType = audioBlob.type || 'audio/wav';
       const sendResult = assistantClient.sendVoiceMessage(
         audioBase64,
