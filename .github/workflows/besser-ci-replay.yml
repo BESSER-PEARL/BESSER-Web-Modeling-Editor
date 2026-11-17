@@ -1,0 +1,62 @@
+name: BESSER CI coverage replay
+
+on:
+  push:
+    branches: [codex/besser-ci-coverage-replay]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.python }}, ${{ matrix.part.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+        part:
+          - {name: spec-driven, paths: tests/spec_driven_agent}
+          - {name: other, paths: tests --ignore=tests/spec_driven_agent}
+    defaults:
+      run:
+        working-directory: besser
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: benchmark
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: BESSER-PEARL/BESSER
+          ref: 4516f5e684b03c661b8eb6fdb2acb5d23df7e5a9
+          path: besser
+          fetch-depth: 2
+          persist-credentials: false
+      - run: git apply ../benchmark/.github/benchmarks/besser-ci.patch
+      - name: Verify release-note exemption and uncertain-diff fallback
+        run: |
+          export GITHUB_SHA="$(git rev-parse HEAD)"
+          export PR_HEAD_SHA="$(git rev-parse HEAD^2)"
+          export GITHUB_OUTPUT="$RUNNER_TEMP/scope-result"
+          python3 .github/scripts/check_test_scope.py
+          grep -Fx 'release_notes_only=true' "$GITHUB_OUTPUT"
+          PR_HEAD_SHA=unknown GITHUB_OUTPUT="$RUNNER_TEMP/scope-fallback" python3 .github/scripts/check_test_scope.py
+          grep -Fx 'release_notes_only=false' "$RUNNER_TEMP/scope-fallback"
+      - uses: ./besser/.github/actions/setup-python
+        with:
+          python-version: ${{ matrix.python }}
+          cache-dependency-path: |
+            besser/setup.cfg
+            besser/requirements.txt
+            besser/besser/utilities/web_modeling_editor/backend/requirements.txt
+      - name: Install bubblewrap (shell sandbox)
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[nn,dev]"
+          pip install -r besser/utilities/web_modeling_editor/backend/requirements.txt
+      - name: Run full pytest shard
+        run: python -m pytest ${{ matrix.part.paths }} -n auto -q --tb=short

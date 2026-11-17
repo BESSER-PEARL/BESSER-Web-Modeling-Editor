@@ -1,0 +1,150 @@
+diff --git a/.github/scripts/check_test_scope.py b/.github/scripts/check_test_scope.py
+new file mode 100644
+index 0000000..a152444
+--- /dev/null
++++ b/.github/scripts/check_test_scope.py
+@@ -0,0 +1,36 @@
++"""Allow the Python test matrix to skip PRs that only change release notes."""
++
++import os
++import re
++import subprocess
++
++
++RELEASE_NOTE = re.compile(rb"docs/source/releases/v[0-9]+/v[0-9]+\.[0-9]+\.[0-9]+\.rst")
++
++
++def git(*args):
++    return subprocess.check_output(["git", *args], stderr=subprocess.DEVNULL)
++
++
++def release_notes_only(merge_sha, pr_head_sha):
++    if not merge_sha or not pr_head_sha:
++        return False
++    try:
++        revision = git("rev-list", "--parents", "-n", "1", "HEAD").decode().split()
++        if len(revision) != 3 or revision[0] != merge_sha or revision[2] != pr_head_sha:
++            return False
++        # Report both sides of a rename so moving code into docs still runs tests.
++        paths = git(
++            "diff", "--name-only", "--no-renames", "--ignore-submodules=none",
++            "-z", revision[1], revision[0],
++        )
++    except subprocess.CalledProcessError:
++        return False
++    return bool(paths) and all(RELEASE_NOTE.fullmatch(path) for path in paths.split(b"\0")[:-1])
++
++
++if __name__ == "__main__":
++    skip = release_notes_only(os.environ.get("GITHUB_SHA"), os.environ.get("PR_HEAD_SHA"))
++    print("Versioned release notes only. The docs build covers this change." if skip else "Run full tests.")
++    with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
++        print(f"release_notes_only={str(skip).lower()}", file=output)
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7c213eb..9479abb 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -32,7 +32,17 @@ jobs:
+           - {name: other, paths: tests --ignore=tests/spec_driven_agent}
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          # The PR checkout is the merge result. Its first parent is the base.
++          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
++      - name: Check whether only versioned release notes changed
++        if: github.event_name == 'pull_request'
++        id: test-scope
++        env:
++          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
++        run: python3 .github/scripts/check_test_scope.py
+       - uses: ./.github/actions/setup-python
++        if: steps.test-scope.outputs.release_notes_only != 'true'
+         with:
+           python-version: ${{ matrix.python-version }}
+           cache-dependency-path: |
+@@ -44,18 +54,21 @@ jobs:
+       # shell tests fall back to unconfined, so CI would not exercise the
+       # path production actually takes.
+       - name: Install bubblewrap (shell sandbox)
++        if: steps.test-scope.outputs.release_notes_only != 'true'
+         run: sudo apt-get update && sudo apt-get install -y bubblewrap
+       # The nn extra (torch, numpy) lets the tests that run generated PyTorch
+       # code (the forecaster, the backend's NN methods) run instead of skip.
+       # Torch comes first from the CPU-only index: the default wheel pulls in
+       # CUDA, several GB that CI never uses.
+       - name: Install dependencies
++        if: steps.test-scope.outputs.release_notes_only != 'true'
+         run: |
+           pip install torch --index-url https://download.pytorch.org/whl/cpu
+           pip install -e ".[nn,dev]"
+           pip install -r besser/utilities/web_modeling_editor/backend/requirements.txt
+       # pytest-xdist (dev extra): one worker per core.
+       - name: Run tests
++        if: steps.test-scope.outputs.release_notes_only != 'true'
+         run: python -m pytest ${{ matrix.part.paths }} -n auto -q --tb=short
+ 
+   tests:
+diff --git a/tests/docs/test_check_test_scope.py b/tests/docs/test_check_test_scope.py
+new file mode 100644
+index 0000000..f8c0902
+--- /dev/null
++++ b/tests/docs/test_check_test_scope.py
+@@ -0,0 +1,58 @@
++import os
++from pathlib import Path
++import subprocess
++import sys
++
++import pytest
++
++
++SCRIPT = Path(__file__).resolve().parents[2] / ".github/scripts/check_test_scope.py"
++RELEASE_NOTE = "docs/source/releases/v8/v8.10.1.rst"
++CODE = "besser/example.py"
++
++
++@pytest.mark.parametrize(
++    ("changed", "wrong_head", "rename_code", "expected"),
++    [
++        ([RELEASE_NOTE], False, False, "true"),
++        ([RELEASE_NOTE], True, False, "false"),
++        ([RELEASE_NOTE, CODE], False, False, "false"),
++        (["docs/source/spec_driven_agent/tools.rst"], False, False, "false"),
++        ([], False, False, "false"),
++        ([], False, True, "false"),
++    ],
++)
++def test_release_note_exemption(tmp_path, changed, wrong_head, rename_code, expected):
++    def git(*args):
++        return subprocess.check_output(["git", *args], cwd=tmp_path, text=True).strip()
++
++    git("init", "-q", "-b", "base")
++    git("config", "user.name", "CI test")
++    git("config", "user.email", "ci@example.invalid")
++    code = tmp_path / CODE
++    code.parent.mkdir()
++    code.write_text("original", encoding="utf-8")
++    git("add", CODE)
++    git("commit", "-qm", "base")
++    git("switch", "-qc", "pr")
++    if rename_code:
++        (tmp_path / RELEASE_NOTE).parent.mkdir(parents=True)
++        git("mv", CODE, RELEASE_NOTE)
++    for name in changed:
++        path = tmp_path / name
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_text("changed", encoding="utf-8")
++    git("add", ".")
++    git("commit", "-qm", "pull request", "--allow-empty")
++    head = git("rev-parse", "HEAD")
++    git("switch", "-q", "base")
++    git("merge", "-q", "--no-ff", "--no-edit", "pr")
++    result = tmp_path / "scope"
++    env = {
++        **os.environ,
++        "GITHUB_OUTPUT": str(result),
++        "GITHUB_SHA": git("rev-parse", "HEAD"),
++        "PR_HEAD_SHA": "0" * 40 if wrong_head else head,
++    }
++    subprocess.run([sys.executable, SCRIPT], cwd=tmp_path, env=env, check=True)
++    assert result.read_text(encoding="utf-8") == f"release_notes_only={expected}\n"
