@@ -33,7 +33,7 @@ import {
   SupportedDiagramType,
 } from '../../shared/types/project';
 import { QuantumCircuitData } from '../../shared/types/project';
-import { importTemplateProject } from '../../shared/services/project-import/projectImport';
+import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
   FULL_PROJECT_DIAGRAM_TYPE,
@@ -232,7 +232,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) {
         const jsonStr = JSON.stringify(selectedTemplate.diagram);
         const file = new File([jsonStr], `${selectedTemplate.type}.json`, { type: 'application/json' });
-        const importedProject = await importTemplateProject(file, MODEL_GENERATORS.template);
+        const importedProject = await importProjectFromJson(file);
         await dispatch(loadProjectThunk(importedProject.id)).unwrap();
         track('template_used', { mode: 'project', had_model: false });
         trackProjectCreated(importedProject.settings?.preferredInterface ?? 'model', 'template');

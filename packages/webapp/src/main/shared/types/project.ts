@@ -348,9 +348,9 @@ export interface BesserProject {
      */
     preferredInterface?: InterfaceMode;
     /**
-     * Record traces (modeling edits, generation runs) for this project. On for a
-     * project created in the editor (`createDefaultProject`), off when unset (an
-     * older project). The trace itself is stored apart from the project (see
+     * Record traces (modeling edits, generation runs) for this project. Opt-in: off
+     * for a new project and when unset; the user turns it on on the Traceability
+     * page. The trace itself is stored apart from the project (see
      * `shared/traceability/traceStore.ts`). Optional, so no schema bump.
      */
     traceabilityEnabled?: boolean;
@@ -739,7 +739,7 @@ export const createDefaultProject = (
       collaborationEnabled: false,
       perspectives: perspectives ?? createDefaultPerspectives(),
       ...(preferredInterface ? { preferredInterface } : {}),
-      traceabilityEnabled: true,
+      traceabilityEnabled: false,
     },
   };
 };

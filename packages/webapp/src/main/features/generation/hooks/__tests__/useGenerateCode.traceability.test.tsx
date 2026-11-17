@@ -13,6 +13,13 @@ import type { BesserProject } from '../../../../shared/types/project';
 import { emptyTraceFile } from '../../../../shared/types/traceability';
 import type { GenerationOptions, GenerationResult } from '../../types';
 
+/** A project that records traces: recording is opt-in. */
+const recordingProject = (...args: Parameters<typeof createDefaultProject>) => {
+  const project = createDefaultProject(...args);
+  project.settings.traceabilityEnabled = true;
+  return project;
+};
+
 const trace = vi.hoisted(() => ({ recordGenerationTrace: vi.fn((_projectId: string, _fragment: unknown) => true) }));
 vi.mock('../../../../shared/traceability/traceStore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../shared/traceability/traceStore')>()),
@@ -52,7 +59,7 @@ async function generate(generator: string, opts?: GenerationOptions): Promise<Ge
 describe('traced generation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    project = createDefaultProject('Library', '', 'Ada');
+    project = recordingProject('Library', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockImplementation(() => project);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);

@@ -1,8 +1,8 @@
 Traceability: what the editor records
 =====================================
 
-A project that records traces (``settings.traceabilityEnabled``, on for a project created in the
-editor) keeps a *trace file* next to it (see :doc:`local-projects` for where it is stored). Its format
+A project that records traces (``settings.traceabilityEnabled``: opt-in, off for a new project until
+the user turns it on on the Traceability page) keeps a *trace file* next to it (see :doc:`local-projects` for where it is stored). Its format
 mirrors the backend's traceability metamodel (``besser/BUML/metamodel/traceability``) and is typed in
 ``shared/types/traceability.ts``: actors, tools, artifacts, operations and the trace links between
 artifacts. This page lists what is recorded, by whom, and how the trace is kept bounded.
@@ -146,8 +146,9 @@ The digest is a bounded summary, at most about 12,000 characters, never the trac
 Generated file contents and prompt texts are never sent; a requirement's statement and quote are cut at 500
 characters.
 
-**Privacy.** Recording is on by default for a project created in the editor, so by default every message to
-the assistant carries the digest. It names who made each change (``Person:<owner>``, the project owner's name
+**Privacy.** Recording is off for a new project; once the user turns it on, every message to the assistant
+carries the digest, and ``context.traceabilityEnabled`` tells the agent to extract the requirements of a
+long class-diagram request (an LLM call it skips when recording is off). The digest names who made each change (``Person:<owner>``, the project owner's name
 as entered, or ``anonymous``; ``Agent:...`` for the assistant) and carries the old and new values of the changes in
 the focus history, which include longer values such as a method's code or a constraint's expression (each cut
 at 500 characters). Turning recording off for the project stops sending it; the user guide says the same

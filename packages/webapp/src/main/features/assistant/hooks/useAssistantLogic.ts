@@ -793,6 +793,7 @@ export function useAssistantLogic({
       githubRepo: githubRepoContext(project?.id),
       // Only when the project records traces and has recorded something; left out otherwise.
       traceDigest: buildAssistantTraceDigest(project, message),
+      traceabilityEnabled: isTraceabilityEnabled(project),
     };
   }
 

@@ -86,6 +86,18 @@ describe('AssistantClient sends the digest', () => {
   });
 });
 
+describe('AssistantClient sends whether the project records traces', () => {
+  it('keeps traceabilityEnabled through the context whitelist, off as well as on', () => {
+    // The agent extracts a request's requirements only for a recording project; a dropped flag reads as off.
+    for (const enabled of [true, false]) {
+      const client = new AssistantClient('ws://never-connect.invalid', {
+        contextProvider: () => ({ activeDiagramType: 'ClassDiagram', traceabilityEnabled: enabled }),
+      });
+      expect((client as any).buildUserPayload('a library', 'ClassDiagram').context.traceabilityEnabled).toBe(enabled);
+    }
+  });
+});
+
 describe('show_trace', () => {
   it('is a known action and not a side effect', () => {
     const client = new AssistantClient('ws://never-connect.invalid');

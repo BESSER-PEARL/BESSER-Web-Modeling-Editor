@@ -86,8 +86,8 @@ describe('createDefaultProject', () => {
     }
   });
 
-  it('records traces from the start', () => {
-    expect(createDefaultProject('Demo', 'desc', 'me').settings.traceabilityEnabled).toBe(true);
+  it('records no traces until the user turns recording on', () => {
+    expect(createDefaultProject('Demo', 'desc', 'me').settings.traceabilityEnabled).toBe(false);
   });
 });
 

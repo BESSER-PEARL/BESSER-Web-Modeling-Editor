@@ -39,6 +39,9 @@ export interface AssistantWorkspaceContext {
   /** A bounded summary of the project's trace (`context.traceDigest`, contract section 3). Present only when
    *  the project records traces and has recorded something. */
   traceDigest?: TraceDigest;
+  /** The project records traces (opt-in). The agent extracts a request's requirements only then: the trace is
+   *  the one place they go. */
+  traceabilityEnabled?: boolean;
 }
 
 export interface AssistantGitHubRepo {

@@ -211,6 +211,7 @@ const mergeContexts = (
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
     githubRepo: override?.githubRepo || base?.githubRepo,
     traceDigest: override?.traceDigest || base?.traceDigest,
+    traceabilityEnabled: override?.traceabilityEnabled ?? base?.traceabilityEnabled,
   };
 };
 

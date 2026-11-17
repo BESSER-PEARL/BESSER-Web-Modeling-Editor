@@ -8,6 +8,13 @@ import { memoryTraceStorage } from '../../../shared/traceability/traceDatabase';
 import { specDrivenOperationId } from '../../../shared/traceability/traceRecorder';
 import { emptyTraceFile } from '../../../shared/types/traceability';
 
+/** A project that records traces: recording is opt-in. */
+const recordingProject = (...args: Parameters<typeof createDefaultProject>) => {
+  const project = createDefaultProject(...args);
+  project.settings.traceabilityEnabled = true;
+  return project;
+};
+
 const done = (extra: Partial<DoneEvent> = {}): DoneEvent => ({
   event: 'done', runId: 'r1', downloadUrl: '/download/r1', fileName: 'app.zip', isZip: true,
   recipe: { generator_used: 'web_app' }, tokensUsed: 4200, changedFiles: ['src/App.tsx'], changedFileCount: 1,
@@ -38,7 +45,7 @@ describe('what the trace records of a Spec-Driven run', () => {
   });
 
   it('records a run without a trace from its stream, reading the project’s diagrams', async () => {
-    const project = createDefaultProject('Shop', '', 'Ada');
+    const project = recordingProject('Shop', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
     recordRunInTrace(project.id, 'r1', newRunTraceState(), done());
     await flushTraceSaves();
@@ -53,7 +60,7 @@ describe('what the trace records of a Spec-Driven run', () => {
   });
 
   it('records the run once when done.trace arrives after the fallback has recorded it', async () => {
-    const project = createDefaultProject('Shop', '', 'Ada');
+    const project = recordingProject('Shop', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
     const fragment = { ...emptyTraceFile('x'), projectId: null, operations: [{ id: specDrivenOperationId('r1'), type: 'CodeGeneration',
       status: 'SUCCEEDED', startedAt: '2026-01-01T00:00:00.000Z', performedBy: [], toolCalls: [], reads: [], writes: [] }] };
@@ -62,7 +69,7 @@ describe('what the trace records of a Spec-Driven run', () => {
     await flushTraceSaves();
     expect((await loadProjectTrace(project.id)).operations.map((o) => o.id)).toEqual([specDrivenOperationId('r1')]);
     // ... and the other way round.
-    const other = createDefaultProject('Shop2', '', 'Ada');
+    const other = recordingProject('Shop2', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(other);
     recordRunInTrace(other.id, 'r1', newRunTraceState(), done({ trace: fragment }));
     recordRunInTrace(other.id, 'r1', newRunTraceState(), done());
@@ -71,7 +78,7 @@ describe('what the trace records of a Spec-Driven run', () => {
   });
 
   it('merges the trace the done event carries', async () => {
-    const project = createDefaultProject('Shop', '', 'Ada');
+    const project = recordingProject('Shop', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(project);
     const fragment = { ...emptyTraceFile('x'), projectId: null, operations: [{ id: 'backend-run', type: 'CodeGeneration', status: 'SUCCEEDED',
       startedAt: '2026-01-01T00:00:00.000Z', performedBy: [], toolCalls: [], reads: [], writes: [] }] };

@@ -14,6 +14,13 @@ import { flushTraceSaves, getProjectTrace, loadProjectTrace, setTraceStorage } f
 import { memoryTraceStorage } from '../../../../shared/traceability/traceDatabase';
 import type { GenerationResult } from '../../types';
 
+/** A project that records traces: recording is opt-in. */
+const recordingProject = (...args: Parameters<typeof createDefaultProject>) => {
+  const project = createDefaultProject(...args);
+  project.settings.traceabilityEnabled = true;
+  return project;
+};
+
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 const download = vi.hoisted(() => vi.fn());
 vi.mock('../../../../shared/services/file-download/useFileDownload', () => ({ useFileDownload: () => download }));
@@ -43,7 +50,7 @@ describe('a generation whose trace cannot be recorded', () => {
     ['loaded', true],
     ['not loaded yet', false],
   ])('still downloads the file when the trace is %s', async (_label, preload) => {
-    const project = createDefaultProject('Library', '', 'Ada');
+    const project = recordingProject('Library', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(project);
     if (preload) await loadProjectTrace(project.id);
     const unhandled = vi.fn();
@@ -70,7 +77,7 @@ describe('a generation whose trace cannot be recorded', () => {
   });
 
   it('warns that the trace was not recorded when the fragment is not a trace', async () => {
-    const project = createDefaultProject('Library', '', 'Ada');
+    const project = recordingProject('Library', '', 'Ada');
     vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(project);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(responseWith({ schemaVersion: 6, artifacts: 'nope' })));
     const { result } = renderHook(() => useGenerateCode());

@@ -47,7 +47,7 @@ import type { AssistantReplyKind, AssistantRequest, ModelingSource } from './tra
  * apply to it at once (or, before it has loaded, in order once it has), and it is saved in the
  * background, a short while after the last update and when the page is hidden.
  *
- * Recording is per project (`settings.traceabilityEnabled`): on for a new project, off when unset.
+ * Recording is per project (`settings.traceabilityEnabled`) and opt-in: off for a new project and when unset.
  */
 
 /** Recorded when the project has no owner. Mirrors `TRACE_ANONYMOUS_ACTOR` in the backend. */
