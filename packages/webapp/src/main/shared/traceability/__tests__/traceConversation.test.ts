@@ -23,6 +23,7 @@ import { memoryTraceStorage } from '../traceDatabase';
 import { emptyTraceFile, logsOf } from '../../types/traceability';
 import type { ConversationOperation, ModelingSessionOperation, TraceFile } from '../../types/traceability';
 import type { BesserProject, ProjectDiagram } from '../../types/project';
+import { clearLlmKey, REDACTED_LLM_KEY, writeLlmKey } from '../../services/llmKeyStorage';
 
 const T0 = Date.parse('2026-10-29T10:00:00.000Z');
 const at = (ms: number) => new Date(T0 + ms).toISOString();
@@ -134,6 +135,26 @@ describe('recording a conversation in the project trace', () => {
     // The hash is the SHA-256 of the request.
     expect(prompt).toMatchObject({ content: 'Add a Book class', contentHash: expect.stringMatching(/^[0-9a-f]{64}$/) });
     expect(trace.traceLinks.map((l) => [l.sourceId, trace.artifacts.find((a) => a.id === l.targetId)!.name])).toEqual([[prompt.id, 'Book']]);
+  });
+
+  it('never records the stored LLM key the user pasted into the chat', async () => {
+    const key = 'sk-test-secret-1234567890';
+    writeLlmKey('openai', key);
+    try {
+      await recordAssistantRequest(project, `${key}
+Add a Book class, my key is ${key}`);
+      recordAssistantReply(project, 'answer', `I will not use ${key}.`);
+      recordClassDiagramUpdate(project, diagram, model([]), model([cls('c1', 'Book')]), 'assistant');
+      await flushTraceSaves();
+    } finally {
+      clearLlmKey();
+    }
+    const trace = await loadProjectTrace(project.id);
+    const stored = JSON.stringify(trace);
+    expect(stored).not.toContain(key);
+    expect(stored).toContain(REDACTED_LLM_KEY);
+    const prompt = trace.artifacts.find((a) => a.type === 'PromptArtifact')!;
+    expect(prompt.name).toBe(REDACTED_LLM_KEY);
   });
 
   it('records nothing for a project that does not record traces', async () => {

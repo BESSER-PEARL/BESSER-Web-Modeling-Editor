@@ -14,6 +14,7 @@ import type {
   TraceTool,
   TraceToolCall,
 } from '../types/traceability';
+import { llmKeyRedactor } from '../services/llmKeyStorage';
 import { changesOf, isCodeArtifact, isModelArtifact, isModelingSession, toolIdsOf } from '../types/traceability';
 import type { AssistantRequirements } from './assistantRequirements';
 import { findNamedElement } from './classModelDiff';
@@ -307,10 +308,14 @@ function linkBindings(trace: TraceFile, operation: TraceOperation, changes: Elem
 
 /* ------------------------------------------------------------------ conversations with the assistant */
 
-const capped = (text: string): string =>
-  text.length <= MAX_LOGGED_MESSAGE_CHARS
+/** A message as the trace keeps it: without the stored LLM key (the user may have pasted it into the chat), cut to
+ *  {@link MAX_LOGGED_MESSAGE_CHARS}. */
+const capped = (raw: string): string => {
+  const text = llmKeyRedactor()(raw);
+  return text.length <= MAX_LOGGED_MESSAGE_CHARS
     ? text
     : `${text.slice(0, MAX_LOGGED_MESSAGE_CHARS)}… [${text.length - MAX_LOGGED_MESSAGE_CHARS} more characters not kept]`;
+};
 
 /** The conversation under way: the last one that has not ended. */
 function openConversation(trace: TraceFile): ConversationOperation | undefined {
@@ -455,9 +460,10 @@ function ensurePrompt(trace: TraceFile, request: AssistantRequest): string | und
   if (!conversation) return undefined;
   const promptId = promptIdOf(request);
   if (!trace.artifacts.some((a) => a.id === promptId)) {
-    const firstLine = request.text.trim().split('\n')[0];
+    const content = capped(request.text);
+    const firstLine = content.trim().split('\n')[0];
     const prompt: PromptArtifact = {
-      id: promptId, type: 'PromptArtifact', contentHash: request.contentHash, content: capped(request.text),
+      id: promptId, type: 'PromptArtifact', contentHash: request.contentHash, content,
       name: firstLine.length > PROMPT_NAME_CHARS ? `${firstLine.slice(0, PROMPT_NAME_CHARS)}…` : firstLine,
       timestamp: conversation.toolCalls.find((call) => call.id === request.callId)!.startedAt,
     };
