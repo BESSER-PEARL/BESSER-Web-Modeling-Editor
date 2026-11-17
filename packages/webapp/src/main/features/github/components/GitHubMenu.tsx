@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -53,7 +54,7 @@ import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { useGitHubAutosave } from '../hooks/useGitHubAutosave';
 import { useAutosaveStatus } from '../autosave/autosaveStatus';
-import { useAutosaveStatusText } from './GitHubAutosaveSetting';
+import { setGitHubAutosave, useAutosaveStatusText } from './GitHubAutosaveSetting';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { trackGitHubAction } from '../githubAnalytics';
 
@@ -428,6 +429,15 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                 <CloudUpload className={cn('size-4 shrink-0', canSave ? 'text-brand' : 'text-muted-foreground')} aria-hidden="true" />
                 {t('github.menu.saveToGitHub', { defaultValue: 'Save to GitHub…' })}
               </DropdownMenuItem>
+              {/* The same setting as the project settings' GitHub card; it needs this tab's session to commit. */}
+              <DropdownMenuCheckboxItem
+                className="py-2"
+                checked={!!link.autoSave && !!githubSession}
+                disabled={!githubSession || !currentProject}
+                onCheckedChange={(next) => currentProject && setGitHubAutosave(currentProject.id, next)}
+              >
+                {t('github.autosave.label', { defaultValue: 'Autosave to GitHub' })}
+              </DropdownMenuCheckboxItem>
               {(state === 'behind' || state === 'diverged') && (
                 <>
                   <DropdownMenuItem className={itemClass} onSelect={() => void getLatest()}>

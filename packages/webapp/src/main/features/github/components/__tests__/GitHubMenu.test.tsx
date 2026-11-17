@@ -62,6 +62,7 @@ vi.mock('../../../../shared/components/github/RepoBrowser', () => ({
 import { GitHubMenu } from '../GitHubMenu';
 import { OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../../shared/api/github';
 import { resetGitHubAuthForTests } from '../../../../shared/services/github/githubAuth';
+import { getProjectGitHubLink, setProjectGitHubLink } from '../../../../shared/services/storage/projectGitHubLink';
 
 const commit = { sha: 'b'.repeat(40), message: 'Fix', author: 'Ana', author_login: 'ana', is_merge: false, date: '', html_url: '', origin: null };
 const onLogin = vi.fn();
@@ -165,6 +166,37 @@ describe('GitHubMenu', () => {
     );
     // Nothing new on GitHub: no pull.
     expect(screen.queryByRole('menuitem', { name: 'Get latest' })).toBeNull();
+  });
+
+  it('turns autosave on and off from the menu of a linked project', () => {
+    linkAs('in-sync');
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library-app', branch: 'main' });
+    renderMenu();
+    openMenu();
+
+    const toggle = screen.getByRole('menuitemcheckbox', { name: 'Autosave to GitHub' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(getProjectGitHubLink('p1')?.autoSave).toBe(true);
+
+    sync.link = { ...sync.link!, autoSave: true } as typeof sync.link;
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Autosave to GitHub' }));
+    expect(getProjectGitHubLink('p1')?.autoSave).toBeUndefined();
+    localStorage.clear();
+  });
+
+  it('cannot turn autosave on from the menu without a GitHub session in this tab', () => {
+    linkAs('in-sync');
+    const session = sync.githubSession;
+    sync.githubSession = null as unknown as string;
+    try {
+      renderMenu();
+      openMenu();
+      expect(screen.getByRole('menuitemcheckbox', { name: 'Autosave to GitHub' })).toHaveAttribute('aria-disabled', 'true');
+    } finally {
+      sync.githubSession = session;
+    }
   });
 
   it('offers Get latest when GitHub is ahead, and confirms before discarding local changes', async () => {
