@@ -1,6 +1,6 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, GitFork } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, GitFork, MousePointerClick } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 import { CodeLines } from './components/CodeLines';
 import { toggledIn } from './components/toggleSet';
+import { TypeTag } from './components/TypeTag';
 
 interface ElementsViewProps {
   index: TraceIndex;
@@ -81,8 +82,8 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
   };
 
   return (
-    <div className="grid min-h-[420px] gap-4 md:grid-cols-[280px_1fr]">
-      <div className="space-y-2">
+    <div className="grid min-h-[420px] gap-6 md:grid-cols-[minmax(260px,320px)_1fr]">
+      <div className="space-y-2 md:border-r md:border-border md:pr-4">
         <Input
           type="search"
           value={query}
@@ -102,7 +103,12 @@ export const ElementsView: React.FC<ElementsViewProps> = ({ index, selectedId, o
       {selected ? (
         <ElementDetail index={index} artifactId={selected.id} onShowLineage={onShowLineage} />
       ) : (
-        <p className="self-center text-center text-sm text-muted-foreground">{t('traceability.elements.pick')}</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border px-6 py-14 text-center">
+          <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden>
+            <MousePointerClick className="size-5" />
+          </span>
+          <p className="max-w-xs text-sm text-muted-foreground">{t('traceability.elements.pick')}</p>
+        </div>
       )}
     </div>
   );
@@ -170,7 +176,7 @@ const TreeNode: React.FC<{ artifact: ModelArtifact; tree: TreeContext }> = ({ ar
           <span className={`truncate ${diagram ? 'font-semibold' : ''} ${deleted ? 'text-muted-foreground line-through' : ''}`}>
             {artifact.name}
           </span>
-          <span className="shrink-0 text-[10px] uppercase text-muted-foreground">{elementTypeLabel(t, artifact.elementType)}</span>
+          <TypeTag>{elementTypeLabel(t, artifact.elementType)}</TypeTag>
         </button>
       </div>
       {open && (
@@ -262,12 +268,12 @@ const CodeFragment: React.FC<{ entry: GeneratedFragment; index: TraceIndex; loca
         )}
         <span className="ml-auto flex items-center gap-1">
           {entry.outOfDate.length > 0 ? (
-            <Badge variant="destructive" size="sm" title={t('traceability.elements.outOfDateHelp')}>
+            <Badge variant="outline" size="sm" className="border-warning/40 bg-warning/10 text-warning" title={t('traceability.elements.outOfDateHelp')}>
               <AlertTriangle className="mr-1 size-3" aria-hidden />
               {t('traceability.status.outOfDate')}
             </Badge>
           ) : (
-            <Badge variant="soft" size="sm">
+            <Badge variant="outline" size="sm" className="border-success/30 bg-success/10 text-success">
               <CheckCircle2 className="mr-1 size-3" aria-hidden />
               {t('traceability.status.upToDate')}
             </Badge>

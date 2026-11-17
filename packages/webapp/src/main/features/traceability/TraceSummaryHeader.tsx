@@ -1,43 +1,35 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, FileWarning, Link2, ListTree, Workflow } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, FileWarning, Link2, ListTree, Workflow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { TraceSummary } from '../../shared/traceability/traceSummary';
 import { formatTime } from './traceLabels';
 
-interface StatProps {
+interface FigureProps {
   icon: React.ReactNode;
   label: string;
   value: number;
-  tone?: 'default' | 'warning' | 'success';
   hint?: string;
+  tone?: 'default' | 'warning' | 'success';
 }
 
-const Stat: React.FC<StatProps> = ({ icon, label, value, tone = 'default', hint }) => (
-  <div
-    className={cn(
-      'flex min-w-0 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 shadow-sm',
-      tone === 'warning' ? 'border-amber-500/40 bg-amber-500/[0.06]' : 'border-border',
-    )}
-    title={hint}
-  >
-    <div
+const Figure: React.FC<FigureProps> = ({ icon, label, value, hint, tone = 'default' }) => (
+  <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" title={hint}>
+    <span
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-md',
-        tone === 'warning'
-          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-          : tone === 'success'
-            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-            : 'bg-brand/10 text-brand-dark dark:text-brand-light',
+        'shrink-0',
+        tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : 'text-muted-foreground',
       )}
       aria-hidden
     >
       {icon}
-    </div>
+    </span>
     <div className="min-w-0">
-      <div className="text-lg font-semibold leading-tight tabular-nums">{value.toLocaleString()}</div>
-      <div className="truncate text-xs text-muted-foreground">{label}</div>
+      <div className={cn('text-xl font-semibold leading-none tracking-tight tabular-nums', tone === 'warning' && 'text-warning')}>
+        {value.toLocaleString()}
+      </div>
+      <div className="mt-1 text-xs leading-snug text-muted-foreground">{label}</div>
     </div>
   </div>
 );
@@ -53,17 +45,18 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
   const { t, i18n } = useTranslation();
   const stale = summary.outOfDateLinks > 0;
   return (
-    <section aria-label={t('traceability.summary.label')} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={<Workflow className="size-4" />} label={t('traceability.summary.operations', { count: summary.operations })} value={summary.operations} />
-        <Stat icon={<ListTree className="size-4" />} label={t('traceability.summary.artifacts', { count: summary.artifacts })} value={summary.artifacts} />
-        <Stat
+    <section aria-label={t('traceability.summary.label')} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      {/* 1px gaps over the border colour draw the dividers, in two rows or one. */}
+      <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4 [&>*]:bg-card">
+        <Figure icon={<Workflow className="size-4" />} label={t('traceability.summary.operations', { count: summary.operations })} value={summary.operations} />
+        <Figure icon={<ListTree className="size-4" />} label={t('traceability.summary.artifacts', { count: summary.artifacts })} value={summary.artifacts} />
+        <Figure
           icon={<Link2 className="size-4" />}
           label={t('traceability.summary.links', { count: summary.links })}
           value={summary.links}
           hint={t('traceability.summary.linksHint')}
         />
-        <Stat
+        <Figure
           icon={stale ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />}
           label={t('traceability.summary.outOfDate', { count: summary.outOfDateLinks })}
           value={summary.outOfDateLinks}
@@ -71,10 +64,10 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
         />
       </div>
       {summary.staleGenerators.length > 0 && (
-        <ul className="divide-y divide-amber-500/20 overflow-hidden rounded-lg border border-amber-500/30 bg-amber-500/[0.06]">
+        <ul className="divide-y divide-warning/15 border-t border-warning/25 bg-warning/[0.06]">
           {summary.staleGenerators.map((entry) => (
-            <li key={entry.operation.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
-              <FileWarning className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+            <li key={entry.operation.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+              <FileWarning className="size-4 shrink-0 text-warning" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="font-medium">
                   {t('traceability.summary.staleFiles', {
@@ -91,8 +84,9 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
                   {entry.files.length > 3 && ` ${t('traceability.lineage.moreLinks', { count: entry.files.length - 3 })}`}
                 </span>
               </span>
-              <Button size="sm" variant="outline" className="h-7 bg-background text-xs" onClick={onShowOutOfDate}>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-warning hover:bg-warning/10 hover:text-warning" onClick={onShowOutOfDate}>
                 {t('traceability.summary.showCoverage')}
+                <ArrowRight className="size-3.5" aria-hidden />
               </Button>
             </li>
           ))}

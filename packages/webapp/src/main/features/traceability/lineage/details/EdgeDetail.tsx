@@ -109,7 +109,7 @@ const OutOfDateNote: React.FC<{ index: TraceIndex; edge: LineageEdge }> = ({ ind
   const { link } = edge;
   if (edge.outOfDate.length === 0) {
     return (
-      <p className="flex items-start gap-1 text-xs text-emerald-700 dark:text-emerald-300">
+      <p className="flex items-start gap-1 text-xs text-success">
         <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         {t('traceability.lineage.outOfDate.upToDate')}
       </p>
@@ -121,7 +121,7 @@ const OutOfDateNote: React.FC<{ index: TraceIndex; edge: LineageEdge }> = ({ ind
     <section className="space-y-2">
       {edge.outOfDate.map((reason) => (
         <div key={reason} className="space-y-0.5">
-          <p className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-300">
+          <p className="flex items-start gap-1 text-xs text-warning">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             {t(`traceability.lineage.outOfDate.${reason}`)}
           </p>

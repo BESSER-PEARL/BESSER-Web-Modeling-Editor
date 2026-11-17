@@ -8,7 +8,7 @@ export const EVIDENCE_STROKES: Record<TraceEvidence['type'], string> = {
   RuleEvidence: 'stroke-slate-400 dark:stroke-slate-500',
   AIEvidence: 'stroke-violet-500',
 };
-export const OUT_OF_DATE_STROKE = 'stroke-amber-500';
+export const OUT_OF_DATE_STROKE = 'stroke-warning';
 
 /** How a link is drawn: amber, solid when one of its own ends changed, dashed when only something upstream did. */
 export type LinkLook = 'upToDate' | 'endChanged' | 'upstreamChanged';

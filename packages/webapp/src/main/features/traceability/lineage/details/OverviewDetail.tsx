@@ -35,7 +35,7 @@ export const OverviewDetail: React.FC<{
         {t('traceability.lineage.overviewCounts', { cards: layout.columns.flat().length, links: lineage.edges.length })}
       </p>
       {outdated > 0 && (
-        <p className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-300">
+        <p className="flex items-start gap-1 text-xs text-warning">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           {t('traceability.lineage.overviewOutOfDate', { count: outdated })}
         </p>
@@ -64,7 +64,7 @@ export const OverviewDetail: React.FC<{
                     </span>
                     {bundle.edges.length > 1 && <span className="shrink-0 tabular-nums text-muted-foreground">×{bundle.edges.length}</span>}
                     {stale && (
-                      <AlertTriangle className="size-3 shrink-0 text-amber-500" role="img" aria-label={t('traceability.status.outOfDate')} />
+                      <AlertTriangle className="size-3 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
                     )}
                   </button>
                 </li>

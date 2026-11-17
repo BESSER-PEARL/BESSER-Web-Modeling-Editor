@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TypeTag } from './TypeTag';
 
 /** A row of the list: a choice, or a heading that groups the choices after it. */
 export type ComboItem =
@@ -210,7 +211,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
                 >
                   <Check className={cn('size-3.5 shrink-0 self-center', item.value === value ? 'opacity-100' : 'opacity-0')} aria-hidden />
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  {item.detail && <span className="shrink-0 text-[10px] uppercase text-muted-foreground">{item.detail}</span>}
+                  {item.detail && <TypeTag>{item.detail}</TypeTag>}
                 </li>
               ),
             )}

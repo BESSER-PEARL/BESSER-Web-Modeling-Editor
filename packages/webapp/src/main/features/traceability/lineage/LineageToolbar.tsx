@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronsDownUp, ChevronsUpDown, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { AlertTriangle, ChevronsDownUp, ChevronsUpDown, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -92,7 +92,7 @@ const LineageLegend: React.FC = () => {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
       <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.RuleEvidence)}{t('traceability.lineage.legend.rule')}</span>
       <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.AIEvidence)}{t('traceability.lineage.legend.aiLabelled')}</span>
-      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE)}⚠ {t('traceability.lineage.legend.outOfDate')}</span>
+      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE)}<AlertTriangle className="size-3 text-warning" aria-hidden />{t('traceability.lineage.legend.outOfDate')}</span>
       <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE, true)}{t('traceability.lineage.legend.upstreamChanged')}</span>
       <span>{t('traceability.lineage.legend.width')}</span>
     </div>

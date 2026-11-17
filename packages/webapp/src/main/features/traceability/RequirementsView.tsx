@@ -17,9 +17,9 @@ type StatusFilter = 'all' | RequirementStatus;
 const FILTERS: StatusFilter[] = ['all', 'uncovered', 'modeled', 'generated'];
 
 const STATUS_ICONS: Record<RequirementStatus, React.ReactNode> = {
-  generated: <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />,
-  modeled: <Shapes className="size-3.5 text-sky-600 dark:text-sky-400" aria-hidden />,
-  uncovered: <CircleDashed className="size-3.5 text-amber-600 dark:text-amber-400" aria-hidden />,
+  generated: <CheckCircle2 className="size-3.5 text-success" aria-hidden />,
+  modeled: <Shapes className="size-3.5 text-info" aria-hidden />,
+  uncovered: <CircleDashed className="size-3.5 text-warning" aria-hidden />,
 };
 
 interface RequirementsViewProps {
@@ -81,7 +81,7 @@ export const RequirementsView: React.FC<RequirementsViewProps> = ({ index, onOpe
       {groups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t('traceability.requirements.noMatch')}</p>}
 
       {groups.map((group) => (
-        <section key={group.extraction.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <section key={group.extraction.id} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <header className="space-y-1 border-b border-border bg-muted/40 px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold">
@@ -139,7 +139,7 @@ const RequirementTableRow: React.FC<{
   return (
     <tr
       data-status={status}
-      className={cn('border-t border-border align-top', uncovered && 'bg-amber-500/[0.07] shadow-[inset_3px_0_0_theme(colors.amber.500)]')}
+      className={cn('border-t border-border align-top', uncovered && 'bg-warning/[0.06]')}
     >
       <th scope="row" className="px-4 py-2.5 text-left font-normal">
         <div className="font-medium leading-snug">{requirement.name}</div>
@@ -151,7 +151,7 @@ const RequirementTableRow: React.FC<{
           <span aria-hidden>·</span>
           <span>{requirementKindLabel(t, requirement.kind)}</span>
           {row.outOfDate && (
-            <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
+            <span className="inline-flex items-center gap-1 text-warning">
               <AlertTriangle className="size-3" aria-hidden />
               {t('traceability.status.outOfDate')}
             </span>
@@ -170,7 +170,7 @@ const RequirementTableRow: React.FC<{
                   onClick={() => onOpenElement(element.id)}
                   title={elementTypeLabel(t, element.elementType)}
                   className={cn(
-                    'rounded border border-border px-1.5 py-0.5 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'rounded-md border border-border bg-background px-1.5 py-0.5 text-xs hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     deleted && 'text-muted-foreground line-through',
                   )}
                 >
@@ -194,7 +194,7 @@ const RequirementTableRow: React.FC<{
                   {entry.code.startLine !== undefined && `:${entry.code.startLine}–${entry.code.endLine}`}
                 </code>
                 {entry.outOfDate.length > 0 && (
-                  <AlertTriangle className="size-3 shrink-0 text-amber-500" role="img" aria-label={t('traceability.status.outOfDate')} />
+                  <AlertTriangle className="size-3 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
                 )}
               </li>
             ))}

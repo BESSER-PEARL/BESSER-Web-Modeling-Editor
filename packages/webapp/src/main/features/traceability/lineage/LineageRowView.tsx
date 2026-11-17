@@ -73,7 +73,7 @@ export const LineageRowView: React.FC<LineageRowViewProps> = ({ index, row, root
         <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground">{partsLabel(t, subject, row.parts)}</span>
       )}
       {row.outOfDate && (
-        <AlertTriangle className="size-3.5 shrink-0 text-amber-500" role="img" aria-label={t('traceability.status.outOfDate')} />
+        <AlertTriangle className="size-3.5 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
       )}
     </div>
   );

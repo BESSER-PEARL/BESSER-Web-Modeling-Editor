@@ -2,6 +2,7 @@ import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { AlertTriangle, Bot, ChevronDown, ChevronRight, Code2, ListChecks, MessagesSquare, Pencil, Wand2, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import {
 } from './traceLabels';
 import { FilterPills } from './components/FilterPills';
 import { toggledIn } from './components/toggleSet';
+import { TypeTag } from './components/TypeTag';
 
 const OPERATION_ICONS: Record<OperationKind, React.ReactNode> = {
   modeling: <Pencil className="size-4" />,
@@ -175,7 +177,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ index, onOpenElement
       <ol className="relative ml-3 space-y-2 border-l border-border pl-5">
         {operations.slice(0, shown).map((op) => (
           <li key={op.id} className="relative">
-            <span className="absolute -left-[33px] top-2 flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground" aria-hidden>
+            <span
+              className={cn(
+                'absolute -left-[33px] top-2 flex size-7 items-center justify-center rounded-full border bg-background',
+                op.status !== 'SUCCEEDED'
+                  ? 'border-destructive/40 text-destructive'
+                  : operationKind(op) === 'generation'
+                    ? 'border-brand/30 bg-brand/10 text-brand-dark dark:text-brand-light'
+                    : 'border-border text-muted-foreground',
+              )}
+              aria-hidden
+            >
               {derivedBy(op, index) ? (
                 <Wand2 className="size-4" />
               ) : op.type === 'ModelingSession' && byAgent(op, index) ? (
@@ -291,7 +303,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
               className="rounded border border-border px-1.5 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {diagram.name}
-              <span className="ml-1 text-[10px] uppercase text-muted-foreground">{elementTypeLabel(t, diagram.elementType)}</span>
+              <TypeTag className="ml-1.5">{elementTypeLabel(t, diagram.elementType)}</TypeTag>
             </button>
           ))}
         </div>

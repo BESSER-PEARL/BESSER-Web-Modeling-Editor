@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { CircleOff, GitBranch, Loader2, SearchX, Trash2, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useProject } from '../../app/hooks/useProject';
@@ -100,7 +99,7 @@ export const TraceabilityPage: React.FC = () => {
               <Label htmlFor="trace-enabled" className="text-sm font-normal">{t('traceability.toggle.label')}</Label>
               <span
                 className={`ml-1 rounded-full px-2 py-px text-[10px] font-semibold uppercase tracking-wide ${
-                  enabled ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-muted text-muted-foreground'
+                  enabled ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'
                 }`}
               >
                 {t(enabled ? 'traceability.toggle.on' : 'traceability.toggle.off')}
@@ -114,7 +113,7 @@ export const TraceabilityPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl space-y-4 px-6 py-6 sm:px-10">
+      <div className="mx-auto max-w-7xl space-y-4 px-6 pb-5 pt-6 sm:px-10">
         {loadProblem && (
           <Alert variant="destructive">
             <AlertTitle>{t('traceability.loadError.title')}</AlertTitle>
@@ -144,45 +143,54 @@ export const TraceabilityPage: React.FC = () => {
         )}
 
         {!isEmpty && <TraceSummaryHeader summary={summary} onShowOutOfDate={() => url.setTab('coverage')} />}
+      </div>
 
-        <Card className="overflow-hidden">
-          <PageTabs
-            id={TABS_ID}
-            tabs={TRACEABILITY_TABS}
-            value={url.tab}
-            onChange={url.setTab}
-            label={(value) => t(`traceability.tabs.${value}`)}
-            ariaLabel={t('traceability.tabs.label')}
-            className="px-4 pt-1"
-          />
-          <TabPanel id={TABS_ID} value={url.tab} className="p-4 sm:p-5">
-            {isEmpty ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
+      {/* The tabs stay in reach while a long timeline or matrix scrolls. */}
+      <div className="sticky top-0 z-10 border-b border-border bg-background">
+        <PageTabs
+          id={TABS_ID}
+          tabs={TRACEABILITY_TABS}
+          value={url.tab}
+          onChange={url.setTab}
+          label={(value) => t(`traceability.tabs.${value}`)}
+          ariaLabel={t('traceability.tabs.label')}
+          className="mx-auto max-w-7xl border-b-0 px-3 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden"
+        />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 pb-10 pt-5 sm:px-10">
+        <TabPanel id={TABS_ID} value={url.tab}>
+          {isEmpty ? (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-14 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden>
+                {enabled ? <GitBranch className="size-5" /> : <CircleOff className="size-5" />}
+              </span>
+              <p className="max-w-md text-sm text-muted-foreground">
                 {enabled ? t('traceability.emptyEnabled') : t('traceability.emptyDisabled')}
               </p>
-            ) : (
-              <>
-                {url.tab === 'timeline' && <TimelineView index={index} onOpenElement={openElement} />}
-                {url.tab === 'elements' && (
-                  <ElementsView index={index} selectedId={element} onSelect={selectElement} onShowLineage={showLineage} />
-                )}
-                {url.tab === 'coverage' && <CoverageView index={index} onOpenElement={openElement} highlightId={element} />}
-                {url.tab === 'lineage' && (
-                  <LineageView
-                    index={index}
-                    projectLineage={projectLineage}
-                    rootId={root}
-                    onRootChange={showLineage}
-                    onOpenElement={openElement}
-                  />
-                )}
-                {url.tab === 'requirements' && (
-                  <RequirementsView index={index} onOpenElement={openElement} onShowLineage={showLineage} />
-                )}
-              </>
-            )}
-          </TabPanel>
-        </Card>
+            </div>
+          ) : (
+            <>
+              {url.tab === 'timeline' && <TimelineView index={index} onOpenElement={openElement} />}
+              {url.tab === 'elements' && (
+                <ElementsView index={index} selectedId={element} onSelect={selectElement} onShowLineage={showLineage} />
+              )}
+              {url.tab === 'coverage' && <CoverageView index={index} onOpenElement={openElement} highlightId={element} />}
+              {url.tab === 'lineage' && (
+                <LineageView
+                  index={index}
+                  projectLineage={projectLineage}
+                  rootId={root}
+                  onRootChange={showLineage}
+                  onOpenElement={openElement}
+                />
+              )}
+              {url.tab === 'requirements' && (
+                <RequirementsView index={index} onOpenElement={openElement} onShowLineage={showLineage} />
+              )}
+            </>
+          )}
+        </TabPanel>
       </div>
     </div>
   );

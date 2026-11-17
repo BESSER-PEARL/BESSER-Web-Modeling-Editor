@@ -90,7 +90,7 @@ export const NodeDetail: React.FC<{
                   <span className="truncate">{nodeLabel(t, index, other)}</span>
                   {isCodeArtifact(other) && other.parentId && <span className="truncate text-muted-foreground">{other.path}</span>}
                   {outOfDate.length > 0 && (
-                    <AlertTriangle className="ml-auto size-3 shrink-0 text-amber-500" role="img" aria-label={t('traceability.status.outOfDate')} />
+                    <AlertTriangle className="ml-auto size-3 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
                   )}
                 </button>
               </li>

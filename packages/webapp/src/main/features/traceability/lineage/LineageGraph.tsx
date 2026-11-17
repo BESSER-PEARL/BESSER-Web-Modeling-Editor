@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { AlertTriangle } from 'lucide-react';
 import type { TraceIndex } from '../../../shared/traceability/traceQueries';
 import type { LineageBundle, LineageLayout, LineageRow } from '../../../shared/traceability/lineage';
 import { pathTo } from '../../../shared/traceability/lineage';
@@ -122,13 +123,13 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
                   isSelectedEdge(bundle)
                     ? 'border-brand bg-brand text-white'
                     : stale
-                      ? 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+                      ? 'border-warning/60 bg-card text-warning'
                       : 'border-border bg-background',
                 )}
                 style={{ left: mid.x, top: mid.y }}
               >
                 {/* Not by colour alone: a mark for a link that may not hold, a word for an AI decision. */}
-                {stale && <span aria-hidden>⚠ </span>}
+                {stale && <AlertTriangle className="mr-0.5 inline size-2.5 -translate-y-px" aria-hidden />}
                 {!bundled && isAiEdge(look) && `${t('traceability.lineage.legend.ai')} `}
                 {bundled ? `×${bundle.edges.length}` : formatConfidence(look.link.confidence?.value)}
                 {/* The selected link's own value, when it sits in a bundle. */}
