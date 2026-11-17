@@ -1672,7 +1672,28 @@
       "fileMeta": "{{lines}} línies · {{size}} · {{language}}",
       "plainText": "text",
       "tooLarge": "Aquest fitxer és massa gran per a la previsualització. Baixa el projecte per obrir-lo.",
-      "binary": "Fitxer binari, sense previsualització."
+      "binary": "Fitxer binari, sense previsualització.",
+      "aiTag": "IA",
+      "aiTagTitle": "La IA va escriure línies d’aquest fitxer",
+      "aiShare": "La IA va escriure el {{pct}} % de les línies",
+      "authorship": "Qui va escriure aquestes línies",
+      "authorshipStale": "Canviat després de registrar qui el va escriure",
+      "author": {
+        "ai": "IA",
+        "generator": "Generador",
+        "human": "Persona",
+        "unknown": "Sense atribuir"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} línia escrita per la IA",
+        "ai_other": "{{count}} línies escrites per la IA",
+        "generator_one": "{{count}} línia d’un generador de BESSER",
+        "generator_other": "{{count}} línies d’un generador de BESSER",
+        "human_one": "{{count}} línia editada per una persona entre execucions",
+        "human_other": "{{count}} línies editades per una persona entre execucions",
+        "unknown_one": "{{count}} línia sense registre de qui la va escriure",
+        "unknown_other": "{{count}} línies sense registre de qui les va escriure"
+      }
     },
     "rateLimitTooltip": "Sol·licituds enviades l’últim minut (límit {{limit}})",
     "import": {
@@ -1924,6 +1945,28 @@
       "fromRequest": "Es reconstrueix a partir del model i de la petició original. L'execució fa servir: {{key}}.",
       "askAssistant": "Es demana a l'assistent que la torni a generar. L'execució fa servir: {{key}}.",
       "unknownKey": "la clau o el nivell gratuït configurat per a les generacions"
+    },
+    "runTrace": {
+      "firstCheck": "Primera comprovació",
+      "recheck": "Nova comprovació després de l’intent de correcció {{attempt}}",
+      "restored": "S’ha lliurat la millor versió anterior",
+      "noBlockers": "cap bloqueig",
+      "blockers_one": "{{count}} bloqueig",
+      "blockers_other": "{{count}} bloquejos",
+      "ofFindings": "de {{count}} troballes",
+      "fixed": "corregit",
+      "stillFailing": "encara falla",
+      "new": "nou",
+      "attempt": "Intent de correcció {{attempt}}",
+      "attemptNoCalls": "L’intent de correcció {{attempt}} no ha cridat cap eina",
+      "more": "{{count}} més",
+      "fixAttempts_one": "{{count}} intent de correcció",
+      "fixAttempts_other": "{{count}} intents de correcció",
+      "findings": "troballes",
+      "turns_one": "{{count}} torn",
+      "turns_other": "{{count}} torns",
+      "stats": "Durada, torns del LLM i cost estimat d’aquest pas",
+      "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura."
     }
   },
   "deploy": {

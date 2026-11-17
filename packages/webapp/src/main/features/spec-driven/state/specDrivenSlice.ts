@@ -30,7 +30,9 @@ import type {
   SpecDrivenEvent,
   SpecDrivenMessageState,
   SpecDrivenPhase,
+  SpecDrivenPhaseView,
   SpecDrivenProvider,
+  SpecDrivenRunTotals,
   SpecDrivenVerificationItem,
   SpecDrivenWarningView,
   TriggerSpecDrivenPayload,
@@ -197,6 +199,49 @@ export function extractVerification(
   return { verified, notVerified, shippedUnenforced, counts };
 }
 
+/** A phase event's run totals at its start, or undefined from an older backend. */
+const readRunTotals = (event: {
+  usd?: number | null;
+  turns?: number | null;
+  elapsedSeconds?: number | null;
+}): SpecDrivenRunTotals | undefined => {
+  const n = (v: unknown): number | undefined =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined;
+  const elapsedSeconds = n(event.elapsedSeconds);
+  if (elapsedSeconds === undefined) return undefined;
+  return { usd: n(event.usd) ?? 0, turns: n(event.turns) ?? 0, elapsedSeconds };
+};
+
+/**
+ * What one phase row cost: the difference between its start and the next
+ * stamped row's start, or, for the last stamped row, the run's latest totals
+ * (the final `cost` event once the run has ended). Undefined when the row has
+ * no stamp (older backend, or a client-side row such as a model switch).
+ */
+export function phaseStats(
+  phases: SpecDrivenPhaseView[],
+  index: number,
+  latest: { costUsd?: number; turns?: number; elapsedSeconds?: number },
+): SpecDrivenRunTotals | undefined {
+  const start = phases[index]?.startedAt;
+  if (!start) return undefined;
+  let end: SpecDrivenRunTotals | undefined;
+  for (let i = index + 1; i < phases.length && !end; i++) end = phases[i].startedAt;
+  if (!end) {
+    if (typeof latest.elapsedSeconds !== 'number') return undefined;
+    end = {
+      usd: latest.costUsd ?? start.usd,
+      turns: latest.turns ?? start.turns,
+      elapsedSeconds: latest.elapsedSeconds,
+    };
+  }
+  return {
+    usd: Math.max(0, end.usd - start.usd),
+    turns: Math.max(0, end.turns - start.turns),
+    elapsedSeconds: Math.max(0, end.elapsedSeconds - start.elapsedSeconds),
+  };
+}
+
 export function applySpecDrivenEvent(
   card: SpecDrivenMessageState,
   event: SpecDrivenEvent,
@@ -239,6 +284,7 @@ export function applySpecDrivenEvent(
             label,
             message: event.message,
             toolCalls: [],
+            startedAt: readRunTotals(event),
           },
         ],
       };
@@ -294,7 +340,41 @@ export function applySpecDrivenEvent(
       };
     }
     case 'cost': {
-      return { ...card, costUsd: event.usd, elapsedSeconds: event.elapsedSeconds };
+      return {
+        ...card,
+        costUsd: event.usd,
+        elapsedSeconds: event.elapsedSeconds,
+        turns: typeof event.turns === 'number' ? event.turns : card.turns,
+      };
+    }
+    case 'findings': {
+      // Rounds belong to the validate row; its tool calls after a round are the
+      // next fix attempt. No validate row yet (out of order): nothing to attach to.
+      const phases = [...card.phases];
+      for (let i = phases.length - 1; i >= 0; i--) {
+        if (phases[i].phase !== 'validate') continue;
+        const blockers = Array.isArray(event.blockers)
+          ? event.blockers.filter((b): b is string => typeof b === 'string')
+          : [];
+        // The list is capped, the counts are totals: a count below its own list is a backend bug.
+        const blockerCount = Math.max(event.blockerCount ?? 0, blockers.length);
+        phases[i] = {
+          ...phases[i],
+          findings: [
+            ...(phases[i].findings ?? []),
+            {
+              attempt: typeof event.attempt === 'number' ? event.attempt : 0,
+              blockers,
+              blockerCount,
+              issueCount: Math.max(event.issueCount ?? 0, blockerCount),
+              restored: event.restored === true,
+              afterToolCalls: phases[i].toolCalls.length,
+            },
+          ],
+        };
+        break;
+      }
+      return { ...card, phases };
     }
     case 'done': {
       return {

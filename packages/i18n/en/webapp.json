@@ -1787,7 +1787,28 @@
       "fileMeta": "{{lines}} lines · {{size}} · {{language}}",
       "plainText": "text",
       "tooLarge": "This file is too large to preview. Download the project to open it.",
-      "binary": "Binary file, not previewable."
+      "binary": "Binary file, not previewable.",
+      "aiTag": "AI",
+      "aiTagTitle": "The AI wrote lines in this file",
+      "aiShare": "AI wrote {{pct}}% of the lines",
+      "authorship": "Who wrote these lines",
+      "authorshipStale": "Changed after the run recorded who wrote it",
+      "author": {
+        "ai": "AI",
+        "generator": "Generator",
+        "human": "Person",
+        "unknown": "Unattributed"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} line written by the AI",
+        "ai_other": "{{count}} lines written by the AI",
+        "generator_one": "{{count}} line from a BESSER generator",
+        "generator_other": "{{count}} lines from a BESSER generator",
+        "human_one": "{{count}} line edited by a person between runs",
+        "human_other": "{{count}} lines edited by a person between runs",
+        "unknown_one": "{{count}} line with no record of who wrote it",
+        "unknown_other": "{{count}} lines with no record of who wrote them"
+      }
     },
     "drawer": {
       "labelClosed": "Describe your app",
@@ -1924,6 +1945,28 @@
       "fromRequest": "It is built again from the model and the original request. The run uses: {{key}}.",
       "askAssistant": "The assistant is asked to generate it again. The run uses: {{key}}.",
       "unknownKey": "the key or free tier set up for generations"
+    },
+    "runTrace": {
+      "firstCheck": "First check",
+      "recheck": "Re-check after fix attempt {{attempt}}",
+      "restored": "Delivered the best earlier version",
+      "noBlockers": "no blockers",
+      "blockers_one": "{{count}} blocker",
+      "blockers_other": "{{count}} blockers",
+      "ofFindings": "of {{count}} findings",
+      "fixed": "fixed",
+      "stillFailing": "still failing",
+      "new": "new",
+      "attempt": "Fix attempt {{attempt}}",
+      "attemptNoCalls": "Fix attempt {{attempt}} made no tool calls",
+      "more": "{{count}} more",
+      "fixAttempts_one": "{{count}} fix attempt",
+      "fixAttempts_other": "{{count}} fix attempts",
+      "findings": "findings",
+      "turns_one": "{{count}} turn",
+      "turns_other": "{{count}} turns",
+      "stats": "Duration, LLM turns and estimated cost of this step",
+      "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill."
     }
   },
   "deploy": {
