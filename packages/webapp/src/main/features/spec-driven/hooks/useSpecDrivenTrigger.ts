@@ -1325,6 +1325,7 @@ export function useSpecDrivenTrigger(
         instructions: payload.instructions,
         requirements,
         ...(isTraceabilityEnabled(project) ? { actorName: traceActorName(project) } : {}),
+        traceabilityEnabled: isTraceabilityEnabled(project),
         provider,
         apiKey: demoToken || freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,

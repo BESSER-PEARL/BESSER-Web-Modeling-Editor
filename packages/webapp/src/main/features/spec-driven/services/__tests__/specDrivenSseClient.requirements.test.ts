@@ -8,14 +8,15 @@ import { startSpecDrivenRun } from '../specDrivenSseClient';
 import type { RequirementInput } from '../specDrivenSseClient';
 import * as sse from '../../../../shared/api/sseClient';
 
-async function bodyOf(requirements: RequirementInput[] | undefined, actorName?: string) {
+async function bodyOf(requirements: RequirementInput[] | undefined, actorName?: string, traceabilityEnabled?: boolean) {
   const spy = vi.spyOn(sse, 'streamSse');
   spy.mockImplementation(() => (async function* () {
     yield { event: 'done', sequence: 1 };
   })() as ReturnType<typeof sse.streamSse>);
   const handle = startSpecDrivenRun({
     project: { id: 'p1' }, instructions: 'Build a hotel app', provider: 'anthropic', apiKey: 'sk-test', requirements, actorName,
-  });
+    ...(traceabilityEnabled !== undefined ? { traceabilityEnabled } : {}),
+  } as Parameters<typeof startSpecDrivenRun>[0]);
   // Drain the run; the body is read from the spy.
   while (!(await handle.events.next()).done);
   const body = spy.mock.calls[0][1] as Record<string, unknown>;
@@ -48,5 +49,16 @@ describe('the actor of a traced run', () => {
   it('leaves it out when there is none (recording is off)', async () => {
     expect('actorName' in (await bodyOf(undefined))).toBe(false);
     expect('actorName' in (await bodyOf(undefined, '  '))).toBe(false);
+  });
+});
+
+describe('whether the run is traced', () => {
+  it('sends traceabilityEnabled: the backend builds the run trace only when it is true', async () => {
+    expect((await bodyOf(undefined, 'Ada', true)).traceabilityEnabled).toBe(true);
+    expect((await bodyOf(undefined, undefined, false)).traceabilityEnabled).toBe(false);
+  });
+
+  it('sends false when the caller does not say (recording is opt-in)', async () => {
+    expect((await bodyOf(undefined)).traceabilityEnabled).toBe(false);
   });
 });

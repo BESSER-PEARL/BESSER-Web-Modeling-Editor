@@ -108,6 +108,8 @@ export interface StartSpecDrivenRunParams {
   requirements?: RequirementInput[];
   /** Who ran it, for the run's trace (the project owner, as for the traced generation endpoints). Sent only when the project records traces. */
   actorName?: string;
+  /** Whether the project records traces: the backend builds the run's trace only when it is true. */
+  traceabilityEnabled?: boolean;
   provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
@@ -560,6 +562,7 @@ export function startSpecDrivenRun(
   if (params.requirements?.length) body.requirements = params.requirements;
   // The backend caps the name at 200 characters.
   if (params.actorName?.trim()) body.actorName = params.actorName.trim().slice(0, 200);
+  body.traceabilityEnabled = params.traceabilityEnabled === true;
   if (!isServerPaid) body.api_key = params.apiKey;
   if (!isServerPaid && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
   // The demo secret travels with the tier it unlocks, and nowhere else.
