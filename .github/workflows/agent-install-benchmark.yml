@@ -46,10 +46,10 @@ jobs:
           python -m pip install --disable-pip-version-check "uv==$UV_VERSION"
           uv pip install --system -r requirements-dev.txt -e .
       - name: Check out BESSER's LLM data
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: BESSER-PEARL/BESSER
-          ref: 4516f5e684b03c661b8eb6fdb2ac5d23df7e5a9
+          ref: development
           path: .besser
           persist-credentials: false
           sparse-checkout: |
