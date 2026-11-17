@@ -107,6 +107,53 @@ describe('clearing a trace', () => {
   });
 });
 
+describe('a stored trace this editor cannot read', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+
+  it.each([
+    ['from a newer schema (a rollback)', { ...emptyTraceFile('p1'), schemaVersion: 99, actors: [ada] }],
+    ['over the trace limits', { ...emptyTraceFile('p1'), actors: [ada, ...Array.from({ length: 10_001 }, (_, i) => ({ ...ada, id: `a${i}` }))] }],
+  ])('is kept untouched, and recording stops for the session: %s', async (_label, unreadable) => {
+    const { storage } = spyStorage();
+    await storage.write('p1', unreadable as TraceFile);
+    storage.writes = 0;
+    setTraceStorage(storage);
+    await updateProjectTrace('p1', (trace) => { trace.tools.push({ id: 't1', type: 'Editor', name: 'x', timestamp: at(1) }); });
+    await flushTraceSaves();
+    expect(storage.writes).toBe(0);
+    expect(await storage.read('p1')).toMatchObject({ schemaVersion: unreadable.schemaVersion, actors: unreadable.actors });
+    expect(getProjectTrace('p1')?.tools).toEqual([]);
+  });
+
+  it('is kept when another tab stores it while this tab has the trace loaded', async () => {
+    const { storage } = spyStorage();
+    setTraceStorage(storage);
+    await loadProjectTrace('p1');
+    // Another tab, on a newer editor, stores a trace this one cannot read.
+    const newer = { ...emptyTraceFile('p1'), schemaVersion: 99, actors: [ada] } as TraceFile;
+    await storage.write('p1', newer);
+    await updateProjectTrace('p1', (trace) => { trace.tools.push({ id: 't1', type: 'Editor', name: 'x', timestamp: at(1) }); });
+    await flushTraceSaves();
+    await updateProjectTrace('p1', (trace) => { trace.tools.push({ id: 't2', type: 'Editor', name: 'y', timestamp: at(2) }); });
+    await flushTraceSaves();
+    expect(await storage.read('p1')).toMatchObject({ schemaVersion: 99, actors: [ada] });
+  });
+
+  it('can still be cleared', async () => {
+    const storage = memoryTraceStorage();
+    await storage.write('p1', { ...emptyTraceFile('p1'), schemaVersion: 99 } as TraceFile);
+    setTraceStorage(storage);
+    await loadProjectTrace('p1');
+    deleteProjectTrace('p1');
+    await loadProjectTrace('p1');
+    await updateProjectTrace('p1', (trace) => { trace.actors.push(ada); });
+    await flushTraceSaves();
+    expect(await storage.read('p1')).toMatchObject({ schemaVersion: 6, actors: [ada] });
+  });
+});
+
 describe('two tabs on one project', () => {
   /** A second copy of the store module: what another tab runs, on the same storage. */
   async function otherTab() {

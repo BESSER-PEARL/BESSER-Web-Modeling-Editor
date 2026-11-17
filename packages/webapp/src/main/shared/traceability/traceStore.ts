@@ -72,6 +72,9 @@ const revisions = new Map<string, number>();
 const pendingUpdates = new Map<string, TraceUpdate[]>();
 /** Saves and reloads of a project trace run one after the other. */
 const busy = new Map<string, Promise<void>>();
+/** Projects whose stored trace this editor cannot read (a newer schema after a rollback, over `TRACE_LIMITS`,
+ *  damaged): the stored record is left as it is and nothing is recorded for them this session, until it is cleared. */
+const unreadable = new Set<string>();
 
 function defaultStorage(): TraceStorage {
   if (typeof indexedDB !== 'undefined') return indexedDbTraceStorage();
@@ -89,6 +92,7 @@ export function setTraceStorage(next: TraceStorage): void {
   revisions.clear();
   pendingUpdates.clear();
   busy.clear();
+  unreadable.clear();
   guiBaselines.clear();
 }
 
@@ -152,6 +156,7 @@ function onTraceSavedElsewhere(data: unknown): void {
     cache.delete(projectId);
     revisions.delete(projectId);
     pendingUpdates.delete(projectId);
+    unreadable.delete(projectId);
     notify();
     return;
   }
@@ -177,8 +182,8 @@ async function reloadTrace(projectId: string): Promise<void> {
   const revision = storedRevisionOf(stored);
   const parsed = stored === undefined ? emptyTraceFile(projectId) : usableStoredTrace(projectId, stored);
   if (!parsed) {
-    // Unusable (written by a newer editor, damaged): this tab's trace replaces it on its next save.
-    revisions.set(projectId, revision);
+    // Unusable (written by a newer editor, damaged): kept as stored, and this tab stops recording.
+    stopRecording(projectId);
     return;
   }
   const pending = pendingOf(projectId);
@@ -187,6 +192,18 @@ async function reloadTrace(projectId: string): Promise<void> {
   revisions.set(projectId, revision);
   if (pendingUpdates.get(projectId)!.length > 0 && !unsaved.has(projectId)) scheduleSave(projectId);
   notify();
+}
+
+/** Stop recording a project whose stored trace cannot be read, so it is never overwritten; the user is warned. */
+function stopRecording(projectId: string): void {
+  if (unreadable.has(projectId)) return;
+  unreadable.add(projectId);
+  clearTimeout(unsaved.get(projectId));
+  unsaved.delete(projectId);
+  pendingUpdates.delete(projectId);
+  console.warn(`Stored trace of project ${projectId} is unusable; it is kept as it is and nothing is recorded this session.`);
+  toast.warn(i18n.t('traceability.toasts.storedTraceUnusable'));
+  reportTraceLoadProblem(projectId, 'unusable');
 }
 
 /** Apply `update`, returning `false` when it changed nothing or failed (logged). */
@@ -261,7 +278,7 @@ function usableStoredTrace(projectId: string, stored: unknown): TraceFile | unde
 }
 
 /** The stored trace and its revision, or one moved over from `localStorage`, checked; a new one when there is none. */
-async function readStored(projectId: string): Promise<{ trace: TraceFile; revision: number }> {
+async function readStored(projectId: string): Promise<{ trace: TraceFile; revision: number; unusable?: boolean }> {
   let stored: unknown;
   try {
     stored = await storage.read(projectId);
@@ -295,10 +312,7 @@ async function readStored(projectId: string): Promise<{ trace: TraceFile; revisi
       return { trace, revision };
     }
   }
-  console.warn(`Stored trace of project ${projectId} is unusable; starting a new one.`);
-  toast.warn(i18n.t('traceability.toasts.storedTraceUnusable'));
-  reportTraceLoadProblem(projectId, 'unusable');
-  return { trace: emptyTraceFile(projectId), revision };
+  return { trace: emptyTraceFile(projectId), revision, unusable: true };
 }
 
 /** Load a project's trace (once per session) and return it. */
@@ -311,13 +325,14 @@ export function loadProjectTrace(projectId: string): Promise<TraceFile> {
     // Read after the save or delete of the trace under way: a load right after "Clear trace" must not read the
     // trace being deleted.
     const settled = (busy.get(projectId) ?? Promise.resolve()).catch(() => undefined);
-    const load: Promise<TraceFile> = settled.then(() => readStored(projectId)).then(({ trace, revision }) => {
+    const load: Promise<TraceFile> = settled.then(() => readStored(projectId)).then(({ trace, revision, unusable }) => {
       // A delete while it loaded makes this load stale (`loading` forgotten): it must not bring the trace back.
       const current = loading.get(projectId) === load;
       if (current) loading.delete(projectId);
       if (current && from === storage && !cache.has(projectId)) {
         cache.set(projectId, trace);
         revisions.set(projectId, revision);
+        if (unusable) stopRecording(projectId);
       }
       notify();
       return cache.get(projectId) ?? trace;
@@ -352,7 +367,7 @@ const MAX_SAVE_ATTEMPTS = 5;
 async function saveNow(projectId: string): Promise<void> {
   let pruned = 0;
   for (let attempt = 0; attempt < MAX_SAVE_ATTEMPTS; attempt += 1) {
-    if (!cache.has(projectId)) return; // deleted meanwhile
+    if (!cache.has(projectId) || unreadable.has(projectId)) return; // deleted meanwhile, or not ours to overwrite
     const from = storage;
     let sent = 0;
     try {
@@ -433,6 +448,7 @@ if (typeof window !== 'undefined') {
  */
 export function updateProjectTrace(projectId: string, update: TraceUpdate): Promise<void> {
   const apply = (trace: TraceFile) => {
+    if (unreadable.has(projectId)) return; // its stored trace cannot be read: nothing is recorded
     let result: void | false;
     try {
       result = update(trace);
@@ -503,6 +519,7 @@ export function deleteProjectTrace(projectId: string): void {
   loading.delete(projectId);
   revisions.delete(projectId);
   pendingUpdates.delete(projectId);
+  unreadable.delete(projectId);
   removeLegacyTrace(projectId);
   void serial(projectId, () =>
     storage.remove(projectId).then(

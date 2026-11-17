@@ -4856,7 +4856,7 @@
       "tooLarge": "Dieser Trace ist zu groß zum Laden: Er enthält {{count}} {{list}} (höchstens {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden; ein neuer wurde begonnen.",
+      "storedTraceUnusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden; er bleibt unverändert, und in dieser Sitzung wird für dieses Projekt nichts aufgezeichnet.",
       "storagePruned_one": "Der Trace-Speicher war voll: Der Inhalt von {{count}} älteren generierten Datei wurde verworfen (ihre Trace-Verknüpfungen bleiben erhalten).",
       "storagePruned_other": "Der Trace-Speicher war voll: Der Inhalt von {{count}} älteren generierten Dateien wurde verworfen (ihre Trace-Verknüpfungen bleiben erhalten).",
       "storageFull": "Der Trace-Speicher ist voll und die letzte Änderung wurde nicht aufgezeichnet. Exportiere das Projekt mit seinem Trace und lösche dann den Trace, um fortzufahren.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "Der gespeicherte Trace konnte nicht geladen werden",
       "storageUnavailable": "Der Browserspeicher für Traces konnte nicht geöffnet werden. Angezeigt wird nur, was in dieser Sitzung aufgezeichnet wurde, und es bleibt danach nicht erhalten.",
-      "unusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden (er ist möglicherweise beschädigt oder von einer neueren Version geschrieben). Angezeigt wird nur, was in dieser Sitzung aufgezeichnet wurde; lösche den Trace, um einen neuen zu beginnen."
+      "unusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden (er ist möglicherweise beschädigt oder von einer neueren Version geschrieben). Er bleibt unverändert, und in dieser Sitzung wird für dieses Projekt nichts aufgezeichnet; lösche den Trace, um einen neuen zu beginnen."
     },
     "requirements": {
       "empty": "Noch keine Anforderungen aufgezeichnet. Beschreibe dem Assistenten eine Anwendung: Die Anforderungen, die er extrahiert, erscheinen hier, mit den Modellelementen und dem Code, die sie umsetzen.",

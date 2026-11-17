@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * Why a project's stored trace could not be loaded, for the Traceability page's error state. The store
- * still starts a new trace for the session (recording goes on); this only lets the page say that what is
- * shown is not what was stored. `traceStore` reports a problem where it falls back to an empty trace.
+ * Why a project's stored trace could not be loaded, for the Traceability page's error state; this lets the
+ * page say that what is shown is not what was stored. `traceStore` reports a problem where it falls back to
+ * an empty trace.
  *
- * - `storageUnavailable`: the browser's trace storage (IndexedDB) could not be opened or read.
- * - `unusable`: the stored trace was found but could not be read (corrupt, or a newer schema).
+ * - `storageUnavailable`: the browser's trace storage (IndexedDB) could not be opened or read; a new trace
+ *   is recorded for the session.
+ * - `unusable`: the stored trace was found but could not be read (corrupt, a newer schema, too large); it is
+ *   kept as stored and nothing is recorded for the project this session, until the trace is cleared.
  */
 export type TraceLoadProblem = 'storageUnavailable' | 'unusable';
 

@@ -4856,7 +4856,7 @@
       "tooLarge": "Cette trace est trop volumineuse pour être chargée : elle contient {{count}} {{list}} (au plus {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "La trace enregistrée de ce projet n'a pas pu être lue ; une nouvelle a été commencée.",
+      "storedTraceUnusable": "La trace enregistrée de ce projet n'a pas pu être lue ; elle est conservée telle quelle, et rien n'est enregistré pour ce projet dans cette session.",
       "storagePruned_one": "Le stockage des traces était plein : le contenu de {{count}} fichier généré plus ancien a été supprimé (ses liens de trace sont conservés).",
       "storagePruned_other": "Le stockage des traces était plein : le contenu de {{count}} fichiers générés plus anciens a été supprimé (leurs liens de trace sont conservés).",
       "storageFull": "Le stockage des traces est plein et la dernière modification n'a pas été enregistrée. Exportez le projet avec sa trace, puis effacez la trace pour continuer.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "La trace enregistrée n'a pas pu être chargée",
       "storageUnavailable": "Le stockage du navigateur pour les traces n'a pas pu être ouvert. Ce qui est affiché n'a été enregistré que dans cette session et ne sera pas conservé après.",
-      "unusable": "La trace enregistrée de ce projet n'a pas pu être lue (elle est peut-être endommagée, ou écrite par une version plus récente). Ce qui est affiché n'a été enregistré que dans cette session ; effacez la trace pour en commencer une nouvelle."
+      "unusable": "La trace enregistrée de ce projet n'a pas pu être lue (elle est peut-être endommagée, ou écrite par une version plus récente). Elle est conservée telle quelle, et rien n'est enregistré pour ce projet dans cette session ; effacez la trace pour en commencer une nouvelle."
     },
     "requirements": {
       "empty": "Aucune exigence enregistrée pour l'instant. Décrivez une application à l'assistant : les exigences qu'il extrait apparaissent ici, avec les éléments du modèle et le code qui les réalisent.",

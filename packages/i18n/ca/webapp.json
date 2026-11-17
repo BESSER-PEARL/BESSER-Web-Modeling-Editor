@@ -4856,7 +4856,7 @@
       "tooLarge": "Aquesta traça és massa gran per carregar-la: té {{count}} {{list}} (com a màxim {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "No s'ha pogut llegir la traça desada d'aquest projecte; se n'ha començat una de nova.",
+      "storedTraceUnusable": "No s'ha pogut llegir la traça desada d'aquest projecte; es conserva tal com és i no es registra res d'aquest projecte en aquesta sessió.",
       "storagePruned_one": "L'emmagatzematge de traces estava ple: s'ha descartat el contingut de {{count}} fitxer generat antic (se'n conserven els enllaços de traça).",
       "storagePruned_other": "L'emmagatzematge de traces estava ple: s'ha descartat el contingut de {{count}} fitxers generats antics (se'n conserven els enllaços de traça).",
       "storageFull": "L'emmagatzematge de traces és ple i l'últim canvi no s'ha registrat. Exporta el projecte amb la seva traça i després esborra la traça per continuar.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "No s'ha pogut carregar la traça desada",
       "storageUnavailable": "No s'ha pogut obrir l'emmagatzematge del navegador per a les traces. El que es mostra només es va registrar en aquesta sessió i no es conservarà després.",
-      "unusable": "No s'ha pogut llegir la traça desada d'aquest projecte (potser està malmesa o escrita per una versió més recent). El que es mostra només es va registrar en aquesta sessió; esborra la traça per començar-ne una de nova."
+      "unusable": "No s'ha pogut llegir la traça desada d'aquest projecte (potser està malmesa o escrita per una versió més recent). Es conserva tal com és i no es registra res d'aquest projecte en aquesta sessió; esborra la traça per començar-ne una de nova."
     },
     "requirements": {
       "empty": "Encara no s'ha registrat cap requisit. Descriu una aplicació a l'assistent: els requisits que extregui apareixeran aquí, amb els elements del model i el codi que els realitzen.",

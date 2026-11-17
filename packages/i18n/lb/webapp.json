@@ -4856,7 +4856,7 @@
       "tooLarge": "Dësen Trace ass ze grouss fir ze lueden: en huet {{count}} {{list}} (héchstens {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "De gespäichterten Trace vun dësem Projet konnt net gelies ginn; en neien ass ugefaange ginn.",
+      "storedTraceUnusable": "De gespäichterten Trace vun dësem Projet konnt net gelies ginn; en bleift, wéi en ass, an an dëser Sessioun gëtt fir dëse Projet näischt opgeholl.",
       "storagePruned_one": "De Trace-Späicher war voll: den Inhalt vun {{count}} eeler generéierter Datei gouf verworf (hir Trace-Verbindunge bleiwen erhalen).",
       "storagePruned_other": "De Trace-Späicher war voll: den Inhalt vun {{count}} eeler generéierte Dateien gouf verworf (hir Trace-Verbindunge bleiwen erhalen).",
       "storageFull": "De Trace-Späicher ass voll an déi lescht Ännerung gouf net opgeholl. Exportéier de Projet mat sengem Trace, an läsch dann den Trace, fir weiderzemaachen.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "De gespäichterten Trace konnt net gelueden ginn",
       "storageUnavailable": "De Browser-Späicher fir Traces konnt net opgemaach ginn. Wat gewise gëtt, gouf nëmmen an dëser Sessioun opgeholl a gëtt duerno net behalen.",
-      "unusable": "De gespäichterten Trace vun dësem Projet konnt net gelies ginn (en ass vläicht beschiedegt oder vun enger méi neier Versioun geschriwwen). Wat gewise gëtt, gouf nëmmen an dëser Sessioun opgeholl; läsch den Trace, fir en neien unzefänken."
+      "unusable": "De gespäichterten Trace vun dësem Projet konnt net gelies ginn (en ass vläicht beschiedegt oder vun enger méi neier Versioun geschriwwen). En bleift, wéi en ass, an an dëser Sessioun gëtt fir dëse Projet näischt opgeholl; läsch den Trace, fir en neien unzefänken."
     },
     "requirements": {
       "empty": "Nach keng Ufuerderungen opgeholl. Beschreif dem Assistent eng Applikatioun: D'Ufuerderungen, déi en extrahéiert, erschéngen hei, mat de Modellelementer an dem Code, déi se ëmsetzen.",

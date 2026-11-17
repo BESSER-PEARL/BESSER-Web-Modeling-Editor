@@ -4856,7 +4856,7 @@
       "tooLarge": "Esta traza es demasiado grande para cargarla: tiene {{count}} {{list}} (como máximo {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "No se pudo leer la traza guardada de este proyecto; se empezó una nueva.",
+      "storedTraceUnusable": "No se pudo leer la traza guardada de este proyecto; se conserva tal cual y no se registra nada de este proyecto en esta sesión.",
       "storagePruned_one": "El almacenamiento de trazas estaba lleno: se descartó el contenido de {{count}} archivo generado antiguo (se conservan sus enlaces de traza).",
       "storagePruned_other": "El almacenamiento de trazas estaba lleno: se descartó el contenido de {{count}} archivos generados antiguos (se conservan sus enlaces de traza).",
       "storageFull": "El almacenamiento de trazas está lleno y el último cambio no se registró. Exporta el proyecto con su traza y luego borra la traza para continuar.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "No se pudo cargar la traza guardada",
       "storageUnavailable": "No se pudo abrir el almacenamiento del navegador para las trazas. Lo que se muestra se registró solo en esta sesión y no se conservará después.",
-      "unusable": "No se pudo leer la traza guardada de este proyecto (puede estar dañada o escrita por una versión más reciente). Lo que se muestra se registró solo en esta sesión; borra la traza para empezar una nueva."
+      "unusable": "No se pudo leer la traza guardada de este proyecto (puede estar dañada o escrita por una versión más reciente). Se conserva tal cual y no se registra nada de este proyecto en esta sesión; borra la traza para empezar una nueva."
     },
     "requirements": {
       "empty": "Todavía no se ha registrado ningún requisito. Describe una aplicación al asistente: los requisitos que extraiga aparecerán aquí, con los elementos del modelo y el código que los realizan.",

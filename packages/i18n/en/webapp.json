@@ -4856,7 +4856,7 @@
       "tooLarge": "This trace is too large to load: it has {{count}} {{list}} (at most {{max}})."
     },
     "toasts": {
-      "storedTraceUnusable": "The stored trace of this project could not be read; a new one was started.",
+      "storedTraceUnusable": "The stored trace of this project could not be read; it is kept as it is, and nothing is recorded for this project in this session.",
       "storagePruned_one": "Trace storage was full: the content of {{count}} older generated file was dropped (its trace links are kept).",
       "storagePruned_other": "Trace storage was full: the content of {{count}} older generated files was dropped (their trace links are kept).",
       "storageFull": "Trace storage is full and the latest change was not recorded. Export the project with its trace, then clear the trace to continue.",
@@ -4917,7 +4917,7 @@
     "loadError": {
       "title": "The stored trace could not be loaded",
       "storageUnavailable": "The browser's storage for traces could not be opened. What is shown was recorded in this session only, and will not be kept after it.",
-      "unusable": "The stored trace of this project could not be read (it may be damaged, or written by a newer version). What is shown was recorded in this session only; clear the trace to start a new one."
+      "unusable": "The stored trace of this project could not be read (it may be damaged, or written by a newer version). It is kept as it is, and nothing is recorded for this project in this session; clear the trace to start a new one."
     },
     "requirements": {
       "empty": "No requirements recorded yet. Describe an application to the assistant: the requirements it extracts appear here, with the model elements and the code that realize them.",
