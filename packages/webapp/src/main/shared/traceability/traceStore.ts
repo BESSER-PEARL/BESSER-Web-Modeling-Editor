@@ -457,7 +457,9 @@ export function updateProjectTrace(projectId: string, update: TraceUpdate): Prom
 
 export function replaceProjectTrace(projectId: string, trace: TraceFile): Promise<void> {
   return updateProjectTrace(projectId, (current) => {
-    Object.assign(current, trace);
+    // Field by field, not Object.assign: an own `__proto__` key of `trace` would replace `current`'s prototype.
+    const { schemaVersion, projectId: id, actors, tools, artifacts, operations, traceLinks } = trace;
+    Object.assign(current, { schemaVersion, projectId: id, actors, tools, artifacts, operations, traceLinks });
   });
 }
 

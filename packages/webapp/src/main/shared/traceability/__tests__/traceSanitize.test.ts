@@ -5,7 +5,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'react-toastify';
 import { sanitizeTraceFile, TRACE_LIMITS } from '../traceSanitize';
-import { flushTraceSaves, loadProjectTrace, readImportedTrace, readTraceFile, recordGenerationTrace, setTraceStorage } from '../traceStore';
+import {
+  flushTraceSaves, getProjectTrace, loadProjectTrace, readImportedTrace, readTraceFile, recordGenerationTrace, replaceProjectTrace, setTraceStorage,
+} from '../traceStore';
 import { memoryTraceStorage } from '../traceDatabase';
 import { diagramOf, indexTrace, isDeleted, topLevelOf } from '../traceQueries';
 import { emptyTraceFile } from '../../types/traceability';
@@ -121,5 +123,57 @@ describe('where traces come in', () => {
     expect(recordGenerationTrace('p', withItems({ projectId: null as never, operations: [{ id: 'o', type: 'CodeGeneration', status: 'SUCCEEDED' }] } as never))).toBe(true);
     await flushTraceSaves();
     expect((await loadProjectTrace('p')).operations).toEqual([]);
+  });
+});
+
+describe('confidence and unknown keys of a crafted trace', () => {
+  const op = (confidence?: unknown) => ({
+    id: 'o', type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: now, performedBy: [], toolCalls: [], reads: [], writes: [],
+    ...(confidence !== undefined ? { confidence } : {}),
+  });
+  const link = (confidence: unknown) => ({ id: 'l', sourceId: 'a', targetId: 'b', operationId: 'o', evidence: [], timestamp: now, confidence });
+  const sane = (confidence: unknown) => {
+    const result = sanitizeTraceFile(withItems({ artifacts: [model('a'), model('b')], operations: [op(confidence)], traceLinks: [link(confidence)] }));
+    if (!('trace' in result)) throw new Error('refused');
+    return [result.trace.operations[0].confidence, result.trace.traceLinks[0].confidence];
+  };
+
+  it('keeps a confidence whose value is a number in [0, 1] and whose explanation is a string or absent', () => {
+    const good = { id: 'c', value: 0.5, explanation: 'why', timestamp: now };
+    expect(sane(good)).toEqual([good, good]);
+    const bare = { id: 'c', value: 1, timestamp: now };
+    expect(sane(bare)).toEqual([bare, bare]);
+  });
+
+  it.each([
+    ['a string value', { id: 'c', value: '0.5', timestamp: now }],
+    ['a value above 1', { id: 'c', value: 2, timestamp: now }],
+    ['a negative value', { id: 'c', value: -0.1, timestamp: now }],
+    ['no value', { id: 'c', timestamp: now }],
+    ['an object explanation', { id: 'c', value: 0.5, explanation: { x: 1 }, timestamp: now }],
+  ])('drops a confidence with %s', (_label, confidence) => {
+    expect(sane(confidence)).toEqual([undefined, undefined]);
+  });
+
+  it('does not copy an own __proto__ key of an imported trace', () => {
+    const raw = JSON.parse(`{"schemaVersion":6,"projectId":"p","actors":[],"tools":[],"artifacts":[],"operations":[],"traceLinks":[],
+      "__proto__":{"polluted":"yes"},"extra":1}`);
+    const result = sanitizeTraceFile(raw);
+    if (!('trace' in result)) throw new Error('refused');
+    expect(Object.prototype.hasOwnProperty.call(result.trace, '__proto__')).toBe(false);
+    expect(Object.keys(result.trace).sort()).toEqual(['actors', 'artifacts', 'operations', 'projectId', 'schemaVersion', 'tools', 'traceLinks']);
+  });
+
+  it('replacing a trace leaves the cached trace a plain trace object', async () => {
+    setTraceStorage(memoryTraceStorage());
+    const before = (await loadProjectTrace('p')) as unknown as Record<string, unknown>;
+    const raw = JSON.parse(`{"schemaVersion":6,"projectId":"p","actors":[],"tools":[],"artifacts":[],"operations":[],"traceLinks":[],
+      "__proto__":{"polluted":"yes"}}`);
+    await replaceProjectTrace('p', raw);
+    // The trace views held before the replace is updated in place: its prototype must not change.
+    for (const cached of [before, getProjectTrace('p') as unknown as Record<string, unknown>]) {
+      expect(Object.getPrototypeOf(cached)).toBe(Object.prototype);
+      expect(cached.polluted).toBeUndefined();
+    }
   });
 });

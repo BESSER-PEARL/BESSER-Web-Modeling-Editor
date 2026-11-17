@@ -3,6 +3,7 @@ import type {
   TraceActor,
   TraceArtifact,
   TraceChangeEvent,
+  TraceConfidence,
   TraceEvidence,
   TraceFile,
   TraceLink,
@@ -108,7 +109,9 @@ export function sanitizeTraceFile(trace: TraceFile, options: SanitizeOptions = {
   }, operationIds);
   const isOperation = known(operationIds);
   const traceLinks = keep<TraceLink>(trace.traceLinks, (raw) => readLink(raw, isArtifact, isOperation), new Set());
-  return { trace: { ...trace, actors, tools, artifacts, operations, traceLinks }, dropped };
+  // Built from the known fields only: an unknown key (an own `__proto__` from JSON.parse) is not carried along.
+  const { schemaVersion, projectId } = trace;
+  return { trace: { schemaVersion, projectId, actors, tools, artifacts, operations, traceLinks }, dropped };
 }
 
 function readActor(raw: Raw): TraceActor | undefined {
@@ -217,7 +220,7 @@ function readOperation(
     writes: ids(raw.writes as unknown[], isArtifact),
     ...(raw.type === 'ModelingSession' ? { changes: filter(raw.changes as unknown[], (change) => readChange(change, isArtifact)) } : {}),
   } as unknown as TraceOperation;
-  if (operation.confidence !== undefined && !isObject(operation.confidence)) delete operation.confidence;
+  setConfidence(operation, raw.confidence);
   return { operation, dropped };
 }
 
@@ -252,6 +255,14 @@ function readLink(raw: Raw, isArtifact: (id: unknown) => id is string, isOperati
     isObject(e) && isString(e.id) && isString(e.timestamp) && optional(e.logIds, (ids) => Array.isArray(ids) && ids.every(isString))
     && ((e.type === 'RuleEvidence' && isString(e.rule)) || (e.type === 'AIEvidence' && isString(e.algorithm))));
   const link = { ...(raw as unknown as TraceLink), evidence };
-  if (link.confidence !== undefined && !isObject(link.confidence)) delete link.confidence;
+  setConfidence(link, raw.confidence);
   return link;
+}
+
+/** Keep `raw` as the item's confidence only when the views can show it: a value in [0, 1] and an explanation that
+ *  is text, when there is one. Operations and links (and so the requirement verdicts read from them) use it. */
+function setConfidence(item: { confidence?: TraceConfidence }, raw: unknown): void {
+  const valid = isObject(raw) && isNumber(raw.value) && raw.value >= 0 && raw.value <= 1 && optional(raw.explanation, isString);
+  if (valid) item.confidence = raw as unknown as TraceConfidence;
+  else delete item.confidence;
 }
