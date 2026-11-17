@@ -135,3 +135,33 @@ describe('the trace digest of a typed message', () => {
     expect(digest.buildAssistantTraceDigest.mock.calls.map(([, message]) => message)).toEqual(['Who created Book?']);
   });
 });
+
+describe('context.traceabilityEnabled of a typed message', () => {
+  // How the client merges the send's override over its provider's context (`mergeContexts`).
+  const sentFlag = () => {
+    const [{ override, base }] = _client.sent;
+    return override?.traceabilityEnabled ?? base?.traceabilityEnabled;
+  };
+
+  it('is false for a default project: recording is opt-in', async () => {
+    const project = createDefaultProject('Library', '', '');
+    expect(project.settings?.traceabilityEnabled).not.toBe(true);
+    const submit = await renderWith(project);
+    await submit('Add a Book class');
+    expect(sentFlag()).toBe(false);
+  });
+
+  it('is false for a project whose setting is unset (made before recording was opt-in)', async () => {
+    const project = createDefaultProject('Library', '', '');
+    const { traceabilityEnabled: _unset, ...settings } = project.settings ?? {};
+    const submit = await renderWith({ ...project, settings } as BesserProject);
+    await submit('Add a Book class');
+    expect(sentFlag()).toBe(false);
+  });
+
+  it('is true when the project records traces', async () => {
+    const submit = await renderWith(recording(true));
+    await submit('Add a Book class');
+    expect(sentFlag()).toBe(true);
+  });
+});
