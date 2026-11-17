@@ -156,6 +156,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     isActive: isVisible,
     switchDiagram,
     onGenerate: onAssistantGenerate,
+    surface: 'widget',
   });
 
   /* ---- Quick action handler: submit a prompt directly ---- */

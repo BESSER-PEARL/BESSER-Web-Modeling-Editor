@@ -78,7 +78,7 @@ import { conversationStore } from '../assistantConversationStore';
 type Hook = ReturnType<typeof useAssistantLogic>;
 
 function Harness({ apiRef }: { apiRef: { current: Hook | null } }) {
-  apiRef.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+  apiRef.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
   return null;
 }
 
