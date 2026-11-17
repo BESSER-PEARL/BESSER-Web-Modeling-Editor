@@ -44,6 +44,7 @@ type QueuedMessage =
     diagramType: string;
     context?: Partial<AssistantWorkspaceContext>;
     attachments?: FileAttachmentPayload[];
+    clientMode?: AssistantClientMode;
   }
   | {
     kind: 'voice';
@@ -52,6 +53,7 @@ type QueuedMessage =
     mimeType: string;
     diagramType: string;
     context?: Partial<AssistantWorkspaceContext>;
+    clientMode?: AssistantClientMode;
   };
 
 const getStableUserId = (): string => {
@@ -597,14 +599,15 @@ export class AssistantClient {
     diagramType?: string,
     context?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
+    clientMode?: AssistantClientMode,
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.enqueueMessage({ kind: 'text', clientMessageId: '', message, diagramType: type, context, attachments });
+      this.enqueueMessage({ kind: 'text', clientMessageId: '', message, diagramType: type, context, attachments, clientMode });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildUserPayload(message, type, context, attachments));
+      this.sendPayload(this.buildUserPayload(message, type, context, attachments, clientMode));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant message', error);
@@ -617,14 +620,15 @@ export class AssistantClient {
     mimeType: string = 'audio/wav',
     diagramType?: string,
     context?: Partial<AssistantWorkspaceContext>,
+    clientMode?: AssistantClientMode,
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.enqueueMessage({ kind: 'voice', clientMessageId: '', audioBase64, mimeType, diagramType: type, context });
+      this.enqueueMessage({ kind: 'voice', clientMessageId: '', audioBase64, mimeType, diagramType: type, context, clientMode });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, context));
+      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, context, clientMode));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant voice message', error);
@@ -855,6 +859,7 @@ export class AssistantClient {
     diagramType: string,
     contextOverride?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
+    clientMode?: AssistantClientMode,
   ): Record<string, any> {
     const baseContext = this.contextProvider?.();
     const context = compactContextPayload(
@@ -879,7 +884,8 @@ export class AssistantClient {
     const payload: Record<string, any> = {
       action: 'user_message',
       protocolVersion: '2.0',
-      clientMode: this.clientMode,
+      // The surface that sent this message: the agent offers generation first only in the drawer.
+      clientMode: clientMode ?? this.clientMode,
       sessionId: this.sessionId,
       message,
       context,
@@ -961,6 +967,7 @@ export class AssistantClient {
     mimeType: string,
     diagramType: string,
     contextOverride?: Partial<AssistantWorkspaceContext>,
+    clientMode?: AssistantClientMode,
   ): Record<string, any> {
     const baseContext = this.contextProvider?.();
     const context = compactContextPayload(
@@ -973,7 +980,7 @@ export class AssistantClient {
     return {
       action: 'user_voice',
       protocolVersion: '2.0',
-      clientMode: this.clientMode,
+      clientMode: clientMode ?? this.clientMode,
       sessionId: this.sessionId,
       message: audioBase64,
       mimeType,
@@ -1338,9 +1345,9 @@ export class AssistantClient {
 
       try {
         if (item.kind === 'voice') {
-          this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.context));
+          this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.context, item.clientMode));
         } else {
-          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.context, item.attachments));
+          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.context, item.attachments, item.clientMode));
         }
       } catch {
         // Re-queue on failure (with dedup) so it's retried on next reconnect.

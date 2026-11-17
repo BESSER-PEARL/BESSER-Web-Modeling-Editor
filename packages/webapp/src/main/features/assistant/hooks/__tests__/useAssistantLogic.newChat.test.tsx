@@ -70,7 +70,7 @@ interface HarnessAPI {
 }
 
 function Harness({ apiRef }: { apiRef: { current: HarnessAPI | null } }) {
-  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
   apiRef.current = { requestNewChat: hook.requestNewChat };
   return <div data-testid="count">{hook.messages.length}</div>;
 }
