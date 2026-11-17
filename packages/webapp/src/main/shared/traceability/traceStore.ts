@@ -308,15 +308,21 @@ export function loadProjectTrace(projectId: string): Promise<TraceFile> {
   let pending = loading.get(projectId);
   if (!pending) {
     const from = storage;
-    pending = readStored(projectId).then(({ trace, revision }) => {
-      if (from === storage && !cache.has(projectId)) {
+    // Read after the save or delete of the trace under way: a load right after "Clear trace" must not read the
+    // trace being deleted.
+    const settled = (busy.get(projectId) ?? Promise.resolve()).catch(() => undefined);
+    const load: Promise<TraceFile> = settled.then(() => readStored(projectId)).then(({ trace, revision }) => {
+      // A delete while it loaded makes this load stale (`loading` forgotten): it must not bring the trace back.
+      const current = loading.get(projectId) === load;
+      if (current) loading.delete(projectId);
+      if (current && from === storage && !cache.has(projectId)) {
         cache.set(projectId, trace);
         revisions.set(projectId, revision);
       }
-      loading.delete(projectId);
       notify();
       return cache.get(projectId) ?? trace;
     });
+    pending = load;
     loading.set(projectId, pending);
   }
   return pending;
@@ -494,6 +500,7 @@ export function deleteProjectTrace(projectId: string): void {
   clearTimeout(unsaved.get(projectId));
   unsaved.delete(projectId);
   cache.delete(projectId);
+  loading.delete(projectId);
   revisions.delete(projectId);
   pendingUpdates.delete(projectId);
   removeLegacyTrace(projectId);

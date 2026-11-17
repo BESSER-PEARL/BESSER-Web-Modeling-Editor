@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  deleteProjectTrace,
   flushTraceSaves,
   getProjectTrace,
   loadProjectTrace,
@@ -88,6 +89,21 @@ describe('trace storage', () => {
     expect((await loadProjectTrace('p1')).actors).toEqual([ada]);
     expect(localStorage.getItem(`${localStorageLegacyTracePrefix}p1`)).toBeNull();
     expect(await storage.read('p1')).toMatchObject({ actors: [ada] });
+  });
+});
+
+describe('clearing a trace', () => {
+  it('a load right after the delete starts from an empty trace, not the stored one', async () => {
+    const storage = memoryTraceStorage();
+    setTraceStorage(storage);
+    await updateProjectTrace('p1', (trace) => { trace.actors.push(ada); });
+    await flushTraceSaves();
+    deleteProjectTrace('p1');
+    // What the Traceability page's "Clear trace" does: load again at once.
+    expect((await loadProjectTrace('p1')).actors).toEqual([]);
+    await flushTraceSaves();
+    expect(getProjectTrace('p1')?.actors).toEqual([]);
+    expect(await storage.read('p1')).toBeUndefined();
   });
 });
 
