@@ -55,6 +55,8 @@ jobs:
           sparse-checkout: |
             besser/llm/data
             besser/spec_driven_agent/providers/data
+      - name: Verify the BESSER data revision
+        run: test "$(git -C .besser rev-parse HEAD)" = 4516f5e684b03c661b8eb6fdb2acb5d23df7e5a9
       - name: Run the unit tests
         env:
           BESSER_CHECKOUT: ${{ github.workspace }}/.besser
