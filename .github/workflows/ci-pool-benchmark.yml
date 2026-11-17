@@ -1,0 +1,27 @@
+name: CI pool benchmark
+
+on:
+  push:
+    branches: [codex/wme-ci-pool-benchmark]
+
+permissions:
+  contents: read
+
+jobs:
+  test-shard:
+    name: test (${{ matrix.pool }}, ${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        pool: [forks, threads]
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/setup
+      - name: Webapp unit tests
+        run: npm test --workspace=webapp -- --shard=${{ matrix.shard }}/3 --pool=${{ matrix.pool }}
+      - name: Server unit tests
+        if: matrix.shard == 1
+        run: npm test --workspace=server
