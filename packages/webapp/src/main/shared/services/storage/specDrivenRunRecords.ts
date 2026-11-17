@@ -3,10 +3,16 @@
  * the spec-driven and GitHub features alike:
  *
  * - the project's last successful run, the base of the next modify run;
+ * - the request the project's latest run was started with, in the user's words;
  * - the model each run started from (`runSeedModel`), so a later push can tell
  *   whether the canvas changed since and must not be replaced silently.
  */
-import { localStorageSpecDrivenLastRunPrefix, localStorageSpecDrivenRunSeedModels } from '../../constants/constant';
+import {
+  localStorageSpecDrivenLastRunPrefix,
+  localStorageSpecDrivenRunRequestPrefix,
+  localStorageSpecDrivenRunSeedModels,
+} from '../../constants/constant';
+import { llmKeyRedactor } from '../llmKeyStorage';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
 const RUN_ID_RE = /^[a-f0-9]{32}$/i;
@@ -21,6 +27,62 @@ export interface LastRunRecord {
   runId: string;
   /** Epoch ms at which the run completed. */
   at: number;
+}
+
+/** Longest request text kept for a project. */
+export const MAX_RUN_REQUEST_LENGTH = 4000;
+
+const ORIGINAL_REQUEST_HEADING = "## The user's original request, verbatim";
+const FOLLOW_UP_HEADING = '## Subsequent user request, verbatim';
+
+/**
+ * The user's own words in a run's instructions, or null when the assistant
+ * framed none. It frames them as "## Assistant's notes ...", then the original
+ * request after one framing sentence, then any "## Subsequent user request,
+ * verbatim" sections. Kept are the original request and those sections, as
+ * the assistant remembers them; its notes and any other section it adds are
+ * dropped. The assistant decides what is content-free and never frames such
+ * a follow-up as verbatim.
+ */
+export function runRequestFromInstructions(instructions: string): string | null {
+  const text = instructions.trim();
+  const start = text.startsWith("## Assistant's notes") ? text.indexOf(ORIGINAL_REQUEST_HEADING) : -1;
+  if (start < 0) return null;
+  const [original, ...sections] = text
+    .slice(start + ORIGINAL_REQUEST_HEADING.length)
+    .split(/\n(?=## Subsequent user request\b)/);
+  const paragraphs = original.trim().split(/\n\s*\n/);
+  if (/^This is the authority\b/.test(paragraphs[0] ?? '')) paragraphs.shift();
+  const followUps = sections.filter((section) => section.startsWith(FOLLOW_UP_HEADING)).map((section) => section.trim());
+  return [paragraphs.join('\n\n').trim(), ...followUps].filter(Boolean).join('\n\n') || null;
+}
+
+const runRequestKey = (projectId: string): string => `${localStorageSpecDrivenRunRequestPrefix}${projectId}`;
+
+/** The request the project's latest run was started with, or null. */
+export function readProjectRunRequest(projectId: string): string | null {
+  if (!projectId) return null;
+  try {
+    const request = window.localStorage.getItem(runRequestKey(projectId));
+    return request ? request.slice(0, MAX_RUN_REQUEST_LENGTH) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remember the request a run is started with, as the user's words (see
+ * `runRequestFromInstructions`): a pasted key removed, then cut to
+ * MAX_RUN_REQUEST_LENGTH. Instructions without them keep the previous request.
+ */
+export function recordProjectRunRequest(projectId: string, instructions: string): void {
+  const request = runRequestFromInstructions(instructions);
+  if (!projectId || !request) return;
+  try {
+    window.localStorage.setItem(runRequestKey(projectId), llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH));
+  } catch {
+    /* ignore */
+  }
 }
 
 const lastRunKey = (projectId: string): string => `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
@@ -50,6 +112,17 @@ export function writeProjectLastRun(projectId: string, runId: string, at: number
   if (!projectId || !isValidRunId(runId)) return;
   try {
     window.localStorage.setItem(lastRunKey(projectId), JSON.stringify({ runId, at }));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Forget a deleted project's last run and request (the request is the user's content). */
+export function clearProjectRunRecords(projectId: string): void {
+  if (!projectId) return;
+  try {
+    window.localStorage.removeItem(lastRunKey(projectId));
+    window.localStorage.removeItem(runRequestKey(projectId));
   } catch {
     /* ignore */
   }

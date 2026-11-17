@@ -1,4 +1,5 @@
 import type { TraceDigest } from '../../../shared/traceability/traceDigest';
+import type { GenerationKey, LastGeneration } from '../../spec-driven';
 
 export type AssistantClientMode = 'widget' | 'workspace';
 
@@ -42,6 +43,10 @@ export interface AssistantWorkspaceContext {
   /** The project records traces (opt-in). The agent extracts a request's requirements only then: the trace is
    *  the one place they go. */
   traceabilityEnabled?: boolean;
+  /** What the next Spec-Driven run would use; never the key. */
+  generationKey?: GenerationKey;
+  /** The project's last Spec-Driven run known to this browser. */
+  lastGeneration?: LastGeneration;
 }
 
 export interface AssistantGitHubRepo {

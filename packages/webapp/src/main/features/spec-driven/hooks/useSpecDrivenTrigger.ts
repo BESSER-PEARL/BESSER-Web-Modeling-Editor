@@ -63,13 +63,13 @@ import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, ty
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { cancelSpecDrivenRun } from '../../../shared/api/specDriven';
+import { cancelSpecDrivenRun, wasSpecDrivenRunCancelAccepted } from '../../../shared/api/specDriven';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { isTraceabilityEnabled, projectRequirements, traceActorName } from '../../../shared/traceability/traceStore';
 import { newRunTraceState, noteRunEvent, recordRunInTrace, type RunTraceState } from '../runTrace';
 import { getProjectGitHubLink, modelContentFingerprint, modelFingerprint } from '../../../shared/services/storage/projectGitHubLink';
-import { recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
+import { recordProjectRunRequest, recordRunSeedModel } from '../../../shared/services/storage/specDrivenRunRecords';
 import {
   SseHttpError,
   SseStallError,
@@ -109,7 +109,6 @@ import {
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
-  readLlmKey,
   writeFreeTierSelected,
 } from '../../../shared/services/llmKeyStorage';
 import {
@@ -122,8 +121,9 @@ import {
   resolveFreeRunModel,
 } from '../../../shared/services/specDrivenConfig';
 import { resolveRunMode } from '../runModeDecision';
+import { readRunTier } from '../generationKey';
+import { announceRunFinished } from '../runFinishNotice';
 import type { RunModeDecision } from '../runModeDecision';
-import { getDemoToken } from '@/main/shared/services/demoMode';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
@@ -170,11 +170,22 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
   status: 'running',
 });
 
+/**
+ * Whether the user's Stop ended the run, so its output is partial: the server
+ * says so on `done`; an older server only tells by this tab's accepted stop
+ * request together with an incomplete result.
+ */
+export function wasStoppedByUser(event: Extract<SpecDrivenEvent, { event: 'done' }>, runId: string | undefined): boolean {
+  if (typeof event.cancelled === 'boolean') return event.cancelled;
+  return !!runId && wasSpecDrivenRunCancelAccepted(runId) && event.incomplete === true;
+}
+
 /** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
 function currentRunTier(): { tier: SpecRunTier; provider: string } {
-  if (getDemoToken()) return { tier: 'sponsored', provider: 'sponsored' };
-  if (readFreeTierSelected()) return { tier: 'free', provider: 'free' };
-  return { tier: 'own_key', provider: readLlmKey()?.provider ?? 'unknown' };
+  const choice = readRunTier(false);
+  if (choice.tier === 'sponsored') return { tier: 'sponsored', provider: 'sponsored' };
+  if (choice.tier === 'free') return { tier: 'free', provider: 'free' };
+  return { tier: 'own_key', provider: choice.tier === 'own_key' ? choice.key.provider : 'unknown' };
 }
 
 /**
@@ -194,6 +205,8 @@ export interface SpecDrivenRunResult {
    * report the outcome honestly instead of an unqualified success. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** The user's Stop ended the run (see `wasStoppedByUser`). */
+  stoppedByUser?: boolean;
   /** Unresolved blocker-severity issues left by a run whose loop
    * COMPLETED (0 / undefined for genuinely cut-short runs). Lets the
    * agent report "finished with N unresolved issues" instead of the
@@ -275,12 +288,21 @@ export function useSpecDrivenTrigger(
 
   // The run's analytics set-up, for its one terminal event.
   const runAnalyticsRef = useRef<RunAnalytics | null>(null);
+  // The run's project name, for the finish notification.
+  const runProjectNameRef = useRef<string | undefined>(undefined);
 
   const reportRunFinished = useCallback((result: SpecDrivenRunResult, details?: RunFinishDetails) => {
     if (runFinishedReportedRef.current) return;
     runFinishedReportedRef.current = true;
     trackRunFinished(runAnalyticsRef.current, result, details);
     runAnalyticsRef.current = null;
+    // A run the user stopped needs no announcement.
+    if (result.errorCode !== 'CANCELLED' && !result.stoppedByUser) {
+      announceRunFinished(
+        runProjectNameRef.current,
+        result.ok ? (result.incomplete ? 'incomplete' : 'success') : 'failed',
+      );
+    }
     try {
       onRunFinishedRef.current?.(result);
     } catch (err) {
@@ -460,13 +482,14 @@ export function useSpecDrivenTrigger(
     (
       liveKey: string,
       messageId: string,
-      opts: { statusIfRunning?: 'done' | 'error' } = {},
+      opts: { statusIfRunning?: 'done' | 'error'; finishedAt?: number } = {},
     ) => {
       const live = dispatch(readLiveSpecDrivenRun(liveKey));
       if (!live) return;
       dispatch(liveRunEnded({ key: liveKey }));
       const snapshot: SpecDrivenMessageState = {
         ...live,
+        ...(opts.finishedAt ? { finishedAt: opts.finishedAt } : {}),
         liveKey: undefined,
         status:
           live.status === 'running'
@@ -640,17 +663,19 @@ export function useSpecDrivenTrigger(
             : undefined;
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          const stoppedByUser = wasStoppedByUser(event, doneRunId);
+          const finishedAt = Date.now();
           // Record this output as the base for a future
           // incremental modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
-          if (doneRunId && run.projectId) {
-            const at = Date.now();
+          // A run the user stopped is not a base: the previous record stays.
+          if (doneRunId && run.projectId && !stoppedByUser) {
             dispatch(
-              setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at }),
+              setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at: finishedAt }),
             );
-            writeProjectLastRun(run.projectId, doneRunId, at);
+            writeProjectLastRun(run.projectId, doneRunId, finishedAt);
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
@@ -658,7 +683,7 @@ export function useSpecDrivenTrigger(
           // Download button instead, and the backend keeps the file for
           // ~30 min. Snapshot the finished card into the chat message
           // and drop the live entry.
-          finalizeLiveRun(run.liveKey, run.streamingId);
+          finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt });
           {
             // Concrete "what was generated" summary from the backend done
             // event: how many files, which generator, and the top-level
@@ -743,6 +768,7 @@ export function useSpecDrivenTrigger(
             generatorUsed,
             incomplete,
             incompleteReason: event.incompleteReason,
+            stoppedByUser,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
             verificationCounts,
           }, {
@@ -903,6 +929,7 @@ export function useSpecDrivenTrigger(
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = saved.runId;
       activeRunStartedAtRef.current = saved.startedAt;
+      runProjectNameRef.current = currentProjectRef.current?.name;
       // After a reload only the tab's current tier choice is known, not the run's own set-up.
       const tier = currentRunTier();
       runAnalyticsRef.current = {
@@ -1030,10 +1057,11 @@ export function useSpecDrivenTrigger(
       // A demo tab (`?demo=<token>`) runs on the server-paid tier, so it
       // authorises a run on its own — same as the keyless free tier, but the
       // spend is ours. Checked first so it wins over a stale stored key.
-      const demoToken = getDemoToken();
-      const freeSelected = readFreeTierSelected();
-      const key = readLlmKey();
-      if (!demoToken && !freeSelected && !key) {
+      const tierChoice = readRunTier(false);
+      const demoToken = tierChoice.tier === 'sponsored' ? tierChoice.demoToken : null;
+      const freeSelected = tierChoice.tier === 'free';
+      const key = tierChoice.tier === 'own_key' ? tierChoice.key : null;
+      if (tierChoice.tier === 'none') {
         track('spec_run_blocked', { reason: 'needs_key' });
         dispatch(openByokDialog(payload));
         return;
@@ -1221,7 +1249,16 @@ export function useSpecDrivenTrigger(
       // entry first so the card's store subscription finds it on its
       // very first paint.
       const liveKey = createMessageId();
-      dispatch(liveRunStarted({ key: liveKey }));
+      dispatch(
+        liveRunStarted({
+          key: liveKey,
+          // Said on the run card rather than as a chat line, so it never
+          // repeats what the assistant's own confirmation already said.
+          notice: runDecision.baseExpired
+            ? { code: 'BASE_EXPIRED', severity: 'info', message: i18n.t('assistant.runCard.rebuildAfterExpiry') }
+            : undefined,
+        }),
+      );
       const streamingId = appendAssistantMessage('', {
         isStreaming: true,
         specDriven: emptyCard(liveKey),
@@ -1233,6 +1270,7 @@ export function useSpecDrivenTrigger(
       currentRunIdRef.current = undefined;
       lastCostRef.current = undefined;
       activeRunStartedAtRef.current = Date.now();
+      runProjectNameRef.current = runProject.name;
       lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       // The run card is the progress surface from here on — CLEAR the
@@ -1317,6 +1355,10 @@ export function useSpecDrivenTrigger(
         startedAt: activeRunStartedAtRef.current,
       };
       track('spec_run_started', runAnalyticsRef.current.properties);
+
+      // Kept from the start, so a run that fails, is stopped or outlives the
+      // tab still leaves the application's description behind.
+      recordProjectRunRequest(project.id, payload.instructions);
 
       let handle;
       try {
@@ -1498,7 +1540,8 @@ export function useSpecDrivenTrigger(
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
       // here because there is no separate plan-review step.
-      if (readLlmKey() || readFreeTierSelected()) {
+      const stored = readRunTier(false).tier;
+      if (stored === 'own_key' || stored === 'free') {
         await startRun({ ...payload, planApproved: true });
         return;
       }

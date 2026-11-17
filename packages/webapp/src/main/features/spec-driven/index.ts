@@ -9,4 +9,6 @@ export {
   specDrivenReducer,
 } from './state/specDrivenSlice';
 export { useSpecDrivenTrigger } from './hooks/useSpecDrivenTrigger';
+export { readGenerationContext, readGenerationKey, useGenerationKey, type GenerationKey } from './generationKey';
+export { readLastGeneration, type LastGeneration } from './lastGeneration';
 export type { TriggerSpecDrivenPayload } from './types';

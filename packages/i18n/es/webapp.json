@@ -65,7 +65,9 @@
       "validated": "Validado",
       "issues": "Problemas",
       "needsRecheck": "Requiere revisión",
-      "notValidated": "No validado"
+      "notValidated": "No validado",
+      "syntacticCheck": "Comprobación sintáctica",
+      "semanticCheck": "Comprobación semántica"
     },
     "more": "Más",
     "linkToGithub": "Vincular con GitHub",
@@ -146,7 +148,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Datos",
-        "kgConvert": "Convertir a B-UML"
+        "kgConvert": "Convertir a B-UML",
+        "formalMethods": "Métodos formales"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -161,7 +164,8 @@
         "userProfileJson": "JSON de perfil de usuario",
         "qiskitCode": "Código Qiskit",
         "forecaster": "Previsión de series temporales",
-        "kgToClassDiagram": "Diagrama de clases"
+        "kgToClassDiagram": "Diagrama de clases",
+        "alloySpecification": "Especificación Alloy"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
@@ -1083,7 +1087,7 @@
       "github": {
         "connectHint": "Conecta tu cuenta de GitHub para elegir uno de tus repositorios. Volverás aquí después de iniciar sesión.",
         "continue": "Continuar",
-        "description": "Elige cualquier repositorio. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. La siguiente ejecución del Spec-Driven Agent edita su código. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
+        "description": "Elige un repositorio para importar. Uno de BESSER se abre con su modelo; para cualquier otro, BESSER lee el código y propone un modelo. El proyecto queda vinculado al repositorio. Si BESSER no puede leer directamente sus clases de datos, te pregunta antes de enviar un breve extracto del código, sin archivos ni claves secretos, a un modelo de IA para que proponga uno.",
         "errors": {
           "generic": "No se pudo continuar desde este repositorio.",
           "noModel": "Este repositorio no tiene un modelo de BESSER: no lo creó BESSER, así que aún no hay nada desde donde continuar.",
@@ -1632,6 +1636,24 @@
       "linkPlaceholder": "Pega un enlace: github.com/owner/repo",
       "open": "Abrir",
       "title": "Empezar desde un repositorio de GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Este proyecto está vinculado a {{repo}} en {{branch}}.",
+      "label": "Guardado automático en GitHub",
+      "hint": "Hace commit de tu modelo unos segundos después de que dejes de editar, como mucho una vez por minuto. Se pausa cuando otra persona ha hecho push, para no sobrescribir nunca su trabajo.",
+      "signInHint": "Conecta GitHub en esta pestaña para guardar automáticamente en el repositorio.",
+      "commitMessage": "Guardado automático del modelo desde el editor de BESSER",
+      "status": {
+        "saving": "Guardando automáticamente en GitHub…",
+        "saved": "Guardado automáticamente en GitHub a las {{time}}",
+        "on": "El guardado automático en GitHub está activado",
+        "pausedRemote": "Guardado automático en pausa: hay commits nuevos en GitHub. Obtén lo último o guarda y combina para reanudarlo.",
+        "pausedConflict": "Guardado automático en pausa: un guardado no se pudo combinar. Resuelve su pull request, o deja de seguirlo, para reanudarlo.",
+        "pausedAuth": "Guardado automático en pausa: vuelve a conectar GitHub para reanudarlo.",
+        "pausedMissing": "Guardado automático en pausa: no se encontró el repositorio o la rama en GitHub.",
+        "error": "El guardado automático no pudo contactar con GitHub. Lo volverá a intentar a las {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1852,6 +1874,52 @@
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "modelo predeterminado",
+      "free": "Modelo gratuito",
+      "none": "Sin clave API",
+      "title": "Próxima generación: {{label}}. Haz clic para cambiar."
+    },
+    "runCard": {
+      "notifyMe": "Avisarme cuando termine",
+      "notifyOn": "Te avisaremos cuando termine",
+      "availableUntil": "Disponible hasta las {{time}}: descárgalo o guárdalo en GitHub antes.",
+      "expired": "Este resultado ya no está disponible: los archivos generados se conservan {{lifetime}}. Vuelve a generar para obtener una nueva copia.",
+      "lifetimeMinutes_one": "{{count}} minuto",
+      "lifetimeMinutes_other": "{{count}} minutos",
+      "lifetimeHours_one": "{{count}} hora",
+      "lifetimeHours_other": "{{count}} horas",
+      "generateAgain": "Generar de nuevo",
+      "rebuildAfterExpiry": "La ejecución anterior ya no se puede editar sobre sí misma, así que la aplicación se reconstruye a partir del modelo y de la petición original.",
+      "downloadUntil": "Descarga disponible hasta las {{time}}.",
+      "downloadAndGithubUntil": "Descarga disponible hasta las {{download}}; guardar en GitHub hasta las {{github}}.",
+      "expiredNoLifetime": "Este resultado ya no está disponible en el servidor. Vuelve a generar para obtener una nueva copia."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Listo)",
+        "incomplete": "(Incompleto)",
+        "failed": "(Error)"
+      },
+      "notificationTitle": {
+        "success": "Generación terminada",
+        "incomplete": "Generación incompleta",
+        "failed": "La generación falló"
+      },
+      "notificationBody": {
+        "success": "{{project}}: la aplicación está lista para descargar.",
+        "incomplete": "{{project}}: la ejecución se detuvo antes de tiempo. Su resultado se puede revisar.",
+        "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
+      },
+      "untitledProject": "Tu proyecto"
+    },
+    "generateAgain": {
+      "title": "¿Generar la aplicación de nuevo?",
+      "fromRequest": "Se reconstruye a partir del modelo y de la petición original. La ejecución usa: {{key}}.",
+      "askAssistant": "Se pide al asistente que la genere de nuevo. La ejecución usa: {{key}}.",
+      "unknownKey": "la clave o el nivel gratuito configurado para las generaciones"
     }
   },
   "deploy": {
@@ -2369,6 +2437,16 @@
       "offlineMessage": "Estás sin conexión. Es posible que algunas funciones no funcionen.",
       "backOnline": "De nuevo en línea.",
       "dismiss": "Descartar aviso de sin conexión"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}.",
+        "keySavedReconnect": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}. El asistente no está conectado ahora y usará la clave en cuanto se vuelva a conectar.",
+        "defaultModel": "el modelo predeterminado",
+        "freeSelected": "Nivel gratuito seleccionado. Las generaciones usarán {{model}}.",
+        "freeDefaultModel": "el modelo gratuito incluido",
+        "keyRemoved": "Clave API eliminada de esta pestaña."
+      }
     }
   },
   "shell": {
@@ -2453,6 +2531,14 @@
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
+      "generateFromConstraints": "Generación semántica",
+      "generateFromConstraintsTooltip": "Reemplaza este diagrama de objetos por una instancia del diagrama de clases referenciado que cumpla sus restricciones OCL.",
+      "searchingInstance": "Buscando una instancia que cumpla las restricciones…",
+      "replaceConfirmTitle": "¿Reemplazar el diagrama de objetos?",
+      "replaceConfirmDescription": "La instancia generada reemplaza los objetos y enlaces de este diagrama.",
+      "replaceConfirmAction": "Reemplazar",
+      "payloadMissing": "Se encontró una instancia, pero el servidor no envió su diagrama de objetos.",
+      "generationDiscarded": "Generación semántica detenida: cambió de diagrama.",
       "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
       "tablistLabel": "Diagramas",
       "editAsForm": "Editar como formulario",
@@ -4024,6 +4110,15 @@
       "more_other": "…y {{count}} más.",
       "confirm": "Generar de todos modos",
       "cancel": "Corregir primero el modelo"
+    },
+    "semantic": {
+      "searching": "Buscando una instancia del diagrama de clases…",
+      "connectionLost": "Se perdió la conexión con el servidor durante la comprobación semántica.",
+      "noResult": "La comprobación semántica terminó sin resultado.",
+      "alreadyRunning": "Ya hay una comprobación semántica en curso.",
+      "failed": "Falló la comprobación semántica: {{error}}",
+      "errorsLabel": "Errores:",
+      "warningsLabel": "Advertencias:"
     }
   },
   "quantum": {

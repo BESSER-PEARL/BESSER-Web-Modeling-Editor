@@ -19,13 +19,15 @@ import { useProject } from '../../../app/hooks/useProject';
 /* ------------------------------------------------------------------ */
 
 interface ClassInfo {
+  id: string;
   name: string;
   kind: 'class' | 'enum' | 'interface' | 'abstract';
-  attributes: { name: string; type: string }[];
+  attributes: { id: string; name: string; type: string }[];
   methods: string[];
 }
 
 interface RelationInfo {
+  id: string;
   source: string;
   target: string;
   label: string;
@@ -55,26 +57,32 @@ function activeDiagramModel(project: any, type: string): any {
   return (list[idx] ?? list[0])?.model;
 }
 
-function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: RelationInfo[]; constraints: string[] } {
+interface ConstraintInfo {
+  id: string;
+  text: string;
+}
+
+function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: RelationInfo[]; constraints: ConstraintInfo[] } {
   const elements: Record<string, any> = model?.elements ?? {};
   const classes: ClassInfo[] = [];
-  const constraints: string[] = [];
+  const constraints: ConstraintInfo[] = [];
 
   for (const el of Object.values(elements)) {
     if (!el || typeof el !== 'object') continue;
     if (el.type === 'ClassOCLConstraint' && el.constraint) {
-      constraints.push(String(el.constraint));
+      constraints.push({ id: el.id, text: String(el.constraint) });
       continue;
     }
     if (!['Class', 'AbstractClass', 'Interface', 'Enumeration'].includes(el.type)) continue;
     const attributes = (el.attributes ?? [])
       .map((id: string) => elements[id])
       .filter(Boolean)
-      .map((a: any) => ({ name: a.name ?? '', type: a.attributeType ?? '' }));
+      .map((a: any) => ({ id: a.id, name: a.name ?? '', type: a.attributeType ?? '' }));
     const methods = (el.methods ?? [])
       .map((id: string) => elements[id]?.name)
       .filter(Boolean);
     classes.push({
+      id: el.id,
       name: el.name ?? 'Unnamed',
       kind: el.type === 'Enumeration' ? 'enum'
         : el.type === 'Interface' ? 'interface'
@@ -91,6 +99,7 @@ function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: Relat
     const target = elements[rel.target?.element]?.name;
     if (!source || !target) continue;
     relations.push({
+      id: rel.id,
       source,
       target,
       label: REL_LABELS[rel.type] ?? 'association',
@@ -139,7 +148,14 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; count: num
   </div>
 );
 
-export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+// Rows that open the element on the canvas.
+const FOCUSABLE_ROW = 'w-full cursor-pointer text-left transition-colors hover:bg-brand/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40';
+
+export const ModelOverviewPanel: React.FC<{
+  onClose: () => void;
+  /** Show this class-diagram element (class, attribute, relationship, constraint) on the canvas. */
+  onFocusElement: (elementId: string) => void;
+}> = ({ onClose, onFocusElement }) => {
   const { currentProject } = useProject();
 
   // Escape closes this panel first; the drawer's own Escape listener (on
@@ -193,37 +209,55 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
             <SectionHeader icon={<Database className="size-3.5" />} title="Data model" count={classes.length} />
             <div className="space-y-2">
               {classes.map((cls) => (
-                <div key={cls.name} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 truncate text-xs font-semibold tracking-tight" title={cls.name}>{cls.name}</span>
+                <div key={cls.id} className="rounded-lg border border-border/50 bg-card/60 px-1.5 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onFocusElement(cls.id)}
+                    title={`Show ${cls.name} in the diagram`}
+                    className={cn('flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5', FOCUSABLE_ROW)}
+                  >
+                    <span className="min-w-0 truncate text-xs font-semibold tracking-tight">{cls.name}</span>
                     {cls.kind !== 'class' && (
                       <span className="shrink-0 rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9px] text-brand">
                         {cls.kind}
                       </span>
                     )}
-                  </div>
+                  </button>
                   {cls.kind === 'enum' ? (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
+                    <div className="mt-1 flex flex-wrap gap-1 px-1.5">
                       {cls.attributes.map((a) => (
-                        <span key={a.name} className="rounded-full border border-border/50 bg-muted/30 px-1.5 py-px font-mono text-[10px] text-muted-foreground">
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => onFocusElement(a.id)}
+                          title={`Show ${a.name} in the diagram`}
+                          className={cn(FOCUSABLE_ROW, 'w-auto rounded-full border border-border/50 bg-muted/30 px-1.5 py-px font-mono text-[10px] text-muted-foreground')}
+                        >
                           {a.name}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   ) : (
                     <>
                       {cls.attributes.length > 0 && (
-                        <ul className="mt-1.5 space-y-0.5">
+                        <ul className="mt-0.5">
                           {cls.attributes.map((a) => (
-                            <li key={a.name} className="flex items-baseline justify-between gap-2 text-[11px]">
-                              <span className="min-w-0 truncate text-foreground/85" title={a.name}>{a.name}</span>
-                              <span className="shrink-0 font-mono text-[10px] text-muted-foreground/80">{a.type}</span>
+                            <li key={a.id}>
+                              <button
+                                type="button"
+                                onClick={() => onFocusElement(a.id)}
+                                title={`Show ${cls.name}.${a.name} in the diagram`}
+                                className={cn('flex items-baseline justify-between gap-2 rounded-md px-1.5 py-0.5 text-[11px]', FOCUSABLE_ROW)}
+                              >
+                                <span className="min-w-0 truncate text-foreground/85">{a.name}</span>
+                                <span className="shrink-0 font-mono text-[10px] text-muted-foreground/80">{a.type}</span>
+                              </button>
                             </li>
                           ))}
                         </ul>
                       )}
                       {cls.methods.length > 0 && (
-                        <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground/60">
+                        <p className="mt-1 truncate px-1.5 font-mono text-[10px] text-muted-foreground/60">
                           {cls.methods.join(' · ')}
                         </p>
                       )}
@@ -240,13 +274,19 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
           <section>
             <SectionHeader icon={<GitBranch className="size-3.5" />} title="Relationships" count={relations.length} />
             <ul className="space-y-1">
-              {relations.map((rel, i) => (
-                <li key={i} className="flex min-w-0 flex-wrap items-center gap-1.5 break-all rounded-md border border-border/40 bg-card/40 px-2.5 py-1.5 text-[11px]">
-                  <span className="font-medium">{rel.source}</span>
-                  {rel.sourceMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.sourceMultiplicity}</span>}
-                  <span className="text-muted-foreground/70">—{rel.label}→</span>
-                  {rel.targetMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.targetMultiplicity}</span>}
-                  <span className="font-medium">{rel.target}</span>
+              {relations.map((rel) => (
+                <li key={rel.id}>
+                  <button
+                    type="button"
+                    onClick={() => onFocusElement(rel.id)}
+                    className={cn('flex min-w-0 flex-wrap items-center gap-1.5 break-all rounded-md border border-border/40 bg-card/40 px-2.5 py-1.5 text-[11px]', FOCUSABLE_ROW)}
+                  >
+                    <span className="font-medium">{rel.source}</span>
+                    {rel.sourceMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.sourceMultiplicity}</span>}
+                    <span className="text-muted-foreground/70">—{rel.label}→</span>
+                    {rel.targetMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.targetMultiplicity}</span>}
+                    <span className="font-medium">{rel.target}</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -279,9 +319,15 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
           <section>
             <SectionHeader icon={<ShieldCheck className="size-3.5" />} title="Constraints" count={constraints.length} />
             <ul className="space-y-1">
-              {constraints.map((c, i) => (
-                <li key={i} className="rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
-                  {c}
+              {constraints.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => onFocusElement(c.id)}
+                    className={cn('rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 font-mono text-[10px] leading-relaxed text-muted-foreground', FOCUSABLE_ROW)}
+                  >
+                    {c.text}
+                  </button>
                 </li>
               ))}
             </ul>

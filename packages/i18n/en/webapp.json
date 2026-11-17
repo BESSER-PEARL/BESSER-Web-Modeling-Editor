@@ -65,7 +65,9 @@
       "validated": "Validated",
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
-      "notValidated": "Not validated"
+      "notValidated": "Not validated",
+      "syntacticCheck": "Syntactic check",
+      "semanticCheck": "Semantic check"
     },
     "more": "More",
     "repoState": {
@@ -146,7 +148,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Data",
-        "kgConvert": "Convert to B-UML"
+        "kgConvert": "Convert to B-UML",
+        "formalMethods": "Formal Methods"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -161,7 +164,8 @@
         "userProfileJson": "User Profile JSON",
         "qiskitCode": "Qiskit Code",
         "forecaster": "Time-Series Forecaster",
-        "kgToClassDiagram": "Class Diagram"
+        "kgToClassDiagram": "Class Diagram",
+        "alloySpecification": "Alloy Specification"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -1083,7 +1087,7 @@
       "github": {
         "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
         "continue": "Continue",
-        "description": "Pick any repository. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The next Spec-Driven Agent run edits its code. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
+        "description": "Pick a repository to import. A BESSER one opens with its model; for any other, BESSER reads the code and proposes a model. The project stays linked to the repository. If BESSER cannot read its data classes directly, it asks you before sending a short excerpt of the code, with secret files and keys removed, to an AI model to propose one.",
         "errors": {
           "generic": "Could not continue from this repository.",
           "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
@@ -1632,6 +1636,24 @@
       "linkPlaceholder": "Paste a link: github.com/owner/repo",
       "linkLabel": "Repository link",
       "open": "Open"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "This project is linked to {{repo}} on {{branch}}.",
+      "label": "Autosave to GitHub",
+      "hint": "Commits your model a few seconds after you stop editing, at most once a minute. It pauses when someone else pushed, so their work is never overwritten.",
+      "signInHint": "Connect GitHub in this tab to autosave to the repository.",
+      "commitMessage": "Autosave the model from the BESSER editor",
+      "status": {
+        "saving": "Autosaving to GitHub…",
+        "saved": "Autosaved to GitHub at {{time}}",
+        "on": "Autosave to GitHub is on",
+        "pausedRemote": "Autosave paused: there are new commits on GitHub. Get latest or Save and merge to resume.",
+        "pausedConflict": "Autosave paused: a save could not be merged. Resolve its pull request, or stop tracking it, to resume.",
+        "pausedAuth": "Autosave paused: reconnect GitHub to resume.",
+        "pausedMissing": "Autosave paused: the repository or branch was not found on GitHub.",
+        "error": "Autosave could not reach GitHub. It tries again at {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1852,6 +1874,52 @@
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "default model",
+      "free": "Free model",
+      "none": "No API key",
+      "title": "Next generation: {{label}}. Click to change."
+    },
+    "runCard": {
+      "notifyMe": "Notify me when it is done",
+      "notifyOn": "You will be notified when it is done",
+      "availableUntil": "Available until {{time}}: download or save to GitHub before then.",
+      "expired": "This result is no longer available: generated files are kept for {{lifetime}}. Generate again to get a new copy.",
+      "lifetimeMinutes_one": "{{count}} minute",
+      "lifetimeMinutes_other": "{{count}} minutes",
+      "lifetimeHours_one": "{{count}} hour",
+      "lifetimeHours_other": "{{count}} hours",
+      "generateAgain": "Generate again",
+      "rebuildAfterExpiry": "The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request.",
+      "downloadUntil": "Download available until {{time}}.",
+      "downloadAndGithubUntil": "Download available until {{download}}; save to GitHub until {{github}}.",
+      "expiredNoLifetime": "This result is no longer available on the server. Generate again to get a new copy."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Done)",
+        "incomplete": "(Incomplete)",
+        "failed": "(Failed)"
+      },
+      "notificationTitle": {
+        "success": "Generation finished",
+        "incomplete": "Generation incomplete",
+        "failed": "Generation failed"
+      },
+      "notificationBody": {
+        "success": "{{project}}: the application is ready to download.",
+        "incomplete": "{{project}}: the run stopped early. Its output is ready to inspect.",
+        "failed": "{{project}}: the run failed. Open the tab for details."
+      },
+      "untitledProject": "Your project"
+    },
+    "generateAgain": {
+      "title": "Generate the application again?",
+      "fromRequest": "It is built again from the model and the original request. The run uses: {{key}}.",
+      "askAssistant": "The assistant is asked to generate it again. The run uses: {{key}}.",
+      "unknownKey": "the key or free tier set up for generations"
     }
   },
   "deploy": {
@@ -2369,6 +2437,16 @@
       "offlineMessage": "You are offline. Some features may not work.",
       "backOnline": "Back online.",
       "dismiss": "Dismiss offline warning"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Key saved. Generations will use {{provider}} with {{model}}.",
+        "keySavedReconnect": "Key saved. Generations will use {{provider}} with {{model}}. The assistant is not connected right now and will use the key once it reconnects.",
+        "defaultModel": "the default model",
+        "freeSelected": "Free tier selected. Generations will use {{model}}.",
+        "freeDefaultModel": "the included free model",
+        "keyRemoved": "API key removed from this tab."
+      }
     }
   },
   "shell": {
@@ -2453,6 +2531,14 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
+      "generateFromConstraints": "Semantic generation",
+      "generateFromConstraintsTooltip": "Replace this object diagram with an instance of the referenced class diagram that satisfies its OCL constraints.",
+      "searchingInstance": "Searching for an instance that satisfies the constraints…",
+      "replaceConfirmTitle": "Replace the object diagram?",
+      "replaceConfirmDescription": "The generated instance replaces the objects and links of this diagram.",
+      "replaceConfirmAction": "Replace",
+      "payloadMissing": "An instance was found, but the server did not send its object diagram.",
+      "generationDiscarded": "Semantic generation stopped: you switched diagrams.",
       "noClassDiagramsAvailable": "No Class Diagrams available",
       "tablistLabel": "Diagrams",
       "editAsForm": "Edit as form",
@@ -4024,6 +4110,15 @@
       "more_other": "…and {{count}} more.",
       "confirm": "Generate anyway",
       "cancel": "Fix the model first"
+    },
+    "semantic": {
+      "searching": "Searching for an instance of the class diagram…",
+      "connectionLost": "The connection to the server was lost during the semantic check.",
+      "noResult": "The semantic check ended without a result.",
+      "alreadyRunning": "A semantic check is already running.",
+      "failed": "Semantic check failed: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Warnings:"
     }
   },
   "quantum": {

@@ -11,6 +11,7 @@ import { getProjectGitHubLink } from '../../../shared/services/storage/projectGi
 import { sessionStorageContinueFromGithubIntent } from '../../../shared/constants/constant';
 import { importProject } from '../../../shared/services/project-import/projectImport';
 import { continueFromGithubRepo } from '../../../shared/services/github/continueFromGithub';
+import { readProjectLastRun } from '../../../shared/services/storage/specDrivenRunRecords';
 
 const mockCreateProject = vi.fn();
 const mockGithubLogin = vi.fn();
@@ -54,7 +55,8 @@ vi.mock('../../../shared/services/github/continueFromGithub', async (importOrigi
   continueFromGithubRepo: vi.fn(),
 }));
 vi.mock('../../import/useImportDiagram', () => ({ useImportDiagramToProject: () => vi.fn() }));
-vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
+const mockDispatch = vi.fn();
+vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => mockDispatch }));
 vi.mock('../../../shared/services/project-import/projectImport', () => ({ importProject: vi.fn() }));
 
 const createdProject = (): BesserProject => {
@@ -78,6 +80,8 @@ beforeEach(() => {
   sessionStorage.clear();
   mockCreateProject.mockReset();
   mockGithubLogin.mockReset();
+  mockDispatch.mockReset();
+  vi.mocked(continueFromGithubRepo).mockReset();
   vi.mocked(saveProjectOnGithub).mockReset();
   vi.mocked(toast.update).mockReset();
   vi.mocked(toast.success).mockReset();
@@ -212,19 +216,45 @@ describe('Landing GitHub row', () => {
 
   // First run: no project was open, so the hub's own close guard would refuse
   // and leave it over the project the repo just opened.
-  it('closes itself and tells the assistant after continuing from a repo on first run', async () => {
+  it('closes itself after importing from a repo on first run', async () => {
     const project = createdProject();
     vi.mocked(continueFromGithubRepo).mockResolvedValue({ ok: true, projectId: project.id });
     sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
     mockGithubAuthenticated = true;
     const onOpenChange = vi.fn();
-    const onRepoOpened = vi.fn();
-    render(<ProjectHubDialog open onOpenChange={onOpenChange} onRepoOpened={onRepoOpened} />);
+    render(<ProjectHubDialog open onOpenChange={onOpenChange} />);
     fireEvent.click(screen.getByTestId('repo-browser'));
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     expect(continueFromGithubRepo).toHaveBeenCalledWith(expect.objectContaining({ owner: 'octocat', repo: 'shop' }));
-    expect(onRepoOpened).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  // BESSER-PEARL/BESSER#789: the import only links the repo. The Spec-Driven
+  // Agent reads the linked repo when a run is first asked for, not here.
+  it('imports from a repo without starting the agentic flow', async () => {
+    const project = createdProject();
+    vi.mocked(continueFromGithubRepo).mockResolvedValue({ ok: true, projectId: project.id, runId: 'run-1' });
+    sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
+    mockGithubAuthenticated = true;
+    const onOpenChange = vi.fn();
+    render(<ProjectHubDialog open onOpenChange={onOpenChange} />);
+    fireEvent.click(screen.getByTestId('repo-browser'));
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(continueFromGithubRepo).toHaveBeenCalledWith(expect.objectContaining({ source: 'hub', primeNextRun: false }));
+    // No run is made the base of the next Spec-Driven request, in Redux or in storage.
+    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(readProjectLastRun(project.id)).toBeNull();
+  });
+
+  it('asks only for a repository to import, without talking about agents or code generation', () => {
+    sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
+    mockGithubAuthenticated = true;
+    render(<ProjectHubDialog open onOpenChange={() => {}} />);
+
+    const description = screen.getByText(/Pick a repository to import\./);
+    expect(description.textContent).toContain('The project stays linked to the repository.');
+    expect(description.textContent).not.toMatch(/Spec-Driven|agent|next .* run/i);
   });
 
   it('still resumes "Continue from GitHub" on the repo picker', () => {

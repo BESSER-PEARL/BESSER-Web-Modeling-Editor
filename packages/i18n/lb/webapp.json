@@ -65,7 +65,9 @@
       "validated": "Validéiert",
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
-      "notValidated": "Net validéiert"
+      "notValidated": "Net validéiert",
+      "syntacticCheck": "Syntaktesch Prüfung",
+      "semanticCheck": "Semantesch Prüfung"
     },
     "more": "Méi",
     "linkToGithub": "Mat GitHub verbannen",
@@ -146,7 +148,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "An B-UML ëmwandelen"
+        "kgConvert": "An B-UML ëmwandelen",
+        "formalMethods": "Formal Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -161,7 +164,8 @@
         "userProfileJson": "Benotzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zäitreien-Prognos",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikatioun"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
@@ -1083,7 +1087,7 @@
       "github": {
         "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
         "continue": "Weider",
-        "description": "Wiel all Repository. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell. De nächste Laf vum Spec-Driven Agent ännert säi Code. Wann BESSER d’Dateklassen net direkt liese kann, freet et dech, ier et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell schéckt, dat ee Modell virschléit.",
+        "description": "Wiel e Repository fir ze importéieren. E BESSER-Repository geet mat sengem Modell op; bei all anerem liest BESSER de Code a proposéiert e Modell. De Projet bleift mam Repository verbonnen. Wann BESSER d’Dateklassen net direkt liese kann, freet et dech, ier et e kuerzen Auszuch vum Code, ouni geheim Fichieren a Schlësselen, un en KI-Modell schéckt, dat ee Modell virschléit.",
         "errors": {
           "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
           "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",
@@ -1632,6 +1636,24 @@
       "linkPlaceholder": "Link afügen: github.com/owner/repo",
       "open": "Opmaachen",
       "title": "Mat engem GitHub-Repository ufänken"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Dëse Projet ass mat {{repo}} op {{branch}} verlinkt.",
+      "label": "Automatesch op GitHub späicheren",
+      "hint": "Commit däi Modell e puer Sekonnen nodeems du ophals ze änneren, héchstens eemol pro Minutt. Huet een anere gepusht, gëtt et pauséiert, fir datt seng Aarbecht ni iwwerschriwwe gëtt.",
+      "signInHint": "Verbann GitHub an dësem Tab, fir automatesch am Repository ze späicheren.",
+      "commitMessage": "Modell aus dem BESSER-Editor automatesch späicheren",
+      "status": {
+        "saving": "Gëtt automatesch op GitHub gespäichert…",
+        "saved": "Um {{time}} automatesch op GitHub gespäichert",
+        "on": "Automatescht Späicheren op GitHub ass aktiv",
+        "pausedRemote": "Automatescht Späicheren pauséiert: Et gëtt nei Commits op GitHub. „Neist Versioun huelen“ oder „Späicheren a fusionéieren“, fir weiderzemaachen.",
+        "pausedConflict": "Automatescht Späicheren pauséiert: E Späicheren konnt net fusionéiert ginn. Léis säi Pull Request op oder verfolleg en net méi, fir weiderzemaachen.",
+        "pausedAuth": "Automatescht Späicheren pauséiert: Verbann GitHub nei, fir weiderzemaachen.",
+        "pausedMissing": "Automatescht Späicheren pauséiert: De Repository oder de Branch gouf op GitHub net fonnt.",
+        "error": "Automatescht Späicheren konnt GitHub net erreechen. Neie Versuch um {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1852,6 +1874,52 @@
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Gratis Modell",
+      "none": "Keen API-Schlëssel",
+      "title": "Nächst Generatioun: {{label}}. Klickt fir z'änneren."
+    },
+    "runCard": {
+      "notifyMe": "Mech informéieren, wann et fäerdeg ass",
+      "notifyOn": "Dir gitt informéiert, wann et fäerdeg ass",
+      "availableUntil": "Disponibel bis {{time}}: virdrun eroflueden oder op GitHub späicheren.",
+      "expired": "Dëst Resultat ass net méi disponibel: generéiert Fichiere ginn {{lifetime}} gehalen. Generéiert nach eng Kéier fir eng nei Kopie.",
+      "lifetimeMinutes_one": "{{count}} Minutt",
+      "lifetimeMinutes_other": "{{count}} Minutten",
+      "lifetimeHours_one": "{{count}} Stonn",
+      "lifetimeHours_other": "{{count}} Stonnen",
+      "generateAgain": "Nach eng Kéier generéieren",
+      "rebuildAfterExpiry": "De virege Laf kann net méi direkt geännert ginn. D'Applikatioun gëtt dofir aus dem Modell an der ursprénglecher Ufro nei gebaut.",
+      "downloadUntil": "Download disponibel bis {{time}}.",
+      "downloadAndGithubUntil": "Download disponibel bis {{download}}; op GitHub späichere bis {{github}}.",
+      "expiredNoLifetime": "Dëst Resultat ass um Server net méi disponibel. Generéiert nach eng Kéier fir eng nei Kopie."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fäerdeg)",
+        "incomplete": "(Onvollstänneg)",
+        "failed": "(Feeler)"
+      },
+      "notificationTitle": {
+        "success": "Generatioun fäerdeg",
+        "incomplete": "Generatioun onvollstänneg",
+        "failed": "Generatioun feelgeschloen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: d'Applikatioun ass prett fir erofzelueden.",
+        "incomplete": "{{project}}: de Laf ass ze fréi gestoppt. D'Resultat kann iwwerpréift ginn.",
+        "failed": "{{project}}: de Laf ass feelgeschloen. Maacht den Tab op fir d'Detailer."
+      },
+      "untitledProject": "Äre Projet"
+    },
+    "generateAgain": {
+      "title": "Applikatioun nach eng Kéier generéieren?",
+      "fromRequest": "Si gëtt aus dem Modell an der ursprénglecher Ufro nei gebaut. De Laf benotzt: {{key}}.",
+      "askAssistant": "Den Assistent gëtt gefrot, se nach eng Kéier ze generéieren. De Laf benotzt: {{key}}.",
+      "unknownKey": "de Schlëssel oder déi gratis Stuf, déi fir Generatiounen agestallt ass"
     }
   },
   "deploy": {
@@ -2369,6 +2437,16 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}.",
+        "keySavedReconnect": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}. Den Assistent ass grad net verbonnen a benotzt de Schlëssel, soubal e sech nees verbënnt.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Gratis Stuf gewielt. Generatioune benotzen {{model}}.",
+        "freeDefaultModel": "dat abegraffent gratis Modell",
+        "keyRemoved": "API-Schlëssel aus dësem Tab ewechgeholl."
+      }
     }
   },
   "shell": {
@@ -2453,6 +2531,14 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
+      "generateFromConstraints": "Semantesch Generatioun",
+      "generateFromConstraintsTooltip": "Ersetzt dësen Objetdiagramm duerch eng Instanz vum referenzéierte Klassendiagramm, déi seng OCL-Constrainten erfëllt.",
+      "searchingInstance": "Sich no enger Instanz, déi d'Constrainten erfëllt…",
+      "replaceConfirmTitle": "Objetdiagramm ersetzen?",
+      "replaceConfirmDescription": "Déi generéiert Instanz ersetzt d'Objeten an d'Linke vun dësem Diagramm.",
+      "replaceConfirmAction": "Ersetzen",
+      "payloadMissing": "Eng Instanz gouf fonnt, mee de Server huet hiren Objetdiagramm net geschéckt.",
+      "generationDiscarded": "Semantesch Generatioun gestoppt: Dir hutt den Diagramm gewiesselt.",
       "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
       "tablistLabel": "Diagrammer",
       "editAsForm": "Als Formulaire beaarbechten",
@@ -4024,6 +4110,15 @@
       "more_other": "…an {{count}} weider.",
       "confirm": "Trotzdeem generéieren",
       "cancel": "Fir d'éischt de Modell verbesseren"
+    },
+    "semantic": {
+      "searching": "Sich no enger Instanz vum Klassendiagramm…",
+      "connectionLost": "D'Verbindung mam Server ass wärend der semantescher Prüfung verluer gaangen.",
+      "noResult": "D'semantesch Prüfung ass ouni Resultat eriwwer gaangen.",
+      "alreadyRunning": "Eng semantesch Prüfung leeft schonn.",
+      "failed": "Semantesch Prüfung feelgeschloen: {{error}}",
+      "errorsLabel": "Feeler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

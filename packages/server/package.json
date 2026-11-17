@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "8.9.3",
+  "version": "8.9.4",
   "private": true,
   "license": "MIT",
   "scripts": {

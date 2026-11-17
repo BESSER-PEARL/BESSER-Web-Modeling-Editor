@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
 import { notifyError, reportError } from '../../shared/services/errors/reportError';
@@ -59,6 +60,12 @@ import {
 } from '../../shared/utils/validation';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import { validateDiagram, type ValidateDiagramResult } from '../../shared/services/validation/validateDiagram';
+import {
+  checkSemanticConsistency,
+  isSemanticSearchRunning,
+  semanticSearchErrorMessage,
+  showSemanticSearchResult,
+} from '../../shared/services/validation/semanticCheck';
 import {
   ConfigDialog,
   getConfigDialogForGenerator,
@@ -609,6 +616,8 @@ export interface UseGeneratorExecutionReturn {
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
   handleQualityCheck: () => Promise<QualityCheckResult>;
+  /** Passed to WorkspaceShell → onSemanticCheck */
+  handleSemanticCheck: () => Promise<void>;
   /** Props bag to spread onto <GeneratorConfigDialogs /> */
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
@@ -906,7 +915,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         // but which the modeling agent requests (`GENERATOR_PREREQUISITES` in its generation_signals.py).
         const CLASS_MODEL_GENERATORS = [
           'django', 'spring', 'backend', 'sql', 'supabase', 'sqlalchemy', 'python', 'java',
-          'test_case', 'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf',
+          'test_case', 'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'alloy',
         ];
         if ((isQuantumContext || isGuiContext || !editor)
             && CLASS_MODEL_GENERATORS.includes(generatorType)) {
@@ -1121,6 +1130,33 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
+
+  const handleSemanticCheck = useCallback(async (): Promise<void> => {
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
+    if (!currentProject) {
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
+      return;
+    }
+    const model = editor?.model ?? activeDiagram?.model;
+    if (currentProject.currentDiagramType !== 'ClassDiagram' || !isUMLModel(model)) {
+      reportError(t('generation.toasts.noDiagramToValidate'));
+      return;
+    }
+
+    const toastId = toast.loading(t('validation.semantic.searching'));
+    try {
+      const result = await checkSemanticConsistency(activeDiagramTitle, model, (event) => {
+        toast.update(toastId, { render: event.message });
+      });
+      toast.dismiss(toastId);
+      showSemanticSearchResult(result);
+    } catch (error) {
+      reportError(semanticSearchErrorMessage(error), { error, updateToast: toastId, isLoading: false, autoClose: 5000 });
+    }
+  }, [currentProject, editor, activeDiagram, activeDiagramTitle, t]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
@@ -1543,6 +1579,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleGenerateRequest,
     handleAssistantGenerate,
     handleQualityCheck,
+    handleSemanticCheck,
     configState,
     isLocalEnvironment,
   };

@@ -17,7 +17,12 @@ import type {
 } from './assistant-types';
 import { ProtocolError } from './errors';
 import { track } from '../../../shared/services/analytics/events';
-import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import {
+  isAssistantKeyProvider,
+  LLM_KEY_ARM_EVENT,
+  readLlmKey,
+  type LlmKeyArmRequest,
+} from '../../../shared/services/llmKeyStorage';
 import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
   clearAssistantSessionId,
@@ -212,6 +217,8 @@ const mergeContexts = (
     githubRepo: override?.githubRepo || base?.githubRepo,
     traceDigest: override?.traceDigest || base?.traceDigest,
     traceabilityEnabled: override?.traceabilityEnabled ?? base?.traceabilityEnabled,
+    generationKey: override?.generationKey || base?.generationKey,
+    lastGeneration: override?.lastGeneration || base?.lastGeneration,
   };
 };
 
@@ -363,10 +370,11 @@ export class AssistantClient {
   private connectingPromise: Promise<void> | null = null;
   private reconnectAttempts = 0;
   private readonly baseReconnectDelay = 2000;
+  /** The backoff's cap, and the retry interval after it: the client never stops
+   *  retrying, so a tab recovers from an agent restart (about 4 min) of any length. */
   private readonly maxReconnectDelay = 30000;
-  private readonly maxReconnectAttempts = 8;
-  /** Analytics: the give-up is reported once, until the next successful connect. */
-  private gaveUpReported = false;
+  /** Failed reconnects reported to analytics; later ones repeat the same fact. */
+  private readonly trackedReconnectFailures = 8;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -499,7 +507,6 @@ export class AssistantClient {
             state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
             attempt: this.reconnectAttempts,
           });
-          this.gaveUpReported = false;
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -713,19 +720,19 @@ export class AssistantClient {
   /**
    * Re-send the stored BYOK key (if any) right after a (re)connect so the
    * agent's session variable survives a fresh socket / reclaimed reply slot.
-   * Best-effort and silent — never logs the key.
+   * Also run when a key is saved where no client is at hand
+   * (`LLM_KEY_ARM_EVENT`). Best-effort and silent — never logs the key.
    */
-  private rearmUserApiKey(): void {
+  rearmUserApiKey(): SendStatus {
     try {
       const stored = readLlmKey();
       if (!stored || !isAssistantKeyProvider(stored.provider)) {
         // The agent session outlives the tab (keyed by the persistent user
         // id): clear a key the user removed, that died with an old tab, or
         // whose provider the assistant does not take.
-        this.setUserApiKey({ apiKey: '' });
-        return;
+        return this.setUserApiKey({ apiKey: '' });
       }
-      this.setUserApiKey({
+      return this.setUserApiKey({
         apiKey: stored.apiKey,
         provider: stored.provider,
         model: stored.model,
@@ -733,6 +740,7 @@ export class AssistantClient {
       });
     } catch {
       // best-effort — a failed re-arm just means the user re-saves the key
+      return 'error';
     }
   }
 
@@ -1178,20 +1186,21 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
-    if (this.shouldReconnect && this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpReported) {
-      this.gaveUpReported = true;
-      track('assistant_connection', { state: 'gave_up', attempt: this.reconnectAttempts });
-    }
-    if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
+    if (!this.shouldReconnect || this.reconnectTimeout) {
       return;
     }
     this.reconnectAttempts += 1;
-    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+    // The socket's error handler schedules the next attempt before this one's
+    // catch runs, so the counter has moved on by then.
+    const attempt = this.reconnectAttempts;
+    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, attempt - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect().catch((error) => {
         console.error('Assistant reconnect failed', error);
-        track('assistant_connection', { state: 'reconnect_failed', attempt: this.reconnectAttempts });
+        if (attempt <= this.trackedReconnectFailures) {
+          track('assistant_connection', { state: 'reconnect_failed', attempt });
+        }
       });
     }, delay);
   }
@@ -1377,7 +1386,15 @@ export function getSharedAssistantClient(
   options?: AssistantClientOptions,
 ): AssistantClient {
   if (!_sharedAssistantClient) {
-    _sharedAssistantClient = new AssistantClient(url, options);
+    const client = new AssistantClient(url, options);
+    _sharedAssistantClient = client;
+    // A key saved in a dialog that has no client (the chat link, Settings)
+    // reaches the open connection at once instead of on the next reconnect.
+    window.addEventListener(LLM_KEY_ARM_EVENT, (event) => {
+      const request = (event as CustomEvent<LlmKeyArmRequest>).detail;
+      const status = client.rearmUserApiKey();
+      if (request) request.result = status === 'sent' ? 'sent' : 'error';
+    });
   }
   return _sharedAssistantClient;
 }

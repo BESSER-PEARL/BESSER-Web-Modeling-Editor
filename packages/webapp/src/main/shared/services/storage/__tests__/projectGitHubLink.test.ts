@@ -6,6 +6,7 @@ import {
   getProjectGitHubLink,
   markProjectGitHubSynced,
   modelFingerprint,
+  setProjectGitHubAutoSave,
   setProjectGitHubLink,
 } from '../projectGitHubLink';
 import type { BesserProject } from '../../../types/project';
@@ -122,5 +123,27 @@ describe('sync base', () => {
     const base = project(['Book']);
     expect(modelFingerprint({ ...base, name: 'Renamed' })).toBe(modelFingerprint(base));
     expect(modelFingerprint(project(['Book', 'Loan']))).not.toBe(modelFingerprint(base));
+  });
+});
+
+describe('Autosave to GitHub on the link', () => {
+  it('is off unless turned on, survives a save, and stays in this browser', () => {
+    setProjectGitHubLink('p1', { owner: 'me', repo: 'app', branch: 'main' });
+    expect(getProjectGitHubLink('p1')?.autoSave).toBeUndefined();
+
+    setProjectGitHubAutoSave('p1', true);
+    expect(getProjectGitHubLink('p1')?.autoSave).toBe(true);
+    markProjectGitHubSynced(getProjectGitHubLink('p1')!, project(['Book']), 'c'.repeat(40));
+    expect(getProjectGitHubLink('p1')?.autoSave).toBe(true);
+
+    setProjectGitHubAutoSave('p1', false);
+    expect(getProjectGitHubLink('p1')).not.toHaveProperty('autoSave');
+  });
+
+  it('reads only a true flag, and does nothing for an unlinked project', () => {
+    localStorage.setItem('besser_github_link_p1', JSON.stringify({ owner: 'me', repo: 'app', branch: 'main', autoSave: 'yes' }));
+    expect(getProjectGitHubLink('p1')?.autoSave).toBeUndefined();
+    setProjectGitHubAutoSave('p2', true);
+    expect(getProjectGitHubLink('p2')).toBeNull();
   });
 });

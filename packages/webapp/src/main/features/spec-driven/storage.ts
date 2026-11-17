@@ -7,6 +7,7 @@
 import {
   localStorageSpecDrivenActiveRunV1,
   localStorageSpecDrivenActiveRunV2Prefix,
+  localStorageSpecDrivenNotifyOnFinish,
 } from '../../shared/constants/constant';
 import { isValidRunId } from './runModeDecision';
 
@@ -30,6 +31,26 @@ function _hasLocalStorage(): boolean {
 
 // The last successful run lives in shared/ so the GitHub feature can record one too.
 export { readProjectLastRun, writeProjectLastRun } from '../../shared/services/storage/specDrivenRunRecords';
+
+/** Whether the user asked, in this browser, to be notified when a run finishes. */
+export function readNotifyOnFinish(): boolean {
+  if (!_hasLocalStorage()) return false;
+  try {
+    return window.localStorage.getItem(localStorageSpecDrivenNotifyOnFinish) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeNotifyOnFinish(enabled: boolean): void {
+  if (!_hasLocalStorage()) return;
+  try {
+    if (enabled) window.localStorage.setItem(localStorageSpecDrivenNotifyOnFinish, '1');
+    else window.localStorage.removeItem(localStorageSpecDrivenNotifyOnFinish);
+  } catch {
+    /* ignore */
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Active durable run pointer (reload/reattach)                       */

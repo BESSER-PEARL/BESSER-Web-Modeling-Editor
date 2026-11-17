@@ -30,6 +30,11 @@ export interface RunModeDecision {
    * app: ask "update the existing app / start fresh" before running.
    */
   askUser?: 'large' | 'unrelated';
+  /**
+   * Set on an automatic fresh build because the project's last run is past
+   * the download lifetime: the app is rebuilt, not edited in place.
+   */
+  baseExpired?: boolean;
 }
 
 export interface DecideRunModeParams {
@@ -97,8 +102,8 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
     return { mode: 'modify', baseRunId: storedRunId };
   }
 
-  // 3. Fresh build.
-  return { mode: 'generate' };
+  // 3. Fresh build, said so when it replaces an expired base.
+  return storedRunId ? { mode: 'generate', baseExpired: true } : { mode: 'generate' };
 }
 
 /**

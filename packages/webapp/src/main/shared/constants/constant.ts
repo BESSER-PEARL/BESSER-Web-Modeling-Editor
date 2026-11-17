@@ -172,6 +172,10 @@ export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assista
 // as long as the run is still within the backend's download TTL. Stored in
 // localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
 export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+// The request (the user's own words) the project's latest run was started
+// with, so a later request that says only "try again" still has the
+// application's description. Content, never sent to analytics. Suffix: `<projectId>`.
+export const localStorageSpecDrivenRunRequestPrefix = localStoragePrefix + 'smartgen_request_';
 // Minimal pointer to a currently-running durable generation. Versioned so a
 // future schema change never misreads old recovery data. Contains no API key,
 // prompt, model payload, or generated content.
@@ -180,6 +184,8 @@ export const localStorageSpecDrivenActiveRunV1 = localStoragePrefix + 'smartgen_
 // runs in different tabs/projects from overwriting a single global record.
 export const localStorageSpecDrivenActiveRunV2Prefix =
   localStoragePrefix + 'smartgen_active:v2:';
+// '1' when the user asked for a browser notification when a run finishes.
+export const localStorageSpecDrivenNotifyOnFinish = localStoragePrefix + 'smartgen_notify_on_finish';
 
 // Spec-Driven Agent "Push to GitHub" connect-first intent.
 // When the user clicks "Push to GitHub" on a finished spec-driven run card but
@@ -243,6 +249,10 @@ export const sessionStorageChunkReloaded = localStoragePrefix + 'chunkReloaded';
 export const sessionStorageGitHubSession = 'github_session';
 export const sessionStorageGitHubSessionTimestamp = 'github_session_timestamp';
 export const sessionStorageGitHubSessionExpired = 'github_session_expired';
+
+// Semantic check backend endpoints (derived from BACKEND_URL), streamed as SSE.
+export const SEMANTIC_CHECK_ENDPOINT = `${BACKEND_URL}/semantic-consistency-check`;
+export const GENERATE_OBJECT_DIAGRAM_ENDPOINT = `${BACKEND_URL}/generate-object-diagram`;
 
 // Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;

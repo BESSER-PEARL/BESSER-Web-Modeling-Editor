@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  clearProjectGitHubLink,
   getProjectGitHubLink,
   modelFingerprint,
   setProjectGitHubLink,
@@ -13,6 +14,8 @@ import { useRepoSync } from '../useRepoSync';
 const BASE = 'a'.repeat(40);
 const SAVED = 'b'.repeat(40);
 const project = { id: 'p1', name: 'Library', diagrams: { ClassDiagram: [{ model: { v: 1 } }] } };
+// What the project store holds now: edits made while a save runs change it.
+let storedProject: unknown = project;
 
 // Stable references, as the real hooks return: the hook's effects depend on them.
 const stable = vi.hoisted(() => ({
@@ -33,7 +36,7 @@ vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => stable.pr
 vi.mock('../../../../app/store/hooks', () => ({ useAppDispatch: () => stable.dispatch }));
 vi.mock('../../../../shared/services/storage/ProjectStorageRepository', () => ({
   ProjectStorageRepository: {
-    loadProject: () => project,
+    loadProject: () => storedProject,
     saveProject: (saved: unknown) => stored.push(saved),
     withoutNotify: (write: () => void) => write(),
   },
@@ -54,6 +57,7 @@ const status = (commitsSince = 0, pending: SyncStatus['pending'] = null): SyncSt
 beforeEach(() => {
   localStorage.clear();
   stable.project.currentProject = project;
+  storedProject = project;
   Object.assign(stable.auth, { isAuthenticated: true, isExpired: false, isNotInTab: false, githubSession: 'session' });
   pullRepoIntoProject.mockReset();
   Object.values(api).forEach((fn) => fn.mockReset());
@@ -123,6 +127,63 @@ describe('useRepoSync', () => {
 
     expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(SAVED);
     expect(result.current.state).toBe('in-sync');
+  });
+
+  // An autosave runs in the background: an Unlink clicked while it is in
+  // flight must stay unlinked, not be written back when the save returns.
+  it('does not bring back a link removed while a save was running', async () => {
+    api.getSyncStatus.mockResolvedValue(status());
+    let answerSave: (value: Awaited<ReturnType<typeof api.saveModel>>) => void = () => undefined;
+    api.saveModel.mockReturnValue(new Promise((resolve) => (answerSave = resolve)));
+    const { result } = renderHook(() => useRepoSync());
+
+    let saving: Promise<unknown> = Promise.resolve();
+    act(() => {
+      saving = result.current.save('Autosave');
+    });
+    clearProjectGitHubLink('p1');
+    await act(async () => {
+      answerSave({ success: true, commit_sha: SAVED, message: '', status: 'pushed', conflict_branch: null });
+      await saving;
+    });
+
+    expect(getProjectGitHubLink('p1')).toBeNull();
+  });
+
+  // A save GitHub merged with newer commits loads the merge over the project.
+  // An autosave runs while the user edits: edits made during its request were
+  // replaced by the merge. They stay, and the newer commits wait as "behind".
+  it('keeps edits made while a save was running instead of loading the merge over them', async () => {
+    api.getSyncStatus.mockResolvedValue(status());
+    let answerSave: (value: Awaited<ReturnType<typeof api.saveModel>>) => void = () => undefined;
+    api.saveModel.mockReturnValue(new Promise((resolve) => (answerSave = resolve)));
+    const { result } = renderHook(() => useRepoSync());
+
+    let saving: Promise<unknown> = Promise.resolve();
+    act(() => {
+      saving = result.current.save('Autosave');
+    });
+    storedProject = { ...project, diagrams: { ClassDiagram: [{ model: { v: 2 } }] } };
+    await act(async () => {
+      answerSave({ success: true, commit_sha: SAVED, message: '', status: 'merged', conflict_branch: null });
+      await saving;
+    });
+
+    expect(pullRepoIntoProject).not.toHaveBeenCalled();
+    expect(getProjectGitHubLink('p1')?.baseCommitSha).toBe(BASE);
+  });
+
+  it('loads the merge when nothing was edited while the save ran', async () => {
+    api.getSyncStatus.mockResolvedValue(status());
+    api.saveModel.mockResolvedValue({ success: true, commit_sha: SAVED, message: '', status: 'merged', conflict_branch: null });
+    pullRepoIntoProject.mockResolvedValue({ has_code: false });
+    const { result } = renderHook(() => useRepoSync());
+
+    await act(async () => {
+      await result.current.save('Add Loan');
+    });
+
+    expect(pullRepoIntoProject).toHaveBeenCalledTimes(1);
   });
 
   it('checks GitHub once for every component showing the repo, also on focus (review repro)', async () => {

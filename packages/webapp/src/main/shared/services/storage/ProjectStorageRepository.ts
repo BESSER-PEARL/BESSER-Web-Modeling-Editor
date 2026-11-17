@@ -25,6 +25,7 @@ import {
   localStorageProjectsList,
 } from '../../constants/constant';
 import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
+import { clearProjectRunRecords } from './specDrivenRunRecords';
 import { checkLocalStorageQuota } from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 import { deleteProjectTrace } from '../../traceability/traceStore';
@@ -462,6 +463,7 @@ export class ProjectStorageRepository {
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
       clearStoredConversation(projectId);
+      clearProjectRunRecords(projectId);
 
       // The project's trace is stored under its own key
       deleteProjectTrace(projectId);

@@ -54,8 +54,10 @@ npm run i18n:check                         # translation coverage (warnings only
 npm run i18n:validate                      # strict translation check
 ```
 
-**CI** (`.github/workflows/`) runs only the i18n checks. Lint, tests and build are not gated by CI — neither
-here nor in the parent BESSER repo, whose `ci.yml` does not build the frontend. Run them locally.
+**CI** (`.github/workflows/ci.yml`, on PRs and pushes to `develop`/`main`) runs `npm run lint`, the OpenAPI types
+check, the webapp and server tests, `npm run typecheck` (error-count ratchet, baseline in `scripts/typecheck.mjs`),
+`npm run build` and `npm run i18n:check`; `docs.yml` builds the Sphinx docs. Not in CI: the editor package's lint,
+Prettier and the Playwright e2e tests. The parent BESSER repo's `ci.yml` does not build the frontend.
 
 ## Where Things Live
 

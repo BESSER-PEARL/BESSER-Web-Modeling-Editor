@@ -153,7 +153,7 @@ export interface AnalyticsEvents {
   /** The client gave up on a reply: malformed payload or the hard timeout. */
   assistant_client_error: { kind: 'protocol' | 'timeout' };
   /** WebSocket state changes; `attempt` counts reconnects. */
-  assistant_connection: { state: 'connected' | 'reconnected' | 'disconnected' | 'reconnect_failed' | 'gave_up'; attempt: number };
+  assistant_connection: { state: 'connected' | 'reconnected' | 'disconnected' | 'reconnect_failed'; attempt: number };
   assistant_new_chat: { had_spec_run: boolean; message_count: number };
   assistant_issue_reported: { logs_truncated: boolean };
   assistant_issue_report_failed: { reason: 'popup_blocked' | 'exception' } & Partial<ErrorProperties>;
@@ -240,6 +240,8 @@ export interface AnalyticsEvents {
   diagram_created: { type: string };
   diagram_deleted: { type: string; remaining: number };
   object_diagram_generated_from_class: { created: number; skipped: number; links: number };
+  /** Semantic generation replaced an object diagram with an instance of its class diagram's constraints. */
+  object_diagram_generated_from_constraints: { elements: number; relationships: number };
   template_used: { diagram_type?: string; mode: 'project' | 'replace' | 'new_tab'; had_model: boolean };
   template_failed: { diagram_type?: string } & ErrorProperties;
   diagram_imported: { format: string; diagram_type?: string; source?: string };
@@ -369,7 +371,7 @@ export interface AnalyticsEvents {
 
   // ── Settings ──
   /** A setting changed; `value` only when it is an enum, boolean or number. */
-  settings_changed: { area: 'project' | 'display' | 'perspective' | 'kg'; setting: string; value?: string | boolean | number };
+  settings_changed: { area: 'project' | 'display' | 'perspective' | 'kg' | 'github'; setting: string; value?: string | boolean | number };
   settings_change_failed: { area: 'project' | 'display' | 'perspective' | 'kg'; setting: string } & Partial<ErrorProperties>;
 }
 

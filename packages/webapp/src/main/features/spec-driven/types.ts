@@ -203,6 +203,8 @@ export interface DoneEvent {
   /** Output exists, but the run stopped early or left unresolved blockers. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** True exactly when a request to stop the run was honoured; absent from older backends. */
+  cancelled?: boolean;
   /** Number of unresolved blocker-severity issues left by a run whose
    * loop COMPLETED (0 for runs that were genuinely cut short). Drives
    * "finished with N unresolved issues" framing instead of the
@@ -453,11 +455,8 @@ export interface SpecDrivenMessageState {
     cacheRead: number;
     total: number;
   };
-  /**
-   * Generation succeeded but the browser download failed. The artifact
-   * stays on the server (~30 min TTL) so "Download again" can retry.
-   */
-  downloadFailed?: boolean;
+  /** Epoch ms at which a successful run finished; the server keeps its output for the download lifetime from then. */
+  finishedAt?: number;
   /**
    * Generation succeeded and the artifact is ready, but it has NOT been
    * saved to the user's disk yet. The run no longer auto-downloads —

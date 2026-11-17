@@ -254,6 +254,15 @@ export class ApollonEditor {
     );
   }
 
+  /**
+   * Scrolls the canvas so an element or relationship is in the middle of the view.
+   * @param id id of the element (a class, an attribute, ...) or relationship
+   */
+  scrollToElement(id: string) {
+    const node = this.container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    node?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+  }
+
   _getNewSubscriptionId(subscribers: { [key: number]: any }): number {
     // largest key + 1
     if (Object.keys(subscribers).length === 0) return 0;

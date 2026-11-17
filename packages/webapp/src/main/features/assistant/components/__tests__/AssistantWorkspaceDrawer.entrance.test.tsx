@@ -13,6 +13,7 @@ import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { specDrivenReducer } from '../../../spec-driven';
+import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 
 vi.mock('../../hooks/useAssistantLogic', () => ({
   useAssistantLogic: () => ({
@@ -60,7 +61,7 @@ afterEach(() => {
 describe('AssistantWorkspaceDrawer welcome entrance', () => {
   it('renders one welcome screen after repeated open/close, keeping the composer mounted', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
+    const store = configureStore({ reducer: { specDriven: specDrivenReducer, workspace: workspaceReducer } });
     const tree = (open: boolean) => (
       <MemoryRouter>
         <Provider store={store}>
@@ -88,7 +89,7 @@ describe('AssistantWorkspaceDrawer welcome entrance', () => {
   });
 
   it('offers no repository entry in the welcome view; repositories open from the project hub', () => {
-    const store = configureStore({ reducer: { specDriven: specDrivenReducer } });
+    const store = configureStore({ reducer: { specDriven: specDrivenReducer, workspace: workspaceReducer } });
     const { container } = render(
       <MemoryRouter>
         <Provider store={store}>
