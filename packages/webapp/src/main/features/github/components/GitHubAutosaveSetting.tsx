@@ -1,4 +1,4 @@
-/** The "Autosave to GitHub" setting of a linked project, and the line that says how autosave stands. */
+/** The GitHub settings of a linked project (autosave, push generated code), and the line that says how autosave stands. */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CloudUpload } from 'lucide-react';
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { useProject } from '../../../app/hooks/useProject';
 import { track } from '../../../shared/services/analytics/events';
-import { setProjectGitHubAutoSave } from '../../../shared/services/storage/projectGitHubLink';
+import { setProjectGitHubAutoSave, setProjectGitHubPushRuns } from '../../../shared/services/storage/projectGitHubLink';
 import { useAutosaveStatus } from '../autosave/autosaveStatus';
 import { useRepoSync } from '../hooks/useRepoSync';
 
@@ -16,6 +16,12 @@ const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-dig
 export function setGitHubAutosave(projectId: string, enabled: boolean): void {
   setProjectGitHubAutoSave(projectId, enabled);
   track('settings_changed', { area: 'github', setting: 'autosave', value: enabled });
+}
+
+/** Turns "Push generated code to GitHub" on or off for a linked project: from the project settings or the GitHub menu. */
+export function setGitHubPushRuns(projectId: string, enabled: boolean): void {
+  setProjectGitHubPushRuns(projectId, enabled);
+  track('settings_changed', { area: 'github', setting: 'push_runs', value: enabled });
 }
 
 /** One quiet line on how autosave stands for the project, or null when it is off. */
@@ -115,6 +121,31 @@ export const GitHubAutosaveSetting: React.FC = () => {
             {statusText}
           </p>
         )}
+        <label
+          htmlFor="github-push-runs-toggle"
+          className={`flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors ${
+            isAuthenticated ? 'cursor-pointer hover:bg-muted/30' : 'cursor-not-allowed opacity-70'
+          }`}
+        >
+          <div>
+            <p className="text-sm font-medium">{t('github.pushRuns.label', { defaultValue: 'Push generated code to GitHub' })}</p>
+            <p className="text-xs text-muted-foreground">
+              {isAuthenticated
+                ? t('github.pushRuns.hint', {
+                    defaultValue:
+                      'When a Spec-Driven Agent run finishes, its code is committed to this repository and branch, merged with newer commits, so it is kept after the download expires.',
+                  })
+                : t('github.pushRuns.signInHint', { defaultValue: 'Connect GitHub in this tab to push generated code to the repository.' })}
+            </p>
+          </div>
+          <Checkbox
+            id="github-push-runs-toggle"
+            checked={!!link.pushRuns && isAuthenticated}
+            disabled={!isAuthenticated}
+            data-testid="github-push-runs-toggle"
+            onCheckedChange={(next) => setGitHubPushRuns(currentProject.id, next === true)}
+          />
+        </label>
       </CardContent>
     </Card>
   );

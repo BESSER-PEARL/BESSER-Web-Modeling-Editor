@@ -186,6 +186,19 @@ describe('GitHubMenu', () => {
     localStorage.clear();
   });
 
+  it('turns "Push generated code to GitHub" on from the menu of a linked project', () => {
+    linkAs('in-sync');
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'library-app', branch: 'main' });
+    renderMenu();
+    openMenu();
+
+    const toggle = screen.getByRole('menuitemcheckbox', { name: 'Push generated code to GitHub' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(getProjectGitHubLink('p1')?.pushRuns).toBe(true);
+    localStorage.clear();
+  });
+
   it('cannot turn autosave on from the menu without a GitHub session in this tab', () => {
     linkAs('in-sync');
     const session = sync.githubSession;

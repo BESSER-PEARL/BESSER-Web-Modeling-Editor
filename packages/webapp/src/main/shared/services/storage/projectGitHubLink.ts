@@ -20,10 +20,11 @@
  * `newFromRepo` holds the elements pulls brought in, shown as new until the user
  * clears them. It lives here, in this browser, so it never reaches the model.
  *
- * `autoSave` is the user's "Autosave to GitHub" choice for this project, off
- * unless turned on. It is kept here, in this browser, and not in the project's
- * settings, so it never reaches the repo and a teammate's editor never starts
- * committing because of it.
+ * `autoSave` is the user's "Autosave to GitHub" choice for this project, and
+ * `pushRuns` their "Push generated code to GitHub" one; both are off unless turned
+ * on. They are kept here, in this browser, and not in the project's settings, so
+ * they never reach the repo and a teammate's editor never starts committing
+ * because of them.
  *
  * `legacyFilePath` is the model file the old GitHub sidebar saved (e.g.
  * `models/shop.json`); the next save sends it so the commit that writes
@@ -89,6 +90,8 @@ export interface ProjectGitHubLink {
   newFromRepo?: string[];
   /** Commit the model on its own after edits (useGitHubAutosave). */
   autoSave?: boolean;
+  /** Push a Spec-Driven run's generated code here when it finishes (useAutoPushFinishedRuns). */
+  pushRuns?: boolean;
 }
 
 /** Fired on `window` whenever a project's link changes; `detail` is `{ projectId }`. */
@@ -153,6 +156,7 @@ const parseLink = (raw: string | null): ProjectGitHubLink | null => {
           ? { newFromRepo: value.newFromRepo.filter((id: unknown) => typeof id === 'string') as string[] }
           : {}),
         ...(value.autoSave === true ? { autoSave: true } : {}),
+        ...(value.pushRuns === true ? { pushRuns: true } : {}),
       };
     }
   } catch {
@@ -241,6 +245,14 @@ export function setProjectGitHubAutoSave(projectId: string, enabled: boolean): v
   if (!link) return;
   const { autoSave: _old, ...rest } = link;
   setProjectGitHubLink(projectId, enabled ? { ...rest, autoSave: true } : rest);
+}
+
+/** Turn "Push generated code to GitHub" on or off for a project's link. */
+export function setProjectGitHubPushRuns(projectId: string, enabled: boolean): void {
+  const link = getProjectGitHubLink(projectId);
+  if (!link) return;
+  const { pushRuns: _old, ...rest } = link;
+  setProjectGitHubLink(projectId, enabled ? { ...rest, pushRuns: true } : rest);
 }
 
 export function clearProjectGitHubLink(projectId: string): void {
