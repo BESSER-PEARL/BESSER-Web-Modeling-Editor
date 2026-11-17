@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [codex/wme-ci-npm-benchmark]
 
 permissions:
   contents: read
@@ -34,22 +34,25 @@ jobs:
           git diff --exit-code -- packages/webapp/src/main/shared/api/generated/ \
             || { echo "::error::besser-openapi.d.ts is stale: run 'npm run api:types --workspace=webapp' and commit it."; exit 1; }
 
-  # The webapp suite is ~300 test files, each in its own jsdom environment, so
-  # it is split by file across three runners. `test` reports the combined result
-  # under the check name the suite had as one job.
+  # Keep three runners for PR feedback. On branch pushes, two runners use all
+  # available workers and run the same suite with one less dependency install.
+  # The combined check is still reported as `test`.
   test-shard:
-    name: test (${{ matrix.shard }}/3)
+    name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1,2]' || '[1,2,3]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - name: Webapp unit tests (vitest)
-        run: npm test --workspace=webapp -- --shard=${{ matrix.shard }}/3
+        run: >-
+          npm test --workspace=webapp
+          -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          ${{ github.event_name == 'push' && '--maxWorkers=100%' || '' }}
       - name: Server tests (vitest)
         if: matrix.shard == 1
         run: npm test --workspace=server
