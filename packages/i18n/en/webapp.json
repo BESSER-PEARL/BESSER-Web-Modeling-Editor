@@ -1871,6 +1871,52 @@
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "default model",
+      "free": "Free model",
+      "none": "No API key",
+      "title": "Next generation: {{label}}. Click to change."
+    },
+    "runCard": {
+      "notifyMe": "Notify me when it is done",
+      "notifyOn": "You will be notified when it is done",
+      "availableUntil": "Available until {{time}}: download or save to GitHub before then.",
+      "expired": "This result is no longer available: generated files are kept for {{lifetime}}. Generate again to get a new copy.",
+      "lifetimeMinutes_one": "{{count}} minute",
+      "lifetimeMinutes_other": "{{count}} minutes",
+      "lifetimeHours_one": "{{count}} hour",
+      "lifetimeHours_other": "{{count}} hours",
+      "generateAgain": "Generate again",
+      "rebuildAfterExpiry": "The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request.",
+      "downloadUntil": "Download available until {{time}}.",
+      "downloadAndGithubUntil": "Download available until {{download}}; save to GitHub until {{github}}.",
+      "expiredNoLifetime": "This result is no longer available on the server. Generate again to get a new copy."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Done)",
+        "incomplete": "(Incomplete)",
+        "failed": "(Failed)"
+      },
+      "notificationTitle": {
+        "success": "Generation finished",
+        "incomplete": "Generation incomplete",
+        "failed": "Generation failed"
+      },
+      "notificationBody": {
+        "success": "{{project}}: the application is ready to download.",
+        "incomplete": "{{project}}: the run stopped early. Its output is ready to inspect.",
+        "failed": "{{project}}: the run failed. Open the tab for details."
+      },
+      "untitledProject": "Your project"
+    },
+    "generateAgain": {
+      "title": "Generate the application again?",
+      "fromRequest": "It is built again from the model and the original request. The run uses: {{key}}.",
+      "askAssistant": "The assistant is asked to generate it again. The run uses: {{key}}.",
+      "unknownKey": "the key or free tier set up for generations"
     }
   },
   "deploy": {
@@ -2388,6 +2434,16 @@
       "offlineMessage": "You are offline. Some features may not work.",
       "backOnline": "Back online.",
       "dismiss": "Dismiss offline warning"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Key saved. Generations will use {{provider}} with {{model}}.",
+        "keySavedReconnect": "Key saved. Generations will use {{provider}} with {{model}}. The assistant is not connected right now and will use the key once it reconnects.",
+        "defaultModel": "the default model",
+        "freeSelected": "Free tier selected. Generations will use {{model}}.",
+        "freeDefaultModel": "the included free model",
+        "keyRemoved": "API key removed from this tab."
+      }
     }
   },
   "shell": {

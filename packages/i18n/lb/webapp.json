@@ -1871,6 +1871,52 @@
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Gratis Modell",
+      "none": "Keen API-Schlëssel",
+      "title": "Nächst Generatioun: {{label}}. Klickt fir z'änneren."
+    },
+    "runCard": {
+      "notifyMe": "Mech informéieren, wann et fäerdeg ass",
+      "notifyOn": "Dir gitt informéiert, wann et fäerdeg ass",
+      "availableUntil": "Disponibel bis {{time}}: virdrun eroflueden oder op GitHub späicheren.",
+      "expired": "Dëst Resultat ass net méi disponibel: generéiert Fichiere ginn {{lifetime}} gehalen. Generéiert nach eng Kéier fir eng nei Kopie.",
+      "lifetimeMinutes_one": "{{count}} Minutt",
+      "lifetimeMinutes_other": "{{count}} Minutten",
+      "lifetimeHours_one": "{{count}} Stonn",
+      "lifetimeHours_other": "{{count}} Stonnen",
+      "generateAgain": "Nach eng Kéier generéieren",
+      "rebuildAfterExpiry": "De virege Laf kann net méi direkt geännert ginn. D'Applikatioun gëtt dofir aus dem Modell an der ursprénglecher Ufro nei gebaut.",
+      "downloadUntil": "Download disponibel bis {{time}}.",
+      "downloadAndGithubUntil": "Download disponibel bis {{download}}; op GitHub späichere bis {{github}}.",
+      "expiredNoLifetime": "Dëst Resultat ass um Server net méi disponibel. Generéiert nach eng Kéier fir eng nei Kopie."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fäerdeg)",
+        "incomplete": "(Onvollstänneg)",
+        "failed": "(Feeler)"
+      },
+      "notificationTitle": {
+        "success": "Generatioun fäerdeg",
+        "incomplete": "Generatioun onvollstänneg",
+        "failed": "Generatioun feelgeschloen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: d'Applikatioun ass prett fir erofzelueden.",
+        "incomplete": "{{project}}: de Laf ass ze fréi gestoppt. D'Resultat kann iwwerpréift ginn.",
+        "failed": "{{project}}: de Laf ass feelgeschloen. Maacht den Tab op fir d'Detailer."
+      },
+      "untitledProject": "Äre Projet"
+    },
+    "generateAgain": {
+      "title": "Applikatioun nach eng Kéier generéieren?",
+      "fromRequest": "Si gëtt aus dem Modell an der ursprénglecher Ufro nei gebaut. De Laf benotzt: {{key}}.",
+      "askAssistant": "Den Assistent gëtt gefrot, se nach eng Kéier ze generéieren. De Laf benotzt: {{key}}.",
+      "unknownKey": "de Schlëssel oder déi gratis Stuf, déi fir Generatiounen agestallt ass"
     }
   },
   "deploy": {
@@ -2388,6 +2434,16 @@
       "offlineMessage": "Dir sidd offline. E puer Funktioune fonctionnéieren eventuell net.",
       "backOnline": "Erëm online.",
       "dismiss": "Offline-Warnung ofweisen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}.",
+        "keySavedReconnect": "Schlëssel gespäichert. Generatioune benotzen {{provider}} mat {{model}}. Den Assistent ass grad net verbonnen a benotzt de Schlëssel, soubal e sech nees verbënnt.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Gratis Stuf gewielt. Generatioune benotzen {{model}}.",
+        "freeDefaultModel": "dat abegraffent gratis Modell",
+        "keyRemoved": "API-Schlëssel aus dësem Tab ewechgeholl."
+      }
     }
   },
   "shell": {

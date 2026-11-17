@@ -1,5 +1,11 @@
 import { readStoredConversation, writeStoredConversation } from '../assistantStorage';
 import { ProjectStorageRepository } from '../ProjectStorageRepository';
+import {
+  readProjectLastRun,
+  readProjectRunRequest,
+  recordProjectRunRequest,
+  writeProjectLastRun,
+} from '../specDrivenRunRecords';
 import { createDefaultProject, ALL_DIAGRAM_TYPES, BesserProject } from '../../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constants/constant';
 import projectBeforeQuantumAndBpmn from './fixtures/project-before-quantum-bpmn.json';
@@ -195,6 +201,20 @@ describe('ProjectStorageRepository', () => {
 
       ProjectStorageRepository.deleteProject(project.id);
       expect(readStoredConversation(project.id)).toBeNull();
+    });
+
+    it("removes the project's last run and its request, so a re-import starts clean", () => {
+      const project = createDefaultProject('Generated', '', '');
+      ProjectStorageRepository.saveProject(project);
+      writeProjectLastRun(project.id, 'a'.repeat(32), 1000);
+      recordProjectRunRequest(
+        project.id,
+        "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n## The user's original request, verbatim\n\nBuild a task board.",
+      );
+
+      ProjectStorageRepository.deleteProject(project.id);
+      expect(readProjectLastRun(project.id)).toBeNull();
+      expect(readProjectRunRequest(project.id)).toBeNull();
     });
   });
 

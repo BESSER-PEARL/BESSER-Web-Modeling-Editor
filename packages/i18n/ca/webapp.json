@@ -1871,6 +1871,52 @@
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "model predeterminat",
+      "free": "Model gratuït",
+      "none": "Sense clau API",
+      "title": "Propera generació: {{label}}. Fes clic per canviar-ho."
+    },
+    "runCard": {
+      "notifyMe": "Avisa'm quan acabi",
+      "notifyOn": "T'avisarem quan acabi",
+      "availableUntil": "Disponible fins a les {{time}}: baixa'l o desa'l a GitHub abans.",
+      "expired": "Aquest resultat ja no està disponible: els fitxers generats es conserven {{lifetime}}. Torna a generar per obtenir-ne una còpia nova.",
+      "lifetimeMinutes_one": "{{count}} minut",
+      "lifetimeMinutes_other": "{{count}} minuts",
+      "lifetimeHours_one": "{{count}} hora",
+      "lifetimeHours_other": "{{count}} hores",
+      "generateAgain": "Torna a generar",
+      "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original.",
+      "downloadUntil": "Baixada disponible fins a les {{time}}.",
+      "downloadAndGithubUntil": "Baixada disponible fins a les {{download}}; desar a GitHub fins a les {{github}}.",
+      "expiredNoLifetime": "Aquest resultat ja no està disponible al servidor. Torna a generar per obtenir-ne una còpia nova."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fet)",
+        "incomplete": "(Incomplet)",
+        "failed": "(Error)"
+      },
+      "notificationTitle": {
+        "success": "Generació acabada",
+        "incomplete": "Generació incompleta",
+        "failed": "La generació ha fallat"
+      },
+      "notificationBody": {
+        "success": "{{project}}: l'aplicació està a punt per baixar.",
+        "incomplete": "{{project}}: l'execució s'ha aturat abans d'hora. El resultat es pot revisar.",
+        "failed": "{{project}}: l'execució ha fallat. Obre la pestanya per veure'n els detalls."
+      },
+      "untitledProject": "El teu projecte"
+    },
+    "generateAgain": {
+      "title": "Vols tornar a generar l'aplicació?",
+      "fromRequest": "Es reconstrueix a partir del model i de la petició original. L'execució fa servir: {{key}}.",
+      "askAssistant": "Es demana a l'assistent que la torni a generar. L'execució fa servir: {{key}}.",
+      "unknownKey": "la clau o el nivell gratuït configurat per a les generacions"
     }
   },
   "deploy": {
@@ -2388,6 +2434,16 @@
       "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}.",
+        "keySavedReconnect": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}. L'assistent no està connectat ara mateix i farà servir la clau quan es torni a connectar.",
+        "defaultModel": "el model predeterminat",
+        "freeSelected": "Nivell gratuït seleccionat. Les generacions faran servir {{model}}.",
+        "freeDefaultModel": "el model gratuït inclòs",
+        "keyRemoved": "Clau API eliminada d'aquesta pestanya."
+      }
     }
   },
   "shell": {

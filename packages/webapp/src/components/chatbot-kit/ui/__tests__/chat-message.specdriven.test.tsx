@@ -7,7 +7,7 @@
  *   - Amber emphasis when spend crosses 80% of the budget
  *   - Stop button while running: POSTs the cancel endpoint,
  *     independent of the chat's isGenerating flag
- *   - "Download again" on done cards (success AND downloadFailed),
+ *   - "Download again" on done cards,
  *     re-invoking the shared artifact download helper
  */
 
@@ -345,26 +345,11 @@ describe('SpecDrivenCard — Download again', () => {
     });
   });
 
-  it('renders the "file still available" note and the retry button when downloadFailed', () => {
-    renderCard(
-      baseSpecDriven({
-        status: 'done',
-        downloadFailed: true,
-        fileName: 'besser_smart_output.zip',
-        isZip: true,
-      }),
-      false,
-    );
-    expect(screen.getByText(/still available/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /download again/i })).toBeTruthy();
-  });
-
   it('shows a retry-failed hint when the re-download fails', async () => {
     vi.mocked(fetchAndSaveSpecDrivenArtifact).mockResolvedValueOnce({ ok: false });
     renderCard(
       baseSpecDriven({
         status: 'done',
-        downloadFailed: true,
         fileName: 'besser_smart_output.zip',
         isZip: true,
       }),

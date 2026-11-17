@@ -17,7 +17,12 @@ import type {
 } from './assistant-types';
 import { ProtocolError } from './errors';
 import { track } from '../../../shared/services/analytics/events';
-import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import {
+  isAssistantKeyProvider,
+  LLM_KEY_ARM_EVENT,
+  readLlmKey,
+  type LlmKeyArmRequest,
+} from '../../../shared/services/llmKeyStorage';
 import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
 import {
   clearAssistantSessionId,
@@ -208,6 +213,8 @@ const mergeContexts = (
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
     githubRepo: override?.githubRepo || base?.githubRepo,
+    generationKey: override?.generationKey || base?.generationKey,
+    lastGeneration: override?.lastGeneration || base?.lastGeneration,
   };
 };
 
@@ -706,19 +713,19 @@ export class AssistantClient {
   /**
    * Re-send the stored BYOK key (if any) right after a (re)connect so the
    * agent's session variable survives a fresh socket / reclaimed reply slot.
-   * Best-effort and silent — never logs the key.
+   * Also run when a key is saved where no client is at hand
+   * (`LLM_KEY_ARM_EVENT`). Best-effort and silent — never logs the key.
    */
-  private rearmUserApiKey(): void {
+  rearmUserApiKey(): SendStatus {
     try {
       const stored = readLlmKey();
       if (!stored || !isAssistantKeyProvider(stored.provider)) {
         // The agent session outlives the tab (keyed by the persistent user
         // id): clear a key the user removed, that died with an old tab, or
         // whose provider the assistant does not take.
-        this.setUserApiKey({ apiKey: '' });
-        return;
+        return this.setUserApiKey({ apiKey: '' });
       }
-      this.setUserApiKey({
+      return this.setUserApiKey({
         apiKey: stored.apiKey,
         provider: stored.provider,
         model: stored.model,
@@ -726,6 +733,7 @@ export class AssistantClient {
       });
     } catch {
       // best-effort — a failed re-arm just means the user re-saves the key
+      return 'error';
     }
   }
 
@@ -1371,7 +1379,15 @@ export function getSharedAssistantClient(
   options?: AssistantClientOptions,
 ): AssistantClient {
   if (!_sharedAssistantClient) {
-    _sharedAssistantClient = new AssistantClient(url, options);
+    const client = new AssistantClient(url, options);
+    _sharedAssistantClient = client;
+    // A key saved in a dialog that has no client (the chat link, Settings)
+    // reaches the open connection at once instead of on the next reconnect.
+    window.addEventListener(LLM_KEY_ARM_EVENT, (event) => {
+      const request = (event as CustomEvent<LlmKeyArmRequest>).detail;
+      const status = client.rearmUserApiKey();
+      if (request) request.result = status === 'sent' ? 'sent' : 'error';
+    });
   }
   return _sharedAssistantClient;
 }

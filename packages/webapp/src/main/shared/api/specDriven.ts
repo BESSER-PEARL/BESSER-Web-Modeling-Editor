@@ -47,10 +47,25 @@ export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?
       return Promise.resolve(navigator.sendBeacon(url));
     }
     return fetch(url, { method: 'POST', keepalive: true }).then(
-      (response) => response.ok,
+      async (response) => {
+        if (!response.ok) return false;
+        // `not_found` means the run had already ended: nothing was stopped.
+        const body = await Promise.resolve()
+          .then(() => response.json() as Promise<{ status?: string } | null>)
+          .catch(() => null);
+        if (body?.status === 'cancelled') acceptedCancelRunIds.add(runId);
+        return true;
+      },
       () => false,
     );
   } catch {
     return Promise.resolve(false);
   }
+}
+
+const acceptedCancelRunIds = new Set<string>();
+
+/** Whether the server stopped `runId` on this tab's request (it was still running). */
+export function wasSpecDrivenRunCancelAccepted(runId: string): boolean {
+  return acceptedCancelRunIds.has(runId);
 }

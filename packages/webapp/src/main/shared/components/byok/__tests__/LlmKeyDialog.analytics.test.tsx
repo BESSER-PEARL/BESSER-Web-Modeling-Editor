@@ -12,6 +12,7 @@ import {
   FALLBACK_SMART_GEN_CONFIG,
   type SpecDrivenConfig,
 } from '../../../services/specDrivenConfig';
+import { LLM_KEY_ARM_EVENT, type LlmKeyArmRequest } from '../../../services/llmKeyStorage';
 
 const CONFIG: SpecDrivenConfig = {
   ...FALLBACK_SMART_GEN_CONFIG,
@@ -65,6 +66,27 @@ describe('LlmKeyDialog analytics', () => {
       armed_assistant: true,
     });
     expect(JSON.stringify(track.mock.calls)).not.toContain('sk-ant-secret');
+  });
+
+  it('counts a key that reached the open assistant connection from a dialog without a client as armed', () => {
+    const answer = (event: Event) => {
+      (event as CustomEvent<LlmKeyArmRequest>).detail.result = 'sent';
+    };
+    window.addEventListener(LLM_KEY_ARM_EVENT, answer);
+    render(<LlmKeyDialog open onOpenChange={() => {}} surface="spec_driven" />);
+    fireEvent.change(byId<HTMLInputElement>('llm-key-api-key'), { target: { value: 'sk-ant-secret' } });
+    save();
+    window.removeEventListener(LLM_KEY_ARM_EVENT, answer);
+
+    expect(events('llm_key_saved')[0]).toMatchObject({ armed_assistant: true });
+  });
+
+  it('counts a save no assistant connection received as not armed', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} surface="spec_driven" />);
+    fireEvent.change(byId<HTMLInputElement>('llm-key-api-key'), { target: { value: 'sk-ant-secret' } });
+    save();
+
+    expect(events('llm_key_saved')[0]).toMatchObject({ armed_assistant: false });
   });
 
   it('never sends a custom model id the user typed', () => {

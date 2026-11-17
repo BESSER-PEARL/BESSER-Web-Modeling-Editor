@@ -1,3 +1,5 @@
+import type { GenerationKey, LastGeneration } from '../../spec-driven';
+
 export type AssistantClientMode = 'widget' | 'workspace';
 
 
@@ -34,6 +36,10 @@ export interface AssistantWorkspaceContext {
   pilotParticipant?: string;
   /** The GitHub repo the project is linked to, so the agent can tell an app is already there. */
   githubRepo?: AssistantGitHubRepo;
+  /** What the next Spec-Driven run would use; never the key. */
+  generationKey?: GenerationKey;
+  /** The project's last Spec-Driven run known to this browser. */
+  lastGeneration?: LastGeneration;
 }
 
 export interface AssistantGitHubRepo {

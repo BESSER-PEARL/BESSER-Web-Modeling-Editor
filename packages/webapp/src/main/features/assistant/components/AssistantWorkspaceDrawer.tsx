@@ -11,6 +11,7 @@ import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette,
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Kbd } from '@/components/ui/kbd';
@@ -21,6 +22,7 @@ import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantL
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
+import { GenerationKeyChip } from './GenerationKeyChip';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
@@ -259,6 +261,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     showScrollToBottom,
     scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     requestNewChat,
@@ -365,7 +369,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // dialog is a pure dispatch — the dialog is mounted app-level
   // (SpecDrivenPushDialogHost) and driven by Redux.
   const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
-  const messageOptions = useMemo(() => ({ onPushToGithub: handlePushToGithub }), [handlePushToGithub]);
+  const messageOptions = useCallback(
+    (message: ChatKitMessage) => ({
+      onPushToGithub: handlePushToGithub,
+      onGenerateAgain: message.specDriven?.runId === latestRunId ? generateAgain : undefined,
+    }),
+    [handlePushToGithub, generateAgain, latestRunId],
+  );
   const closeOverview = useCallback(() => setOverviewOpen(false), []);
 
   // A "Your model" row: close the sheet and select the element on the class
@@ -1023,9 +1033,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 pb-14 pt-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                       <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
+                      <GenerationKeyChip onClick={() => setByokOpen(true)} />
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Button

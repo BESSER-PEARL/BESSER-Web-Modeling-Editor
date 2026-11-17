@@ -1871,6 +1871,52 @@
         "showAll": "Alle {{count}} anzeigen",
         "more": "und {{count}} weitere"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Kostenloses Modell",
+      "none": "Kein API-Schlüssel",
+      "title": "Nächste Generierung: {{label}}. Zum Ändern klicken."
+    },
+    "runCard": {
+      "notifyMe": "Benachrichtigen, wenn fertig",
+      "notifyOn": "Sie werden benachrichtigt, wenn es fertig ist",
+      "availableUntil": "Verfügbar bis {{time}}: vorher herunterladen oder auf GitHub speichern.",
+      "expired": "Dieses Ergebnis ist nicht mehr verfügbar: Generierte Dateien werden {{lifetime}} aufbewahrt. Generieren Sie erneut, um eine neue Kopie zu erhalten.",
+      "lifetimeMinutes_one": "{{count}} Minute",
+      "lifetimeMinutes_other": "{{count}} Minuten",
+      "lifetimeHours_one": "{{count}} Stunde",
+      "lifetimeHours_other": "{{count}} Stunden",
+      "generateAgain": "Erneut generieren",
+      "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt.",
+      "downloadUntil": "Download verfügbar bis {{time}}.",
+      "downloadAndGithubUntil": "Download verfügbar bis {{download}}; auf GitHub speichern bis {{github}}.",
+      "expiredNoLifetime": "Dieses Ergebnis ist auf dem Server nicht mehr verfügbar. Generieren Sie erneut, um eine neue Kopie zu erhalten."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fertig)",
+        "incomplete": "(Unvollständig)",
+        "failed": "(Fehlgeschlagen)"
+      },
+      "notificationTitle": {
+        "success": "Generierung abgeschlossen",
+        "incomplete": "Generierung unvollständig",
+        "failed": "Generierung fehlgeschlagen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: Die Anwendung steht zum Herunterladen bereit.",
+        "incomplete": "{{project}}: Der Lauf wurde vorzeitig beendet. Das Ergebnis kann geprüft werden.",
+        "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
+      },
+      "untitledProject": "Ihr Projekt"
+    },
+    "generateAgain": {
+      "title": "Anwendung erneut generieren?",
+      "fromRequest": "Sie wird aus dem Modell und der ursprünglichen Anfrage neu erstellt. Der Lauf verwendet: {{key}}.",
+      "askAssistant": "Der Assistent wird gebeten, sie erneut zu generieren. Der Lauf verwendet: {{key}}.",
+      "unknownKey": "den für Generierungen eingerichteten Schlüssel oder die kostenlose Stufe"
     }
   },
   "deploy": {
@@ -2388,6 +2434,16 @@
       "offlineMessage": "Sie sind offline. Einige Funktionen könnten nicht verfügbar sein.",
       "backOnline": "Wieder online.",
       "dismiss": "Offline-Warnung schließen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}.",
+        "keySavedReconnect": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}. Der Assistent ist gerade nicht verbunden und verwendet den Schlüssel, sobald er sich wieder verbindet.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Kostenlose Stufe gewählt. Generierungen verwenden {{model}}.",
+        "freeDefaultModel": "das enthaltene kostenlose Modell",
+        "keyRemoved": "API-Schlüssel aus diesem Tab entfernt."
+      }
     }
   },
   "shell": {

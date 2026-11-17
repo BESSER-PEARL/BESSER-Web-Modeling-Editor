@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   FALLBACK_SMART_GEN_CONFIG,
+  archiveTtlSeconds,
   defaultFreeModelId,
   freeModelLabel,
   preferredFreeModelId,
@@ -58,6 +59,25 @@ describe('getSpecDrivenConfig', () => {
     expect(config.caps.default_max_runtime_seconds).toBe(480);
     expect(config.features).toEqual({ gap_analysis: true });
     expect(config.supported_providers).toEqual(['anthropic', 'openai']);
+  });
+
+  it('keeps the archive lifetime, and falls back to the workspace one without it', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ...BACKEND_CONFIG, download_ttl_seconds: 10800, archive_ttl_seconds: 86400 }), {
+        status: 200,
+      }),
+    );
+    const config = await getSpecDrivenConfig();
+    expect(config.download_ttl_seconds).toBe(10800);
+    expect(archiveTtlSeconds(config)).toBe(86400);
+
+    _resetSpecDrivenConfigCacheForTests();
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ...BACKEND_CONFIG, download_ttl_seconds: 10800 }), { status: 200 }),
+    );
+    const older = await getSpecDrivenConfig();
+    expect(older.archive_ttl_seconds).toBeUndefined();
+    expect(archiveTtlSeconds(older)).toBe(10800);
   });
 
   it('caches the promise — repeated calls cause exactly one fetch', async () => {

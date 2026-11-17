@@ -1871,6 +1871,52 @@
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "modelo predeterminado",
+      "free": "Modelo gratuito",
+      "none": "Sin clave API",
+      "title": "Próxima generación: {{label}}. Haz clic para cambiar."
+    },
+    "runCard": {
+      "notifyMe": "Avisarme cuando termine",
+      "notifyOn": "Te avisaremos cuando termine",
+      "availableUntil": "Disponible hasta las {{time}}: descárgalo o guárdalo en GitHub antes.",
+      "expired": "Este resultado ya no está disponible: los archivos generados se conservan {{lifetime}}. Vuelve a generar para obtener una nueva copia.",
+      "lifetimeMinutes_one": "{{count}} minuto",
+      "lifetimeMinutes_other": "{{count}} minutos",
+      "lifetimeHours_one": "{{count}} hora",
+      "lifetimeHours_other": "{{count}} horas",
+      "generateAgain": "Generar de nuevo",
+      "rebuildAfterExpiry": "La ejecución anterior ya no se puede editar sobre sí misma, así que la aplicación se reconstruye a partir del modelo y de la petición original.",
+      "downloadUntil": "Descarga disponible hasta las {{time}}.",
+      "downloadAndGithubUntil": "Descarga disponible hasta las {{download}}; guardar en GitHub hasta las {{github}}.",
+      "expiredNoLifetime": "Este resultado ya no está disponible en el servidor. Vuelve a generar para obtener una nueva copia."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Listo)",
+        "incomplete": "(Incompleto)",
+        "failed": "(Error)"
+      },
+      "notificationTitle": {
+        "success": "Generación terminada",
+        "incomplete": "Generación incompleta",
+        "failed": "La generación falló"
+      },
+      "notificationBody": {
+        "success": "{{project}}: la aplicación está lista para descargar.",
+        "incomplete": "{{project}}: la ejecución se detuvo antes de tiempo. Su resultado se puede revisar.",
+        "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
+      },
+      "untitledProject": "Tu proyecto"
+    },
+    "generateAgain": {
+      "title": "¿Generar la aplicación de nuevo?",
+      "fromRequest": "Se reconstruye a partir del modelo y de la petición original. La ejecución usa: {{key}}.",
+      "askAssistant": "Se pide al asistente que la genere de nuevo. La ejecución usa: {{key}}.",
+      "unknownKey": "la clave o el nivel gratuito configurado para las generaciones"
     }
   },
   "deploy": {
@@ -2388,6 +2434,16 @@
       "offlineMessage": "Estás sin conexión. Es posible que algunas funciones no funcionen.",
       "backOnline": "De nuevo en línea.",
       "dismiss": "Descartar aviso de sin conexión"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}.",
+        "keySavedReconnect": "Clave guardada. Las generaciones usarán {{provider}} con {{model}}. El asistente no está conectado ahora y usará la clave en cuanto se vuelva a conectar.",
+        "defaultModel": "el modelo predeterminado",
+        "freeSelected": "Nivel gratuito seleccionado. Las generaciones usarán {{model}}.",
+        "freeDefaultModel": "el modelo gratuito incluido",
+        "keyRemoved": "Clave API eliminada de esta pestaña."
+      }
     }
   },
   "shell": {
