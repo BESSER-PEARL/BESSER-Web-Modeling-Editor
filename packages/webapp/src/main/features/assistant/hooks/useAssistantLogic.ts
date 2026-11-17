@@ -21,6 +21,9 @@ import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import { settleProgressMessage } from './settleProgressMessage';
+import { generationKeyLabel } from '../components/GenerationKeyChip';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { getSpecDrivenConfig } from '../../../shared/services/specDrivenConfig';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
@@ -81,7 +84,15 @@ import type { GenerationResult } from '../../generation';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
-import { useSpecDrivenTrigger, openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven';
+import {
+  useSpecDrivenTrigger,
+  openByokDialog,
+  readGenerationContext,
+  readGenerationKey,
+  readLastGeneration,
+  setLastRunForProject,
+  selectHasLiveSpecDrivenRun,
+} from '../../spec-driven';
 import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
   continueFromGithubRepo,
@@ -103,6 +114,9 @@ import {
 /* ------------------------------------------------------------------ */
 
 export type { ConnectionStatus } from './useWebSocketConnection';
+
+/** What the agent's "Generate the application" chip sends. */
+export const GENERATE_AGAIN_PROMPT = 'generate the application';
 
 /** The key the assistant would send, by provider only (analytics). */
 function keyProperties(): { uses_own_key: boolean; provider?: string } {
@@ -198,6 +212,10 @@ export interface UseAssistantLogicReturn {
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList; overrideText?: string },
   ) => Promise<void>;
+  /** New run for the project after its result expired (the run card's "Generate again"), after a confirmation. */
+  generateAgain: () => void;
+  /** Run id of the conversation's latest run card. */
+  latestRunId: string | undefined;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
@@ -770,6 +788,7 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
+      ...readGenerationContext(project?.id),
     };
   }
 
@@ -1796,6 +1815,45 @@ export function useAssistantLogic({
     };
   }, [dispatch, store]);
 
+  // "Generate again" on a run card whose result expired, once the user agreed
+  // to what it uses: the project's last request through the normal run start
+  // (the user's key and tier apply), else the generate request the agent's
+  // suggestion chips send.
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+  const handleTriggerRef = useRef(specDriven.handleTrigger);
+  handleTriggerRef.current = specDriven.handleTrigger;
+  const generateAgain = useCallback(() => {
+    void (async () => {
+      await getSpecDrivenConfig();
+      const key = readGenerationKey();
+      const request = readLastGeneration(currentProjectRef.current?.id)?.request;
+      const confirmed = await globalConfirm({
+        title: t('assistant.generateAgain.title'),
+        description: t(request ? 'assistant.generateAgain.fromRequest' : 'assistant.generateAgain.askAssistant', {
+          key: key ? generationKeyLabel(key, t) : t('assistant.generateAgain.unknownKey'),
+        }),
+        confirmLabel: t('assistant.runCard.generateAgain'),
+      });
+      if (!confirmed) return;
+      if (request) {
+        await handleTriggerRef.current({ action: 'trigger_smart_generator', instructions: request });
+        return;
+      }
+      await handleSubmitRef.current(undefined, { overrideText: GENERATE_AGAIN_PROMPT });
+    })();
+  }, [currentProjectRef, t]);
+
+  // Only the latest run's card offers "Generate again": on an older card it
+  // would rebuild over the newer result.
+  const latestRunId = (() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const runId = messages[index].specDriven?.runId;
+      if (runId) return runId;
+    }
+    return undefined;
+  })();
+
   /* ================================================================ */
   /*  Public API (unchanged)                                           */
   /* ================================================================ */
@@ -1816,6 +1874,8 @@ export function useAssistantLogic({
     showScrollToBottom,
     scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,

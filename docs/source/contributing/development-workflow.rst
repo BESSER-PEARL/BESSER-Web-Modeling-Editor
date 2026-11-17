@@ -290,10 +290,12 @@ Tips
 
 CI will automatically run:
 
-* ESLint linting for webapp and server
-* Prettier formatting check
+* ESLint linting for webapp and server, and the OpenAPI types check
+* Unit tests (Vitest) for webapp and server
+* Type check (``npm run typecheck``: no more errors than the baseline)
 * Production build (``npm run build``)
-* Unit tests (Vitest) on webapp
+* Translation coverage (``npm run i18n:check``)
+* Documentation build (``python docs/check_docs.py``)
 
 If CI fails, check the logs, fix the issue, and push again. Maintainers
 will review once CI is green and the PR is marked ready.

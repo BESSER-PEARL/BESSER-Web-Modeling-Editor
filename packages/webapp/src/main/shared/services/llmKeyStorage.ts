@@ -94,6 +94,34 @@ export interface LlmKey {
   baseUrl?: string;
 }
 
+/** Fired on window after the stored key or the free-tier choice changes. */
+export const LLM_KEY_CHANGED_EVENT = 'besser:llm-key-changed';
+
+/**
+ * Asks the live assistant connection to send the stored key (or clear it).
+ * The connection answers synchronously in `detail.result`.
+ */
+export const LLM_KEY_ARM_EVENT = 'besser:llm-key-arm';
+
+export interface LlmKeyArmRequest {
+  result?: 'sent' | 'error';
+}
+
+/** Arm the open assistant connection with the stored key: 'none' when no connection listens. */
+export function requestAssistantKeyArm(): 'sent' | 'error' | 'none' {
+  const detail: LlmKeyArmRequest = {};
+  window.dispatchEvent(new CustomEvent(LLM_KEY_ARM_EVENT, { detail }));
+  return detail.result ?? 'none';
+}
+
+function _notifyLlmKeyChanged(): void {
+  try {
+    window.dispatchEvent(new Event(LLM_KEY_CHANGED_EVENT));
+  } catch {
+    /* no window */
+  }
+}
+
 /** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
 function _hasSessionStorage(): boolean {
   try {
@@ -153,6 +181,7 @@ export function writeLlmKey(
     // agree, so "a saved key ⟹ not free tier" holds at the storage choke
     // point ("last action wins": picking free later re-sets the flag).
     window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
+    _notifyLlmKeyChanged();
     return true;
   } catch {
     return false;
@@ -170,6 +199,7 @@ export function clearLlmKey(): void {
   } catch {
     /* ignore */
   }
+  _notifyLlmKeyChanged();
 }
 
 /** Quick "do we have a key at all?" check that avoids exposing the value. */
@@ -275,6 +305,7 @@ export function writeFreeTierSelected(selected: boolean): void {
   } catch {
     /* ignore */
   }
+  _notifyLlmKeyChanged();
 }
 
 /**
@@ -310,4 +341,5 @@ export function writeFreeTierModel(modelId: string | null): void {
   } catch {
     /* ignore */
   }
+  _notifyLlmKeyChanged();
 }

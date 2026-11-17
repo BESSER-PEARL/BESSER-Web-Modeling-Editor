@@ -108,7 +108,11 @@ You can add Object Constraint Language (OCL) constraints to your model:
 1.  Drag the OCL shape onto the canvas.
 2.  Write constraints in the format ``Context "class_name" ...``.
 3.  Link them to classes with dotted lines.
-4.  Use the **Quality Check** button to validate the syntax.
+4.  Use **Quality Check > Syntactic check** to validate the syntax.
+5.  Use **Quality Check > Semantic check** to verify the satisfiability of the constraints.
+    Note that the semantic check performs a bounded analysis. See the `docs
+    <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+    for details.
 
 **Example:**
 
@@ -146,3 +150,4 @@ Class diagrams support generation for:
 *   Pydantic Models
 *   JSON Schema
 *   Smart Data Models
+*   Alloy Specification

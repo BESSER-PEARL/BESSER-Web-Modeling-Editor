@@ -137,7 +137,7 @@ that opens room for the best design.
 
 ### Prerequisites
 
-- **Node.js 20+** and **npm** (CI runs on Node 20).
+- **Node.js 20+** and **npm** (CI runs on the version in `.nvmrc`).
 - **Git**.
 - A running **BESSER backend** for full functionality (code generation,
   validation, deployment). The editor itself runs without it for pure

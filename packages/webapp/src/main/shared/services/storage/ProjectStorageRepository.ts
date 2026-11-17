@@ -25,6 +25,7 @@ import {
   localStorageProjectsList,
 } from '../../constants/constant';
 import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
+import { clearProjectRunRecords } from './specDrivenRunRecords';
 import { checkLocalStorageQuota } from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
 
@@ -461,6 +462,7 @@ export class ProjectStorageRepository {
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
       clearStoredConversation(projectId);
+      clearProjectRunRecords(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();

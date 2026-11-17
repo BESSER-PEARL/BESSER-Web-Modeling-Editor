@@ -1184,6 +1184,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/semantic-consistency-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Semantic Consistency Check
+         * @description Searches for an instance of a class diagram and its OCL invariants with the Alloy Analyzer.
+         *
+         *     The search tries increasingly larger scopes (objects per class) and streams its progress as
+         *     Server-Sent Events. A search that finds nothing says in its ``message`` what it searched and
+         *     why it stopped: "No instance within N objects per class, integers in [a, b], ...", "Timed out
+         *     searching within ..." or "Too large to search within ...". While the Alloy Analyzer runs, SSE
+         *     comment lines are sent as heartbeats. Answers 503, without a stream, while
+         *     ``BESSER_ALLOY_MAX_CONCURRENT_CHECKS`` checks are running.
+         */
+        post: operations["semantic_consistency_check_besser_api_semantic_consistency_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/generate-object-diagram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Object Diagram Endpoint
+         * @description Generates an object diagram of a class diagram that satisfies its OCL invariants.
+         *
+         *     Searches as ``/semantic-consistency-check`` does; the event of the instance found carries it
+         *     as an object diagram, in ``object_model``.
+         */
+        post: operations["generate_object_diagram_endpoint_besser_api_generate_object_diagram_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/besser_api/deploy-app": {
         parameters: {
             query?: never;
@@ -1504,7 +1554,7 @@ export interface paths {
          * @description Download the output produced by a completed run.
          *
          *     Re-downloadable until the TTL sweep expires the entry
-         *     (``BESSER_LLM_DOWNLOAD_TTL_SECONDS``, default 30 min) — a transient network
+         *     (``BESSER_LLM_ARCHIVE_TTL_SECONDS``, default 24 hours) — a transient network
          *     failure during the blob fetch must not permanently lose an artifact
          *     the user paid minutes and dollars to produce. Cleanup is owned
          *     entirely by ``SmartRunRegistry.periodic_sweep``; this endpoint no
@@ -3573,8 +3623,16 @@ export interface components {
          */
         SpecDrivenConfigResponse: {
             caps: components["schemas"]["SpecDrivenCapsResponse"];
-            /** Download Ttl Seconds */
+            /**
+             * Download Ttl Seconds
+             * @description How long a finished run can be modified, pushed or resumed (its workspace).
+             */
             download_ttl_seconds: number;
+            /**
+             * Archive Ttl Seconds
+             * @description How long a finished run's download stays available: at least download_ttl_seconds, at most 24 hours.
+             */
+            archive_ttl_seconds: number;
             /** Cost Emitter Interval Seconds */
             cost_emitter_interval_seconds: number;
             concurrency: components["schemas"]["SpecDrivenConcurrencyResponse"];
@@ -5433,6 +5491,68 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ValidationResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    semantic_consistency_check_besser_api_semantic_consistency_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagramInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_object_diagram_endpoint_besser_api_generate_object_diagram_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagramInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

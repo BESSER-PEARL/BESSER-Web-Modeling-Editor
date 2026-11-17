@@ -309,6 +309,17 @@ so they always show the same state.
 - **Get latest** loads the repository's model, and its code as the starting
   point of the next Spec-Driven Agent run. It asks first when you have unsaved
   model changes.
+- **Autosave to GitHub**, in the project's **Settings** once it is linked and
+  you are signed in to GitHub, saves for you. It is off by default and kept in
+  this browser only, so turning it on never changes a teammate's editor. When on,
+  it commits the model a few seconds after you stop editing, at most once a
+  minute, and only when the model changed. Before each commit it checks the
+  branch: if someone pushed, it commits nothing and waits until you take their
+  work in with **Get latest** or **Save and merge** on the teammate card. It also
+  waits while a save waits for a pull request, or until you reconnect an expired
+  session; when GitHub cannot be reached it tries again later, waiting longer
+  each time. The GitHub menu and the setting show when it last saved, or why it
+  waits. The browser's own autosave of the project is not affected.
 - **Know when a teammate pushed.** While the project is open, a card appears
   within a minute of someone else's push, or when you come back to the window. It
   says who pushed and what they wrote, with **Get latest**, or **Save and merge** if

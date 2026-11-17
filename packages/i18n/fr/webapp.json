@@ -65,7 +65,9 @@
       "validated": "Validé",
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
-      "notValidated": "Non validé"
+      "notValidated": "Non validé",
+      "syntacticCheck": "Vérification syntaxique",
+      "semanticCheck": "Vérification sémantique"
     },
     "more": "Plus",
     "linkToGithub": "Lier à GitHub",
@@ -145,7 +147,8 @@
         "oop": "POO",
         "schema": "Schéma",
         "data": "Données",
-        "kgConvert": "Convertir en B-UML"
+        "kgConvert": "Convertir en B-UML",
+        "formalMethods": "Méthodes formelles"
       },
       "actions": {
         "djangoProject": "Projet Django",
@@ -160,7 +163,8 @@
         "userProfileJson": "JSON de profil utilisateur",
         "qiskitCode": "Code Qiskit",
         "forecaster": "Prévision de séries temporelles",
-        "kgToClassDiagram": "Diagramme de classes"
+        "kgToClassDiagram": "Diagramme de classes",
+        "alloySpecification": "Spécification Alloy"
       },
       "notices": {
         "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
@@ -1081,7 +1085,7 @@
       "github": {
         "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
         "continue": "Continuer",
-        "description": "Choisissez n'importe quel dépôt. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. La prochaine exécution du Spec-Driven Agent modifie son code. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
+        "description": "Choisissez un dépôt à importer. Un dépôt BESSER s'ouvre avec son modèle ; pour tout autre, BESSER lit le code et propose un modèle. Le projet reste lié au dépôt. Si BESSER ne peut pas lire directement ses classes de données, il vous demande votre accord avant d’envoyer un court extrait du code, sans fichiers ni clés secrets, à un modèle d’IA qui en propose un.",
         "errors": {
           "generic": "Impossible de continuer depuis ce dépôt.",
           "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
@@ -1630,6 +1634,24 @@
       "linkPlaceholder": "Collez un lien : github.com/owner/repo",
       "open": "Ouvrir",
       "title": "Partir d’un dépôt GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Ce projet est lié à {{repo}} sur {{branch}}.",
+      "label": "Enregistrement automatique sur GitHub",
+      "hint": "Commite votre modèle quelques secondes après la fin de vos modifications, au plus une fois par minute. Il se met en pause quand quelqu’un d’autre a poussé, pour ne jamais écraser son travail.",
+      "signInHint": "Connectez GitHub dans cet onglet pour enregistrer automatiquement dans le dépôt.",
+      "commitMessage": "Enregistrement automatique du modèle depuis l’éditeur BESSER",
+      "status": {
+        "saving": "Enregistrement automatique sur GitHub…",
+        "saved": "Enregistré automatiquement sur GitHub à {{time}}",
+        "on": "L’enregistrement automatique sur GitHub est activé",
+        "pausedRemote": "Enregistrement automatique en pause : il y a de nouveaux commits sur GitHub. Récupérez la dernière version ou enregistrez et fusionnez pour reprendre.",
+        "pausedConflict": "Enregistrement automatique en pause : un enregistrement n’a pas pu être fusionné. Résolvez sa pull request, ou cessez de la suivre, pour reprendre.",
+        "pausedAuth": "Enregistrement automatique en pause : reconnectez GitHub pour reprendre.",
+        "pausedMissing": "Enregistrement automatique en pause : le dépôt ou la branche est introuvable sur GitHub.",
+        "error": "L’enregistrement automatique n’a pas pu joindre GitHub. Nouvel essai à {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1849,6 +1871,52 @@
         "showAll": "Tout afficher ({{count}})",
         "more": "et {{count}} de plus"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "modèle par défaut",
+      "free": "Modèle gratuit",
+      "none": "Aucune clé API",
+      "title": "Prochaine génération : {{label}}. Cliquez pour modifier."
+    },
+    "runCard": {
+      "notifyMe": "Me prévenir à la fin",
+      "notifyOn": "Vous serez prévenu à la fin",
+      "availableUntil": "Disponible jusqu'à {{time}} : téléchargez-le ou enregistrez-le sur GitHub avant.",
+      "expired": "Ce résultat n'est plus disponible : les fichiers générés sont conservés {{lifetime}}. Relancez la génération pour en obtenir une nouvelle copie.",
+      "lifetimeMinutes_one": "{{count}} minute",
+      "lifetimeMinutes_other": "{{count}} minutes",
+      "lifetimeHours_one": "{{count}} heure",
+      "lifetimeHours_other": "{{count}} heures",
+      "generateAgain": "Générer à nouveau",
+      "rebuildAfterExpiry": "L'exécution précédente ne peut plus être modifiée sur place : l'application est donc reconstruite à partir du modèle et de la demande d'origine.",
+      "downloadUntil": "Téléchargement disponible jusqu'à {{time}}.",
+      "downloadAndGithubUntil": "Téléchargement disponible jusqu'à {{download}} ; enregistrement sur GitHub jusqu'à {{github}}.",
+      "expiredNoLifetime": "Ce résultat n'est plus disponible sur le serveur. Relancez la génération pour en obtenir une nouvelle copie."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Terminé)",
+        "incomplete": "(Incomplet)",
+        "failed": "(Échec)"
+      },
+      "notificationTitle": {
+        "success": "Génération terminée",
+        "incomplete": "Génération incomplète",
+        "failed": "Échec de la génération"
+      },
+      "notificationBody": {
+        "success": "{{project}} : l'application est prête à être téléchargée.",
+        "incomplete": "{{project}} : l'exécution s'est arrêtée avant la fin. Son résultat peut être examiné.",
+        "failed": "{{project}} : l'exécution a échoué. Ouvrez l'onglet pour les détails."
+      },
+      "untitledProject": "Votre projet"
+    },
+    "generateAgain": {
+      "title": "Générer à nouveau l'application ?",
+      "fromRequest": "Elle est reconstruite à partir du modèle et de la demande d'origine. L'exécution utilise : {{key}}.",
+      "askAssistant": "L'assistant est invité à la générer à nouveau. L'exécution utilise : {{key}}.",
+      "unknownKey": "la clé ou l'offre gratuite configurée pour les générations"
     }
   },
   "deploy": {
@@ -2366,6 +2434,16 @@
       "offlineMessage": "Vous êtes hors ligne. Certaines fonctionnalités peuvent ne pas fonctionner.",
       "backOnline": "De retour en ligne.",
       "dismiss": "Ignorer l'avertissement hors ligne"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clé enregistrée. Les générations utiliseront {{provider}} avec {{model}}.",
+        "keySavedReconnect": "Clé enregistrée. Les générations utiliseront {{provider}} avec {{model}}. L'assistant n'est pas connecté pour le moment et utilisera la clé dès qu'il se reconnectera.",
+        "defaultModel": "le modèle par défaut",
+        "freeSelected": "Offre gratuite sélectionnée. Les générations utiliseront {{model}}.",
+        "freeDefaultModel": "le modèle gratuit inclus",
+        "keyRemoved": "Clé API supprimée de cet onglet."
+      }
     }
   },
   "shell": {
@@ -2450,6 +2528,14 @@
       "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
       "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
       "generate": "Générer",
+      "generateFromConstraints": "Génération sémantique",
+      "generateFromConstraintsTooltip": "Remplace ce diagramme d'objets par une instance du diagramme de classes référencé qui satisfait ses contraintes OCL.",
+      "searchingInstance": "Recherche d'une instance qui satisfait les contraintes…",
+      "replaceConfirmTitle": "Remplacer le diagramme d'objets ?",
+      "replaceConfirmDescription": "L'instance générée remplace les objets et les liens de ce diagramme.",
+      "replaceConfirmAction": "Remplacer",
+      "payloadMissing": "Une instance a été trouvée, mais le serveur n'a pas envoyé son diagramme d'objets.",
+      "generationDiscarded": "Génération sémantique arrêtée : vous avez changé de diagramme.",
       "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
       "tablistLabel": "Diagrammes",
       "editAsForm": "Modifier comme formulaire",
@@ -4018,6 +4104,15 @@
       "more_other": "…et {{count}} autres.",
       "confirm": "Générer quand même",
       "cancel": "Corriger d'abord le modèle"
+    },
+    "semantic": {
+      "searching": "Recherche d'une instance du diagramme de classes…",
+      "connectionLost": "La connexion au serveur a été perdue pendant la vérification sémantique.",
+      "noResult": "La vérification sémantique s'est terminée sans résultat.",
+      "alreadyRunning": "Une vérification sémantique est déjà en cours.",
+      "failed": "Échec de la vérification sémantique : {{error}}",
+      "errorsLabel": "Erreurs :",
+      "warningsLabel": "Avertissements :"
     }
   },
   "quantum": {

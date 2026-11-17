@@ -65,7 +65,9 @@
       "validated": "Validiert",
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
-      "notValidated": "Nicht validiert"
+      "notValidated": "Nicht validiert",
+      "syntacticCheck": "Syntaktische Prüfung",
+      "semanticCheck": "Semantische Prüfung"
     },
     "more": "Mehr",
     "linkToGithub": "Mit GitHub verknüpfen",
@@ -145,7 +147,8 @@
         "oop": "OOP",
         "schema": "Schema",
         "data": "Daten",
-        "kgConvert": "In B-UML umwandeln"
+        "kgConvert": "In B-UML umwandeln",
+        "formalMethods": "Formale Methoden"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -160,7 +163,8 @@
         "userProfileJson": "Benutzerprofil-JSON",
         "qiskitCode": "Qiskit-Code",
         "forecaster": "Zeitreihen-Prognose",
-        "kgToClassDiagram": "Klassendiagramm"
+        "kgToClassDiagram": "Klassendiagramm",
+        "alloySpecification": "Alloy-Spezifikation"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -1081,7 +1085,7 @@
       "github": {
         "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
         "continue": "Fortsetzen",
-        "description": "Wähle ein beliebiges Repository. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code. Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
+        "description": "Wähle ein Repository zum Importieren. Ein BESSER-Repository öffnet sich mit seinem Modell; bei jedem anderen liest BESSER den Code und schlägt ein Modell vor. Das Projekt bleibt mit dem Repository verknüpft. Kann BESSER die Datenklassen nicht direkt lesen, fragt es dich, bevor es einen kurzen Auszug des Codes, ohne geheime Dateien und Schlüssel, an ein KI-Modell sendet, das ein Modell vorschlägt.",
         "errors": {
           "generic": "Fortsetzen aus diesem Repository nicht möglich.",
           "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",
@@ -1630,6 +1634,24 @@
       "linkPlaceholder": "Link einfügen: github.com/owner/repo",
       "open": "Öffnen",
       "title": "Mit einem GitHub-Repository beginnen"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Dieses Projekt ist mit {{repo}} auf {{branch}} verknüpft.",
+      "label": "Automatisch auf GitHub speichern",
+      "hint": "Committet dein Modell einige Sekunden, nachdem du aufhörst zu bearbeiten, höchstens einmal pro Minute. Hat jemand anderes gepusht, pausiert es, damit dessen Arbeit nie überschrieben wird.",
+      "signInHint": "Verbinde GitHub in diesem Tab, um automatisch im Repository zu speichern.",
+      "commitMessage": "Modell aus dem BESSER-Editor automatisch speichern",
+      "status": {
+        "saving": "Wird automatisch auf GitHub gespeichert…",
+        "saved": "Um {{time}} automatisch auf GitHub gespeichert",
+        "on": "Automatisches Speichern auf GitHub ist aktiv",
+        "pausedRemote": "Automatisches Speichern pausiert: Es gibt neue Commits auf GitHub. „Neueste Version holen“ oder „Speichern und zusammenführen“, um fortzufahren.",
+        "pausedConflict": "Automatisches Speichern pausiert: Ein Speichern konnte nicht zusammengeführt werden. Löse seinen Pull Request auf oder verfolge ihn nicht mehr, um fortzufahren.",
+        "pausedAuth": "Automatisches Speichern pausiert: Verbinde GitHub erneut, um fortzufahren.",
+        "pausedMissing": "Automatisches Speichern pausiert: Das Repository oder der Branch wurde auf GitHub nicht gefunden.",
+        "error": "Automatisches Speichern konnte GitHub nicht erreichen. Nächster Versuch um {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1849,6 +1871,52 @@
         "showAll": "Alle {{count}} anzeigen",
         "more": "und {{count}} weitere"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "Standardmodell",
+      "free": "Kostenloses Modell",
+      "none": "Kein API-Schlüssel",
+      "title": "Nächste Generierung: {{label}}. Zum Ändern klicken."
+    },
+    "runCard": {
+      "notifyMe": "Benachrichtigen, wenn fertig",
+      "notifyOn": "Sie werden benachrichtigt, wenn es fertig ist",
+      "availableUntil": "Verfügbar bis {{time}}: vorher herunterladen oder auf GitHub speichern.",
+      "expired": "Dieses Ergebnis ist nicht mehr verfügbar: Generierte Dateien werden {{lifetime}} aufbewahrt. Generieren Sie erneut, um eine neue Kopie zu erhalten.",
+      "lifetimeMinutes_one": "{{count}} Minute",
+      "lifetimeMinutes_other": "{{count}} Minuten",
+      "lifetimeHours_one": "{{count}} Stunde",
+      "lifetimeHours_other": "{{count}} Stunden",
+      "generateAgain": "Erneut generieren",
+      "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt.",
+      "downloadUntil": "Download verfügbar bis {{time}}.",
+      "downloadAndGithubUntil": "Download verfügbar bis {{download}}; auf GitHub speichern bis {{github}}.",
+      "expiredNoLifetime": "Dieses Ergebnis ist auf dem Server nicht mehr verfügbar. Generieren Sie erneut, um eine neue Kopie zu erhalten."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fertig)",
+        "incomplete": "(Unvollständig)",
+        "failed": "(Fehlgeschlagen)"
+      },
+      "notificationTitle": {
+        "success": "Generierung abgeschlossen",
+        "incomplete": "Generierung unvollständig",
+        "failed": "Generierung fehlgeschlagen"
+      },
+      "notificationBody": {
+        "success": "{{project}}: Die Anwendung steht zum Herunterladen bereit.",
+        "incomplete": "{{project}}: Der Lauf wurde vorzeitig beendet. Das Ergebnis kann geprüft werden.",
+        "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
+      },
+      "untitledProject": "Ihr Projekt"
+    },
+    "generateAgain": {
+      "title": "Anwendung erneut generieren?",
+      "fromRequest": "Sie wird aus dem Modell und der ursprünglichen Anfrage neu erstellt. Der Lauf verwendet: {{key}}.",
+      "askAssistant": "Der Assistent wird gebeten, sie erneut zu generieren. Der Lauf verwendet: {{key}}.",
+      "unknownKey": "den für Generierungen eingerichteten Schlüssel oder die kostenlose Stufe"
     }
   },
   "deploy": {
@@ -2366,6 +2434,16 @@
       "offlineMessage": "Sie sind offline. Einige Funktionen könnten nicht verfügbar sein.",
       "backOnline": "Wieder online.",
       "dismiss": "Offline-Warnung schließen"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}.",
+        "keySavedReconnect": "Schlüssel gespeichert. Generierungen verwenden {{provider}} mit {{model}}. Der Assistent ist gerade nicht verbunden und verwendet den Schlüssel, sobald er sich wieder verbindet.",
+        "defaultModel": "dem Standardmodell",
+        "freeSelected": "Kostenlose Stufe gewählt. Generierungen verwenden {{model}}.",
+        "freeDefaultModel": "das enthaltene kostenlose Modell",
+        "keyRemoved": "API-Schlüssel aus diesem Tab entfernt."
+      }
     }
   },
   "shell": {
@@ -2450,6 +2528,14 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
+      "generateFromConstraints": "Semantische Generierung",
+      "generateFromConstraintsTooltip": "Ersetzt dieses Objektdiagramm durch eine Instanz des referenzierten Klassendiagramms, die dessen OCL-Constraints erfüllt.",
+      "searchingInstance": "Suche nach einer Instanz, die die Constraints erfüllt…",
+      "replaceConfirmTitle": "Objektdiagramm ersetzen?",
+      "replaceConfirmDescription": "Die generierte Instanz ersetzt die Objekte und Links dieses Diagramms.",
+      "replaceConfirmAction": "Ersetzen",
+      "payloadMissing": "Eine Instanz wurde gefunden, aber der Server hat ihr Objektdiagramm nicht gesendet.",
+      "generationDiscarded": "Semantische Generierung abgebrochen: Sie haben das Diagramm gewechselt.",
       "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
       "tablistLabel": "Diagramme",
       "editAsForm": "Als Formular bearbeiten",
@@ -4018,6 +4104,15 @@
       "more_other": "…und {{count}} weitere.",
       "confirm": "Trotzdem generieren",
       "cancel": "Zuerst das Modell korrigieren"
+    },
+    "semantic": {
+      "searching": "Suche nach einer Instanz des Klassendiagramms…",
+      "connectionLost": "Die Verbindung zum Server ist während der semantischen Prüfung abgebrochen.",
+      "noResult": "Die semantische Prüfung wurde ohne Ergebnis beendet.",
+      "alreadyRunning": "Eine semantische Prüfung läuft bereits.",
+      "failed": "Semantische Prüfung fehlgeschlagen: {{error}}",
+      "errorsLabel": "Fehler:",
+      "warningsLabel": "Warnungen:"
     }
   },
   "quantum": {

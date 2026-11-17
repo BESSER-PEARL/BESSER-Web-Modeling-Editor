@@ -56,6 +56,12 @@ export interface SpecDrivenConfig {
    * run only while it's still within this TTL.
    */
   download_ttl_seconds: number;
+  /**
+   * How long (seconds) `/spec-driven/download/<run>` keeps serving a finished
+   * run's archive; absent from older backends, which serve it for
+   * `download_ttl_seconds` (see `archiveTtlSeconds`).
+   */
+  archive_ttl_seconds?: number;
   features: Record<string, boolean>;
   default_models: Record<string, string>;
   supported_providers: string[];
@@ -130,6 +136,7 @@ function _normalize(raw: unknown): SpecDrivenConfig {
     download_ttl_seconds: _isFiniteNumber(data.download_ttl_seconds)
       ? data.download_ttl_seconds
       : FALLBACK_SMART_GEN_CONFIG.download_ttl_seconds,
+    ...(_isFiniteNumber(data.archive_ttl_seconds) ? { archive_ttl_seconds: data.archive_ttl_seconds } : {}),
     features:
       data.features && typeof data.features === 'object'
         ? data.features
@@ -277,6 +284,20 @@ export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): stri
 
 let _configPromise: Promise<SpecDrivenConfig> | null = null;
 let _loadedConfig: SpecDrivenConfig | null = null;
+
+/** How long a finished run's download is served: the archive lifetime, else the workspace one. */
+export function archiveTtlSeconds(config: SpecDrivenConfig): number {
+  return config.archive_ttl_seconds ?? config.download_ttl_seconds;
+}
+
+/**
+ * The server's own config, or null while it is unknown (not loaded yet, the
+ * load failed, or the payload was unusable). For values the fallback must not
+ * stand in for.
+ */
+export function peekServerSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig && _loadedConfig !== FALLBACK_SMART_GEN_CONFIG ? _loadedConfig : null;
+}
 
 /**
  * The config from the last successful load, or null before one. Lets a dialog

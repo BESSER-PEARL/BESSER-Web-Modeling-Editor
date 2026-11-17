@@ -51,6 +51,9 @@ import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
+import { useGitHubAutosave } from '../hooks/useGitHubAutosave';
+import { useAutosaveStatus } from '../autosave/autosaveStatus';
+import { useAutosaveStatusText } from './GitHubAutosaveSetting';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { trackGitHubAction } from '../githubAnalytics';
 
@@ -135,6 +138,9 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const getLatest = useGetLatest({ pull: sync.pull, hasLocalChanges, setBusy });
   const noticeActions = useRef<(action: TeammateChangeAction) => void>(() => undefined);
   useTeammateChangeNotice({ link, status, state, username, hasLocalChanges, onAction: (action) => noticeActions.current(action) });
+  useGitHubAutosave({ sync, flushEditor });
+  const autosaving = useAutosaveStatus(currentProject?.id).phase === 'saving';
+  const autosaveText = useAutosaveStatusText(currentProject?.id);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
@@ -329,7 +335,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className={`gap-1.5 ${outlineButtonClass}`} aria-label={triggerLabel}>
-                {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Github className="size-4" aria-hidden="true" />}
+                {busy || autosaving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Github className="size-4" aria-hidden="true" />}
                 {link ? (
                   <>
                     <span className="hidden max-w-[10rem] truncate xl:inline">{link.repo}</span>
@@ -344,6 +350,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
           </TooltipTrigger>
           <TooltipContent side="bottom" className={link ? undefined : 'xl:hidden'}>
             {triggerLabel}
+            {link && autosaveText && <span className="block text-muted-foreground">{autosaveText}</span>}
           </TooltipContent>
         </Tooltip>
 
@@ -365,6 +372,12 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                   {stateText[state]}
                 </p>
                 {stateHint && <p className="mt-1 text-xs text-muted-foreground/90">{stateHint}</p>}
+                {autosaveText && (
+                  <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground" role="status" data-testid="github-autosave-status">
+                    <CloudUpload className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                    {autosaveText}
+                  </p>
+                )}
               </div>
               {pending && (
                 <>

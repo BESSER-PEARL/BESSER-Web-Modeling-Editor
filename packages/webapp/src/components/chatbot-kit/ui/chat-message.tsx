@@ -1,9 +1,12 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
+import type { TFunction } from "i18next"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
 import {
   AlertTriangle,
   Ban,
+  Bell,
+  BellRing,
   CheckCircle2,
   ChevronRight,
   Code2,
@@ -13,6 +16,7 @@ import {
   HelpCircle,
   Info,
   Loader2,
+  RotateCcw,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -27,6 +31,11 @@ import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import {
+  canOfferRunNotification,
+  isRunNotificationOn,
+  turnOnRunNotification,
+} from "@/main/features/spec-driven/runFinishNotice"
 import type {
   SpecDrivenMessageState,
   SpecDrivenPhaseView,
@@ -54,7 +63,8 @@ import {
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
-import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
 import { track } from "@/main/shared/services/analytics/events"
@@ -204,6 +214,11 @@ export interface ChatMessageProps extends Message {
    * hidden (e.g. contexts without a project).
    */
   onPushToGithub?: (runId: string) => void
+  /**
+   * Starts a new run for the project once a card's result has expired.
+   * When omitted, the expired card only explains what happened.
+   */
+  onGenerateAgain?: () => void
 }
 
 /* ------------------------------------------------------------------ */
@@ -320,6 +335,7 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
     injectionType,
     specDriven,
     onPushToGithub,
+    onGenerateAgain,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -476,12 +492,14 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
             fallback={specDriven}
             isStreaming={isStreaming === true}
             onPushToGithub={onPushToGithub}
+            onGenerateAgain={onGenerateAgain}
           />
         ) : (
           <SpecDrivenCard
             specDriven={specDriven}
             isStreaming={isStreaming === true}
             onPushToGithub={onPushToGithub}
+            onGenerateAgain={onGenerateAgain}
           />
         )}
         {showTimeStamp && createdAt ? (
@@ -1216,17 +1234,97 @@ function renderRunCost(costUsd?: number) {
   )
 }
 
-/** The artifact stays on the server for its (server-owned) TTL after a failed save. */
-function DownloadFailedNote() {
-  const minutes = useDownloadTtlMinutes()
-  return (
-    <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
-      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-      <span>
-        The download failed, but the generated file is still available on the
-        server for about {minutes} minutes. Use &ldquo;Download again&rdquo; to
-        retry.
+/**
+ * "Notify me when it is done" on a running card: asks the browser's permission
+ * on click; hidden where notifications are unsupported or refused.
+ */
+function RunNotifyControl() {
+  const { t } = useTranslation()
+  const [on, setOn] = useState(isRunNotificationOn)
+  const [offered, setOffered] = useState(canOfferRunNotification)
+  if (on) {
+    return (
+      <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+        <BellRing className="h-3 w-3" />
+        {t("assistant.runCard.notifyOn")}
       </span>
+    )
+  }
+  if (!offered) return null
+  return (
+    <Button
+      type="button"
+      size="xs"
+      variant="ghost"
+      className="ml-auto text-[11px] text-muted-foreground"
+      onClick={() => {
+        void turnOnRunNotification().then((granted) => {
+          setOn(granted)
+          setOffered(canOfferRunNotification())
+        })
+      }}
+    >
+      <Bell />
+      {t("assistant.runCard.notifyMe")}
+    </Button>
+  )
+}
+
+/** The configured download lifetime in words: whole hours when it is a multiple of an hour, else minutes. */
+function lifetimeText(t: TFunction, ttlSeconds: number): string {
+  return ttlSeconds >= 3600 && ttlSeconds % 3600 === 0
+    ? t("assistant.runCard.lifetimeHours", { count: ttlSeconds / 3600 })
+    : t("assistant.runCard.lifetimeMinutes", { count: Math.max(1, Math.round(ttlSeconds / 60)) })
+}
+
+/** "14:30", or "12 Nov, 14:30" when the time is not today. */
+function formatExpiry(at: number): string {
+  const when = new Date(at)
+  const sameDay = when.toDateString() === new Date().toDateString()
+  return when.toLocaleString(undefined, {
+    ...(sameDay ? {} : { day: "numeric", month: "short" }),
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+/** True once `expiresAt` has passed; re-renders at that moment. */
+function useExpired(expiresAt: number | undefined): boolean {
+  const [expired, setExpired] = useState(() => expiresAt !== undefined && Date.now() >= expiresAt)
+  useEffect(() => {
+    if (expiresAt === undefined) {
+      setExpired(false)
+      return
+    }
+    const left = expiresAt - Date.now()
+    setExpired(left <= 0)
+    if (left <= 0) return
+    const timer = setTimeout(() => setExpired(true), Math.min(left, 2_147_483_647))
+    return () => clearTimeout(timer)
+  }, [expiresAt])
+  return expired
+}
+
+/** The server no longer holds the run's output: say so and offer a new run. */
+function ResultExpiredNote({ ttlSeconds, onGenerateAgain }: { ttlSeconds?: number; onGenerateAgain?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div
+      role="status"
+      className="flex flex-wrap items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200"
+    >
+      <AlertTriangle className="h-3 w-3 shrink-0" />
+      <span className="min-w-0 flex-1">
+        {ttlSeconds === undefined
+          ? t("assistant.runCard.expiredNoLifetime")
+          : t("assistant.runCard.expired", { lifetime: lifetimeText(t, ttlSeconds) })}
+      </span>
+      {onGenerateAgain ? (
+        <Button type="button" size="xs" onClick={onGenerateAgain}>
+          <RotateCcw />
+          {t("assistant.runCard.generateAgain")}
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -1249,11 +1347,13 @@ function LiveSpecDrivenCard({
   fallback,
   isStreaming,
   onPushToGithub,
+  onGenerateAgain,
 }: {
   liveKey: string
   fallback: SpecDrivenMessageState
   isStreaming: boolean
   onPushToGithub?: (runId: string) => void
+  onGenerateAgain?: () => void
 }) {
   const live = useAppSelector((state) => selectLiveSpecDrivenRun(state, liveKey))
   const specDriven = live ?? fallback
@@ -1262,6 +1362,7 @@ function LiveSpecDrivenCard({
       specDriven={specDriven}
       isStreaming={isStreaming || specDriven.status === "running"}
       onPushToGithub={onPushToGithub}
+      onGenerateAgain={onGenerateAgain}
     />
   )
 }
@@ -1271,6 +1372,7 @@ function SpecDrivenCard({
   isStreaming,
   onStop,
   onPushToGithub,
+  onGenerateAgain,
 }: {
   specDriven: SpecDrivenMessageState
   isStreaming: boolean
@@ -1290,7 +1392,10 @@ function SpecDrivenCard({
    * the same `canRedownload` condition (a finished run with a run id + file).
    */
   onPushToGithub?: (runId: string) => void
+  /** Offered on a card whose result has expired. */
+  onGenerateAgain?: () => void
 }) {
+  const { t } = useTranslation()
   // costUsd is rendered in the finished-run summary only and explicitly marked
   // as an estimate — see renderRunCost.
   const {
@@ -1310,7 +1415,7 @@ function SpecDrivenCard({
     maxRuntime,
     fileName,
     isZip,
-    downloadFailed,
+    finishedAt,
     needsDownload,
     generatorUsed,
     fileCount,
@@ -1432,10 +1537,24 @@ function SpecDrivenCard({
   const lastAction = lastCall
     ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
     : null
-  const canRedownload =
+  const serverResult =
     status === "done" &&
     typeof runId === "string" &&
     typeof fileName === "string"
+  // From the run's end the server serves its download for the archive
+  // lifetime, and can push it to GitHub for the (shorter or equal) workspace
+  // lifetime. Past those, or once a fetch says it is gone, they cannot work.
+  // Unknown lifetimes (config not loaded) expire nothing by the clock: only a fetch that finds the run gone does.
+  const lifetimes = useRunLifetimes()
+  const finished = serverResult && typeof finishedAt === "number" ? finishedAt : undefined
+  const expiresAt = finished !== undefined && lifetimes ? finished + lifetimes.archiveSeconds * 1000 : undefined
+  const pushEndsAt = finished !== undefined && lifetimes ? finished + lifetimes.workspaceSeconds * 1000 : undefined
+  const expiredByClock = useExpired(expiresAt)
+  const pushExpired = useExpired(pushEndsAt)
+  const expiredOnServer = useSpecDrivenRunExpired(serverResult ? runId : undefined)
+  const resultExpired = serverResult && (expiredByClock || expiredOnServer)
+  const canRedownload = serverResult && !resultExpired
+  const canPush = canRedownload && !pushExpired
   const showFooter = showMeter || showStop || canRedownload
   const canViewFiles = canRedownload || canDetDownload
 
@@ -1556,8 +1675,20 @@ function SpecDrivenCard({
               />
             </button>
           ) : null}
+          {canRedownload && expiresAt !== undefined && pushEndsAt !== undefined ? (
+            <span className="text-[11px] text-muted-foreground">
+              {!onPushToGithub || pushExpired
+                ? t("assistant.runCard.downloadUntil", { time: formatExpiry(expiresAt) })
+                : pushEndsAt >= expiresAt
+                  ? t("assistant.runCard.availableUntil", { time: formatExpiry(expiresAt) })
+                  : t("assistant.runCard.downloadAndGithubUntil", {
+                      download: formatExpiry(expiresAt),
+                      github: formatExpiry(pushEndsAt),
+                    })}
+            </span>
+          ) : null}
           <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
-            {redownloadState === "failed" ? (
+            {redownloadState === "failed" && !resultExpired ? (
               <span className="text-[11px] text-red-600 dark:text-red-400">
                 Retry failed
               </span>
@@ -1595,7 +1726,7 @@ function SpecDrivenCard({
                 {isFirstSave ? "Download" : "Download again"}
               </Button>
             ) : null}
-            {canRedownload && onPushToGithub && runId ? (
+            {canPush && onPushToGithub && runId ? (
               <Button
                 type="button"
                 size="xs"
@@ -1752,8 +1883,9 @@ function SpecDrivenCard({
         {/* Warnings (incomplete / timeout) stay visible on the compact card */}
         <SpecDrivenNoticeList warnings={warnings} />
 
-        {/* Download failed — artifact still retrievable from the server */}
-        {downloadFailed ? <DownloadFailedNote /> : null}
+        {resultExpired ? (
+          <ResultExpiredNote ttlSeconds={lifetimes?.archiveSeconds} onGenerateAgain={onGenerateAgain} />
+        ) : null}
 
         {viewerUsed && canViewFiles ? (
           <React.Suspense fallback={null}>
@@ -1839,6 +1971,7 @@ function SpecDrivenCard({
               it's running.
             </span>
           ) : null}
+          <RunNotifyControl />
           {lastAction ? (
             <span className="flex w-full min-w-0 gap-2 font-mono text-[11px] text-muted-foreground">
               <span className="shrink-0 font-medium text-brand">{lastAction.verb}</span>
@@ -1858,9 +1991,6 @@ function SpecDrivenCard({
           {isStreaming ? <StreamingCursor /> : null}
         </div>
       ) : null}
-
-      {/* Download failed — artifact still retrievable from the server */}
-      {downloadFailed ? <DownloadFailedNote /> : null}
 
       {/* Footer: live cost/runtime meter + run controls */}
       {showFooter ? (
@@ -1916,7 +2046,7 @@ function SpecDrivenCard({
                 )
               })()
             ) : null}
-            {canRedownload && onPushToGithub && runId ? (
+            {canPush && onPushToGithub && runId ? (
               <Button
                 type="button"
                 size="xs"

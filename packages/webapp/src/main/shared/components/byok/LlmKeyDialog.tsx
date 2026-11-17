@@ -13,6 +13,8 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { ChevronDown, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +31,13 @@ import {
 import {
   clearLlmKey,
   isAssistantKeyProvider,
+  isKeyProvider,
   KEY_PROVIDERS,
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
   readLlmKey,
+  requestAssistantKeyArm,
   writeFreeTierModel,
   writeFreeTierSelected,
   writeLlmBudget,
@@ -69,12 +73,13 @@ const RUN_BUDGET_FALLBACK = {
 
 /** Minimal shape of an agent client we can arm — avoids importing a feature. */
 export interface LlmKeyArmableClient {
+  /** 'error' when the connection is down: the key then reaches it on reconnect. */
   setUserApiKey: (key: {
     apiKey: string;
     provider?: string;
     model?: string;
     baseUrl?: string;
-  }) => void;
+  }) => 'sent' | 'queued' | 'error' | void;
 }
 
 export interface LlmKeySavedDetail {
@@ -188,6 +193,13 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = KEY_PROVIDERS.map((va
   value,
   ...PROVIDER_COPY[value],
 }));
+
+/** A provider's display name: the server catalog's, else the built-in one. */
+export function llmProviderLabel(provider: string): string {
+  const entry = peekSpecDrivenConfig()?.providers.find((p) => p.id === provider);
+  if (entry) return entry.label;
+  return isKeyProvider(provider) ? PROVIDER_COPY[provider].label : provider;
+}
 
 /**
  * The keyless free tier. Offered in the dropdown only when the backend
@@ -385,6 +397,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   preferProvider,
   surface,
 }) => {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -660,6 +673,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     clearLlmKey();
     if (client) {
       client.setUserApiKey({ apiKey: '' });
+    } else {
+      requestAssistantKeyArm();
     }
     setKeyPresent(false);
     setRemovePending(false);
@@ -671,6 +686,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     if (removePending && !isFreeProvider && trimmedKey.length === 0) {
       commitRemoval();
       setSaveError(null);
+      toast.success(t('shared.byok.toast.keyRemoved'));
       onOpenChange(false);
       return;
     }
@@ -694,6 +710,12 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       persistRunBudget();
       setSaveError(null);
       track('free_tier_selected', { model: readFreeTierModel() ?? undefined, surface });
+      const chosenFree = freeModels.find((m) => m.id === freeModelChoice);
+      toast.success(
+        t('shared.byok.toast.freeSelected', {
+          model: chosenFree ? freeModelLabel(chosenFree) : t('shared.byok.toast.freeDefaultModel'),
+        }),
+      );
       onSaved?.({
         provider: 'free',
         apiKey: '',
@@ -748,18 +770,36 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       );
       return;
     }
-    // Arm the live agent socket immediately when a client is provided. If the
-    // socket is momentarily down this is a no-op — the key is in sessionStorage
-    // so the next (re)connect re-arms it automatically. Only a provider on the
+    // Arm the live agent socket now: through the given client, else through
+    // whichever assistant connection is open. If the socket is down the key
+    // still reaches it on the next (re)connect. Only a provider on the
     // assistant's allowlist reaches the agent (a Spec-Driven-only key never
     // does); the re-arm path applies the same list.
-    if (client && isAssistantKeyProvider(provider)) {
-      client.setUserApiKey({
+    let armed: 'sent' | 'error' | 'none' = 'none';
+    if (!client) {
+      armed = requestAssistantKeyArm();
+    } else if (isAssistantKeyProvider(provider)) {
+      const status = client.setUserApiKey({
         apiKey: trimmedKey,
         provider,
         model: effectiveModel || undefined,
         baseUrl: effectiveBaseUrl,
       });
+      armed = status === 'error' ? 'error' : 'sent';
+    }
+    const savedMessage = t(
+      armed === 'error' && isAssistantKeyProvider(provider)
+        ? 'shared.byok.toast.keySavedReconnect'
+        : 'shared.byok.toast.keySaved',
+      {
+        provider: selectedProvider.label,
+        model: effectiveModel || t('shared.byok.toast.defaultModel'),
+      },
+    );
+    if (armed === 'error' && isAssistantKeyProvider(provider)) {
+      toast.warning(savedMessage);
+    } else {
+      toast.success(savedMessage);
     }
     // Persist the Spec-Driven run budget alongside the key (clamped; the server
     // enforces the real hard caps regardless).
@@ -774,7 +814,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       // A typed custom id is never sent; a preset is a catalog id.
       model: modelSource === 'preset' ? modelChoice : undefined,
       surface,
-      armed_assistant: Boolean(client) && isAssistantKeyProvider(provider),
+      // Sent to an assistant connection, by the given client or the arm request.
+      armed_assistant: armed !== 'none' && isAssistantKeyProvider(provider),
       budget_set: showRunBudget,
     });
     onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel, baseUrl: effectiveBaseUrl });

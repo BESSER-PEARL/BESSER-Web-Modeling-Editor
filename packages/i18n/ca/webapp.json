@@ -65,7 +65,9 @@
       "validated": "Validat",
       "issues": "Problemes",
       "needsRecheck": "Cal revisar-ho",
-      "notValidated": "No validat"
+      "notValidated": "No validat",
+      "syntacticCheck": "Comprovació sintàctica",
+      "semanticCheck": "Comprovació semàntica"
     },
     "more": "Més",
     "linkToGithub": "Vincula amb GitHub",
@@ -145,7 +147,8 @@
         "oop": "POO",
         "schema": "Esquema",
         "data": "Dades",
-        "kgConvert": "Converteix a B-UML"
+        "kgConvert": "Converteix a B-UML",
+        "formalMethods": "Mètodes formals"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -160,7 +163,8 @@
         "userProfileJson": "JSON de perfil d'usuari",
         "qiskitCode": "Codi Qiskit",
         "forecaster": "Previsió de sèries temporals",
-        "kgToClassDiagram": "Diagrama de classes"
+        "kgToClassDiagram": "Diagrama de classes",
+        "alloySpecification": "Especificació Alloy"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
@@ -1081,7 +1085,7 @@
       "github": {
         "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
         "continue": "Continua",
-        "description": "Tria qualsevol repositori. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. La següent execució del Spec-Driven Agent edita el seu codi. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
+        "description": "Tria un repositori per importar. Un de BESSER s'obre amb el seu model; per a qualsevol altre, BESSER llegeix el codi i proposa un model. El projecte queda vinculat al repositori. Si BESSER no pot llegir directament les seves classes de dades, et pregunta abans d’enviar un breu extracte del codi, sense fitxers ni claus secrets, a un model d’IA perquè en proposi un.",
         "errors": {
           "generic": "No s’ha pogut continuar des d’aquest repositori.",
           "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",
@@ -1630,6 +1634,24 @@
       "linkPlaceholder": "Enganxa un enllaç: github.com/owner/repo",
       "open": "Obre",
       "title": "Comença des d’un repositori de GitHub"
+    },
+    "autosave": {
+      "title": "GitHub",
+      "description": "Aquest projecte està vinculat a {{repo}} a {{branch}}.",
+      "label": "Desament automàtic a GitHub",
+      "hint": "Fa commit del teu model uns segons després que deixis d’editar, com a màxim un cop per minut. Es posa en pausa quan algú altre ha fet push, perquè la seva feina no se sobreescrigui mai.",
+      "signInHint": "Connecta GitHub en aquesta pestanya per desar automàticament al repositori.",
+      "commitMessage": "Desament automàtic del model des de l’editor de BESSER",
+      "status": {
+        "saving": "S’està desant automàticament a GitHub…",
+        "saved": "Desat automàticament a GitHub a les {{time}}",
+        "on": "El desament automàtic a GitHub està activat",
+        "pausedRemote": "Desament automàtic en pausa: hi ha commits nous a GitHub. Obtén l’última versió o desa i combina per reprendre’l.",
+        "pausedConflict": "Desament automàtic en pausa: un desament no s’ha pogut combinar. Resol la seva pull request, o deixa de seguir-la, per reprendre’l.",
+        "pausedAuth": "Desament automàtic en pausa: torna a connectar GitHub per reprendre’l.",
+        "pausedMissing": "Desament automàtic en pausa: no s’ha trobat el repositori o la branca a GitHub.",
+        "error": "El desament automàtic no ha pogut contactar amb GitHub. Ho tornarà a provar a les {{time}}."
+      }
     }
   },
   "assistant": {
@@ -1849,6 +1871,52 @@
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
       }
+    },
+    "generationKey": {
+      "own": "{{provider}} · {{model}}",
+      "defaultModel": "model predeterminat",
+      "free": "Model gratuït",
+      "none": "Sense clau API",
+      "title": "Propera generació: {{label}}. Fes clic per canviar-ho."
+    },
+    "runCard": {
+      "notifyMe": "Avisa'm quan acabi",
+      "notifyOn": "T'avisarem quan acabi",
+      "availableUntil": "Disponible fins a les {{time}}: baixa'l o desa'l a GitHub abans.",
+      "expired": "Aquest resultat ja no està disponible: els fitxers generats es conserven {{lifetime}}. Torna a generar per obtenir-ne una còpia nova.",
+      "lifetimeMinutes_one": "{{count}} minut",
+      "lifetimeMinutes_other": "{{count}} minuts",
+      "lifetimeHours_one": "{{count}} hora",
+      "lifetimeHours_other": "{{count}} hores",
+      "generateAgain": "Torna a generar",
+      "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original.",
+      "downloadUntil": "Baixada disponible fins a les {{time}}.",
+      "downloadAndGithubUntil": "Baixada disponible fins a les {{download}}; desar a GitHub fins a les {{github}}.",
+      "expiredNoLifetime": "Aquest resultat ja no està disponible al servidor. Torna a generar per obtenir-ne una còpia nova."
+    },
+    "runFinished": {
+      "titleMarker": {
+        "success": "(Fet)",
+        "incomplete": "(Incomplet)",
+        "failed": "(Error)"
+      },
+      "notificationTitle": {
+        "success": "Generació acabada",
+        "incomplete": "Generació incompleta",
+        "failed": "La generació ha fallat"
+      },
+      "notificationBody": {
+        "success": "{{project}}: l'aplicació està a punt per baixar.",
+        "incomplete": "{{project}}: l'execució s'ha aturat abans d'hora. El resultat es pot revisar.",
+        "failed": "{{project}}: l'execució ha fallat. Obre la pestanya per veure'n els detalls."
+      },
+      "untitledProject": "El teu projecte"
+    },
+    "generateAgain": {
+      "title": "Vols tornar a generar l'aplicació?",
+      "fromRequest": "Es reconstrueix a partir del model i de la petició original. L'execució fa servir: {{key}}.",
+      "askAssistant": "Es demana a l'assistent que la torni a generar. L'execució fa servir: {{key}}.",
+      "unknownKey": "la clau o el nivell gratuït configurat per a les generacions"
     }
   },
   "deploy": {
@@ -2366,6 +2434,16 @@
       "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
+    },
+    "byok": {
+      "toast": {
+        "keySaved": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}.",
+        "keySavedReconnect": "Clau desada. Les generacions faran servir {{provider}} amb {{model}}. L'assistent no està connectat ara mateix i farà servir la clau quan es torni a connectar.",
+        "defaultModel": "el model predeterminat",
+        "freeSelected": "Nivell gratuït seleccionat. Les generacions faran servir {{model}}.",
+        "freeDefaultModel": "el model gratuït inclòs",
+        "keyRemoved": "Clau API eliminada d'aquesta pestanya."
+      }
     }
   },
   "shell": {
@@ -2450,6 +2528,14 @@
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
+      "generateFromConstraints": "Generació semàntica",
+      "generateFromConstraintsTooltip": "Substitueix aquest diagrama d'objectes per una instància del diagrama de classes referenciat que compleixi les seves restriccions OCL.",
+      "searchingInstance": "Cercant una instància que compleixi les restriccions…",
+      "replaceConfirmTitle": "Substituir el diagrama d'objectes?",
+      "replaceConfirmDescription": "La instància generada substitueix els objectes i els enllaços d'aquest diagrama.",
+      "replaceConfirmAction": "Substitueix",
+      "payloadMissing": "S'ha trobat una instància, però el servidor no n'ha enviat el diagrama d'objectes.",
+      "generationDiscarded": "Generació semàntica aturada: heu canviat de diagrama.",
       "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
       "tablistLabel": "Diagrames",
       "editAsForm": "Edita com a formulari",
@@ -4018,6 +4104,15 @@
       "more_other": "…i {{count}} més.",
       "confirm": "Genera igualment",
       "cancel": "Corregeix primer el model"
+    },
+    "semantic": {
+      "searching": "Cercant una instància del diagrama de classes…",
+      "connectionLost": "S'ha perdut la connexió amb el servidor durant la comprovació semàntica.",
+      "noResult": "La comprovació semàntica ha acabat sense cap resultat.",
+      "alreadyRunning": "Ja hi ha una comprovació semàntica en curs.",
+      "failed": "Ha fallat la comprovació semàntica: {{error}}",
+      "errorsLabel": "Errors:",
+      "warningsLabel": "Avisos:"
     }
   },
   "quantum": {

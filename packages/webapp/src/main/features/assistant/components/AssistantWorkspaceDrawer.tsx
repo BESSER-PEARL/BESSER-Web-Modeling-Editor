@@ -5,16 +5,16 @@
  * Owns only the drag-to-open/close gesture, layout animation, and rendering.
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check, MoreHorizontal } from 'lucide-react';
+import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Kbd } from '@/components/ui/kbd';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../shared/types/workspace-types';
 import type { GenerationResult } from '../../generation';
@@ -22,9 +22,13 @@ import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantL
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
+import { GenerationKeyChip } from './GenerationKeyChip';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { selectActiveDiagramType } from '../../../app/store/workspaceSlice';
+import { ApollonEditorContext } from '../../editors';
+import { clearElementFocusRequest, focusElementOnCanvas, requestElementFocusOnNextSetup } from '../../../shared/utils/elementFocusSignal';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven';
 import {
   claimAssistantHandleHint,
@@ -250,7 +254,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     setInputValue,
     isGenerating,
     connectionStatus,
-    rateLimitStatus,
     messageMeta,
     progressSteps,
     lastSentMessage,
@@ -258,6 +261,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     showScrollToBottom,
     scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     requestNewChat,
@@ -364,8 +369,28 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // dialog is a pure dispatch — the dialog is mounted app-level
   // (SpecDrivenPushDialogHost) and driven by Redux.
   const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
-  const messageOptions = useMemo(() => ({ onPushToGithub: handlePushToGithub }), [handlePushToGithub]);
+  const messageOptions = useCallback(
+    (message: ChatKitMessage) => ({
+      onPushToGithub: handlePushToGithub,
+      onGenerateAgain: message.specDriven?.runId === latestRunId ? generateAgain : undefined,
+    }),
+    [handlePushToGithub, generateAgain, latestRunId],
+  );
   const closeOverview = useCallback(() => setOverviewOpen(false), []);
+
+  // A "Your model" row: close the sheet and select the element on the class
+  // diagram, switching to it first when another diagram (or page) is open.
+  const { editor } = useContext(ApollonEditorContext);
+  const activeDiagramType = useAppSelector(selectActiveDiagramType);
+  const focusModelElement = useCallback(async (elementId: string) => {
+    onOpenChange(false);
+    if (editor && activeDiagramType === 'ClassDiagram') {
+      focusElementOnCanvas(editor, elementId);
+      return;
+    }
+    requestElementFocusOnNextSetup(elementId);
+    if (!(await switchDiagram('ClassDiagram'))) clearElementFocusRequest();
+  }, [editor, activeDiagramType, onOpenChange]);
 
   /* ---- Last assistant message meta (for QuickActions) ---- */
 
@@ -599,15 +624,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       window.removeEventListener('pointercancel', onPointerEnd);
     };
   }, [isDragging]);
-
-  /* ---- Computed values ---- */
-
-  const rateLimitColor =
-    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
-      ? 'text-red-500'
-      : rateLimitStatus.requestsLastMinute >= 6
-        ? 'text-amber-500'
-        : 'text-muted-foreground';
 
   /* ---- Render helpers ---- */
 
@@ -997,7 +1013,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 {/* "Your model" blueprint — Mentor-style recap of the data
                     model, relationships and screens, derived live from the
                     project store. */}
-                {overviewOpen && <ModelOverviewPanel onClose={closeOverview} />}
+                {overviewOpen && <ModelOverviewPanel onClose={closeOverview} onFocusElement={focusModelElement} />}
 
                 {/* Scroll-to-bottom — shown while the user has scrolled up;
                     streaming no longer force-follows their position */}
@@ -1017,12 +1033,40 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 pb-14 pt-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                       <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
+                      <GenerationKeyChip onClick={() => setByokOpen(true)} />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={cn('mr-1 font-mono text-[11px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground',
+                          overviewOpen && 'bg-brand/[0.06] text-brand hover:text-brand',
+                        )}
+                        aria-pressed={overviewOpen}
+                        onClick={() => setOverviewOpen((v) => !v)}
+                      >
+                        <Boxes className="size-3.5" />
+                        {t('assistant.chat.yourModel', 'Your model')}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground',
+                          savedApiKey && 'text-brand hover:text-brand',
+                        )}
+                        onClick={() => setByokOpen(true)}
+                      >
+                        <KeyRound className="size-3.5" />
+                        {savedApiKey
+                          ? t('assistant.chat.apiKeySet', 'API key set')
+                          : t('assistant.chat.useOwnApiKey', 'Use your own API key')}
+                        {savedApiKey ? <Check className="size-3" /> : null}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1033,45 +1077,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         <MessageSquarePlus className="size-3.5" />
                         {t('assistant.chat.newChat')}
                       </Button>
-                      {/* Secondary actions live behind one quiet trigger so the
-                          composer is not crowned by a row of equal buttons.
-                          Non-modal: an item can open a dialog without Radix
-                          leaving pointer-events locked on <body>. */}
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              'size-7 rounded-lg text-muted-foreground hover:text-foreground',
-                              overviewOpen && 'bg-brand/[0.06] text-brand hover:text-brand',
-                            )}
-                            aria-label={t('assistant.chat.moreActions', 'More actions')}
-                            title={t('assistant.chat.moreActions', 'More actions')}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="top" className="w-56">
-                          <DropdownMenuItem className="gap-2 text-xs" onSelect={() => setOverviewOpen((v) => !v)}>
-                            <Boxes className="size-3.5 text-muted-foreground" />
-                            {overviewOpen
-                              ? t('assistant.chat.hideYourModel', 'Hide your model')
-                              : t('assistant.chat.yourModel', 'Your model')}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs" onSelect={() => setByokOpen(true)}>
-                            <KeyRound className={cn('size-3.5', savedApiKey ? 'text-brand' : 'text-muted-foreground')} />
-                            {savedApiKey
-                              ? t('assistant.chat.apiKeySet', 'API key set')
-                              : t('assistant.chat.useOwnApiKey', 'Use your own API key')}
-                            {savedApiKey ? <Check className="ml-auto size-3 text-brand" /> : null}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs" onSelect={() => void reportIssue()}>
-                            <Flag className="size-3.5 text-muted-foreground" />
-                            {t('assistant.chat.reportIssue', 'Report issue')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        aria-label={t('assistant.chat.reportIssue', 'Report issue')}
+                        title={t('assistant.chat.reportIssue', 'Report issue')}
+                        onClick={() => void reportIssue()}
+                      >
+                        <Flag className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
                   {renderComposer('w-full')}
