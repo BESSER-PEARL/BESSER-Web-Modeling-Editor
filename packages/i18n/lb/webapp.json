@@ -1652,6 +1652,13 @@
         "pausedMissing": "Automatescht Späicheren pauséiert: De Repository oder de Branch gouf op GitHub net fonnt.",
         "error": "Automatescht Späicheren konnt GitHub net erreechen. Neie Versuch um {{time}}."
       }
+    },
+    "pushRuns": {
+      "label": "Generéierte Code op GitHub pushen",
+      "hint": "Wann e Laf vum Spec-Driven Agent fäerdeg ass, gëtt säi Code an dëse Repository an dës Branch commit, mat méi neie Commits zesummegefouert, sou datt e bleift, och wann den Download ofleeft.",
+      "signInHint": "Verbannt GitHub an dësem Tab, fir generéierte Code an de Repository ze pushen.",
+      "connectFirst": "Verbannt GitHub an dësem Tab, fir de generéierte Code ze pushen; d'Laf-Kaart kann e méi spéit pushen.",
+      "commitMessage": "Code bäifügen, deen de BESSER Spec-Driven Agent generéiert huet"
     }
   },
   "assistant": {

@@ -44,7 +44,7 @@ import {
   autoFixRemainingMessage,
   autoFixResolvedMessage,
 } from './autoFixMessages';
-import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
+import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload, type AssistantClientMode } from '../services';
 import {
   autoFixRef,
   conversationStore,
@@ -171,6 +171,11 @@ export interface UseAssistantLogicOptions {
   switchDiagram: (targetType: string) => Promise<boolean>;
   /** Trigger code generation (optional -- not available in all contexts). */
   onGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
+  /**
+   * Which surface mounts this hook, sent with each message: the drawer is the agentic
+   * interface ('workspace'), the floating bubble the small widget ('widget').
+   */
+  surface: AssistantClientMode;
 }
 
 export interface UseAssistantLogicReturn {
@@ -353,6 +358,7 @@ export function useAssistantLogic({
   isActive,
   switchDiagram,
   onGenerate,
+  surface,
 }: UseAssistantLogicOptions): UseAssistantLogicReturn {
   const { t } = useTranslation();
 
@@ -1463,7 +1469,7 @@ export function useAssistantLogic({
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
-      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
+      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments, surface);
       if (sendResult !== 'error') markMessageSent();
 
       const activeModel = modelSnapshot as any;
@@ -1538,6 +1544,7 @@ export function useAssistantLogic({
         mimeType,
         context.activeDiagramType,
         context,
+        surface,
       );
       if (sendResult !== 'error') markMessageSent();
       track('assistant_message', {

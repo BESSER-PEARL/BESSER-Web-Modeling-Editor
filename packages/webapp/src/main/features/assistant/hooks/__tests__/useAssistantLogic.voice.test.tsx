@@ -140,6 +140,7 @@ function Harness({ apiRef }: { apiRef: { current: HarnessAPI | null } }) {
   const hook = useAssistantLogic({
     isActive: true,
     switchDiagram: async () => true,
+    surface: 'workspace',
   });
   apiRef.current = {
     sendVoiceMessage: hook.sendVoiceMessage,
