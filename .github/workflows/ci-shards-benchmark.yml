@@ -1,0 +1,36 @@
+name: CI shard benchmark
+
+on:
+  push:
+    branches: [codex/wme-ci-shards-benchmark]
+
+permissions:
+  contents: read
+
+jobs:
+  test-shard:
+    name: test (${{ matrix.layout }}, ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {layout: baseline, shard: 1/3}
+          - {layout: baseline, shard: 2/3}
+          - {layout: baseline, shard: 3/3}
+          - {layout: three-full-cpu, shard: 1/3, workers: --maxWorkers=100\%}
+          - {layout: three-full-cpu, shard: 2/3, workers: --maxWorkers=100\%}
+          - {layout: three-full-cpu, shard: 3/3, workers: --maxWorkers=100\%}
+          - {layout: two-full-cpu, shard: 1/2, workers: --maxWorkers=100\%}
+          - {layout: two-full-cpu, shard: 2/2, workers: --maxWorkers=100\%}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/setup
+      - name: Webapp unit tests
+        run: |
+          node -p "require('node:os').availableParallelism()"
+          npm test --workspace=webapp -- --shard=${{ matrix.shard }} ${{ matrix.workers }}
+      - name: Server unit tests
+        if: startsWith(matrix.shard, '1/')
+        run: npm test --workspace=server
