@@ -50,6 +50,17 @@ describe('the generic Apollon snapshot', () => {
     expect(diffDiagramModel('StateMachineDiagram', before, after, 'sm')).toEqual([]);
   });
 
+  it('records no change when the editor marks a loaded template’s NN edge ends navigable', () => {
+    // Live: AlexNet template, then 28 "source/target.navigable '' → true" edits by the user a second later.
+    const layers = [el('l1', 'Conv2DLayer', 'conv1'), el('l2', 'Conv2DLayer', 'conv2')];
+    const template = model(layers, [rel('e1', 'NNNext', 'l1', 'l2')]);
+    const loaded = model(layers, [{ ...rel('e1', 'NNNext', 'l1', 'l2'), source: { element: 'l1', direction: 'Up', navigable: true }, target: { element: 'l2', direction: 'Down', navigable: true } }]);
+    expect(diffDiagramModel('NNDiagram', template, loaded, 'nn')).toEqual([]);
+    // Turning an end off is still recorded.
+    const off = model(layers, [{ ...rel('e1', 'NNNext', 'l1', 'l2'), target: { element: 'l2', direction: 'Down', navigable: false } }]);
+    expect(diffDiagramModel('NNDiagram', loaded, off, 'nn').map((c) => c.feature)).toEqual(['target.navigable']);
+  });
+
   it('records a state machine edit as a change of the state and its transition', () => {
     const before = model([el('s1', 'State', 'Idle'), el('s2', 'State', 'Busy')], [rel('t1', 'StateTransition', 's1', 's2')]);
     const after = model(
@@ -193,6 +204,12 @@ describe('the quantum circuit snapshot', () => {
     // Adding a control changes the gate it controls.
     const controlled = diffDiagramModel('QuantumCircuitDiagram', circuit, { ...circuit, cols: [['H', 1], ['◦', 'X']] }, 'qc');
     expect(controlled.map((c) => [c.kind, c.elementId, c.feature])).toEqual([['UPDATED', 'qc:gate:1:1', 'controls']]);
+  });
+
+  it('records no change when the editor fills in the default initial states of a loaded template', () => {
+    // Live: Bell State template, then "initialState 0 → |0⟩" on q0 and q1 by the user a second later.
+    const template = { cols: [['H', 1], ['•', 'X']], gates: [] };
+    expect(diffDiagramModel('QuantumCircuitDiagram', template, { ...template, initialStates: ['|0⟩', '|0⟩'] }, 'qc')).toEqual([]);
   });
 
   it('records a gate over several wires once, at its first wire, under the backend’s metaclass', () => {

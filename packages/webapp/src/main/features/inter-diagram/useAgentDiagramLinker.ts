@@ -158,7 +158,9 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
       //    active type on BPMN; step 3 resyncs before the switch.
       let newDiagramId: string;
       try {
-        const added = await dispatch(addDiagramThunk({ diagramType: 'AgentDiagram', title: suggestedTitle })).unwrap();
+        // Created by the derivation when it derives the agent, else an empty diagram the user asked for.
+        const traceSource = derivation?.ok ? { generator: MODEL_GENERATORS.laneToAgent } : 'user';
+        const added = await dispatch(addDiagramThunk({ diagramType: 'AgentDiagram', title: suggestedTitle, traceSource })).unwrap();
         newDiagramId = added.diagram.id;
       } catch (err) {
         console.error('[agent-diagram-linker] adding the Agent diagram failed:', err);

@@ -14,25 +14,28 @@ interface FigureProps {
   tone?: 'default' | 'warning' | 'success';
 }
 
-const Figure: React.FC<FigureProps> = ({ icon, label, value, hint, tone = 'default' }) => (
-  <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" title={hint}>
-    <span
-      className={cn(
-        'shrink-0',
-        tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : 'text-muted-foreground',
-      )}
-      aria-hidden
-    >
-      {icon}
-    </span>
-    <div className="min-w-0">
-      <div className={cn('text-xl font-semibold leading-none tracking-tight tabular-nums', tone === 'warning' && 'text-warning')}>
-        {value.toLocaleString()}
+const Figure: React.FC<FigureProps> = ({ icon, label, value, hint, tone = 'default' }) => {
+  const { i18n } = useTranslation();
+  return (
+    <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" title={hint}>
+      <span
+        className={cn(
+          'shrink-0',
+          tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : 'text-muted-foreground',
+        )}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className={cn('text-xl font-semibold leading-none tracking-tight tabular-nums', tone === 'warning' && 'text-warning')}>
+          {value.toLocaleString(i18n.language)}
+        </div>
+        <div className="mt-1 text-xs leading-snug text-muted-foreground">{label}</div>
       </div>
-      <div className="mt-1 text-xs leading-snug text-muted-foreground">{label}</div>
     </div>
-  </div>
-);
+  );
+};
 
 interface TraceSummaryHeaderProps {
   summary: TraceSummary;

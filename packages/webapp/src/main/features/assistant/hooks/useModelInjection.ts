@@ -317,6 +317,7 @@ export function useModelInjection({
           const tabResult = await dispatch(
             addDiagramThunk({
               diagramType: targetDiagramType as SupportedDiagramType,
+              traceSource: 'assistant',
             }),
           ).unwrap();
           if (tabResult?.index !== undefined) {

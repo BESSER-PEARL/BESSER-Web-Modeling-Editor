@@ -106,7 +106,7 @@ export const useKgToUmlConversion = () => {
         const newTitle = `${baseTitle} (${TITLE_SUFFIX})`;
 
         const addResult = await dispatch(
-          addDiagramThunk({ diagramType: TARGET_DIAGRAM_TYPE, title: newTitle }),
+          addDiagramThunk({ diagramType: TARGET_DIAGRAM_TYPE, title: newTitle, traceSource: { generator: MODEL_GENERATORS.kgToClass } }),
         ).unwrap();
 
         const converted = { ...addResult.diagram, model: data.model, lastUpdate: new Date().toISOString() };

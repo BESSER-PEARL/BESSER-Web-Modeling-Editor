@@ -317,6 +317,13 @@ export interface ApollonModelLike {
   components?: Record<string, ApollonElement>;
 }
 
+/** Edges the editor builds as associations (`UMLAssociation`), which set an unset end's `navigable` to true on load. */
+const ASSOCIATION_EDGES = new Set(['NNNext', 'NNComposition', 'NNAssociation']);
+
+/** A relationship end as the editor keeps it: the editor filling in `navigable` is no change to record. */
+const withNavigableDefault = (type: string, end: ApollonRelationship['source']): ApollonRelationship['source'] =>
+  end && ASSOCIATION_EDGES.has(type) && end.navigable === undefined ? { ...end, navigable: true } : end;
+
 const isScalar = (raw: unknown): raw is string | number | boolean =>
   typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean';
 
@@ -419,8 +426,8 @@ export function snapshotApollonModel(diagramType: SupportedDiagramType, model: A
         source: reference(source, names),
         target: reference(target, names),
         ...scalarFeatures(rel),
-        ...scalarFeatures(rel.source, 'source.'),
-        ...scalarFeatures(rel.target, 'target.'),
+        ...scalarFeatures(withNavigableDefault(rel.type, rel.source), 'source.'),
+        ...scalarFeatures(withNavigableDefault(rel.type, rel.target), 'target.'),
       },
     });
   }
@@ -538,7 +545,8 @@ export function snapshotQuantumModel(model: QuantumModelLike | null | undefined,
   for (let wire = 0; wire < wires; wire += 1) {
     result.set(`${diagramId}:qubit:${wire}`, {
       elementType: 'Qubit', name: `q${wire}`, parentElementId: null, rank: 0,
-      features: { initialState: value(model?.initialStates?.[wire], '0') },
+      // An unset state is the editor's default, |0⟩, which it writes in on load.
+      features: { initialState: value(model?.initialStates?.[wire], '|0⟩') },
     });
   }
   cols.forEach((col, column) => {

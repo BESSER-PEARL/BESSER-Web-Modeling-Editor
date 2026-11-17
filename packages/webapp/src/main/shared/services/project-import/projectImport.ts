@@ -7,6 +7,7 @@ import {
   SupportedDiagramType,
   createDefaultPerspectives,
   createEmptyDiagram,
+  diagramHasContent,
   getActiveDiagram,
   toSupportedDiagramType,
   isProject,
@@ -18,7 +19,7 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
-import { readImportedTrace, replaceProjectTrace } from '../../traceability/traceStore';
+import { readImportedTrace, recordDiagramCreated, replaceProjectTrace } from '../../traceability/traceStore';
 import { getProjectJsonModel } from '../../api/conversion';
 import { ApiError } from '../../api/api-client';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
@@ -453,6 +454,22 @@ function alignDiagramsById(incoming: BesserProject, local: BesserProject): Besse
     }),
   );
   return { ...local, diagrams } as BesserProject;
+}
+
+/**
+ * Start a new project from a full-project template file. Like any new project it records traces, and the diagrams
+ * it starts with are recorded as written by `generator` (the template library), not by the user.
+ */
+export async function importTemplateProject(file: File, generator: string): Promise<BesserProject> {
+  const imported = await importProjectFromJson(file);
+  const project: BesserProject = { ...imported, settings: { ...imported.settings, traceabilityEnabled: true } };
+  ProjectStorageRepository.saveProject(project);
+  for (const type of ALL_DIAGRAM_TYPES) {
+    for (const diagram of project.diagrams[type] ?? []) {
+      if (diagramHasContent(diagram)) recordDiagramCreated(project, type, diagram, { generator });
+    }
+  }
+  return project;
 }
 
 // Import from JSON file

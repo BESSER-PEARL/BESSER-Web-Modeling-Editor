@@ -56,7 +56,7 @@ export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivati
     };
 
     const generator = MODEL_GENERATORS.componentToDeployment;
-    const added = await dispatch(addDiagramThunk({ diagramType: 'DeploymentDiagram', title, derivedFrom })).unwrap();
+    const added = await dispatch(addDiagramThunk({ diagramType: 'DeploymentDiagram', title, derivedFrom, traceSource: { generator } })).unwrap();
     await dispatch(switchDiagramTypeThunk({ diagramType: 'DeploymentDiagram' })).unwrap();
     await dispatch(updateDiagramModelThunk({ model: result.model, traceSource: { generator } })).unwrap();
     // element-level lineage sidecar (also linked in the project trace).

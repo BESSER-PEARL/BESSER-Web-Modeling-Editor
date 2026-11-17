@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { addDiagramThunk } from '../../../app/store/workspaceSlice';
+import { MODEL_GENERATORS } from '../../../shared/traceability/traceStore';
 import { bpmnModelToComponentModel } from '../bpmn-to-component';
 import { useGenerateComponentDiagram } from '../useGenerateComponentDiagram';
 import minimalAgentic from './fixtures/minimal-agentic.json';
@@ -13,7 +15,32 @@ vi.mock('../../../app/store/hooks', () => ({
 
 vi.mock('../bpmn-to-component', () => ({ bpmnModelToComponentModel: vi.fn() }));
 
+vi.mock('../../../app/store/workspaceSlice', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../app/store/workspaceSlice')>()),
+  addDiagramThunk: vi.fn((arg: unknown) => ({ type: 'addDiagram', arg })),
+}));
+
 describe('useGenerateComponentDiagram', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('creates the derived diagram as the derivation, not as the user', async () => {
+    // Live: an empty Pizza Store derivation was recorded as the user's modeling session.
+    const dispatch = vi.fn(() => ({ unwrap: async () => ({ diagram: { id: 'cp' }, index: 0 }) }));
+    const state = { workspace: { activeDiagramType: 'BPMN', activeDiagram: { id: 'bpmn', title: 'Pizza', model: minimalAgentic }, project: { diagrams: {} } } };
+    vi.mocked(useAppDispatch).mockReturnValue(dispatch as never);
+    vi.mocked(useAppSelector).mockImplementation((selector) => selector(state as unknown as Parameters<typeof selector>[0]));
+    vi.mocked(bpmnModelToComponentModel).mockReturnValue({
+      ok: true, model: { elements: {}, relationships: {} } as unknown as UMLModel, elementMapping: {}, warnings: [],
+    } as unknown as ReturnType<typeof bpmnModelToComponentModel>);
+
+    const { result } = renderHook(() => useGenerateComponentDiagram());
+    await act(async () => { await result.current(); });
+
+    expect(vi.mocked(addDiagramThunk)).toHaveBeenCalledWith(
+      expect.objectContaining({ diagramType: 'ComponentDiagram', traceSource: { generator: MODEL_GENERATORS.bpmnToComponent } }),
+    );
+  });
+
   it('passes the saved per-agent default LLM name to capability derivation', async () => {
     const model = {
       version: '3.0.0', type: 'AgentDiagram', size: { width: 800, height: 600 },

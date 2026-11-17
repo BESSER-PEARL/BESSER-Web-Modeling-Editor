@@ -921,6 +921,7 @@ export function useAssistantLogic({
         const result = await dispatch(addDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
+          traceSource: 'assistant',
         })).unwrap();
 
         if (result?.index !== undefined) {

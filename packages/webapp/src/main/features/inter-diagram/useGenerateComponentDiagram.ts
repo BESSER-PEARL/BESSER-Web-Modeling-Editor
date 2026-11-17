@@ -81,7 +81,7 @@ export function useGenerateComponentDiagram(): () => Promise<DerivationResult> {
     };
 
     const generator = MODEL_GENERATORS.bpmnToComponent;
-    const added = await dispatch(addDiagramThunk({ diagramType: 'ComponentDiagram', title, derivedFrom })).unwrap();
+    const added = await dispatch(addDiagramThunk({ diagramType: 'ComponentDiagram', title, derivedFrom, traceSource: { generator } })).unwrap();
     await dispatch(switchDiagramTypeThunk({ diagramType: 'ComponentDiagram' })).unwrap();
     await dispatch(updateDiagramModelThunk({ model: result.model, traceSource: { generator } })).unwrap();
     // write the element-level lineage sidecar for the new diagram (also linked in the project trace).
