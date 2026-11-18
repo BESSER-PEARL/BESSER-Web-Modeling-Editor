@@ -1251,7 +1251,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         </DialogPortal>
       </Dialog>
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      {/* overflow-clip, not hidden: the closed assistant drawer is parked below this box by a transform, and a
+          hidden box is still scrollable by that overflow, so focusing anything pushed the page up and left a blank gap. */}
+      <div className="relative flex min-h-0 flex-1 overflow-clip">
         <WorkspaceSidebar
           isDarkTheme={isDarkTheme}
           isSidebarExpanded={isSidebarExpanded}
@@ -1272,7 +1274,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           onTestAgent={testAgent}
         />
 
-        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none">
+        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-clip focus:outline-none">
           <HiddenPerspectivesBanner />
           {location.pathname === '/' && (
             <DiagramTabs

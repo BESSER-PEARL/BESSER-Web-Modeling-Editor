@@ -260,7 +260,7 @@
       "llm": "LLM",
       "useDefault": "(utilitza el predeterminat)",
       "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí.",
-      "defineLlmsHint": "Defineix els LLM a la pàgina <strong>Components de l’agent</strong>.",
+      "defineLlmsHint": "Defineix els LLM a la pàgina <components>Components de l’agent</components>.",
       "enabled": "Activat",
       "boolTrue": "Cert",
       "boolFalse": "Fals",

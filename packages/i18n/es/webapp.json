@@ -260,7 +260,7 @@
       "llm": "LLM",
       "useDefault": "(usar predeterminado)",
       "defineLlmHint": "Define un LLM en la sección LLMs de abajo para usarlo aquí.",
-      "defineLlmsHint": "Define los LLMs en la página <strong>Componentes del Agente</strong>.",
+      "defineLlmsHint": "Define los LLMs en la página <components>Componentes del Agente</components>.",
       "enabled": "Habilitado",
       "boolTrue": "Verdadero",
       "boolFalse": "Falso",
