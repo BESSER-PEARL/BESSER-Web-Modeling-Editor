@@ -1,13 +1,13 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { LineageBundle, LineageLayout } from '../../../shared/traceability/lineage';
-import { PILL_AT, bezier } from './lineageLook';
+import { bezier } from './lineageLook';
 
 /** One drawn connector: a bundle of links between two visible rows. */
 export interface Connector {
   bundle: LineageBundle;
   path: string;
-  /** Where its pill sits. */
-  mid: { x: number; y: number };
+  /** Its point at `t`: 0 at the source row, 1 at the target row (where its pill goes, see `placePills`). */
+  at: (t: number) => { x: number; y: number };
 }
 
 /**
@@ -43,8 +43,7 @@ export function useConnectorLayout(layout: LineageLayout, zoom: number) {
           return [{
             bundle,
             path: `M ${sx} ${sy} C ${x1} ${sy}, ${x2} ${ty}, ${tx} ${ty}`,
-            // The pill sits near the target end, where connectors from one source have spread apart.
-            mid: { x: bezier(sx, x1, x2, tx, PILL_AT), y: bezier(sy, sy, ty, ty, PILL_AT) },
+            at: (t: number) => ({ x: bezier(sx, x1, x2, tx, t), y: bezier(sy, sy, ty, ty, t) }),
           }];
         }),
       );

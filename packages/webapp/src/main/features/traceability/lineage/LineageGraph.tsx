@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { AlertTriangle } from 'lucide-react';
 import type { TraceIndex } from '../../../shared/traceability/traceQueries';
 import type { LineageBundle, LineageLayout, LineageRow } from '../../../shared/traceability/lineage';
 import { pathTo } from '../../../shared/traceability/lineage';
-import { EVIDENCE_STROKES, OUT_OF_DATE_STROKE, bundleLook, formatConfidence, hasPill, isAiEdge, lookOf } from './lineageLook';
+import {
+  EVIDENCE_STROKES, OUT_OF_DATE_STROKE, PILL_HEIGHT, bundleLook, formatConfidence, hasPill, isAiEdge, lookOf, pillWidth, placePills,
+} from './lineageLook';
 import { LineageRowView } from './LineageRowView';
 import type { LineageSelection } from './types';
 import { useConnectorLayout } from './useConnectorLayout';
@@ -34,6 +36,7 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
   );
 
   const selectedNode = selected?.kind === 'node' ? selected.id : null;
+  const selectedLinkId = selected?.kind === 'edge' ? selected.id : undefined;
   const isSelectedEdge = (bundle: LineageBundle) => selected?.kind === 'edge' && bundle.edges.some((e) => e.link.id === selected.id);
   const selectedLink =
     selected?.kind === 'edge' ? layout.bundles.flatMap((b) => b.edges).find((e) => e.link.id === selected.id)?.link : undefined;
@@ -41,6 +44,26 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
   const touches = (bundle: LineageBundle) => selectedNode !== null && (bundle.sourceId === selectedNode || bundle.targetId === selectedNode);
   const faded = (bundle: LineageBundle) =>
     selected?.kind === 'edge' ? !isSelectedEdge(bundle) : selectedNode !== null && rowsById.has(selectedNode) && !touches(bundle);
+
+  // A pill's text: how many links a bundle holds, else its link's confidence (and "AI" for an AI decision).
+  const pillText = useCallback((bundle: LineageBundle) => {
+    const look = bundleLook(bundle.edges);
+    if (bundle.edges.length > 1) return `×${bundle.edges.length}`;
+    return `${isAiEdge(look) ? `${t('traceability.lineage.legend.ai')} ` : ''}${formatConfidence(look.link.confidence?.value)}`;
+  }, [t]);
+  // Pills on connectors with something to say (`hasPill`), plus the selected link's. Placed apart without regard to
+  // the selection, the selected-only pill last, so selecting a link moves no pill.
+  const pills = useMemo(() => {
+    const shown = connectors.filter(({ bundle }) => hasPill(bundle));
+    const selectedOnly = connectors.filter(
+      ({ bundle }) => !hasPill(bundle) && bundle.edges.some((e) => e.link.id === selectedLinkId),
+    );
+    const all = [...shown, ...selectedOnly];
+    const places = placePills(all.map(({ bundle, at }) => ({
+      at, width: pillWidth(pillText(bundle), lookOf(bundleLook(bundle.edges)) !== 'upToDate'), height: PILL_HEIGHT,
+    })));
+    return all.map((connector, i) => ({ bundle: connector.bundle, place: places[i] }));
+  }, [connectors, selectedLinkId, pillText]);
 
   return (
     <div className="relative h-full min-h-0 overflow-auto rounded-lg border border-border bg-muted/20">
@@ -100,9 +123,7 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
               </div>
             ))}
           </div>
-          {/* Pills sit on the connectors that have something to say: how many links a bundle holds, an AI
-              decision, a confidence below certain, or a link that may not hold. A plain rule link needs none. */}
-          {connectors.filter(({ bundle }) => hasPill(bundle) || isSelectedEdge(bundle)).map(({ bundle, mid }) => {
+          {pills.map(({ bundle, place }) => {
             const look = bundleLook(bundle.edges);
             const bundled = bundle.edges.length > 1;
             const stale = lookOf(look) !== 'upToDate';
@@ -126,12 +147,11 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
                       ? 'border-warning/60 bg-card text-warning'
                       : 'border-border bg-background',
                 )}
-                style={{ left: mid.x, top: mid.y }}
+                style={{ left: place.x, top: place.y }}
               >
                 {/* Not by colour alone: a mark for a link that may not hold, a word for an AI decision. */}
                 {stale && <AlertTriangle className="mr-0.5 inline size-2.5 -translate-y-px" aria-hidden />}
-                {!bundled && isAiEdge(look) && `${t('traceability.lineage.legend.ai')} `}
-                {bundled ? `×${bundle.edges.length}` : formatConfidence(look.link.confidence?.value)}
+                {pillText(bundle)}
                 {/* The selected link's own value, when it sits in a bundle. */}
                 {bundled && selectedLink && bundle.edges.some((e) => e.link.id === selectedLink.id) &&
                   ` · ${formatConfidence(selectedLink.confidence?.value)}`}
