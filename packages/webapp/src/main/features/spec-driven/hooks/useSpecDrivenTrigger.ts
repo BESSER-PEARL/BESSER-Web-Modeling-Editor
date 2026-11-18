@@ -123,6 +123,7 @@ import {
 import { resolveRunMode } from '../runModeDecision';
 import { readRunTier } from '../generationKey';
 import { announceRunFinished } from '../runFinishNotice';
+import { announceRunSucceeded } from '../runSucceeded';
 import type { RunModeDecision } from '../runModeDecision';
 import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
@@ -676,6 +677,10 @@ export function useSpecDrivenTrigger(
               setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at: finishedAt }),
             );
             writeProjectLastRun(run.projectId, doneRunId, finishedAt);
+          }
+          // A whole result of a project: a linked one may push it to GitHub.
+          if (doneRunId && run.projectId && !stoppedByUser && !incomplete) {
+            announceRunSucceeded({ projectId: run.projectId, runId: doneRunId });
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file

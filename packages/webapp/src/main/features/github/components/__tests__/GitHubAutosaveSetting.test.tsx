@@ -54,7 +54,30 @@ describe('GitHubAutosaveSetting', () => {
     const toggle = screen.getByRole('checkbox', { name: /Autosave to GitHub/ });
     expect(toggle).toBeDisabled();
     expect(toggle).not.toBeChecked();
-    expect(screen.getByText(/Connect GitHub in this tab/)).toBeInTheDocument();
+    expect(screen.getByText(/Connect GitHub in this tab to autosave/)).toBeInTheDocument();
+  });
+
+  it('turns "Push generated code to GitHub" on and off, kept on the link', () => {
+    link();
+    render(<GitHubAutosaveSetting />);
+    const toggle = screen.getByRole('checkbox', { name: /Push generated code to GitHub/ });
+    expect(toggle).not.toBeChecked();
+
+    fireEvent.click(toggle);
+    expect(getProjectGitHubLink('p1')?.pushRuns).toBe(true);
+    expect(track).toHaveBeenCalledWith('settings_changed', { area: 'github', setting: 'push_runs', value: true });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Push generated code to GitHub/ }));
+    expect(getProjectGitHubLink('p1')?.pushRuns).toBeUndefined();
+  });
+
+  it('cannot push generated code without a GitHub session in this tab', () => {
+    Object.assign(auth, { isAuthenticated: false, githubSession: null });
+    setProjectGitHubLink('p1', { owner: 'ana', repo: 'shop', branch: 'main', pushRuns: true });
+    render(<GitHubAutosaveSetting />);
+    const toggle = screen.getByRole('checkbox', { name: /Push generated code to GitHub/ });
+    expect(toggle).toBeDisabled();
+    expect(toggle).not.toBeChecked();
   });
 
   it('shows how autosave stands, quietly', () => {

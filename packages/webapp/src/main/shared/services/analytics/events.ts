@@ -270,11 +270,14 @@ export interface AnalyticsEvents {
     files_uploaded?: number;
     warnings_count: number;
     took_run_model: boolean;
+    /** Pushed on its own when the run finished ("Push generated code to GitHub"). */
+    automatic?: boolean;
   };
   github_push_failed: {
     /** `upload_failed`: a deterministic generator's output could not be stored as a run to push. */
     code: 'expired' | 'repo_missing' | 'auth' | 'forbidden' | 'conflict' | 'branch_moved' | 'other' | 'nothing_to_push' | 'no_session' | 'no_project' | 'upload_failed';
     new_repo?: boolean;
+    automatic?: boolean;
   } & Partial<ErrorProperties>;
   /** "Continue from a GitHub repo": a project now tracks the repository. */
   github_repo_opened: {

@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -52,8 +53,9 @@ import { sanitizeRepoName } from '../../../shared/utils/validation';
 import { openHelpGuide } from '../../../shared/dialogs/helpGuide';
 import { useFlushEditorModel } from '../hooks/useFlushEditorModel';
 import { useGitHubAutosave } from '../hooks/useGitHubAutosave';
+import { useAutoPushFinishedRuns } from '../hooks/useAutoPushFinishedRuns';
 import { useAutosaveStatus } from '../autosave/autosaveStatus';
-import { useAutosaveStatusText } from './GitHubAutosaveSetting';
+import { setGitHubAutosave, setGitHubPushRuns, useAutosaveStatusText } from './GitHubAutosaveSetting';
 import { createRepoForProject, OPEN_GITHUB_PANEL_EVENT, OPEN_GITHUB_SAVE_EVENT } from '../../../shared/api/github';
 import { trackGitHubAction } from '../githubAnalytics';
 
@@ -139,6 +141,7 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
   const noticeActions = useRef<(action: TeammateChangeAction) => void>(() => undefined);
   useTeammateChangeNotice({ link, status, state, username, hasLocalChanges, onAction: (action) => noticeActions.current(action) });
   useGitHubAutosave({ sync, flushEditor });
+  useAutoPushFinishedRuns({ githubSession });
   const autosaving = useAutosaveStatus(currentProject?.id).phase === 'saving';
   const autosaveText = useAutosaveStatusText(currentProject?.id);
 
@@ -428,6 +431,23 @@ export const GitHubMenu: React.FC<GitHubMenuProps> = ({
                 <CloudUpload className={cn('size-4 shrink-0', canSave ? 'text-brand' : 'text-muted-foreground')} aria-hidden="true" />
                 {t('github.menu.saveToGitHub', { defaultValue: 'Save to GitHub…' })}
               </DropdownMenuItem>
+              {/* The same setting as the project settings' GitHub card; it needs this tab's session to commit. */}
+              <DropdownMenuCheckboxItem
+                className="py-2"
+                checked={!!link.autoSave && !!githubSession}
+                disabled={!githubSession || !currentProject}
+                onCheckedChange={(next) => currentProject && setGitHubAutosave(currentProject.id, next)}
+              >
+                {t('github.autosave.label', { defaultValue: 'Autosave to GitHub' })}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                className="py-2"
+                checked={!!link.pushRuns && !!githubSession}
+                disabled={!githubSession || !currentProject}
+                onCheckedChange={(next) => currentProject && setGitHubPushRuns(currentProject.id, next)}
+              >
+                {t('github.pushRuns.label', { defaultValue: 'Push generated code to GitHub' })}
+              </DropdownMenuCheckboxItem>
               {(state === 'behind' || state === 'diverged') && (
                 <>
                   <DropdownMenuItem className={itemClass} onSelect={() => void getLatest()}>

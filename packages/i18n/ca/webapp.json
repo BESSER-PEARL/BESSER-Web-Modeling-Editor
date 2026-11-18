@@ -1654,6 +1654,13 @@
         "pausedMissing": "Desament automàtic en pausa: no s’ha trobat el repositori o la branca a GitHub.",
         "error": "El desament automàtic no ha pogut contactar amb GitHub. Ho tornarà a provar a les {{time}}."
       }
+    },
+    "pushRuns": {
+      "label": "Envia el codi generat a GitHub",
+      "hint": "Quan acaba una execució del Spec-Driven Agent, el seu codi es confirma en aquest repositori i branca, fusionat amb els commits més recents, i es conserva després que caduqui la baixada.",
+      "signInHint": "Connecta GitHub en aquesta pestanya per enviar el codi generat al repositori.",
+      "connectFirst": "Connecta GitHub en aquesta pestanya per enviar el codi generat; la targeta de l'execució el pot enviar més tard.",
+      "commitMessage": "Afegeix el codi generat pel Spec-Driven Agent de BESSER"
     }
   },
   "assistant": {

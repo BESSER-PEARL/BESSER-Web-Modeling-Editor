@@ -60,7 +60,7 @@ type Hook = ReturnType<typeof useAssistantLogic>;
 type OnGenerate = NonNullable<Parameters<typeof useAssistantLogic>[0]['onGenerate']>;
 
 function Harness({ apiRef, onGenerate }: { apiRef: { current: Hook | null }; onGenerate: OnGenerate }) {
-  apiRef.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true, onGenerate });
+  apiRef.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true, onGenerate, surface: 'workspace' });
   return null;
 }
 

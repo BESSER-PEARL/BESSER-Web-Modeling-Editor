@@ -158,7 +158,7 @@ async function openTab(projectId: string): Promise<Tab> {
   const store = configureStore({ reducer, preloadedState: { workspace } });
   const api: { current: ReturnType<typeof useAssistantLogic> | null } = { current: null };
   function Surface() {
-    api.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+    api.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
     return null;
   }
   render(

@@ -273,6 +273,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     isActive: open,
     switchDiagram,
     onGenerate: onTriggerGenerator,
+    surface: 'workspace',
   });
 
   /* ---- "Describe your app" hand-off ----

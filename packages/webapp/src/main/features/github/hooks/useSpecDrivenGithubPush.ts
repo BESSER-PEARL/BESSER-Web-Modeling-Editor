@@ -58,6 +58,7 @@ import {
 import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import type { AppDispatch } from '../../../app/store/store';
 import { useProject } from '../../../app/hooks/useProject';
 import {
   closePushDialog,
@@ -180,6 +181,162 @@ const linkedWithUnsavedModel = (link: ProjectGitHubLink, sha: string): ProjectGi
   const { syncedModel: _synced, baselinePending: _pending, ...rest } = link;
   return { ...rest, baseCommitSha: sha, lastSyncedAt: new Date().toISOString() };
 };
+
+/** What a push needs besides its configuration: the run, the project it updates and how to reload it. */
+export interface PushRunContext {
+  project: BesserProject;
+  runId: string;
+  githubSession: string;
+  /** The project's link; the push merges with it when it targets that repository. */
+  linkedRepo: ProjectGitHubLink | null;
+  loadProject: (projectId: string) => Promise<unknown>;
+  dispatch: AppDispatch;
+  /** Started by "Push generated code to GitHub", not from the dialog: only marks the analytics. */
+  automatic?: boolean;
+}
+
+/**
+ * Push run `runId` with `config` and bring the project's link (and, when the run
+ * changed it, its model) up to date: the one push behind the dialog and the
+ * automatic push of a finished run.
+ */
+export async function pushRunToRepo(
+  { project, runId: id, githubSession, linkedRepo, loadProject, dispatch, automatic }: PushRunContext,
+  config: SpecDrivenPushConfig,
+): Promise<SpecDrivenPushOutcome> {
+  const pushesToLink =
+    !!linkedRepo && config.useExisting && linkedRepo.repo.toLowerCase() === config.repoName.toLowerCase()
+    && (!config.owner || linkedRepo.owner.toLowerCase() === config.owner.toLowerCase());
+  try {
+    // Personalization is user-local state — never publish it into a repo.
+    const projectExport = buildProjectExportEnvelope(project, undefined, {
+      includePersonalization: false,
+    });
+
+    const response = await pushRunToGitHub(githubSession, {
+      run_id: id,
+      projectExport,
+      deploy_config: {
+        repo_name: config.repoName,
+        ...(config.useExisting && config.owner ? { owner: config.owner } : {}),
+        ...(config.description ? { description: config.description } : {}),
+        is_private: config.isPrivate,
+        use_existing: config.useExisting,
+        ...(config.branch ? { branch: config.branch } : {}),
+        ...(config.commitMessage ? { commit_message: config.commitMessage } : {}),
+        // Only the linked repo has a known base; any other repo is new to this project.
+        ...(pushesToLink && linkedRepo?.baseCommitSha ? { base_commit_sha: linkedRepo.baseCommitSha } : {}),
+        push_mode: config.pushMode ?? 'commit',
+      },
+    });
+
+    const res: SpecDrivenPushResult = response;
+
+    if (!res.success) {
+      const message = t('failed', 'Save to GitHub failed.');
+      track('github_push_failed', { code: 'other', new_repo: !config.useExisting, ...(automatic ? { automatic } : {}) });
+      reportError(message);
+      return { ok: false, code: 'other', message };
+    }
+
+    const link: ProjectGitHubLink = {
+      ...(pushesToLink && linkedRepo ? linkedRepo : {}),
+      owner: res.owner,
+      repo: res.repo_name,
+      branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
+      // A pull request or a conflict leaves the branch as it was.
+      ...(res.status === 'pushed' || res.status === 'merged'
+        ? { hasCode: true, recap: res.recap ?? undefined }
+        : {}),
+    };
+    // The run changed the model; it replaces the canvas only if the canvas
+    // still holds the model the run started from, or the user agrees.
+    const takeRunModel = !!res.project_export && (await mayReplaceWithRunModel(id, project));
+    if (res.status === 'pushed' && res.project_export) {
+      if (takeRunModel) {
+        // Load what the repo now holds, so the editor shows it and a later save cannot revert it.
+        const updated = storeRepoModelAsProject(res.project_export, project.id);
+        markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+        await loadProject(project.id);
+      } else {
+        // The user's model stays, unsaved against the run's commit until they save it.
+        setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
+      }
+    } else if (res.status === 'pushed') {
+      markProjectGitHubSynced(link, project, res.commit_sha);
+    } else if (res.status === 'merged' && githubSession && res.project_export && !takeRunModel) {
+      setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
+    } else if (res.status === 'merged' && githubSession) {
+      // The branch now holds this run and the commits made since: load
+      // that model, and start the next run from that code.
+      const merged = await loadModel(githubSession, res.owner, res.repo_name, link.branch);
+      const updated = storeRepoModelAsProject(merged.project, project.id);
+      markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
+      if (res.base_run_id) {
+        const at = Date.now();
+        writeProjectLastRun(project.id, res.base_run_id, at);
+        dispatch(setLastRunForProject({ projectId: project.id, runId: res.base_run_id, at }));
+      }
+      await loadProject(project.id);
+    } else {
+      // A pull request or a conflict leaves the branch as it was, so the
+      // link keeps its base; the change waits on its own branch.
+      setProjectGitHubLink(project.id, link);
+      const branch = res.status === 'conflict' ? res.conflict_branch : res.pull_request_branch;
+      if (branch) {
+        setPendingGitHubChange(project.id, {
+          kind: res.status === 'conflict' ? 'conflict' : 'pull_request',
+          branch,
+          ...(config.commitMessage ? { title: config.commitMessage } : {}),
+          ...(res.pull_request_url ? { pullRequestUrl: res.pull_request_url } : {}),
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (takeRunModel) {
+        // The run's code has the model it changed: show that model, unsaved
+        // against the branch until its pull request is merged.
+        storeRepoModelAsProject(res.project_export, project.id);
+        await loadProject(project.id);
+      }
+    }
+    // Opt-in research telemetry: a completed push is a delivery action.
+    // Fire-and-forget; no-op unless the tab was opened with `?pilot=<label>`.
+    emitDeliveryEvent('push_github', id);
+    if (res.status === 'conflict') {
+      toast.warn(i18n.t('github.push.toasts.conflict', { defaultValue: 'GitHub could not merge this push automatically.' }));
+    } else {
+      const repo = `${res.owner}/${res.repo_name}`;
+      toast.success(
+        res.is_first_push
+          ? i18n.t('github.push.toasts.created', { defaultValue: 'Pushed to {{repo}}', repo })
+          : res.status === 'pull_request'
+            ? i18n.t('github.push.toasts.pullRequest', { defaultValue: 'Opened a pull request on {{repo}}', repo })
+            : i18n.t('github.push.toasts.updated', { defaultValue: 'Updated {{repo}}', repo }),
+      );
+    }
+    if (takeRunModel) {
+      toast.info(i18n.t('github.push.toasts.modelUpdated', { defaultValue: 'The model now includes the classes the agent added.' }));
+    }
+    track('github_push_completed', {
+      status: res.status,
+      new_repo: !config.useExisting,
+      to_linked_repo: pushesToLink,
+      is_private: config.useExisting ? undefined : config.isPrivate,
+      push_mode: config.pushMode ?? 'commit',
+      is_first_push: res.is_first_push,
+      files_uploaded: res.files_uploaded,
+      warnings_count: res.warnings?.length ?? 0,
+      took_run_model: takeRunModel,
+      ...(automatic ? { automatic } : {}),
+    });
+    return { ok: true, result: res };
+  } catch (error) {
+    const { code, message } = describePushError(error);
+    track('github_push_failed', { code, new_repo: !config.useExisting, ...(automatic ? { automatic } : {}), ...errorProperties(error) });
+    reportError(message, { error });
+    return { ok: false, code, message };
+  }
+}
 
 export interface UseSpecDrivenGithubPushOptions {
   currentProject: BesserProject | null | undefined;
@@ -308,141 +465,15 @@ export function useSpecDrivenGithubPush(
         reportError(message);
         return { ok: false, code: 'auth', message };
       }
-
-      const pushesToLink =
-        !!linkedRepo && config.useExisting && linkedRepo.repo.toLowerCase() === config.repoName.toLowerCase()
-        && (!config.owner || linkedRepo.owner.toLowerCase() === config.owner.toLowerCase());
       setIsPushing(true);
       setResult(null);
       try {
-        // Personalization is user-local state — never publish it into a repo.
-        const projectExport = buildProjectExportEnvelope(project, undefined, {
-          includePersonalization: false,
-        });
-
-        const response = await pushRunToGitHub(githubSession, {
-          run_id: id,
-          projectExport,
-          deploy_config: {
-            repo_name: config.repoName,
-            ...(config.useExisting && config.owner ? { owner: config.owner } : {}),
-            ...(config.description ? { description: config.description } : {}),
-            is_private: config.isPrivate,
-            use_existing: config.useExisting,
-            ...(config.branch ? { branch: config.branch } : {}),
-            ...(config.commitMessage ? { commit_message: config.commitMessage } : {}),
-            // Only the linked repo has a known base; any other repo is new to this project.
-            ...(pushesToLink && linkedRepo?.baseCommitSha ? { base_commit_sha: linkedRepo.baseCommitSha } : {}),
-            push_mode: config.pushMode ?? 'commit',
-          },
-        });
-
-        const res: SpecDrivenPushResult = response;
-
-        if (!res.success) {
-          const message = t('failed', 'Save to GitHub failed.');
-          track('github_push_failed', { code: 'other', new_repo: !config.useExisting });
-          reportError(message);
-          return { ok: false, code: 'other', message };
+        const outcome = await pushRunToRepo({ project, runId: id, githubSession, linkedRepo, loadProject, dispatch }, config);
+        if (outcome.ok) {
+          setLinkedRepo(getProjectGitHubLink(project.id));
+          setResult(outcome.result);
         }
-
-        const link: ProjectGitHubLink = {
-          ...(pushesToLink && linkedRepo ? linkedRepo : {}),
-          owner: res.owner,
-          repo: res.repo_name,
-          branch: res.branch || config.branch || linkedRepo?.branch || DEFAULT_BRANCH,
-          // A pull request or a conflict leaves the branch as it was.
-          ...(res.status === 'pushed' || res.status === 'merged'
-            ? { hasCode: true, recap: res.recap ?? undefined }
-            : {}),
-        };
-        // The run changed the model; it replaces the canvas only if the canvas
-        // still holds the model the run started from, or the user agrees.
-        const takeRunModel = !!res.project_export && (await mayReplaceWithRunModel(id, project));
-        if (res.status === 'pushed' && res.project_export) {
-          if (takeRunModel) {
-            // Load what the repo now holds, so the editor shows it and a later save cannot revert it.
-            const updated = storeRepoModelAsProject(res.project_export, project.id);
-            markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
-            await loadProject(project.id);
-          } else {
-            // The user's model stays, unsaved against the run's commit until they save it.
-            setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
-          }
-        } else if (res.status === 'pushed') {
-          markProjectGitHubSynced(link, project, res.commit_sha);
-        } else if (res.status === 'merged' && githubSession && res.project_export && !takeRunModel) {
-          setProjectGitHubLink(project.id, linkedWithUnsavedModel(link, res.commit_sha));
-        } else if (res.status === 'merged' && githubSession) {
-          // The branch now holds this run and the commits made since: load
-          // that model, and start the next run from that code.
-          const merged = await loadModel(githubSession, res.owner, res.repo_name, link.branch);
-          const updated = storeRepoModelAsProject(merged.project, project.id);
-          markProjectGitHubSynced(link, updated, res.commit_sha, { loadedFromRepo: true });
-          if (res.base_run_id) {
-            const at = Date.now();
-            writeProjectLastRun(project.id, res.base_run_id, at);
-            dispatch(setLastRunForProject({ projectId: project.id, runId: res.base_run_id, at }));
-          }
-          await loadProject(project.id);
-        } else {
-          // A pull request or a conflict leaves the branch as it was, so the
-          // link keeps its base; the change waits on its own branch.
-          setProjectGitHubLink(project.id, link);
-          const branch = res.status === 'conflict' ? res.conflict_branch : res.pull_request_branch;
-          if (branch) {
-            setPendingGitHubChange(project.id, {
-              kind: res.status === 'conflict' ? 'conflict' : 'pull_request',
-              branch,
-              ...(config.commitMessage ? { title: config.commitMessage } : {}),
-              ...(res.pull_request_url ? { pullRequestUrl: res.pull_request_url } : {}),
-              createdAt: new Date().toISOString(),
-            });
-          }
-          if (takeRunModel) {
-            // The run's code has the model it changed: show that model, unsaved
-            // against the branch until its pull request is merged.
-            storeRepoModelAsProject(res.project_export, project.id);
-            await loadProject(project.id);
-          }
-        }
-        setLinkedRepo(getProjectGitHubLink(project.id));
-        setResult(res);
-        // Opt-in research telemetry: a completed push is a delivery action.
-        // Fire-and-forget; no-op unless the tab was opened with `?pilot=<label>`.
-        emitDeliveryEvent('push_github', id);
-        if (res.status === 'conflict') {
-          toast.warn(i18n.t('github.push.toasts.conflict', { defaultValue: 'GitHub could not merge this push automatically.' }));
-        } else {
-          const repo = `${res.owner}/${res.repo_name}`;
-          toast.success(
-            res.is_first_push
-              ? i18n.t('github.push.toasts.created', { defaultValue: 'Pushed to {{repo}}', repo })
-              : res.status === 'pull_request'
-                ? i18n.t('github.push.toasts.pullRequest', { defaultValue: 'Opened a pull request on {{repo}}', repo })
-                : i18n.t('github.push.toasts.updated', { defaultValue: 'Updated {{repo}}', repo }),
-          );
-        }
-        if (takeRunModel) {
-          toast.info(i18n.t('github.push.toasts.modelUpdated', { defaultValue: 'The model now includes the classes the agent added.' }));
-        }
-        track('github_push_completed', {
-          status: res.status,
-          new_repo: !config.useExisting,
-          to_linked_repo: pushesToLink,
-          is_private: config.useExisting ? undefined : config.isPrivate,
-          push_mode: config.pushMode ?? 'commit',
-          is_first_push: res.is_first_push,
-          files_uploaded: res.files_uploaded,
-          warnings_count: res.warnings?.length ?? 0,
-          took_run_model: takeRunModel,
-        });
-        return { ok: true, result: res };
-      } catch (error) {
-        const { code, message } = describePushError(error);
-        track('github_push_failed', { code, new_repo: !config.useExisting, ...errorProperties(error) });
-        reportError(message, { error });
-        return { ok: false, code, message };
+        return outcome;
       } finally {
         setIsPushing(false);
       }

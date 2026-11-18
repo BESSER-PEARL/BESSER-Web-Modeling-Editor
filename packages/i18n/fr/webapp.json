@@ -1654,6 +1654,13 @@
         "pausedMissing": "Enregistrement automatique en pause : le dépôt ou la branche est introuvable sur GitHub.",
         "error": "L’enregistrement automatique n’a pas pu joindre GitHub. Nouvel essai à {{time}}."
       }
+    },
+    "pushRuns": {
+      "label": "Pousser le code généré sur GitHub",
+      "hint": "Quand une exécution du Spec-Driven Agent se termine, son code est commité dans ce dépôt et cette branche, fusionné avec les commits plus récents, et reste disponible après l'expiration du téléchargement.",
+      "signInHint": "Connectez GitHub dans cet onglet pour pousser le code généré dans le dépôt.",
+      "connectFirst": "Connectez GitHub dans cet onglet pour pousser le code généré ; la carte de l'exécution peut le pousser plus tard.",
+      "commitMessage": "Ajouter le code généré par le Spec-Driven Agent de BESSER"
     }
   },
   "assistant": {

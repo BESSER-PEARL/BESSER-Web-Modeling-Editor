@@ -1654,6 +1654,13 @@
         "pausedMissing": "Guardado automático en pausa: no se encontró el repositorio o la rama en GitHub.",
         "error": "El guardado automático no pudo contactar con GitHub. Lo volverá a intentar a las {{time}}."
       }
+    },
+    "pushRuns": {
+      "label": "Enviar el código generado a GitHub",
+      "hint": "Cuando termina una ejecución del Spec-Driven Agent, su código se confirma en este repositorio y rama, fusionado con los commits más recientes, y se conserva después de que caduque la descarga.",
+      "signInHint": "Conecta GitHub en esta pestaña para enviar el código generado al repositorio.",
+      "connectFirst": "Conecta GitHub en esta pestaña para enviar el código generado; la tarjeta de la ejecución puede enviarlo más tarde.",
+      "commitMessage": "Añadir el código generado por el Spec-Driven Agent de BESSER"
     }
   },
   "assistant": {

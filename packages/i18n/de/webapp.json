@@ -1654,6 +1654,13 @@
         "pausedMissing": "Automatisches Speichern pausiert: Das Repository oder der Branch wurde auf GitHub nicht gefunden.",
         "error": "Automatisches Speichern konnte GitHub nicht erreichen. Nächster Versuch um {{time}}."
       }
+    },
+    "pushRuns": {
+      "label": "Generierten Code auf GitHub pushen",
+      "hint": "Wenn ein Lauf des Spec-Driven Agent fertig ist, wird sein Code in dieses Repository und diesen Branch committet und mit neueren Commits zusammengeführt, sodass er auch nach Ablauf des Downloads erhalten bleibt.",
+      "signInHint": "Verbinde GitHub in diesem Tab, um generierten Code in das Repository zu pushen.",
+      "connectFirst": "Verbinde GitHub in diesem Tab, um den generierten Code zu pushen; die Laufkarte kann ihn später pushen.",
+      "commitMessage": "Vom BESSER Spec-Driven Agent generierten Code hinzufügen"
     }
   },
   "assistant": {

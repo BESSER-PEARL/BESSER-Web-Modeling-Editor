@@ -13,6 +13,7 @@ import { conversationStore } from '@/main/features/assistant';
 import { useSpecDrivenTrigger } from '@/main/features/spec-driven/hooks/useSpecDrivenTrigger';
 import { readProjectLastRun, writeProjectLastRun } from '@/main/features/spec-driven/storage';
 import { readLastGeneration } from '@/main/features/spec-driven/lastGeneration';
+import { SPEC_DRIVEN_RUN_SUCCEEDED_EVENT } from '@/main/features/spec-driven/runSucceeded';
 import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
@@ -164,6 +165,34 @@ describe('the last-run record of a finished run', () => {
     const card = conversationStore.getMessages().find((m) => m.specDriven)?.specDriven;
     expect(card?.status).toBe('done');
     expect(card?.finishedAt).toBe(readProjectLastRun(PROJECT_ID)?.at);
+  });
+});
+
+describe('the signal that a run delivered its whole result', () => {
+  /** Listen for the signal while `body` runs; the runs it named, with their project. */
+  const heard = async (body: () => Promise<void>) => {
+    const runs: Array<{ projectId: string; runId: string }> = [];
+    const on = (event: Event) => runs.push((event as CustomEvent).detail);
+    window.addEventListener(SPEC_DRIVEN_RUN_SUCCEEDED_EVENT, on);
+    try {
+      await body();
+    } finally {
+      window.removeEventListener(SPEC_DRIVEN_RUN_SUCCEEDED_EVENT, on);
+    }
+    return runs;
+  };
+
+  it('is sent for a complete run of the project (what may push it to GitHub)', async () => {
+    const runs = await heard(() => runWith([start(), done()], FRAMED));
+    expect(runs).toEqual([{ projectId: PROJECT_ID, runId: RUN }]);
+  });
+
+  it('is not sent for a run cut short', async () => {
+    const CUT = '6e'.repeat(16);
+    const runs = await heard(() =>
+      runWith([start(CUT), done({ incomplete: true, incompleteReason: 'The run hit its cost cap.' }, CUT)], FRAMED),
+    );
+    expect(runs).toEqual([]);
   });
 });
 

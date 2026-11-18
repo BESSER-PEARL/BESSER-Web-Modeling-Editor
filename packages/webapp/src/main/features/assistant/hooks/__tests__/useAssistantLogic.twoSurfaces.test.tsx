@@ -27,6 +27,7 @@ const _client = vi.hoisted(() => ({
   injectionHandlers: [] as Array<(c: InjectionCommand) => void>,
   actionHandlers: [] as Array<(a: Record<string, unknown>) => void>,
   sentMessages: [] as string[],
+  sentModes: [] as Array<string | undefined>,
   historyRequests: 0,
   turnId: null as string | null,
 }));
@@ -66,8 +67,9 @@ vi.mock('../../services', async (importOriginal) => {
     sendHistoryWithNextMessage() {
       _client.historyRequests += 1;
     }
-    sendMessage(text: string): SendStatus {
+    sendMessage(text: string, _type?: string, _context?: unknown, _attachments?: unknown, clientMode?: string): SendStatus {
       _client.sentMessages.push(text);
+      _client.sentModes.push(clientMode);
       _client.turnId = `turn_${_client.sentMessages.length}`;
       return 'sent';
     }
@@ -137,8 +139,8 @@ interface SurfaceAPI {
   setInput: (text: string) => void;
 }
 
-function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
-  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+function Surface({ apiRef, surface }: { apiRef: { current: SurfaceAPI | null }; surface: 'widget' | 'workspace' }) {
+  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface });
   apiRef.current = {
     sendVoiceMessage: hook.sendVoiceMessage,
     submit: (text) => hook.handleSubmit(undefined, { overrideText: text }),
@@ -158,8 +160,8 @@ function renderTwoSurfaces() {
   const tree = (showWidget: boolean) => (
     <Provider store={store}>
       <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
-        <Surface apiRef={drawer} />
-        {showWidget && <Surface apiRef={widget} />}
+        <Surface apiRef={drawer} surface="workspace" />
+        {showWidget && <Surface apiRef={widget} surface="widget" />}
       </ApollonEditorProvider>
     </Provider>
   );
@@ -191,6 +193,7 @@ const repairRequests = () => _client.sentMessages.filter((m) => m.startsWith('[a
 
 beforeEach(() => {
   _client.sentMessages = [];
+  _client.sentModes = [];
   _client.historyRequests = 0;
   _client.turnId = null;
   conversationStore.clear();
@@ -206,6 +209,14 @@ afterEach(() => {
 });
 
 describe('useAssistantLogic with widget and drawer both mounted', () => {
+  it('sends each message as the surface it came from, so only the drawer gets generation offered', async () => {
+    const { drawer, widget } = renderTwoSurfaces();
+    await act(async () => drawer.current!.submit('a quiz app for students'));
+    await act(async () => widget.current!.submit('add a Teacher class'));
+    expect(_client.sentMessages).toEqual(['a quiz app for students', 'add a Teacher class']);
+    expect(_client.sentModes).toEqual(['workspace', 'widget']);
+  });
+
   it('voice sent from the drawer resolves its placeholder when the widget receives the echo', async () => {
     const { drawer } = renderTwoSurfaces();
     await waitFor(() => expect(drawer.current).not.toBeNull());
@@ -359,7 +370,7 @@ describe('useAssistantLogic keeps the conversation with the project (BESSER#745)
     render(
       <Provider store={store}>
         <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
-          <Surface apiRef={api} />
+          <Surface apiRef={api} surface="workspace" />
         </ApollonEditorProvider>
       </Provider>,
     );
@@ -419,8 +430,8 @@ describe('a project switch with the widget and the drawer both mounted', () => {
     render(
       <Provider store={store}>
         <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
-          <Surface apiRef={drawer} />
-          <Surface apiRef={widget} />
+          <Surface apiRef={drawer} surface="workspace" />
+          <Surface apiRef={widget} surface="widget" />
         </ApollonEditorProvider>
       </Provider>,
     );
