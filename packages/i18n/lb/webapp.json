@@ -4667,6 +4667,7 @@
       "links": "Verbindungen ({{count}})",
       "noLinks": "Keng Verbindungen.",
       "moreLinks": "an {{count}} méi",
+      "historyCapped": "Déi lescht {{shown}} vun {{total}} Ännerungen. An Diagrammer opmaachen weist se all.",
       "expandBundle": "{{count}} Verbindungen: klick, fir se eenzel ze weisen",
       "confidence": "Konfidenz",
       "confidenceNotAssessedNote": "Net bewäert: D'Operatioun, déi dës Verbindung erstallt huet, huet keng Konfidenz gemellt.",

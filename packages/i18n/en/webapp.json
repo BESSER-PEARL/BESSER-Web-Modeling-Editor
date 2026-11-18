@@ -4667,6 +4667,7 @@
       "links": "Links ({{count}})",
       "noLinks": "No links.",
       "moreLinks": "and {{count}} more",
+      "historyCapped": "The latest {{shown}} of {{total}} edits. Open in Diagrams for all of them.",
       "expandBundle": "{{count}} links: click to show them one by one",
       "confidence": "Confidence",
       "confidenceNotAssessedNote": "Not assessed: the operation that made this link reported no confidence.",

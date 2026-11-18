@@ -112,6 +112,11 @@ export const NodeDetail: React.FC<{
               </li>
             ))}
           </ol>
+          {history.length > LISTED_CHANGES && (
+            <p className="text-xs text-muted-foreground">
+              {t('traceability.lineage.historyCapped', { shown: LISTED_CHANGES, total: history.length })}
+            </p>
+          )}
         </DetailSection>
       )}
     </DetailPane>

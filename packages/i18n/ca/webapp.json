@@ -4667,6 +4667,7 @@
       "links": "Enllaços ({{count}})",
       "noLinks": "Sense enllaços.",
       "moreLinks": "i {{count}} més",
+      "historyCapped": "Les darreres {{shown}} de {{total}} modificacions. Obre a Diagrames les mostra totes.",
       "expandBundle": "{{count}} enllaços: fes clic per mostrar-los un per un",
       "confidence": "Confiança",
       "confidenceNotAssessedNote": "Sense avaluar: l'operació que va crear aquest enllaç no va informar de cap confiança.",

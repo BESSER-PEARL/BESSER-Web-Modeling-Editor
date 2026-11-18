@@ -67,6 +67,20 @@ describe('LineageView', () => {
     expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);
   });
 
+  it('says when a History lists only the latest edits', () => {
+    // Live: the Library diagram's History listed only Book's creations, the latest 8 of its 31 edits, and did not say so.
+    const file = trace();
+    const edit = file.operations[1];
+    if (edit.type === 'ModelingSession') {
+      for (let i = 0; i < 10; i += 1) {
+        edit.changes.push({ id: `more${i}`, kind: 'UPDATED', artifactId: 'book', feature: 'name', oldValue: `B${i}`, newValue: `B${i + 1}`, timestamp: later });
+      }
+    }
+    const { container } = view(file);
+    fireEvent.click(container.querySelector('[aria-pressed]')!); // the diagram
+    expect(container.textContent).toContain('The latest 8 of 11 edits. Open in Diagrams for all of them.');
+  });
+
   it('opens the path to an element whose lineage was asked for, and explains its links', () => {
     const { container, rowLabels, button } = view(trace(), 'book');
     expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);

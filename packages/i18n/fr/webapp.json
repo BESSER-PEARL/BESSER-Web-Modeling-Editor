@@ -4667,6 +4667,7 @@
       "links": "Liens ({{count}})",
       "noLinks": "Aucun lien.",
       "moreLinks": "et {{count}} de plus",
+      "historyCapped": "Les {{shown}} dernières modifications sur {{total}}. Ouvrir dans Diagrammes les affiche toutes.",
       "expandBundle": "{{count}} liens : cliquez pour les afficher un par un",
       "confidence": "Confiance",
       "confidenceNotAssessedNote": "Non évaluée : l'opération qui a créé ce lien n'a signalé aucune confiance.",
