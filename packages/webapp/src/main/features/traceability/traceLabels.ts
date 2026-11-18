@@ -44,6 +44,9 @@ export const operationLabel = (t: TFunction, operation: TraceOperation, index: T
   }
   if (operation.type === 'RequirementExtraction') return t('traceability.operations.extraction');
   if (operation.type === 'Conversation') return t('traceability.operations.conversation');
+  // A template, an import or a derivation is credited to the model generator that wrote it, not to the user.
+  const generator = derivedBy(operation, index);
+  if (generator) return t('traceability.operations.modelGenerator', { generator: generator.name });
   return t(byAgent(operation, index) ? 'traceability.operations.assistant' : 'traceability.operations.modeling');
 };
 

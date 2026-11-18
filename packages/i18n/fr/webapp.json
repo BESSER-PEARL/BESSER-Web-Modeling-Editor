@@ -4707,7 +4707,8 @@
       "generation": "{{generator}} généré",
       "extraction": "Exigences extraites par l'assistant",
       "conversation": "Conversation avec l'assistant",
-      "generationUnknown": "Génération de code"
+      "generationUnknown": "Génération de code",
+      "modelGenerator": "Écrit par {{generator}}"
     },
     "changes": {
       "created": "{{type}} {{name}} créé",

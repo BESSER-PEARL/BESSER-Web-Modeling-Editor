@@ -4707,7 +4707,8 @@
       "generation": "{{generator}} generéiert",
       "extraction": "Ufuerderungen, déi den Assistent extrahéiert huet",
       "conversation": "Gespréich mam Assistent",
-      "generationUnknown": "Codegeneréierung"
+      "generationUnknown": "Codegeneréierung",
+      "modelGenerator": "Geschriwwe vun {{generator}}"
     },
     "changes": {
       "created": "{{type}} {{name}} erstallt",
