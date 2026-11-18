@@ -555,6 +555,7 @@
       "systemMessage": "Systemmessaggi",
       "youAreHelpfulAssistant": "Du bass en hëllefräiche Assistent.",
       "optionsOnePerLine": "Optionen (een pro Linn)",
+      "optionsLabel": "Text bei de Knäppchen (optional)",
       "audioSpeedOptional": "Audioveloschtéit (optional)",
       "default": "1,0 (Standard)",
       "latitude": "Breedtgrad",

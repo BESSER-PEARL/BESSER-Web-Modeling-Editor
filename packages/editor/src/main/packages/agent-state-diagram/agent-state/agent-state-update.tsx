@@ -43,6 +43,7 @@ import {
   SECTION_ACTION_TYPES,
   snapshotMember,
   WS_REPLY_TYPES,
+  DEFAULT_OPTIONS_LABEL,
 } from './agent-state-update-constants';
 import {
   ActionBody,
@@ -699,6 +700,7 @@ class StateUpdate extends Component<Props, State> {
         break;
       case 'ws_options':
         member.ws_options = '';
+        member.ws_options_label = DEFAULT_OPTIONS_LABEL;
         member.name = this.props.translate('packages.AgentDiagram.optionsNoOptions');
         break;
       case 'ws_location':

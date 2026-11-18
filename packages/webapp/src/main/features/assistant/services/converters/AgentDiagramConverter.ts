@@ -8,6 +8,9 @@
 import { AgentComponentType } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 
+/** Text shown with option buttons when the reply names none: BAF's own default (personalization translates it). */
+const DEFAULT_OPTIONS_LABEL = 'Choose an option';
+
 function estimateWidth(texts: string[], baseWidth: number): number {
   let maxW = baseWidth;
   for (const text of texts) {
@@ -119,6 +122,7 @@ export function buildAgentStateBody(
   }
   if (actionType === 'WebSocketReplyOptionsAction') {
     el.ws_options = body.ws_options || '';
+    el.ws_options_label = body.ws_options_label ?? DEFAULT_OPTIONS_LABEL;
   }
   if (actionType === 'WebSocketReplyLocationAction') {
     el.ws_latitude = body.ws_latitude ?? 0;

@@ -73,6 +73,21 @@ describe('AgentDiagramModifier add_state / add_state_body', () => {
     expect(db).toMatchObject({ actionType: 'DBAction', dbCustomName: 'sales', dbSqlQuery: 'SELECT 1', storeInSession: 'rows', sendReply: false });
     expect(location).toMatchObject({ actionType: 'WebSocketReplyLocationAction', ws_latitude: 1.5, ws_longitude: 2.5 });
   });
+
+  it('options replies get the default label unless the reply names one', () => {
+    const model = apply(emptyAgentModel(), {
+      type: 'single', action: 'add_state', target: { stateName: 'S' },
+      changes: {
+        replies: [
+          { text: 'pick', replyType: 'ws_options', ws_options: 'a\nb' },
+          { text: 'pick', replyType: 'ws_options', ws_options: 'a\nb', ws_options_label: 'Choisissez une option' },
+        ],
+      },
+    });
+    const [plain, labelled] = bodiesOf(model) as any[];
+    expect(plain.ws_options_label).toBe('Choose an option');
+    expect(labelled.ws_options_label).toBe('Choisissez une option');
+  });
 });
 
 describe('AgentDiagramModifier component actions', () => {
