@@ -70,6 +70,11 @@ export interface PhaseEvent {
   event: 'phase';
   phase: SpecDrivenPhase;
   message: string;
+  /** The run's totals when this phase started, measured like the `cost`
+   * event. Absent from older backends. */
+  usd?: number | null;
+  turns?: number | null;
+  elapsedSeconds?: number | null;
 }
 
 /**
@@ -120,6 +125,22 @@ export interface CostEvent {
   usd: number;
   turns: number;
   elapsedSeconds: number;
+}
+
+/**
+ * One Phase 3 validation round. `attempt` is 0 for the first check and n for
+ * the re-check after fix attempt n; the tool calls between two findings events
+ * are that attempt's repairs. `restored`: the run went back to a better earlier
+ * version, which these findings describe. `blockers` is capped (and each
+ * message clipped); the counts are true totals.
+ */
+export interface FindingsEvent {
+  event: 'findings';
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored?: boolean;
 }
 
 /**
@@ -247,6 +268,7 @@ export type SpecDrivenEvent = (
   | ModelUpdateEvent
   | ToolCallEvent
   | CostEvent
+  | FindingsEvent
   | DoneEvent
   | SpecDrivenErrorEvent
 ) & {
@@ -308,11 +330,33 @@ export interface SpecDrivenToolCallView {
   detail?: string | null;
 }
 
+/** The run's cost, turns and elapsed seconds at one point (a phase's start). */
+export interface SpecDrivenRunTotals {
+  usd: number;
+  turns: number;
+  elapsedSeconds: number;
+}
+
+/** One validation round on the validate row, placed among its tool calls. */
+export interface SpecDrivenFindingsView {
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored: boolean;
+  /** How many of the row's tool calls came before this round. */
+  afterToolCalls: number;
+}
+
 export interface SpecDrivenPhaseView {
   phase: string;
   label: string;
   message: string;
   toolCalls: SpecDrivenToolCallView[];
+  /** Run totals when the phase started; absent from older backends. */
+  startedAt?: SpecDrivenRunTotals;
+  /** Validation rounds (validate row only), in order. */
+  findings?: SpecDrivenFindingsView[];
   /**
    * Long-form details attached to a phase after the fact (e.g. the gap
    * analyser's task list). Rendered behind a chevron in
@@ -401,6 +445,8 @@ export interface SpecDrivenMessageState {
   costUsd?: number;
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
   elapsedSeconds?: number;
+  /** LLM turns so far (from the backend's 2s cost events). */
+  turns?: number;
   /** Cost budget for this run in USD (from the start event). */
   maxCost?: number;
   /** Runtime budget for this run in seconds (from the start event). */

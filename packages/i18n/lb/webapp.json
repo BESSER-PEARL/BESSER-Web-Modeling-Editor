@@ -1674,7 +1674,28 @@
       "fileMeta": "{{lines}} Zeilen · {{size}} · {{language}}",
       "plainText": "Text",
       "tooLarge": "Dëse Fichier ass ze grouss fir eng Virschau. Lued de Projet erof, fir en opzemaachen.",
-      "binary": "Binäre Fichier, keng Virschau méiglech."
+      "binary": "Binäre Fichier, keng Virschau méiglech.",
+      "aiTag": "KI",
+      "aiTagTitle": "D’KI huet Zeilen an dësem Fichier geschriwwen",
+      "aiShare": "D’KI huet {{pct}} % vun den Zeilen geschriwwen",
+      "authorship": "Wien dës Zeilen geschriwwen huet",
+      "authorshipStale": "Geännert, nodeems den Auteur opgeholl gouf",
+      "author": {
+        "ai": "KI",
+        "generator": "Generator",
+        "human": "Persoun",
+        "unknown": "Ouni Zouuerdnung"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} Zeil vun der KI geschriwwen",
+        "ai_other": "{{count}} Zeilen vun der KI geschriwwen",
+        "generator_one": "{{count}} Zeil vun engem BESSER-Generator",
+        "generator_other": "{{count}} Zeilen vun engem BESSER-Generator",
+        "human_one": "{{count}} Zeil tëscht zwee Leef vun enger Persoun geännert",
+        "human_other": "{{count}} Zeilen tëscht zwee Leef vun enger Persoun geännert",
+        "unknown_one": "{{count}} Zeil ouni Informatioun, wien se geschriwwen huet",
+        "unknown_other": "{{count}} Zeilen ouni Informatioun, wien se geschriwwen huet"
+      }
     },
     "rateLimitTooltip": "Ufroen an der leschter Minutt (Limit {{limit}})",
     "import": {
@@ -1927,6 +1948,28 @@
       "fromRequest": "Si gëtt aus dem Modell an der ursprénglecher Ufro nei gebaut. De Laf benotzt: {{key}}.",
       "askAssistant": "Den Assistent gëtt gefrot, se nach eng Kéier ze generéieren. De Laf benotzt: {{key}}.",
       "unknownKey": "de Schlëssel oder déi gratis Stuf, déi fir Generatiounen agestallt ass"
+    },
+    "runTrace": {
+      "firstCheck": "Éischt Kontroll",
+      "recheck": "Nei Kontroll nom Korrekturversuch {{attempt}}",
+      "restored": "Déi bescht fréier Versioun gouf geliwwert",
+      "noBlockers": "keng Blocker",
+      "blockers_one": "{{count}} Blocker",
+      "blockers_other": "{{count}} Blocker",
+      "ofFindings": "vun {{count}} Befunden",
+      "fixed": "behuewen",
+      "stillFailing": "nach ëmmer feelerhaft",
+      "new": "nei",
+      "attempt": "Korrekturversuch {{attempt}}",
+      "attemptNoCalls": "De Korrekturversuch {{attempt}} huet keng Tools opgeruff",
+      "more": "{{count}} weider",
+      "fixAttempts_one": "{{count}} Korrekturversuch",
+      "fixAttempts_other": "{{count}} Korrekturversich",
+      "findings": "Befunden",
+      "turns_one": "{{count}} Ronn",
+      "turns_other": "{{count}} Ronnen",
+      "stats": "Dauer, LLM-Ronnen a geschate Käschte vun dësem Schrëtt",
+      "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung."
     }
   },
   "deploy": {

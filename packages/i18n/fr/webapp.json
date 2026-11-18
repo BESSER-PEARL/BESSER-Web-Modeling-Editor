@@ -1674,7 +1674,28 @@
       "fileMeta": "{{lines}} lignes · {{size}} · {{language}}",
       "plainText": "texte",
       "tooLarge": "Ce fichier est trop volumineux pour l’aperçu. Téléchargez le projet pour l’ouvrir.",
-      "binary": "Fichier binaire, aperçu impossible."
+      "binary": "Fichier binaire, aperçu impossible.",
+      "aiTag": "IA",
+      "aiTagTitle": "L’IA a écrit des lignes de ce fichier",
+      "aiShare": "L’IA a écrit {{pct}} % des lignes",
+      "authorship": "Qui a écrit ces lignes",
+      "authorshipStale": "Modifié après l’enregistrement des auteurs",
+      "author": {
+        "ai": "IA",
+        "generator": "Générateur",
+        "human": "Personne",
+        "unknown": "Non attribué"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} ligne écrite par l’IA",
+        "ai_other": "{{count}} lignes écrites par l’IA",
+        "generator_one": "{{count}} ligne issue d’un générateur BESSER",
+        "generator_other": "{{count}} lignes issues d’un générateur BESSER",
+        "human_one": "{{count}} ligne modifiée par une personne entre deux exécutions",
+        "human_other": "{{count}} lignes modifiées par une personne entre deux exécutions",
+        "unknown_one": "{{count}} ligne sans trace de son auteur",
+        "unknown_other": "{{count}} lignes sans trace de leur auteur"
+      }
     },
     "rateLimitTooltip": "Requêtes envoyées dans la dernière minute (limite {{limit}})",
     "import": {
@@ -1927,6 +1948,28 @@
       "fromRequest": "Elle est reconstruite à partir du modèle et de la demande d'origine. L'exécution utilise : {{key}}.",
       "askAssistant": "L'assistant est invité à la générer à nouveau. L'exécution utilise : {{key}}.",
       "unknownKey": "la clé ou l'offre gratuite configurée pour les générations"
+    },
+    "runTrace": {
+      "firstCheck": "Première vérification",
+      "recheck": "Nouvelle vérification après la tentative de correction {{attempt}}",
+      "restored": "La meilleure version antérieure a été livrée",
+      "noBlockers": "aucun bloquant",
+      "blockers_one": "{{count}} bloquant",
+      "blockers_other": "{{count}} bloquants",
+      "ofFindings": "sur {{count}} constats",
+      "fixed": "corrigé",
+      "stillFailing": "toujours en échec",
+      "new": "nouveau",
+      "attempt": "Tentative de correction {{attempt}}",
+      "attemptNoCalls": "La tentative de correction {{attempt}} n’a appelé aucun outil",
+      "more": "{{count}} de plus",
+      "fixAttempts_one": "{{count}} tentative de correction",
+      "fixAttempts_other": "{{count}} tentatives de correction",
+      "findings": "constats",
+      "turns_one": "{{count}} tour",
+      "turns_other": "{{count}} tours",
+      "stats": "Durée, tours de LLM et coût estimé de cette étape",
+      "costEstimate": "Estimé à partir du nombre de jetons aux prix catalogue. Approximatif, pas une facture."
     }
   },
   "deploy": {

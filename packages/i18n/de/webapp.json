@@ -1674,7 +1674,28 @@
       "fileMeta": "{{lines}} Zeilen · {{size}} · {{language}}",
       "plainText": "Text",
       "tooLarge": "Diese Datei ist zu groß für die Vorschau. Lade das Projekt herunter, um sie zu öffnen.",
-      "binary": "Binärdatei, keine Vorschau möglich."
+      "binary": "Binärdatei, keine Vorschau möglich.",
+      "aiTag": "KI",
+      "aiTagTitle": "Die KI hat Zeilen in dieser Datei geschrieben",
+      "aiShare": "KI hat {{pct}} % der Zeilen geschrieben",
+      "authorship": "Wer diese Zeilen geschrieben hat",
+      "authorshipStale": "Nach der Aufzeichnung der Urheberschaft geändert",
+      "author": {
+        "ai": "KI",
+        "generator": "Generator",
+        "human": "Person",
+        "unknown": "Ohne Zuordnung"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} Zeile von der KI geschrieben",
+        "ai_other": "{{count}} Zeilen von der KI geschrieben",
+        "generator_one": "{{count}} Zeile von einem BESSER-Generator",
+        "generator_other": "{{count}} Zeilen von einem BESSER-Generator",
+        "human_one": "{{count}} Zeile zwischen zwei Läufen von einer Person bearbeitet",
+        "human_other": "{{count}} Zeilen zwischen zwei Läufen von einer Person bearbeitet",
+        "unknown_one": "{{count}} Zeile ohne Angabe, wer sie geschrieben hat",
+        "unknown_other": "{{count}} Zeilen ohne Angabe, wer sie geschrieben hat"
+      }
     },
     "rateLimitTooltip": "Anfragen in der letzten Minute (Limit {{limit}})",
     "import": {
@@ -1927,6 +1948,28 @@
       "fromRequest": "Sie wird aus dem Modell und der ursprünglichen Anfrage neu erstellt. Der Lauf verwendet: {{key}}.",
       "askAssistant": "Der Assistent wird gebeten, sie erneut zu generieren. Der Lauf verwendet: {{key}}.",
       "unknownKey": "den für Generierungen eingerichteten Schlüssel oder die kostenlose Stufe"
+    },
+    "runTrace": {
+      "firstCheck": "Erste Prüfung",
+      "recheck": "Erneute Prüfung nach Korrekturversuch {{attempt}}",
+      "restored": "Die beste frühere Version wurde ausgeliefert",
+      "noBlockers": "keine Blocker",
+      "blockers_one": "{{count}} Blocker",
+      "blockers_other": "{{count}} Blocker",
+      "ofFindings": "von {{count}} Befunden",
+      "fixed": "behoben",
+      "stillFailing": "weiterhin fehlerhaft",
+      "new": "neu",
+      "attempt": "Korrekturversuch {{attempt}}",
+      "attemptNoCalls": "Korrekturversuch {{attempt}} hat keine Werkzeuge aufgerufen",
+      "more": "{{count}} weitere",
+      "fixAttempts_one": "{{count}} Korrekturversuch",
+      "fixAttempts_other": "{{count}} Korrekturversuche",
+      "findings": "Befunde",
+      "turns_one": "{{count}} Runde",
+      "turns_other": "{{count}} Runden",
+      "stats": "Dauer, LLM-Runden und geschätzte Kosten dieses Schritts",
+      "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung."
     }
   },
   "deploy": {

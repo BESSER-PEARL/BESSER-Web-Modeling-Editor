@@ -610,6 +610,7 @@ export function useSpecDrivenTrigger(
         }
         case 'phase_update':
         case 'tool_call':
+        case 'findings':
         case 'text':
         case 'model_update': {
           // Pure card-state events — fully handled by the slice reducer.
