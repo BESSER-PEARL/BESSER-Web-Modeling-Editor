@@ -81,6 +81,14 @@ describe('LineageView', () => {
     expect(container.textContent).toContain('The latest 8 of 11 edits. Open in Diagrams for all of them.');
   });
 
+  it('keeps the name of a closed row whole, with its count on the line under it', () => {
+    // Live: "Generated Python Cla…", "Generated SQLAlche…": the "1 file" count beside the name took its room.
+    const { container } = view(trace());
+    const run = [...container.querySelectorAll('[aria-pressed]')].find((b) => b.textContent?.startsWith('Generated SQLAlchemy DDL'))!;
+    const count = [...run.querySelectorAll('span')].find((s) => s.textContent === '1 file');
+    expect(count?.parentElement?.textContent).toMatch(/2026.*1 file$/); // on the line of the run's time
+  });
+
   it('names each end of a connector with its kind', () => {
     // Live: "Library" twice (the diagram and the class) and "books" twice (two associations) could not be told apart.
     const { container, labelled } = view(trace());

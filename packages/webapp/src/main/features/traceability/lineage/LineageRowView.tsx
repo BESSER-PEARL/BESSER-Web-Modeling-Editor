@@ -27,6 +27,12 @@ export const LineageRowView: React.FC<LineageRowViewProps> = ({ index, row, root
   const header = depth === 0;
   const { label, subtitle } = describeRow(t, index, row, i18n.language);
   const deleted = subject.kind === 'artifact' && isDeleted(index, subject.id);
+  // What opening the row shows. It goes on the line under the name when there is one, so the name keeps the width.
+  const count = row.parts > 0 && !row.expanded && (
+    <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] font-normal normal-case tabular-nums text-muted-foreground">
+      {partsLabel(t, subject, row.parts)}
+    </span>
+  );
   return (
     <div
       ref={anchor}
@@ -67,11 +73,14 @@ export const LineageRowView: React.FC<LineageRowViewProps> = ({ index, row, root
         >
           {label}
         </span>
-        {subtitle && <span className="block truncate text-[10px] font-normal uppercase text-muted-foreground">{subtitle}</span>}
+        {subtitle && (
+          <span className="flex items-center gap-1.5">
+            <span className="min-w-0 truncate text-[10px] font-normal uppercase text-muted-foreground">{subtitle}</span>
+            {count}
+          </span>
+        )}
       </button>
-      {row.parts > 0 && !row.expanded && (
-        <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground">{partsLabel(t, subject, row.parts)}</span>
-      )}
+      {!subtitle && count}
       {row.outOfDate && (
         <AlertTriangle className="size-3.5 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
       )}
