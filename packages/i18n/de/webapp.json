@@ -4577,7 +4577,7 @@
       "from": "Von",
       "to": "Bis",
       "clearFilters": "Filter zurücksetzen",
-      "unknownModels": "seinen Quellmodellen",
+      "writtenBy": "Jede Änderung unten stammt aus einem einzigen Lauf von {{generator}}.",
       "matching": "{{shown}} von {{total}} angezeigt"
     },
     "elements": {

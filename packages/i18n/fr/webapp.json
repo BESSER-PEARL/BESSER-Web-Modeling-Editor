@@ -4577,7 +4577,7 @@
       "from": "Du",
       "to": "Au",
       "clearFilters": "Effacer les filtres",
-      "unknownModels": "ses modèles sources",
+      "writtenBy": "Chaque modification ci-dessous provient d'une seule exécution de {{generator}}.",
       "matching": "{{shown}} sur {{total}} affichés"
     },
     "elements": {

@@ -4577,7 +4577,7 @@
       "from": "From",
       "to": "To",
       "clearFilters": "Clear filters",
-      "unknownModels": "its source models",
+      "writtenBy": "Every change below comes from one run of {{generator}}.",
       "matching": "{{shown}} of {{total}} shown"
     },
     "elements": {

@@ -329,10 +329,10 @@ const OperationCard: React.FC<OperationCardProps> = ({ operation, index, open, o
             <>
               {generator && (
                 <p className="text-xs text-muted-foreground">
-                  {t('traceability.timeline.derivedBy', {
-                    generator: generator.name,
-                    models: derivedFrom.map((d) => d.name).join(', ') || t('traceability.timeline.unknownModels'),
-                  })}
+                  {derivedFrom.length > 0
+                    ? t('traceability.timeline.derivedBy', { generator: generator.name, models: derivedFrom.map((d) => d.name).join(', ') })
+                    : // A template or an import reads no model of the project.
+                      t('traceability.timeline.writtenBy', { generator: generator.name })}
                 </p>
               )}
               {groups.map(([elementId, changes]) => (

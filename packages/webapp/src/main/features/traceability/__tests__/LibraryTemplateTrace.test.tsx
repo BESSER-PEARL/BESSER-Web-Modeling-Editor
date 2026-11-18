@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { indexTrace } from '../../../shared/traceability/traceQueries';
 import { MODEL_GENERATORS } from '../../../shared/traceability/traceStore';
@@ -67,5 +67,24 @@ describe('a project loaded from the Library template', () => {
     const entry = [...container.querySelectorAll('li')].find((li) => li.textContent?.startsWith('Created attribute title'));
     expect(entry?.textContent).toContain('Written by BESSER template library · Ada');
     expect(entry?.textContent).not.toContain('Modeling session');
+  });
+
+  it('does not claim source models for a template load, which has none', () => {
+    // Live: "Derived from its source models by BESSER template library…".
+    render(<TimelineView index={indexTrace(libraryProject())} onOpenElement={noop} />);
+    fireEvent.click(screen.getByText('Written by BESSER template library'));
+    expect(screen.getByText('Every change below comes from one run of BESSER template library.')).toBeTruthy();
+    expect(screen.queryByText(/Derived from/)).toBeNull();
+  });
+
+  it('still names the models a derivation read', () => {
+    const t = libraryProject();
+    t.tools.push({ id: 'gui', type: 'ModelGenerator', name: 'BESSER GUI generator', timestamp: at(0) });
+    t.artifacts.push({ id: 'ui', type: 'ModelArtifact', name: 'Library UI', elementId: 'g1', elementType: 'GUIModel', timestamp: at(4) });
+    t.operations.push({ ...base, id: 'derive', type: 'ModelingSession', startedAt: at(4), performedBy: ['ada'], reads: ['cd'],
+      toolCalls: [call('dc', 'gui', 4)], changes: [{ id: 'c3', kind: 'CREATED', artifactId: 'ui', newValue: 'Library UI', timestamp: at(4) }] });
+    render(<TimelineView index={indexTrace(t)} onOpenElement={noop} />);
+    fireEvent.click(screen.getByText('Written by BESSER GUI generator'));
+    expect(screen.getByText(/^Derived from Library by BESSER GUI generator, deterministically/)).toBeTruthy();
   });
 });

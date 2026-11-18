@@ -4577,7 +4577,7 @@
       "from": "Desde",
       "to": "Hasta",
       "clearFilters": "Borrar filtros",
-      "unknownModels": "sus modelos de origen",
+      "writtenBy": "Cada cambio de abajo proviene de una sola ejecución de {{generator}}.",
       "matching": "{{shown}} de {{total}} mostradas"
     },
     "elements": {

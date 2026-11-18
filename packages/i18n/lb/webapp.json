@@ -4577,7 +4577,7 @@
       "from": "Vun",
       "to": "Bis",
       "clearFilters": "Filtere läschen",
-      "unknownModels": "seng Quellmodeller",
+      "writtenBy": "All Ännerung hei drënner kënnt aus engem eenzege Laf vun {{generator}}.",
       "matching": "{{shown}} vun {{total}} gewisen"
     },
     "elements": {

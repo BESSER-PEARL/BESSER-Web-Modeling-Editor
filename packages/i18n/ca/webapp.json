@@ -4577,7 +4577,7 @@
       "from": "Des de",
       "to": "Fins a",
       "clearFilters": "Esborra els filtres",
-      "unknownModels": "els seus models d'origen",
+      "writtenBy": "Cada canvi de sota prové d'una sola execució de {{generator}}.",
       "matching": "{{shown}} de {{total}} mostrades"
     },
     "elements": {
