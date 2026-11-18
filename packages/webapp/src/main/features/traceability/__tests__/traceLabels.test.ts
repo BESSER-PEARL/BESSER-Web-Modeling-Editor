@@ -3,6 +3,8 @@ import en from '../../../../../../i18n/en/webapp.json';
 import { APOLLON_TABLES, snapshotKnowledgeGraph, snapshotQuantumModel } from '../../../shared/traceability/diagramModelDiff';
 import i18n from '../../../shared/i18n';
 import { generatorLabel } from '../traceLabels';
+import { cardCounts } from '../lineage/lineageLabels';
+import type { LineageSubject } from '../../../shared/traceability/lineage';
 
 const labels = en.traceability.elementTypes as Record<string, string>;
 
@@ -32,5 +34,18 @@ describe('generator labels', () => {
     // Offered in several forms under one group: the group names it.
     expect(generatorLabel(t, 'pytorch')).toBe('PyTorch');
     expect(generatorLabel(t, 'gpt-6-luna')).toBe('gpt-6-luna');
+  });
+});
+
+describe('lineage card counts', () => {
+  it('counts the cards by kind, in the page language', () => {
+    // Live: "3 diagrams, prompts and generation runs" for one diagram and two runs.
+    const t = i18n.getFixedT('en');
+    const time = '2026-11-18T10:00:00.000Z';
+    const run = (id: string): LineageSubject => ({ kind: 'run', id, operation: { id, type: 'CodeGeneration', status: 'SUCCEEDED', startedAt: time, performedBy: [], toolCalls: [], reads: [], writes: [] } });
+    const diagram: LineageSubject = { kind: 'artifact', id: 'cd', artifact: { id: 'cd', type: 'ModelArtifact', name: 'Library', elementId: 'd', elementType: 'DomainModel', timestamp: time } };
+    const prompt: LineageSubject = { kind: 'artifact', id: 'p', artifact: { id: 'p', type: 'PromptArtifact', name: 'p', content: 'a library', contentHash: 'h', timestamp: time } };
+    expect(cardCounts(t, [diagram, run('a'), run('b')], 'en')).toBe('1 diagram and 2 generation runs');
+    expect(cardCounts(t, [run('a'), prompt, diagram], 'en')).toBe('1 diagram, 1 prompt, and 1 generation run');
   });
 });

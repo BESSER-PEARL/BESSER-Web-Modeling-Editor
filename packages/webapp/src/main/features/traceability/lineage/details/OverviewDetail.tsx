@@ -6,7 +6,7 @@ import type { Lineage, LineageBundle, LineageLayout } from '../../../../shared/t
 import { runOfSubjectId } from '../../../../shared/traceability/lineage';
 import { formatTime, operationLabel } from '../../traceLabels';
 import { bundleLook, lookOf } from '../lineageLook';
-import { nodeLabel } from '../lineageLabels';
+import { cardCounts, nodeLabel } from '../lineageLabels';
 import { DetailPane, DetailSection } from './DetailPane';
 
 /** How many of the drawn connectors the overview lists. */
@@ -32,7 +32,10 @@ export const OverviewDetail: React.FC<{
     <DetailPane>
       <h3 className="font-semibold">{t('traceability.lineage.overviewTitle')}</h3>
       <p className="text-xs text-muted-foreground">
-        {t('traceability.lineage.overviewCounts', { cards: layout.columns.flat().length, links: lineage.edges.length })}
+        {t('traceability.lineage.overviewSummary', {
+          cards: cardCounts(t, layout.columns.flat().map((card) => card.subject), i18n.language),
+          count: lineage.edges.length,
+        })}
       </p>
       {outdated > 0 && (
         <p className="flex items-start gap-1 text-xs text-warning">

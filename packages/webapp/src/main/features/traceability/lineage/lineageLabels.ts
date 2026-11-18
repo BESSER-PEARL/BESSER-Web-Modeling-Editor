@@ -43,6 +43,26 @@ export function artifactKindLabel(t: TFunction, artifact: TraceArtifact): string
   return t(isPromptArtifact(artifact) ? 'traceability.lineage.prompt' : 'traceability.lineage.code');
 }
 
+const CARD_KINDS = ['diagrams', 'prompts', 'requirements', 'runs', 'files'] as const;
+
+const cardKindOf = (subject: LineageSubject): (typeof CARD_KINDS)[number] => {
+  if (subject.kind === 'run') return 'runs';
+  const { artifact } = subject;
+  if (isModelArtifact(artifact)) return 'diagrams';
+  if (isPromptArtifact(artifact)) return 'prompts';
+  return isRequirementArtifact(artifact) ? 'requirements' : 'files';
+};
+
+/** The cards of a lineage counted by kind, as a list in the page language: "1 diagram and 2 generation runs". */
+export function cardCounts(t: TFunction, cards: LineageSubject[], locale: string): string {
+  const counts = new Map<string, number>();
+  for (const card of cards) counts.set(cardKindOf(card), (counts.get(cardKindOf(card)) ?? 0) + 1);
+  const parts = CARD_KINDS.filter((kind) => counts.has(kind)).map((kind) =>
+    t(`traceability.lineage.cardCounts.${kind}`, { count: counts.get(kind) }),
+  );
+  return new Intl.ListFormat(locale, { type: 'conjunction' }).format(parts);
+}
+
 /** A row's name and the line under it. */
 export function describeRow(t: TFunction, index: TraceIndex, row: LineageRow, locale: string): { label: string; subtitle?: string } {
   const { subject, depth } = row;

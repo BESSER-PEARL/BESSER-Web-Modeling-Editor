@@ -55,7 +55,8 @@ describe('LineageView', () => {
   it('starts with the diagrams and generation runs, and shows their parts on demand', () => {
     const { container, rowLabels, labelled } = view(trace());
     expect(rowLabels()).toEqual(['Class Diagram', 'Generated SQLAlchemy DDL']);
-    expect(container.textContent).toContain('2 diagrams, prompts and generation runs, joined by 1 trace links');
+    // Live: "3 diagrams, prompts and generation runs" for one diagram and two runs.
+    expect(container.textContent).toContain('1 diagram and 1 generation run, joined by 1 trace link.');
 
     fireEvent.click(container.querySelector('[aria-pressed]')!); // clicking a card opens it
     expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);
